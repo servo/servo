@@ -65,7 +65,7 @@ class FakeBluetooth {
   constructor() {
     this.fake_bluetooth_ptr_ = new bluetooth.mojom.FakeBluetoothPtr();
     Mojo.bindInterface(bluetooth.mojom.FakeBluetooth.name,
-        mojo.makeRequest(this.fake_bluetooth_ptr_).handle, "process");
+        mojo.makeRequest(this.fake_bluetooth_ptr_).handle, 'process');
   }
 
   // Set it to indicate whether the platform supports BLE. For example,
@@ -101,6 +101,15 @@ class FakeBluetooth {
   async allResponsesConsumed() {
     let {consumed} = await this.fake_bluetooth_ptr_.allResponsesConsumed();
     return consumed;
+  }
+
+  // Returns a promise that resolves with a FakeChooser that clients can use to
+  // simulate chooser events.
+  async getManualChooser() {
+    if (typeof this.fake_chooser_ === 'undefined') {
+      this.fake_chooser_ = new FakeChooser();
+    }
+    return this.fake_chooser_;
   }
 }
 
@@ -164,8 +173,12 @@ class FakeCentral {
           scanResult.scanRecord.manufacturerData, Number);
     }
 
-    // TODO(https://crbug.com/817603): Add a conversion process for serviceData
-    // when the field is added in Mojo.
+    // Convert serviceData from a record<DOMString, BufferSource> into a
+    // map<string, array<uint8>> for Mojo.
+    if ('serviceData' in scanResult.scanRecord) {
+      scanResult.scanRecord.serviceData.serviceData = convertToMojoMap(
+          scanResult.scanRecord.serviceData, BluetoothUUID.getService);
+    }
 
     await this.fake_central_ptr_.simulateAdvertisementReceived(
         new bluetooth.mojom.ScanResult(scanResult));
@@ -364,7 +377,7 @@ class FakeRemoteGATTCharacteristic {
       await this.fake_central_ptr_.setNextWriteCharacteristicResponse(
         gatt_code, ...this.ids_);
 
-    if (!success) throw 'setNextWriteResponse failed';
+    if (!success) throw 'setNextWriteCharacteristicResponse failed';
   }
 
   // Sets the next subscribe to notifications response for characteristic with
@@ -380,13 +393,38 @@ class FakeRemoteGATTCharacteristic {
     if (!success) throw 'setNextSubscribeToNotificationsResponse failed';
   }
 
+  // Sets the next unsubscribe to notifications response for characteristic with
+  // |characteristic_id| in |service_id| and in |peripheral_address| to
+  // |code|. |code| could be a GATT Error Response from BT 4.2 Vol 3 Part F
+  // 3.4.1.1 Error Response or a number outside that range returned by
+  // specific platforms e.g. Android returns 0x101 to signal a GATT failure.
+  async setNextUnsubscribeFromNotificationsResponse(gatt_code) {
+    let {success} =
+      await this.fake_central_ptr_.setNextUnsubscribeFromNotificationsResponse(
+        gatt_code, ...this.ids_);
+
+    if (!success) throw 'setNextUnsubscribeToNotificationsResponse failed';
+  }
+
+  // Returns true if notifications from the characteristic have been subscribed
+  // to.
+  async isNotifying() {
+    let {success, isNotifying} =
+        await this.fake_central_ptr_.isNotifying(...this.ids_);
+
+    if (!success) throw 'isNotifying failed';
+
+    return isNotifying;
+  }
+
   // Gets the last successfully written value to the characteristic.
   // Returns null if no value has yet been written to the characteristic.
   async getLastWrittenValue() {
     let {success, value} =
-      await this.fake_central_ptr_.getLastWrittenValue(...this.ids_);
+      await this.fake_central_ptr_.getLastWrittenCharacteristicValue(
+          ...this.ids_);
 
-    if (!success) throw 'getLastWrittenValue failed';
+    if (!success) throw 'getLastWrittenCharacteristicValue failed';
 
     return value;
   }
@@ -430,6 +468,50 @@ class FakeRemoteGATTDescriptor {
         gatt_code, value, ...this.ids_);
 
     if (!success) throw 'setNextReadDescriptorResponse failed';
+  }
+
+  // Sets the next write response for this descriptor to |code|.
+  // |code| could be a GATT Error Response from
+  // BT 4.2 Vol 3 Part F 3.4.1.1 Error Response or a number outside that range
+  // returned by specific platforms e.g. Android returns 0x101 to signal a GATT
+  // failure.
+  async setNextWriteResponse(gatt_code) {
+    let {success} =
+      await this.fake_central_ptr_.setNextWriteDescriptorResponse(
+        gatt_code, ...this.ids_);
+
+    if (!success) throw 'setNextWriteDescriptorResponse failed';
+  }
+
+  // Gets the last successfully written value to the descriptor.
+  // Returns null if no value has yet been written to the descriptor.
+  async getLastWrittenValue() {
+    let {success, value} =
+      await this.fake_central_ptr_.getLastWrittenDescriptorValue(
+          ...this.ids_);
+
+    if (!success) throw 'getLastWrittenDescriptorValue failed';
+
+    return value;
+  }
+
+  // Removes the fake GATT Descriptor from its fake characteristic.
+  async remove() {
+    let {success} =
+        await this.fake_central_ptr_.removeFakeDescriptor(...this.ids_);
+
+    if (!success) throw 'remove failed';
+  }
+}
+
+// FakeChooser allows clients to simulate events that a user would trigger when
+// using the Bluetooth chooser, and monitor the events that are produced.
+class FakeChooser {
+  constructor() {
+    this.fake_bluetooth_chooser_ptr_ =
+        new content.mojom.FakeBluetoothChooserPtr();
+    Mojo.bindInterface(content.mojom.FakeBluetoothChooser.name,
+        mojo.makeRequest(this.fake_bluetooth_chooser_ptr_).handle, 'process');
   }
 }
 

@@ -17,7 +17,6 @@ invalid = {
     "scheme-data-single-slash": "data:/example.com/",
     "scheme-ftp-no-slash": "ftp:example.com/",
     "scheme-https-no-slash": "https:example.com/",
-    "scheme-javascript-no-slash-malformed": "javascript:example.com/",
     "userinfo-password-bad-chars": "http://&a:foo(b]c@d:2/",
     "userinfo-username-contains-at-sign": "http://::@c@d:2",
     "userinfo-backslash": "http://a\\b:c\\d@foo.com",

@@ -3,6 +3,7 @@
 <title>RTCRtpSender.prototype.getStats</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script src="dictionary-helper.js"></script>
 <script src="RTCStats-helper.js"></script>
 <script>
@@ -11,6 +12,9 @@
   // Test is based on the following editor draft:
   // webrtc-pc 20171130
   // webrtc-stats 20171122
+
+  // The following helper functions are called from RTCPeerConnection-helper.js:
+  //   doSignalingHandshake
 
   // The following helper function is called from RTCStats-helper.js
   //   validateStatsReport
@@ -35,31 +39,28 @@
           objects added.
    */
 
-  promise_test(() => {
-    const pc = new RTCPeerConnection();
-    const { sender } = pc.addTransceiver('audio');
+  promise_test(async () => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    const { sender } = caller.addTransceiver('audio');
 
-    return sender.getStats()
-    .then(statsReport => {
-      validateStatsReport(statsReport);
-      assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
-    });
+    await doSignalingHandshake(caller, callee);
+    const statsReport = await sender.getStats();
+    validateStatsReport(statsReport);
+    assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
   }, 'sender.getStats() via addTransceiver should return stats report containing outbound-rtp stats');
 
-  promise_test(() => {
-    const pc = new RTCPeerConnection();
+  promise_test(async () => {
+    const caller = new RTCPeerConnection();
+    const callee = new RTCPeerConnection();
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const [track] = stream.getTracks();
+    const sender = caller.addTrack(track, stream);
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const [track] = mediaStream.getTracks();
-      const sender = pc.addTrack(track, mediaStream);
-
-      return sender.getStats()
-      .then(statsReport => {
-        validateStatsReport(statsReport);
-        assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
-      });
-    })
+    await doSignalingHandshake(caller, callee);
+    const statsReport = await sender.getStats();
+    validateStatsReport(statsReport);
+    assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
   }, 'sender.getStats() via addTrack should return stats report containing outbound-rtp stats');
 
 </script>

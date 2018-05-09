@@ -94,7 +94,6 @@
     <rect x="10" y="270" width="225" height="40" fill="url(#lgSpreadDefault)" stroke="none"/>
     <text font-size="16" x="10" y="265">spreadMethod="default"</text>
 
-
     <rect x="245" y="060" width="225" height="40" fill="url(#rgSpreadPad)" stroke="none"/>
     <text font-size="16" x="245" y="55">spreadMethod="pad"</text>
 

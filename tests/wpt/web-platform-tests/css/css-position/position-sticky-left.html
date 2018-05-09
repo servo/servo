@@ -12,29 +12,29 @@
 
 <script>
 test(() => {
-  const elements = setupStickyTest('left', 50, true);
+  const elements = setupStickyTest('left', 50);
   elements.scroller.scrollLeft = 100;
-  const nonStickyLeftY = elements.container.offsetLeft +
+  const nonStickyLeftX = elements.container.offsetLeft +
       elements.filler.clientWidth;
-  assert_equals(elements.sticky.offsetLeft, nonStickyLeftY);
+  assert_equals(elements.sticky.offsetLeft, nonStickyLeftX);
 }, 'before reaching the sticking point the sticky box should not be offset');
 
 test(() => {
-  const elements = setupStickyTest('left', 50, true);
+  const elements = setupStickyTest('left', 50);
   elements.scroller.scrollLeft = 200;
 
   // This math actually cancels to sticky.offsetLeft == (scroller.scrollLeft + 50),
   // but for clarity the calculations are left explicit.
-  const nonStickyLeftY = elements.container.offsetLeft +
+  const nonStickyLeftX = elements.container.offsetLeft +
       elements.filler.clientWidth;
-  const targetLeftY = elements.scroller.scrollLeft + 50;
-  const stickyOffset = targetLeftY - nonStickyLeftY;
+  const targetLeftX = elements.scroller.scrollLeft + 50;
+  const stickyOffset = targetLeftX - nonStickyLeftX;
 
-  assert_equals(elements.sticky.offsetLeft, nonStickyLeftY + stickyOffset);
+  assert_equals(elements.sticky.offsetLeft, nonStickyLeftX + stickyOffset);
 }, 'after reaching the sticking point the sticky box should be offset');
 
 test(() => {
-  const elements = setupStickyTest('left', 50, true);
+  const elements = setupStickyTest('left', 50);
   elements.scroller.scrollLeft = 300;
   const maxOffsetInContainer = elements.container.offsetLeft +
       elements.container.clientWidth - elements.sticky.clientWidth;

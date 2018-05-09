@@ -40,11 +40,11 @@
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         The test has passed if:
-      </p> 
+      </p>
       <ul>
         <li>the topmost line shows the text "Sample 123" that animates its fill-color smoothly from blue to green over the course of six seconds</li>
         <li>the middle line shows the text "Sample 123" in a larger font-size than the first line, in blue fill-color that doesn't animate</li>
-        <li>the bottommost line shows the text "Sample 123" in the same font-size as the topmost line, then smoothly animating the font-size 
+        <li>the bottommost line shows the text "Sample 123" in the same font-size as the topmost line, then smoothly animating the font-size
           to be larger than the middle line over the course of six seconds. At the same time the fill-color is smoothly animated from blue to green</li>
         <li>after six seconds the rendered result matches the reference image</li>
       </ul>

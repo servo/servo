@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script>
+    test(t => {
+      assert_false('applicationCache' in window);
+      assert_equals(window.applicationCache, undefined);
+    }, "window.applicationCache does not exist in non-secure contexts.");
+
+    test(t => {
+      assert_false('ApplicationCache' in window);
+      assert_equals(typeof ApplicationCache, "undefined");
+    }, "ApplicationCache interface does not exist in non-secure contexts.");
+
+    test(t => {
+      assert_false('ApplicationCacheErrorEvent' in window);
+      assert_equals(typeof ApplicationCacheErrorEvent, "undefined");
+    }, "ApplicationCacheErrorEvent interface does not exist in non-secure contexts.");
+  </script>
+</head>
+</html>

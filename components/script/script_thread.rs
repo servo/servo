@@ -17,6 +17,8 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+extern crate itertools;
+
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use devtools;
@@ -72,17 +74,16 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
-use malloc_size_of::MallocSizeOfOps;
-use mem::malloc_size_of_including_self;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
-use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
+use profile_traits::mem::{self, OpaqueSender, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
@@ -1156,6 +1157,7 @@ impl ScriptThread {
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
                     Resize(id, ..) => Some(id),
                     ResizeInactive(id, ..) => Some(id),
+                    UnloadDocument(id) => Some(id),
                     ExitPipeline(id, ..) => Some(id),
                     ExitScriptThread => None,
                     SendEvent(id, ..) => Some(id),
@@ -1168,6 +1170,8 @@ impl ScriptThread {
                     Navigate(id, ..) => Some(id),
                     PostMessage(id, ..) => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
+                    UpdateHistoryState(id, ..) => Some(id),
+                    RemoveHistoryStates(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
                     WebDriverScriptCommand(id, ..) => Some(id),
                     TickAllAnimations(id) => Some(id),
@@ -1272,6 +1276,8 @@ impl ScriptThread {
             },
             ConstellationControlMsg::Navigate(parent_pipeline_id, browsing_context_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(browsing_context_id), load_data, replace),
+            ConstellationControlMsg::UnloadDocument(pipeline_id) =>
+                self.handle_unload_document(pipeline_id),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -1294,6 +1300,10 @@ impl ScriptThread {
                                                browsing_context_id,
                                                new_pipeline_id,
                                                reason),
+            ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) =>
+                self.handle_update_history_state_msg(pipeline_id, history_state_id, url),
+            ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) =>
+                self.handle_remove_history_states(pipeline_id, history_states),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1580,34 +1590,11 @@ impl ScriptThread {
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut path_seg = String::from("url(");
-        let mut dom_tree_size = 0;
+        let documents = self.documents.borrow();
+        let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
+        let path_seg = format!("url({})", urls);
+
         let mut reports = vec![];
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
-
-        for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url();
-
-            for child in document.upcast::<Node>().traverse_preorder() {
-                dom_tree_size += malloc_size_of_including_self(&mut ops, &*child);
-            }
-            dom_tree_size += malloc_size_of_including_self(&mut ops, document.window());
-
-            if reports.len() > 0 {
-                path_seg.push_str(", ");
-            }
-            path_seg.push_str(current_url.as_str());
-
-            reports.push(Report {
-                path: path![format!("url({})", current_url.as_str()), "dom-tree"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: dom_tree_size,
-            });
-        }
-
-        path_seg.push_str(")");
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
@@ -1684,6 +1671,13 @@ impl ScriptThread {
         }
     }
 
+    fn handle_unload_document(&self, pipeline_id: PipelineId) {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            document.unload(false, false);
+        }
+    }
+
     fn handle_update_pipeline_id(&self,
                                  parent_pipeline_id: PipelineId,
                                  browsing_context_id: BrowsingContextId,
@@ -1692,6 +1686,24 @@ impl ScriptThread {
         let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
+        }
+    }
+
+    fn handle_update_history_state_msg(
+        &self, pipeline_id: PipelineId,
+        history_state_id: Option<HistoryStateId>,
+        url: ServoUrl,
+    ) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            Some(window) => window.History().r().activate_state(history_state_id, url),
+        }
+    }
+
+    fn handle_remove_history_states(&self, pipeline_id: PipelineId, history_states: Vec<HistoryStateId>) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            Some(window) => window.History().r().remove_states(history_states),
         }
     }
 

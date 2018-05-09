@@ -8,7 +8,7 @@ use gecko_bindings::bindings::Gecko_EnsureStyleAnimationArrayLength;
 use gecko_bindings::bindings::Gecko_EnsureStyleTransitionArrayLength;
 use gecko_bindings::structs::{StyleAnimation, StyleTransition};
 use gecko_bindings::structs::nsStyleAutoArray;
-use std::iter::{once, Chain, Once, IntoIterator};
+use std::iter::{once, Chain, IntoIterator, Once};
 use std::ops::{Index, IndexMut};
 use std::slice::{Iter, IterMut};
 
@@ -55,7 +55,10 @@ impl nsStyleAutoArray<StyleAnimation> {
     /// Ensures that the array has length at least the given length.
     pub fn ensure_len(&mut self, len: usize) {
         unsafe {
-            Gecko_EnsureStyleAnimationArrayLength(self as *mut nsStyleAutoArray<StyleAnimation> as *mut _, len);
+            Gecko_EnsureStyleAnimationArrayLength(
+                self as *mut nsStyleAutoArray<StyleAnimation> as *mut _,
+                len,
+            );
         }
     }
 }
@@ -64,7 +67,10 @@ impl nsStyleAutoArray<StyleTransition> {
     /// Ensures that the array has length at least the given length.
     pub fn ensure_len(&mut self, len: usize) {
         unsafe {
-            Gecko_EnsureStyleTransitionArrayLength(self as *mut nsStyleAutoArray<StyleTransition> as *mut _, len);
+            Gecko_EnsureStyleTransitionArrayLength(
+                self as *mut nsStyleAutoArray<StyleTransition> as *mut _,
+                len,
+            );
         }
     }
 }

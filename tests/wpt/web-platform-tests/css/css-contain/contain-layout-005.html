@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: layout containment on ruby-text</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="ahem">
+  <meta name=assert content="layout containment does not apply to ruby-text">
+  <link rel="match" href="reference/contain-layout-005-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-paint">
+
+<style>
+rt {
+  contain: layout;
+  display: ruby-text;
+  font-family: ahem;
+  font-size: 20px;
+  line-height: 1;
+}
+rt::before {
+  content: "X";
+  color: green;
+}
+rt::after {
+  content: "X";
+  color: white;
+  position: absolute;
+  top:0; left: 0;
+}
+</style>
+
+<p>This test passes if you can see a green box below.
+<div><ruby><rt></rt></ruby></div>

@@ -96,10 +96,10 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 def check_environ(product):
     if product not in ("firefox", "servo"):
-        expected_hosts = {".".join(x)
-                          for x in serve.get_subdomains("web-platform.test").values()}
-        expected_hosts |= {".".join(x)
-                           for x in serve.get_not_subdomains("web-platform.test").values()}
+        config = serve.load_config(os.path.join(wpt_root, "config.default.json"),
+                                   os.path.join(wpt_root, "config.json"))
+        expected_hosts = (set(config["domains"].itervalues()) ^
+                          set(config["not_domains"].itervalues()))
         missing_hosts = set(expected_hosts)
         if platform.uname()[0] != "Windows":
             hosts_path = "/etc/hosts"
@@ -116,13 +116,13 @@ def check_environ(product):
                 if platform.uname()[0] != "Windows":
                     message = """Missing hosts file configuration. Run
 
-python wpt make-hosts-file >> %s
-
-from a shell with Administrator privileges.""" % hosts_path
+./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
                 else:
                     message = """Missing hosts file configuration. Run
 
-./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
+python wpt make-hosts-file >> %s
+
+from a shell with Administrator privileges.""" % hosts_path
                 raise WptrunError(message)
 
 
@@ -163,7 +163,7 @@ class Firefox(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
-            binary = self.browser.find_binary()
+            binary = self.browser.find_binary(self.venv.path)
             if binary is None:
                 raise WptrunError("""Firefox binary not found on $PATH.
 
@@ -201,8 +201,7 @@ Consider installing certutil via your OS package manager or directly.""")
                 kwargs["test_types"].remove("wdspec")
 
         if kwargs["prefs_root"] is None:
-            print("Downloading gecko prefs")
-            prefs_root = self.browser.install_prefs(self.venv.path)
+            prefs_root = self.browser.install_prefs(kwargs["binary"], self.venv.path)
             kwargs["prefs_root"] = prefs_root
 
 
@@ -352,7 +351,8 @@ class Servo(BrowserSetup):
     browser_cls = browser.Servo
 
     def install(self, venv):
-        raise NotImplementedError
+        if self.prompt_install(self.name):
+            return self.browser.install(venv.path)
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
@@ -457,7 +457,8 @@ def run(venv, **kwargs):
 
 def run_single(venv, **kwargs):
     from wptrunner import wptrunner
-    return wptrunner.start(**kwargs)
+    wptrunner.start(**kwargs)
+    return
 
 
 def main():

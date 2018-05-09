@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#register-a-custom-property" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Tests for error checking during property registration
+
+test(function() {
+    assert_throws(new TypeError(), () => CSS.registerProperty());
+    assert_throws(new TypeError(), () => CSS.registerProperty(undefined));
+    assert_throws(new TypeError(), () => CSS.registerProperty(true));
+    assert_throws(new TypeError(), () => CSS.registerProperty(2));
+    assert_throws(new TypeError(), () => CSS.registerProperty("css"));
+    assert_throws(new TypeError(), () => CSS.registerProperty(null));
+}, "registerProperty requires a Dictionary type");
+
+test(function() {
+    // Valid property names, shouldn't throw
+    CSS.registerProperty({name: '--name1'});
+    CSS.registerProperty({name: '--name2, no need for escapes'});
+    CSS.registerProperty({name: ['--name', 3]});
+
+    // Invalid property names
+    assert_throws(new TypeError(), () => CSS.registerProperty({}));
+    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: 'no-leading-dash'}));
+    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: ''}));
+    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: '\\--name'}));
+}, "registerProperty requires a name matching <custom-property-name>");
+
+test(function() {
+    CSS.registerProperty({name: '--syntax-test-1', syntax: '*'});
+    CSS.registerProperty({name: '--syntax-test-2', syntax: ' * '});
+    assert_throws(new SyntaxError(),
+        () => CSS.registerProperty({name: '--syntax-test-3', syntax: 'length'}));
+}, "registerProperty only allows omitting initialValue is syntax is '*'");
+
+test(function() {
+    CSS.registerProperty({name: '--re-register', syntax: '<length>', initialValue: '0px'});
+    assert_throws({name: 'InvalidModificationError'},
+        () => CSS.registerProperty({name: '--re-register', syntax: '<percentage>', initialValue: '0%'}));
+}, "registerProperty fails for an already registered property");
+</script>

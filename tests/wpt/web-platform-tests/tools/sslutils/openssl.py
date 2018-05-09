@@ -136,7 +136,7 @@ certs = $dir
 new_certs_dir = $certs
 crl_dir = $dir%(sep)scrl
 database = $dir%(sep)sindex.txt
-private_key = $dir%(sep)scakey.pem
+private_key = $dir%(sep)scacert.key
 certificate = $dir%(sep)scacert.pem
 serial = $dir%(sep)sserial
 crldir = $dir%(sep)scrl
@@ -294,7 +294,7 @@ class OpenSSLEnvironment(object):
         return self._ca_cert_path
 
     def _load_ca_cert(self):
-        key_path = self.path("cakey.pem")
+        key_path = self.path("cacert.key")
         cert_path = self.path("cacert.pem")
 
         if self.check_key_cert(key_path, cert_path, None):
@@ -327,7 +327,7 @@ class OpenSSLEnvironment(object):
         path = self.path
         self.logger.info("Generating new CA in %s" % self.base_path)
 
-        key_path = path("cakey.pem")
+        key_path = path("cacert.key")
         req_path = path("careq.pem")
         cert_path = path("cacert.pem")
 

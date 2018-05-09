@@ -14,7 +14,6 @@ let characteristic, fake_peripheral, fake_service;
 bluetooth_test(() => getMeasurementIntervalCharacteristic()
     .then(_ => ({characteristic, fake_peripheral, fake_service} = _))
     .then(() => fake_service.remove())
-    .then(() => fake_peripheral.setNextGATTDiscoveryResponse({HCI_SUCCESS}))
     .then(() => fake_peripheral.simulateGATTServicesChanged())
     .then(() => assert_promise_rejects_with_message(
         characteristic.readValue(),

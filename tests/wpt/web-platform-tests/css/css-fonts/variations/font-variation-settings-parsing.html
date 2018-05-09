@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing the parsing of the font-variation-settings property</title>
+    <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#propdef-font-variation-settings" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="value-parser-test"></div>
+    <script>
+
+        var valueParserTests = [
+            { value: "'wght' 1000, '9 ~A' -45",           expectedComputedValue: "\"wght\" 1000, \"9 ~A\" -45",    isValid: true,  message: "Axis tag with valid non-letter ascii characters" },
+            { value: "'\u001Fbdc' 123",                   expectedComputedValue: "",                               isValid: false, message: "Invalid character below allowed range (first char)"},
+            { value: "'abc\u007F' 123",                   expectedComputedValue: "",                               isValid: false, message: "Invalid character above allowed range (mid char)"},
+            { value: "'wght' 1e3, 'slnt' -450.0e-1 ",     expectedComputedValue: "\"wght\" 1000, \"slnt\" -45",    isValid: true,  message: "Axis values in scientific form are valid" },
+            { value: "normal",                            expectedComputedValue: "normal",                         isValid: true,  message: "'normal' value is valid" },
+            { value: "'a' 1234",                          expectedComputedValue: "",                               isValid: false, message: "Tag with less than 4 characters is invalid"},
+            { value: "'abcde' 1234",                      expectedComputedValue: "",                               isValid: false, message: "Tag with more than 4 characters is invalid"},
+            { value: "'wght' 200, ",                      expectedComputedValue: "",                               isValid: false, message: "Trailing comma is invalid"},
+            { value: "abcd 123",                          expectedComputedValue: "",                               isValid: false, message: "Unquoted tags are invalid"},
+            { value: "'abcd\" 123",                       expectedComputedValue: "",                               isValid: false, message: "Unmatched quotes around tag are invalid" },
+            { value: "'abcd'",                            expectedComputedValue: "",                               isValid: false, message: "Tag without value isinvalid"},
+            { value: "123",                               expectedComputedValue: "",                               isValid: false, message: "Value without tag is invalid"},
+            { value: "123 'abcd'",                        expectedComputedValue: "",                               isValid: false, message: "Value before tag is invalid"},
+            { value: "'wght' 200 'abcd' 400",             expectedComputedValue: "",                               isValid: false, message: "Missing comma between axes is invalid"},
+            { value: "'wght' calc(100 + 200)",            expectedComputedValue: "\"wght\" 300",                   isValid: true,  message: "Calculations should be supported" },
+            { value: "'wght' 100px",                      expectedComputedValue: "",                               isValid: false, message: "Units should not be supported" },
+            { value: "'wght' calc(100px + 200px)",        expectedComputedValue: "",                               isValid: false, message: "Units should not be supported (in calc)" },
+            { value: "'wght' 42%",                        expectedComputedValue: "",                               isValid: false, message: "Percentages should not be supported" },
+            { value: "'wght' calc(100%)",                 expectedComputedValue: "",                               isValid: false, message: "Percentages should not be supported (in calc)" },
+        ];
+
+        valueParserTests.forEach(function (testCase) {
+            test(() => {
+                var element = document.getElementById("value-parser-test");
+                // Reset to empty in order for testing to continue in case the next test would not parse as valid
+                element.style.fontVariationSettings = "";
+                element.style.fontVariationSettings = testCase.value;
+                var computed = window.getComputedStyle(element).fontVariationSettings;
+                if (testCase.isValid) {
+                    assert_equals(computed, testCase.expectedComputedValue, testCase.message);
+                }
+                else {
+                    assert_equals(computed, "normal", testCase.message);
+                }
+
+                element.style.fontVariationSettings = "";
+            },  "Property value: " + testCase.message);
+        });
+
+        valueParserTests.forEach(function (testCase) {
+            test(() => { assert_equals(window.CSS.supports("font-variation-settings", testCase.value), testCase.isValid, testCase.message); }, "@supports: " + testCase.message);
+        });
+
+    </script>
+</body>
+</html>

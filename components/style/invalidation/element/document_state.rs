@@ -42,11 +42,7 @@ pub struct DocumentStateInvalidationProcessor<'a, E: TElement, I> {
 impl<'a, E: TElement, I> DocumentStateInvalidationProcessor<'a, E, I> {
     /// Creates a new DocumentStateInvalidationProcessor.
     #[inline]
-    pub fn new(
-        rules: I,
-        document_states_changed: DocumentState,
-        quirks_mode: QuirksMode,
-    ) -> Self {
+    pub fn new(rules: I, document_states_changed: DocumentState, quirks_mode: QuirksMode) -> Self {
         let mut matching_context = MatchingContext::new_for_visited(
             MatchingMode::Normal,
             None,
@@ -59,7 +55,11 @@ impl<'a, E: TElement, I> DocumentStateInvalidationProcessor<'a, E, I> {
             document_state: document_states_changed,
         };
 
-        Self { rules, document_states_changed, matching_context }
+        Self {
+            rules,
+            document_states_changed,
+            matching_context,
+        }
     }
 }
 

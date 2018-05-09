@@ -1,7 +1,10 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the CSS Object Model (CSSOM) spec.
+// See https://drafts.csswg.org/cssom/
+
 typedef USVString CSSOMString;
 
-[Exposed=Window,
- LegacyArrayClass]
+[Exposed=Window]
 interface MediaList {
   stringifier attribute [TreatNullAs=EmptyString] CSSOMString mediaText;
   readonly attribute unsigned long length;
@@ -29,8 +32,7 @@ interface CSSStyleSheet : StyleSheet {
   void deleteRule(unsigned long index);
 };
 
-[Exposed=Window,
- LegacyArrayClass]
+[Exposed=Window]
 interface StyleSheetList {
   getter StyleSheet? item(unsigned long index);
   readonly attribute unsigned long length;
@@ -47,8 +49,8 @@ interface LinkStyle {
 };
 
 ProcessingInstruction implements LinkStyle;
-[Exposed=Window,
- LegacyArrayClass]
+
+[Exposed=Window]
 interface CSSRuleList {
   getter CSSRule? item(unsigned long index);
   readonly attribute unsigned long length;

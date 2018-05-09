@@ -10,8 +10,10 @@
     spec="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property">
     use properties::longhands::{text_emphasis_color, text_emphasis_style};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut color = None;
         let mut style = None;
 
@@ -52,8 +54,10 @@
                     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke">
     use properties::longhands::{_webkit_text_stroke_color, _webkit_text_stroke_width};
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut color = None;
         let mut width = None;
         loop {

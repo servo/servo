@@ -317,7 +317,6 @@ class PackageCommands(CommandBase):
             dir_to_resources = path.join(dir_to_temp_servo, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
             shutil.copy(binary_path, dir_to_temp_servo)
-            shutil.copy("{}.manifest".format(binary_path), dir_to_temp_servo)
             copy_windows_dependencies(target_dir, dir_to_temp_servo)
 
             change_prefs(dir_to_resources, "windows")

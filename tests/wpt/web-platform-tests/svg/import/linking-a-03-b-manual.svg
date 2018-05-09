@@ -29,7 +29,7 @@
         The (green) arrow uses the SVG view specification form,
         "linkingCircle-f.svg#svgView(viewBox(63,226,74,74))",
         to target the circle with id "circle-2"
-        in the external file.  
+        in the external file.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
@@ -62,7 +62,7 @@
       <a xlink:href="../images/linkingCircle-f.svg#svgView(viewBox(64,227,72,72))">
         <path fill="lime" stroke="blue" d="M 185,40 h -100 v -12 l -45 36 l 45 36 v -12 h 100 z"/>
       </a>
-      <!-- Code from target file, linkingCircle-f.svg...        
+      <!-- Code from target file, linkingCircle-f.svg...
         <circle id="circle-2" cx="85" cy="153" r="20"  stroke="lime" fill="yellow" stroke-width="4"  />
         <text font-family="Arial" font-size="12"  x="65" y="189">circle-2</text>
         <rect x="49" y="227" width="72" height="72" fill="none" stroke="black" />

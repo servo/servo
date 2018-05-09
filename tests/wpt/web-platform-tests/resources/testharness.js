@@ -13,7 +13,7 @@ policies and contribution forms [3].
 /* Documentation: http://web-platform-tests.org/writing-tests/testharness-api.html
  * (../docs/_writing-tests/testharness-api.md) */
 
-(function ()
+(function (global_scope)
 {
     var debug = false;
     // default timeout is 10 seconds, test can override if needed
@@ -48,9 +48,6 @@ policies and contribution forms [3].
      *
      *   // Should return the test harness timeout duration in milliseconds.
      *   float test_timeout();
-     *
-     *   // Should return the global scope object.
-     *   object global_scope();
      * };
      */
 
@@ -248,10 +245,6 @@ policies and contribution forms [3].
         return settings.harness_timeout.normal;
     };
 
-    WindowTestEnvironment.prototype.global_scope = function() {
-        return window;
-    };
-
     /*
      * Base TestEnvironment implementation for a generic web worker.
      *
@@ -342,10 +335,6 @@ policies and contribution forms [3].
         // Tests running in a worker don't have a default timeout. I.e. all
         // worker tests behave as if settings.explicit_timeout is true.
         return null;
-    };
-
-    WorkerTestEnvironment.prototype.global_scope = function() {
-        return self;
     };
 
     /*
@@ -463,23 +452,23 @@ policies and contribution forms [3].
     };
 
     function create_test_environment() {
-        if ('document' in self) {
+        if ('document' in global_scope) {
             return new WindowTestEnvironment();
         }
-        if ('DedicatedWorkerGlobalScope' in self &&
-            self instanceof DedicatedWorkerGlobalScope) {
+        if ('DedicatedWorkerGlobalScope' in global_scope &&
+            global_scope instanceof DedicatedWorkerGlobalScope) {
             return new DedicatedWorkerTestEnvironment();
         }
-        if ('SharedWorkerGlobalScope' in self &&
-            self instanceof SharedWorkerGlobalScope) {
+        if ('SharedWorkerGlobalScope' in global_scope &&
+            global_scope instanceof SharedWorkerGlobalScope) {
             return new SharedWorkerTestEnvironment();
         }
-        if ('ServiceWorkerGlobalScope' in self &&
-            self instanceof ServiceWorkerGlobalScope) {
+        if ('ServiceWorkerGlobalScope' in global_scope &&
+            global_scope instanceof ServiceWorkerGlobalScope) {
             return new ServiceWorkerTestEnvironment();
         }
-        if ('WorkerGlobalScope' in self &&
-            self instanceof WorkerGlobalScope) {
+        if ('WorkerGlobalScope' in global_scope &&
+            global_scope instanceof WorkerGlobalScope) {
             return new DedicatedWorkerTestEnvironment();
         }
 
@@ -489,13 +478,13 @@ policies and contribution forms [3].
     var test_environment = create_test_environment();
 
     function is_shared_worker(worker) {
-        return 'SharedWorker' in self && worker instanceof SharedWorker;
+        return 'SharedWorker' in global_scope && worker instanceof SharedWorker;
     }
 
     function is_service_worker(worker) {
         // The worker object may be from another execution context,
         // so do not use instanceof here.
-        return 'ServiceWorker' in self &&
+        return 'ServiceWorker' in global_scope &&
             Object.prototype.toString.call(worker) == '[object ServiceWorker]';
     }
 
@@ -1247,6 +1236,13 @@ policies and contribution forms [3].
     }
     expose(assert_readonly, "assert_readonly");
 
+    /**
+     * Assert an Exception with the expected code is thrown.
+     *
+     * @param {object|number|string} code The expected exception code.
+     * @param {Function} func Function which should throw.
+     * @param {string} description Error description for the case that the error is not thrown.
+     */
     function assert_throws(code, func, description)
     {
         try {
@@ -2270,10 +2266,14 @@ policies and contribution forms [3].
             if (output_document.body) {
                 output_document.body.appendChild(node);
             } else {
+                var is_html = false;
                 var is_svg = false;
                 var output_window = output_document.defaultView;
                 if (output_window && "SVGSVGElement" in output_window) {
                     is_svg = output_document.documentElement instanceof output_window.SVGSVGElement;
+                } else if (output_window) {
+                    is_html = (output_document.namespaceURI == "http://www.w3.org/1999/xhtml" &&
+                               output_document.localName == "html");
                 }
                 if (is_svg) {
                     var foreignObject = output_document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
@@ -2281,6 +2281,10 @@ policies and contribution forms [3].
                     foreignObject.setAttribute("height", "100%");
                     output_document.documentElement.appendChild(foreignObject);
                     foreignObject.appendChild(node);
+                } else if (is_html) {
+                    var body = output_document.createElementNS("http://www.w3.org/1999/xhtml", "body");
+                    output_document.documentElement.appendChild(body);
+                    body.appendChild(node);
                 } else {
                     output_document.documentElement.appendChild(node);
                 }
@@ -2809,7 +2813,7 @@ policies and contribution forms [3].
     function expose(object, name)
     {
         var components = name.split(".");
-        var target = test_environment.global_scope();
+        var target = global_scope;
         for (var i = 0; i < components.length - 1; i++) {
             if (!(components[i] in target)) {
                 target[components[i]] = {};
@@ -2831,7 +2835,7 @@ policies and contribution forms [3].
     /** Returns the 'src' URL of the first <script> tag in the page to include the file 'testharness.js'. */
     function get_script_url()
     {
-        if (!('document' in self)) {
+        if (!('document' in global_scope)) {
             return undefined;
         }
 
@@ -2939,5 +2943,5 @@ policies and contribution forms [3].
 
     test_environment.on_tests_ready();
 
-})();
+})(this);
 // vim: set expandtab shiftwidth=4 tabstop=4:

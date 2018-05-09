@@ -3,19 +3,14 @@
 
 'use strict';
 
-if (self.importScripts) {
-  importScripts('/resources/testharness.js');
-  importScripts('/resources/WebIDLParser.js', '/resources/idlharness.js');
-}
-
 // https://w3c.github.io/payment-handler/
 
 promise_test(async () => {
-  const text = await fetch('/interfaces/payment-handler.idl').then(response =>
-    response.text(),
-  );
+  const idl = await fetch('/interfaces/payment-handler.idl').then(r => r.text());
   const idlArray = new IdlArray();
-  idlArray.add_idls(text);
+  idlArray.add_idls(idl);
+  idlArray.add_untested_idls('interface ExtendableEvent {};');
+  idlArray.add_untested_idls('dictionary ExtendableEventInit {};');
   idlArray.test();
   done();
 }, 'Payment handler interfaces.');

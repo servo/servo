@@ -102,6 +102,7 @@ fn set_metric<U: ProgressiveWebMetric>(
 
 }
 
+// spec: https://github.com/WICG/time-to-interactive
 // https://github.com/GoogleChrome/lighthouse/issues/27
 // we can look at three different metrics here:
 // navigation start -> visually ready (dom content loaded)
@@ -259,6 +260,7 @@ impl ProgressiveWebMetric for InteractiveMetrics {
     }
 }
 
+// https://w3c.github.io/paint-timing/
 pub struct PaintTimeMetrics {
     pending_metrics: RefCell<HashMap<Epoch, (Option<TimerMetadata>, bool)>>,
     navigation_start: Option<u64>,

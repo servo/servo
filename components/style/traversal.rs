@@ -4,7 +4,7 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
-use context::{ElementCascadeInputs, StyleContext, SharedStyleContext};
+use context::{ElementCascadeInputs, SharedStyleContext, StyleContext};
 use data::{ElementData, ElementStyles};
 use dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use invalidation::element::restyle_hints::RestyleHint;
@@ -61,30 +61,32 @@ fn is_servo_nonincremental_layout() -> bool {
 
 /// A DOM Traversal trait, that is used to generically implement styling for
 /// Gecko and Servo.
-pub trait DomTraversal<E: TElement> : Sync {
+pub trait DomTraversal<E: TElement>: Sync {
     /// Process `node` on the way down, before its children have been processed.
     ///
     /// The callback is invoked for each child node that should be processed by
     /// the traversal.
-    fn process_preorder<F>(&self,
-                           data: &PerLevelTraversalData,
-                           context: &mut StyleContext<E>,
-                           node: E::ConcreteNode,
-                           note_child: F)
-        where F: FnMut(E::ConcreteNode);
+    fn process_preorder<F>(
+        &self,
+        data: &PerLevelTraversalData,
+        context: &mut StyleContext<E>,
+        node: E::ConcreteNode,
+        note_child: F,
+    ) where
+        F: FnMut(E::ConcreteNode);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
     /// This is only executed if `needs_postorder_traversal` returns true.
-    fn process_postorder(&self,
-                         contect: &mut StyleContext<E>,
-                         node: E::ConcreteNode);
+    fn process_postorder(&self, contect: &mut StyleContext<E>, node: E::ConcreteNode);
 
     /// Boolean that specifies whether a bottom up traversal should be
     /// performed.
     ///
     /// If it's false, then process_postorder has no effect at all.
-    fn needs_postorder_traversal() -> bool { true }
+    fn needs_postorder_traversal() -> bool {
+        true
+    }
 
     /// Handles the postorder step of the traversal, if it exists, by bubbling
     /// up the parent chain.
@@ -104,7 +106,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         context: &mut StyleContext<E>,
         root: OpaqueNode,
         mut node: E::ConcreteNode,
-        children_to_process: isize
+        children_to_process: isize,
     ) {
         // If the postorder step is a no-op, don't bother.
         if !Self::needs_postorder_traversal() {
@@ -124,7 +126,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                     // The parent has other unprocessed descendants. We only
                     // perform postorder processing after the last descendant
                     // has been processed.
-                    break
+                    break;
                 }
 
                 node = parent.as_node();
@@ -132,7 +134,8 @@ pub trait DomTraversal<E: TElement> : Sync {
         } else {
             // Otherwise record the number of children to process when the time
             // comes.
-            node.as_element().unwrap()
+            node.as_element()
+                .unwrap()
                 .store_children_to_process(children_to_process);
         }
     }
@@ -141,10 +144,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// However, this mechanism can't handle style invalidations on the root. As
     /// such, we have a pre-traversal step to handle that part and determine whether
     /// a full traversal is needed.
-    fn pre_traverse(
-        root: E,
-        shared_context: &SharedStyleContext,
-    ) -> PreTraverseToken<E> {
+    fn pre_traverse(root: E, shared_context: &SharedStyleContext) -> PreTraverseToken<E> {
         let traversal_flags = shared_context.traversal_flags;
 
         let mut data = root.mutate_data();
@@ -162,20 +162,18 @@ pub trait DomTraversal<E: TElement> : Sync {
                 );
 
                 if invalidation_result.has_invalidated_siblings() {
-                    let actual_root = root.traversal_parent()
-                        .expect("How in the world can you invalidate \
-                                 siblings without a parent?");
+                    let actual_root = root.traversal_parent().expect(
+                        "How in the world can you invalidate \
+                         siblings without a parent?",
+                    );
                     unsafe { actual_root.set_dirty_descendants() }
                     return PreTraverseToken(Some(actual_root));
                 }
             }
         }
 
-        let should_traverse = Self::element_needs_traversal(
-            root,
-            traversal_flags,
-            data.as_mut().map(|d| &**d),
-        );
+        let should_traverse =
+            Self::element_needs_traversal(root, traversal_flags, data.as_mut().map(|d| &**d));
 
         // If we're not going to traverse at all, we may need to clear some state
         // off the root (which would normally be done at the end of recalc_style_at).
@@ -200,16 +198,21 @@ pub trait DomTraversal<E: TElement> : Sync {
         traversal_flags: TraversalFlags,
         data: Option<&ElementData>,
     ) -> bool {
-        debug!("element_needs_traversal({:?}, {:?}, {:?})",
-               el, traversal_flags, data);
+        debug!(
+            "element_needs_traversal({:?}, {:?}, {:?})",
+            el, traversal_flags, data
+        );
 
         // In case of animation-only traversal we need to traverse the element
         // if the element has animation only dirty descendants bit,
         // animation-only restyle hint or recascade.
         if traversal_flags.for_animation_only() {
             return data.map_or(false, |d| d.has_styles()) &&
-                   (el.has_animation_only_dirty_descendants() ||
-                    data.as_ref().unwrap().hint.has_animation_hint_or_recascade());
+                (el.has_animation_only_dirty_descendants() ||
+                    data.as_ref()
+                        .unwrap()
+                        .hint
+                        .has_animation_hint_or_recascade());
         }
 
         // Non-incremental layout visits every node.
@@ -259,10 +262,9 @@ pub trait DomTraversal<E: TElement> : Sync {
         parent_data: &ElementData,
         is_initial_style: bool,
     ) -> bool {
-        debug_assert!(parent.has_current_styles_for_traversal(
-            parent_data,
-            context.shared.traversal_flags,
-        ));
+        debug_assert!(
+            parent.has_current_styles_for_traversal(parent_data, context.shared.traversal_flags)
+        );
 
         // If the parent computed display:none, we don't style the subtree.
         if parent_data.styles.is_display_none() {
@@ -277,8 +279,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // likely to load valid bindings, we avoid wasted work here, which may
         // be a very big perf hit when elements with bindings are nested
         // heavily.
-        if cfg!(feature = "gecko") &&
-            is_initial_style &&
+        if cfg!(feature = "gecko") && is_initial_style &&
             parent_data.styles.primary().has_moz_binding()
         {
             debug!("Parent {:?} has XBL binding, deferring traversal", parent);
@@ -307,10 +308,12 @@ where
 {
     use style_resolver::StyleResolverForElement;
 
-    debug_assert!(rule_inclusion == RuleInclusion::DefaultOnly ||
-                  pseudo.map_or(false, |p| p.is_before_or_after()) ||
-                  element.borrow_data().map_or(true, |d| !d.has_styles()),
-                  "Why are we here?");
+    debug_assert!(
+        rule_inclusion == RuleInclusion::DefaultOnly ||
+            pseudo.map_or(false, |p| p.is_before_or_after()) ||
+            element.borrow_data().map_or(true, |d| !d.has_styles()),
+        "Why are we here?"
+    );
     let mut ancestors_requiring_style_resolution = SmallVec::<[E; 16]>::new();
 
     // Clear the bloom filter, just in case the caller is reusing TLS.
@@ -344,9 +347,7 @@ where
         }
 
         ancestor = ancestor.unwrap().traversal_parent();
-        layout_parent_style = ancestor.map(|a| {
-            a.borrow_data().unwrap().styles.primary().clone()
-        });
+        layout_parent_style = ancestor.map(|a| a.borrow_data().unwrap().styles.primary().clone());
     }
 
     for ancestor in ancestors_requiring_style_resolution.iter().rev() {
@@ -354,12 +355,15 @@ where
 
         // Actually `PseudoElementResolution` doesn't really matter here.
         // (but it does matter below!).
-        let primary_style =
-            StyleResolverForElement::new(*ancestor, context, rule_inclusion, PseudoElementResolution::IfApplicable)
-                .resolve_primary_style(
-                    style.as_ref().map(|s| &**s),
-                    layout_parent_style.as_ref().map(|s| &**s)
-                );
+        let primary_style = StyleResolverForElement::new(
+            *ancestor,
+            context,
+            rule_inclusion,
+            PseudoElementResolution::IfApplicable,
+        ).resolve_primary_style(
+            style.as_ref().map(|s| &**s),
+            layout_parent_style.as_ref().map(|s| &**s),
+        );
 
         let is_display_contents = primary_style.style().is_display_contents();
 
@@ -372,11 +376,16 @@ where
     }
 
     context.thread_local.bloom_filter.assert_complete(element);
-    StyleResolverForElement::new(element, context, rule_inclusion, PseudoElementResolution::Force)
-        .resolve_style(
-            style.as_ref().map(|s| &**s),
-            layout_parent_style.as_ref().map(|s| &**s)
-        ).into()
+    StyleResolverForElement::new(
+        element,
+        context,
+        rule_inclusion,
+        PseudoElementResolution::Force,
+    ).resolve_style(
+        style.as_ref().map(|s| &**s),
+        layout_parent_style.as_ref().map(|s| &**s),
+    )
+        .into()
 }
 
 /// Calculates the style for a single node.
@@ -389,8 +398,7 @@ pub fn recalc_style_at<E, D, F>(
     element: E,
     data: &mut ElementData,
     note_child: F,
-)
-where
+) where
     E: TElement,
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
@@ -402,22 +410,28 @@ where
     let is_initial_style = !data.has_styles();
 
     context.thread_local.statistics.elements_traversed += 1;
-    debug_assert!(flags.intersects(TraversalFlags::AnimationOnly) ||
-                  !element.has_snapshot() || element.handled_snapshot(),
-                  "Should've handled snapshots here already");
+    debug_assert!(
+        flags.intersects(TraversalFlags::AnimationOnly) || !element.has_snapshot() ||
+            element.handled_snapshot(),
+        "Should've handled snapshots here already"
+    );
 
     let compute_self = !element.has_current_styles_for_traversal(data, flags);
 
-    debug!("recalc_style_at: {:?} (compute_self={:?}, \
-            dirty_descendants={:?}, data={:?})",
-           element, compute_self, element.has_dirty_descendants(), data);
+    debug!(
+        "recalc_style_at: {:?} (compute_self={:?}, \
+         dirty_descendants={:?}, data={:?})",
+        element,
+        compute_self,
+        element.has_dirty_descendants(),
+        data
+    );
 
     let mut child_cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
 
     // Compute style for this element if necessary.
     if compute_self {
-        child_cascade_requirement =
-            compute_style(traversal_data, context, element, data);
+        child_cascade_requirement = compute_style(traversal_data, context, element, data);
 
         if element.is_native_anonymous() {
             // We must always cascade native anonymous subtrees, since they inherit
@@ -431,9 +445,13 @@ where
         // If we're restyling this element to display:none, throw away all style
         // data in the subtree, notify the caller to early-return.
         if data.styles.is_display_none() {
-            debug!("{:?} style is display:none - clearing data from descendants.",
-                   element);
-            unsafe { clear_descendant_data(element); }
+            debug!(
+                "{:?} style is display:none - clearing data from descendants.",
+                element
+            );
+            unsafe {
+                clear_descendant_data(element);
+            }
         }
 
         // Inform any paint worklets of changed style, to speculatively
@@ -449,28 +467,32 @@ where
     // those operations and compute the propagated restyle hint (unless we're
     // not processing invalidations, in which case don't need to propagate it
     // and must avoid clearing it).
-    debug_assert!(flags.for_animation_only() ||
-                  !data.hint.has_animation_hint(),
-                  "animation restyle hint should be handled during \
-                   animation-only restyles");
+    debug_assert!(
+        flags.for_animation_only() || !data.hint.has_animation_hint(),
+        "animation restyle hint should be handled during \
+         animation-only restyles"
+    );
     let propagated_hint = data.hint.propagate(&flags);
 
-    trace!("propagated_hint={:?}, cascade_requirement={:?}, \
-            is_display_none={:?}, implementing_pseudo={:?}",
-           propagated_hint,
-           child_cascade_requirement,
-           data.styles.is_display_none(),
-           element.implemented_pseudo_element());
-    debug_assert!(element.has_current_styles_for_traversal(data, flags),
-                  "Should have computed style or haven't yet valid computed \
-                   style in case of animation-only restyle");
+    trace!(
+        "propagated_hint={:?}, cascade_requirement={:?}, \
+         is_display_none={:?}, implementing_pseudo={:?}",
+        propagated_hint,
+        child_cascade_requirement,
+        data.styles.is_display_none(),
+        element.implemented_pseudo_element()
+    );
+    debug_assert!(
+        element.has_current_styles_for_traversal(data, flags),
+        "Should have computed style or haven't yet valid computed \
+         style in case of animation-only restyle"
+    );
 
-    let has_dirty_descendants_for_this_restyle =
-        if flags.for_animation_only() {
-            element.has_animation_only_dirty_descendants()
-        } else {
-            element.has_dirty_descendants()
-        };
+    let has_dirty_descendants_for_this_restyle = if flags.for_animation_only() {
+        element.has_animation_only_dirty_descendants()
+    } else {
+        element.has_dirty_descendants()
+    };
 
     // Before examining each child individually, try to prove that our children
     // don't need style processing. They need processing if any of the following
@@ -484,14 +506,12 @@ where
     // Additionally, there are a few scenarios where we avoid traversing the
     // subtree even if descendant styles are out of date. These cases are
     // enumerated in should_cull_subtree().
-    let mut traverse_children =
-        has_dirty_descendants_for_this_restyle ||
+    let mut traverse_children = has_dirty_descendants_for_this_restyle ||
         !propagated_hint.is_empty() ||
         !child_cascade_requirement.can_skip_cascade() ||
         is_servo_nonincremental_layout();
 
-    traverse_children =
-        traverse_children &&
+    traverse_children = traverse_children &&
         !traversal.should_cull_subtree(context, element, &data, is_initial_style);
 
     // Examine our children, and enqueue the appropriate ones for traversal.
@@ -503,7 +523,7 @@ where
             propagated_hint,
             child_cascade_requirement,
             is_initial_style,
-            note_child
+            note_child,
         );
     }
 
@@ -513,18 +533,15 @@ where
         debug_assert!(!element.has_animation_only_dirty_descendants());
     }
 
-    debug_assert!(flags.for_animation_only() ||
-                  !flags.contains(TraversalFlags::ClearDirtyBits) ||
-                  !element.has_animation_only_dirty_descendants(),
-                  "Should have cleared animation bits already");
+    debug_assert!(
+        flags.for_animation_only() || !flags.contains(TraversalFlags::ClearDirtyBits) ||
+            !element.has_animation_only_dirty_descendants(),
+        "Should have cleared animation bits already"
+    );
     clear_state_after_traversing(element, data, flags);
 }
 
-fn clear_state_after_traversing<E>(
-    element: E,
-    data: &mut ElementData,
-    flags: TraversalFlags
-)
+fn clear_state_after_traversing<E>(element: E, data: &mut ElementData, flags: TraversalFlags)
 where
     E: TElement,
 {
@@ -537,13 +554,19 @@ where
 
     // Clear dirty bits as appropriate.
     if flags.for_animation_only() {
-        if flags.intersects(TraversalFlags::ClearDirtyBits | TraversalFlags::ClearAnimationOnlyDirtyDescendants) {
-            unsafe { element.unset_animation_only_dirty_descendants(); }
+        if flags.intersects(
+            TraversalFlags::ClearDirtyBits | TraversalFlags::ClearAnimationOnlyDirtyDescendants,
+        ) {
+            unsafe {
+                element.unset_animation_only_dirty_descendants();
+            }
         }
     } else if flags.contains(TraversalFlags::ClearDirtyBits) {
         // The animation traversal happens first, so we don't need to guard against
         // clearing the animation bit on the regular traversal.
-        unsafe { element.clear_dirty_bits(); }
+        unsafe {
+            element.clear_dirty_bits();
+        }
     }
 }
 
@@ -551,7 +574,7 @@ fn compute_style<E>(
     traversal_data: &PerLevelTraversalData,
     context: &mut StyleContext<E>,
     element: E,
-    data: &mut ElementData
+    data: &mut ElementData,
 ) -> ChildCascadeRequirement
 where
     E: TElement,
@@ -570,13 +593,16 @@ where
     let mut important_rules_changed = false;
     let new_styles = match kind {
         MatchAndCascade => {
-            debug_assert!(!context.shared.traversal_flags.for_animation_only(),
-                          "MatchAndCascade shouldn't be processed during \
-                           animation-only traversal");
+            debug_assert!(
+                !context.shared.traversal_flags.for_animation_only(),
+                "MatchAndCascade shouldn't be processed during \
+                 animation-only traversal"
+            );
             // Ensure the bloom filter is up to date.
-            context.thread_local.bloom_filter
-                   .insert_parents_recovering(element,
-                                              traversal_data.current_dom_depth);
+            context
+                .thread_local
+                .bloom_filter
+                .insert_parents_recovering(element, traversal_data.current_dom_depth);
 
             context.thread_local.bloom_filter.assert_complete(element);
             debug_assert_eq!(
@@ -595,18 +621,17 @@ where
                 Some(shared_styles) => {
                     context.thread_local.statistics.styles_shared += 1;
                     shared_styles
-                }
+                },
                 None => {
                     context.thread_local.statistics.elements_matched += 1;
                     // Perform the matching and cascading.
                     let new_styles = {
-                        let mut resolver =
-                            StyleResolverForElement::new(
-                                element,
-                                context,
-                                RuleInclusion::All,
-                                PseudoElementResolution::IfApplicable
-                            );
+                        let mut resolver = StyleResolverForElement::new(
+                            element,
+                            context,
+                            RuleInclusion::All,
+                            PseudoElementResolution::IfApplicable,
+                        );
 
                         resolver.resolve_style_with_default_parents()
                     };
@@ -619,39 +644,34 @@ where
                     );
 
                     new_styles
-                }
+                },
             }
-        }
+        },
         CascadeWithReplacements(flags) => {
             // Skipping full matching, load cascade inputs from previous values.
-            let mut cascade_inputs =
-                ElementCascadeInputs::new_from_element_data(data);
-            important_rules_changed =
-                element.replace_rules(flags, context, &mut cascade_inputs);
+            let mut cascade_inputs = ElementCascadeInputs::new_from_element_data(data);
+            important_rules_changed = element.replace_rules(flags, context, &mut cascade_inputs);
 
-            let mut resolver =
-                StyleResolverForElement::new(
+            let mut resolver = StyleResolverForElement::new(
+                element,
+                context,
+                RuleInclusion::All,
+                PseudoElementResolution::IfApplicable,
+            );
+
+            resolver.cascade_styles_with_default_parents(cascade_inputs)
+        },
+        CascadeOnly => {
+            // Skipping full matching, load cascade inputs from previous values.
+            let cascade_inputs = ElementCascadeInputs::new_from_element_data(data);
+
+            let new_styles = {
+                let mut resolver = StyleResolverForElement::new(
                     element,
                     context,
                     RuleInclusion::All,
-                    PseudoElementResolution::IfApplicable
+                    PseudoElementResolution::IfApplicable,
                 );
-
-            resolver.cascade_styles_with_default_parents(cascade_inputs)
-        }
-        CascadeOnly => {
-            // Skipping full matching, load cascade inputs from previous values.
-            let cascade_inputs =
-                ElementCascadeInputs::new_from_element_data(data);
-
-            let new_styles = {
-                let mut resolver =
-                    StyleResolverForElement::new(
-                        element,
-                        context,
-                        RuleInclusion::All,
-                        PseudoElementResolution::IfApplicable
-                    );
 
                 resolver.cascade_styles_with_default_parents(cascade_inputs)
             };
@@ -681,15 +701,10 @@ where
             }
 
             new_styles
-        }
+        },
     };
 
-    element.finish_restyle(
-        context,
-        data,
-        new_styles,
-        important_rules_changed
-    )
+    element.finish_restyle(context, data, new_styles, important_rules_changed)
 }
 
 #[cfg(feature = "servo")]
@@ -708,18 +723,23 @@ where
     if let Some(ref values) = data.styles.primary {
         for image in &values.get_background().background_image.0 {
             let (name, arguments) = match *image {
-                Either::Second(Image::PaintWorklet(ref worklet)) => (&worklet.name, &worklet.arguments),
+                Either::Second(Image::PaintWorklet(ref worklet)) => {
+                    (&worklet.name, &worklet.arguments)
+                },
                 _ => continue,
             };
             let painter = match context.shared.registered_speculative_painters.get(name) {
                 Some(painter) => painter,
                 None => continue,
             };
-            let properties = painter.properties().iter()
+            let properties = painter
+                .properties()
+                .iter()
                 .filter_map(|(name, id)| id.as_shorthand().err().map(|id| (name, id)))
                 .map(|(name, id)| (name.clone(), values.computed_value_to_string(id)))
                 .collect();
-            let arguments = arguments.iter()
+            let arguments = arguments
+                .iter()
                 .map(|argument| argument.to_css_string())
                 .collect();
             debug!("Notifying paint worklet {}.", painter.name());
@@ -744,8 +764,7 @@ fn note_children<E, D, F>(
     cascade_requirement: ChildCascadeRequirement,
     is_initial_style: bool,
     mut note_child: F,
-)
-where
+) where
     E: TElement,
     D: DomTraversal<E>,
     F: FnMut(E::ConcreteNode),
@@ -759,7 +778,8 @@ where
             Some(el) => el,
             None => {
                 if is_servo_nonincremental_layout() ||
-                   D::text_node_needs_traversal(child_node, data) {
+                    D::text_node_needs_traversal(child_node, data)
+                {
                     note_child(child_node);
                 }
                 continue;
@@ -768,28 +788,35 @@ where
 
         let mut child_data = child.mutate_data();
         let mut child_data = child_data.as_mut().map(|d| &mut **d);
-        trace!(" > {:?} -> {:?} + {:?}, pseudo: {:?}",
-               child,
-               child_data.as_ref().map(|d| d.hint),
-               propagated_hint,
-               child.implemented_pseudo_element());
+        trace!(
+            " > {:?} -> {:?} + {:?}, pseudo: {:?}",
+            child,
+            child_data.as_ref().map(|d| d.hint),
+            propagated_hint,
+            child.implemented_pseudo_element()
+        );
 
         if let Some(ref mut child_data) = child_data {
             let mut child_hint = propagated_hint;
             match cascade_requirement {
-                ChildCascadeRequirement::CanSkipCascade => {}
+                ChildCascadeRequirement::CanSkipCascade => {},
                 ChildCascadeRequirement::MustCascadeDescendants => {
                     child_hint |= RestyleHint::RECASCADE_SELF | RestyleHint::RECASCADE_DESCENDANTS;
-                }
+                },
                 ChildCascadeRequirement::MustCascadeChildrenIfInheritResetStyle => {
                     use properties::computed_value_flags::ComputedValueFlags;
-                    if child_data.styles.primary().flags.contains(ComputedValueFlags::INHERITS_RESET_STYLE) {
+                    if child_data
+                        .styles
+                        .primary()
+                        .flags
+                        .contains(ComputedValueFlags::INHERITS_RESET_STYLE)
+                    {
                         child_hint |= RestyleHint::RECASCADE_SELF;
                     }
-                }
+                },
                 ChildCascadeRequirement::MustCascadeChildren => {
                     child_hint |= RestyleHint::RECASCADE_SELF;
-                }
+                },
             }
 
             child_data.hint.insert(child_hint);
@@ -816,9 +843,13 @@ where
             // recalc_style_at if requested by the caller.
             if !is_initial_style {
                 if flags.for_animation_only() {
-                    unsafe { element.set_animation_only_dirty_descendants(); }
+                    unsafe {
+                        element.set_animation_only_dirty_descendants();
+                    }
                 } else {
-                    unsafe { element.set_dirty_descendants(); }
+                    unsafe {
+                        element.set_dirty_descendants();
+                    }
                 }
             }
         }

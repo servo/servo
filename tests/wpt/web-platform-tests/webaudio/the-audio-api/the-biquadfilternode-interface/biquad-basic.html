@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Basic BiquadFilterNode Properties
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let sampleRate = 48000;
+      let testFrames = 100;
+
+      // Global context that can be used by the individual tasks. It must be
+      // defined by the initialize task.
+      let context;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        should(() => {
+          context = new OfflineAudioContext(1, testFrames, sampleRate);
+        }, 'Initialize context for testing').notThrow();
+        task.done();
+      });
+
+      audit.define('existence', (task, should) => {
+        should(context.createBiquadFilter, 'context.createBiquadFilter')
+            .exist();
+        task.done();
+      });
+
+      audit.define('parameters', (task, should) => {
+        // Create a really simple IIR filter. Doesn't much matter what.
+        let coef = Float32Array.from([1]);
+
+        let f = context.createBiquadFilter(coef, coef);
+
+        should(f.numberOfInputs, 'numberOfInputs').beEqualTo(1);
+        should(f.numberOfOutputs, 'numberOfOutputs').beEqualTo(1);
+        should(f.channelCountMode, 'channelCountMode').beEqualTo('max');
+        should(f.channelInterpretation, 'channelInterpretation')
+            .beEqualTo('speakers');
+
+        task.done();
+      });
+
+      audit.define('exceptions-createBiquadFilter', (task, should) => {
+        should(function() {
+          // Two args are required.
+          context.createBiquadFilter();
+        }, 'createBiquadFilter()').notThrow();
+
+        task.done();
+      });
+
+      audit.define('exceptions-getFrequencyData', (task, should) => {
+        // Create a really simple IIR filter. Doesn't much matter what.
+        let coef = Float32Array.from([1]);
+
+        let f = context.createBiquadFilter(coef, coef);
+
+        should(
+            function() {
+              // frequencyHz can't be null.
+              f.getFrequencyResponse(
+                  null, new Float32Array(1), new Float32Array(1));
+            },
+            'getFrequencyResponse(' +
+                'null, ' +
+                'new Float32Array(1), ' +
+                'new Float32Array(1))')
+            .throw('TypeError');
+
+        should(
+            function() {
+              // magResponse can't be null.
+              f.getFrequencyResponse(
+                  new Float32Array(1), null, new Float32Array(1));
+            },
+            'getFrequencyResponse(' +
+                'new Float32Array(1), ' +
+                'null, ' +
+                'new Float32Array(1))')
+            .throw('TypeError');
+
+        should(
+            function() {
+              // phaseResponse can't be null.
+              f.getFrequencyResponse(
+                  new Float32Array(1), new Float32Array(1), null);
+            },
+            'getFrequencyResponse(' +
+                'new Float32Array(1), ' +
+                'new Float32Array(1), ' +
+                'null)')
+            .throw('TypeError');
+
+        should(
+            function() {
+              // magResponse array must the same length as frequencyHz
+              f.getFrequencyResponse(
+                  new Float32Array(10), new Float32Array(1),
+                  new Float32Array(20));
+            },
+            'getFrequencyResponse(' +
+                'new Float32Array(10), ' +
+                'new Float32Array(1), ' +
+                'new Float32Array(20))')
+            .throw('InvalidAccessError');
+
+        should(
+            function() {
+              // phaseResponse array must be the same length as frequencyHz
+              f.getFrequencyResponse(
+                  new Float32Array(10), new Float32Array(20),
+                  new Float32Array(1));
+            },
+            'getFrequencyResponse(' +
+                'new Float32Array(10), ' +
+                'new Float32Array(20), ' +
+                'new Float32Array(1))')
+            .throw('InvalidAccessError');
+
+        task.done();
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

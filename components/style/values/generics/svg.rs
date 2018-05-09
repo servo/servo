@@ -15,8 +15,9 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 /// An SVG paint value
 ///
 /// <https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint>
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+#[animation(no_bound(UrlPaintServer))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss)]
 pub struct SVGPaint<ColorType, UrlPaintServer> {
     /// The paint source
     pub kind: SVGPaintKind<ColorType, UrlPaintServer>,
@@ -29,8 +30,10 @@ pub struct SVGPaint<ColorType, UrlPaintServer> {
 /// Whereas the spec only allows PaintServer
 /// to have a fallback, Gecko lets the context
 /// properties have a fallback as well.
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[animation(no_bound(UrlPaintServer))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+         ToCss)]
 pub enum SVGPaintKind<ColorType, UrlPaintServer> {
     /// `none`
     #[animation(error)]
@@ -60,9 +63,10 @@ impl<ColorType, UrlPaintServer> SVGPaintKind<ColorType, UrlPaintServer> {
 /// Parse SVGPaint's fallback.
 /// fallback is keyword(none), Color or empty.
 /// <https://svgwg.org/svg2-draft/painting.html#SpecifyingPaint>
-fn parse_fallback<'i, 't, ColorType: Parse>(context: &ParserContext,
-                                            input: &mut Parser<'i, 't>)
-                                            -> Option<Either<ColorType, None_>> {
+fn parse_fallback<'i, 't, ColorType: Parse>(
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+) -> Option<Either<ColorType, None_>> {
     if input.try(|i| i.expect_ident_matching("none")).is_ok() {
         Some(Either::Second(None_))
     } else {
@@ -75,7 +79,10 @@ fn parse_fallback<'i, 't, ColorType: Parse>(context: &ParserContext,
 }
 
 impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlPaintServer> {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(url) = input.try(|i| UrlPaintServer::parse(context, i)) {
             Ok(SVGPaint {
                 kind: SVGPaintKind::PaintServer(url),
@@ -106,8 +113,8 @@ impl<ColorType: Parse, UrlPaintServer: Parse> Parse for SVGPaint<ColorType, UrlP
 
 /// A value of <length> | <percentage> | <number> for svg which allow unitless length.
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeProperties>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
-#[derive(ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
     /// <length> | <percentage>
     LengthOrPercentage(LengthOrPercentage),
@@ -116,44 +123,38 @@ pub enum SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {
 }
 
 impl<L, N> ComputeSquaredDistance for SvgLengthOrPercentageOrNumber<L, N>
-    where
-        L: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>,
-        N: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>
+where
+    L: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>,
+    N: ComputeSquaredDistance + Copy + Into<NumberOrPercentage>,
 {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         match (self, other) {
             (
                 &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref from),
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref to)
-            ) => {
-                from.compute_squared_distance(to)
-            },
+                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(ref to),
+            ) => from.compute_squared_distance(to),
             (
                 &SvgLengthOrPercentageOrNumber::Number(ref from),
-                &SvgLengthOrPercentageOrNumber::Number(ref to)
-            ) => {
-                from.compute_squared_distance(to)
-            },
+                &SvgLengthOrPercentageOrNumber::Number(ref to),
+            ) => from.compute_squared_distance(to),
             (
                 &SvgLengthOrPercentageOrNumber::LengthOrPercentage(from),
-                &SvgLengthOrPercentageOrNumber::Number(to)
-            ) => {
-                from.into().compute_squared_distance(&to.into())
-            },
+                &SvgLengthOrPercentageOrNumber::Number(to),
+            ) => from.into().compute_squared_distance(&to.into()),
             (
                 &SvgLengthOrPercentageOrNumber::Number(from),
-                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(to)
-            ) => {
-                from.into().compute_squared_distance(&to.into())
-            },
+                &SvgLengthOrPercentageOrNumber::LengthOrPercentage(to),
+            ) => from.into().compute_squared_distance(&to.into()),
         }
     }
 }
 
-impl<LengthOrPercentageType, NumberType> SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
-    where LengthOrPercentage: From<LengthOrPercentageType>,
-          LengthOrPercentageType: Copy
+impl<LengthOrPercentageType, NumberType>
+    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
+where
+    LengthOrPercentage: From<LengthOrPercentageType>,
+    LengthOrPercentageType: Copy,
 {
     /// return true if this struct has calc value.
     pub fn has_calc(&self) -> bool {
@@ -171,10 +172,13 @@ impl<LengthOrPercentageType, NumberType> SvgLengthOrPercentageOrNumber<LengthOrP
 
 /// Parsing the SvgLengthOrPercentageOrNumber. At first, we need to parse number
 /// since prevent converting to the length.
-impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
-    SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType> {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Self, ParseError<'i>> {
+impl<LengthOrPercentageType: Parse, NumberType: Parse> Parse
+    for SvgLengthOrPercentageOrNumber<LengthOrPercentageType, NumberType>
+{
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(num) = input.try(|i| NumberType::parse(context, i)) {
             return Ok(SvgLengthOrPercentageOrNumber::Number(num));
         }
@@ -187,9 +191,9 @@ impl <LengthOrPercentageType: Parse, NumberType: Parse> Parse for
 }
 
 /// An SVG length value supports `context-value` in addition to length.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToAnimatedValue, ToAnimatedZero)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+         ToCss)]
 pub enum SVGLength<LengthType> {
     /// `<length> | <percentage> | <number>`
     Length(LengthType),
@@ -198,20 +202,24 @@ pub enum SVGLength<LengthType> {
 }
 
 /// Generic value for stroke-dasharray.
-#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq)]
-#[derive(ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum SVGStrokeDashArray<LengthType> {
     /// `[ <length> | <percentage> | <number> ]#`
     #[css(comma)]
-    Values(#[css(if_empty = "none", iterable)] Vec<LengthType>),
+    Values(
+        #[css(if_empty = "none", iterable)]
+        #[distance(field_bound)]
+        Vec<LengthType>,
+    ),
     /// `context-value`
     ContextValue,
 }
 
 /// An SVG opacity value accepts `context-{fill,stroke}-opacity` in
 /// addition to opacity value.
-#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum SVGOpacity<OpacityType> {
     /// `<opacity-value>`
     Opacity(OpacityType),

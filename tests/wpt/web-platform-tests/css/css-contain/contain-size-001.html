@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: size containment on non-atomic inlines</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="size containment does not apply to non atomic inlines">
+  <link rel="match" href="reference/contain-size-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-size">
+
+<style>
+div { overflow: hidden; }
+span { contain: size; }
+</style>
+
+<p>This test passes if you can see the word PASS below.
+<div><span>PASS</span></div>

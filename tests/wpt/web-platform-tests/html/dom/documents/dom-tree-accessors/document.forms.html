@@ -67,4 +67,17 @@ test(function() {
   var result = Object.getOwnPropertyNames(document.forms);
   assert_array_equals(result, ["0", "1", "2", "form1", "form2"])
 }, "document.forms getOwnPropertyNames")
+
+test(function() {
+  var forms = document.forms;
+  assert_true(forms instanceof HTMLCollection);
+  assert_equals(forms.length, 3);
+
+  var form = document.createElement("form");
+  document.body.appendChild(form);
+  assert_equals(forms.length, 4);
+
+  document.body.removeChild(form);
+  assert_equals(forms.length, 3);
+}, "Document.forms should be a live collection");
 </script>

@@ -58,7 +58,7 @@
 
       media_list.appendMedium("all");
 
-      media_list.deleteMedium("screen");
+      assert_throws("NotFoundError", () => media_list.deleteMedium("screen"));
 
       assert_equals(media_list.length, 1);
       assert_equals(media_list.item(0), "all");

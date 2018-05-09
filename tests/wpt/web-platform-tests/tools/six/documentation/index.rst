@@ -104,7 +104,7 @@ Here's example usage of the module::
 Object model compatibility
 >>>>>>>>>>>>>>>>>>>>>>>>>>
 
-Python 3 renamed the attributes of several intepreter data structures.  The
+Python 3 renamed the attributes of several interpreter data structures.  The
 following accessors are available.  Note that the recommended way to inspect
 functions and methods is the stdlib :mod:`py3:inspect` module.
 
@@ -459,7 +459,7 @@ For the most part, :mod:`six.moves` aliases are the names of the modules in
 Python 3.  When the new Python 3 name is a package, the components of the name
 are separated by underscores.  For example, ``html.parser`` becomes
 ``html_parser``.  In some cases where several modules have been combined, the
-Python 2 name is retained.  This is so the appropiate modules can be found when
+Python 2 name is retained.  This is so the appropriate modules can be found when
 running on Python 2.  For example, ``BaseHTTPServer`` which is in
 ``http.server`` in Python 3 is aliased as ``BaseHTTPServer``.
 

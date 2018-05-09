@@ -5,10 +5,11 @@
 //! Generic types that share their serialization implementations
 //! for both specified and computed values.
 
-use counter_style::{Symbols, parse_counter_style_name};
+use counter_style::{parse_counter_style_name, Symbols};
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
-use style_traits::{ParseError, StyleParseErrorKind};
+use style_traits::{KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind};
 use super::CustomIdent;
 
 pub mod background;
@@ -32,12 +33,12 @@ pub mod size;
 pub mod svg;
 pub mod text;
 pub mod transform;
+pub mod url;
 
 // https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
 pub enum SymbolsType {
     Cyclic,
     Numeric,
@@ -69,7 +70,7 @@ impl SymbolsType {
             structs::NS_STYLE_COUNTER_SYSTEM_ALPHABETIC => SymbolsType::Alphabetic,
             structs::NS_STYLE_COUNTER_SYSTEM_SYMBOLIC => SymbolsType::Symbolic,
             structs::NS_STYLE_COUNTER_SYSTEM_FIXED => SymbolsType::Fixed,
-            x => panic!("Unexpected value for symbol type {}", x)
+            x => panic!("Unexpected value for symbol type {}", x),
         }
     }
 }
@@ -102,9 +103,11 @@ impl CounterStyleOrNone {
     }
 }
 
-
 impl Parse for CounterStyleOrNone {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         if let Ok(name) = input.try(|i| parse_counter_style_name(i)) {
             return Ok(CounterStyleOrNone::Name(name));
         }
@@ -113,13 +116,15 @@ impl Parse for CounterStyleOrNone {
         }
         if input.try(|i| i.expect_function_matching("symbols")).is_ok() {
             return input.parse_nested_block(|input| {
-                let symbols_type = input.try(|i| SymbolsType::parse(i))
+                let symbols_type = input
+                    .try(|i| SymbolsType::parse(i))
                     .unwrap_or(SymbolsType::Symbolic);
                 let symbols = Symbols::parse(context, input)?;
                 // There must be at least two symbols for alphabetic or
                 // numeric system.
                 if (symbols_type == SymbolsType::Alphabetic ||
-                    symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2 {
+                    symbols_type == SymbolsType::Numeric) && symbols.0.len() < 2
+                {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 // Identifier is not allowed in symbols() function.
@@ -133,14 +138,32 @@ impl Parse for CounterStyleOrNone {
     }
 }
 
+impl SpecifiedValueInfo for CounterStyleOrNone {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        // XXX The best approach for implementing this is probably
+        // having a CounterStyleName type wrapping CustomIdent, and
+        // put the predefined list for that type in counter_style mod.
+        // But that's a non-trivial change itself, so we use a simpler
+        // approach here.
+        macro_rules! predefined {
+            ($($name:expr,)+) => {
+                f(&["none", "symbols", $($name,)+]);
+            }
+        }
+        include!("../../counter_style/predefined.rs");
+    }
+}
+
 /// A wrapper of Non-negative values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, PartialOrd, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct NonNegative<T>(pub T);
 
 /// A wrapper of greater-than-or-equal-to-one values.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, PartialOrd, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue, ToCss)]
 pub struct GreaterThanOrEqualToOne<T>(pub T);

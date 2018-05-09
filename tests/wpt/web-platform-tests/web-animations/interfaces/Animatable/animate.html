@@ -8,6 +8,8 @@
 <script src="../../resources/easing-tests.js"></script>
 <script src="../../resources/keyframe-utils.js"></script>
 <script src="../../resources/keyframe-tests.js"></script>
+<script src="../../resources/timing-utils.js"></script>
+<script src="../../resources/timing-tests.js"></script>
 <body>
 <div id="log"></div>
 <iframe width="10" height="10" id="iframe"></iframe>
@@ -17,8 +19,7 @@
 // Tests on Element
 
 test(t => {
-  const div = createDiv(t);
-  const anim = div.animate(null);
+  const anim = createDiv(t).animate(null);
   assert_class_string(anim, 'Animation', 'Returned object is an Animation');
 }, 'Element.animate() creates an Animation object');
 
@@ -57,26 +58,9 @@ test(t => {
 }, 'Element.animate() creates an Animation object with a KeyframeEffect'
    + ' that is created in the relevant realm of the target element');
 
-test(t => {
-  const iframe = window.frames[0];
-  const div = createDiv(t, iframe.document);
-  const anim = div.animate(null);
-  assert_equals(Object.getPrototypeOf(anim.effect.timing),
-                iframe.AnimationEffectTiming.prototype,
-                'The prototype of the created AnimationEffectTiming is that'
-                + ' defined on the relevant global for the target element');
-  assert_not_equals(Object.getPrototypeOf(anim.effect.timing),
-                    AnimationEffectTiming.prototype,
-                    'The prototype of the created AnimationEffectTiming is NOT'
-                    + ' that of the current global');
-}, 'Element.animate() creates an Animation object with a KeyframeEffect'
-   + ' whose AnimationEffectTiming object is created in the relevant realm'
-   + ' of the target element');
-
 for (const subtest of gEmptyKeyframeListTests) {
   test(t => {
-    const div = createDiv(t);
-    const anim = div.animate(subtest, 2000);
+    const anim = createDiv(t).animate(subtest, 2000);
     assert_not_equals(anim, null);
   }, 'Element.animate() accepts empty keyframe lists ' +
      `(input: ${JSON.stringify(subtest)})`);
@@ -84,8 +68,7 @@ for (const subtest of gEmptyKeyframeListTests) {
 
 for (const subtest of gKeyframesTests) {
   test(t => {
-    const div = createDiv(t);
-    const anim = div.animate(subtest.input, 2000);
+    const anim = createDiv(t).animate(subtest.input, 2000);
     assert_frame_lists_equal(anim.effect.getKeyframes(), subtest.output);
   }, `Element.animate() accepts ${subtest.desc}`);
 }
@@ -99,54 +82,101 @@ for (const subtest of gInvalidKeyframesTests) {
   }, `Element.animate() does not accept ${subtest.desc}`);
 }
 
+test(t => {
+  const anim = createDiv(t).animate(null, 2000);
+  assert_equals(anim.effect.getTiming().duration, 2000);
+  assert_default_timing_except(anim.effect, ['duration']);
+}, 'Element.animate() accepts a double as an options argument');
+
+test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { duration: Infinity, fill: 'forwards' });
+  assert_equals(anim.effect.getTiming().duration, Infinity);
+  assert_equals(anim.effect.getTiming().fill, 'forwards');
+  assert_default_timing_except(anim.effect, ['duration', 'fill']);
+}, 'Element.animate() accepts a KeyframeAnimationOptions argument');
+
+test(t => {
+  const anim = createDiv(t).animate(null);
+  assert_default_timing_except(anim.effect, []);
+}, 'Element.animate() accepts an absent options argument');
+
+for (const invalid of gBadDelayValues) {
+  test(t => {
+    assert_throws(new TypeError, () => {
+      createDiv(t).animate(null, { delay: invalid });
+    });
+  }, `Element.animate() does not accept invalid delay value: ${invalid}`);
+}
+
+test(t => {
+  const anim = createDiv(t).animate(null, { duration: 'auto' });
+  assert_equals(anim.effect.getTiming().duration, 'auto', 'set duration \'auto\'');
+  assert_equals(anim.effect.getComputedTiming().duration, 0,
+                'getComputedTiming() after set duration \'auto\'');
+}, 'Element.animate() accepts a duration of \'auto\' using a dictionary'
+   + ' object');
+
+for (const invalid of gBadDurationValues) {
+  if (typeof invalid === 'string' && !isNaN(parseFloat(invalid))) {
+    continue;
+  }
+  test(t => {
+    assert_throws(new TypeError, () => {
+      createDiv(t).animate(null, invalid);
+    });
+  }, 'Element.animate() does not accept invalid duration value: '
+     + (typeof invalid === 'string' ? `"${invalid}"` : invalid));
+}
+
+for (const invalid of gBadDurationValues) {
+  test(t => {
+    assert_throws(new TypeError, () => {
+      createDiv(t).animate(null, { duration: invalid });
+    });
+  }, 'Element.animate() does not accept invalid duration value: '
+     + (typeof invalid === 'string' ? `"${invalid}"` : invalid)
+     + ' using a dictionary object');
+}
+
 for (const invalidEasing of gInvalidEasings) {
   test(t => {
-    const div = createDiv(t);
     assert_throws(new TypeError, () => {
-      div.animate({ easing: invalidEasing }, 2000);
+      createDiv(t).animate({ easing: invalidEasing }, 2000);
     });
   }, `Element.animate() does not accept invalid easing: '${invalidEasing}'`);
 }
 
-test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
-  assert_equals(anim.effect.timing.duration, 2000);
-  // Also check that unspecified parameters receive their default values
-  assert_equals(anim.effect.timing.fill, 'auto');
-}, 'Element.animate() accepts a double as an options argument');
+for (const invalid of gBadIterationStartValues) {
+  test(t => {
+    assert_throws(new TypeError, () => {
+      createDiv(t).animate(null, { iterationStart: invalid });
+    });
+  }, 'Element.animate() does not accept invalid iterationStart value: ' +
+     invalid);
+}
+
+for (const invalid of gBadIterationsValues) {
+  test(t => {
+    assert_throws(new TypeError, () => {
+      createDiv(t).animate(null, { iterations: invalid });
+    });
+  }, 'Element.animate() does not accept invalid iterations value: ' +
+     invalid);
+}
 
 test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] },
-                           { duration: Infinity, fill: 'forwards' });
-  assert_equals(anim.effect.timing.duration, Infinity);
-  assert_equals(anim.effect.timing.fill, 'forwards');
-  // Also check that unspecified parameters receive their default values
-  assert_equals(anim.effect.timing.direction, 'normal');
-}, 'Element.animate() accepts a KeyframeAnimationOptions argument');
-
-test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] });
-  assert_equals(anim.effect.timing.duration, 'auto');
-}, 'Element.animate() accepts an absent options argument');
-
-test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  const anim = createDiv(t).animate(null, 2000);
   assert_equals(anim.id, '');
 }, 'Element.animate() correctly sets the id attribute when no id is specified');
 
 test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] }, { id: 'test' });
+  const anim = createDiv(t).animate(null, { id: 'test' });
   assert_equals(anim.id, 'test');
 }, 'Element.animate() correctly sets the id attribute');
 
 test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  const anim = createDiv(t).animate(null, 2000);
   assert_equals(anim.timeline, document.timeline);
 }, 'Element.animate() correctly sets the Animation\'s timeline');
 
@@ -157,7 +187,7 @@ async_test(t => {
 
   iframe.addEventListener('load', t.step_func(() => {
     const div = createDiv(t, iframe.contentDocument);
-    const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+    const anim = div.animate(null, 2000);
     assert_equals(anim.timeline, iframe.contentDocument.timeline);
     iframe.remove();
     t.done();
@@ -168,21 +198,20 @@ async_test(t => {
    'triggered on an element in a different document');
 
 test(t => {
-  const div = createDiv(t);
-  const anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  const anim = createDiv(t).animate(null, 2000);
   assert_equals(anim.playState, 'running');
 }, 'Element.animate() calls play on the Animation');
 
 // Tests on CSSPseudoElement
 
 test(t => {
-  const pseudoTarget = createPseudo(t, 'before');
+  const pseudoTarget = getPseudoElement(t, 'before');
   const anim = pseudoTarget.animate(null);
   assert_class_string(anim, 'Animation', 'The returned object is an Animation');
 }, 'CSSPseudoElement.animate() creates an Animation object');
 
 test(t => {
-  const pseudoTarget = createPseudo(t, 'before');
+  const pseudoTarget = getPseudoElement(t, 'before');
   const anim = pseudoTarget.animate(null);
   assert_equals(anim.effect.target, pseudoTarget,
                 'The returned Animation targets to the correct object');

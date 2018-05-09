@@ -11,7 +11,7 @@ use cssparser::{Delimiter, Parser, ParserInput, SourcePosition, Token, TokenSeri
 use hash::map::Entry;
 use precomputed_hash::PrecomputedHash;
 use properties::{CSSWideKeyword, DeclaredValue};
-use selector_map::{PrecomputedHashSet, PrecomputedHashMap};
+use selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
 use smallvec::SmallVec;
@@ -19,7 +19,7 @@ use std::borrow::{Borrow, Cow};
 use std::cmp;
 use std::fmt::{self, Write};
 use std::hash::Hash;
-use style_traits::{CssWriter, ToCss, StyleParseErrorKind, ParseError};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// A custom property name is just an `Atom`.
 ///
@@ -110,15 +110,18 @@ where
     /// it's necessary.
     #[allow(unused_mut)]
     pub fn insert(&mut self, key: K, value: V) {
-        let OrderedMap { ref mut index, ref mut values } = *self;
+        let OrderedMap {
+            ref mut index,
+            ref mut values,
+        } = *self;
         match values.entry(key) {
             Entry::Vacant(mut entry) => {
                 index.push(entry.key().clone());
                 entry.insert(value);
-            }
+            },
             Entry::Occupied(mut entry) => {
                 entry.insert(value);
-            }
+            },
         }
     }
 
@@ -170,7 +173,8 @@ where
     }
 
     fn remove_set<S>(&mut self, set: &::hash::HashSet<K, S>)
-        where S: ::std::hash::BuildHasher,
+    where
+        S: ::std::hash::BuildHasher,
     {
         if set.is_empty() {
             return;
@@ -187,7 +191,8 @@ where
 /// added to the key-value map.
 pub struct OrderedMapIterator<'a, K, V>
 where
-    K: 'a + Eq + PrecomputedHash + Hash + Clone, V: 'a,
+    K: 'a + Eq + PrecomputedHash + Hash + Clone,
+    V: 'a,
 {
     /// The OrderedMap itself.
     inner: &'a OrderedMap<K, V>,
@@ -225,20 +230,22 @@ impl VariableValue {
         &mut self,
         css: &str,
         css_first_token_type: TokenSerializationType,
-        css_last_token_type: TokenSerializationType
+        css_last_token_type: TokenSerializationType,
     ) {
         // This happens e.g. between two subsequent var() functions:
         // `var(--a)var(--b)`.
         //
         // In that case, css_*_token_type is nonsensical.
         if css.is_empty() {
-            return
+            return;
         }
 
         self.first_token_type.set_if_nothing(css_first_token_type);
         // If self.first_token_type was nothing,
         // self.last_token_type is also nothing and this will be false:
-        if self.last_token_type.needs_separator_when_before(css_first_token_type) {
+        if self.last_token_type
+            .needs_separator_when_before(css_first_token_type)
+        {
             self.css.push_str("/**/")
         }
         self.css.push_str(css);
@@ -249,20 +256,22 @@ impl VariableValue {
         &mut self,
         position: (SourcePosition, TokenSerializationType),
         input: &Parser,
-        last_token_type: TokenSerializationType
+        last_token_type: TokenSerializationType,
     ) {
         self.push(input.slice_from(position.0), position.1, last_token_type)
     }
 
     fn push_variable(&mut self, variable: &ComputedValue) {
         debug_assert!(variable.references.is_empty());
-        self.push(&variable.css, variable.first_token_type, variable.last_token_type)
+        self.push(
+            &variable.css,
+            variable.first_token_type,
+            variable.last_token_type,
+        )
     }
 
     /// Parse a custom property value.
-    pub fn parse<'i, 't>(
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Arc<Self>, ParseError<'i>> {
+    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Arc<Self>, ParseError<'i>> {
         let mut references = PrecomputedHashSet::default();
 
         let (first_token_type, css, last_token_type) =
@@ -272,30 +281,27 @@ impl VariableValue {
             css: css.into_owned(),
             first_token_type,
             last_token_type,
-            references
+            references,
         }))
     }
 }
 
 /// Parse the value of a non-custom property that contains `var()` references.
-pub fn parse_non_custom_with_var<'i, 't>
-                                (input: &mut Parser<'i, 't>)
-                                -> Result<(TokenSerializationType, Cow<'i, str>), ParseError<'i>> {
+pub fn parse_non_custom_with_var<'i, 't>(
+    input: &mut Parser<'i, 't>,
+) -> Result<(TokenSerializationType, Cow<'i, str>), ParseError<'i>> {
     let (first_token_type, css, _) = parse_self_contained_declaration_value(input, None)?;
     Ok((first_token_type, css))
 }
 
 fn parse_self_contained_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: Option<&mut PrecomputedHashSet<Name>>
-) -> Result<
-    (TokenSerializationType, Cow<'i, str>, TokenSerializationType),
-    ParseError<'i>
->
-{
+    references: Option<&mut PrecomputedHashSet<Name>>,
+) -> Result<(TokenSerializationType, Cow<'i, str>, TokenSerializationType), ParseError<'i>> {
     let start_position = input.position();
     let mut missing_closing_characters = String::new();
-    let (first, last) = parse_declaration_value(input, references, &mut missing_closing_characters)?;
+    let (first, last) =
+        parse_declaration_value(input, references, &mut missing_closing_characters)?;
     let mut css: Cow<str> = input.slice_from(start_position).into();
     if !missing_closing_characters.is_empty() {
         // Unescaped backslash at EOF in a quoted string is ignored.
@@ -311,7 +317,7 @@ fn parse_self_contained_declaration_value<'i, 't>(
 fn parse_declaration_value<'i, 't>(
     input: &mut Parser<'i, 't>,
     references: Option<&mut PrecomputedHashSet<Name>>,
-    missing_closing_characters: &mut String
+    missing_closing_characters: &mut String,
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     input.parse_until_before(Delimiter::Bang | Delimiter::Semicolon, |input| {
         // Need at least one token
@@ -328,13 +334,18 @@ fn parse_declaration_value<'i, 't>(
 fn parse_declaration_value_block<'i, 't>(
     input: &mut Parser<'i, 't>,
     mut references: Option<&mut PrecomputedHashSet<Name>>,
-    missing_closing_characters: &mut String
+    missing_closing_characters: &mut String,
 ) -> Result<(TokenSerializationType, TokenSerializationType), ParseError<'i>> {
     let mut token_start = input.position();
     let mut token = match input.next_including_whitespace_and_comments() {
         // FIXME: remove clone() when borrows are non-lexical
         Ok(token) => token.clone(),
-        Err(_) => return Ok((TokenSerializationType::nothing(), TokenSerializationType::nothing()))
+        Err(_) => {
+            return Ok((
+                TokenSerializationType::nothing(),
+                TokenSerializationType::nothing(),
+            ))
+        },
     };
     let first_token_type = token.serialization_type();
     loop {
@@ -344,78 +355,77 @@ fn parse_declaration_value_block<'i, 't>(
                     parse_declaration_value_block(
                         input,
                         references.as_mut().map(|r| &mut **r),
-                        missing_closing_characters
+                        missing_closing_characters,
                     )
                 })?
-            }
+            };
         }
         macro_rules! check_closed {
-            ($closing: expr) => {
+            ($closing:expr) => {
                 if !input.slice_from(token_start).ends_with($closing) {
                     missing_closing_characters.push_str($closing)
                 }
-            }
+            };
         }
         let last_token_type = match token {
             Token::Comment(_) => {
                 let token_slice = input.slice_from(token_start);
                 if !token_slice.ends_with("*/") {
-                    missing_closing_characters.push_str(
-                        if token_slice.ends_with('*') { "/" } else { "*/" })
+                    missing_closing_characters.push_str(if token_slice.ends_with('*') {
+                        "/"
+                    } else {
+                        "*/"
+                    })
                 }
                 token.serialization_type()
-            }
+            },
             Token::BadUrl(u) => {
-                return Err(input.new_custom_error(StyleParseErrorKind::BadUrlInDeclarationValueBlock(u)))
-            }
+                let e = StyleParseErrorKind::BadUrlInDeclarationValueBlock(u);
+                return Err(input.new_custom_error(e));
+            },
             Token::BadString(s) => {
-                return Err(input.new_custom_error(StyleParseErrorKind::BadStringInDeclarationValueBlock(s)))
-            }
+                let e = StyleParseErrorKind::BadStringInDeclarationValueBlock(s);
+                return Err(input.new_custom_error(e));
+            },
             Token::CloseParenthesis => {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnbalancedCloseParenthesisInDeclarationValueBlock
-                ))
-            }
+                let e = StyleParseErrorKind::UnbalancedCloseParenthesisInDeclarationValueBlock;
+                return Err(input.new_custom_error(e));
+            },
             Token::CloseSquareBracket => {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnbalancedCloseSquareBracketInDeclarationValueBlock
-                ))
-            }
+                let e = StyleParseErrorKind::UnbalancedCloseSquareBracketInDeclarationValueBlock;
+                return Err(input.new_custom_error(e));
+            },
             Token::CloseCurlyBracket => {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnbalancedCloseCurlyBracketInDeclarationValueBlock
-                ))
-            }
+                let e = StyleParseErrorKind::UnbalancedCloseCurlyBracketInDeclarationValueBlock;
+                return Err(input.new_custom_error(e));
+            },
             Token::Function(ref name) => {
                 if name.eq_ignore_ascii_case("var") {
                     let args_start = input.state();
                     input.parse_nested_block(|input| {
-                        parse_var_function(
-                            input,
-                            references.as_mut().map(|r| &mut **r),
-                        )
+                        parse_var_function(input, references.as_mut().map(|r| &mut **r))
                     })?;
                     input.reset(&args_start);
                 }
                 nested!();
                 check_closed!(")");
                 Token::CloseParenthesis.serialization_type()
-            }
+            },
             Token::ParenthesisBlock => {
                 nested!();
                 check_closed!(")");
                 Token::CloseParenthesis.serialization_type()
-            }
+            },
             Token::CurlyBracketBlock => {
                 nested!();
                 check_closed!("}");
                 Token::CloseCurlyBracket.serialization_type()
-            }
+            },
             Token::SquareBracketBlock => {
                 nested!();
                 check_closed!("]");
                 Token::CloseSquareBracket.serialization_type()
-            }
+            },
             Token::QuotedString(_) => {
                 let token_slice = input.slice_from(token_start);
                 let quote = &token_slice[..1];
@@ -424,13 +434,15 @@ fn parse_declaration_value_block<'i, 't>(
                     missing_closing_characters.push_str(quote)
                 }
                 token.serialization_type()
-            }
+            },
             Token::Ident(ref value) |
             Token::AtKeyword(ref value) |
             Token::Hash(ref value) |
             Token::IDHash(ref value) |
             Token::UnquotedUrl(ref value) |
-            Token::Dimension { unit: ref value, .. } => {
+            Token::Dimension {
+                unit: ref value, ..
+            } => {
                 if value.ends_with("�") && input.slice_from(token_start).ends_with("\\") {
                     // Unescaped backslash at EOF in these contexts is interpreted as U+FFFD
                     // Check the value in case the final backslash was itself escaped.
@@ -442,10 +454,8 @@ fn parse_declaration_value_block<'i, 't>(
                     check_closed!(")");
                 }
                 token.serialization_type()
-            }
-            _ => {
-                token.serialization_type()
-            }
+            },
+            _ => token.serialization_type(),
         };
 
         token_start = input.position();
@@ -460,12 +470,12 @@ fn parse_declaration_value_block<'i, 't>(
 // If the var function is valid, return Ok((custom_property_name, fallback))
 fn parse_var_function<'i, 't>(
     input: &mut Parser<'i, 't>,
-    references: Option<&mut PrecomputedHashSet<Name>>
+    references: Option<&mut PrecomputedHashSet<Name>>,
 ) -> Result<(), ParseError<'i>> {
     let name = input.expect_ident_cloned()?;
-    let name: Result<_, ParseError> =
-        parse_name(&name)
-        .map_err(|()| input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())));
+    let name: Result<_, ParseError> = parse_name(&name).map_err(|()| {
+        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))
+    });
     let name = name?;
     if input.try(|input| input.expect_comma()).is_ok() {
         // Exclude `!` and `;` at the top level
@@ -536,18 +546,17 @@ impl<'a> CustomPropertiesBuilder<'a> {
             DeclaredValue::CSSWideKeyword(keyword) => match keyword {
                 CSSWideKeyword::Initial => {
                     map.remove(name);
-                }
+                },
                 // handled in value_may_affect_style
-                CSSWideKeyword::Unset |
-                CSSWideKeyword::Inherit => unreachable!(),
-            }
+                CSSWideKeyword::Unset | CSSWideKeyword::Inherit => unreachable!(),
+            },
         }
     }
 
     fn value_may_affect_style(
         &self,
         name: &Name,
-        value: &DeclaredValue<Arc<SpecifiedValue>>
+        value: &DeclaredValue<Arc<SpecifiedValue>>,
     ) -> bool {
         match *value {
             DeclaredValue::CSSWideKeyword(CSSWideKeyword::Unset) |
@@ -556,28 +565,29 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 // explicit 'inherit' or 'unset' means we can just use
                 // any existing value in the inherited CustomPropertiesMap.
                 return false;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
-        let existing_value =
-            self.custom_properties.as_ref().and_then(|m| m.get(name))
-                .or_else(|| self.inherited.and_then(|m| m.get(name)));
+        let existing_value = self.custom_properties
+            .as_ref()
+            .and_then(|m| m.get(name))
+            .or_else(|| self.inherited.and_then(|m| m.get(name)));
 
         match (existing_value, value) {
             (None, &DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial)) => {
                 // The initial value of a custom property is the same as it
                 // not existing in the map.
                 return false;
-            }
+            },
             (Some(existing_value), &DeclaredValue::Value(specified_value)) => {
                 // Don't bother overwriting an existing inherited value with
                 // the same specified value.
                 if existing_value == specified_value {
                     return false;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         true
@@ -683,11 +693,13 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
             // Whether this variable has been visited in this traversal.
             let key;
             match context.index_map.entry(name) {
-                Entry::Occupied(entry) => { return Some(*entry.get()); }
+                Entry::Occupied(entry) => {
+                    return Some(*entry.get());
+                },
                 Entry::Vacant(entry) => {
                     key = entry.key().clone();
                     entry.insert(context.count);
-                }
+                },
             }
             // Hold a strong reference to the value so that we don't
             // need to keep reference to context.map.
@@ -714,7 +726,9 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
                 Some(index) => index,
                 // There is nothing to do if the next variable has been
                 // fully resolved at this point.
-                None => { continue; }
+                None => {
+                    continue;
+                },
             };
             let next_info = &context.var_info[next_index];
             if next_index > index {
@@ -746,13 +760,17 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
         let mut in_loop = self_ref;
         let name;
         loop {
-            let var_index = context.stack.pop()
+            let var_index = context
+                .stack
+                .pop()
                 .expect("The current variable should still be in stack");
             let var_info = &mut context.var_info[var_index];
             // We should never visit the variable again, so it's safe
             // to take the name away, so that we don't do additional
             // reference count.
-            let var_name = var_info.name.take()
+            let var_name = var_info
+                .name
+                .take()
                 .expect("Variable should not be poped from stack twice");
             if var_index == index {
                 name = var_name;
@@ -790,7 +808,7 @@ fn substitute_all(custom_properties_map: &mut CustomPropertiesMap) {
                     }
                 }
                 Err(())
-            }
+            },
         );
         if let Ok(last_token_type) = result {
             computed_value.push_from(position, &input, last_token_type);
@@ -836,22 +854,27 @@ fn substitute_block<'i, 't, F>(
     input: &mut Parser<'i, 't>,
     position: &mut (SourcePosition, TokenSerializationType),
     partial_computed_value: &mut ComputedValue,
-    substitute_one: &mut F
+    substitute_one: &mut F,
 ) -> Result<TokenSerializationType, ParseError<'i>>
 where
-    F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()>
+    F: FnMut(&Name, &mut ComputedValue) -> Result<TokenSerializationType, ()>,
 {
     let mut last_token_type = TokenSerializationType::nothing();
     let mut set_position_at_next_iteration = false;
     loop {
         let before_this_token = input.position();
         // FIXME: remove clone() when borrows are non-lexical
-        let next = input.next_including_whitespace_and_comments().map(|t| t.clone());
+        let next = input
+            .next_including_whitespace_and_comments()
+            .map(|t| t.clone());
         if set_position_at_next_iteration {
-            *position = (before_this_token, match next {
-                Ok(ref token) => token.serialization_type(),
-                Err(_) => TokenSerializationType::nothing(),
-            });
+            *position = (
+                before_this_token,
+                match next {
+                    Ok(ref token) => token.serialization_type(),
+                    Err(_) => TokenSerializationType::nothing(),
+                },
+            );
             set_position_at_next_iteration = false;
         }
         let token = match next {
@@ -861,7 +884,10 @@ where
         match token {
             Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {
                 partial_computed_value.push(
-                    input.slice(position.0..before_this_token), position.1, last_token_type);
+                    input.slice(position.0..before_this_token),
+                    position.1,
+                    last_token_type,
+                );
                 input.parse_nested_block(|input| {
                     // parse_var_function() ensures neither .unwrap() will fail.
                     let name = input.expect_ident_cloned().unwrap();
@@ -883,13 +909,17 @@ where
                         input.reset(&after_comma);
                         let mut position = (after_comma.position(), first_token_type);
                         last_token_type = substitute_block(
-                            input, &mut position, partial_computed_value, substitute_one)?;
+                            input,
+                            &mut position,
+                            partial_computed_value,
+                            substitute_one,
+                        )?;
                         partial_computed_value.push_from(position, input, last_token_type);
                     }
                     Ok(())
                 })?;
                 set_position_at_next_iteration = true
-            }
+            },
 
             Token::Function(_) |
             Token::ParenthesisBlock |
@@ -900,9 +930,9 @@ where
                 })?;
                 // It’s the same type for CloseCurlyBracket and CloseSquareBracket.
                 last_token_type = Token::CloseParenthesis.serialization_type();
-            }
+            },
 
-            _ => last_token_type = token.serialization_type()
+            _ => last_token_type = token.serialization_type(),
         }
     }
     // FIXME: deal with things being implicitly closed at the end of the input. E.g.
@@ -926,14 +956,17 @@ pub fn substitute<'i>(
     let mut input = Parser::new(&mut input);
     let mut position = (input.position(), first_token_type);
     let last_token_type = substitute_block(
-        &mut input, &mut position, &mut substituted, &mut |name, substituted| {
+        &mut input,
+        &mut position,
+        &mut substituted,
+        &mut |name, substituted| {
             if let Some(value) = computed_values_map.and_then(|map| map.get(name)) {
                 substituted.push_variable(value);
                 Ok(value.last_token_type)
             } else {
                 Err(())
             }
-        }
+        },
     )?;
     substituted.push_from(position, &input, last_token_type);
     Ok(substituted.css)

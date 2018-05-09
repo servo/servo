@@ -5,6 +5,7 @@
 // https://w3c.github.io/webvr/#interface-navigator
 [NoInterfaceObject]
 interface VR {
+  [Pref="dom.webvr.enabled"]
   Promise<sequence<VRDisplay>> getDisplays();
   //readonly attribute FrozenArray<VRDisplay> activeVRDisplays;
 };

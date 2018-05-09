@@ -16,7 +16,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::TopLevelBrowsingContextId;
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
@@ -30,7 +31,7 @@ use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 #[cfg(not(windows))]
 use std::env;
 use std::ffi::OsStr;
@@ -89,6 +90,15 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
+
+    /// The Load Data used to create this pipeline.
+    pub load_data: LoadData,
+
+    /// The active history state for this pipeline.
+    pub history_state_id: Option<HistoryStateId>,
+
+    /// The history states owned by this pipeline.
+    pub history_states: HashSet<HistoryStateId>,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -154,7 +164,6 @@ pub struct InitialPipelineState {
     /// Information about the page to load.
     pub load_data: LoadData,
 
-
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
 
@@ -209,7 +218,7 @@ impl Pipeline {
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
-                    load_data: state.load_data,
+                    load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
                     content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
@@ -260,7 +269,7 @@ impl Pipeline {
                     window_size: window_size,
                     layout_to_constellation_chan: state.layout_to_constellation_chan,
                     script_chan: script_chan.clone(),
-                    load_data: state.load_data,
+                    load_data: state.load_data.clone(),
                     script_port: script_port,
                     opts: (*opts::get()).clone(),
                     prefs: PREFS.cloned(),
@@ -298,7 +307,8 @@ impl Pipeline {
                          state.compositor_proxy,
                          state.is_private,
                          url,
-                         state.prev_visibility.unwrap_or(true)))
+                         state.prev_visibility.unwrap_or(true),
+                         state.load_data))
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been
@@ -312,7 +322,8 @@ impl Pipeline {
                compositor_proxy: CompositorProxy,
                is_private: bool,
                url: ServoUrl,
-               visible: bool)
+               visible: bool,
+               load_data: LoadData)
                -> Pipeline {
         let pipeline = Pipeline {
             id: id,
@@ -327,6 +338,9 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
+            load_data: load_data,
+            history_state_id: None,
+            history_states: HashSet::new(),
         };
 
         pipeline.notify_visibility();

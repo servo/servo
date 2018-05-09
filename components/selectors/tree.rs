@@ -5,7 +5,7 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency
 //! between layout and style.
 
-use attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
+use attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use matching::{ElementSelectorFlags, MatchingContext};
 use parser::SelectorImpl;
 use servo_arc::NonZeroPtrMut;
@@ -30,6 +30,12 @@ pub trait Element: Sized + Clone + Debug {
     fn opaque(&self) -> OpaqueElement;
 
     fn parent_element(&self) -> Option<Self>;
+
+    /// Whether the parent node of this element is a shadow root.
+    fn parent_node_is_shadow_root(&self) -> bool;
+
+    /// The host of the containing shadow root, if any.
+    fn containing_shadow_host(&self) -> Option<Self>;
 
     /// The parent of a given pseudo-element, after matching a pseudo-element
     /// selector.

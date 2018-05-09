@@ -10,7 +10,8 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// Specified value of `-moz-force-broken-image-icon`
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct MozForceBrokenImageIcon(pub bool);
 
 impl MozForceBrokenImageIcon {
@@ -24,7 +25,7 @@ impl MozForceBrokenImageIcon {
 impl Parse for MozForceBrokenImageIcon {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<MozForceBrokenImageIcon, ParseError<'i>> {
         // We intentionally don't support calc values here.
         match input.expect_integer()? {
@@ -52,6 +53,10 @@ impl From<u8> for MozForceBrokenImageIcon {
 
 impl From<MozForceBrokenImageIcon> for u8 {
     fn from(v: MozForceBrokenImageIcon) -> u8 {
-        if v.0 { 1 } else { 0 }
+        if v.0 {
+            1
+        } else {
+            0
+        }
     }
 }

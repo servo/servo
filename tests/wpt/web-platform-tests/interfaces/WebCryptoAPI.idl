@@ -131,7 +131,7 @@ dictionary CryptoKeyPair {
 
 dictionary RsaKeyGenParams : Algorithm {
   // The length, in bits, of the RSA modulus
-  [EnforceRange] required unsigned long modulusLength;
+  required [EnforceRange] unsigned long modulusLength;
   // The RSA public exponent
   required BigInteger publicExponent;
 };

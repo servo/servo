@@ -10,7 +10,6 @@ use servo_atoms::Atom;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
-use std::u32;
 use style::computed_values::font_stretch::T as FontStretch;
 use style::computed_values::font_style::T as FontStyle;
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -20,21 +19,35 @@ use style::values::computed::font::FontWeight;
 /// to be expanded or refactored when we support more of the font styling parameters.
 ///
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct FontTemplateDescriptor {
     pub weight: FontWeight,
     pub stretch: FontStretch,
-    pub italic: bool,
+    pub style: FontStyle,
 }
+
+fn style_to_number(s: &FontStyle) -> f32 {
+    use style::values::generics::font::FontStyle as GenericFontStyle;
+
+    match *s {
+        GenericFontStyle::Normal => 0.,
+        GenericFontStyle::Italic => FontStyle::default_angle().0.degrees(),
+        GenericFontStyle::Oblique(ref angle) => angle.0.degrees(),
+    }
+}
+
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: FontWeight, stretch: FontStretch, italic: bool)
-               -> FontTemplateDescriptor {
-        FontTemplateDescriptor {
-            weight: weight,
-            stretch: stretch,
-            italic: italic,
+    pub fn new(
+        weight: FontWeight,
+        stretch: FontStretch,
+        style: FontStyle,
+    ) -> Self {
+        Self {
+            weight,
+            stretch,
+            style,
         }
     }
 
@@ -46,30 +59,15 @@ impl FontTemplateDescriptor {
     ///
     /// The policy is to care most about differences in italicness, then weight, then stretch
     #[inline]
-    fn distance_from(&self, other: &FontTemplateDescriptor) -> u32 {
-        let italic_part = if self.italic == other.italic { 0 } else { 1000 };
+    fn distance_from(&self, other: &FontTemplateDescriptor) -> f32 {
+        // 0 <= style_part <= 180, since font-style obliqueness should be
+        // between -90 and +90deg.
+        let style_part = (style_to_number(&self.style) - style_to_number(&other.style)).abs();
         // 0 <= weightPart <= 800
-        let weight_part = ((self.weight.0 as i16) - (other.weight.0 as i16)).abs() as u32;
+        let weight_part = (self.weight.0 - other.weight.0).abs();
         // 0 <= stretchPart <= 8
-        let stretch_part = (self.stretch_number() - other.stretch_number()).abs() as u32;
-        italic_part + weight_part + stretch_part
-    }
-
-    /// Returns a number between 1 and 9 for the stretch property.
-    /// 1 is ultra_condensed, 5 is normal, and 9 is ultra_expanded
-    #[inline]
-    fn stretch_number(&self) -> i32 {
-        match self.stretch {
-            FontStretch::UltraCondensed => 1,
-            FontStretch::ExtraCondensed => 2,
-            FontStretch::Condensed      => 3,
-            FontStretch::SemiCondensed  => 4,
-            FontStretch::Normal         => 5,
-            FontStretch::SemiExpanded   => 6,
-            FontStretch::Expanded       => 7,
-            FontStretch::ExtraExpanded  => 8,
-            FontStretch::UltraExpanded  => 9,
-        }
+        let stretch_part = ((self.stretch.0).0 - (other.stretch.0).0).abs();
+        style_part + weight_part + stretch_part
     }
 }
 
@@ -78,14 +76,8 @@ impl<'a> From<&'a FontStyleStruct> for FontTemplateDescriptor {
         FontTemplateDescriptor {
             weight: style.font_weight,
             stretch: style.font_stretch,
-            italic: style.font_style == FontStyle::Italic || style.font_style == FontStyle::Oblique,
+            style: style.font_style,
         }
-    }
-}
-
-impl PartialEq for FontTemplateDescriptor {
-    fn eq(&self, other: &FontTemplateDescriptor) -> bool {
-        self.weight == other.weight && self.stretch == other.stretch && self.italic == other.italic
     }
 }
 
@@ -173,10 +165,11 @@ impl FontTemplate {
 
     /// Returns the font data along with the distance between this font's descriptor and the given
     /// descriptor, if the font can be loaded.
-    pub fn data_for_approximate_descriptor(&mut self,
-                                           font_context: &FontContextHandle,
-                                           requested_descriptor: &FontTemplateDescriptor)
-                                           -> Option<(Arc<FontTemplateData>, u32)> {
+    pub fn data_for_approximate_descriptor(
+        &mut self,
+        font_context: &FontContextHandle,
+        requested_descriptor: &FontTemplateDescriptor,
+    ) -> Option<(Arc<FontTemplateData>, f32)> {
         self.descriptor(&font_context).and_then(|descriptor| {
             self.data().ok().map(|data| {
                 (data, descriptor.distance_from(requested_descriptor))
@@ -195,9 +188,11 @@ impl FontTemplate {
                                                                                   None);
         self.is_valid = handle.is_ok();
         let handle = handle?;
-        self.descriptor = Some(FontTemplateDescriptor::new(handle.boldness(),
-                                                           handle.stretchiness(),
-                                                           handle.is_italic()));
+        self.descriptor = Some(FontTemplateDescriptor::new(
+            handle.boldness(),
+            handle.stretchiness(),
+            handle.style(),
+        ));
         Ok(())
     }
 

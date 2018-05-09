@@ -6,13 +6,16 @@
 <% from data import Keyword %>
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
-${helpers.predefined_type("line-height",
-                          "LineHeight",
-                          "computed::LineHeight::normal()",
-                          animation_value_type="LineHeight",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height",
-                          servo_restyle_damage = "reflow")}
+${helpers.predefined_type(
+    "line-height",
+    "LineHeight",
+    "computed::LineHeight::normal()",
+    animation_value_type="LineHeight",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE \
+           APPLIES_TO_PLACEHOLDER GETCS_NEEDS_LAYOUT_FLUSH",
+    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height",
+    servo_restyle_damage="reflow"
+)}
 
 // CSS Text Module Level 3
 
@@ -206,93 +209,15 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style",
 )}
 
-<%helpers:longhand name="text-emphasis-position" animation_value_type="discrete" products="gecko"
-                   spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
-    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-    #[derive(ToComputedValue, ToCss)]
-    pub enum HorizontalWritingModeValue {
-        Over,
-        Under,
-    }
-
-    #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-    #[derive(ToComputedValue, ToCss)]
-    pub enum VerticalWritingModeValue {
-        Right,
-        Left,
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-    pub struct SpecifiedValue(pub HorizontalWritingModeValue, pub VerticalWritingModeValue);
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue(HorizontalWritingModeValue::Over, VerticalWritingModeValue::Right)
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-       if let Ok(horizontal) = input.try(|input| HorizontalWritingModeValue::parse(input)) {
-            let vertical = VerticalWritingModeValue::parse(input)?;
-            Ok(SpecifiedValue(horizontal, vertical))
-        } else {
-            let vertical = VerticalWritingModeValue::parse(input)?;
-            let horizontal = HorizontalWritingModeValue::parse(input)?;
-            Ok(SpecifiedValue(horizontal, vertical))
-        }
-    }
-
-    % if product == "gecko":
-        impl SpecifiedValue {
-            pub fn from_gecko_keyword(kw: u32) -> Self {
-                use gecko_bindings::structs;
-
-                let vert = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT != 0 {
-                    VerticalWritingModeValue::Right
-                } else {
-                    debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT != 0);
-                    VerticalWritingModeValue::Left
-                };
-                let horiz = if kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER != 0 {
-                    HorizontalWritingModeValue::Over
-                } else {
-                    debug_assert!(kw & structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER != 0);
-                    HorizontalWritingModeValue::Under
-                };
-                SpecifiedValue(horiz, vert)
-            }
-        }
-
-        impl From<u8> for SpecifiedValue {
-            fn from(bits: u8) -> SpecifiedValue {
-                SpecifiedValue::from_gecko_keyword(bits as u32)
-            }
-        }
-
-        impl From<SpecifiedValue> for u8 {
-            fn from(v: SpecifiedValue) -> u8 {
-                use gecko_bindings::structs;
-
-                let mut result = match v.0 {
-                    HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER,
-                    HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER,
-                };
-                match v.1 {
-                    VerticalWritingModeValue::Right => {
-                        result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT;
-                    }
-                    VerticalWritingModeValue::Left => {
-                        result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT;
-                    }
-                };
-                result as u8
-            }
-        }
-    % endif
-</%helpers:longhand>
+${helpers.predefined_type(
+    "text-emphasis-position",
+    "TextEmphasisPosition",
+    "computed::TextEmphasisPosition::over_right()",
+    initial_specified_value="specified::TextEmphasisPosition::over_right()",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position",
+)}
 
 ${helpers.predefined_type(
     "text-emphasis-color",
@@ -367,7 +292,6 @@ ${helpers.single_keyword("ruby-position", "over under",
 
 ${helpers.single_keyword("text-combine-upright", "none all",
                          products="gecko", animation_value_type="discrete",
-                         gecko_pref="layout.css.text-combine-upright.enabled",
                          spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright")}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols

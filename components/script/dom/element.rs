@@ -83,6 +83,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use js::jsapi::Heap;
 use js::jsval::JSVal;
+use msg::constellation_msg::InputMethodType;
 use net_traits::request::CorsSettings;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowGoal;
@@ -1087,6 +1088,22 @@ impl Element {
         None
     }
 
+    // Returns the kind of IME control needed for a focusable element, if any.
+    pub fn input_method_type(&self) -> Option<InputMethodType> {
+        if !self.is_focusable_area() {
+            return None;
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            input.input_type().as_ime_type()
+        } else if self.is::<HTMLTextAreaElement>() {
+            Some(InputMethodType::Text)
+        } else {
+            // Other focusable elements that are not input fields.
+            None
+        }
+    }
+
     pub fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;
@@ -1146,16 +1163,16 @@ impl Element {
     pub fn push_attribute(&self, attr: &Attr) {
         let name = attr.local_name().clone();
         let namespace = attr.namespace().clone();
-        let value = DOMString::from(&**attr.value());
         let mutation = Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: value.clone(),
+            old_value: None,
         };
 
         MutationObserver::queue_a_mutation_record(&self.node, mutation);
 
         if self.get_custom_element_definition().is_some() {
+            let value = DOMString::from(&**attr.value());
             let reaction = CallbackReaction::AttributeChanged(name, None, Some(value), namespace);
             ScriptThread::enqueue_callback_reaction(self, reaction, None);
         }
@@ -1294,7 +1311,7 @@ impl Element {
             let mutation = Mutation::Attribute {
                 name: name.clone(),
                 namespace: namespace.clone(),
-                old_value: old_value.clone(),
+                old_value: Some(old_value.clone()),
             };
 
             MutationObserver::queue_a_mutation_record(&self.node, mutation);
@@ -2570,6 +2587,14 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         self.upcast::<Node>().GetParentElement()
     }
 
+    fn parent_node_is_shadow_root(&self) -> bool {
+        false
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
+        None
+    }
+
     fn match_pseudo_element(
         &self,
         _pseudo: &PseudoElement,
@@ -2577,7 +2602,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
     ) -> bool {
         false
     }
-
 
     fn first_child_element(&self) -> Option<DomRoot<Element>> {
         self.node.child_elements().next()

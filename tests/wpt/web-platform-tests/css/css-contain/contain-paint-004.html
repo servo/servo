@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: paint containment applies to the principal box for list items</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="paint containment applies to the principal box, which for list items excludes the list marker">
+  <link rel="match" href="reference/contain-paint-004-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain/#containment-paint">
+
+<style>
+li { contain: paint; }
+</style>
+
+<p>This test passes if you can see no number below.
+<ol>
+  <li>
+  <li>
+  <li>
+  <li>
+  <li>
+  <li>
+</ol>

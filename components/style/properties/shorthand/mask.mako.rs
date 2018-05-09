@@ -36,8 +36,10 @@
         }
     }
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         % for name in "image mode position_x position_y size repeat origin clip composite".split():
             // Vec grows from 0 to 4 by default on first push().  So allocate
             // with capacity 1, so in the common case of only one item we don't

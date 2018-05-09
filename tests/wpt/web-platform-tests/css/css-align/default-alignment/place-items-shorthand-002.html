@@ -8,10 +8,11 @@
 <script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
 <div id="log"></div>
 <script>
-    let classes = Object.assign({"Normal":"normal", "Stretch":"stretch"}, selfPositionClasses, baselineClasses);
+    let classes = Object.assign({"Normal":"normal", "Stretch":"stretch"}, selfPositionClasses, baselineClasses,
+                                overflowClasses);
     for (var key1 in classes) {
         let alignValue = classes[key1];
-        let classes2 = Object.assign({"Left":"left", "Right":"right"}, classes);
+        let classes2 = Object.assign({"Left":"left", "Right":"right"}, legacyClasses, classes);
         for (var key2 in classes2) {
            let justifyValue = classes2[key2];
            test(function() {

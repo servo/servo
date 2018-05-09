@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
-use dom::bindings::codegen::UnionTypes::BlobOrString;
+use dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::reflect_dom_object;
@@ -60,7 +60,7 @@ impl File {
 
     // https://w3c.github.io/FileAPI/#file-constructor
     pub fn Constructor(global: &GlobalScope,
-                       fileBits: Vec<BlobOrString>,
+                       fileBits: Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>,
                        filename: DOMString,
                        filePropertyBag: &FileBinding::FilePropertyBag)
                        -> Fallible<DomRoot<File>> {

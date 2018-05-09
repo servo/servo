@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use base64;
-use canvas_traits::canvas::{CanvasMsg, FromScriptMsg};
+use canvas_traits::canvas::{CanvasMsg, CanvasId, FromScriptMsg};
 use canvas_traits::webgl::WebGLVersion;
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
@@ -15,6 +15,7 @@ use dom::bindings::conversions::ConversionResult;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
@@ -31,10 +32,11 @@ use euclid::Size2D;
 use html5ever::{LocalName, Prefix};
 use image::ColorType;
 use image::png::PNGEncoder;
-use ipc_channel::ipc;
 use js::error::throw_type_error;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::JSContext;
+use js::rust::HandleValue;
 use offscreen_gl_context::GLContextAttributes;
+use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use servo_config::prefs::PREFS;
 use std::iter::repeat;
@@ -103,6 +105,7 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn data(&self) -> HTMLCanvasData;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
+    fn get_canvas_id_for_layout(&self) -> CanvasId;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
@@ -131,6 +134,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 source: source,
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
+                canvas_id: self.get_canvas_id_for_layout(),
             }
         }
     }
@@ -152,6 +156,18 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<HTMLCanvasElement> {
                 .get_attr_for_layout(&ns!(), &local_name!("height"))
                 .map(AttrValue::as_uint_px_dimension)
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_canvas_id_for_layout(&self) -> CanvasId {
+        unsafe {
+            let canvas = &*self.unsafe_get();
+            if let &Some(CanvasContext::Context2d(ref context)) = canvas.context.borrow_for_layout() {
+                context.to_layout().get_canvas_id()
+            } else {
+                CanvasId(0)
+            }
         }
     }
 }
@@ -258,11 +274,11 @@ impl HTMLCanvasElement {
 
         let data = match self.context.borrow().as_ref() {
             Some(&CanvasContext::Context2d(ref context)) => {
-                let (sender, receiver) = ipc::channel().unwrap();
-                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender));
+                let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+                let msg = CanvasMsg::FromScript(FromScriptMsg::SendPixels(sender), context.get_canvas_id());
                 context.get_ipc_renderer().send(msg).unwrap();
 
-                receiver.recv().unwrap()?
+                receiver.recv().unwrap()?.into()
             },
             Some(&CanvasContext::WebGL(_)) => {
                 // TODO: add a method in WebGLRenderingContext to get the pixels.
@@ -344,11 +360,22 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                                                            Finite::wrap(self.Height() as f64))?;
                 image_data.get_data_array()
             }
+            Some(CanvasContext::WebGL(ref context)) => {
+                match context.get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok("data:,".into()),
+                }
+            }
+            Some(CanvasContext::WebGL2(ref context)) => {
+                match context.base_context().get_image_data(self.Width(), self.Height()) {
+                    Some(data) => data,
+                    None => return Ok("data:,".into()),
+                }
+            }
             None => {
                 // Each pixel is fully-transparent black.
                 vec![0; (self.Width() * self.Height() * 4) as usize]
             }
-            _ => return Err(Error::NotSupported) // WebGL
         };
 
         // Only handle image/png for now.

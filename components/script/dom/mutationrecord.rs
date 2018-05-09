@@ -28,10 +28,12 @@ pub struct MutationRecord {
 
 impl MutationRecord {
     #[allow(unrooted_must_root)]
-    pub fn attribute_mutated(target: &Node,
-                             attribute_name: &LocalName,
-                             attribute_namespace: Option<&Namespace>,
-                             old_value: Option<DOMString>) -> DomRoot<MutationRecord> {
+    pub fn attribute_mutated(
+        target: &Node,
+        attribute_name: &LocalName,
+        attribute_namespace: Option<&Namespace>,
+        old_value: Option<DOMString>,
+    ) -> DomRoot<MutationRecord> {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
             target,
@@ -43,11 +45,30 @@ impl MutationRecord {
         reflect_dom_object(record, &*window_from_node(target), MutationRecordBinding::Wrap)
     }
 
-    pub fn child_list_mutated(target: &Node,
-                              added_nodes: Option<&[&Node]>,
-                              removed_nodes: Option<&[&Node]>,
-                              next_sibling: Option<&Node>,
-                              prev_sibling: Option<&Node>) -> DomRoot<MutationRecord> {
+    pub fn character_data_mutated(
+        target: &Node,
+        old_value: Option<DOMString>,
+    ) -> DomRoot<MutationRecord> {
+        reflect_dom_object(
+            Box::new(MutationRecord::new_inherited(
+                "characterData",
+                target,
+                None, None,
+                old_value,
+                None, None, None, None
+            )),
+            &*window_from_node(target),
+            MutationRecordBinding::Wrap
+        )
+    }
+
+    pub fn child_list_mutated(
+        target: &Node,
+        added_nodes: Option<&[&Node]>,
+        removed_nodes: Option<&[&Node]>,
+        next_sibling: Option<&Node>,
+        prev_sibling: Option<&Node>,
+    ) -> DomRoot<MutationRecord> {
         let window = window_from_node(target);
         let added_nodes = added_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
         let removed_nodes = removed_nodes.map(|list| NodeList::new_simple_list_slice(&window, list));
@@ -67,15 +88,17 @@ impl MutationRecord {
         )
     }
 
-    fn new_inherited(record_type: &str,
-                     target: &Node,
-                     attribute_name: Option<DOMString>,
-                     attribute_namespace: Option<DOMString>,
-                     old_value: Option<DOMString>,
-                     added_nodes: Option<&NodeList>,
-                     removed_nodes: Option<&NodeList>,
-                     next_sibling: Option<&Node>,
-                     prev_sibling: Option<&Node>) -> MutationRecord {
+    fn new_inherited(
+        record_type: &str,
+        target: &Node,
+        attribute_name: Option<DOMString>,
+        attribute_namespace: Option<DOMString>,
+        old_value: Option<DOMString>,
+        added_nodes: Option<&NodeList>,
+        removed_nodes: Option<&NodeList>,
+        next_sibling: Option<&Node>,
+        prev_sibling: Option<&Node>,
+    ) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
             record_type: DOMString::from(record_type),

@@ -1,6 +1,7 @@
 # Tests for absolutely-positioned children of a flex container
 == flexbox-abspos-child-001a.html flexbox-abspos-child-001-ref.html
 == flexbox-abspos-child-001b.html flexbox-abspos-child-001-ref.html
+== flexbox-abspos-child-002.html flexbox-abspos-child-002-ref.html
 
 # Tests for handling anonymous flex items
 == flexbox-anonymous-items-001.html flexbox-anonymous-items-001-ref.html
@@ -97,6 +98,16 @@
 == flexbox-collapsed-item-horiz-002.html flexbox-collapsed-item-horiz-002-ref.html
 == flexbox-collapsed-item-horiz-003.html flexbox-collapsed-item-horiz-003-ref.html
 
+# Tests for "flex-basis: content"
+== flexbox-flex-basis-content-001a.html flexbox-flex-basis-content-001-ref.html
+== flexbox-flex-basis-content-001b.html flexbox-flex-basis-content-001-ref.html
+== flexbox-flex-basis-content-002a.html flexbox-flex-basis-content-002-ref.html
+== flexbox-flex-basis-content-002b.html flexbox-flex-basis-content-002-ref.html
+== flexbox-flex-basis-content-003a.html flexbox-flex-basis-content-003-ref.html
+== flexbox-flex-basis-content-003b.html flexbox-flex-basis-content-003-ref.html
+== flexbox-flex-basis-content-004a.html flexbox-flex-basis-content-004-ref.html
+== flexbox-flex-basis-content-004b.html flexbox-flex-basis-content-004-ref.html
+
 # Tests for flex-flow shorthand property
 == flexbox-flex-flow-001.html flexbox-flex-flow-001-ref.html
 == flexbox-flex-flow-002.html flexbox-flex-flow-002-ref.html
@@ -122,6 +133,12 @@
 == flexbox-intrinsic-ratio-005v.html flexbox-intrinsic-ratio-005-ref.html
 == flexbox-intrinsic-ratio-006.html flexbox-intrinsic-ratio-006-ref.html
 == flexbox-intrinsic-ratio-006v.html flexbox-intrinsic-ratio-006-ref.html
+
+# Test for definite and indefinite sizes.
+== flexbox-definite-sizes-001.html flexbox-definite-sizes-001-ref.html
+== flexbox-definite-sizes-002.html flexbox-definite-sizes-001-ref.html
+== flexbox-definite-sizes-003.html flexbox-definite-sizes-001-ref.html
+== flexbox-definite-sizes-004.html flexbox-definite-sizes-001-ref.html
 
 # Tests for flex items as (pseudo) stacking contexts
 == flexbox-items-as-stacking-contexts-001.xhtml flexbox-items-as-stacking-contexts-001-ref.xhtml

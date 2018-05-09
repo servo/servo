@@ -8,6 +8,7 @@ use freetype::freetype::FT_Library;
 use freetype::freetype::FT_Memory;
 use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
+use freetype::succeeded;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use servo_allocator::libc_compat::{malloc, realloc, free};
 use servo_allocator::usable_size;
@@ -120,7 +121,7 @@ impl FontContextHandle {
             let mut ctx: FT_Library = ptr::null_mut();
 
             let result = FT_New_Library(mem, &mut ctx);
-            if !result.succeeded() { panic!("Unable to initialize FreeType library"); }
+            if !succeeded(result) { panic!("Unable to initialize FreeType library"); }
 
             FT_Add_Default_Modules(ctx);
 

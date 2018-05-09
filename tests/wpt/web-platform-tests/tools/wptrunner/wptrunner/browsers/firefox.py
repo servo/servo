@@ -102,7 +102,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
         options["prefs"] = {
-            "network.dns.localDomains": ",".join(server_config['domains'].values())
+            "network.dns.localDomains": ",".join(server_config.domains.itervalues())
         }
         capabilities["moz:firefoxOptions"] = options
     if kwargs["certutil_binary"] is None:
@@ -122,10 +122,8 @@ def env_options():
     # domains to localhost without relying on the network stack.
     #
     # https://github.com/w3c/web-platform-tests/pull/9480
-    return {"host_ip": "127.0.0.1",
-            "host": "web-platform.test",
-            "bind_hostname": False,
-            "certificate_domain": "web-platform.test",
+    return {"server_host": "127.0.0.1",
+            "bind_address": False,
             "supports_debugger": True}
 
 
@@ -135,8 +133,8 @@ def run_info_extras(**kwargs):
 
 
 def update_properties():
-    return (["debug", "stylo", "e10s", "os", "version", "processor", "bits"],
-            {"debug", "e10s", "stylo"})
+    return (["debug", "webrender", "e10s", "os", "version", "processor", "bits"],
+            {"debug", "e10s", "webrender"})
 
 
 class FirefoxBrowser(Browser):
@@ -200,7 +198,7 @@ class FirefoxBrowser(Browser):
         self.profile = FirefoxProfile(preferences=preferences)
         self.profile.set_preferences({"marionette.port": self.marionette_port,
                                       "dom.disable_open_during_load": False,
-                                      "network.dns.localDomains": ",".join(self.config['domains'].values()),
+                                      "network.dns.localDomains": ",".join(self.config.domains.itervalues()),
                                       "network.proxy.type": 0,
                                       "places.history.enabled": False,
                                       "dom.send_after_paint_to_content": True,
@@ -304,12 +302,15 @@ class FirefoxBrowser(Browser):
 
     def on_output(self, line):
         """Write a line of output from the firefox process to the log"""
-        data = line.decode("utf8", "replace")
-        if self.stack_fixer:
-            data = self.stack_fixer(data)
-        self.logger.process_output(self.pid(),
-                                   data,
-                                   command=" ".join(self.runner.command))
+        if "GLib-GObject-CRITICAL" in line:
+            return
+        if line:
+            data = line.decode("utf8", "replace")
+            if self.stack_fixer:
+                data = self.stack_fixer(data)
+            self.logger.process_output(self.pid(),
+                                      data,
+                                      command=" ".join(self.runner.command))
 
     def is_alive(self):
         if self.runner:

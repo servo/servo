@@ -8,13 +8,13 @@ use cssparser::Parser;
 use euclid::Size2D;
 use parser::ParserContext;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, ToCss};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 use values::animated::ToAnimatedValue;
 
 /// A generic size, for `border-*-radius` longhand properties, or
 /// `border-spacing`.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToAnimatedZero, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedZero, ToComputedValue)]
 pub struct Size<L>(pub Size2D<L>);
 
 impl<L> Size<L> {
@@ -42,7 +42,7 @@ impl<L> Size<L> {
     ) -> Result<Self, ParseError<'i>>
     where
         L: Clone,
-        F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<L, ParseError<'i>>
+        F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<L, ParseError<'i>>,
     {
         let first = parse_one(context, input)?;
         let second = input
@@ -53,8 +53,8 @@ impl<L> Size<L> {
 }
 
 impl<L> ToCss for Size<L>
-where L:
-    ToCss + PartialEq,
+where
+    L: ToCss + PartialEq,
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
@@ -72,8 +72,8 @@ where L:
 }
 
 impl<L> ToAnimatedValue for Size<L>
-where L:
-    ToAnimatedValue,
+where
+    L: ToAnimatedValue,
 {
     type AnimatedValue = Size<L::AnimatedValue>;
 
@@ -92,4 +92,8 @@ where L:
             L::from_animated_value(animated.0.height),
         ))
     }
+}
+
+impl<L: SpecifiedValueInfo> SpecifiedValueInfo for Size<L> {
+    const SUPPORTED_TYPES: u8 = L::SUPPORTED_TYPES;
 }

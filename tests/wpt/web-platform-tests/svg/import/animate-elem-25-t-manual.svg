@@ -60,21 +60,21 @@
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
     <text font-family="Arial" font-size="14" x="30" y="40">Test animation options for specifying the target attribute/property.</text>
     <g xml:space="preserve" font-family="Arial" font-size="14" stroke-width="3" transform="translate(0,50)">
-			<text x="20" y="164">0-3 sec. </text>
-			<line x1="80" y1="160" x2="200" y2="160" fill="none" stroke="green"/>
-			<text x="20" y="124">at 6 sec. </text>
-			<line x1="80" y1="120" x2="200" y2="120" fill="none" stroke="green"/>
-			<rect id="rect1" x="100" y="80" width="100" height="80" fill="#FFFF00" stroke="#FF00FF" stroke-width="4">
-				<animate attributeName="height" from="80" to="40" begin="3s" dur="3s" fill="freeze"/>
-			</rect>
-			<text x="240" y="164">0-6 sec. </text>
-			<line x1="305" y1="160" x2="425" y2="160" fill="none" stroke="green"/>
-			<text x="240" y="124">at 9 sec. </text>
-			<line x1="305" y1="120" x2="425" y2="120" fill="none" stroke="green"/>
-			<rect id="rect2" x="325" y="80" width="100" height="80" fill="#FFFF00" stroke="#FF00FF" stroke-width="4">
-				<animate attributeName="height" attributeType="XML" from="80" to="40" begin="6s" dur="3s" fill="freeze"/>
-			</rect>
-		</g>
+      <text x="20" y="164">0-3 sec. </text>
+      <line x1="80" y1="160" x2="200" y2="160" fill="none" stroke="green"/>
+      <text x="20" y="124">at 6 sec. </text>
+      <line x1="80" y1="120" x2="200" y2="120" fill="none" stroke="green"/>
+      <rect id="rect1" x="100" y="80" width="100" height="80" fill="#FFFF00" stroke="#FF00FF" stroke-width="4">
+        <animate attributeName="height" from="80" to="40" begin="3s" dur="3s" fill="freeze"/>
+      </rect>
+      <text x="240" y="164">0-6 sec. </text>
+      <line x1="305" y1="160" x2="425" y2="160" fill="none" stroke="green"/>
+      <text x="240" y="124">at 9 sec. </text>
+      <line x1="305" y1="120" x2="425" y2="120" fill="none" stroke="green"/>
+      <rect id="rect2" x="325" y="80" width="100" height="80" fill="#FFFF00" stroke="#FF00FF" stroke-width="4">
+        <animate attributeName="height" attributeType="XML" from="80" to="40" begin="6s" dur="3s" fill="freeze"/>
+      </rect>
+    </g>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none" fill="black">$Revision: 1.7 $</text>

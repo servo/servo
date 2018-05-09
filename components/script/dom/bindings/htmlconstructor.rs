@@ -82,8 +82,8 @@ use html5ever::interface::QualName;
 use js::glue::UnwrapObject;
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
-use js::jsapi::HandleObject;
-use js::jsapi::MutableHandleObject;
+use js::rust::HandleObject;
+use js::rust::MutableHandleObject;
 use script_thread::ScriptThread;
 use std::ptr;
 

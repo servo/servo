@@ -32,10 +32,9 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::ReflowReason;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
-use script_layout_interface::message::ReflowGoal;
+use script_layout_interface::message::QueryMsg;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -419,7 +418,7 @@ impl HTMLElementMethods for HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.reflow(ReflowGoal::ElementInnerTextQuery(node.to_trusted_node_address()), ReflowReason::Query);
+        window.layout_reflow(QueryMsg::ElementInnerTextQuery(node.to_trusted_node_address()));
         DOMString::from(window.layout().element_inner_text())
     }
 

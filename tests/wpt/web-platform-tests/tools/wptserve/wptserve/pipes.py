@@ -1,5 +1,7 @@
 from cgi import escape
 import gzip as gzip_module
+import hashlib
+import os
 import re
 import time
 import types
@@ -277,6 +279,10 @@ def slice(request, response, start, end=None):
 
 
 class ReplacementTokenizer(object):
+    def arguments(self, token):
+        unwrapped = token[1:-1]
+        return ("arguments", re.split(r",\s*", token[1:-1]) if unwrapped else [])
+
     def ident(self, token):
         return ("ident", token)
 
@@ -296,8 +302,9 @@ class ReplacementTokenizer(object):
         return self.scanner.scan(string)[0]
 
     scanner = re.Scanner([(r"\$\w+:", var),
-                          (r"\$?\w+(?:\(\))?", ident),
-                          (r"\[[^\]]*\]", index)])
+                          (r"\$?\w+", ident),
+                          (r"\[[^\]]*\]", index),
+                          (r"\([^)]*\)", arguments)])
 
 
 class FirstWrapper(object):
@@ -339,6 +346,11 @@ def sub(request, response, escape_type="html"):
       A dictionary of query parameters supplied with the request.
     uuid()
       A pesudo-random UUID suitable for usage with stash
+    file_hash(algorithm, filepath)
+      The cryptographic hash of a file. Supported algorithms: md5, sha1,
+      sha224, sha256, sha384, and sha512. For example:
+
+        {{file_hash(md5, dom/interfaces.html)}}
 
     So for example in a setup running on localhost with a www
     subdomain and a http server on ports 80 and 81::
@@ -351,7 +363,7 @@ def sub(request, response, escape_type="html"):
     It is also possible to assign a value to a variable name, which must start with
     the $ character, using the ":" syntax e.g.
 
-    {{$id:uuid()}
+    {{$id:uuid()}}
 
     Later substitutions in the same file may then refer to the variable
     by name e.g.
@@ -364,6 +376,39 @@ def sub(request, response, escape_type="html"):
 
     response.content = new_content
     return response
+
+class SubFunctions(object):
+    @staticmethod
+    def uuid(request):
+        return str(uuid.uuid4())
+
+    # Maintain a whitelist of supported algorithms, restricted to those that
+    # are available on all platforms [1]. This ensures that test authors do not
+    # unknowingly introduce platform-specific tests.
+    #
+    # [1] https://docs.python.org/2/library/hashlib.html
+    supported_algorithms = ("md5", "sha1", "sha224", "sha256", "sha384", "sha512")
+
+    @staticmethod
+    def file_hash(request, algorithm, path):
+        if algorithm not in SubFunctions.supported_algorithms:
+            raise ValueError("Unsupported encryption algorithm: '%s'" % algorithm)
+
+        hash_obj = getattr(hashlib, algorithm)()
+        absolute_path = os.path.join(request.doc_root, path)
+
+        try:
+            with open(absolute_path) as f:
+                hash_obj.update(f.read())
+        except IOError:
+            # In this context, an unhandled IOError will be interpreted by the
+            # server as an indication that the template file is non-existent.
+            # Although the generic "Exception" is less precise, it avoids
+            # triggering a potentially-confusing HTTP 404 error in cases where
+            # the path to the file to be hashed is invalid.
+            raise Exception('Cannot open file for hash computation: "%s"' % absolute_path)
+
+        return hash_obj.digest().encode('base64').strip()
 
 def template(request, content, escape_type="html"):
     #TODO: There basically isn't any error handling here
@@ -382,12 +427,15 @@ def template(request, content, escape_type="html"):
         else:
             variable = None
 
-        assert tokens[0][0] == "ident" and all(item[0] == "index" for item in tokens[1:]), tokens
+        assert tokens[0][0] == "ident", tokens
+        assert all(item[0] in ("index", "arguments") for item in tokens[1:]), tokens
 
         field = tokens[0][1]
 
         if field in variables:
             value = variables[field]
+        elif hasattr(SubFunctions, field):
+            value = getattr(SubFunctions, field)
         elif field == "headers":
             value = request.headers
         elif field == "GET":
@@ -398,6 +446,8 @@ def template(request, content, escape_type="html"):
                 value = request.server.config['not_domains']
             else:
                 value = request.server.config['domains']
+        elif field == "host":
+            value = request.server.config["browser_host"]
         elif field in request.server.config:
             value = request.server.config[tokens[0][1]]
         elif field == "location":
@@ -412,15 +462,16 @@ def template(request, content, escape_type="html"):
                      "path": request.url_parts.path,
                      "pathname": request.url_parts.path,
                      "query": "?%s" % request.url_parts.query}
-        elif field == "uuid()":
-            value = str(uuid.uuid4())
         elif field == "url_base":
             value = request.url_base
         else:
             raise Exception("Undefined template variable %s" % field)
 
         for item in tokens[1:]:
-            value = value[item[1]]
+            if item[0] == "index":
+                value = value[item[1]]
+            else:
+                value = value(request, *item[1])
 
         assert isinstance(value, (int,) + types.StringTypes), tokens
 

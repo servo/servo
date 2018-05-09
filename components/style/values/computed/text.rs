@@ -8,16 +8,17 @@
 use properties::StyleBuilder;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::{CSSInteger, CSSFloat};
+use values::{CSSFloat, CSSInteger};
 use values::computed::{NonNegativeLength, NonNegativeNumber};
 use values::computed::length::{Length, LengthOrPercentage};
 use values::generics::text::InitialLetter as GenericInitialLetter;
 use values::generics::text::LineHeight as GenericLineHeight;
 use values::generics::text::MozTabSize as GenericMozTabSize;
 use values::generics::text::Spacing;
-use values::specified::text::{TextDecorationLine, TextEmphasisFillMode, TextEmphasisShapeKeyword, TextOverflowSide};
+use values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword, TextOverflowSide};
 
 pub use values::specified::TextAlignKeyword as TextAlign;
+pub use values::specified::TextEmphasisPosition;
 
 /// A computed value for the `initial-letter` property.
 pub type InitialLetter = GenericInitialLetter<CSSFloat, CSSInteger>;
@@ -77,36 +78,6 @@ impl ToCss for TextOverflow {
     }
 }
 
-impl ToCss for TextDecorationLine {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        let mut has_any = false;
-
-        macro_rules! write_value {
-            ($line:path => $css:expr) => {
-                if self.contains($line) {
-                    if has_any {
-                        dest.write_str(" ")?;
-                    }
-                    dest.write_str($css)?;
-                    has_any = true;
-                }
-            }
-        }
-        write_value!(TextDecorationLine::UNDERLINE => "underline");
-        write_value!(TextDecorationLine::OVERLINE => "overline");
-        write_value!(TextDecorationLine::LINE_THROUGH => "line-through");
-        write_value!(TextDecorationLine::BLINK => "blink");
-        if !has_any {
-            dest.write_str("none")?;
-        }
-
-        Ok(())
-    }
-}
-
 /// A struct that represents the _used_ value of the text-decoration property.
 ///
 /// FIXME(emilio): This is done at style resolution time, though probably should
@@ -134,9 +105,11 @@ impl TextDecorationsInEffect {
         // otherwise, start with the declarations in effect and add in the text
         // decorations that this block specifies.
         let mut result = match style.get_box().clone_display() {
-            Display::InlineBlock |
-            Display::InlineTable => Self::default(),
-            _ => style.get_parent_inheritedtext().text_decorations_in_effect.clone(),
+            Display::InlineBlock | Display::InlineTable => Self::default(),
+            _ => style
+                .get_parent_inheritedtext()
+                .text_decorations_in_effect
+                .clone(),
         };
 
         let text_style = style.get_text();

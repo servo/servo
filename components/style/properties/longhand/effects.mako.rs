@@ -7,13 +7,16 @@
 // Box-shadow, etc.
 <% data.new_style_struct("Effects", inherited=False) %>
 
-${helpers.predefined_type("opacity",
-                          "Opacity",
-                          "1.0",
-                          animation_value_type="ComputedValue",
-                          flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-color/#opacity",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "opacity",
+    "Opacity",
+    "1.0",
+    animation_value_type="ComputedValue",
+    flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER \
+           CAN_ANIMATE_ON_COMPOSITOR",
+    spec="https://drafts.csswg.org/css-color/#opacity",
+    servo_restyle_damage = "reflow_out_of_flow"
+)}
 
 ${helpers.predefined_type(
     "box-shadow",

@@ -24,11 +24,11 @@
     var styleSheet;
     var linkSheet;
     test(function() {
-        assert_own_property(styleElement, "sheet");
+        assert_idl_attribute(styleElement, "sheet");
         assert_readonly(styleElement, "sheet");
         styleSheet = styleElement.sheet;
         assert_true(styleSheet instanceof CSSStyleSheet);
-        assert_own_property(linkElement, "sheet");
+        assert_idl_attribute(linkElement, "sheet");
         linkSheet = linkElement.sheet;
         assert_true(linkSheet instanceof CSSStyleSheet);
     }, "sheet_property",
@@ -48,8 +48,8 @@
       assert: "The sheet property on LinkStyle should always return the current associated style sheet." });
 
     test(function() {
-        assert_own_property(styleSheet, "ownerRule");
-        assert_own_property(styleSheet, "cssRules");
+        assert_idl_attribute(styleSheet, "ownerRule");
+        assert_idl_attribute(styleSheet, "cssRules");
         assert_inherits(styleSheet, "insertRule");
         assert_inherits(styleSheet, "deleteRule");
 
@@ -71,23 +71,22 @@
       assert: "CSSStyleSheet initial property values are correct" });
 
     test(function() {
-        assert_own_property(styleSheet, "type");
-        assert_own_property(styleSheet, "disabled");
-        assert_own_property(styleSheet, "ownerNode");
-        assert_own_property(styleSheet, "parentStyleSheet");
-        assert_own_property(styleSheet, "href");
-        assert_own_property(styleSheet, "title");
-        assert_own_property(styleSheet, "media");
+        assert_idl_attribute(styleSheet, "type");
+        assert_idl_attribute(styleSheet, "disabled");
+        assert_idl_attribute(styleSheet, "ownerNode");
+        assert_idl_attribute(styleSheet, "parentStyleSheet");
+        assert_idl_attribute(styleSheet, "href");
+        assert_idl_attribute(styleSheet, "title");
+        assert_idl_attribute(styleSheet, "media");
 
         assert_readonly(styleSheet, "type");
         assert_readonly(styleSheet, "ownerNode");
         assert_readonly(styleSheet, "parentStyleSheet");
         assert_readonly(styleSheet, "href");
         assert_readonly(styleSheet, "title");
-        assert_readonly(styleSheet, "media");
     }, "StyleSheet_properties",
     { assert: [ "type, disabled, ownerNode, parentStyleSheet, href, title, and media properties exist on StyleSheet",
-                "type, ownerNode, parentStyleSheet, href, title, media properties are read only" ] });
+                "type, ownerNode, parentStyleSheet, href, and title properties are read only" ] });
 
     test(function() {
         assert_equals(styleSheet.type, "text/css");

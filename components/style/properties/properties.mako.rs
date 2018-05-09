@@ -42,7 +42,8 @@ use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use shared_lock::StylesheetGuards;
-use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 #[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
@@ -54,12 +55,6 @@ use str::{CssString, CssStringBorrow, CssStringWriter};
 use style_adjuster::StyleAdjuster;
 
 pub use self::declaration_block::*;
-
-#[cfg(feature = "gecko")]
-#[macro_export]
-macro_rules! property_name {
-    ($s: tt) => { atom!($s) }
-}
 
 <%!
     from data import Method, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
@@ -424,14 +419,8 @@ impl NonCustomPropertyId {
     #[cfg(feature = "gecko")]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
         static MAP: [nsCSSPropertyID; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
-            % for property in data.longhands:
-                ${helpers.to_nscsspropertyid(property.ident)},
-            % endfor
-            % for property in data.shorthands:
-                ${helpers.to_nscsspropertyid(property.ident)},
-            % endfor
-            % for property in data.all_aliases():
-                ${helpers.alias_to_nscsspropertyid(property.ident)},
+            % for property in data.longhands + data.shorthands + data.all_aliases():
+                ${property.nscsspropertyid()},
             % endfor
         ];
 
@@ -546,6 +535,43 @@ impl NonCustomPropertyId {
         }
 
         false
+    }
+
+    /// The supported types of this property. The return value should be
+    /// style_traits::CssType when it can become a bitflags type.
+    fn supported_types(&self) -> u8 {
+        const SUPPORTED_TYPES: [u8; ${len(data.longhands) + len(data.shorthands)}] = [
+            % for prop in data.longhands:
+                <${prop.specified_type()} as SpecifiedValueInfo>::SUPPORTED_TYPES,
+            % endfor
+            % for prop in data.shorthands:
+            % if prop.name == "all":
+                0, // 'all' accepts no value other than CSS-wide keywords
+            % else:
+                <shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::SUPPORTED_TYPES,
+            % endif
+            % endfor
+        ];
+        SUPPORTED_TYPES[self.0]
+    }
+
+    /// See PropertyId::collect_property_completion_keywords.
+    fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
+        const COLLECT_FUNCTIONS: [&Fn(KeywordsCollectFn);
+                                  ${len(data.longhands) + len(data.shorthands)}] = [
+            % for prop in data.longhands:
+                &<${prop.specified_type()} as SpecifiedValueInfo>::collect_completion_keywords,
+            % endfor
+            % for prop in data.shorthands:
+            % if prop.name == "all":
+                &|_f| {}, // 'all' accepts no value other than CSS-wide keywords
+            % else:
+                &<shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::
+                    collect_completion_keywords,
+            % endif
+            % endfor
+        ];
+        COLLECT_FUNCTIONS[self.0](f);
     }
 }
 
@@ -730,7 +756,8 @@ impl LonghandIdSet {
 }
 
 /// An enum to represent a CSS Wide keyword.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -787,6 +814,15 @@ bitflags! {
         const APPLIES_TO_FIRST_LINE = 1 << 4;
         /// This longhand property applies to ::placeholder.
         const APPLIES_TO_PLACEHOLDER = 1 << 5;
+
+        /* The following flags are currently not used in Rust code, they
+         * only need to be listed in corresponding properties so that
+         * they can be checked in the C++ side via ServoCSSPropList.h. */
+        /// This property's getComputedStyle implementation requires layout
+        /// to be flushed.
+        const GETCS_NEEDS_LAYOUT_FLUSH = 0;
+        /// This property can be animated on the compositor.
+        const CAN_ANIMATE_ON_COMPOSITOR = 0;
     }
 }
 
@@ -826,7 +862,8 @@ impl LonghandId {
         }
     }
 
-    fn inherited(&self) -> bool {
+    /// Returns whether the longhand property is inherited by default.
+    pub fn inherited(&self) -> bool {
         ${static_longhand_id_set("INHERITED", lambda p: p.style_struct.inherited)}
         INHERITED.contains(*self)
     }
@@ -1577,10 +1614,10 @@ impl PropertyId {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                     % for property in properties:
                         "${property.name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
-                        % for name in property.alias:
-                            "${name}" => {
+                        % for alias in property.alias:
+                            "${alias.name}" => {
                                 StaticId::${kind}Alias(${kind}Id::${property.camel_case},
-                                                       AliasId::${to_camel_case(name)})
+                                                       AliasId::${alias.camel_case})
                             },
                         % endfor
                     % endfor
@@ -1616,33 +1653,39 @@ impl PropertyId {
         use gecko_bindings::structs::*;
         match id {
             % for property in data.longhands:
-                ${helpers.to_nscsspropertyid(property.ident)} => {
+                ${property.nscsspropertyid()} => {
                     Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${helpers.alias_to_nscsspropertyid(alias)} => {
+                    ${alias.nscsspropertyid()} => {
                         Ok(PropertyId::LonghandAlias(
                             LonghandId::${property.camel_case},
-                            AliasId::${to_camel_case(alias)}
+                            AliasId::${alias.camel_case}
                         ))
                     }
                 % endfor
             % endfor
             % for property in data.shorthands:
-                ${helpers.to_nscsspropertyid(property.ident)} => {
+                ${property.nscsspropertyid()} => {
                     Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${helpers.alias_to_nscsspropertyid(alias)} => {
+                    ${alias.nscsspropertyid()} => {
                         Ok(PropertyId::ShorthandAlias(
                             ShorthandId::${property.camel_case},
-                            AliasId::${to_camel_case(alias)}
+                            AliasId::${alias.camel_case}
                         ))
                     }
                 % endfor
             % endfor
             _ => Err(())
         }
+    }
+
+    /// Returns true if the property is a shorthand or shorthand alias.
+    #[inline]
+    pub fn is_shorthand(&self) -> bool {
+        self.as_shorthand().is_ok()
     }
 
     /// Given this property id, get it either as a shorthand or as a
@@ -1682,6 +1725,18 @@ impl PropertyId {
         })
     }
 
+    /// Returns non-alias NonCustomPropertyId corresponding to this
+    /// property id.
+    fn non_custom_non_alias_id(&self) -> Option<NonCustomPropertyId> {
+        Some(match *self {
+            PropertyId::Custom(_) => return None,
+            PropertyId::Shorthand(id) => id.into(),
+            PropertyId::Longhand(id) => id.into(),
+            PropertyId::ShorthandAlias(id, _) => id.into(),
+            PropertyId::LonghandAlias(id, _) => id.into(),
+        })
+    }
+
     /// Whether the property is enabled for all content regardless of the
     /// stylesheet it was declared on (that is, in practice only checks prefs).
     #[inline]
@@ -1702,6 +1757,24 @@ impl PropertyId {
             Some(id) => id,
         };
         id.allowed_in(context)
+    }
+
+    /// Whether the property supports the given CSS type.
+    /// `ty` should a bitflags of constants in style_traits::CssType.
+    pub fn supports_type(&self, ty: u8) -> bool {
+        let id = self.non_custom_non_alias_id();
+        id.map_or(0, |id| id.supported_types()) & ty != 0
+    }
+
+    /// Collect supported starting word of values of this property.
+    ///
+    /// See style_traits::SpecifiedValueInfo::collect_completion_keywords for more
+    /// details.
+    pub fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
+        if let Some(id) = self.non_custom_non_alias_id() {
+            id.collect_property_completion_keywords(f);
+        }
+        CSSWideKeyword::collect_completion_keywords(f);
     }
 }
 
@@ -2232,9 +2305,13 @@ pub mod style_structs {
                 pub fn compute_font_hash(&mut self) {
                     // Corresponds to the fields in
                     // `gfx::font_template::FontTemplateDescriptor`.
+                    //
+                    // FIXME(emilio): Where's font-style?
                     let mut hasher: FnvHasher = Default::default();
-                    hasher.write_u16(self.font_weight.0);
-                    self.font_stretch.hash(&mut hasher);
+                    // We hash the floating point number with four decimal
+                    // places.
+                    hasher.write_u64((self.font_weight.0 * 10000.).trunc() as u64);
+                    hasher.write_u64(((self.font_stretch.0).0 * 10000.).trunc() as u64);
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }
@@ -2416,10 +2493,11 @@ pub struct ComputedValuesInner {
 pub struct ComputedValues {
     /// The actual computed values
     ///
-    /// In Gecko the outer ComputedValues is actually a style context,
-    /// whereas ComputedValuesInner is the core set of computed values.
+    /// In Gecko the outer ComputedValues is actually a ComputedStyle, whereas
+    /// ComputedValuesInner is the core set of computed values.
     ///
-    /// We maintain this distinction in servo to reduce the amount of special casing.
+    /// We maintain this distinction in servo to reduce the amount of special
+    /// casing.
     inner: ComputedValuesInner,
 }
 
@@ -3409,7 +3487,7 @@ where
             let source = node.style_source();
 
             let declarations = if source.is_some() {
-                source.read(cascade_level.guard(guards)).declaration_importance_iter()
+                source.as_ref().unwrap().read(cascade_level.guard(guards)).declaration_importance_iter()
             } else {
                 // The root node has no style source.
                 DeclarationImportanceIterator::new(&[], &empty)
@@ -3860,12 +3938,12 @@ macro_rules! css_properties_accessors {
             % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in props:
                     % if property.enabled_in_content():
-                        % for name in [property.name] + property.alias:
-                            % if '-' in name:
-                                [${to_rust_ident(name).capitalize()}, Set${to_rust_ident(name).capitalize()},
+                        % for prop in [property] + property.alias:
+                            % if '-' in prop.name:
+                                [${prop.ident.capitalize()}, Set${prop.ident.capitalize()},
                                  PropertyId::${kind}(${kind}Id::${property.camel_case})],
                             % endif
-                            [${to_camel_case(name)}, Set${to_camel_case(name)},
+                            [${prop.camel_case}, Set${prop.camel_case},
                              PropertyId::${kind}(${kind}Id::${property.camel_case})],
                         % endfor
                     % endif

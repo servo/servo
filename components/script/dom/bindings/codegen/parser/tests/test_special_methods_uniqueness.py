@@ -35,23 +35,8 @@ def WebIDLTest(parser, harness):
     try:
         parser.parse("""
             interface SpecialMethodUniqueness1 {
-              setter creator boolean (DOMString name);
-              creator boolean (DOMString name);
-            };
-        """)
-
-        results = parser.finish()
-    except:
-        threw = True
-
-    harness.ok(threw, "Should have thrown.")
-
-    threw = False
-    try:
-        parser.parse("""
-            interface SpecialMethodUniqueness1 {
               setter boolean (DOMString name);
-              creator setter boolean (DOMString name);
+              setter boolean (DOMString name);
             };
         """)
 

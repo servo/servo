@@ -75,12 +75,14 @@ test(t => {
   assert_array_equals(div.getAnimations(), [],
                       'Animation should not be returned when it is finished');
 
-  animation.effect.timing.duration += 100 * MS_PER_SEC;
+  animation.effect.updateTiming({
+    duration: animation.effect.getTiming().duration + 100 * MS_PER_SEC,
+  });
   assert_array_equals(div.getAnimations(), [animation],
                       'Animation should be returned after extending the'
                       + ' duration');
 
-  animation.effect.timing.duration = 0;
+  animation.effect.updateTiming({ duration: 0 });
   assert_array_equals(div.getAnimations(), [],
                       'Animation should not be returned after setting the'
                       + ' duration to zero');
@@ -91,13 +93,13 @@ test(t => {
   const div = createDiv(t);
   const animation = div.animate(null, 100 * MS_PER_SEC);
 
-  animation.effect.timing.endDelay = -200 * MS_PER_SEC;
+  animation.effect.updateTiming({ endDelay: -200 * MS_PER_SEC });
   assert_array_equals(div.getAnimations(), [],
                       'Animation should not be returned after setting a'
                       + ' negative end delay such that the end time is less'
                       + ' than the current time');
 
-  animation.effect.timing.endDelay = 100 * MS_PER_SEC;
+  animation.effect.updateTiming({ endDelay: 100 * MS_PER_SEC });
   assert_array_equals(div.getAnimations(), [animation],
                       'Animation should be returned after setting a positive'
                       + ' end delay such that the end time is more than the'
@@ -113,17 +115,17 @@ test(t => {
   assert_array_equals(div.getAnimations(), [],
                       'Animation should not be returned when it is finished');
 
-  animation.effect.timing.iterations = 10;
+  animation.effect.updateTiming({ iterations: 10 });
   assert_array_equals(div.getAnimations(), [animation],
                       'Animation should be returned after inreasing the'
                       + ' number of iterations');
 
-  animation.effect.timing.iterations = 0;
+  animation.effect.updateTiming({ iterations: 0 });
   assert_array_equals(div.getAnimations(), [],
                       'Animations should not be returned after setting the'
                       + ' iteration count to zero');
 
-  animation.effect.timing.iterations = Infinity;
+  animation.effect.updateTiming({ iterations: Infinity });
   assert_array_equals(div.getAnimations(), [animation],
                       'Animation should be returned after inreasing the'
                       + ' number of iterations to infinity');

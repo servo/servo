@@ -57,8 +57,7 @@ impl GeckoRestyleDamage {
                 &mut reset_only,
             )
         };
-        if reset_only &&
-           old_style.custom_properties() != new_style.custom_properties() {
+        if reset_only && old_style.custom_properties() != new_style.custom_properties() {
             // The Gecko_CalcStyleDifference call only checks the non-custom
             // property structs, so we check the custom properties here. Since
             // they generate no damage themselves, we can skip this check if we

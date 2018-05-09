@@ -24,26 +24,24 @@
 
         <script>
             var transition = document.getElementById('transition');
-            var ease = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
-            var easeIn = 'cubic-bezier(0.42, 0, 1, 1)';
             // Note that order is important in this property. The first value that can be parsed as a time is assigned to
             // the transition-duration. The second value that can be parsed as a time is assigned to transition-delay.
             // [<‘transition-property’> || <‘transition-duration’> || <‘transition-timing-function’> || <‘transition-delay’> [, [<‘transition-property’> || <‘transition-duration’> || <‘transition-timing-function’> || <‘transition-delay’>]]*
             var values = {
                 // [property, duration, timing, delay]
                 // random order
-                '1s' : ["all", "1s", ease, "0s"],
-                '1s 2s' : ["all", "1s", ease, "2s"],
-                '1s 2s ease-in' : ["all", "1s", easeIn, "2s"],
-                '1s ease-in 2s' : ["all", "1s", easeIn, "2s"],
-                'ease-in 1s 2s' : ["all", "1s", easeIn, "2s"],
-                '1s width' : ["width", "1s", ease, "0s"],
-                'width 1s' : ["width", "1s", ease, "0s"],
-                '1s width 2s' : ["width", "1s", ease, "2s"],
-                '1s 2s width ease-in' : ["width", "1s", easeIn, "2s"],
-                '1s ease-in 2s width' : ["width", "1s", easeIn, "2s"],
-                'width ease-in 1s 2s' : ["width", "1s", easeIn, "2s"],
-                'width .1s ease-in .2s' : ["width", "0.1s", easeIn, "0.2s"]
+                '1s' : ["all", "1s", "ease", "0s"],
+                '1s 2s' : ["all", "1s", "ease", "2s"],
+                '1s 2s ease-in' : ["all", "1s", "ease-in", "2s"],
+                '1s ease-in 2s' : ["all", "1s", "ease-in", "2s"],
+                'ease-in 1s 2s' : ["all", "1s", "ease-in", "2s"],
+                '1s width' : ["width", "1s", "ease", "0s"],
+                'width 1s' : ["width", "1s", "ease", "0s"],
+                '1s width 2s' : ["width", "1s", "ease", "2s"],
+                '1s 2s width ease-in' : ["width", "1s", "ease-in", "2s"],
+                '1s ease-in 2s width' : ["width", "1s", "ease-in", "2s"],
+                'width ease-in 1s 2s' : ["width", "1s", "ease-in", "2s"],
+                'width .1s ease-in .2s' : ["width", "0.1s", "ease-in", "0.2s"]
             };
 
             for (var key in values) {

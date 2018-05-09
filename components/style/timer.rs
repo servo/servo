@@ -54,10 +54,10 @@ impl Timer {
     /// Increments the current clock. Panics if the clock is not on test mode.
     pub fn increment(&mut self, by: f64) {
         match self.mode {
-            TimerMode::Test(ref mut val)
-                => *val += by,
-            TimerMode::Current
-                => panic!("Timer::increment called for a non-test mode timer. This is a bug."),
+            TimerMode::Test(ref mut val) => *val += by,
+            TimerMode::Current => {
+                panic!("Timer::increment called for a non-test mode timer. This is a bug.")
+            },
         }
     }
 }

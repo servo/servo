@@ -5,6 +5,7 @@
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
 <meta name="assert" content="HTML parser must set the attributes and append the children on a custom element">
 <link rel="help" href="https://html.spec.whatwg.org/#create-an-element-for-the-token">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#insert-a-foreign-element">
 <link rel="help" href="https://dom.spec.whatwg.org/#concept-create-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -14,8 +15,10 @@
 <div id="log"></div>
 <script>
 
-var numberOfAttributesInConstructor;
-var numberOfChildNodesInConstructor;
+var numberOfAttributesInConstructor = 0;
+var numberOfChildNodesInConstructor = 0;
+var numberOfChildNodesInAttributeChangedCallback = 0;
+var numberOfChildNodesInConnectedCallback = 0;
 var attributesChangedCalls = [];
 
 class MyCustomElement extends HTMLElement {
@@ -27,10 +30,15 @@ class MyCustomElement extends HTMLElement {
 
     attributeChangedCallback(...args) {
         attributesChangedCalls.push(create_attribute_changed_callback_log(this, ...args));
+        numberOfChildNodesInAttributeChangedCallback = this.childNodes.length;
     }
 
     static get observedAttributes() {
         return ['id', 'class'];
+    }
+
+    connectedCallback() {
+        numberOfChildNodesInConnectedCallback = this.childNodes.length;
     }
 };
 customElements.define('my-custom-element', MyCustomElement);
@@ -65,9 +73,21 @@ test(function () {
 }, 'HTML parser must set the attributes or append children before calling constructor');
 
 test(function () {
+    // https://html.spec.whatwg.org/multipage/parsing.html#insert-a-foreign-element
+    // 3.3. Pop the element queue from the custom element reactions
+    // stack, and invoke custom element reactions in that queue.
+    assert_equals(numberOfChildNodesInConnectedCallback, 0);
+}, 'HTML parser should call connectedCallback before appending child nodes.');
+
+test(function () {
     assert_equals(attributesChangedCalls.length, 2);
     assert_attribute_log_entry(attributesChangedCalls[0], {name: 'id', oldValue: null, newValue: 'custom-element-id', namespace: null});
     assert_attribute_log_entry(attributesChangedCalls[1], {name: 'class', oldValue: null, newValue: 'class1 class2', namespace: null});
+    // https://html.spec.whatwg.org/multipage/parsing.html#create-an-element-for-the-token
+    // 9.2. Invoke custom element reactions in queue.
+    assert_equals(numberOfChildNodesInAttributeChangedCallback, 0,
+                  'attributeChangedCallback should be called ' +
+                      'before appending a child');
 }, 'HTML parser must enqueue attributeChanged reactions');
 
 </script>

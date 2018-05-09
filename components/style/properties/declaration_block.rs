@@ -313,7 +313,7 @@ impl PropertyDeclarationBlock {
         }
 
         self.declarations.iter().enumerate().find(|&(_, decl)| decl.id() == property).map(|(i, decl)| {
-            let importance = if self.declarations_importance.get(i as u32) {
+            let importance = if self.declarations_importance[i] {
                 Importance::Important
             } else {
                 Importance::Normal
@@ -517,59 +517,39 @@ impl PropertyDeclarationBlock {
                     continue;
                 }
 
-                let important = self.declarations_importance.get(i as u32);
-                match (important, importance.important()) {
-                    (false, true) => {}
-
-                    (true, false) => {
-                        // For declarations set from the OM, more-important
-                        // declarations are overridden.
-                        if !matches!(source, DeclarationSource::CssOm) {
-                            return false
-                        }
-                    }
-                    _ => if *slot == declaration {
-                        return false;
-                    }
+                let important = self.declarations_importance[i];
+                // For declarations from parsing, non-important declarations
+                // shouldn't override existing important one.
+                if important && !importance.important() &&
+                    matches!(source, DeclarationSource::Parsing) {
+                    return true;
                 }
 
-                match source {
-                    // CSSOM preserves the declaration position, and
-                    // overrides importance.
-                    DeclarationSource::CssOm => {
-                        *slot = declaration;
-                        self.declarations_importance.set(i as u32, importance.important());
-                        return true;
-                    }
-                    DeclarationSource::Parsing => {
-                        // As a compatibility hack, specially on Android,
-                        // don't allow to override a prefixed webkit display
-                        // value with an unprefixed version from parsing
-                        // code.
-                        //
-                        // TODO(emilio): Unship.
-                        if let PropertyDeclaration::Display(old_display) = *slot {
-                            use properties::longhands::display::computed_value::T as display;
+                if matches!(source, DeclarationSource::Parsing) {
+                    // As a compatibility hack, specially on Android,
+                    // don't allow to override a prefixed webkit display
+                    // value with an unprefixed version from parsing
+                    // code.
+                    //
+                    // TODO(emilio): Unship.
+                    if let PropertyDeclaration::Display(old_display) = *slot {
+                        use properties::longhands::display::computed_value::T as display;
 
-                            if let PropertyDeclaration::Display(new_display) = declaration {
-                                if display::should_ignore_parsed_value(old_display, new_display) {
-                                    return false;
-                                }
+                        if let PropertyDeclaration::Display(new_display) = declaration {
+                            if display::should_ignore_parsed_value(old_display, new_display) {
+                                return false;
                             }
                         }
-
-                        // NOTE(emilio): We could avoid this and just override for
-                        // properties not affected by logical props, but it's not
-                        // clear it's worth it given the `definitely_new` check.
-                        index_to_remove = Some(i);
-                        break;
                     }
                 }
+
+                index_to_remove = Some(i);
+                break;
             }
 
             if let Some(index) = index_to_remove {
                 self.declarations.remove(index);
-                self.declarations_importance.remove(index as u32);
+                self.declarations_importance.remove(index);
                 self.declarations.push(declaration);
                 self.declarations_importance.push(importance.important());
                 return true;
@@ -592,8 +572,8 @@ impl PropertyDeclarationBlock {
         for (i, declaration) in self.declarations.iter().enumerate() {
             if declaration.id().is_or_is_longhand_of(property) {
                 let is_important = new_importance.important();
-                if self.declarations_importance.get(i as u32) != is_important {
-                    self.declarations_importance.set(i as u32, is_important);
+                if self.declarations_importance[i] != is_important {
+                    self.declarations_importance.set(i, is_important);
                     updated_at_least_one = true;
                 }
             }
@@ -706,7 +686,7 @@ impl PropertyDeclarationBlock {
         PropertyDeclarationBlock {
             declarations,
             longhands,
-            declarations_importance: SmallBitVec::from_elem(len as u32, false),
+            declarations_importance: SmallBitVec::from_elem(len, false),
         }
     }
 

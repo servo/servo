@@ -7,10 +7,14 @@ def main(request, response):
     status = 302
     headers = [("Content-Type", "text/plain"),
                ("Cache-Control", "no-cache"),
-               ("Pragma", "no-cache"),
-               ("Access-Control-Allow-Origin", "*")]
-    token = None
+               ("Pragma", "no-cache")]
+    if "Origin" in request.headers:
+        headers.append(("Access-Control-Allow-Origin", request.headers.get("Origin", "")))
+        headers.append(("Access-Control-Allow-Credentials", "true"))
+    else:
+        headers.append(("Access-Control-Allow-Origin", "*"))
 
+    token = None
     if "token" in request.GET:
         token = request.GET.first("token")
         data = request.server.stash.take(token)

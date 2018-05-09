@@ -26,10 +26,6 @@ use dom::workletglobalscope::WorkletTask;
 use dom_struct::dom_struct;
 use euclid::TypedScale;
 use euclid::TypedSize2D;
-use ipc_channel::ipc;
-use js::jsapi::Call;
-use js::jsapi::Construct1;
-use js::jsapi::HandleValue;
 use js::jsapi::HandleValueArray;
 use js::jsapi::Heap;
 use js::jsapi::IsCallable;
@@ -42,10 +38,14 @@ use js::jsapi::JS_NewArrayObject;
 use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use js::rust::Runtime;
+use js::rust::wrappers::Call;
+use js::rust::wrappers::Construct1;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageCache;
+use profile_traits::ipc;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::Painter;
 use servo_atoms::Atom;
@@ -296,7 +296,8 @@ impl PaintWorkletGlobalScope {
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
-        let (sender, receiver) = ipc::channel().expect("IPC channel creation.");
+        let (sender, receiver) =
+            ipc::channel(self.global().time_profiler_chan().clone()).expect("IPC channel creation.");
         rendering_context.send_data(sender);
         let image_key = match receiver.recv() {
             Ok(data) => Some(data.image_key),

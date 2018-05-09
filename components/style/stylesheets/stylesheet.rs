@@ -2,16 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {Prefix, Namespace};
+use {Namespace, Prefix};
 use context::QuirksMode;
-use cssparser::{Parser, RuleListParser, ParserInput};
-use error_reporting::{ParseErrorReporter, ContextualParseError};
+use cssparser::{Parser, ParserInput, RuleListParser};
+use error_reporting::{ContextualParseError, ParseErrorReporter};
 use fallible::FallibleVec;
 use fnv::FnvHashMap;
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use media_queries::{MediaList, Device};
+use media_queries::{Device, MediaList};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserErrorContext};
 use servo_arc::Arc;
@@ -22,8 +22,8 @@ use style_traits::ParsingMode;
 use stylesheets::{CssRule, CssRules, Origin, UrlExtraData};
 use stylesheets::loader::StylesheetLoader;
 use stylesheets::rule_parser::{State, TopLevelRuleParser};
-use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator, NestedRuleIterationCondition, RulesIterator};
-use values::specified::NamespaceId;
+use stylesheets::rules_iterator::{EffectiveRules, EffectiveRulesIterator};
+use stylesheets::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
@@ -41,8 +41,8 @@ pub struct UserAgentStylesheets {
 #[derive(Clone, Debug, Default, MallocSizeOf)]
 #[allow(missing_docs)]
 pub struct Namespaces {
-    pub default: Option<(Namespace, NamespaceId)>,
-    pub prefixes: FnvHashMap<Prefix, (Namespace, NamespaceId)>,
+    pub default: Option<Namespace>,
+    pub prefixes: FnvHashMap<Prefix, Namespace>,
 }
 
 /// The contents of a given stylesheet. This effectively maps to a
@@ -77,7 +77,7 @@ impl StylesheetContents {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
-        line_number_offset: u32
+        line_number_offset: u32,
     ) -> Self {
         let namespaces = RwLock::new(Namespaces::default());
         let (rules, source_map_url, source_url) = Stylesheet::parse_rules(
@@ -103,22 +103,10 @@ impl StylesheetContents {
         }
     }
 
-    /// Return an iterator using the condition `C`.
+    /// Returns a reference to the list of rules.
     #[inline]
-    pub fn iter_rules<'a, 'b, C>(
-        &'a self,
-        device: &'a Device,
-        guard: &'a SharedRwLockReadGuard<'b>
-    ) -> RulesIterator<'a, 'b, C>
-    where
-        C: NestedRuleIterationCondition,
-    {
-        RulesIterator::new(
-            device,
-            self.quirks_mode,
-            guard,
-            &self.rules.read_with(guard)
-        )
+    pub fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        &self.rules.read_with(guard).0
     }
 
     /// Measure heap usage.
@@ -138,9 +126,9 @@ impl DeepCloneWithLock for StylesheetContents {
         params: &DeepCloneParams,
     ) -> Self {
         // Make a deep clone of the rules, using the new lock.
-        let rules =
-            self.rules.read_with(guard)
-                .deep_clone_with_lock(lock, guard, params);
+        let rules = self.rules
+            .read_with(guard)
+            .deep_clone_with_lock(lock, guard, params);
 
         Self {
             rules: Arc::new(lock.wrap(rules)),
@@ -189,48 +177,40 @@ macro_rules! rule_filter {
 
 /// A trait to represent a given stylesheet in a document.
 pub trait StylesheetInDocument {
-    /// Get the contents of this stylesheet.
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents;
-
     /// Get the stylesheet origin.
-    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
-        self.contents(guard).origin
-    }
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin;
 
     /// Get the stylesheet quirks mode.
-    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
-        self.contents(guard).quirks_mode
-    }
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode;
+
+    /// Get whether this stylesheet is enabled.
+    fn enabled(&self) -> bool;
 
     /// Get the media associated with this stylesheet.
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList>;
 
-    /// Returns whether the style-sheet applies for the current device.
-    fn is_effective_for_device(
-        &self,
-        device: &Device,
-        guard: &SharedRwLockReadGuard
-    ) -> bool {
-        match self.media(guard) {
-            Some(medialist) => medialist.evaluate(device, self.quirks_mode(guard)),
-            None => true,
-        }
-    }
-
-    /// Get whether this stylesheet is enabled.
-    fn enabled(&self) -> bool;
+    /// Returns a reference to the list of rules in this stylesheet.
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule];
 
     /// Return an iterator using the condition `C`.
     #[inline]
     fn iter_rules<'a, 'b, C>(
         &'a self,
         device: &'a Device,
-        guard: &'a SharedRwLockReadGuard<'b>
+        guard: &'a SharedRwLockReadGuard<'b>,
     ) -> RulesIterator<'a, 'b, C>
     where
         C: NestedRuleIterationCondition,
     {
-        self.contents(guard).iter_rules(device, guard)
+        RulesIterator::new(device, self.quirks_mode(guard), guard, self.rules(guard))
+    }
+
+    /// Returns whether the style-sheet applies for the current device.
+    fn is_effective_for_device(&self, device: &Device, guard: &SharedRwLockReadGuard) -> bool {
+        match self.media(guard) {
+            Some(medialist) => medialist.evaluate(device, self.quirks_mode(guard)),
+            None => true,
+        }
     }
 
     /// Return an iterator over the effective rules within the style-sheet, as
@@ -239,7 +219,7 @@ pub trait StylesheetInDocument {
     fn effective_rules<'a, 'b>(
         &'a self,
         device: &'a Device,
-        guard: &'a SharedRwLockReadGuard<'b>
+        guard: &'a SharedRwLockReadGuard<'b>,
     ) -> EffectiveRulesIterator<'a, 'b> {
         self.iter_rules::<EffectiveRules>(device, guard)
     }
@@ -259,8 +239,12 @@ pub trait StylesheetInDocument {
 }
 
 impl StylesheetInDocument for Stylesheet {
-    fn contents(&self, _: &SharedRwLockReadGuard) -> &StylesheetContents {
-        &self.contents
+    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
+        self.contents.origin
+    }
+
+    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.contents.quirks_mode
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
@@ -270,6 +254,11 @@ impl StylesheetInDocument for Stylesheet {
     fn enabled(&self) -> bool {
         !self.disabled()
     }
+
+    #[inline]
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.contents.rules(guard)
+    }
 }
 
 /// A simple wrapper over an `Arc<Stylesheet>`, with pointer comparison, and
@@ -277,8 +266,7 @@ impl StylesheetInDocument for Stylesheet {
 #[derive(Clone)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct DocumentStyleSheet(
-    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
-    pub Arc<Stylesheet>
+    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")] pub Arc<Stylesheet>,
 );
 
 impl PartialEq for DocumentStyleSheet {
@@ -294,8 +282,12 @@ impl ToMediaListKey for DocumentStyleSheet {
 }
 
 impl StylesheetInDocument for DocumentStyleSheet {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
-        self.0.contents(guard)
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.0.origin(guard)
+    }
+
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.0.quirks_mode(guard)
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
@@ -304,6 +296,11 @@ impl StylesheetInDocument for DocumentStyleSheet {
 
     fn enabled(&self) -> bool {
         self.0.enabled()
+    }
+
+    #[inline]
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.0.rules(guard)
     }
 }
 
@@ -316,28 +313,26 @@ impl Stylesheet {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         line_number_offset: u32,
-    )
-    where
+    ) where
         R: ParseErrorReporter,
     {
         let namespaces = RwLock::new(Namespaces::default());
-        let (rules, source_map_url, source_url) =
-            Stylesheet::parse_rules(
-                css,
-                &url_data,
-                existing.contents.origin,
-                &mut *namespaces.write(),
-                &existing.shared_lock,
-                stylesheet_loader,
-                error_reporter,
-                existing.contents.quirks_mode,
-                line_number_offset
-            );
+        let (rules, source_map_url, source_url) = Stylesheet::parse_rules(
+            css,
+            &url_data,
+            existing.contents.origin,
+            &mut *namespaces.write(),
+            &existing.shared_lock,
+            stylesheet_loader,
+            error_reporter,
+            existing.contents.quirks_mode,
+            line_number_offset,
+        );
 
         *existing.contents.url_data.write() = url_data;
         mem::swap(
             &mut *existing.contents.namespaces.write(),
-            &mut *namespaces.write()
+            &mut *namespaces.write(),
         );
 
         // Acquire the lock *after* parsing, to minimize the exclusive section.
@@ -356,19 +351,13 @@ impl Stylesheet {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
-        line_number_offset: u32
+        line_number_offset: u32,
     ) -> (Vec<CssRule>, Option<String>, Option<String>) {
         let mut rules = Vec::new();
         let mut input = ParserInput::new_with_line_number_offset(css, line_number_offset);
         let mut input = Parser::new(&mut input);
 
-        let context = ParserContext::new(
-            origin,
-            url_data,
-            None,
-            ParsingMode::DEFAULT,
-            quirks_mode
-        );
+        let context = ParserContext::new(origin, url_data, None, ParsingMode::DEFAULT, quirks_mode);
 
         let error_context = ParserErrorContext { error_reporter };
 
@@ -384,8 +373,7 @@ impl Stylesheet {
         };
 
         {
-            let mut iter =
-                RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+            let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
 
             while let Some(result) = iter.next() {
                 match result {
@@ -400,9 +388,12 @@ impl Stylesheet {
                     Err((error, slice)) => {
                         let location = error.location;
                         let error = ContextualParseError::InvalidRule(slice, error);
-                        iter.parser.context.log_css_error(&iter.parser.error_context,
-                                                          location, error);
-                    }
+                        iter.parser.context.log_css_error(
+                            &iter.parser.error_context,
+                            location,
+                            error,
+                        );
+                    },
                 }
             }
         }
@@ -426,9 +417,8 @@ impl Stylesheet {
         stylesheet_loader: Option<&StylesheetLoader>,
         error_reporter: &R,
         quirks_mode: QuirksMode,
-        line_number_offset: u32)
-        -> Stylesheet
-    {
+        line_number_offset: u32,
+    ) -> Stylesheet {
         let contents = StylesheetContents::from_str(
             css,
             url_data,
@@ -437,7 +427,7 @@ impl Stylesheet {
             stylesheet_loader,
             error_reporter,
             quirks_mode,
-            line_number_offset
+            line_number_offset,
         );
 
         Stylesheet {
@@ -476,11 +466,8 @@ impl Clone for Stylesheet {
         // Make a deep clone of the media, using the new lock.
         let media = self.media.read_with(&guard).clone();
         let media = Arc::new(lock.wrap(media));
-        let contents = self.contents.deep_clone_with_lock(
-            &lock,
-            &guard,
-            &DeepCloneParams
-        );
+        let contents = self.contents
+            .deep_clone_with_lock(&lock, &guard, &DeepCloneParams);
 
         Stylesheet {
             contents,
@@ -490,4 +477,3 @@ impl Clone for Stylesheet {
         }
     }
 }
-

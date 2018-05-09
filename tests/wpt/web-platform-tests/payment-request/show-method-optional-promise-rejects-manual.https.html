@@ -23,7 +23,7 @@
   });
 
   const validMethodApplePay = Object.freeze({
-    supportedMethods: "https://apple.com/pay",
+    supportedMethods: "https://apple.com/apple-pay",
   });
 
   // Methods
@@ -220,7 +220,7 @@
     });
     testBadUpdate(this.textContent, badDetails, new RangeError());
   ">
-  Updating with a displayItem with an invalid currency results in TypeError.
+  Updating with a displayItem with an invalid currency results in RangeError.
   </button></li>
 
   <li><button onclick="

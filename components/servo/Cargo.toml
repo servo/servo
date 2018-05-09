@@ -17,6 +17,7 @@ webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webvr/googlevr"]
+webrender_debugger = ["webrender/debugger"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
@@ -31,18 +32,19 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
-compositing = {path = "../compositing"}
+compositing = {path = "../compositing", features = ["gleam"]}
 constellation = {path = "../constellation"}
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
-env_logger = "0.4"
+embedder_traits = {path = "../embedder_traits"}
+env_logger = "0.5"
 euclid = "0.17"
 gfx = {path = "../gfx"}
-gleam = "0.4"
-ipc-channel = "0.9"
+gleam = "0.5"
+ipc-channel = "0.10"
 layout_thread = {path = "../layout_thread"}
-log = "0.3"
+log = "0.4"
 msg = {path = "../msg"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}

@@ -10,6 +10,11 @@ def minimize(session):
     return session.transport.send("POST", "session/%s/window/minimize" % session.session_id)
 
 
+def is_fullscreen(session):
+    # At the time of writing, WebKit does not conform to the Fullscreen API specification.
+    # Remove the prefixed fallback when https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
+    return session.execute_script("return !!(window.fullScreen || document.webkitIsFullScreen)")
+
 # 10.7.4 Minimize Window
 
 
@@ -135,11 +140,11 @@ def test_fully_exit_fullscreen(session):
 
     """
     session.window.fullscreen()
-    assert session.execute_script("return window.fullScreen") is True
+    assert is_fullscreen(session) is True
 
     response = minimize(session)
     assert_success(response)
-    assert session.execute_script("return window.fullScreen") is False
+    assert is_fullscreen(session) is False
     assert session.execute_script("return document.hidden") is True
 
 

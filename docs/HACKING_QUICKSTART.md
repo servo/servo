@@ -153,7 +153,7 @@ A typical command might be:
 
 … to avoid using too many threads and make things easier to understand.
 
-On OSX, you can add some Cocoa-specific debug options:
+On macOS, you can add some Cocoa-specific debug options:
 
 ``` shell
 ./mach run -d -- /tmp/a.html -- -NSShowAllViews YES

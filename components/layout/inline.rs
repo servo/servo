@@ -10,6 +10,7 @@ use block::AbsoluteAssignBSizesTraversal;
 use context::{LayoutContext, LayoutFontContext};
 use display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use display_list::StackingContextCollectionState;
+use display_list::items::OpaqueNode;
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
@@ -18,7 +19,6 @@ use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::FragmentFlags;
 use fragment::SpecificFragmentInfo;
-use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
@@ -266,10 +266,10 @@ impl LineBreaker {
     }
 
     /// Reinitializes the pending line to blank data.
-    fn reset_line(&mut self) -> Line {
+    fn reset_line(&mut self) {
         self.last_known_line_breaking_opportunity = None;
-        mem::replace(&mut self.pending_line,
-                     Line::new(self.floats.writing_mode, &self.minimum_metrics))
+        // https://github.com/rust-lang/rust/issues/49282
+        self.pending_line = Line::new(self.floats.writing_mode, &self.minimum_metrics);
     }
 
     /// Reflows fragments for the given inline flow.

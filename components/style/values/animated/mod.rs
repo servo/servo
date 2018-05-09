@@ -13,10 +13,10 @@ use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
-#[cfg(feature = "servo")]
-use values::computed::ComputedUrl;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
+#[cfg(feature = "servo")]
+use values::computed::url::ComputedUrl;
 use values::specified::url::SpecifiedUrl;
 
 pub mod color;
@@ -35,6 +35,9 @@ pub mod effects;
 ///
 /// If the two values are not similar, an error is returned unless a fallback
 /// function has been specified through `#[animate(fallback)]`.
+///
+/// Trait bounds for type parameter `Foo` can be opted out of with
+/// `#[animation(no_bound(Foo))]` on the type definition.
 pub trait Animate: Sized {
     /// Animate a value towards another one, given an animation procedure.
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>;
@@ -78,6 +81,9 @@ pub trait ToAnimatedValue {
 ///
 /// If a variant is annotated with `#[animation(error)]`, the corresponding
 /// `match` arm is not generated.
+///
+/// Trait bounds for type parameter `Foo` can be opted out of with
+/// `#[animation(no_bound(Foo))]` on the type definition.
 pub trait ToAnimatedZero: Sized {
     /// Returns a value that, when added with an underlying value, will produce the underlying
     /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
@@ -249,7 +255,7 @@ macro_rules! trivial_to_animated_value {
                 animated
             }
         }
-    }
+    };
 }
 
 trivial_to_animated_value!(Au);
@@ -270,8 +276,10 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new((animated.0).0.width.clamp_to_non_negative(),
-                                        (animated.0).0.height.clamp_to_non_negative())
+        ComputedBorderCornerRadius::new(
+            (animated.0).0.width.clamp_to_non_negative(),
+            (animated.0).0.height.clamp_to_non_negative(),
+        )
     }
 }
 
@@ -294,12 +302,12 @@ impl ToAnimatedValue for ComputedMaxLength {
                     },
                     LengthOrPercentageOrNone::Percentage(percentage) => {
                         LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
-                    }
-                    _ => lopn
+                    },
+                    _ => lopn,
                 };
                 ComputedMaxLength::LengthOrPercentageOrNone(result)
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
@@ -323,34 +331,42 @@ impl ToAnimatedValue for ComputedMozLength {
                     },
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
-                    }
-                    _ => lopa
+                    },
+                    _ => lopa,
                 };
                 ComputedMozLength::LengthOrPercentageOrAuto(result)
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
 
 impl ToAnimatedZero for Au {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(Au(0)) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Au(0))
+    }
 }
 
 impl ToAnimatedZero for f32 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0.)
+    }
 }
 
 impl ToAnimatedZero for f64 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0.)
+    }
 }
 
 impl ToAnimatedZero for i32 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0)
+    }
 }
 
 impl<T> ToAnimatedZero for Option<T>

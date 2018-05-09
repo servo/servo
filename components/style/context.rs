@@ -4,37 +4,46 @@
 
 //! The context within which style is calculated.
 
-#[cfg(feature = "servo")] use animation::Animation;
+#[cfg(feature = "servo")]
+use animation::Animation;
 use app_units::Au;
 use bloom::StyleBloom;
 use data::{EagerPseudoStyles, ElementData};
-use dom::{TElement, SendElement};
-#[cfg(feature = "servo")] use dom::OpaqueNode;
+use dom::{SendElement, TElement};
+#[cfg(feature = "servo")]
+use dom::OpaqueNode;
 use euclid::Size2D;
 use euclid::TypedScale;
 use fnv::FnvHashMap;
 use font_metrics::FontMetricsProvider;
-#[cfg(feature = "gecko")] use gecko_bindings::structs;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs;
 use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};
-#[cfg(feature = "servo")] use parking_lot::RwLock;
+#[cfg(feature = "servo")]
+use parking_lot::RwLock;
 use properties::ComputedValues;
-#[cfg(feature = "servo")] use properties::PropertyId;
+#[cfg(feature = "servo")]
+use properties::PropertyId;
 use rule_cache::RuleCache;
 use rule_tree::StrongRuleNode;
-use selector_parser::{EAGER_PSEUDO_COUNT, SnapshotMap};
+use selector_parser::{SnapshotMap, EAGER_PSEUDO_COUNT};
 use selectors::NthIndexCache;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::Arc;
-#[cfg(feature = "servo")] use servo_atoms::Atom;
+#[cfg(feature = "servo")]
+use servo_atoms::Atom;
 use shared_lock::StylesheetGuards;
 use sharing::StyleSharingCache;
 use std::fmt;
 use std::ops;
-#[cfg(feature = "servo")] use std::sync::Mutex;
-#[cfg(feature = "servo")] use std::sync::mpsc::Sender;
+#[cfg(feature = "servo")]
+use std::sync::Mutex;
+#[cfg(feature = "servo")]
+use std::sync::mpsc::Sender;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
-#[cfg(feature = "servo")] use style_traits::SpeculativePainter;
+#[cfg(feature = "servo")]
+use style_traits::SpeculativePainter;
 use stylist::Stylist;
 use thread_state::{self, ThreadState};
 use time;
@@ -89,7 +98,8 @@ const DEFAULT_STATISTICS_THRESHOLD: usize = 50;
 fn get_env_usize(name: &str) -> Option<usize> {
     use std::env;
     env::var(name).ok().map(|s| {
-        s.parse::<usize>().expect("Couldn't parse environmental variable as usize")
+        s.parse::<usize>()
+            .expect("Couldn't parse environmental variable as usize")
     })
 }
 
@@ -111,7 +121,7 @@ impl Default for StyleSystemOptions {
             disable_style_sharing_cache: get_env_bool("DISABLE_STYLE_SHARING_CACHE"),
             dump_style_statistics: get_env_bool("DUMP_STYLE_STATISTICS"),
             style_statistics_threshold: get_env_usize("STYLE_STATISTICS_THRESHOLD")
-                                          .unwrap_or(DEFAULT_STATISTICS_THRESHOLD),
+                .unwrap_or(DEFAULT_STATISTICS_THRESHOLD),
         }
     }
 }
@@ -176,7 +186,6 @@ pub struct SharedStyleContext<'a> {
     /// Data needed to create the thread-local style context from the shared one.
     #[cfg(feature = "servo")]
     pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
-
 }
 
 impl<'a> SharedStyleContext<'a> {
@@ -236,7 +245,7 @@ pub struct EagerPseudoCascadeInputs(Option<[Option<CascadeInputs>; EAGER_PSEUDO_
 impl Clone for EagerPseudoCascadeInputs {
     fn clone(&self) -> Self {
         if self.0.is_none() {
-            return EagerPseudoCascadeInputs(None)
+            return EagerPseudoCascadeInputs(None);
         }
         let self_inputs = self.0.as_ref().unwrap();
         let mut inputs: [Option<CascadeInputs>; EAGER_PSEUDO_COUNT] = Default::default();
@@ -296,7 +305,7 @@ impl ElementCascadeInputs {
 /// thread and then combine them after the threads join via the Add
 /// implementation below.
 #[derive(Default)]
-pub struct TraversalStatistics {
+pub struct PerThreadTraversalStatistics {
     /// The total number of elements traversed.
     pub elements_traversed: u32,
     /// The number of elements where has_styles() went from false to true.
@@ -308,6 +317,28 @@ pub struct TraversalStatistics {
     /// The number of styles reused via rule node comparison from the
     /// StyleSharingCache.
     pub styles_reused: u32,
+}
+
+/// Implementation of Add to aggregate statistics across different threads.
+impl<'a> ops::Add for &'a PerThreadTraversalStatistics {
+    type Output = PerThreadTraversalStatistics;
+    fn add(self, other: Self) -> PerThreadTraversalStatistics {
+        PerThreadTraversalStatistics {
+            elements_traversed: self.elements_traversed + other.elements_traversed,
+            elements_styled: self.elements_styled + other.elements_styled,
+            elements_matched: self.elements_matched + other.elements_matched,
+            styles_shared: self.styles_shared + other.styles_shared,
+            styles_reused: self.styles_reused + other.styles_reused,
+        }
+    }
+}
+
+/// Statistics gathered during the traversal plus some information from
+/// other sources including stylist.
+#[derive(Default)]
+pub struct TraversalStatistics {
+    /// Aggregated statistics gathered during the traversal.
+    pub aggregated: PerThreadTraversalStatistics,
     /// The number of selectors in the stylist.
     pub selectors: u32,
     /// The number of revalidation selectors.
@@ -321,59 +352,57 @@ pub struct TraversalStatistics {
     /// Time spent in the traversal, in milliseconds.
     pub traversal_time_ms: f64,
     /// Whether this was a parallel traversal.
-    pub is_parallel: Option<bool>,
+    pub is_parallel: bool,
     /// Whether this is a "large" traversal.
-    pub is_large: Option<bool>,
-}
-
-/// Implementation of Add to aggregate statistics across different threads.
-impl<'a> ops::Add for &'a TraversalStatistics {
-    type Output = TraversalStatistics;
-    fn add(self, other: Self) -> TraversalStatistics {
-        debug_assert!(self.traversal_time_ms == 0.0 && other.traversal_time_ms == 0.0,
-                      "traversal_time_ms should be set at the end by the caller");
-        debug_assert!(self.selectors == 0, "set at the end");
-        debug_assert!(self.revalidation_selectors == 0, "set at the end");
-        debug_assert!(self.dependency_selectors == 0, "set at the end");
-        debug_assert!(self.declarations == 0, "set at the end");
-        debug_assert!(self.stylist_rebuilds == 0, "set at the end");
-        TraversalStatistics {
-            elements_traversed: self.elements_traversed + other.elements_traversed,
-            elements_styled: self.elements_styled + other.elements_styled,
-            elements_matched: self.elements_matched + other.elements_matched,
-            styles_shared: self.styles_shared + other.styles_shared,
-            styles_reused: self.styles_reused + other.styles_reused,
-            selectors: 0,
-            revalidation_selectors: 0,
-            dependency_selectors: 0,
-            declarations: 0,
-            stylist_rebuilds: 0,
-            traversal_time_ms: 0.0,
-            is_parallel: None,
-            is_large: None,
-        }
-    }
+    pub is_large: bool,
 }
 
 /// Format the statistics in a way that the performance test harness understands.
 /// See https://bugzilla.mozilla.org/show_bug.cgi?id=1331856#c2
 impl fmt::Display for TraversalStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        debug_assert!(self.traversal_time_ms != 0.0, "should have set traversal time");
+        debug_assert!(
+            self.traversal_time_ms != 0.0,
+            "should have set traversal time"
+        );
         writeln!(f, "[PERF] perf block start")?;
-        writeln!(f, "[PERF],traversal,{}", if self.is_parallel.unwrap() {
-            "parallel"
-        } else {
-            "sequential"
-        })?;
-        writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed)?;
-        writeln!(f, "[PERF],elements_styled,{}", self.elements_styled)?;
-        writeln!(f, "[PERF],elements_matched,{}", self.elements_matched)?;
-        writeln!(f, "[PERF],styles_shared,{}", self.styles_shared)?;
-        writeln!(f, "[PERF],styles_reused,{}", self.styles_reused)?;
+        writeln!(
+            f,
+            "[PERF],traversal,{}",
+            if self.is_parallel {
+                "parallel"
+            } else {
+                "sequential"
+            }
+        )?;
+        writeln!(
+            f,
+            "[PERF],elements_traversed,{}",
+            self.aggregated.elements_traversed
+        )?;
+        writeln!(
+            f,
+            "[PERF],elements_styled,{}",
+            self.aggregated.elements_styled
+        )?;
+        writeln!(
+            f,
+            "[PERF],elements_matched,{}",
+            self.aggregated.elements_matched
+        )?;
+        writeln!(f, "[PERF],styles_shared,{}", self.aggregated.styles_shared)?;
+        writeln!(f, "[PERF],styles_reused,{}", self.aggregated.styles_reused)?;
         writeln!(f, "[PERF],selectors,{}", self.selectors)?;
-        writeln!(f, "[PERF],revalidation_selectors,{}", self.revalidation_selectors)?;
-        writeln!(f, "[PERF],dependency_selectors,{}", self.dependency_selectors)?;
+        writeln!(
+            f,
+            "[PERF],revalidation_selectors,{}",
+            self.revalidation_selectors
+        )?;
+        writeln!(
+            f,
+            "[PERF],dependency_selectors,{}",
+            self.dependency_selectors
+        )?;
         writeln!(f, "[PERF],declarations,{}", self.declarations)?;
         writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds)?;
         writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms)?;
@@ -382,29 +411,36 @@ impl fmt::Display for TraversalStatistics {
 }
 
 impl TraversalStatistics {
-    /// Computes the traversal time given the start time in seconds.
-    pub fn finish<E, D>(&mut self, traversal: &D, parallel: bool, start: f64)
+    /// Generate complete traversal statistics.
+    ///
+    /// The traversal time is computed given the start time in seconds.
+    pub fn new<E, D>(
+        aggregated: PerThreadTraversalStatistics,
+        traversal: &D,
+        parallel: bool,
+        start: f64,
+    ) -> TraversalStatistics
     where
         E: TElement,
         D: DomTraversal<E>,
     {
-        let threshold = traversal.shared_context().options.style_statistics_threshold;
+        let threshold = traversal
+            .shared_context()
+            .options
+            .style_statistics_threshold;
         let stylist = traversal.shared_context().stylist;
-
-        self.is_parallel = Some(parallel);
-        self.is_large = Some(self.elements_traversed as usize >= threshold);
-        self.traversal_time_ms = (time::precise_time_s() - start) * 1000.0;
-        self.selectors = stylist.num_selectors() as u32;
-        self.revalidation_selectors = stylist.num_revalidation_selectors() as u32;
-        self.dependency_selectors = stylist.num_invalidations() as u32;
-        self.declarations = stylist.num_declarations() as u32;
-        self.stylist_rebuilds = stylist.num_rebuilds() as u32;
-    }
-
-    /// Returns whether this traversal is 'large' in order to avoid console spam
-    /// from lots of tiny traversals.
-    pub fn is_large_traversal(&self) -> bool {
-        self.is_large.unwrap()
+        let is_large = aggregated.elements_traversed as usize >= threshold;
+        TraversalStatistics {
+            aggregated,
+            selectors: stylist.num_selectors() as u32,
+            revalidation_selectors: stylist.num_revalidation_selectors() as u32,
+            dependency_selectors: stylist.num_invalidations() as u32,
+            declarations: stylist.num_declarations() as u32,
+            stylist_rebuilds: stylist.num_rebuilds() as u32,
+            traversal_time_ms: (time::precise_time_s() - start) * 1000.0,
+            is_parallel: parallel,
+            is_large,
+        }
     }
 }
 
@@ -441,7 +477,6 @@ bitflags! {
     }
 }
 
-
 /// A task to be run in sequential mode on the parent (non-worker) thread. This
 /// is used by the style system to queue up work which is not safe to do during
 /// the parallel traversal.
@@ -462,7 +497,7 @@ pub enum SequentialTask<E: TElement> {
         /// CSSTransitions.
         before_change_style: Option<Arc<ComputedValues>>,
         /// The tasks which are performed in this SequentialTask.
-        tasks: UpdateAnimationsTasks
+        tasks: UpdateAnimationsTasks,
     },
 
     /// Performs one of a number of possible tasks as a result of animation-only
@@ -475,7 +510,7 @@ pub enum SequentialTask<E: TElement> {
         /// The target element.
         el: SendElement<E>,
         /// The tasks which are performed in this SequentialTask.
-        tasks: PostAnimationTasks
+        tasks: PostAnimationTasks,
     },
 }
 
@@ -487,13 +522,17 @@ impl<E: TElement> SequentialTask<E> {
         match self {
             Unused(_) => unreachable!(),
             #[cfg(feature = "gecko")]
-            UpdateAnimations { el, before_change_style, tasks } => {
+            UpdateAnimations {
+                el,
+                before_change_style,
+                tasks,
+            } => {
                 el.update_animations(before_change_style, tasks);
-            }
+            },
             #[cfg(feature = "gecko")]
             PostAnimation { el, tasks } => {
                 el.process_post_animation(tasks);
-            }
+            },
         }
     }
 
@@ -568,7 +607,8 @@ impl<E: TElement> SelectorFlagsMap<E> {
         let f = self.map.entry(el).or_insert(ElementSelectorFlags::empty());
         *f |= flags;
 
-        self.cache.insert((unsafe { SendElement::new(element) }, *f))
+        self.cache
+            .insert((unsafe { SendElement::new(element) }, *f))
     }
 
     /// Applies the flags. Must be called on the main thread.
@@ -576,7 +616,9 @@ impl<E: TElement> SelectorFlagsMap<E> {
         debug_assert_eq!(thread_state::get(), ThreadState::LAYOUT);
         self.cache.evict_all();
         for (el, flags) in self.map.drain() {
-            unsafe { el.set_selector_flags(flags); }
+            unsafe {
+                el.set_selector_flags(flags);
+            }
         }
     }
 }
@@ -618,11 +660,10 @@ where
     }
 }
 
-
 /// A helper type for stack limit checking.  This assumes that stacks grow
 /// down, which is true for all non-ancient CPU architectures.
 pub struct StackLimitChecker {
-   lower_limit: usize
+    lower_limit: usize,
 }
 
 impl StackLimitChecker {
@@ -631,7 +672,7 @@ impl StackLimitChecker {
     #[inline(never)]
     pub fn new(stack_size_limit: usize) -> Self {
         StackLimitChecker {
-            lower_limit: StackLimitChecker::get_sp() - stack_size_limit
+            lower_limit: StackLimitChecker::get_sp() - stack_size_limit,
         }
     }
 
@@ -683,7 +724,6 @@ impl StackLimitChecker {
     }
 }
 
-
 /// A thread-local style context.
 ///
 /// This context contains data that needs to be used during restyling, but is
@@ -714,7 +754,7 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// than the current element).
     pub selector_flags: SelectorFlagsMap<E>,
     /// Statistics about the traversal.
-    pub statistics: TraversalStatistics,
+    pub statistics: PerThreadTraversalStatistics,
     /// The struct used to compute and cache font metrics from style
     /// for evaluation of the font-relative em/ch units and font-size
     pub font_metrics_provider: E::FontMetricsProvider,
@@ -733,13 +773,19 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             sharing_cache: StyleSharingCache::new(),
             rule_cache: RuleCache::new(),
             bloom_filter: StyleBloom::new(),
-            new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
+            new_animations_sender: shared
+                .local_context_creation_data
+                .lock()
+                .unwrap()
+                .new_animations_sender
+                .clone(),
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
-            statistics: TraversalStatistics::default(),
+            statistics: PerThreadTraversalStatistics::default(),
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
-                (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
+                (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024,
+            ),
             nth_index_cache: NthIndexCache::default(),
         }
     }
@@ -753,10 +799,11 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             bloom_filter: StyleBloom::new(),
             tasks: SequentialTaskList(Vec::new()),
             selector_flags: SelectorFlagsMap::new(),
-            statistics: TraversalStatistics::default(),
+            statistics: PerThreadTraversalStatistics::default(),
             font_metrics_provider: E::FontMetricsProvider::create_from(shared),
             stack_limit_checker: StackLimitChecker::new(
-                (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024),
+                (STYLE_THREAD_STACK_SIZE_KB - STACK_SAFETY_MARGIN_KB) * 1024,
+            ),
             nth_index_cache: NthIndexCache::default(),
         }
     }

@@ -109,7 +109,7 @@ impl WebGLTexture {
             let face_count = match target {
                 constants::TEXTURE_2D => 1,
                 constants::TEXTURE_CUBE_MAP => 6,
-                _ => return Err(WebGLError::InvalidOperation)
+                _ => return Err(WebGLError::InvalidEnum)
             };
             self.face_count.set(face_count);
             self.target.set(Some(target));

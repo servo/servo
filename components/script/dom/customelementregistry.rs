@@ -28,9 +28,11 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix};
 use js::conversions::ToJSValConvertible;
 use js::glue::UnwrapObject;
-use js::jsapi::{Construct1, IsCallable, IsConstructor, HandleValueArray, HandleObject, MutableHandleValue};
-use js::jsapi::{Heap, JS_GetProperty, JS_SameValue, JSAutoCompartment, JSContext, JSObject};
+use js::jsapi::{Heap, IsCallable, IsConstructor, HandleValueArray};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
+use js::rust::{HandleObject, MutableHandleValue};
+use js::rust::wrappers::{JS_GetProperty, Construct1, JS_SameValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
 use std::cell::Cell;
@@ -604,7 +606,8 @@ impl CustomElementReaction {
         match *self {
             CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
             CustomElementReaction::Callback(ref callback, ref arguments) => {
-                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
+                // We're rooted, so it's safe to hand out a handle to objects in Heap
+                let arguments = arguments.iter().map(|arg| unsafe { arg.handle() }).collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
             }
         }

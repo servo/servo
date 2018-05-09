@@ -15,7 +15,7 @@
       <p>
         Test that an invalid xlink:href on a 'pattern' element has no effect on the pattern, and that the
         pattern isn't rendered since the default 'width' and 'height' is 0.
-        A subtest that explicitly specifies 'width' and 'height' as 0 is added as a reference. 
+        A subtest that explicitly specifies 'width' and 'height' as 0 is added as a reference.
         Both of these cases should result in the fallback color being used.
       </p>
     </d:testDescription>

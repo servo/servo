@@ -14,10 +14,4 @@ test(() => {
   assert_throws(new TypeError(), () => new CSSKeywordValue(''));
 }, 'Constructing CSSKeywordValue with an empty string throws a TypeError');
 
-test(() => {
-  let result = new CSSKeywordValue('lemon');
-  assert_throws(new TypeError(), () => result.value = '');
-  assert_equals(result.value, 'lemon');
-}, 'Updating CSSKeywordValue.value with an empty string throws a TypeError');
-
 </script>

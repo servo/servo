@@ -240,7 +240,8 @@
         "object-tag",
         "picture-tag",
         "websocket-request",
-        "link-prefetch-tag"
+        "link-prefetch-tag",
+        "beacon-request"
       ],
       "optionally-blockable": [
         "img-tag",

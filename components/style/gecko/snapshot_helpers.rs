@@ -11,13 +11,14 @@ use string_cache::Atom;
 
 /// A function that, given an element of type `T`, allows you to get a single
 /// class or a class list.
-pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsAtom, *mut *mut *mut nsAtom) -> u32;
+pub type ClassOrClassList<T> =
+    unsafe extern "C" fn(T, *mut *mut nsAtom, *mut *mut *mut nsAtom) -> u32;
 
 /// A function to return whether an element of type `T` has a given class.
 ///
 /// The `bool` argument represents whether it should compare case-insensitively
 /// or not.
-pub type HasClass<T> = unsafe extern fn (T, *mut nsAtom, bool) -> bool;
+pub type HasClass<T> = unsafe extern "C" fn(T, *mut nsAtom, bool) -> bool;
 
 /// Given an item `T`, a class name, and a getter function, return whether that
 /// element has the class that `name` represents.
@@ -36,30 +37,25 @@ pub fn has_class<T>(
     unsafe { getter(item, name.as_ptr(), ignore_case) }
 }
 
-
 /// Given an item, a callback, and a getter, execute `callback` for each class
 /// this `item` has.
-pub fn each_class<F, T>(
-    item: T,
-    mut callback: F,
-    getter: ClassOrClassList<T>,
-)
+pub fn each_class<F, T>(item: T, mut callback: F, getter: ClassOrClassList<T>)
 where
-    F: FnMut(&Atom)
+    F: FnMut(&Atom),
 {
     unsafe {
         let mut class: *mut nsAtom = ptr::null_mut();
         let mut list: *mut *mut nsAtom = ptr::null_mut();
         let length = getter(item, &mut class, &mut list);
         match length {
-            0 => {}
+            0 => {},
             1 => Atom::with(class, callback),
             n => {
                 let classes = slice::from_raw_parts(list, n as usize);
                 for c in classes {
                     Atom::with(*c, &mut callback)
                 }
-            }
+            },
         }
     }
 }

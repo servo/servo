@@ -26,6 +26,7 @@ file
 fullscreenchange
 fullscreenerror
 gattserverdisconnected
+hashchange
 hidden
 image
 input
@@ -47,11 +48,13 @@ none
 number
 onchange
 open
+pagehide
 pageshow
 password
 pause
 play
 playing
+popstate
 print
 progress
 radio
@@ -75,6 +78,7 @@ time
 timeupdate
 toggle
 transitionend
+unload
 url
 waiting
 webglcontextcreationerror

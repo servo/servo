@@ -23,7 +23,7 @@ use values::computed::{Context, ToComputedValue};
 ///
 /// However, this approach is still not necessarily optimal: See
 /// <https://bugzilla.mozilla.org/show_bug.cgi?id=1347435#c6>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo)]
 pub struct CssUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to
@@ -42,9 +42,10 @@ impl CssUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
     /// URL. Never fails - the API is only fallible to be compatible with the
     /// gecko version.
-    pub fn parse_from_string<'a>(url: String,
-                                 context: &ParserContext)
-                                 -> Result<Self, ParseError<'a>> {
+    pub fn parse_from_string<'a>(
+        url: String,
+        context: &ParserContext,
+    ) -> Result<Self, ParseError<'a>> {
         let serialization = Arc::new(url);
         let resolved = context.url_data.join(&serialization).ok();
         Ok(CssUrl {
@@ -104,7 +105,10 @@ impl CssUrl {
 }
 
 impl Parse for CssUrl {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let url = input.expect_url()?;
         Self::parse_from_string(url.as_ref().to_owned(), context)
     }
@@ -133,7 +137,7 @@ impl ToCss for CssUrl {
                 // user *and* it's an invalid url that has been transformed
                 // back to specified value via the "uncompute" functionality.
                 None => "about:invalid",
-            }
+            },
         };
 
         dest.write_str("url(")?;
@@ -158,7 +162,7 @@ impl ToComputedValue for SpecifiedUrl {
                 None => {
                     unreachable!("Found specified url with neither resolved or original URI!");
                 },
-            }
+            },
         }
     }
 
@@ -171,7 +175,7 @@ impl ToComputedValue for SpecifiedUrl {
             ComputedUrl::Invalid(ref url) => SpecifiedUrl {
                 original: Some(url.clone()),
                 resolved: None,
-            }
+            },
         }
     }
 }

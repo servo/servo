@@ -5,10 +5,8 @@
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
 dictionary BluetoothDataFilterInit {
-  // BufferSource dataPrefix;
-  sequence<octet> dataPrefix;
-  // BufferSource mask;
-  sequence<octet> mask;
+  BufferSource dataPrefix;
+  BufferSource mask;
 };
 
 dictionary BluetoothLEScanFilterInit {

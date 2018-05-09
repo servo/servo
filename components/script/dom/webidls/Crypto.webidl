@@ -18,7 +18,6 @@ WorkerGlobalScope implements GlobalCrypto;
 [Exposed=(Window,Worker)]
 interface Crypto {
   //readonly attribute SubtleCrypto subtle;
-  //ArrayBufferView getRandomValues(ArrayBufferView array);
   [Throws]
-  ArrayBufferView getRandomValues(object array);
+  ArrayBufferView getRandomValues(ArrayBufferView array);
 };

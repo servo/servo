@@ -11,12 +11,13 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValu
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::trace::JSTraceable;
+use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{HandleValue, Heap, JSContext, MutableHandleObject, JSObject};
+use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
+use js::rust::{HandleValue, MutableHandleObject};
 use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;
@@ -111,7 +112,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
 }
 
 fn dict_return(cx: *mut JSContext,
-               result: MutableHandleObject,
+               mut result: MutableHandleObject,
                done: bool,
                value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyOrValueResult::empty(cx) };
@@ -126,15 +127,15 @@ fn dict_return(cx: *mut JSContext,
 }
 
 fn key_and_value_return(cx: *mut JSContext,
-                        result: MutableHandleObject,
+                        mut result: MutableHandleObject,
                         key: HandleValue,
                         value: HandleValue) -> Fallible<()> {
     let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
     dict.done = false;
-    let values = vec![Heap::default(), Heap::default()];
-    values[0].set(key.get());
-    values[1].set(value.get());
-    dict.value = Some(values);
+    dict.value = Some(vec![key, value]
+        .into_iter()
+        .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
+        .collect());
     rooted!(in(cx) let mut dict_value = UndefinedValue());
     unsafe {
         dict.to_jsval(cx, dict_value.handle_mut());

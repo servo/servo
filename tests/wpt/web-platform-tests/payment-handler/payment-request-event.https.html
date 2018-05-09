@@ -15,7 +15,7 @@ async function setInstrumentsAndRunTests(registration) {
     icons: [
       {src: '/images/rgrg-256x256.png', sizes: '256x256', type: 'image/png'},
     ],
-    enabledMethods: ['basic-card'],
+    method: 'basic-card',
     capabilities: {supportedNetworks: ['mir'], supportedTypes: ['prepaid']},
   });
   runTests();

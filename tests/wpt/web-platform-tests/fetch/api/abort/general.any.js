@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=/common/utils.js
 // META: script=../request/request-error.js
 
@@ -57,7 +58,7 @@ for (const { args, testName } of badRequestArgTests) {
       // Add signal to 2nd arg
       args[1] = args[1] || {};
       args[1].signal = controller.signal;
-      await promise_rejects(t, err, fetch(...args));
+      await promise_rejects(t, new TypeError, fetch(...args));
     }
   }, `TypeError from request constructor takes priority - ${testName}`);
 }

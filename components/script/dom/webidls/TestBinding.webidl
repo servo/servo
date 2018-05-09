@@ -228,6 +228,8 @@ interface TestBinding {
   TestDictionary receiveTestDictionaryWithSuccessOnKeyword();
   boolean dictMatchesPassedValues(TestDictionary arg);
 
+  (DOMString or object) receiveUnionIdentity((DOMString or object) arg);
+
   void passBoolean(boolean arg);
   void passByte(byte arg);
   void passOctet(octet arg);
@@ -246,6 +248,9 @@ interface TestBinding {
   void passByteString(ByteString arg);
   void passEnum(TestEnum arg);
   void passInterface(Blob arg);
+  void passTypedArray(Int8Array arg);
+  void passTypedArray2(ArrayBuffer arg);
+  void passTypedArray3(ArrayBufferView arg);
   void passUnion((HTMLElement or long) arg);
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
@@ -256,6 +261,7 @@ interface TestBinding {
   void passUnion8((sequence<ByteString> or long) arg);
   void passUnion9((TestDictionary or long) arg);
   void passUnion10((DOMString or object) arg);
+  void passUnion11((ArrayBuffer or ArrayBufferView) arg);
   void passUnionWithTypedef((Document or TestTypedef) arg);
   void passUnionWithTypedef2((sequence<long> or TestTypedef) arg);
   void passAny(any arg);
@@ -268,6 +274,9 @@ interface TestBinding {
   void passObjectSequence(sequence<object> seq);
   void passStringSequence(sequence<DOMString> seq);
   void passInterfaceSequence(sequence<Blob> seq);
+
+  void passOverloaded(ArrayBuffer arg);
+  void passOverloaded(DOMString arg);
 
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);
@@ -288,6 +297,7 @@ interface TestBinding {
   // void passNullableEnum(TestEnum? arg);
   void passNullableInterface(Blob? arg);
   void passNullableObject(object? arg);
+  void passNullableTypedArray(Int8Array? arg);
   void passNullableUnion((HTMLElement or long)? arg);
   void passNullableUnion2((Event or DOMString)? data);
   void passNullableUnion3((DOMString or sequence<long>)? data);

@@ -6,12 +6,15 @@
 
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
-use values::{CSSFloat, serialize_percentage};
+use values::{serialize_percentage, CSSFloat};
+use values::animated::ToAnimatedValue;
+use values::generics::NonNegative;
 
 /// A computed percentage.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Default, MallocSizeOf)]
-#[derive(PartialEq, PartialOrd, ToAnimatedZero, ToComputedValue)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, Default,
+         MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo,
+         ToAnimatedZero, ToComputedValue)]
 pub struct Percentage(pub CSSFloat);
 
 impl Percentage {
@@ -32,6 +35,12 @@ impl Percentage {
     pub fn abs(&self) -> Self {
         Percentage(self.0.abs())
     }
+
+    /// Clamps this percentage to a non-negative percentage.
+    #[inline]
+    pub fn clamp_to_non_negative(self) -> Self {
+        Percentage(self.0.max(0.))
+    }
 }
 
 impl ToCss for Percentage {
@@ -40,5 +49,36 @@ impl ToCss for Percentage {
         W: fmt::Write,
     {
         serialize_percentage(self.0, dest)
+    }
+}
+
+/// A wrapper over a `Percentage`, whose value should be clamped to 0.
+pub type NonNegativePercentage = NonNegative<Percentage>;
+
+impl NonNegativePercentage {
+    /// 0%
+    #[inline]
+    pub fn zero() -> Self {
+        NonNegative(Percentage::zero())
+    }
+
+    /// 100%
+    #[inline]
+    pub fn hundred() -> Self {
+        NonNegative(Percentage::hundred())
+    }
+}
+
+impl ToAnimatedValue for NonNegativePercentage {
+    type AnimatedValue = Percentage;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        self.0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        NonNegative(animated.clamp_to_non_negative())
     }
 }

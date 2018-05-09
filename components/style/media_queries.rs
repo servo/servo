@@ -9,13 +9,13 @@
 use Atom;
 use context::QuirksMode;
 use cssparser::{Delimiter, Parser};
-use cssparser::{Token, ParserInput};
+use cssparser::{ParserInput, Token};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use str::string_as_ascii_lowercase;
-use style_traits::{CssWriter, ToCss, ParseError, StyleParseErrorKind};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::CustomIdent;
 
 #[cfg(feature = "servo")]
@@ -36,7 +36,9 @@ pub struct MediaList {
 impl MediaList {
     /// Create an empty MediaList.
     pub fn empty() -> Self {
-        MediaList { media_queries: vec![] }
+        MediaList {
+            media_queries: vec![],
+        }
     }
 }
 
@@ -182,44 +184,54 @@ impl MediaQuery {
     /// Parse a media query given css input.
     ///
     /// Returns an error if any of the expressions is unknown.
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<MediaQuery, ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<MediaQuery, ParseError<'i>> {
         let mut expressions = vec![];
 
-        let qualifier = if input.try(|input| input.expect_ident_matching("only")).is_ok() {
+        let qualifier = if input
+            .try(|input| input.expect_ident_matching("only"))
+            .is_ok()
+        {
             Some(Qualifier::Only)
-        } else if input.try(|input| input.expect_ident_matching("not")).is_ok() {
+        } else if input
+            .try(|input| input.expect_ident_matching("not"))
+            .is_ok()
+        {
             Some(Qualifier::Not)
         } else {
             None
         };
 
         let media_type = match input.try(|i| i.expect_ident_cloned()) {
-            Ok(ident) => {
-                MediaQueryType::parse(&*ident)
-                    .map_err(|()| {
-                        input.new_custom_error(
-                            SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                        )
-                    })?
-            }
+            Ok(ident) => MediaQueryType::parse(&*ident).map_err(|()| {
+                input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
+            })?,
             Err(_) => {
                 // Media type is only optional if qualifier is not specified.
                 if qualifier.is_some() {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
 
                 // Without a media type, require at least one expression.
                 expressions.push(Expression::parse(context, input)?);
 
                 MediaQueryType::All
-            }
+            },
         };
 
         // Parse any subsequent expressions
         loop {
-            if input.try(|input| input.expect_ident_matching("and")).is_err() {
-                return Ok(MediaQuery { qualifier, media_type, expressions })
+            if input
+                .try(|input| input.expect_ident_matching("and"))
+                .is_err()
+            {
+                return Ok(MediaQuery {
+                    qualifier,
+                    media_type,
+                    expressions,
+                });
             }
             expressions.push(Expression::parse(context, input)?)
         }
@@ -241,7 +253,7 @@ where
     R: ParseErrorReporter,
 {
     if input.is_exhausted() {
-        return MediaList::empty()
+        return MediaList::empty();
     }
 
     let mut media_queries = vec![];
@@ -254,8 +266,8 @@ where
             Err(err) => {
                 media_queries.push(MediaQuery::never_matching());
                 let location = err.location;
-                let error = ContextualParseError::InvalidMediaRule(
-                    input.slice_from(start_position), err);
+                let error =
+                    ContextualParseError::InvalidMediaRule(input.slice_from(start_position), err);
                 let error_context = ParserErrorContext { error_reporter };
                 context.log_css_error(&error_context, location, error);
             },
@@ -282,9 +294,9 @@ impl MediaList {
             let media_match = mq.media_type.matches(device.media_type());
 
             // Check if all conditions match (AND condition)
-            let query_match =
-                media_match &&
-                mq.expressions.iter()
+            let query_match = media_match &&
+                mq.expressions
+                    .iter()
                     .all(|expression| expression.matches(&device, quirks_mode));
 
             // Apply the logical NOT qualifier to the result
@@ -309,7 +321,9 @@ impl MediaList {
         let mut parser = Parser::new(&mut input);
         let new_query = match MediaQuery::parse(&context, &mut parser) {
             Ok(query) => query,
-            Err(_) => { return false; }
+            Err(_) => {
+                return false;
+            },
         };
         // This algorithm doesn't actually matches the current spec,
         // but it matches the behavior of Gecko and Edge.
@@ -328,7 +342,9 @@ impl MediaList {
         let mut parser = Parser::new(&mut input);
         let old_query = match MediaQuery::parse(context, &mut parser) {
             Ok(query) => query,
-            Err(_) => { return false; }
+            Err(_) => {
+                return false;
+            },
         };
         let old_len = self.media_queries.len();
         self.media_queries.retain(|query| query != &old_query);

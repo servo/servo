@@ -5,7 +5,7 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
-use nonzero::NonZero;
+use nonzero::NonZeroU32;
 use std::cell::Cell;
 use std::fmt;
 use webrender_api;
@@ -195,9 +195,9 @@ impl PipelineNamespace {
         });
     }
 
-    fn next_index(&mut self) -> NonZero<u32> {
+    fn next_index(&mut self) -> NonZeroU32 {
         self.index += 1;
-        NonZero::new(self.index).expect("pipeline id index wrapped!")
+        NonZeroU32::new(self.index).expect("pipeline id index wrapped!")
     }
 
     fn next_pipeline_id(&mut self) -> PipelineId {
@@ -213,6 +213,13 @@ impl PipelineNamespace {
             index: BrowsingContextIndex(self.next_index()),
         }
     }
+
+    fn next_history_state_id(&mut self) -> HistoryStateId {
+        HistoryStateId {
+            namespace_id: self.id,
+            index: HistoryStateIndex(self.next_index()),
+        }
+    }
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
@@ -221,7 +228,7 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 pub struct PipelineNamespaceId(pub u32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct PipelineIndex(pub NonZero<u32>);
+pub struct PipelineIndex(pub NonZeroU32);
 malloc_size_of_is_0!(PipelineIndex);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -252,7 +259,7 @@ impl PipelineId {
         unsafe {
             PipelineId {
                 namespace_id: PipelineNamespaceId(namespace_id),
-                index: PipelineIndex(NonZero::new_unchecked(index)),
+                index: PipelineIndex(NonZeroU32::new_unchecked(index)),
             }
         }
     }
@@ -279,7 +286,7 @@ impl fmt::Display for PipelineId {
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct BrowsingContextIndex(pub NonZero<u32>);
+pub struct BrowsingContextIndex(pub NonZeroU32);
 malloc_size_of_is_0!(BrowsingContextIndex);
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -351,17 +358,66 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct HistoryStateIndex(pub NonZeroU32);
+malloc_size_of_is_0!(HistoryStateIndex);
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct HistoryStateId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: HistoryStateIndex,
+}
+
+impl HistoryStateId {
+    pub fn new() -> HistoryStateId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_history_state_id = namespace.next_history_state_id();
+            tls.set(Some(namespace));
+            next_history_state_id
+        })
+    }
+}
+
+impl fmt::Display for HistoryStateId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let HistoryStateIndex(index) = self.index;
+        write!(fmt, "({},{})", namespace_id, index.get())
+    }
+}
+
 // We provide ids just for unit testing.
 pub const TEST_NAMESPACE: PipelineNamespaceId = PipelineNamespaceId(1234);
 #[allow(unsafe_code)]
 #[cfg(feature = "unstable")]
-pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZero::new_unchecked(5678)) };
+pub const TEST_PIPELINE_INDEX: PipelineIndex = unsafe { PipelineIndex(NonZeroU32::new_unchecked(5678)) };
 #[cfg(feature = "unstable")]
 pub const TEST_PIPELINE_ID: PipelineId = PipelineId { namespace_id: TEST_NAMESPACE, index: TEST_PIPELINE_INDEX };
 #[allow(unsafe_code)]
 #[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_INDEX: BrowsingContextIndex =
-    unsafe { BrowsingContextIndex(NonZero::new_unchecked(8765)) };
+    unsafe { BrowsingContextIndex(NonZeroU32::new_unchecked(8765)) };
 #[cfg(feature = "unstable")]
 pub const TEST_BROWSING_CONTEXT_ID: BrowsingContextId =
     BrowsingContextId { namespace_id: TEST_NAMESPACE, index: TEST_BROWSING_CONTEXT_INDEX };
+
+// Used to specify the kind of input method editor appropriate to edit a field.
+// This is a subset of htmlinputelement::InputType because some variants of InputType
+// don't make sense in this context.
+#[derive(Deserialize, Serialize)]
+pub enum InputMethodType {
+    Color,
+    Date,
+    DatetimeLocal,
+    Email,
+    Month,
+    Number,
+    Password,
+    Search,
+    Tel,
+    Text,
+    Time,
+    Url,
+    Week,
+}

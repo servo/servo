@@ -22,7 +22,7 @@ from tools.wpt import markdown
 from tools import localpaths
 
 logger = None
-run, write_inconsistent, write_results = None, None, None
+stability_run, write_inconsistent, write_results = None, None, None
 wptrunner = None
 
 def setup_logging():
@@ -37,8 +37,9 @@ def setup_logging():
 
 
 def do_delayed_imports():
-    global run, write_inconsistent, write_results, wptrunner
-    from tools.wpt.stability import run, write_inconsistent, write_results
+    global stability_run, write_inconsistent, write_results, wptrunner
+    from tools.wpt.stability import run as stability_run
+    from tools.wpt.stability import write_inconsistent, write_results
     from wptrunner import wptrunner
 
 
@@ -172,22 +173,6 @@ def get_parser():
     return parser
 
 
-def set_default_args(kwargs):
-    kwargs.set_if_none("sauce_platform",
-                       os.environ.get("PLATFORM"))
-    kwargs.set_if_none("sauce_build",
-                       os.environ.get("TRAVIS_BUILD_NUMBER"))
-    python_version = os.environ.get("TRAVIS_PYTHON_VERSION")
-    kwargs.set_if_none("sauce_tags",
-                       [python_version] if python_version else [])
-    kwargs.set_if_none("sauce_tunnel_id",
-                       os.environ.get("TRAVIS_JOB_NUMBER"))
-    kwargs.set_if_none("sauce_user",
-                       os.environ.get("SAUCE_USERNAME"))
-    kwargs.set_if_none("sauce_key",
-                       os.environ.get("SAUCE_ACCESS_KEY"))
-
-
 def pr():
     pr = os.environ.get("TRAVIS_PULL_REQUEST", "false")
     return pr if pr != "false" else None
@@ -270,12 +255,9 @@ def main():
 
 
 def run(venv, wpt_args, **kwargs):
-    global logger
-
     do_delayed_imports()
 
     retcode = 0
-    parser = get_parser()
 
     wpt_args = create_parser().parse_args(wpt_args)
 
@@ -300,10 +282,6 @@ def run(venv, wpt_args, **kwargs):
     setup_logging()
 
     browser_name = wpt_args.product.split(":")[0]
-
-    if browser_name == "sauce" and not wpt_args.sauce_key:
-        logger.warning("Cannot run tests on Sauce Labs. No access key.")
-        return retcode
 
     pr_number = pr()
 
@@ -338,8 +316,6 @@ def run(venv, wpt_args, **kwargs):
 
             wpt_kwargs["test_list"] = list(tests_changed | files_affected)
 
-        set_default_args(wpt_kwargs)
-
         do_delayed_imports()
 
         wpt_kwargs["stability"] = True
@@ -357,7 +333,7 @@ def run(venv, wpt_args, **kwargs):
 
 
         wpt_logger = wptrunner.logger
-        iterations, results, inconsistent = run(venv, wpt_logger, **wpt_kwargs)
+        iterations, results, inconsistent = stability_run(venv, wpt_logger, **wpt_kwargs)
 
     if results:
         if inconsistent:
@@ -375,16 +351,17 @@ def run(venv, wpt_args, **kwargs):
                              status="failed" if inconsistent else "passed")
     else:
         logger.info("No tests run.")
+        # Be conservative and only return errors when we know for sure tests are changed.
+        if tests_changed:
+            retcode = 3
 
     return retcode
 
 
 if __name__ == "__main__":
     try:
-        retcode = main()
+        sys.exit(main())
     except Exception:
         import traceback
         traceback.print_exc()
         sys.exit(1)
-    else:
-        sys.exit(retcode)

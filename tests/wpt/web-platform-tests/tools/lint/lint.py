@@ -18,7 +18,7 @@ from .. import localpaths
 from ..gitignore.gitignore import PathFilter
 from ..wpt import testfiles
 
-from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars
+from manifest.sourcefile import SourceFile, js_meta_re, python_meta_re, space_chars, get_any_variants, get_default_any_variants
 from six import binary_type, iteritems, itervalues
 from six.moves import range
 from six.moves.urllib.parse import urlsplit, urljoin
@@ -32,7 +32,10 @@ def setup_logging(prefix=False):
     if logger is None:
         logger = logging.getLogger(os.path.basename(os.path.splitext(__file__)[0]))
         handler = logging.StreamHandler(sys.stdout)
-        logger.addHandler(handler)
+        # Only add a handler if the parent logger is missing a handler
+        if logger.parent and len(logger.parent.handlers) == 0:
+            handler = logging.StreamHandler(sys.stdout)
+            logger.addHandler(handler)
     if prefix:
         format = logging.BASIC_FORMAT
     else:
@@ -59,17 +62,20 @@ you could add the following line to the lint.whitelist file.
 
 %s: %s"""
 
-def all_filesystem_paths(repo_root):
-    path_filter = PathFilter(repo_root, extras=[".git/*"])
-    for dirpath, dirnames, filenames in os.walk(repo_root):
+def all_filesystem_paths(repo_root, subdir=None):
+    path_filter = PathFilter(repo_root, extras=[".git/"])
+    if subdir:
+        expanded_path = subdir
+    else:
+        expanded_path = repo_root
+    for dirpath, dirnames, filenames in os.walk(expanded_path):
         for filename in filenames:
             path = os.path.relpath(os.path.join(dirpath, filename), repo_root)
             if path_filter(path):
                 yield path
         dirnames[:] = [item for item in dirnames if
                        path_filter(os.path.relpath(os.path.join(dirpath, item) + "/",
-                                                   repo_root))]
-
+                                                   repo_root)+"/")]
 
 def _all_files_equal(paths):
     """
@@ -148,7 +154,7 @@ def check_git_ignore(repo_root, paths):
                 _, _, filter_string = match_filter.split(':')
                 # If the matching filter reported by check-ignore is a special-case exception,
                 # that's fine. Otherwise, it requires a new special-case exception.
-                if filter_string != '!' + path:
+                if filter_string[0] != '!':
                     errors += [("IGNORED PATH", "%s matches an ignore filter in .gitignore - "
                                 "please add a .gitignore exception" % path, path, None)]
         except subprocess.CalledProcessError as e:
@@ -610,6 +616,31 @@ broken_js_metadata = re.compile(b"//\s*META:")
 broken_python_metadata = re.compile(b"#\s*META:")
 
 
+def check_global_metadata(value):
+    global_values = {item.strip() for item in value.split(b",") if item.strip()}
+
+    included_variants = set.union(get_default_any_variants(),
+                                  *(get_any_variants(v) for v in global_values if not v.startswith(b"!")))
+
+    for global_value in global_values:
+        if global_value.startswith(b"!"):
+            excluded_value = global_value[1:]
+            if not get_any_variants(excluded_value):
+                yield ("UNKNOWN-GLOBAL-METADATA", "Unexpected value for global metadata")
+
+            elif excluded_value in global_values:
+                yield ("BROKEN-GLOBAL-METADATA", "Cannot specify both %s and %s" % (global_value, excluded_value))
+
+            else:
+                excluded_variants = get_any_variants(excluded_value)
+                if not (excluded_variants & included_variants):
+                    yield ("BROKEN-GLOBAL-METADATA", "Cannot exclude %s if it is not included" % (excluded_value,))
+
+        else:
+            if not get_any_variants(global_value):
+                yield ("UNKNOWN-GLOBAL-METADATA", "Unexpected value for global metadata")
+
+
 def check_script_metadata(repo_root, path, f):
     if path.endswith((".worker.js", ".any.js")):
         meta_re = js_meta_re
@@ -628,7 +659,9 @@ def check_script_metadata(repo_root, path, f):
         m = meta_re.match(line)
         if m:
             key, value = m.groups()
-            if key == b"timeout":
+            if key == b"global":
+                errors.extend((kind, message, path, idx + 1) for (kind, message) in check_global_metadata(value))
+            elif key == b"timeout":
                 if value != b"long":
                     errors.append(("UNKNOWN-TIMEOUT-METADATA", "Unexpected value for timeout metadata", path, idx + 1))
             elif key == b"script":
@@ -747,14 +780,20 @@ def changed_files(wpt_root):
 
 def lint_paths(kwargs, wpt_root):
     if kwargs.get("paths"):
-        r = os.path.realpath(wpt_root)
-        paths = [os.path.relpath(os.path.realpath(x), r) for x in kwargs["paths"]]
+        paths = []
+        for path in kwargs.get("paths"):
+            if os.path.isdir(path):
+                path_dir = list(all_filesystem_paths(wpt_root, path))
+                paths.extend(path_dir)
+            elif os.path.isfile(path):
+                paths.append(os.path.relpath(os.path.abspath(path), wpt_root))
+
+
     elif kwargs["all"]:
         paths = list(all_filesystem_paths(wpt_root))
     else:
         changed_paths = changed_files(wpt_root)
         force_all = False
-        # If we changed the lint itself ensure that we retest everything
         for path in changed_paths:
             path = path.replace(os.path.sep, "/")
             if path == "lint.whitelist" or path.startswith("tools/lint/"):

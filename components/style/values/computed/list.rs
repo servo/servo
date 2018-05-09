@@ -4,7 +4,7 @@
 
 //! `list` computed values.
 
-pub use values::specified::list::{ListStyleImage, Quotes};
+pub use values::specified::list::Quotes;
 #[cfg(feature = "gecko")]
 pub use values::specified::list::ListStyleType;
 
@@ -14,15 +14,17 @@ impl Quotes {
     /// FIXME(emilio): This should ideally not allocate.
     #[inline]
     pub fn get_initial_value() -> Quotes {
-        Quotes(vec![
-            (
-                "\u{201c}".to_owned().into_boxed_str(),
-                "\u{201d}".to_owned().into_boxed_str(),
-            ),
-            (
-                "\u{2018}".to_owned().into_boxed_str(),
-                "\u{2019}".to_owned().into_boxed_str(),
-            ),
-        ].into_boxed_slice())
+        Quotes(
+            vec![
+                (
+                    "\u{201c}".to_owned().into_boxed_str(),
+                    "\u{201d}".to_owned().into_boxed_str(),
+                ),
+                (
+                    "\u{2018}".to_owned().into_boxed_str(),
+                    "\u{2019}".to_owned().into_boxed_str(),
+                ),
+            ].into_boxed_slice(),
+        )
     }
 }

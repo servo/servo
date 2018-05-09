@@ -37,6 +37,9 @@ use std::fmt::{self, Write};
 /// * if `#[css(skip_if = "function")]` is found on a field, the `ToCss` call
 ///   for that field is skipped if `function` returns true. This function is
 ///   provided the field as an argument;
+/// * `#[css(represents_keyword)]` can be used on bool fields in order to
+///   serialize the field name if the field is true, or nothing otherwise.  It
+///   also collects those keywords for `SpecifiedValueInfo`.
 /// * finally, one can put `#[css(derive_debug)]` on the whole type, to
 ///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {
@@ -173,16 +176,10 @@ where
         Self { inner, separator }
     }
 
-    /// Serialises a CSS value, writing any separator as necessary.
-    ///
-    /// The separator is never written before any `item` produces any output,
-    /// and is written in subsequent calls only if the `item` produces some
-    /// output on its own again. This lets us handle `Option<T>` fields by
-    /// just not printing anything on `None`.
     #[inline]
-    pub fn item<T>(&mut self, item: &T) -> fmt::Result
+    fn write_item<F>(&mut self, f: F) -> fmt::Result
     where
-        T: ToCss,
+        F: FnOnce(&mut CssWriter<'b, W>) -> fmt::Result
     {
         let old_prefix = self.inner.prefix;
         if old_prefix.is_none() {
@@ -191,7 +188,7 @@ where
             // to write the separator next time we produce output again.
             self.inner.prefix = Some(self.separator);
         }
-        item.to_css(&mut self.inner)?;
+        f(self.inner)?;
         match (old_prefix, self.inner.prefix) {
             (_, None) => {
                 // This call produced output and cleaned up after itself.
@@ -213,20 +210,28 @@ where
         }
         Ok(())
     }
-}
 
-/// A wrapper type that implements `ToCss` by printing its inner field.
-pub struct Verbatim<'a, T>(pub &'a T)
-where
-    T: ?Sized + 'a;
-
-impl<'a, T> ToCss for Verbatim<'a, T>
-where
-    T: AsRef<str> + ?Sized + 'a,
-{
+    /// Serialises a CSS value, writing any separator as necessary.
+    ///
+    /// The separator is never written before any `item` produces any output,
+    /// and is written in subsequent calls only if the `item` produces some
+    /// output on its own again. This lets us handle `Option<T>` fields by
+    /// just not printing anything on `None`.
     #[inline]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
-        dest.write_str(self.0.as_ref())
+    pub fn item<T>(&mut self, item: &T) -> fmt::Result
+    where
+        T: ToCss,
+    {
+        self.write_item(|inner| item.to_css(inner))
+    }
+
+    /// Writes a string as-is (i.e. not escaped or wrapped in quotes)
+    /// with any separator as necessary.
+    ///
+    /// See SequenceWriter::item.
+    #[inline]
+    pub fn raw_item(&mut self, item: &str) -> fmt::Result {
+        self.write_item(|inner| inner.write_str(item))
     }
 }
 

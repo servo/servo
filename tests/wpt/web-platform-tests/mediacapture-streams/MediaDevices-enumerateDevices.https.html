@@ -16,30 +16,65 @@
 <script>
 "use strict";
 //NOTE ALEX: for completion, a test for ondevicechange event is missing.
-test(function () {
+promise_test(function() {
   assert_true(undefined !== navigator.mediaDevices.enumerateDevices, "navigator.mediaDevices.enumerateDevices exists");
-  var p = navigator.mediaDevices.enumerateDevices()
-  p.then(function(list){
+  return navigator.mediaDevices.enumerateDevices().then(function(list) {
     for (let mediainfo of list) {
       assert_true(undefined !== mediainfo.deviceId, "mediaInfo's deviceId should exist.");
       assert_true(undefined !== mediainfo.kind,     "mediaInfo's kind     should exist.");
       assert_true(undefined !== mediainfo.label,    "mediaInfo's label    should exist.");
       assert_true(undefined !== mediainfo.groupId,  "mediaInfo's groupId  should exist.");
       // TODO the values of some of those fields should be empty string by default if no permission has been requested.
-      if ( mediainfo.kind == "audioinput" ||
-          mediainfo.kind == "videoinput") {
+      if ( mediainfo.kind == "audioinput" || mediainfo.kind == "videoinput") {
         assert_true(mediainfo instanceof InputDeviceInfo);
+        var capabilities = mediainfo.getCapabilities();
+        assert_equals(typeof capabilities, "object", "capabilities must be an object.");
+        assert_equals(typeof capabilities.deviceId, "string", "deviceId must be a string.");
+        assert_equals(typeof capabilities.groupId, "string", "groupId must be a string.");
+        if (mediainfo.kind == "audioinput") {
+          assert_equals(typeof capabilities.echoCancellation, "object", "echoCancellation must be an object.");
+          assert_equals(typeof capabilities.autoGainControl, "object", "autoGainControl must be an object.");
+          assert_equals(typeof capabilities.noiseSuppression, "object", "noiseSuppression must be an object.");
+        }
+        if (mediainfo.kind == "videoinput") {
+          assert_equals(typeof capabilities.facingMode, "object", "facingMode must be an object.");
+          verifyVideoRangeProperties(capabilities);
+        }
       } else if ( mediainfo.kind == "audiooutput" ) {
         assert_true(mediainfo instanceof MediaDeviceInfo);
       } else {
         assert_unreached("mediainfo.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
       }
     }
-  })
-  p.catch(function(err){
-    assert_unreached("A call to enumerateDevices() should never fail.");
   });
 }, "mediaDevices.enumerateDevices() is present and working on navigator");
+
+function verifyVideoRangeProperties(capabilities) {
+  if (capabilities.hasOwnProperty('width')) {
+      assert_equals(Object.keys(capabilities.width).length, 2);
+      assert_true(capabilities.width.hasOwnProperty('min'));
+      assert_true(capabilities.width.hasOwnProperty('max'));
+      assert_less_than_equal(capabilities.width.min, capabilities.width.max);
+  }
+  if (capabilities.hasOwnProperty('height')) {
+    assert_equals(Object.keys(capabilities.height).length, 2);
+    assert_true(capabilities.height.hasOwnProperty('min'));
+    assert_true(capabilities.height.hasOwnProperty('max'));
+    assert_less_than_equal(capabilities.height.min, capabilities.height.max);
+  }
+  if (capabilities.hasOwnProperty('aspectRatio')) {
+    assert_equals(Object.keys(capabilities.aspectRatio).length, 2);
+    assert_true(capabilities.aspectRatio.hasOwnProperty('min'));
+    assert_true(capabilities.aspectRatio.hasOwnProperty('max'));
+    assert_less_than_equal(capabilities.aspectRatio.min, capabilities.aspectRatio.max);
+  }
+  if (capabilities.hasOwnProperty('frameRate')) {
+    assert_equals(Object.keys(capabilities.frameRate).length, 2);
+    assert_true(capabilities.frameRate.hasOwnProperty('min'));
+    assert_true(capabilities.frameRate.hasOwnProperty('max'));
+    assert_less_than_equal(capabilities.frameRate.min, capabilities.frameRate.max);
+  }
+}
 </script>
 </body>
 </html>

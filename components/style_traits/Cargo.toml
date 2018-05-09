@@ -10,7 +10,7 @@ name = "style_traits"
 path = "lib.rs"
 
 [features]
-servo = ["serde", "servo_atoms", "cssparser/serde", "webrender_api"]
+servo = ["serde", "servo_atoms", "cssparser/serde", "webrender_api", "servo_url"]
 gecko = []
 
 [dependencies]
@@ -24,4 +24,5 @@ selectors = { path = "../selectors" }
 serde = {version = "1.0", optional = true}
 webrender_api = {git = "https://github.com/servo/webrender", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
-servo_arc = {path = "../servo_arc" }
+servo_arc = { path = "../servo_arc" }
+servo_url = { path = "../url", optional = true }

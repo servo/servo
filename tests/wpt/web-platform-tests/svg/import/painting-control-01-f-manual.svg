@@ -16,15 +16,15 @@
         Elements are rendered when the 'display' attribute is set to any valid value other than 'none'.
       </p>
       <p>
-        For each valid 'display' value (except none), the test creates a 'rect' element with that 'display' value assigned. Under that 
-        element, a red 'rect' is placed at the exact same 'x', 'y' position with the same height and width. Test passes if the 'rect' 
+        For each valid 'display' value (except none), the test creates a 'rect' element with that 'display' value assigned. Under that
+        element, a red 'rect' is placed at the exact same 'x', 'y' position with the same height and width. Test passes if the 'rect'
         with 'display' covers the red 'rect'.
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-	<p>
-	Run the test. No interaction required.
-	</p>
+  <p>
+  Run the test. No interaction required.
+  </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>

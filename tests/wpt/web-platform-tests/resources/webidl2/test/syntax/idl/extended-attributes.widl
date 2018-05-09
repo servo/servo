@@ -21,3 +21,9 @@ interface Circle {
   attribute double cy;
   readonly attribute double circumference;
 };
+
+// Extracted from https://heycam.github.io/webidl/#idl-annotated-types on 2017-12-15
+[Exposed=Window]
+interface I {
+    attribute [XAttr] (long or Node) attrib;
+};

@@ -11,6 +11,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -27,6 +28,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -43,6 +45,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -59,6 +62,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -75,6 +79,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -91,6 +96,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -107,6 +113,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -123,6 +130,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -139,6 +147,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -155,6 +164,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -171,6 +181,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -187,6 +198,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -203,6 +215,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -219,6 +232,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -235,6 +249,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -251,6 +266,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
@@ -267,6 +283,7 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,

@@ -1,9 +1,9 @@
 --- WebIDL.py
 +++ WebIDL.py
-@@ -1416,7 +1416,8 @@
-                   identifier == "LegacyEventInit" or
-                   identifier == "ProbablyShortLivingObject" or
+@@ -1744,7 +1744,8 @@
+                   identifier == "ProbablyShortLivingWrapper" or
                    identifier == "LegacyUnenumerableNamedProperties" or
+                   identifier == "RunConstructorInCallerCompartment" or
 -                  identifier == "NonOrdinaryGetPrototypeOf"):
 +                  identifier == "NonOrdinaryGetPrototypeOf" or
 +                  identifier == "Abstract"):

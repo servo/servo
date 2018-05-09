@@ -208,7 +208,7 @@ impl DOMString {
         let first_non_whitespace = self.0.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
 
         self.0.truncate(last_non_whitespace);
-        let _ = self.0.splice(0..first_non_whitespace, "");
+        let _ = self.0.replace_range(0..first_non_whitespace, "");
     }
 
     /// Validates this `DOMString` is a time string according to

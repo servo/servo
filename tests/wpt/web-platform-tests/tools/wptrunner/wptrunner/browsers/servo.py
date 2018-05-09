@@ -52,9 +52,8 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {"host": "web-platform.test",
-            "host_ip": "127.0.0.1",
-            "bind_hostname": False,
+    return {"server_host": "127.0.0.1",
+            "bind_address": False,
             "testharnessreport": "testharnessreport-servo.js",
             "supports_debugger": True}
 

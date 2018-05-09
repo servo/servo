@@ -7,14 +7,15 @@
 //! [font-feature-values]: https://drafts.csswg.org/css-fonts-3/#at-font-feature-values-rule
 
 use Atom;
-use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{CowRcStr, RuleListParser, SourceLocation, QualifiedRuleParser, Token};
+use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
+use cssparser::{DeclarationListParser, DeclarationParser, Parser};
+use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, Token};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 #[cfg(feature = "gecko")]
 use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
-use parser::{ParserContext, ParserErrorContext, Parse};
+use parser::{Parse, ParserContext, ParserErrorContext};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
@@ -61,11 +62,18 @@ pub trait ToGeckoFontFeatureValues {
 pub struct SingleValue(pub u32);
 
 impl Parse for SingleValue {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<SingleValue, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<SingleValue, ParseError<'i>> {
         let location = input.current_source_location();
         match *input.next()? {
-            Token::Number { int_value: Some(v), .. } if v >= 0 => Ok(SingleValue(v as u32)),
+            Token::Number {
+                int_value: Some(v), ..
+            } if v >= 0 =>
+            {
+                Ok(SingleValue(v as u32))
+            },
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
     }
@@ -74,7 +82,9 @@ impl Parse for SingleValue {
 #[cfg(feature = "gecko")]
 impl ToGeckoFontFeatureValues for SingleValue {
     fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
-        unsafe { array.set_len_pod(1); }
+        unsafe {
+            array.set_len_pod(1);
+        }
         array[0] = self.0 as u32;
     }
 }
@@ -84,22 +94,32 @@ impl ToGeckoFontFeatureValues for SingleValue {
 pub struct PairValues(pub u32, pub Option<u32>);
 
 impl Parse for PairValues {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<PairValues, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<PairValues, ParseError<'i>> {
         let location = input.current_source_location();
         let first = match *input.next()? {
-            Token::Number { int_value: Some(a), .. } if a >= 0 => a as u32,
+            Token::Number {
+                int_value: Some(a), ..
+            } if a >= 0 =>
+            {
+                a as u32
+            },
             ref t => return Err(location.new_unexpected_token_error(t.clone())),
         };
         let location = input.current_source_location();
         match input.next() {
-            Ok(&Token::Number { int_value: Some(b), .. }) if b >= 0 => {
+            Ok(&Token::Number {
+                int_value: Some(b), ..
+            }) if b >= 0 =>
+            {
                 Ok(PairValues(first, Some(b as u32)))
-            }
+            },
             // It can't be anything other than number.
             Ok(t) => Err(location.new_unexpected_token_error(t.clone())),
             // It can be just one value.
-            Err(_) => Ok(PairValues(first, None))
+            Err(_) => Ok(PairValues(first, None)),
         }
     }
 }
@@ -109,7 +129,9 @@ impl ToGeckoFontFeatureValues for PairValues {
     fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
         let len = if self.1.is_some() { 2 } else { 1 };
 
-        unsafe { array.set_len_pod(len); }
+        unsafe {
+            array.set_len_pod(len);
+        }
         array[0] = self.0 as u32;
         if let Some(second) = self.1 {
             array[1] = second as u32;
@@ -122,15 +144,20 @@ impl ToGeckoFontFeatureValues for PairValues {
 pub struct VectorValues(#[css(iterable)] pub Vec<u32>);
 
 impl Parse for VectorValues {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<VectorValues, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<VectorValues, ParseError<'i>> {
         let mut vec = vec![];
         loop {
             let location = input.current_source_location();
             match input.next() {
-                Ok(&Token::Number { int_value: Some(a), .. }) if a >= 0 => {
+                Ok(&Token::Number {
+                    int_value: Some(a), ..
+                }) if a >= 0 =>
+                {
                     vec.push(a as u32);
-                },
+                }
                 // It can't be anything other than number.
                 Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
                 Err(_) => break,
@@ -148,7 +175,9 @@ impl Parse for VectorValues {
 #[cfg(feature = "gecko")]
 impl ToGeckoFontFeatureValues for VectorValues {
     fn to_gecko_font_feature_values(&self, array: &mut nsTArray<u32>) {
-        unsafe { array.set_len_pod(self.0.len() as u32); }
+        unsafe {
+            array.set_len_pod(self.0.len() as u32);
+        }
         for (dest, value) in array.iter_mut().zip(self.0.iter()) {
             *dest = *value;
         }
@@ -156,9 +185,13 @@ impl ToGeckoFontFeatureValues for VectorValues {
 }
 
 /// Parses a list of `FamilyName`s.
-pub fn parse_family_name_list<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                  -> Result<Vec<FamilyName>, ParseError<'i>> {
-    input.parse_comma_separated(|i| FamilyName::parse(context, i)).map_err(|e| e.into())
+pub fn parse_family_name_list<'i, 't>(
+    context: &ParserContext,
+    input: &mut Parser<'i, 't>,
+) -> Result<Vec<FamilyName>, ParseError<'i>> {
+    input
+        .parse_comma_separated(|i| FamilyName::parse(context, i))
+        .map_err(|e| e.into())
 }
 
 /// @font-feature-values inside block parser. Parses a list of `FFVDeclaration`.
@@ -177,13 +210,17 @@ impl<'a, 'b, 'i, T> AtRuleParser<'i> for FFVDeclarationsParser<'a, 'b, T> {
 }
 
 impl<'a, 'b, 'i, T> DeclarationParser<'i> for FFVDeclarationsParser<'a, 'b, T>
-    where T: Parse
+where
+    T: Parse,
 {
     type Declaration = ();
     type Error = StyleParseErrorKind<'i>;
 
-    fn parse_value<'t>(&mut self, name: CowRcStr<'i>, input: &mut Parser<'i, 't>)
-                       -> Result<(), ParseError<'i>> {
+    fn parse_value<'t>(
+        &mut self,
+        name: CowRcStr<'i>,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<(), ParseError<'i>> {
         let value = input.parse_entirely(|i| T::parse(self.context, i))?;
         let new = FFVDeclaration {
             name: Atom::from(&*name),

@@ -20,13 +20,13 @@ test(t => {
                   iterations: 10,
                   iterationComposite: 'accumulate' });
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).alignContent, 'flex-end',
     'Animated align-content style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).alignContent, 'flex-start',
     'Animated align-content style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).alignContent, 'flex-end',
     'Animated align-content style at 50s of the third iteration');
 }, 'iteration composition of discrete type animation (align-content)');
@@ -41,13 +41,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft, '5px',
     'Animated margin-left style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).marginLeft, '20px',
     'Animated margin-left style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft, '25px',
     'Animated margin-left style at 50s of the third iteration');
 }, 'iteration composition of <length> type animation');
@@ -66,13 +66,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).width, '25px',
     'Animated width style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).width, '100px',
     'Animated width style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).width, '125px',
     'Animated width style at 50s of the third iteration');
 }, 'iteration composition of <percentage> type animation');
@@ -87,13 +87,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).color, 'rgb(60, 60, 60)',
     'Animated color style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).color, 'rgb(240, 240, 240)',
     'Animated color style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).color, 'rgb(255, 255, 255)',
     'Animated color style at 50s of the third iteration');
 }, 'iteration composition of <color> type animation');
@@ -108,13 +108,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).color, 'rgb(30, 90, 30)',
     'Animated color style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).color, 'rgb(120, 240, 120)',
     'Animated color style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   // The green color is (240 + 180) / 2 = 210
   assert_equals(getComputedStyle(div).color, 'rgb(150, 210, 150)',
     'Animated color style at 50s of the third iteration');
@@ -131,13 +131,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).flexGrow, '5',
     'Animated flex-grow style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).flexGrow, '20',
     'Animated flex-grow style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).flexGrow, '25',
     'Animated flex-grow style at 50s of the third iteration');
 }, 'iteration composition of <number> type animation');
@@ -154,13 +154,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).clip, 'rect(5px, 5px, 5px, 5px)',
     'Animated clip style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).clip, 'rect(20px, 20px, 20px, 20px)',
     'Animated clip style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).clip, 'rect(25px, 25px, 25px, 25px)',
     'Animated clip style at 50s of the third iteration');
 }, 'iteration composition of <shape> type animation');
@@ -175,13 +175,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).width, '5px',
     'Animated calc width style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).width, '20px',
     'Animated calc width style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).width, '25px',
     'Animated calc width style at 50s of the third iteration');
 }, 'iteration composition of <calc()> value animation');
@@ -200,15 +200,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).width, '10px',
     // 100px * 5% + 5px
     'Animated calc width style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).width,
     '40px', // 100px * (10% + 10%) + (10px + 10px)
     'Animated calc width style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).width,
     '50px', // (40px + 60px) / 2
     'Animated calc width style at 50s of the third iteration');
@@ -225,13 +225,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).opacity, '0.2',
     'Animated opacity style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).opacity, '0.8',
     'Animated opacity style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).opacity, '1', // (0.8 + 1.2) * 0.5
     'Animated opacity style at 50s of the third iteration');
 }, 'iteration composition of opacity animation');
@@ -247,15 +247,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).boxShadow,
     'rgb(60, 60, 60) 5px 5px 5px 0px',
     'Animated box-shadow style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).boxShadow,
     'rgb(240, 240, 240) 20px 20px 20px 0px',
     'Animated box-shadow style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).boxShadow,
     'rgb(255, 255, 255) 25px 25px 25px 0px',
     'Animated box-shadow style at 50s of the third iteration');
@@ -271,13 +271,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter, 'blur(5px)',
     'Animated filter blur style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter, 'blur(20px)',
     'Animated filter blur style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter, 'blur(25px)',
     'Animated filter blur style at 50s of the third iteration');
 }, 'iteration composition of filter blur animation');
@@ -293,15 +293,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(1.4)',
     'Animated filter brightness style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(2.6)', // brightness(1) + brightness(0.8) + brightness(0.8)
     'Animated filter brightness style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(3)', // (brightness(2.6) + brightness(3.4)) * 0.5
     'Animated filter brightness style at 50s of the third iteration');
@@ -318,15 +318,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(0.5)',
     'Animated filter brightness style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(0)', // brightness(1) is an identity element, not accumulated.
     'Animated filter brightness style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(0.5)', // brightness(1) is an identity element, not accumulated.
     'Animated filter brightness style at 50s of the third iteration');
@@ -343,15 +343,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'drop-shadow(rgb(60, 60, 60) 5px 5px 5px)',
     'Animated filter drop-shadow style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
     'drop-shadow(rgb(240, 240, 240) 20px 20px 20px)',
     'Animated filter drop-shadow style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'drop-shadow(rgb(255, 255, 255) 25px 25px 25px)',
     'Animated filter drop-shadow style at 50s of the third iteration');
@@ -368,15 +368,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(1.5) contrast(1.5)',
     'Animated filter list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(3) contrast(3)',
     'Animated filter list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'brightness(3.5) contrast(3.5)',
     'Animated filter list at 50s of the third iteration');
@@ -393,18 +393,18 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'contrast(2) brightness(2)', // discrete
     'Animated filter list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
     // We can't accumulate 'contrast(2) brightness(2)' onto
     // the first list 'brightness(1) contrast(1)' because of
     // mismatch of the order.
     'brightness(1) contrast(1)',
     'Animated filter list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     // We *can* accumulate 'contrast(2) brightness(2)' onto
     // the same list 'contrast(2) brightness(2)' here.
@@ -424,15 +424,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'sepia(0.5) contrast(1.5)',
     'Animated filter list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).filter,
     'sepia(2) contrast(3)',
     'Animated filter list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).filter,
     'sepia(2.5) contrast(3.5)',
     'Animated filter list at 50s of the third iteration');
@@ -448,15 +448,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 0)', // rotate(90deg)
     'Animated transform(rotate) style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 0, 0)', // rotate(360deg)
     'Animated transform(rotate) style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 0)', // rotate(450deg)
     'Animated transform(rotate) style at 50s of the third iteration');
@@ -472,16 +472,16 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0.5, 0, 0, 0.5, 0, 0)', // scale(0.5)
     'Animated transform(scale) style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 0, 0, 0, 0, 0)', // scale(0); scale(1) is an identity element,
                                 // not accumulated.
     'Animated transform(scale) style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0.5, 0, 0, 0.5, 0, 0)', // scale(0.5); scale(1) an identity
                                     // element, not accumulated.
@@ -498,15 +498,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1.5, 0, 0, 1.5, 0, 0)', // scale(1.5)
     'Animated transform(scale) style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(3, 0, 0, 3, 0, 0)', // scale(1 + (2 -1) + (2 -1))
     'Animated transform(scale) style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(3.5, 0, 0, 3.5, 0, 0)', // (scale(3) + scale(4)) * 0.5
     'Animated transform(scale) style at 50s of the third iteration');
@@ -522,15 +522,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 0, 0)', // scale(1)
     'Animated transform(scale) style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(2, 0, 0, 2, 0, 0)', // (scale(0) + scale(2-1)*2)
     'Animated transform(scale) style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(3, 0, 0, 3, 0, 0)', // (scale(2) + scale(4)) * 0.5
     'Animated transform(scale) style at 50s of the third iteration');
@@ -547,15 +547,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 5)', // rotate(90deg) translateX(5px)
     'Animated transform list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 20, 0)', // rotate(360deg) translateX(20px)
     'Animated transform list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(0, 1, -1, 0, 0, 25)', // rotate(450deg) translateX(25px)
     'Animated transform list at 50s of the third iteration');
@@ -572,16 +572,16 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(2.5, 0, 0, 2.5, 15, 0)',
     'Animated transform of matrix function at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // scale(2) + (scale(3-1)*2) + translateX(30px)*2
     'matrix(6, 0, 0, 6, 60, 0)',
     'Animated transform of matrix function at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // from: matrix(6, 0, 0, 6, 60, 0)
     // to:   matrix(7, 0, 0, 7, 90, 0)
@@ -601,20 +601,20 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(2, 0, 0, 2,  0, 0) = translateX(0px) scale(2)
     //                 and matrix(3, 0, 0, 3, 30, 0) = scale(3) translateX(10px)
     'matrix(2.5, 0, 0, 2.5, 15, 0)',
     'Animated transform list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // 'from' and 'to' value are mismatched, so accumulate
     // matrix(2, 0, 0, 2, 0, 0) onto matrix(3, 0, 0, 3, 30, 0) * 2
     //  = scale(2) + (scale(3-1)*2) + translateX(30px)*2
     'matrix(6, 0, 0, 6, 60, 0)',
     'Animated transform list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(6, 0, 0, 6, 60, 0)
     //                 and matrix(7, 0, 0, 7, 210, 0) = scale(7) translate(30px)
@@ -636,20 +636,20 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(1, 0, 0, 1,  0, 0) = translateX(0px)
     //                 and matrix(2, 0, 0, 2, 20, 0) = scale(2) translateX(10px)
     'matrix(1.5, 0, 0, 1.5, 10, 0)',
     'Animated transform list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // 'from' and 'to' value are mismatched, so accumulate
     // matrix(1, 0, 0, 1, 0, 0) onto matrix(2, 0, 0, 2, 20, 0) * 2
     //  = scale(1) + (scale(2-1)*2) + translateX(20px)*2
     'matrix(3, 0, 0, 3, 40, 0)',
     'Animated transform list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // Interpolate between matrix(3, 0, 0, 3, 40, 0)
     //                 and matrix(4, 0, 0, 4, 120, 0) =
@@ -670,17 +670,17 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // translateX(none) -> translateX(10px) @ 50%
     'matrix(1, 0, 0, 1, 5, 0)',
     'Animated transform list at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // translateX(10px * 2 + none) -> translateX(10px * 2 + 10px) @ 0%
     'matrix(1, 0, 0, 1, 20, 0)',
     'Animated transform list at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // translateX(10px * 2 + none) -> translateX(10px * 2 + 10px) @ 50%
     'matrix(1, 0, 0, 1, 25, 0)',
@@ -704,16 +704,16 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 40, 1)',
     'Animated transform of matrix3d function at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // translateZ(30px) + (translateZ(50px)*2)
     'matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 130, 1)',
     'Animated transform of matrix3d function at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     // from: matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 130, 1)
     // to:   matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 150, 1)
@@ -736,11 +736,11 @@ test(t => {
   assert_matrix_equals(getComputedStyle(div).transform,
     'matrix(1, 0, 0, 1, 0, 0)', // Actually not rotated at all.
     'Animated transform of rotate3d function at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     rotate3dToMatrix3d(1, 1, 0, Math.PI), // 180deg
     'Animated transform of rotate3d function at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_matrix_equals(getComputedStyle(div).transform,
     rotate3dToMatrix3d(1, 1, 0, 225 * Math.PI / 180), //((270 + 180) * 0.5)deg
     'Animated transform of rotate3d function at 50s of the third iteration');
@@ -756,13 +756,13 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft, '15px',
     'Animated margin-left style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).marginLeft, '50px', // 10px + 20px + 20px
     'Animated margin-left style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft, '55px', // (50px + 60px) * 0.5
     'Animated margin-left style at 50s of the third iteration');
 }, 'iteration composition starts with non-zero value animation');
@@ -777,15 +777,15 @@ test(t => {
                   iterationComposite: 'accumulate' });
   anim.pause();
 
-  anim.currentTime = anim.effect.timing.duration / 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft,
     '0px',
     'Animated margin-left style at 50s of the first iteration');
-  anim.currentTime = anim.effect.timing.duration * 2;
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
   assert_equals(getComputedStyle(div).marginLeft,
     '-10px', // 10px + -10px + -10px
     'Animated margin-left style at 0s of the third iteration');
-  anim.currentTime += anim.effect.timing.duration / 2;
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft,
     '-20px', // (-10px + -30px) * 0.5
     'Animated margin-left style at 50s of the third iteration');
@@ -801,17 +801,22 @@ test(t => {
   anim.pause();
 
   anim.currentTime =
-    anim.effect.timing.duration * 2 + anim.effect.timing.duration / 2;
+    anim.effect.getComputedTiming().duration * 2 +
+    anim.effect.getComputedTiming().duration / 2;
   assert_equals(getComputedStyle(div).marginLeft, '25px',
     'Animated style at 50s of the third iteration');
 
   // double its duration.
-  anim.effect.timing.duration = anim.effect.timing.duration * 2;
+  anim.effect.updateTiming({
+    duration: anim.effect.getComputedTiming().duration * 2
+  });
   assert_equals(getComputedStyle(div).marginLeft, '12.5px',
     'Animated style at 25s of the first iteration');
 
   // half of original.
-  anim.effect.timing.duration = anim.effect.timing.duration / 4;
+  anim.effect.updateTiming({
+    duration: anim.effect.getComputedTiming().duration / 4
+  });
   assert_equals(getComputedStyle(div).marginLeft, '50px',
       'Animated style at 50s of the fourth iteration');
 }, 'duration changes with an iteration composition operation of accumulate');

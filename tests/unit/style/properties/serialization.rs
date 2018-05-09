@@ -7,8 +7,7 @@ use style::computed_values::display::T as Display;
 use style::properties::{PropertyDeclaration, Importance};
 use style::properties::declaration_block::PropertyDeclarationBlock;
 use style::properties::parse_property_declaration_list;
-use style::values::{CustomIdent, RGBA};
-use style::values::generics::flex::FlexBasis;
+use style::values::RGBA;
 use style::values::specified::{BorderStyle, BorderSideWidth, Color};
 use style::values::specified::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::NoCalcLength;
@@ -74,39 +73,6 @@ mod shorthand_serialization {
         let block = block_from(properties.into_iter().map(|d| (d, Importance::Normal)));
 
         block.to_css_string()
-    }
-
-    // Add Test to show error if a longhand property is missing!!!!!!
-
-    mod overflow {
-        pub use super::*;
-        use style::properties::longhands::overflow_x::SpecifiedValue as OverflowValue;
-
-        #[test]
-        fn equal_overflow_properties_should_serialize_to_single_value() {
-            let mut properties = Vec::new();
-
-            let overflow = OverflowValue::Auto;
-            properties.push(PropertyDeclaration::OverflowX(overflow));
-            properties.push(PropertyDeclaration::OverflowY(overflow));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "overflow: auto;");
-        }
-
-        #[test]
-        fn different_overflow_properties_should_serialize_to_two_values() {
-            let mut properties = Vec::new();
-
-            let overflow_x = OverflowValue::Scroll;
-            properties.push(PropertyDeclaration::OverflowX(overflow_x));
-
-            let overflow_y = OverflowValue::Auto;
-            properties.push(PropertyDeclaration::OverflowY(overflow_y));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "overflow-x: scroll; overflow-y: auto;");
-        }
     }
 
     mod four_sides_shorthands {
@@ -494,10 +460,9 @@ mod shorthand_serialization {
     }
 
     mod list_style {
-        use style::properties::longhands::list_style_image::SpecifiedValue as ListStyleImage;
         use style::properties::longhands::list_style_position::SpecifiedValue as ListStylePosition;
         use style::properties::longhands::list_style_type::SpecifiedValue as ListStyleType;
-        use style::values::Either;
+        use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
         use super::*;
 
         #[test]
@@ -505,8 +470,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let position = ListStylePosition::Inside;
-            let image =
-                ListStyleImage(Either::First(SpecifiedUrl::new_for_testing("http://servo/test.png")));
+            let image = ImageUrlOrNone::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"));
             let style_type = ListStyleType::Disc;
 
             properties.push(PropertyDeclaration::ListStylePosition(position));
@@ -521,78 +485,6 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "list-style: inside url(\"http://servo/test.png\") disc;");
         }
-    }
-
-    mod outline {
-        use style::values::specified::outline::OutlineStyle;
-        use super::*;
-
-        #[test]
-        fn outline_should_show_all_properties_when_set() {
-            let mut properties = Vec::new();
-
-            let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = OutlineStyle::Other(BorderStyle::Solid);
-            let color = RGBA::new(255, 0, 0, 255).into();
-
-            properties.push(PropertyDeclaration::OutlineWidth(width));
-            properties.push(PropertyDeclaration::OutlineStyle(style));
-            properties.push(PropertyDeclaration::OutlineColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "outline: 4px solid rgb(255, 0, 0);");
-        }
-
-        #[test]
-        fn outline_should_serialize_correctly_when_style_is_auto() {
-            let mut properties = Vec::new();
-
-            let width = BorderSideWidth::Length(Length::from_px(4f32));
-            let style = OutlineStyle::Auto;
-            let color = RGBA::new(255, 0, 0, 255).into();
-            properties.push(PropertyDeclaration::OutlineWidth(width));
-            properties.push(PropertyDeclaration::OutlineStyle(style));
-            properties.push(PropertyDeclaration::OutlineColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "outline: 4px auto rgb(255, 0, 0);");
-        }
-    }
-
-    #[test]
-    fn flex_should_serialize_all_available_properties() {
-        use style::values::specified::{NonNegativeNumber, Percentage};
-
-        let mut properties = Vec::new();
-
-        let grow = NonNegativeNumber::new(2f32);
-        let shrink = NonNegativeNumber::new(3f32);
-        let basis =
-            FlexBasis::Length(Percentage::new(0.5f32).into());
-
-        properties.push(PropertyDeclaration::FlexGrow(grow));
-        properties.push(PropertyDeclaration::FlexShrink(shrink));
-        properties.push(PropertyDeclaration::FlexBasis(basis));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "flex: 2 3 50%;");
-    }
-
-    #[test]
-    fn flex_flow_should_serialize_all_available_properties() {
-        use style::properties::longhands::flex_direction::SpecifiedValue as FlexDirection;
-        use style::properties::longhands::flex_wrap::SpecifiedValue as FlexWrap;
-
-        let mut properties = Vec::new();
-
-        let direction = FlexDirection::Row;
-        let wrap = FlexWrap::Wrap;
-
-        properties.push(PropertyDeclaration::FlexDirection(direction));
-        properties.push(PropertyDeclaration::FlexWrap(wrap));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "flex-flow: row wrap;");
     }
 
     mod background {
@@ -996,33 +888,6 @@ mod shorthand_serialization {
             let shadow = parse(|c, e, i| Ok(parse_property_declaration_list(c, e, i)), shadow_css).unwrap();
 
             assert_eq!(shadow.to_css_string(), shadow_css);
-        }
-    }
-
-    mod counter_increment {
-        pub use super::*;
-        pub use style::properties::longhands::counter_increment::SpecifiedValue as CounterIncrement;
-        use style::values::specified::Integer;
-
-        #[test]
-        fn counter_increment_with_properties_should_serialize_correctly() {
-            let mut properties = Vec::new();
-
-            properties.push((CustomIdent("counter1".into()), Integer::new(1)));
-            properties.push((CustomIdent("counter2".into()), Integer::new(-4)));
-
-            let counter_increment = CounterIncrement::new(properties);
-            let counter_increment_css = "counter1 1 counter2 -4";
-
-            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
-        }
-
-        #[test]
-        fn counter_increment_without_properties_should_serialize_correctly() {
-            let counter_increment = CounterIncrement::new(Vec::new());
-            let counter_increment_css = "none";
-
-            assert_eq!(counter_increment.to_css_string(), counter_increment_css);
         }
     }
 }

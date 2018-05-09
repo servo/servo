@@ -8,7 +8,7 @@
 use fnv::FnvHashMap;
 use logical_geometry::WritingMode;
 use properties::{ComputedValues, StyleBuilder};
-use rule_tree::{StrongRuleNode, StyleSource};
+use rule_tree::StrongRuleNode;
 use selector_parser::PseudoElement;
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
@@ -94,19 +94,21 @@ impl RuleCache {
     /// and animations.
     fn get_rule_node_for_cache<'r>(
         guards: &StylesheetGuards,
-        mut rule_node: Option<&'r StrongRuleNode>
+        mut rule_node: Option<&'r StrongRuleNode>,
     ) -> Option<&'r StrongRuleNode> {
         while let Some(node) = rule_node {
-            match *node.style_source() {
-                StyleSource::Declarations(ref decls) => {
-                    let cascade_level = node.cascade_level();
-                    let decls = decls.read_with(cascade_level.guard(guards));
-                    if decls.contains_any_reset() {
-                        break;
-                    }
-                }
-                StyleSource::None => {}
-                StyleSource::Style(_) => break,
+            match node.style_source() {
+                Some(s) => match s.as_declarations() {
+                    Some(decls) => {
+                        let cascade_level = node.cascade_level();
+                        let decls = decls.read_with(cascade_level.guard(guards));
+                        if decls.contains_any_reset() {
+                            break;
+                        }
+                    },
+                    None => break,
+                },
+                None => {},
             }
             rule_node = node.parent();
         }
@@ -129,9 +131,11 @@ impl RuleCache {
 
         // A pseudo-element with property restrictions can result in different
         // computed values if it's also used for a non-pseudo.
-        if builder_with_early_props.pseudo
-           .and_then(|p| p.property_restriction())
-           .is_some() {
+        if builder_with_early_props
+            .pseudo
+            .and_then(|p| p.property_restriction())
+            .is_some()
+        {
             return None;
         }
 
@@ -142,7 +146,7 @@ impl RuleCache {
         for &(ref conditions, ref values) in cached_values.iter() {
             if conditions.matches(builder_with_early_props) {
                 debug!("Using cached reset style with conditions {:?}", conditions);
-                return Some(&**values)
+                return Some(&**values);
             }
         }
         None
@@ -179,7 +183,10 @@ impl RuleCache {
             None => return false,
         };
 
-        debug!("Inserting cached reset style with conditions {:?}", conditions);
+        debug!(
+            "Inserting cached reset style with conditions {:?}",
+            conditions
+        );
         self.map
             .entry(rules)
             .or_insert_with(SmallVec::new)
@@ -187,5 +194,4 @@ impl RuleCache {
 
         true
     }
-
 }

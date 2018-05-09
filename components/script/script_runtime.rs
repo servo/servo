@@ -6,6 +6,8 @@
 //! script thread, the dom, and the worker threads.
 
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
+use dom::bindings::conversions::get_dom_class;
+use dom::bindings::conversions::private_from_object;
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::root::trace_roots;
 use dom::bindings::settings_stack;
@@ -21,6 +23,7 @@ use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_Se
 use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
 use js::panic::wrap_panic;
 use js::rust::Runtime as RustRuntime;
+use malloc_size_of::MallocSizeOfOps;
 use microtask::{EnqueuedPromiseCallback, Microtask};
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
@@ -313,13 +316,31 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
 }
 
 #[allow(unsafe_code)]
+unsafe extern "C" fn get_size(obj: *mut JSObject) -> usize {
+    match get_dom_class(obj) {
+        Ok(v) => {
+            let dom_object = private_from_object(obj) as *const c_void;
+
+            if dom_object.is_null() {
+                return 0;
+            }
+            let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
+            (v.malloc_size_of)(&mut ops, dom_object)
+        }
+        Err(_e) => {
+            return 0;
+        }
+    }
+}
+
+#[allow(unsafe_code)]
 pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
     let mut reports = vec![];
 
     unsafe {
         let rt = JS_GetRuntime(cx);
         let mut stats = ::std::mem::zeroed();
-        if CollectServoSizes(rt, &mut stats) {
+        if CollectServoSizes(rt, &mut stats, Some(get_size)) {
             let mut report = |mut path_suffix, kind, size| {
                 let mut path = path![path_seg, "js"];
                 path.append(&mut path_suffix);

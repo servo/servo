@@ -4,9 +4,10 @@
 
 //! A simple application that uses glutin to open a window for Servo to display in.
 
+pub mod keyutils;
 pub mod window;
 
-use servo_config::opts;
+use servo::servo_config::opts;
 use std::rc::Rc;
 
 pub fn create_window() -> Rc<window::Window> {

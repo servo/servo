@@ -6,12 +6,15 @@
 
 use cssparser::SourceLocation;
 #[cfg(feature = "gecko")]
-use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
+use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
+#[cfg(feature = "gecko")]
+use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use properties::PropertyDeclarationBlock;
 use selector_parser::SelectorImpl;
 use selectors::SelectorList;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 
@@ -59,7 +62,7 @@ impl StyleRule {
         }
 
         n += self.block.unconditional_shallow_size_of(ops) +
-             self.block.read_with(guard).size_of(ops);
+            self.block.read_with(guard).size_of(ops);
 
         n
     }
@@ -85,4 +88,3 @@ impl ToCssWithGuard for StyleRule {
         dest.write_str("}")
     }
 }
-

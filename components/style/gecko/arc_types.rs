@@ -8,13 +8,25 @@
 
 #![allow(non_snake_case, missing_docs)]
 
-use gecko_bindings::bindings::{RawServoFontFeatureValuesRule, RawServoImportRule, RawServoSupportsRule};
-use gecko_bindings::bindings::{RawServoKeyframe, RawServoKeyframesRule};
-use gecko_bindings::bindings::{RawServoMediaRule, RawServoNamespaceRule, RawServoPageRule};
-use gecko_bindings::bindings::{RawServoRuleNode, RawServoRuleNodeStrong, RawServoDocumentRule};
+use gecko_bindings::bindings::RawServoCounterStyleRule;
+use gecko_bindings::bindings::RawServoDocumentRule;
+use gecko_bindings::bindings::RawServoFontFeatureValuesRule;
+use gecko_bindings::bindings::RawServoImportRule;
+use gecko_bindings::bindings::RawServoKeyframe;
+use gecko_bindings::bindings::RawServoKeyframesRule;
+use gecko_bindings::bindings::RawServoMediaRule;
+use gecko_bindings::bindings::RawServoNamespaceRule;
+use gecko_bindings::bindings::RawServoPageRule;
+use gecko_bindings::bindings::RawServoRuleNode;
+use gecko_bindings::bindings::RawServoRuleNodeStrong;
+use gecko_bindings::bindings::RawServoSupportsRule;
 use gecko_bindings::bindings::ServoCssRules;
-use gecko_bindings::structs::{RawServoAnimationValue, RawServoDeclarationBlock, RawServoStyleRule};
-use gecko_bindings::structs::{RawServoMediaList, RawServoStyleSheetContents};
+use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::RawServoDeclarationBlock;
+use gecko_bindings::structs::RawServoFontFaceRule;
+use gecko_bindings::structs::RawServoMediaList;
+use gecko_bindings::structs::RawServoStyleRule;
+use gecko_bindings::structs::RawServoStyleSheetContents;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI, Strong};
 use media_queries::MediaList;
 use properties::{ComputedValues, PropertyDeclarationBlock};
@@ -23,12 +35,13 @@ use rule_tree::StrongRuleNode;
 use servo_arc::{Arc, ArcBorrow};
 use shared_lock::Locked;
 use std::{mem, ptr};
-use stylesheets::{CssRules, StylesheetContents, StyleRule, ImportRule, KeyframesRule, MediaRule};
-use stylesheets::{FontFeatureValuesRule, NamespaceRule, PageRule, SupportsRule, DocumentRule};
+use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRule};
+use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
+use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use stylesheets::keyframes_rule::Keyframe;
 
 macro_rules! impl_arc_ffi {
-    ($servo_type:ty => $gecko_type:ty [$addref:ident, $release:ident]) => {
+    ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
         unsafe impl HasFFI for $servo_type {
             type FFIType = $gecko_type;
         }
@@ -43,7 +56,7 @@ macro_rules! impl_arc_ffi {
         pub unsafe extern "C" fn $release(obj: &$gecko_type) {
             <$servo_type>::release(obj);
         }
-    }
+    };
 }
 
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
@@ -91,6 +104,12 @@ impl_arc_ffi!(Locked<DocumentRule> => RawServoDocumentRule
 impl_arc_ffi!(Locked<FontFeatureValuesRule> => RawServoFontFeatureValuesRule
               [Servo_FontFeatureValuesRule_AddRef, Servo_FontFeatureValuesRule_Release]);
 
+impl_arc_ffi!(Locked<FontFaceRule> => RawServoFontFaceRule
+              [Servo_FontFaceRule_AddRef, Servo_FontFaceRule_Release]);
+
+impl_arc_ffi!(Locked<CounterStyleRule> => RawServoCounterStyleRule
+              [Servo_CounterStyleRule_AddRef, Servo_CounterStyleRule_Release]);
+
 // RuleNode is a Arc-like type but it does not use Arc.
 
 impl StrongRuleNode {
@@ -116,24 +135,23 @@ pub unsafe extern "C" fn Servo_RuleNode_Release(obj: &RawServoRuleNode) {
     ptr::read(ptr as *const StrongRuleNode);
 }
 
-// ServoStyleContext is not an opaque type on any side of FFI.
+// ComputedStyle is not an opaque type on any side of FFI.
 // This means that doing the HasArcFFI type trick is actually unsound,
-// since it gives us a way to construct an Arc<ServoStyleContext> from
-// an &ServoStyleContext, which in general is not allowed. So we
+// since it gives us a way to construct an Arc<ComputedStyle> from
+// an &ComputedStyle, which in general is not allowed. So we
 // implement the restricted set of arc type functionality we need.
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_StyleContext_AddRef(obj: &ComputedValues) {
+pub unsafe extern "C" fn Servo_ComputedStyle_AddRef(obj: &ComputedValues) {
     mem::forget(ArcBorrow::from_ref(obj).clone_arc());
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn Servo_StyleContext_Release(obj: &ComputedValues) {
+pub unsafe extern "C" fn Servo_ComputedStyle_Release(obj: &ComputedValues) {
     ArcBorrow::from_ref(obj).with_arc(|a: &Arc<ComputedValues>| {
         let _: Arc<ComputedValues> = ptr::read(a);
     });
 }
-
 
 impl From<Arc<ComputedValues>> for Strong<ComputedValues> {
     fn from(arc: Arc<ComputedValues>) -> Self {

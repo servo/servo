@@ -72,7 +72,7 @@
       :hover {fill: rgb(255, 140, 0) }
       rect:hover {fill: none }
       text#revision:hover {fill: black}
-      :focus { fill:  	rgb( 0, 255, 127); stroke:  rgb( 0, 255, 127); stroke-width:1.5px }
+      :focus { fill:    rgb( 0, 255, 127); stroke:  rgb( 0, 255, 127); stroke-width:1.5px }
     </style>
     <defs>
       <font horiz-adv-x="481">

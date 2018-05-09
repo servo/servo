@@ -107,13 +107,20 @@
       }));
   }
 
-  // Main function to do the IDL test, using fetched IDL text
-  function doIdlTest(idlText) {
+  promise_test(async t => {
+    await asyncInit();
+
     const idlArray = new IdlArray();
 
+    let webrtcIdl = fetch('/interfaces/webrtc-pc.idl').then(r => r.text());
+    let mediacaptureMainIdl = fetch('/interfaces/mediacapture-main.idl').then(r => r.text());
+
+    idlArray.add_untested_idls(mediacaptureMainIdl, { only: ['MediaStreamConstraints'] });
+    idlArray.add_idls(webrtcIdl);
+
     idlArray.add_untested_idls('interface EventHandler {};');
+    idlArray.add_idls('interface EventTarget {};');
     idlArray.add_idls('interface MediaStreamTrack : EventTarget {};');
-    idlArray.add_idls(idlText);
 
     idlArray.add_objects({
       'RTCPeerConnection': [`new RTCPeerConnection()`],
@@ -159,13 +166,6 @@
     });
 
     idlArray.test();
-  }
-
-  promise_test(t => {
-    return asyncInit()
-    .then(() => fetch('/interfaces/webrtc-pc.idl'))
-    .then(response => response.text())
-    .then(doIdlTest);
   }, 'Main test driver');
 
   /*

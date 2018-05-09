@@ -14,7 +14,7 @@ test(t => {
   const anim = new Animation();
   assert_equals(anim.effect, null, 'initial effect is null');
 
-  const newEffect = new KeyframeEffectReadOnly(createDiv(t), null);
+  const newEffect = new KeyframeEffect(createDiv(t), null);
   anim.effect = newEffect;
   assert_equals(anim.effect, newEffect, 'new effect is set');
 }, 'effect is set correctly.');

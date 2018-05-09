@@ -32,6 +32,7 @@
                 test_timing_order('redirectStart', 'navigationStart');
                 test_timing_order('redirectEnd', 'redirectStart');
                 test_timing_order('fetchStart', 'redirectEnd');
+                test_timing_order('requestStart', 'fetchStart');
             }
         </script>
 

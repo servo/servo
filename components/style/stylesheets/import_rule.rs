@@ -6,19 +6,60 @@
 //!
 //! [import]: https://drafts.csswg.org/css-cascade-3/#at-import
 
+use context::QuirksMode;
 use cssparser::SourceLocation;
 use media_queries::MediaList;
-use shared_lock::{DeepCloneWithLock, DeepCloneParams, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use shared_lock::{DeepCloneParams, DeepCloneWithLock};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
 use style_traits::{CssWriter, ToCss};
-use stylesheets::{StylesheetContents, StylesheetInDocument};
+use stylesheets::{CssRule, Origin, StylesheetInDocument};
 use values::CssUrl;
+
+/// With asynchronous stylesheet parsing, we can't synchronously create a
+/// GeckoStyleSheet. So we use this placeholder instead.
+#[derive(Clone, Debug)]
+pub struct PendingSheet {
+    origin: Origin,
+    quirks_mode: QuirksMode,
+}
 
 /// A sheet that is held from an import rule.
 #[cfg(feature = "gecko")]
 #[derive(Debug)]
-pub struct ImportSheet(pub ::gecko::data::GeckoStyleSheet);
+pub enum ImportSheet {
+    /// A bonafide stylesheet.
+    Sheet(::gecko::data::GeckoStyleSheet),
+    /// An @import created while parsing off-main-thread, whose Gecko sheet has
+    /// yet to be created and attached.
+    Pending(PendingSheet),
+}
+
+#[cfg(feature = "gecko")]
+impl ImportSheet {
+    /// Creates a new ImportSheet from a GeckoStyleSheet.
+    pub fn new(sheet: ::gecko::data::GeckoStyleSheet) -> Self {
+        ImportSheet::Sheet(sheet)
+    }
+
+    /// Creates a pending ImportSheet for a load that has not started yet.
+    pub fn new_pending(origin: Origin, quirks_mode: QuirksMode) -> Self {
+        ImportSheet::Pending(PendingSheet {
+            origin,
+            quirks_mode,
+        })
+    }
+
+    /// Returns a reference to the GeckoStyleSheet in this ImportSheet, if it
+    /// exists.
+    pub fn as_sheet(&self) -> Option<&::gecko::data::GeckoStyleSheet> {
+        match *self {
+            ImportSheet::Sheet(ref s) => Some(s),
+            ImportSheet::Pending(_) => None,
+        }
+    }
+}
 
 #[cfg(feature = "gecko")]
 impl DeepCloneWithLock for ImportSheet {
@@ -30,13 +71,53 @@ impl DeepCloneWithLock for ImportSheet {
     ) -> Self {
         use gecko::data::GeckoStyleSheet;
         use gecko_bindings::bindings;
-        let clone = unsafe {
-            bindings::Gecko_StyleSheet_Clone(
-                self.0.raw() as *const _,
-                params.reference_sheet
-            )
-        };
-        ImportSheet(unsafe { GeckoStyleSheet::from_addrefed(clone) })
+        match *self {
+            ImportSheet::Sheet(ref s) => {
+                let clone = unsafe {
+                    bindings::Gecko_StyleSheet_Clone(s.raw() as *const _, params.reference_sheet)
+                };
+                ImportSheet::Sheet(unsafe { GeckoStyleSheet::from_addrefed(clone) })
+            },
+            ImportSheet::Pending(ref p) => ImportSheet::Pending(p.clone()),
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl StylesheetInDocument for ImportSheet {
+    fn origin(&self, _guard: &SharedRwLockReadGuard) -> Origin {
+        match *self {
+            ImportSheet::Sheet(ref s) => s.contents().origin,
+            ImportSheet::Pending(ref p) => p.origin,
+        }
+    }
+
+    fn quirks_mode(&self, _guard: &SharedRwLockReadGuard) -> QuirksMode {
+        match *self {
+            ImportSheet::Sheet(ref s) => s.contents().quirks_mode,
+            ImportSheet::Pending(ref p) => p.quirks_mode,
+        }
+    }
+
+    fn enabled(&self) -> bool {
+        match *self {
+            ImportSheet::Sheet(ref s) => s.enabled(),
+            ImportSheet::Pending(_) => true,
+        }
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        match *self {
+            ImportSheet::Sheet(ref s) => s.media(guard),
+            ImportSheet::Pending(_) => None,
+        }
+    }
+
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        match *self {
+            ImportSheet::Sheet(ref s) => s.contents().rules(guard),
+            ImportSheet::Pending(_) => &[],
+        }
     }
 }
 
@@ -45,18 +126,26 @@ impl DeepCloneWithLock for ImportSheet {
 #[derive(Debug)]
 pub struct ImportSheet(pub ::servo_arc::Arc<::stylesheets::Stylesheet>);
 
+#[cfg(feature = "servo")]
 impl StylesheetInDocument for ImportSheet {
-    /// Get the media associated with this stylesheet.
-    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
-        self.0.media(guard)
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.0.origin(guard)
     }
 
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
-        self.0.contents(guard)
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.0.quirks_mode(guard)
     }
 
     fn enabled(&self) -> bool {
         self.0.enabled()
+    }
+
+    fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
+        self.0.media(guard)
+    }
+
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.0.rules(guard)
     }
 }
 
@@ -82,10 +171,9 @@ pub struct ImportRule {
     /// The `<url>` this `@import` rule is loading.
     pub url: CssUrl,
 
-    /// The stylesheet is always present.
-    ///
-    /// It contains an empty list of rules and namespace set that is updated
-    /// when it loads.
+    /// The stylesheet is always present. However, in the case of gecko async
+    /// parsing, we don't actually have a Gecko sheet at first, and so the
+    /// ImportSheet just has stub behavior until it appears.
     pub stylesheet: ImportSheet,
 
     /// The line and column of the rule's source code.
@@ -116,7 +204,7 @@ impl ToCssWithGuard for ImportRule {
             Some(media) if !media.is_empty() => {
                 dest.write_str(" ")?;
                 media.to_css(&mut CssWriter::new(dest))?;
-            }
+            },
             _ => {},
         };
 

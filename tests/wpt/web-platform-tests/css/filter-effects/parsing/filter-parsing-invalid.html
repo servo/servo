@@ -34,8 +34,6 @@ test_invalid_value("filter", "drop-shadow(10% 20%)");
 test_invalid_value("filter", "drop-shadow(1px)");
 test_invalid_value("filter", "drop-shadow(1px 2px 3px 4px)");
 test_invalid_value("filter", "drop-shadow(rgb(4, 5, 6))");
-// https://github.com/w3c/fxtf-drafts/issues/231
-test_invalid_value("filter", "drop-shadow(rgb(4, 5, 6) 1px 2px)"); // Fails in Blink/WebKit "drop-shadow(rgb(4, 5, 6) 1px 2px)" and Firefox "drop-shadow(1px 2px rgb(4, 5, 6))".
 test_invalid_value("filter", "drop-shadow()");
 
 test_invalid_value("filter", "grayscale(-20)");

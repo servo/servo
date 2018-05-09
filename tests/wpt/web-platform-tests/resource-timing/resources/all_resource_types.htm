@@ -3,6 +3,7 @@
     <head>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
         <title>All Resource Types Test Page</title>
+        <link rel="shortcut icon" href="empty.py?favicon">
     </head>
     <body background='blue.png?id=body'>
         <script>
@@ -10,7 +11,14 @@
                 window.parent.on_test_body_created();
         </script>
         <link rel="stylesheet" href="nested.css"></link>
+        <link rel="prefetch" href="nested.css?id=prefetch"></link>
+        <link rel="preload" href="nested.css?id=preload" as="style"></link>
+        <link rel="prerender" href="blank_page_green.htm?id=prerender"></link>
+        <link rel="manifest" href="manifest.json"></link>
         <img src="resource_timing_test0.png"></img>
+        <img src="resource_timing_test0.png?id=srcset-src"
+            srcset="resource_timing_test0.png?id=srcset-srcset 67w"
+            sizes="67px"></img>
         <iframe src="blank_page_green.htm" width="100px" height="100px"></iframe>
         <script src="empty_script.js"></script>
         <script>
@@ -21,6 +29,18 @@
                     parent.on_async_xhr_done();
             }
             async_xhr.send();
+
+            if (window.navigator && navigator.sendBeacon) {
+                navigator.sendBeacon('empty.py?id=beacon');
+            }
+
+            if (window.fetch) {
+                fetch('empty.py?id=fetch');
+            }
+
+            if (window.EventSource) {
+                var evtSource = new EventSource('eventsource.py?id=eventsource');
+            }
         </script>
         <style>
             @font-face {
@@ -29,6 +49,9 @@
             }
             iframe {
                 background: url('blue.png?id=1');
+            }
+            body {
+                cursor: url('blue.png?id=cursor'), pointer;
             }
             ul {
                 font-family: remoteFontAhem;
@@ -44,6 +67,41 @@
         <embed src="resource_timing_test0.css?id=embed" type="text/css"></embed>
         <input type="image" src="blue.png?id=input"></input>
         <object type="image/png" data="blue.png?id=object"></object>
-        <video poster="blue.png?id=poster"></video>
+        <video poster="blue.png?id=video-poster"></video>
+        <video src="/media/test.mp4?id=video-src" autoplay="true"></video>
+        <video autoplay="true">
+            <source src="/media/test.mp4?id=video-source" type="video/mp4">
+            <source src="/media/test.ogv?id=video-source" type="video/ogg">
+            <track kind="subtitles" src="empty.py?id=video-track" srclang="en" default>
+        </video>
+        <audio src="empty.py?id=audio-src"></audio>
+        <audio>
+            <source src="empty.py?id=audio-source-wav" type="audio/wav" />
+            <source src="empty.py?id=audio-source-mpeg" type="audio/mpeg" />
+            <source src="empty.py?id=audio-source-ogg" type="audio/ogg" />
+        </audio>
+        <svg width=200 height=200
+            xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+            <image href="blue.png?id=svg-image" height="200" width="200"/>
+        </svg>
+        <picture>
+            <source srcset="blue.png?id=picture-source" type="image/png" />
+            <img src="blue.png?id=picture-img" />
+        </picture>
+        <picture>
+            <source srcset="blue.png?id=picture-notsupported-source" type="image/notsupported" />
+            <img src="blue.png?id=picture-notsupported-img" />
+        </picture>
+        <picture>
+            <img src="blue.png?id=picture-img-src"
+                srcset="blue.png?id=picture-img-srcset"
+                sizes="67px"></img>
+        </picture>
+        <picture>
+            <img src="blue.png?id=picture-99x-img-src"
+                srcset="blue.png?id=picture-99x-img-srcset 99x"
+                sizes="67px"></img>
+        </picture>
     </body>
 </html>

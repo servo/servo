@@ -15,7 +15,6 @@ let descriptor, fake_peripheral, fake_service;
 bluetooth_test(() => getUserDescriptionDescriptor()
     .then(_ => ({descriptor, fake_peripheral, fake_service} = _))
     .then(() => fake_service.remove())
-    .then(() => fake_peripheral.setNextGATTDiscoveryResponse({HCI_SUCCESS}))
     .then(() => fake_peripheral.simulateGATTServicesChanged())
     .then(() => assert_promise_rejects_with_message(
         descriptor.writeValue(new ArrayBuffer(1 /* length */)),

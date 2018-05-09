@@ -13,15 +13,17 @@
 
 use app_units::Au;
 use display_list::ToLayout;
+use display_list::items::{BorderDetails, Gradient, RadialGradient, WebRenderImageInfo};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
-use gfx::display_list::{self, BorderDetails, WebRenderImageInfo};
 use model::{self, MaybeAuto};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
+use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::{self, Background};
+use style::values::Either;
 use style::values::computed::{Angle, GradientItem};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{NumberOrPercentage, Percentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
 use style::values::generics::background::BackgroundSize;
@@ -30,8 +32,8 @@ use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
-use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode, ImageBorder};
-use webrender_api::{GradientStop, LayoutSize, NinePatchDescriptor, NormalBorder};
+use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode, GradientStop};
+use webrender_api::{LayoutSize, NinePatchBorder, NinePatchBorderSource, NormalBorder};
 
 /// A helper data structure for gradients.
 #[derive(Clone, Copy)]
@@ -56,7 +58,9 @@ pub struct BackgroundPlacement {
     pub tile_spacing: Size2D<Au>,
     /// A clip area. While the background is rendered according to all the
     /// measures above it is only shown within these bounds.
-    pub css_clip: Rect<Au>,
+    pub clip_rect: Rect<Au>,
+    /// Rounded corners for the clip_rect.
+    pub clip_radii: BorderRadius,
     /// Whether or not the background is fixed to the viewport.
     pub fixed: bool,
 }
@@ -149,6 +153,26 @@ fn compute_background_image_size(
     }
 }
 
+pub fn compute_background_clip(
+    bg_clip: BackgroundClip,
+    absolute_bounds: Rect<Au>,
+    border: SideOffsets2D<Au>,
+    border_padding: SideOffsets2D<Au>,
+    border_radii: BorderRadius,
+) -> (Rect<Au>, BorderRadius) {
+    match bg_clip {
+        BackgroundClip::BorderBox => (absolute_bounds, border_radii),
+        BackgroundClip::PaddingBox => (
+            absolute_bounds.inner_rect(border),
+            calculate_inner_border_radii(border_radii, border),
+        ),
+        BackgroundClip::ContentBox => (
+            absolute_bounds.inner_rect(border_padding),
+            calculate_inner_border_radii(border_radii, border_padding),
+        ),
+    }
+}
+
 /// Determines where to place an element background image or gradient.
 ///
 /// Photos have their resolution as intrinsic size while gradients have
@@ -160,6 +184,7 @@ pub fn compute_background_placement(
     intrinsic_size: Option<Size2D<Au>>,
     border: SideOffsets2D<Au>,
     border_padding: SideOffsets2D<Au>,
+    border_radii: BorderRadius,
     index: usize,
 ) -> BackgroundPlacement {
     let bg_attachment = *get_cyclic(&bg.background_attachment.0, index);
@@ -170,11 +195,13 @@ pub fn compute_background_placement(
     let bg_repeat = get_cyclic(&bg.background_repeat.0, index);
     let bg_size = *get_cyclic(&bg.background_size.0, index);
 
-    let css_clip = match bg_clip {
-        BackgroundClip::BorderBox => absolute_bounds,
-        BackgroundClip::PaddingBox => absolute_bounds.inner_rect(border),
-        BackgroundClip::ContentBox => absolute_bounds.inner_rect(border_padding),
-    };
+    let (clip_rect, clip_radii) = compute_background_clip(
+        bg_clip,
+        absolute_bounds,
+        border,
+        border_padding,
+        border_radii,
+    );
 
     let mut fixed = false;
     let mut bounds = match bg_attachment {
@@ -202,8 +229,8 @@ pub fn compute_background_placement(
         &mut tile_size.width,
         &mut tile_spacing.width,
         pos_x,
-        css_clip.origin.x,
-        css_clip.size.width,
+        clip_rect.origin.x,
+        clip_rect.size.width,
     );
     tile_image_axis(
         bg_repeat.1,
@@ -212,15 +239,16 @@ pub fn compute_background_placement(
         &mut tile_size.height,
         &mut tile_spacing.height,
         pos_y,
-        css_clip.origin.y,
-        css_clip.size.height,
+        clip_rect.origin.y,
+        clip_rect.size.height,
     );
 
     BackgroundPlacement {
         bounds,
         tile_size,
         tile_spacing,
-        css_clip,
+        clip_rect,
+        clip_radii,
         fixed,
     }
 }
@@ -508,7 +536,7 @@ pub fn convert_linear_gradient(
     stops: &[GradientItem],
     direction: LineDirection,
     repeating: bool,
-) -> display_list::Gradient {
+) -> Gradient {
     let angle = match direction {
         LineDirection::Angle(angle) => angle.radians(),
         LineDirection::Horizontal(x) => match x {
@@ -556,7 +584,7 @@ pub fn convert_linear_gradient(
 
     let center = Point2D::new(size.width / 2, size.height / 2);
 
-    display_list::Gradient {
+    Gradient {
         start_point: (center - delta).to_layout(),
         end_point: (center + delta).to_layout(),
         stops: stops,
@@ -570,7 +598,7 @@ pub fn convert_radial_gradient(
     shape: EndingShape,
     center: Position,
     repeating: bool,
-) -> display_list::RadialGradient {
+) -> RadialGradient {
     let center = Point2D::new(
         center.horizontal.to_used_value(size.width),
         center.vertical.to_used_value(size.height),
@@ -593,7 +621,7 @@ pub fn convert_radial_gradient(
 
     let stops = convert_gradient_stops(stops, radius.width);
 
-    display_list::RadialGradient {
+    RadialGradient {
         center: center.to_layout(),
         radius: radius.to_layout(),
         stops: stops,
@@ -758,29 +786,49 @@ pub fn calculate_inner_border_radii(
 pub fn build_image_border_details(
     webrender_image: WebRenderImageInfo,
     border_style_struct: &style_structs::Border,
+    outset: SideOffsets2D<f32>,
 ) -> Option<BorderDetails> {
     let corners = &border_style_struct.border_image_slice.offsets;
     let border_image_repeat = &border_style_struct.border_image_repeat;
     if let Some(image_key) = webrender_image.key {
-        Some(BorderDetails::Image(ImageBorder {
-            image_key: image_key,
-            patch: NinePatchDescriptor {
-                width: webrender_image.width,
-                height: webrender_image.height,
-                slice: SideOffsets2D::new(
-                    corners.0.resolve(webrender_image.height),
-                    corners.1.resolve(webrender_image.width),
-                    corners.2.resolve(webrender_image.height),
-                    corners.3.resolve(webrender_image.width),
-                ),
-            },
+        Some(BorderDetails::Image(NinePatchBorder {
+            source: NinePatchBorderSource::Image(image_key),
+            width: webrender_image.width,
+            height: webrender_image.height,
+            slice: SideOffsets2D::new(
+                corners.0.resolve(webrender_image.height),
+                corners.1.resolve(webrender_image.width),
+                corners.2.resolve(webrender_image.height),
+                corners.3.resolve(webrender_image.width),
+            ),
             fill: border_style_struct.border_image_slice.fill,
-            // TODO(gw): Support border-image-outset
-            outset: SideOffsets2D::zero(),
             repeat_horizontal: border_image_repeat.0.to_layout(),
             repeat_vertical: border_image_repeat.1.to_layout(),
+            outset: outset,
         }))
     } else {
         None
     }
+}
+
+fn calculate_border_image_outset_side(
+    outset: LengthOrNumber,
+    border_width: Au,
+) -> Au {
+    match outset {
+        Either::First(length) => length.into(),
+        Either::Second(factor) => border_width.scale_by(factor),
+    }
+}
+
+pub fn calculate_border_image_outset(
+    outset: BorderImageOutset,
+    border: SideOffsets2D<Au>,
+) -> SideOffsets2D<Au> {
+    SideOffsets2D::new(
+        calculate_border_image_outset_side(outset.0, border.top),
+        calculate_border_image_outset_side(outset.1, border.right),
+        calculate_border_image_outset_side(outset.2, border.bottom),
+        calculate_border_image_outset_side(outset.3, border.left),
+    )
 }

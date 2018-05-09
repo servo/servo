@@ -6,6 +6,7 @@
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;
+extern crate embedder_traits;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
@@ -17,7 +18,7 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate num_traits;
 #[macro_use] extern crate serde;
-extern crate servo_config;
+extern crate servo_arc;
 extern crate servo_url;
 extern crate url;
 extern crate uuid;
@@ -33,6 +34,7 @@ use hyper_serde::Serde;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::HistoryStateId;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
@@ -362,6 +364,12 @@ pub enum CoreResourceMsg {
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
     GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
+    /// Get a history state by a given history state id
+    GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
+    /// Set a history state for a given history state id
+    SetHistoryState(HistoryStateId, Vec<u8>),
+    /// Removes history states for the given ids
+    RemoveHistoryStates(Vec<HistoryStateId>),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
     /// Send the network sender in constellation to CoreResourceThread

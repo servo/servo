@@ -1,0 +1,40 @@
+<h1>This iframe calls shows() via postMessage()</h1>
+<script>
+"use strict";
+const defaultMethods = Object.freeze([
+  { supportedMethods: "basic-card" },
+  { supportedMethods: "https://apple.com/apple-pay" },
+]);
+
+const defaultDetails = Object.freeze({
+  id: "fail",
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+// We are going to use the id to prove that this works
+// which we will pass back to the caller
+window.onmessage = async event => {
+  const { source, data: { id, request } } = event;
+  switch (request) {
+    case "show-payment-request": {
+      const details = Object.assign({}, defaultDetails, { id });
+      const request = new PaymentRequest(defaultMethods, details);
+      try {
+        const response = await request.show();
+        source.postMessage(response.toJSON(), window.location.origin);
+        await response.complete();
+      } catch (err) {
+        source.postMessage({ requestId: "fail" }, window.location.origin);
+        await request.abort();
+      }
+    }
+  }
+};
+
+</script>

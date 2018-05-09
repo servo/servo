@@ -76,7 +76,7 @@
             break;
 
           case "credentials":
-            defaultValue = "omit";
+            defaultValue = "same-origin";
             newValue = "cors";
             break;
 
@@ -95,6 +95,11 @@
             break;
 
           case "bodyUsed":
+            defaultValue = false;
+            newValue = true;
+            break;
+
+          case "isReloadNavigation":
             defaultValue = false;
             newValue = true;
             break;

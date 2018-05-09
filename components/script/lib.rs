@@ -4,13 +4,10 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
-#![feature(ascii_ctype)]
-#![feature(conservative_impl_trait)]
 #![feature(const_fn)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(proc_macro)]
-#![feature(splice)]
 #![feature(string_retain)]
 
 #![deny(unsafe_code)]
@@ -21,7 +18,6 @@
 #![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
-extern crate angle;
 extern crate app_units;
 extern crate audio_video_metadata;
 extern crate base64;
@@ -39,6 +35,7 @@ extern crate devtools_traits;
 extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
+extern crate embedder_traits;
 extern crate encoding_rs;
 extern crate euclid;
 extern crate fnv;
@@ -64,6 +61,7 @@ extern crate metrics;
 extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
+extern crate mozangle;
 #[macro_use]
 extern crate mozjs as js;
 extern crate msg;
@@ -81,6 +79,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
+extern crate serde_bytes;
 extern crate servo_allocator;
 extern crate servo_arc;
 #[macro_use] extern crate servo_atoms;
@@ -106,7 +105,6 @@ extern crate xml5ever;
 
 #[macro_use]
 mod task;
-
 mod body;
 pub mod clipboard_provider;
 mod devtools;
@@ -149,7 +147,10 @@ pub mod layout_exports {
 }
 
 use dom::bindings::codegen::RegisterBindings;
+use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::proxyhandler;
+use dom::bindings::utils::is_platform_object;
+use js::jsapi::JSObject;
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
 
@@ -200,6 +201,11 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
 }
 
 #[allow(unsafe_code)]
+unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
+  !obj.is_null() && (is_platform_object(obj) || is_dom_proxy(obj))
+}
+
+#[allow(unsafe_code)]
 pub fn init() {
     unsafe {
         proxyhandler::init();
@@ -207,6 +213,8 @@ pub fn init() {
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
+
+        js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }
 
     perform_platform_specific_initialization();

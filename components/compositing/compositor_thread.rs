@@ -6,10 +6,10 @@
 
 use SendableFrameTree;
 use compositor::CompositingReason;
-use euclid::{Point2D, Size2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
+use net_traits::filemanager_thread::FilterPattern;
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
@@ -20,7 +20,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use webrender;
-use webrender_api;
+use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
 
 /// Used to wake up the event loop, provided by the servo port/embedder.
@@ -119,15 +119,9 @@ pub enum EmbedderMsg {
     /// Alerts the embedder that the current page has changed its title.
     ChangePageTitle(TopLevelBrowsingContextId, Option<String>),
     /// Move the window to a point
-    MoveTo(TopLevelBrowsingContextId, Point2D<i32>),
+    MoveTo(TopLevelBrowsingContextId, DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(TopLevelBrowsingContextId, Size2D<u32>),
-    /// Get Window Informations size and position
-    GetClientWindow(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>, Point2D<i32>)>),
-    /// Get screen size (pixel)
-    GetScreenSize(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>)>),
-    /// Get screen available size (pixel)
-    GetScreenAvailSize(TopLevelBrowsingContextId, IpcSender<(Size2D<u32>)>),
+    ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
     /// Wether or not to follow a link
     AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
@@ -148,6 +142,16 @@ pub enum EmbedderMsg {
     LoadComplete(TopLevelBrowsingContextId),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(TopLevelBrowsingContextId, String, Option<String>),
+    /// Open dialog to select bluetooth device.
+    GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
+    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
+    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
+    /// Request to present an IME to the user when an editable element is focused.
+    ShowIME(TopLevelBrowsingContextId, InputMethodType),
+    /// Request to hide the IME when the editable element is blurred.
+    HideIME(TopLevelBrowsingContextId),
+    /// Servo has shut down
+    Shutdown,
 }
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
@@ -196,6 +200,12 @@ pub enum Msg {
     /// The load of a page has completed
     LoadComplete(TopLevelBrowsingContextId),
 
+    /// Get Window Informations size and position.
+    GetClientWindow(IpcSender<(DeviceUintSize, DeviceIntPoint)>),
+    /// Get screen size.
+    GetScreenSize(IpcSender<DeviceUintSize>),
+    /// Get screen available size.
+    GetScreenAvailSize(IpcSender<DeviceUintSize>),
 }
 
 impl Debug for Msg {
@@ -216,6 +226,9 @@ impl Debug for Msg {
             Msg::Dispatch(..) => write!(f, "Dispatch"),
             Msg::PendingPaintMetric(..) => write!(f, "PendingPaintMetric"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
+            Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
+            Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
+            Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
         }
     }
 }
@@ -227,9 +240,6 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::GetClientWindow(..) => write!(f, "GetClientWindow"),
-            EmbedderMsg::GetScreenSize(..) => write!(f, "GetScreenSize"),
-            EmbedderMsg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
             EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
             EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
@@ -240,6 +250,11 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
             EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
+            EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
+            EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
+            EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
+            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
+            EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }
 }

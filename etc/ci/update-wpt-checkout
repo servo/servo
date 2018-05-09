@@ -41,7 +41,7 @@ function unsafe_pull_from_upstream() {
     fi
 
     # Update the manifest to include the new changes.
-    ./mach update-manifest --release || return 3
+    ./mach update-manifest || return 3
 
     # Amend the existing commit with the new changes from updating the manifest.
     git commit -a --amend --no-edit || return 4

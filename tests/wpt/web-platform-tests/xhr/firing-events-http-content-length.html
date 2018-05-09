@@ -4,35 +4,29 @@
     <title>ProgressEvent: firing events for HTTP with Content-Length</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#firing-events-using-the-progressevent-interface">
   </head>
   <body>
     <div id="log"></div>
     <script>
-      var test = async_test();
+      async_test(t => {
+        const xhr = new XMLHttpRequest();
+        let progressHappened = false;
 
-      test.step(function() {
-        var xhr = new XMLHttpRequest();
+        xhr.onprogress = t.step_func(pe => {
+          assert_equals(pe.type, "progress");
+          assert_greater_than_equal(pe.loaded, 0, "loaded");
+          assert_true(pe.lengthComputable, "lengthComputable");
+          assert_equals(pe.total, 1300, "total");
+          progressHappened = true;
+        });
 
-        xhr.onprogress = function(pe) {
-          test.step(function() {
-            if(pe.type == "progress") {
-              assert_greater_than_equal(pe.loaded, 0, "loaded");
-              assert_true(pe.lengthComputable, "lengthComputable");
-              assert_equals(pe.total, 1300, "total");
-            }
-          }, "Check lengthComputed, loaded, total when Content-Length is given.");
-        }
+        xhr.onloadend = t.step_func_done(() => {
+          assert_true(progressHappened);
+        });
 
-        // "loadstart", "error", "abort", "load" tests are out of scope.
-        // They SHOULD be tested in each spec that implement ProgressEvent.
-
-        xhr.onloadend = function(pe) {
-          test.done();
-        }
         xhr.open("GET", "resources/trickle.py?ms=0&count=100&specifylength=1", true);
         xhr.send(null);
-      })
+      });
     </script>
   </body>
 </html>

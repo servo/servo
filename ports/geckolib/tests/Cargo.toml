@@ -15,11 +15,11 @@ doctest = false
 atomic_refcell = "0.1"
 cssparser = "0.23.0"
 cstr = "0.1.2"
-env_logger = { version = "0.4", default-features = false }
+env_logger = { version = "0.5", default-features = false }
 euclid = "0.17"
 geckoservo = {path = "../../../ports/geckolib"}
 libc = "0.2"
-log = {version = "0.3.5", features = ["release_max_level_info"]}
+log = {version = "0.4", features = ["release_max_level_info"]}
 malloc_size_of = {path = "../../../components/malloc_size_of"}
 selectors = {path = "../../../components/selectors"}
 size_of_test = {path = "../../../components/size_of_test"}

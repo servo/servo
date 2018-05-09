@@ -55,9 +55,9 @@
     <text x="73" y="217" font-size="12" fill="black">'tref' to a string in another file</text>
     <!-- Patch code -->
     <!--
-	<text x="75" y="200" font-size="18" fill="green" >
-	Simple external referenced text.
-	</text>
+  <text x="75" y="200" font-size="18" fill="green" >
+  Simple external referenced text.
+  </text>
 -->
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">

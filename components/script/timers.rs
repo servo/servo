@@ -14,8 +14,9 @@ use dom::testbinding::TestBindingCallback;
 use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::Length;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, Heap};
+use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::HandleValue;
 use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest};
 use script_traits::{TimerSchedulerMsg, TimerSource};
@@ -240,7 +241,7 @@ impl OneshotTimers {
     }
 
     pub fn resume(&self) {
-        // Suspend is idempotent: do nothing if the timers are already suspended.
+        // Resume is idempotent: do nothing if the timers are already resumed.
         let additional_offset = match self.suspended_since.get() {
             Some(suspended_since) => precise_time_ms() - suspended_since,
             None => return warn!("Resuming an already resumed timer."),
@@ -500,7 +501,7 @@ impl JsTimerTask {
                     code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
-                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
+                let arguments = self.collect_heap_args(arguments);
                 let _ = function.Call_(this, arguments, Report);
             },
         };
@@ -515,5 +516,12 @@ impl JsTimerTask {
             timers.active_timers.borrow().contains_key(&self.handle) {
             timers.initialize_and_schedule(&this.global(), self);
         }
+    }
+
+    // Returning Handles directly from Heap values is inherently unsafe, but here it's
+    // always done via rooted JsTimers, which is safe.
+    #[allow(unsafe_code)]
+    fn collect_heap_args<'b>(&self, args: &'b [Heap<JSVal>]) -> Vec<HandleValue<'b>> {
+        args.iter().map(|arg| unsafe { arg.handle() }).collect()
     }
 }

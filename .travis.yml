@@ -7,6 +7,7 @@ matrix:
       script:
          - ./mach test-tidy --no-progress --all
          - ./mach test-tidy --no-progress --self-test
+         - python ./etc/memory_reports_over_time.py --test
          - bash etc/ci/check_no_panic.sh
          - bash etc/ci/manifest_changed.sh
       cache: false
@@ -21,11 +22,11 @@ matrix:
         - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
         - source ~/.profile
       script:
+         # see https://github.com/servo/servo/issues/20664
+         #- ./mach cargo check -p compositing --no-default-features
          - ./mach build -d --verbose
          - ./mach test-unit
          - ./mach clean
-         - ./mach build-geckolib
-         - ./mach test-stylo
          - bash etc/ci/lockfile_changed.sh
       cache:
         directories:

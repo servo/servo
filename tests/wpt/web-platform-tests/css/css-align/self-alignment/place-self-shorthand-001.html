@@ -9,7 +9,7 @@
 <div id="log"></div>
 <script>
     let classes = Object.assign({"Auto":"auto", "Normal":"normal", "Stretch":"stretch"}, selfPositionClasses,
-                                baselineClasses);
+                                baselineClasses, overflowClasses);
     for (var key in classes) {
         let value = classes[key];
         test(function() {

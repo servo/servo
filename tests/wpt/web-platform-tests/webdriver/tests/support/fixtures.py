@@ -4,6 +4,7 @@ import json
 import os
 import urlparse
 import re
+import sys
 
 import webdriver
 
@@ -213,7 +214,7 @@ def add_browser_capabilites(configuration):
 def url(server_config):
     def inner(path, protocol="http", query="", fragment=""):
         port = server_config["ports"][protocol][0]
-        host = "%s:%s" % (server_config["host"], port)
+        host = "%s:%s" % (server_config["browser_host"], port)
         return urlparse.urlunsplit((protocol, host, path, query, fragment))
 
     inner.__name__ = "url"

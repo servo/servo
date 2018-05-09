@@ -19,7 +19,7 @@ use std::rc::Rc;
 use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
-use style::computed_values::{font_stretch, font_variant_caps, font_weight};
+use style::computed_values::{font_stretch, font_style, font_variant_caps, font_weight};
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::SingleFontFamily;
 use text::Shaper;
@@ -47,18 +47,24 @@ static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 // resources needed by the graphics layer to draw glyphs.
 
 pub trait FontHandleMethods: Sized {
-    fn new_from_template(fctx: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
-                    -> Result<Self, ()>;
+    fn new_from_template(
+        fctx: &FontContextHandle,
+        template: Arc<FontTemplateData>,
+        pt_size: Option<Au>,
+    ) -> Result<Self, ()>;
+
     fn template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> String;
     fn face_name(&self) -> Option<String>;
-    fn is_italic(&self) -> bool;
+
+    fn style(&self) -> font_style::T;
     fn boldness(&self) -> font_weight::T;
     fn stretchiness(&self) -> font_stretch::T;
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
     fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
+
     /// Can this font do basic horizontal LTR shaping without Harfbuzz?
     fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;

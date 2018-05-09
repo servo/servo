@@ -164,3 +164,9 @@ nav.home {
         display: block !important;
     }
 }
+
+@import "gh-fork-ribbon";
+
+.github-fork-ribbon:before {
+    background-color: $grey-color-dark;
+}

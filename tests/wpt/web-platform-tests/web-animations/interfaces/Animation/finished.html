@@ -189,7 +189,7 @@ promise_test(t => {
   animation.currentTime = HALF_DUR;
   return animation.ready.then(() => {
     currentTimeBeforeShortening = animation.currentTime;
-    animation.effect.timing.duration = QUARTER_DUR;
+    animation.effect.updateTiming({ duration: QUARTER_DUR });
     // Below we use gotNextFrame to check that shortening of the animation
     // duration causes the finished promise to resolve, rather than it just
     // getting resolved on the next animation frame. This relies on the fact
@@ -206,7 +206,7 @@ promise_test(t => {
     assert_equals(animation.currentTime, currentTimeBeforeShortening,
                   'currentTime should be unchanged when duration shortened');
     const previousFinishedPromise = animation.finished;
-    animation.effect.timing.duration = 100 * MS_PER_SEC;
+    animation.effect.updateTiming({ duration: 100 * MS_PER_SEC });
     assert_not_equals(animation.finished, previousFinishedPromise,
                       'Finished promise should change after lengthening the ' +
                       'duration causes the animation to become active');

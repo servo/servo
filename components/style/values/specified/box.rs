@@ -10,8 +10,7 @@ use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use values::CustomIdent;
-use values::KeyframesName;
+use values::{CustomIdent, KeyframesName};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
@@ -19,16 +18,28 @@ use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Defines an element’s display type, which consists of
 /// the two basic qualities of how an element generates boxes
 /// <https://drafts.csswg.org/css-display/#propdef-display>
 pub enum Display {
-    Inline, Block, InlineBlock,
-    Table, InlineTable, TableRowGroup, TableHeaderGroup,
-    TableFooterGroup, TableRow, TableColumnGroup,
-    TableColumn, TableCell, TableCaption, ListItem, None,
+    Inline,
+    Block,
+    InlineBlock,
+    Table,
+    InlineTable,
+    TableRowGroup,
+    TableHeaderGroup,
+    TableFooterGroup,
+    TableRow,
+    TableColumnGroup,
+    TableColumn,
+    TableCell,
+    TableCaption,
+    ListItem,
+    None,
     #[css(aliases = "-webkit-flex")]
     Flex,
     #[css(aliases = "-webkit-inline-flex")]
@@ -106,9 +117,7 @@ impl Display {
         match *self {
             Display::Inline => true,
             #[cfg(feature = "gecko")]
-            Display::Contents |
-            Display::Ruby |
-            Display::RubyBaseContainer => true,
+            Display::Contents | Display::Ruby | Display::RubyBaseContainer => true,
             _ => false,
         }
     }
@@ -122,16 +131,14 @@ impl Display {
     ///
     /// FIXME(emilio): This is a pretty decent hack, we should try to
     /// remove it.
-    pub fn should_ignore_parsed_value(
-        _old_display: Self,
-        _new_display: Self,
-    ) -> bool {
-        #[cfg(feature = "gecko")] {
+    pub fn should_ignore_parsed_value(_old_display: Self, _new_display: Self) -> bool {
+        #[cfg(feature = "gecko")]
+        {
             match (_old_display, _new_display) {
                 (Display::WebkitBox, Display::MozBox) |
                 (Display::WebkitInlineBox, Display::MozInlineBox) => {
                     return true;
-                }
+                },
                 _ => {},
             }
         }
@@ -143,21 +150,19 @@ impl Display {
     /// ruby.
     #[cfg(feature = "gecko")]
     pub fn is_ruby_type(&self) -> bool {
-        matches!(*self,
-            Display::Ruby |
-            Display::RubyBase |
-            Display::RubyText |
-            Display::RubyBaseContainer |
-            Display::RubyTextContainer
+        matches!(
+            *self,
+            Display::Ruby | Display::RubyBase | Display::RubyText | Display::RubyBaseContainer |
+                Display::RubyTextContainer
         )
     }
 
     /// Returns whether this "display" value is a ruby level container.
     #[cfg(feature = "gecko")]
     pub fn is_ruby_level_container(&self) -> bool {
-        matches!(*self,
-            Display::RubyBaseContainer |
-            Display::RubyTextContainer
+        matches!(
+            *self,
+            Display::RubyBaseContainer | Display::RubyTextContainer
         )
     }
 
@@ -178,25 +183,22 @@ impl Display {
             // Special handling for contents and list-item on the root
             // element for Gecko.
             #[cfg(feature = "gecko")]
-            Display::Contents | Display::ListItem if _is_root_element => Display::Block,
+            Display::Contents | Display::ListItem if _is_root_element =>
+            {
+                Display::Block
+            },
 
             // These are not changed by blockification.
-            Display::None |
-            Display::Block |
-            Display::Flex |
-            Display::ListItem |
-            Display::Table => *self,
+            Display::None | Display::Block | Display::Flex | Display::ListItem | Display::Table => {
+                *self
+            },
 
             #[cfg(feature = "gecko")]
-            Display::Contents |
-            Display::FlowRoot |
-            Display::Grid |
-            Display::WebkitBox => *self,
+            Display::Contents | Display::FlowRoot | Display::Grid | Display::WebkitBox => *self,
 
             // Everything else becomes block.
             _ => Display::Block,
         }
-
     }
 
     /// Convert this display into an inline-outside display.
@@ -206,8 +208,7 @@ impl Display {
     #[cfg(feature = "gecko")]
     pub fn inlinify(&self) -> Self {
         match *self {
-            Display::Block |
-            Display::FlowRoot => Display::InlineBlock,
+            Display::Block | Display::FlowRoot => Display::InlineBlock,
             Display::Table => Display::InlineTable,
             Display::Flex => Display::InlineFlex,
             Display::Grid => Display::InlineGrid,
@@ -243,7 +244,9 @@ impl Parse for VerticalAlign {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes)) {
+        if let Ok(lop) =
+            input.try(|i| LengthOrPercentage::parse_quirky(context, i, AllowQuirks::Yes))
+        {
             return Ok(GenericVerticalAlign::Length(lop));
         }
 
@@ -272,8 +275,11 @@ impl Parse for AnimationIterationCount {
         context: &ParserContext,
         input: &mut ::cssparser::Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
-            return Ok(GenericAnimationIterationCount::Infinite)
+        if input
+            .try(|input| input.expect_ident_matching("infinite"))
+            .is_ok()
+        {
+            return Ok(GenericAnimationIterationCount::Infinite);
         }
 
         let number = Number::parse_non_negative(context, input)?;
@@ -290,7 +296,9 @@ impl AnimationIterationCount {
 }
 
 /// A value for the `animation-name` property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
+#[value_info(other_values = "none")]
 pub struct AnimationName(pub Option<KeyframesName>);
 
 impl AnimationName {
@@ -320,7 +328,7 @@ impl ToCss for AnimationName {
 impl Parse for AnimationName {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if let Ok(name) = input.try(|input| KeyframesName::parse(context, input)) {
             return Ok(AnimationName(Some(name)));
@@ -333,8 +341,8 @@ impl Parse for AnimationName {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -343,8 +351,8 @@ pub enum ScrollSnapType {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -353,14 +361,15 @@ pub enum OverscrollBehavior {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq)]
-#[derive(ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Provides a rendering hint to the user agent,
 /// stating what kinds of changes the author expects
 /// to perform on the element
@@ -386,30 +395,35 @@ impl Parse for WillChange {
     /// auto | <animateable-feature>#
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<WillChange, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+        if input
+            .try(|input| input.expect_ident_matching("auto"))
+            .is_ok()
+        {
             return Ok(WillChange::Auto);
         }
 
         let custom_idents = input.parse_comma_separated(|i| {
             let location = i.current_source_location();
-            CustomIdent::from_ident(location, i.expect_ident()?, &[
-                "will-change",
-                "none",
-                "all",
-                "auto",
-            ])
+            CustomIdent::from_ident(
+                location,
+                i.expect_ident()?,
+                &["will-change", "none", "all", "auto"],
+            )
         })?;
 
-        Ok(WillChange::AnimateableFeatures(custom_idents.into_boxed_slice()))
+        Ok(WillChange::AnimateableFeatures(
+            custom_idents.into_boxed_slice(),
+        ))
     }
 }
 
 bitflags! {
     #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-    #[derive(ToComputedValue)]
+    #[derive(SpecifiedValueInfo, ToComputedValue)]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
+    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
     pub struct TouchAction: u8 {
         /// `none` variant
         const TOUCH_ACTION_NONE = 1 << 0;
@@ -441,15 +455,14 @@ impl ToCss for TouchAction {
             TouchAction::TOUCH_ACTION_NONE => dest.write_str("none"),
             TouchAction::TOUCH_ACTION_AUTO => dest.write_str("auto"),
             TouchAction::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y) => {
+            _ if self.contains(
+                TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y,
+            ) =>
+            {
                 dest.write_str("pan-x pan-y")
             },
-            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_X) => {
-                dest.write_str("pan-x")
-            },
-            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_Y) => {
-                dest.write_str("pan-y")
-            },
+            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_X) => dest.write_str("pan-x"),
+            _ if self.contains(TouchAction::TOUCH_ACTION_PAN_Y) => dest.write_str("pan-y"),
             _ => panic!("invalid touch-action value"),
         }
     }
@@ -458,7 +471,7 @@ impl ToCss for TouchAction {
 impl Parse for TouchAction {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<TouchAction, ParseError<'i>> {
         try_match_ident_ignore_ascii_case! { input,
             "auto" => Ok(TouchAction::TOUCH_ACTION_AUTO),
@@ -509,7 +522,8 @@ pub fn assert_touch_action_matches() {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, ToComputedValue)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    #[value_info(other_values = "none,strict,layout,style,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
         /// `layout` variant, turns on layout containment
@@ -531,10 +545,10 @@ impl ToCss for Contain {
         W: Write,
     {
         if self.is_empty() {
-            return dest.write_str("none")
+            return dest.write_str("none");
         }
         if self.contains(Contain::STRICT) {
-            return dest.write_str("strict")
+            return dest.write_str("strict");
         }
 
         let mut has_any = false;
@@ -547,7 +561,7 @@ impl ToCss for Contain {
                     has_any = true;
                     dest.write_str($str)?;
                 }
-            }
+            };
         }
         maybe_write_value!(Contain::LAYOUT => "layout");
         maybe_write_value!(Contain::STYLE => "style");
@@ -562,7 +576,7 @@ impl Parse for Contain {
     /// none | strict | content | [ size || layout || style || paint ]
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Contain, ParseError<'i>> {
         let mut result = Contain::empty();
         while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
@@ -577,7 +591,9 @@ impl Parse for Contain {
 
             let flag = match flag {
                 Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
+                _ => {
+                    return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
+                },
             };
             result.insert(flag);
         }
@@ -596,11 +612,14 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 impl Parse for Perspective {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericPerspective::None);
         }
-        Ok(GenericPerspective::Length(NonNegativeLength::parse(context, input)?))
+        Ok(GenericPerspective::Length(NonNegativeLength::parse(
+            context,
+            input,
+        )?))
     }
 }

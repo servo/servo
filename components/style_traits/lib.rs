@@ -22,6 +22,7 @@ extern crate selectors;
 #[cfg(feature = "servo")] extern crate webrender_api;
 extern crate servo_arc;
 #[cfg(feature = "servo")] extern crate servo_atoms;
+#[cfg(feature = "servo")] extern crate servo_url;
 
 #[cfg(feature = "servo")] pub use webrender_api::DevicePixel;
 
@@ -73,11 +74,13 @@ pub enum CSSPixel {}
 //     / desktop_zoom => CSSPixel
 
 pub mod cursor;
+pub mod specified_value_info;
 #[macro_use]
 pub mod values;
 #[macro_use]
 pub mod viewport;
 
+pub use specified_value_info::{CssType, KeywordsCollectFn, SpecifiedValueInfo};
 pub use values::{Comma, CommaWithSpace, CssWriter, OneOrMoreSeparated, Separator, Space, ToCss};
 
 /// The error type for all CSS parsing routines.

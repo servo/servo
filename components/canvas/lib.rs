@@ -15,10 +15,12 @@ extern crate ipc_channel;
 #[macro_use] extern crate log;
 extern crate num_traits;
 extern crate offscreen_gl_context;
+extern crate serde_bytes;
 extern crate servo_config;
 extern crate webrender;
 extern crate webrender_api;
 
+pub mod canvas_data;
 pub mod canvas_paint_thread;
 pub mod gl_context;
 mod webgl_mode;

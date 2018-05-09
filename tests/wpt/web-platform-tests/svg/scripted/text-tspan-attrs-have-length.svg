@@ -1,0 +1,44 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#text-TSpanNotes"/>
+    <h:meta name="assert" content="x y dx dy and rotate attributes on text and tspan elements are lists that support length()"/>
+</metadata>
+  <text id="text" font-family="Verdana" font-size="55" fill="blue"
+  y="150 130 160" x="120 160 200 240" rotate="0 0 10, -10, 0">
+    My <tspan id="tspan" x="280 325" y="150 155 160 165 170" rotate="-30,0,30">socks</tspan>
+    are blue.
+  </text>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    test(function() {
+      /* Make sure that text.y is a list, (presumably
+       * SVGAnimatedLengthList) and that the list has a
+       * length() method and that it returns the right thing.
+       *
+       * This test is for a change in SVG for 2.0, since 1.x, to add
+       * a length property.
+       */
+      var text = document.getElementById('text');
+      assert_equals(text.y.baseVal.length, 3);
+      assert_equals(text.x.baseVal.length, 4);
+      assert_equals(text.rotate.baseVal.length, 5);
+
+      /* same for tspan */
+      var tspan = document.getElementById('tspan');
+      assert_equals(tspan.x.baseVal.length, 2);
+      assert_equals(tspan.y.baseVal.length, 5);
+      assert_equals(tspan.rotate.baseVal.length, 3);
+
+      /* Note, we only have to test that the length property
+       * is there (and interoperable) when there is a list given;
+       * in practice it's there with value 0 when the attributes are
+       * absent, but that's not required, the attribute could be implemented
+       * as a plain string in that case, or absent entirely, I think
+       * - Liam Quin 2018
+       */
+     });
+  ]]></script>
+</svg>

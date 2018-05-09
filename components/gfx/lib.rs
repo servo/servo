@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// For SIMD
-#![cfg_attr(feature = "unstable", feature(cfg_target_feature))]
-
 #![deny(unsafe_code)]
 
 extern crate app_units;
@@ -38,19 +35,16 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
+#[cfg(any(target_os = "linux", target_os = "android"))] extern crate libc;
 #[macro_use]
 extern crate log;
 #[cfg_attr(target_os = "windows", macro_use)]
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
-extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
 extern crate range;
 #[macro_use] extern crate serde;
 extern crate servo_arc;
-extern crate servo_geometry;
 extern crate servo_url;
 #[macro_use] extern crate servo_atoms;
 #[cfg(feature = "unstable")]
@@ -65,9 +59,6 @@ extern crate webrender_api;
 extern crate xi_unicode;
 #[cfg(target_os = "android")]
 extern crate xml5ever;
-
-#[deny(unsafe_code)]
-pub mod display_list;
 
 // Fonts
 #[macro_use] pub mod font;

@@ -51,6 +51,39 @@ def test_find_element(session, using, value):
     assert_success(response)
 
 
+@pytest.mark.parametrize("document,value", [
+    ("<a href=#>link text</a>", "link text"),
+    ("<a href=#>&nbsp;link text&nbsp;</a>", "link text"),
+    ("<a href=#>link<br>text</a>", "link\ntext"),
+    ("<a href=#>link&amp;text</a>", "link&text"),
+    ("<a href=#>LINK TEXT</a>", "LINK TEXT"),
+    ("<a href=# style='text-transform: uppercase'>link text</a>", "LINK TEXT"),
+])
+def test_find_element_link_text(session, document, value):
+    # Step 8 - 9
+    session.url = inline(document)
+
+    response = find_element(session, "link text", value)
+    assert_success(response)
+
+
+@pytest.mark.parametrize("document,value", [
+    ("<a href=#>partial link text</a>", "link"),
+    ("<a href=#>&nbsp;partial link text&nbsp;</a>", "link"),
+    ("<a href=#>partial link text</a>", "k t"),
+    ("<a href=#>partial link<br>text</a>", "k\nt"),
+    ("<a href=#>partial link&amp;text</a>", "k&t"),
+    ("<a href=#>PARTIAL LINK TEXT</a>", "LINK"),
+    ("<a href=# style='text-transform: uppercase'>partial link text</a>", "LINK"),
+])
+def test_find_element_partial_link_text(session, document, value):
+    # Step 8 - 9
+    session.url = inline(document)
+
+    response = find_element(session, "partial link text", value)
+    assert_success(response)
+
+
 @pytest.mark.parametrize("using,value", [("css selector", "#wontExist")])
 def test_no_element(session, using, value):
     # Step 8 - 9
@@ -65,7 +98,8 @@ def test_no_element(session, using, value):
                           ("tag name", "a"),
                           ("xpath", "//*[name()='a']")])
 def test_xhtml_namespace(session, using, value):
-    session.url = inline("""<a href="#" id="linkText">full link text</a>""", doctype="xhtml")
+    session.url = inline("""<a href="#" id="linkText">full link text</a>""",
+                         doctype="xhtml")
     expected = session.execute_script("return document.links[0]")
 
     response = find_element(session, using, value)

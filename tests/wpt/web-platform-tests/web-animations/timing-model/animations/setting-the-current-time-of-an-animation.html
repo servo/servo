@@ -11,6 +11,39 @@
 <script>
 'use strict';
 
+test(t => {
+  const anim = new Animation();
+  assert_equals(anim.playState, 'idle');
+  assert_equals(anim.currentTime, null);
+
+  // This should not throw because the currentTime is already null.
+  anim.currentTime = null;
+}, 'Setting the current time of a pending animation to unresolved does not'
+   + ' throw a TypeError');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+
+  assert_greater_than_equal(anim.currentTime, 0);
+  assert_throws({ name: 'TypeError' }, () => {
+    anim.currentTime = null;
+  });
+}, 'Setting the current time of a playing animation to unresolved throws a'
+   + ' TypeError');
+
+promise_test(async t => {
+  const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await anim.ready;
+  anim.pause();
+
+  assert_greater_than_equal(anim.currentTime, 0);
+  assert_throws({ name: 'TypeError' }, () => {
+    anim.currentTime = null;
+  });
+}, 'Setting the current time of a paused animation to unresolved throws a'
+   + ' TypeError');
+
 promise_test(async t => {
   const anim = createDiv(t).animate(null, 100 * MS_PER_SEC);
   await anim.ready;

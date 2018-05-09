@@ -42,79 +42,79 @@
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
 
-		<defs>
-			<script type="application/ecmascript">
-				function runtest()
-				{
-					try {
-						var r1 = document.getElementById("r1");
-						var r2 = document.getElementById("r2");
-						var r3 = document.getElementById("r3");
-						var i0 = r1.requiredFeatures.getItem(0);
-						var i1 = r1.requiredFeatures.getItem(1);
-						
-						if(i0 != "http://www.w3.org/TR/SVG11/feature#Shape")
-						{
-							r1.removeAttribute("requiredFeatures");
-							return;
-						}
-						if(i1 != "this.is.a.bogus.feature.string")
-						{
-							r1.removeAttribute("requiredFeatures");
-							return;
-						}
-						if(r1.requiredFeatures.numberOfItems != 2)
-						{
-							r1.removeAttribute("requiredFeatures");
-							return;
-						}
-						r2.requiredFeatures.appendItem(i1);
-						if(r1.requiredFeatures.numberOfItems != 2)
-						{
-							r1.removeAttribute("requiredFeatures");
-							return;
-						}
-						if(r2.requiredFeatures.numberOfItems != 1)
-						{
-							r1.removeAttribute("requiredFeatures");
-							return;
-						}
-						r3.requiredFeatures.insertItemBefore(i0,0);
-						if(r3.requiredFeatures.numberOfItems != 2)
-						{
-							r3.setAttribute("fill", "red");
-							return;
-						}
-						if(r1.requiredFeatures.numberOfItems != 2)
-						{
-							r1.removeAttribute("requiredFeatures");
-							return;
-						}
-					}
-					catch(e)
-					{
-						var f = document.getElementById("fail");
-						f.setAttribute("fill", "red");
-					}				
-				}
-			</script>
-		</defs>
-		
-		<text x="50%" y="70" text-anchor="middle">SVGStringList DOM</text>
-		
-		<!-- background images -->
-		<g>
-			<rect width="100" height="100" fill="lime" transform="translate(80 100)"/>
-			<rect width="100" height="100" fill="lime" transform="translate(190 100)"/>
-			<rect width="100" height="100" fill="red" transform="translate(300 100)"/>
-		</g>
-		
-		<!-- tests -->
-		<rect id="r1" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Shape this.is.a.bogus.feature.string" width="100" height="100" fill="red" transform="translate(100 100)"/>
-		<rect id="r2" width="100" height="100" fill="red" transform="translate(190 100)"/>
-		<rect id="r3" width="100" height="100" fill="lime" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Shape" transform="translate(300 100)"/>
-		
-		<rect id="fail" width="100%" height="100%" fill="none"/>
+    <defs>
+      <script type="application/ecmascript">
+        function runtest()
+        {
+          try {
+            var r1 = document.getElementById("r1");
+            var r2 = document.getElementById("r2");
+            var r3 = document.getElementById("r3");
+            var i0 = r1.requiredFeatures.getItem(0);
+            var i1 = r1.requiredFeatures.getItem(1);
+
+            if(i0 != "http://www.w3.org/TR/SVG11/feature#Shape")
+            {
+              r1.removeAttribute("requiredFeatures");
+              return;
+            }
+            if(i1 != "this.is.a.bogus.feature.string")
+            {
+              r1.removeAttribute("requiredFeatures");
+              return;
+            }
+            if(r1.requiredFeatures.numberOfItems != 2)
+            {
+              r1.removeAttribute("requiredFeatures");
+              return;
+            }
+            r2.requiredFeatures.appendItem(i1);
+            if(r1.requiredFeatures.numberOfItems != 2)
+            {
+              r1.removeAttribute("requiredFeatures");
+              return;
+            }
+            if(r2.requiredFeatures.numberOfItems != 1)
+            {
+              r1.removeAttribute("requiredFeatures");
+              return;
+            }
+            r3.requiredFeatures.insertItemBefore(i0,0);
+            if(r3.requiredFeatures.numberOfItems != 2)
+            {
+              r3.setAttribute("fill", "red");
+              return;
+            }
+            if(r1.requiredFeatures.numberOfItems != 2)
+            {
+              r1.removeAttribute("requiredFeatures");
+              return;
+            }
+          }
+          catch(e)
+          {
+            var f = document.getElementById("fail");
+            f.setAttribute("fill", "red");
+          }
+        }
+      </script>
+    </defs>
+
+    <text x="50%" y="70" text-anchor="middle">SVGStringList DOM</text>
+
+    <!-- background images -->
+    <g>
+      <rect width="100" height="100" fill="lime" transform="translate(80 100)"/>
+      <rect width="100" height="100" fill="lime" transform="translate(190 100)"/>
+      <rect width="100" height="100" fill="red" transform="translate(300 100)"/>
+    </g>
+
+    <!-- tests -->
+    <rect id="r1" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Shape this.is.a.bogus.feature.string" width="100" height="100" fill="red" transform="translate(100 100)"/>
+    <rect id="r2" width="100" height="100" fill="red" transform="translate(190 100)"/>
+    <rect id="r3" width="100" height="100" fill="lime" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Shape" transform="translate(300 100)"/>
+
+    <rect id="fail" width="100%" height="100%" fill="none"/>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
     <text id="revision" x="10" y="340" stroke="none"

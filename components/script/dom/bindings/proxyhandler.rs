@@ -11,15 +11,22 @@ use dom::bindings::utils::delete_property_by_id;
 use js::glue::{GetProxyHandler, GetProxyHandlerFamily, SetProxyExtra};
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
-use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor};
-use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult};
-use js::jsapi::{JSErrNum, JS_AlreadyHasOwnPropertyById, JS_StrictPropertyStub};
-use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto, SetDOMProxyInformation};
+use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor, JSPROP_GETTER};
+use js::jsapi::{JSErrNum, JS_StrictPropertyStub, SetDOMProxyInformation};
 use js::jsapi::GetObjectProto;
 use js::jsapi::GetStaticPrototype;
+use js::jsapi::Handle as RawHandle;
+use js::jsapi::HandleId as RawHandleId;
+use js::jsapi::HandleObject as RawHandleObject;
+use js::jsapi::JS_DefinePropertyById;
 use js::jsapi::JS_GetPropertyDescriptorById;
-use js::jsapi::MutableHandleObject;
+use js::jsapi::MutableHandle as RawMutableHandle;
+use js::jsapi::MutableHandleObject as RawMutableHandleObject;
+use js::jsapi::ObjectOpResult;
 use js::jsval::ObjectValue;
+use js::rust::{Handle, HandleObject, MutableHandle, MutableHandleObject};
+use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
+use js::rust::wrappers::JS_NewObjectWithGivenProto;
 use std::ptr;
 
 
@@ -27,8 +34,8 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 
 /// Determine if this id shadows any existing properties for this proxy.
 pub unsafe extern "C" fn shadow_check_callback(cx: *mut JSContext,
-                                               object: HandleObject,
-                                               id: HandleId)
+                                               object: RawHandleObject,
+                                               id: RawHandleId)
                                                -> DOMProxyShadowsResult {
     // TODO: support OverrideBuiltins when #12978 is fixed.
 
@@ -36,7 +43,9 @@ pub unsafe extern "C" fn shadow_check_callback(cx: *mut JSContext,
     get_expando_object(object, expando.handle_mut());
     if !expando.get().is_null() {
         let mut has_own = false;
-        if !JS_AlreadyHasOwnPropertyById(cx, expando.handle(), id, &mut has_own) {
+        let raw_id = Handle::from_raw(id);
+
+        if !JS_AlreadyHasOwnPropertyById(cx, expando.handle(), raw_id, &mut has_own) {
             return DOMProxyShadowsResult::ShadowCheckFailed;
         }
 
@@ -61,9 +70,9 @@ pub unsafe fn init() {
 /// Otherwise, walk along the prototype chain to find a property with that
 /// name.
 pub unsafe extern "C" fn get_property_descriptor(cx: *mut JSContext,
-                                                 proxy: HandleObject,
-                                                 id: HandleId,
-                                                 desc: MutableHandle<PropertyDescriptor>)
+                                                 proxy: RawHandleObject,
+                                                 id: RawHandleId,
+                                                 desc: RawMutableHandle<PropertyDescriptor>)
                                                  -> bool {
     let handler = GetProxyHandler(proxy.get());
     if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) {
@@ -74,20 +83,20 @@ pub unsafe extern "C" fn get_property_descriptor(cx: *mut JSContext,
     }
 
     rooted!(in(cx) let mut proto = ptr::null_mut::<JSObject>());
-    if !GetObjectProto(cx, proxy, proto.handle_mut()) {
+    if !GetObjectProto(cx, proxy, proto.handle_mut().into()) {
         // FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
         desc.get().obj = ptr::null_mut();
         return true;
     }
 
-    JS_GetPropertyDescriptorById(cx, proto.handle(), id, desc)
+    JS_GetPropertyDescriptorById(cx, proto.handle().into(), id, desc)
 }
 
 /// Defines an expando on the given `proxy`.
 pub unsafe extern "C" fn define_property(cx: *mut JSContext,
-                                         proxy: HandleObject,
-                                         id: HandleId,
-                                         desc: Handle<PropertyDescriptor>,
+                                         proxy: RawHandleObject,
+                                         id: RawHandleId,
+                                         desc: RawHandle<PropertyDescriptor>,
                                          result: *mut ObjectOpResult)
                                          -> bool {
     if (desc.get().attrs & JSPROP_GETTER) != 0 && desc.get().setter == Some(JS_StrictPropertyStub) {
@@ -97,13 +106,13 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
 
     rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
     ensure_expando_object(cx, proxy, expando.handle_mut());
-    JS_DefinePropertyById(cx, expando.handle(), id, desc, result)
+    JS_DefinePropertyById(cx, expando.handle().into(), id, desc, result)
 }
 
 /// Deletes an expando off the given `proxy`.
 pub unsafe extern "C" fn delete(cx: *mut JSContext,
-                                proxy: HandleObject,
-                                id: HandleId,
+                                proxy: RawHandleObject,
+                                id: RawHandleId,
                                 bp: *mut ObjectOpResult)
                                 -> bool {
     rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
@@ -113,12 +122,12 @@ pub unsafe extern "C" fn delete(cx: *mut JSContext,
         return true;
     }
 
-    delete_property_by_id(cx, expando.handle(), id, bp)
+    delete_property_by_id(cx, expando.handle(), Handle::from_raw(id), bp)
 }
 
 /// Controls whether the Extensible bit can be changed
 pub unsafe extern "C" fn prevent_extensions(_cx: *mut JSContext,
-                                            _proxy: HandleObject,
+                                            _proxy: RawHandleObject,
                                             result: *mut ObjectOpResult)
                                             -> bool {
     (*result).code_ = JSErrNum::JSMSG_CANT_PREVENT_EXTENSIONS as ::libc::uintptr_t;
@@ -127,7 +136,7 @@ pub unsafe extern "C" fn prevent_extensions(_cx: *mut JSContext,
 
 /// Reports whether the object is Extensible
 pub unsafe extern "C" fn is_extensible(_cx: *mut JSContext,
-                                       _proxy: HandleObject,
+                                       _proxy: RawHandleObject,
                                        succeeded: *mut bool)
                                        -> bool {
     *succeeded = true;
@@ -144,9 +153,9 @@ pub unsafe extern "C" fn is_extensible(_cx: *mut JSContext,
 /// `[[GetPrototypeOf]]` behavior. An alternative implementation will be
 /// necessary for the Location object.
 pub unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
-                                                   proxy: HandleObject,
+                                                   proxy: RawHandleObject,
                                                    is_ordinary: *mut bool,
-                                                   proto: MutableHandleObject)
+                                                   proto: RawMutableHandleObject)
                                                    -> bool {
     *is_ordinary = true;
     proto.set(GetStaticPrototype(proxy.get()));
@@ -154,7 +163,7 @@ pub unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
 }
 
 /// Get the expando object, or null if there is none.
-pub unsafe fn get_expando_object(obj: HandleObject, expando: MutableHandleObject) {
+pub unsafe fn get_expando_object(obj: RawHandleObject, mut expando: MutableHandleObject) {
     assert!(is_dom_proxy(obj.get()));
     let val = GetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO);
     expando.set(if val.is_undefined() {
@@ -166,7 +175,7 @@ pub unsafe fn get_expando_object(obj: HandleObject, expando: MutableHandleObject
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub unsafe fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject, expando: MutableHandleObject) {
+pub unsafe fn ensure_expando_object(cx: *mut JSContext, obj: RawHandleObject, mut expando: MutableHandleObject) {
     assert!(is_dom_proxy(obj.get()));
     get_expando_object(obj, expando);
     if expando.is_null() {

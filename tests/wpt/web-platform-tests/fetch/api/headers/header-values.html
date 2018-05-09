@@ -15,7 +15,7 @@
     assert_throws("SyntaxError", () => xhr.setRequestHeader("value-test", val))
   }, "XMLHttpRequest with value " + encodeURI(val) + " needs to throw")
 
-  promise_test(t => promise_rejects(t, new TypeError(), fetch("about:blank", { headers: {"value-test": val} })), "fetch() with value " + encodeURI(val) + " needs to throw")
+  promise_test(t => promise_rejects(t, new TypeError(), fetch("/", { headers: {"value-test": val} })), "fetch() with value " + encodeURI(val) + " needs to throw")
 })
 
 // Valid values

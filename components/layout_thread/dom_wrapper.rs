@@ -151,10 +151,10 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Impossible { }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct ShadowRoot<'lr>(Impossible, PhantomData<&'lr ()>);
 
 impl<'lr> TShadowRoot for ShadowRoot<'lr> {
@@ -395,6 +395,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     fn is_html_element(&self) -> bool {
         unsafe { self.element.is_html_element() }
+    }
+
+    fn is_mathml_element(&self) -> bool {
+        *self.element.namespace() == ns!(mathml)
+    }
+
+    fn is_svg_element(&self) -> bool {
+        *self.element.namespace() == ns!(svg)
     }
 
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
@@ -657,6 +665,14 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         unsafe {
             self.element.upcast().parent_node_ref().and_then(as_element)
         }
+    }
+
+    fn parent_node_is_shadow_root(&self) -> bool {
+        false
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
+        None
     }
 
     fn first_child_element(&self) -> Option<ServoLayoutElement<'le>> {
@@ -1196,6 +1212,14 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
 
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
+        None
+    }
+
+    fn parent_node_is_shadow_root(&self) -> bool {
+        false
+    }
+
+    fn containing_shadow_host(&self) -> Option<Self> {
         None
     }
 

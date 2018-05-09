@@ -21,14 +21,14 @@ fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 html5ever = "0.22"
-ipc-channel = "0.9"
+ipc-channel = "0.10"
 libc = "0.2"
-log = "0.3.5"
+log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.4"
-parking_lot = "0.4"
+parking_lot = "0.5"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "1"
@@ -46,7 +46,7 @@ smallvec = "0.6"
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits"}
 unicode-bidi = {version = "0.3", features = ["with_serde"]}
-unicode-script = {version = "0.1", features = ["harfbuzz"]}
+unicode-script = {version = "0.2", features = ["harfbuzz"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 xi-unicode = "0.1.0"
 

@@ -1,12 +1,11 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSSKeywordValue</title>
-<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#csskeywordvalue">
-<meta name="assert" content="Test CSSKeywordValue constructor and attributes" />
+<title>CSSKeywordValue Constructor</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-csskeywordvalue-csskeywordvalue">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<div id="log">
+<div id="log"></div>
 <script>
 'use strict';
 
@@ -18,23 +17,13 @@ const gTestArguments = [
   { keyword: '☺', description: 'a unicode string' },
 ];
 
-for (const {keyword, description} of gTestArguments) {
+for (const args of gTestArguments) {
   test(() => {
-    const result = new CSSKeywordValue(keyword);
-
-    assert_not_equals(result, null,
-        'A CSSKeywordValue should be created');
-    assert_equals(result.value, keyword,
-        'Value attribute should be same as passed in the constructor');
-  }, 'CSSKeywordValue can be constructed from ' + description);
-
-  test(() => {
-    let result = new CSSKeywordValue('auto');
-    result.value = keyword;
-
-    assert_equals(result.value, keyword,
-        'Value attribute should be same as passed in the setter');
-  }, 'CSSKeywordValue.value can be updated to ' + description);
+    const result = new CSSKeywordValue(args.keyword);
+    assert_not_equals(result, null, 'a CSSKeywordValue is created');
+    assert_equals(result.value, args.keyword,
+                  'value is same as given by constructor');
+  }, `CSSKeywordValue can be constructed from ${args.description}`);
 }
 
 </script>

@@ -75,9 +75,12 @@ fn derive_variant_arm(
     let bindings = variant.bindings();
     let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
     let ast = variant.ast();
-    let variant_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&ast);
+    let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&ast);
     let separator = if variant_attrs.comma { ", " } else { " " };
 
+    if variant_attrs.skip {
+        return quote!(Ok(()));
+    }
     if variant_attrs.dimension {
         assert_eq!(bindings.len(), 1);
         assert!(
@@ -172,7 +175,7 @@ fn derive_single_field_expr(
                 {
                     let mut iter = #field.iter().peekable();
                     if iter.peek().is_none() {
-                        writer.item(&::style_traits::values::Verbatim(#if_empty))?;
+                        writer.raw_item(#if_empty)?;
                     } else {
                         for item in iter {
                             writer.item(&item)?;
@@ -184,6 +187,15 @@ fn derive_single_field_expr(
         quote! {
             for item in #field.iter() {
                 writer.item(&item)?;
+            }
+        }
+    } else if attrs.represents_keyword {
+        let ident =
+            field.ast().ident.as_ref().expect("Unnamed field with represents_keyword?");
+        let ident = cg::to_css_identifier(ident.as_ref());
+        quote! {
+            if *#field {
+                writer.raw_item(#ident)?;
             }
         }
     } else {
@@ -207,12 +219,12 @@ fn derive_single_field_expr(
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromDeriveInput)]
-struct CssInputAttrs {
-    derive_debug: bool,
+pub struct CssInputAttrs {
+    pub derive_debug: bool,
     // Here because structs variants are also their whole type definition.
-    function: Option<Override<String>>,
+    pub function: Option<Override<String>>,
     // Here because structs variants are also their whole type definition.
-    comma: bool,
+    pub comma: bool,
 }
 
 #[darling(attributes(css), default)]
@@ -223,14 +235,16 @@ pub struct CssVariantAttrs {
     pub dimension: bool,
     pub keyword: Option<String>,
     pub aliases: Option<String>,
+    pub skip: bool,
 }
 
 #[darling(attributes(css), default)]
 #[derive(Default, FromField)]
-struct CssFieldAttrs {
-    if_empty: Option<String>,
-    field_bound: bool,
-    iterable: bool,
-    skip: bool,
-    skip_if: Option<Path>,
+pub struct CssFieldAttrs {
+    pub if_empty: Option<String>,
+    pub field_bound: bool,
+    pub iterable: bool,
+    pub skip: bool,
+    pub represents_keyword: bool,
+    pub skip_if: Option<Path>,
 }

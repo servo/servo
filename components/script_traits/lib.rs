@@ -41,15 +41,15 @@ pub mod webdriver_msg;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
-use euclid::{Size2D, Length, Point2D, Vector2D, Rect, TypedScale, TypedSize2D};
+use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
 use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, Key, KeyModifiers, KeyState, PipelineId};
+use msg::constellation_msg::{PipelineNamespaceId, TraversalDirection, TopLevelBrowsingContextId};
 use net_traits::{FetchResponseMsg, ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image::base::PixelFormat;
@@ -69,7 +69,7 @@ use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
-use webrender_api::{ExternalScrollId, DevicePixel, DocumentId, ImageKey};
+use webrender_api::{ExternalScrollId, DevicePixel, DeviceUintSize, DocumentId, ImageKey};
 use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
@@ -262,6 +262,8 @@ pub enum ConstellationControlMsg {
     Resize(PipelineId, WindowSizeData, WindowSizeType),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
+    /// Notifies the script that the document associated with this pipeline should 'unload'.
+    UnloadDocument(PipelineId),
     /// Notifies the script that a pipeline should be closed.
     ExitPipeline(PipelineId, DiscardBrowsingContext),
     /// Notifies the script that the whole thread should be closed.
@@ -289,6 +291,10 @@ pub enum ConstellationControlMsg {
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
     UpdatePipelineId(PipelineId, BrowsingContextId, PipelineId, UpdatePipelineIdReason),
+    /// Updates the history state and url of a given pipeline.
+    UpdateHistoryState(PipelineId, Option<HistoryStateId>, ServoUrl),
+    /// Removes inaccesible history states.
+    RemoveHistoryStates(PipelineId, Vec<HistoryStateId>),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, BrowsingContextId is for the nested browsing context
     FocusIFrame(PipelineId, BrowsingContextId),
@@ -331,6 +337,7 @@ impl fmt::Debug for ConstellationControlMsg {
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",
+            UnloadDocument(..) => "UnloadDocument",
             ExitPipeline(..) => "ExitPipeline",
             ExitScriptThread => "ExitScriptThread",
             SendEvent(..) => "SendEvent",
@@ -343,6 +350,8 @@ impl fmt::Debug for ConstellationControlMsg {
             Navigate(..) => "Navigate",
             PostMessage(..) => "PostMessage",
             UpdatePipelineId(..) => "UpdatePipelineId",
+            UpdateHistoryState(..) => "UpdateHistoryState",
+            RemoveHistoryStates(..) => "RemoveHistoryStates",
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
@@ -650,7 +659,7 @@ pub enum WebDriverCommandMsg {
     /// Act as if keys were pressed in the browsing context with the given ID.
     SendKeys(BrowsingContextId, Vec<(Key, KeyModifiers, KeyState)>),
     /// Set the window size.
-    SetWindowSize(TopLevelBrowsingContextId, Size2D<u32>, IpcSender<WindowSizeData>),
+    SetWindowSize(TopLevelBrowsingContextId, DeviceUintSize, IpcSender<WindowSizeData>),
     /// Take a screenshot of the window.
     TakeScreenshot(TopLevelBrowsingContextId, IpcSender<Option<Image>>),
 }

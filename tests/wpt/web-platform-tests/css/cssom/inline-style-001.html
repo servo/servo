@@ -16,15 +16,14 @@
  <script type="text/javascript">
     test(function() {
         var test = document.getElementById("test");
-        assert_own_property(test, "style");
-        assert_readonly(test, "style");
+        assert_idl_attribute(test, "style");
         declaration = test.style;
     }, "CSSStyleDeclaration_accessible", {
         assert: "Can access CSSStyleDeclaration through style property"
     });
 
     test(function() {
-        assert_regexp_match(declaration.cssText, /margin-left: 5px;\s*/);
+        assert_equals(declaration.cssText, "margin-left: 5px;");
         assert_equals(declaration.getPropertyValue("margin-left"), "5px");
     }, "read", {
         assert: "initial property values are correct"
@@ -32,7 +31,7 @@
 
     test(function() {
         declaration.cssText = "margin-left: 10px; padding-left: 10px;";
-        assert_regexp_match(declaration.cssText, /margin-left: 10px;\s+padding-left: 10px;\s+/);
+        assert_equals(declaration.cssText, "margin-left: 10px; padding-left: 10px;");
         assert_equals(declaration.length, 2);
         assert_equals(declaration.item(0), "margin-left");
         assert_equals(declaration.item(1), "padding-left");

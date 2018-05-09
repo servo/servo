@@ -5,17 +5,19 @@
 //! Generic types for font stuff.
 
 use app_units::Au;
-use byteorder::{ReadBytesExt, BigEndian};
+use byteorder::{BigEndian, ReadBytesExt};
 use cssparser::Parser;
 use num_traits::One;
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use std::io::Cursor;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError};
+use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct FeatureTagValue<Integer> {
     /// A four-character tag, packed into a u32 (one byte per character).
     pub tag: FontTag,
@@ -45,7 +47,8 @@ where
 /// Variation setting for a single feature, see:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
-#[derive(Animate, Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub struct VariationValue<Number> {
     /// A four-character tag, packed into a u32 (one byte per character).
     #[animation(constant)]
@@ -69,7 +72,8 @@ where
 
 /// A value both for font-variation-settings and font-feature-settings.
 #[css(comma)]
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);
 
 impl<T> FontSettings<T> {
@@ -92,7 +96,9 @@ impl<T: Parse> Parse for FontSettings<T> {
         }
 
         Ok(FontSettings(
-            input.parse_comma_separated(|i| T::parse(context, i))?.into_boxed_slice()
+            input
+                .parse_comma_separated(|i| T::parse(context, i))?
+                .into_boxed_slice(),
         ))
     }
 }
@@ -103,7 +109,8 @@ impl<T: Parse> Parse for FontSettings<T> {
 ///   https://drafts.csswg.org/css-fonts-4/#font-variation-settings-def
 ///   https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-feature-settings
 ///
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct FontTag(pub u32);
 
 impl ToCss for FontTag {
@@ -130,7 +137,7 @@ impl Parse for FontTag {
 
         // allowed strings of length 4 containing chars: <U+20, U+7E>
         if tag.len() != 4 || tag.as_bytes().iter().any(|c| *c < b' ' || *c > b'~') {
-            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
         let mut raw = Cursor::new(tag.as_bytes());
@@ -138,8 +145,8 @@ impl Parse for FontTag {
     }
 }
 
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToAnimatedZero, ToCss)]
 /// Additional information for keyword-derived font sizes.
 pub struct KeywordInfo<Length> {
     /// The keyword used
@@ -175,20 +182,30 @@ where
     }
 }
 
+impl<L> SpecifiedValueInfo for KeywordInfo<L> {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        <KeywordSize as SpecifiedValueInfo>::collect_completion_keywords(f);
+    }
+}
+
 /// CSS font keywords
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         Parse, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero,
+         ToCss)]
 #[allow(missing_docs)]
 pub enum KeywordSize {
+    #[css(keyword = "xx-small")]
     XXSmall,
     XSmall,
     Small,
     Medium,
     Large,
     XLarge,
+    #[css(keyword = "xx-large")]
     XXLarge,
     // This is not a real font keyword and will not parse
     // HTML font-size 7 corresponds to this value
+    #[css(skip)]
     XXXLarge,
 }
 
@@ -206,26 +223,18 @@ impl Default for KeywordSize {
     }
 }
 
-impl ToCss for KeywordSize {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str(match *self {
-            KeywordSize::XXSmall => "xx-small",
-            KeywordSize::XSmall => "x-small",
-            KeywordSize::Small => "small",
-            KeywordSize::Medium => "medium",
-            KeywordSize::Large => "large",
-            KeywordSize::XLarge => "x-large",
-            KeywordSize::XXLarge => "xx-large",
-            KeywordSize::XXXLarge => {
-                debug_assert!(
-                    false,
-                    "We should never serialize specified values set via HTML presentation attributes"
-                );
-                "-servo-xxx-large"
-            },
-        })
-    }
+/// A generic value for the `font-style` property.
+///
+/// https://drafts.csswg.org/css-fonts-4/#font-style-prop
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero)]
+pub enum FontStyle<Angle> {
+    #[animation(error)]
+    Normal,
+    #[animation(error)]
+    Italic,
+    #[value_info(starts_with_keyword)]
+    Oblique(Angle),
 }

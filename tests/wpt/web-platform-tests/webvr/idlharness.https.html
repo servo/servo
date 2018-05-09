@@ -203,10 +203,6 @@ partial interface Window {
   attribute EventHandler onvrdisplaypresentchange;
 };
 
-partial interface HTMLIFrameElement {
-  attribute boolean allowvr;
-};
-
 partial interface Gamepad {
   readonly attribute unsigned long displayId;
 };
@@ -229,6 +225,12 @@ partial interface Gamepad {
         idl_array.add_untested_idls("interface EventTarget {};");
         idl_array.add_untested_idls("interface HTMLIFrameElement {};");
         idl_array.add_untested_idls("interface Gamepad {};");
+
+        idl_array.add_untested_idls(`dictionary EventInit {
+          boolean bubbles = false;
+          boolean cancelable = false;
+          boolean composed = false;
+        };`);
 
         idl_array.add_idls(document.getElementById("webvr_idl").textContent);
 

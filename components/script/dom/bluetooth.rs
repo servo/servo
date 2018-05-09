@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
     BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
-use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
+use dom::bindings::codegen::UnionTypes::{ArrayBufferViewOrArrayBuffer, StringOrUnsignedLong};
 use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -34,6 +34,7 @@ use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
+use profile_traits::ipc as ProfiledIpc;
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -441,12 +442,20 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdatafilterinit-canonicalizing
 fn canonicalize_bluetooth_data_filter_init(bdfi: &BluetoothDataFilterInit) -> Fallible<(Vec<u8>, Vec<u8>)> {
     // Step 1.
-    let data_prefix = bdfi.dataPrefix.clone().unwrap_or(vec![]);
+    let data_prefix = match bdfi.dataPrefix {
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref avb)) => avb.to_vec(),
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref ab)) => ab.to_vec(),
+        None => vec![]
+    };
 
     // Step 2.
     // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
     // Masking dataPrefix with this, leaves dataPrefix untouched.
-    let mask = bdfi.mask.clone().unwrap_or(vec![0xFF; data_prefix.len()]);
+    let mask = match bdfi.mask {
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref avb)) => avb.to_vec(),
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref ab)) => ab.to_vec(),
+        None => vec![0xFF; data_prefix.len()]
+    };
 
     // Step 3.
     if mask.len() != data_prefix.len() {
@@ -613,7 +622,7 @@ impl PermissionAlgorithm for Bluetooth {
                 // Step 6.2.2.
                 // Instead of creating an internal slot we send an ipc message to the Bluetooth thread
                 // to check if one of the filters matches.
-                let (sender, receiver) = ipc::channel().unwrap();
+                let (sender, receiver) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
                 status.get_bluetooth_thread()
                       .send(BluetoothRequest::MatchesFilter(device_id.clone(),
                                                             BluetoothScanfilterSequence::new(scan_filters),

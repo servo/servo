@@ -63,7 +63,8 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, NodeFlags, LayoutNodeHelpers};
+use dom::node::{self, CloneChildrenFlag, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, NodeFlags, LayoutNodeHelpers};
 use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
@@ -93,7 +94,7 @@ use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -106,9 +107,10 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
+use profile_traits::ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
-use script_layout_interface::message::{Msg, NodesFromPointQueryType, ReflowGoal};
+use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, ScriptThread};
 use script_traits::{AnimationState, DocumentActivity, MouseButton, MouseEventType};
@@ -132,9 +134,9 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuard};
-use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
+use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
-use style::stylesheets::{Stylesheet, StylesheetContents, Origin, OriginSet};
+use style::stylesheets::{CssRule, Stylesheet, Origin, OriginSet};
 use task_source::TaskSource;
 use time;
 use timers::OneshotTimerCallback;
@@ -215,16 +217,24 @@ impl PartialEq for StyleSheetInDocument {
 }
 
 impl ::style::stylesheets::StylesheetInDocument for StyleSheetInDocument {
-    fn contents(&self, guard: &SharedRwLockReadGuard) -> &StylesheetContents {
-        self.sheet.contents(guard)
+    fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin {
+        self.sheet.origin(guard)
+    }
+
+    fn quirks_mode(&self, guard: &SharedRwLockReadGuard) -> QuirksMode {
+        self.sheet.quirks_mode(guard)
+    }
+
+    fn enabled(&self) -> bool {
+        self.sheet.enabled()
     }
 
     fn media<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> Option<&'a MediaList> {
         self.sheet.media(guard)
     }
 
-    fn enabled(&self) -> bool {
-        self.sheet.enabled()
+    fn rules<'a, 'b: 'a>(&'a self, guard: &'b SharedRwLockReadGuard) -> &'a [CssRule] {
+        self.sheet.rules(guard)
     }
 }
 
@@ -339,6 +349,8 @@ pub struct Document {
     last_click_info: DomRefCell<Option<(Instant, Point2D<f32>)>>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
+    ignore_opens_during_unload_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
     /// A rAF request is considered spurious if nothing was actually reflowed.
@@ -366,6 +378,10 @@ pub struct Document {
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
     /// https://html.spec.whatwg.org/multipage/#page-showing
     page_showing: Cell<bool>,
+    /// Whether the document is salvageable.
+    salvageable: Cell<bool>,
+    /// Whether the unload event has already been fired.
+    fired_unload: Cell<bool>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -474,6 +490,39 @@ impl Document {
                 self.dirty_all_nodes();
                 self.window().reflow(ReflowGoal::Full, ReflowReason::CachedPageNeededReflow);
                 self.window().resume();
+                // html.spec.whatwg.org/multipage/#history-traversal
+                // Step 4.6
+                if self.ready_state.get() == DocumentReadyState::Complete {
+                    let document = Trusted::new(self);
+                    self.window.dom_manipulation_task_source().queue(
+                        task!(fire_pageshow_event: move || {
+                            let document = document.root();
+                            let window = document.window();
+                            // Step 4.6.1
+                            if document.page_showing.get() {
+                                return;
+                            }
+                            // Step 4.6.2
+                            document.page_showing.set(true);
+                            // Step 4.6.4
+                            let event = PageTransitionEvent::new(
+                                window,
+                                atom!("pageshow"),
+                                false, // bubbles
+                                false, // cancelable
+                                true, // persisted
+                            );
+                            let event = event.upcast::<Event>();
+                            event.set_trusted(true);
+                            // FIXME(nox): Why are errors silenced here?
+                            let _ = window.upcast::<EventTarget>().dispatch_event_with_target(
+                                document.upcast(),
+                                &event,
+                            );
+                        }),
+                        self.window.upcast(),
+                    ).unwrap();
+                }
             } else {
                 self.window().suspend();
             }
@@ -803,6 +852,11 @@ impl Document {
             elem.set_focus_state(false);
             // FIXME: pass appropriate relatedTarget
             self.fire_focus_event(FocusEventType::Blur, node, None);
+
+            // Notify the embedder to hide the input method.
+            if elem.input_method_type().is_some() {
+                self.send_to_constellation(ScriptMsg::HideIME);
+            }
         }
 
         self.focused.set(self.possibly_focused.get().r());
@@ -816,6 +870,11 @@ impl Document {
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
                 self.send_to_constellation(ScriptMsg::Focus);
+            }
+
+            // Notify the embedder to display an input method.
+            if let Some(kind) = elem.input_method_type() {
+                self.send_to_constellation(ScriptMsg::ShowIME(kind));
             }
         }
     }
@@ -1574,6 +1633,113 @@ impl Document {
         ScriptThread::mark_document_with_no_blocked_loads(self);
     }
 
+    // https://html.spec.whatwg.org/multipage/#prompt-to-unload-a-document
+    pub fn prompt_to_unload(&self, recursive_flag: bool) -> bool {
+        // TODO: Step 1, increase the event loop's termination nesting level by 1.
+        // Step 2
+        self.incr_ignore_opens_during_unload_counter();
+        //Step 3-5.
+        let document = Trusted::new(self);
+        let beforeunload_event = BeforeUnloadEvent::new(&self.window,
+                                           atom!("beforeunload"),
+                                           EventBubbles::Bubbles,
+                                           EventCancelable::Cancelable);
+        let event = beforeunload_event.upcast::<Event>();
+        event.set_trusted(true);
+        let event_target = self.window.upcast::<EventTarget>();
+        let has_listeners = event.has_listeners_for(&event_target, &atom!("beforeunload"));
+        event_target.dispatch_event_with_target(
+            document.root().upcast(),
+            &event,
+        );
+        // TODO: Step 6, decrease the event loop's termination nesting level by 1.
+        // Step 7
+        self.salvageable.set(!has_listeners);
+        let mut can_unload = true;
+        // TODO: Step 8 send a message to embedder to prompt user.
+        // Step 9
+        if !recursive_flag {
+            for iframe in self.iter_iframes() {
+                // TODO: handle the case of cross origin iframes.
+                let document = document_from_node(&*iframe);
+                if !document.prompt_to_unload(true) {
+                    self.salvageable.set(document.salvageable());
+                    can_unload = false;
+                    break;
+                }
+            }
+        }
+        // Step 10
+        self.decr_ignore_opens_during_unload_counter();
+        can_unload
+    }
+
+    // https://html.spec.whatwg.org/multipage/#unload-a-document
+    pub fn unload(&self, recursive_flag: bool, recycle: bool) {
+        // TODO: Step 1, increase the event loop's termination nesting level by 1.
+        // Step 2
+        self.incr_ignore_opens_during_unload_counter();
+        let document = Trusted::new(self);
+        // Step 3-6
+        if self.page_showing.get() {
+            self.page_showing.set(false);
+            let event = PageTransitionEvent::new(
+                &self.window,
+                atom!("pagehide"),
+                false, // bubbles
+                false, // cancelable
+                self.salvageable.get(), // persisted
+            );
+            let event = event.upcast::<Event>();
+            event.set_trusted(true);
+            let _ = self.window.upcast::<EventTarget>().dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+            // TODO Step 6, document visibility steps.
+        }
+        // Step 7
+        if !self.fired_unload.get() {
+            let event = Event::new(
+                &self.window.upcast(),
+                atom!("unload"),
+                EventBubbles::Bubbles,
+                EventCancelable::Cancelable,
+            );
+            event.set_trusted(true);
+            let event_target = self.window.upcast::<EventTarget>();
+            let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
+            let _ = event_target.dispatch_event_with_target(
+                document.root().upcast(),
+                &event,
+            );
+            self.fired_unload.set(true);
+            // Step 9
+            self.salvageable.set(!has_listeners);
+        }
+        // TODO: Step 8, decrease the event loop's termination nesting level by 1.
+
+        // Step 13
+        if !recursive_flag {
+            for iframe in self.iter_iframes() {
+                // TODO: handle the case of cross origin iframes.
+                let document = document_from_node(&*iframe);
+                document.unload(true, recycle);
+                if !document.salvageable() {
+                    self.salvageable.set(false);
+                }
+            }
+        }
+        // Step 10, 14
+        if !self.salvageable.get() {
+            // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
+            let msg = ScriptMsg::DiscardDocument;
+            let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+        }
+        // Step 15, End
+        self.decr_ignore_opens_during_unload_counter();
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-end
     pub fn maybe_queue_document_completion(&self) {
         if self.loader.borrow().is_blocked() {
@@ -1968,8 +2134,7 @@ impl Document {
                             client_point: &Point2D<f32>,
                             reflow_goal: NodesFromPointQueryType)
                             -> Vec<UntrustedNodeAddress> {
-        if !self.window.reflow(ReflowGoal::NodesFromPointQuery(*client_point, reflow_goal),
-                               ReflowReason::Query) {
+        if !self.window.layout_reflow(QueryMsg::NodesFromPointQuery(*client_point, reflow_goal)) {
             return vec!();
         };
 
@@ -2249,6 +2414,7 @@ impl Document {
             target_element: MutNullableDom::new(None),
             last_click_info: DomRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
+            ignore_opens_during_unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableDom::new(None),
@@ -2258,6 +2424,8 @@ impl Document {
             canceller: canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
+            salvageable: Cell::new(true),
+            fired_unload: Cell::new(false)
         }
     }
 
@@ -2437,6 +2605,10 @@ impl Document {
         self.stylesheets.borrow().len()
     }
 
+    pub fn salvageable(&self) -> bool {
+        self.salvageable.get()
+    }
+
     pub fn stylesheet_at(&self, index: usize) -> Option<DomRoot<CSSStyleSheet>> {
         let stylesheets = self.stylesheets.borrow();
 
@@ -2558,6 +2730,20 @@ impl Document {
     pub fn decr_ignore_destructive_writes_counter(&self) {
         self.ignore_destructive_writes_counter.set(
             self.ignore_destructive_writes_counter.get() - 1);
+    }
+
+    pub fn is_prompting_or_unloading(&self) -> bool {
+        self.ignore_opens_during_unload_counter.get() > 0
+    }
+
+    fn incr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() + 1);
+    }
+
+    fn decr_ignore_opens_during_unload_counter(&self) {
+        self.ignore_opens_during_unload_counter.set(
+            self.ignore_opens_during_unload_counter.get() - 1);
     }
 
     /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
@@ -3448,7 +3634,7 @@ impl DocumentMethods for Document {
         }
 
         let url = self.url();
-        let (tx, rx) = ipc::channel().unwrap();
+        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let _ = self.window
             .upcast::<GlobalScope>()
             .resource_threads()
@@ -3675,7 +3861,7 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-open
-    fn Open(&self, type_: DOMString, replace: DOMString) -> Fallible<DomRoot<Document>> {
+    fn Open(&self, _type: Option<DOMString>, replace: DOMString) -> Fallible<DomRoot<Document>> {
         if !self.is_html_document() {
             // Step 1.
             return Err(Error::InvalidState);
@@ -3709,9 +3895,7 @@ impl DocumentMethods for Document {
         // Step 6.
         // TODO: ignore-opens-during-unload counter check.
 
-        // Step 7: first argument already bound to `type_`.
-
-        // Step 8.
+        // Step 7, 8.
         // TODO: check session history's state.
         let replace = replace.eq_ignore_ascii_case("replace");
 
@@ -3740,11 +3924,11 @@ impl DocumentMethods for Document {
         // Step 15.
         Node::replace_all(None, self.upcast::<Node>());
 
-        // Steps 16-18.
+        // Steps 16, 17.
         // Let's not?
         // TODO: https://github.com/whatwg/html/issues/1698
 
-        // Step 19.
+        // Step 18.
         self.implementation.set(None);
         self.images.set(None);
         self.embeds.set(None);
@@ -3760,65 +3944,59 @@ impl DocumentMethods for Document {
         self.target_element.set(None);
         *self.last_click_info.borrow_mut() = None;
 
+        // Step 19.
+        // TODO: Set the active document of document's browsing context to document with window.
+
         // Step 20.
-        self.set_encoding(UTF_8);
+        // TODO: Replace document's singleton objects with new instances of those objects, created in window's Realm.
 
         // Step 21.
-        // TODO: reload override buffer.
+        self.set_encoding(UTF_8);
 
         // Step 22.
+        // TODO: reload override buffer.
+
+        // Step 23.
         // TODO: salvageable flag.
 
         let url = entry_responsible_document.url();
 
-        // Step 23.
+        // Step 24.
         self.set_url(url.clone());
 
-        // Step 24.
+        // Step 25.
         // TODO: mute iframe load.
 
-        // Step 27.
-        let type_ = if type_.eq_ignore_ascii_case("replace") {
-            "text/html"
-        } else if let Some(position) = type_.find(';') {
-            &type_[0..position]
-        } else {
-            &*type_
-        };
-        let type_ = type_.trim_matches(HTML_SPACE_CHARACTERS);
-
-        // Step 25.
+        // Step 26.
         let resource_threads =
             self.window.upcast::<GlobalScope>().resource_threads().clone();
         *self.loader.borrow_mut() =
             DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
-        ServoParser::parse_html_script_input(self, url, type_);
+        ServoParser::parse_html_script_input(self, url, "text/html");
 
-        // Step 26.
+        // Step 27.
         self.ready_state.set(DocumentReadyState::Interactive);
 
-        // Step 28 is handled when creating the parser in step 25.
+        // Step 28.
+        // TODO: remove history traversal tasks.
 
         // Step 29.
         // TODO: truncate session history.
 
         // Step 30.
-        // TODO: remove history traversal tasks.
-
-        // Step 31.
         // TODO: remove earlier entries.
 
         if !replace {
-            // Step 32.
+            // Step 31.
             // TODO: add history entry.
         }
 
-        // Step 33.
+        // Step 32.
         // TODO: clear fired unload flag.
 
-        // Step 34 is handled when creating the parser in step 25.
+        // Step 33 is handled when creating the parser in step 26.
 
-        // Step 35.
+        // Step 34.
         Ok(DomRoot::from_ref(self))
     }
 
@@ -3851,7 +4029,7 @@ impl DocumentMethods for Document {
                     return Ok(());
                 }
                 // Step 5.
-                self.Open("text/html".into(), "".into())?;
+                self.Open(None, "".into())?;
                 self.get_current_parser().unwrap()
             }
         };

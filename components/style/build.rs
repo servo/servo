@@ -16,7 +16,7 @@ extern crate walkdir;
 
 use std::env;
 use std::path::Path;
-use std::process::{Command, exit};
+use std::process::{exit, Command};
 use walkdir::WalkDir;
 
 #[cfg(feature = "gecko")]
@@ -29,11 +29,19 @@ mod build_gecko {
 
 #[cfg(windows)]
 fn find_python() -> String {
-    if Command::new("python2.7.exe").arg("--version").output().is_ok() {
+    if Command::new("python2.7.exe")
+        .arg("--version")
+        .output()
+        .is_ok()
+    {
         return "python2.7.exe".to_owned();
     }
 
-    if Command::new("python27.exe").arg("--version").output().is_ok() {
+    if Command::new("python27.exe")
+        .arg("--version")
+        .output()
+        .is_ok()
+    {
         return "python27.exe".to_owned();
     }
 
@@ -41,13 +49,21 @@ fn find_python() -> String {
         return "python.exe".to_owned();
     }
 
-    panic!(concat!("Can't find python (tried python2.7.exe, python27.exe, and python.exe)! ",
-                   "Try fixing PATH or setting the PYTHON env var"));
+    panic!(concat!(
+        "Can't find python (tried python2.7.exe, python27.exe, and python.exe)! ",
+        "Try fixing PATH or setting the PYTHON env var"
+    ));
 }
 
 #[cfg(not(windows))]
 fn find_python() -> String {
-    if Command::new("python2.7").arg("--version").output().unwrap().status.success() {
+    if Command::new("python2.7")
+        .arg("--version")
+        .output()
+        .unwrap()
+        .status
+        .success()
+    {
         "python2.7"
     } else {
         "python"
@@ -64,14 +80,19 @@ fn generate_properties() {
         match entry.path().extension().and_then(|e| e.to_str()) {
             Some("mako") | Some("rs") | Some("py") | Some("zip") => {
                 println!("cargo:rerun-if-changed={}", entry.path().display());
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
     let script = Path::new(&env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("properties").join("build.py");
-    let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
+        .join("properties")
+        .join("build.py");
+    let product = if cfg!(feature = "gecko") {
+        "gecko"
+    } else {
+        "servo"
+    };
     let status = Command::new(&*PYTHON)
         .arg(&script)
         .arg(product)
@@ -90,8 +111,10 @@ fn main() {
         panic!("The style crate requires enabling one of its 'servo' or 'gecko' feature flags");
     }
     if gecko && servo {
-        panic!("The style crate does not support enabling both its 'servo' or 'gecko' \
-                feature flags at the same time.");
+        panic!(
+            "The style crate does not support enabling both its 'servo' or 'gecko' \
+             feature flags at the same time."
+        );
     }
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:out_dir={}", env::var("OUT_DIR").unwrap());

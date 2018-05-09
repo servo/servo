@@ -22,7 +22,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
@@ -48,13 +48,14 @@ use dom::windowproxy::WindowProxy;
 use dom::worklet::Worklet;
 use dom::workletglobalscope::WorkletGlobalScopeType;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Vector2D, Rect, Size2D};
+use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSize2D};
 use fetch;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
@@ -63,10 +64,11 @@ use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
+use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::{TrustedNodeAddress, PendingImageState};
-use script_layout_interface::message::{Msg, Reflow, ReflowGoal, ScriptReflow};
+use script_layout_interface::message::{Msg, Reflow, QueryMsg, ReflowGoal, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeScrollIdResponse, ResolvedStyleResponse, TextIndexResponse};
@@ -102,7 +104,7 @@ use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
-use style_traits::ParsingMode;
+use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use task::TaskCanceller;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
@@ -116,7 +118,7 @@ use timers::{IsInterval, TimerCallback};
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_api::{ExternalScrollId, DocumentId};
+use webrender_api::{ExternalScrollId, DeviceIntPoint, DeviceUintSize, DocumentId};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -540,7 +542,7 @@ impl WindowMethods for Window {
             stderr.flush().unwrap();
         }
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.send_to_constellation(ScriptMsg::Alert(s.to_string(), sender));
 
         let should_display_alert_dialog = receiver.recv().unwrap();
@@ -930,11 +932,12 @@ impl WindowMethods for Window {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeto
-    fn ResizeTo(&self, x: i32, y: i32) {
+    fn ResizeTo(&self, width: i32, height: i32) {
         // Step 1
         //TODO determine if this operation is allowed
-        let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.send_to_constellation(ScriptMsg::ResizeTo(size));
+        let dpr = self.device_pixel_ratio();
+        let size = TypedSize2D::new(width, height).to_f32() * dpr;
+        self.send_to_constellation(ScriptMsg::ResizeTo(size.to_u32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -948,8 +951,9 @@ impl WindowMethods for Window {
     fn MoveTo(&self, x: i32, y: i32) {
         // Step 1
         //TODO determine if this operation is allowed
-        let point = Point2D::new(x, y);
-        self.send_to_constellation(ScriptMsg::MoveTo(point));
+        let dpr = self.device_pixel_ratio();
+        let point = TypedPoint2D::new(x, y).to_f32() * dpr;
+        self.send_to_constellation(ScriptMsg::MoveTo(point.to_i32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -985,8 +989,7 @@ impl WindowMethods for Window {
 
     // https://drafts.csswg.org/cssom-view/#dom-window-devicepixelratio
     fn DevicePixelRatio(&self) -> Finite<f64> {
-        let dpr = self.window_size.get().map_or(1.0f32, |data| data.device_pixel_ratio.get());
-        Finite::wrap(dpr as f64)
+        Finite::wrap(self.device_pixel_ratio().get() as f64)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-status
@@ -1034,6 +1037,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-name
     fn Name(&self) -> DOMString {
         self.window_proxy().get_name()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-origin
+    fn Origin(&self) -> USVString {
+        USVString(self.origin().immutable().ascii_serialization())
     }
 }
 
@@ -1174,10 +1182,18 @@ impl Window {
         self.current_viewport.set(new_viewport)
     }
 
-    pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
+    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
+        self.window_size.get().map_or(TypedScale::new(1.0), |data| data.device_pixel_ratio)
+    }
+
+    fn client_window(&self) -> (TypedSize2D<u32, CSSPixel>, TypedPoint2D<i32, CSSPixel>) {
+        let timer_profile_chan = self.global().time_profiler_chan().clone();
+        let (send, recv) =
+            ProfiledIpc::channel::<(DeviceUintSize, DeviceIntPoint)>(timer_profile_chan).unwrap();
         self.send_to_constellation(ScriptMsg::GetClientWindow(send));
-        recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
+        let (size, point) = recv.recv().unwrap_or((TypedSize2D::zero(), TypedPoint2D::zero()));
+        let dpr = self.device_pixel_ratio();
+        ((size.to_f32() / dpr).to_u32(), (point.to_f32() / dpr).to_i32())
     }
 
     /// Advances the layout animation clock by `delta` milliseconds, and then
@@ -1293,7 +1309,8 @@ impl Window {
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_insert(vec![]);
             if nodes.iter().find(|n| &***n as *const _ == &*node as *const _).is_none() {
-                let (responder, responder_listener) = ipc::channel().unwrap();
+                let (responder, responder_listener) =
+                    ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
                 ROUTER.add_route(responder_listener.to_opaque(), Box::new(move |message| {
@@ -1374,12 +1391,16 @@ impl Window {
         issued_reflow
     }
 
+    pub fn layout_reflow(&self, query_msg: QueryMsg) -> bool {
+        self.reflow(ReflowGoal::LayoutQuery(query_msg, time::precise_time_ns()), ReflowReason::Query)
+    }
+
     pub fn layout(&self) -> &LayoutRPC {
         &*self.layout_rpc
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
-        if !self.reflow(ReflowGoal::ContentBoxQuery(content_box_request), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::ContentBoxQuery(content_box_request)) {
             return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
@@ -1387,7 +1408,7 @@ impl Window {
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        if !self.reflow(ReflowGoal::ContentBoxesQuery(content_boxes_request), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::ContentBoxesQuery(content_boxes_request)) {
             return vec![];
         }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
@@ -1395,14 +1416,14 @@ impl Window {
     }
 
     pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        if !self.reflow(ReflowGoal::NodeGeometryQuery(node_geometry_request), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::NodeGeometryQuery(node_geometry_request)) {
             return Rect::zero();
         }
         self.layout_rpc.node_geometry().client_rect
     }
 
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        if !self.reflow(ReflowGoal::NodeScrollGeometryQuery(node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::NodeScrollGeometryQuery(node)) {
             return Rect::zero();
         }
         self.layout_rpc.node_scroll_area().client_rect
@@ -1425,10 +1446,7 @@ impl Window {
         y_: f64,
         behavior: ScrollBehavior
     ) {
-        if !self.reflow(
-            ReflowGoal::NodeScrollIdQuery(node.to_trusted_node_address()),
-            ReflowReason::Query
-        ) {
+        if !self.layout_reflow(QueryMsg::NodeScrollIdQuery(node.to_trusted_node_address())) {
             return;
         }
 
@@ -1452,8 +1470,7 @@ impl Window {
                                 element: TrustedNodeAddress,
                                 pseudo: Option<PseudoElement>,
                                 property: PropertyId) -> DOMString {
-        if !self.reflow(ReflowGoal::ResolvedStyleQuery(element, pseudo, property),
-                        ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::ResolvedStyleQuery(element, pseudo, property)) {
             return DOMString::new();
         }
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
@@ -1462,7 +1479,7 @@ impl Window {
 
     #[allow(unsafe_code)]
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<DomRoot<Element>>, Rect<Au>) {
-        if !self.reflow(ReflowGoal::OffsetParentQuery(node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::OffsetParentQuery(node)) {
             return (None, Rect::zero());
         }
 
@@ -1477,7 +1494,7 @@ impl Window {
     }
 
     pub fn style_query(&self, node: TrustedNodeAddress) -> Option<servo_arc::Arc<ComputedValues>> {
-        if !self.reflow(ReflowGoal::StyleQuery(node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::StyleQuery(node)) {
             return None
         }
         self.layout_rpc.style().0
@@ -1488,7 +1505,7 @@ impl Window {
         node: TrustedNodeAddress,
         point_in_node: Point2D<f32>
     ) -> TextIndexResponse {
-        if !self.reflow(ReflowGoal::TextIndexQuery(node, point_in_node), ReflowReason::Query) {
+        if !self.layout_reflow(QueryMsg::TextIndexQuery(node, point_in_node)) {
             return TextIndexResponse(None);
         }
         self.layout_rpc.text_index()
@@ -1533,7 +1550,7 @@ impl Window {
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
         if !force_reload && url.as_url()[..Position::AfterQuery] ==
             doc.url().as_url()[..Position::AfterQuery] {
-                // Step 5
+                // Step 6
                 if let Some(fragment) = url.fragment() {
                     doc.check_and_scroll_fragment(fragment);
                     doc.set_url(url.clone());
@@ -1542,9 +1559,24 @@ impl Window {
         }
 
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(pipeline_id,
-                LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+
+        // Step 4
+        let window_proxy = self.window_proxy();
+        if let Some(active) = window_proxy.currently_active() {
+            if pipeline_id == active {
+                if doc.is_prompting_or_unloading() {
+                    return;
+                }
+            }
+        }
+
+        // Step 7
+        if doc.prompt_to_unload(false) {
+            self.main_thread_script_chan().send(
+                MainThreadScriptMsg::Navigate(pipeline_id,
+                    LoadData::new(url, Some(pipeline_id), referrer_policy, Some(doc.url())), replace)).unwrap();
+        };
+
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
@@ -1870,18 +1902,20 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
     let mut debug_msg = format!("**** pipeline={}", id);
     debug_msg.push_str(match *reflow_goal {
         ReflowGoal::Full => "\tFull",
-        ReflowGoal::ContentBoxQuery(_n) => "\tContentBoxQuery",
-        ReflowGoal::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
-        ReflowGoal::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
-        ReflowGoal::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
-        ReflowGoal::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
-        ReflowGoal::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
-        ReflowGoal::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
-        ReflowGoal::OffsetParentQuery(_n) => "\tOffsetParentQuery",
-        ReflowGoal::StyleQuery(_n) => "\tStyleQuery",
-        ReflowGoal::TextIndexQuery(..) => "\tTextIndexQuery",
         ReflowGoal::TickAnimations => "\tTickAnimations",
-        ReflowGoal::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
+        ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
+            &QueryMsg::ContentBoxQuery(_n) => "\tContentBoxQuery",
+            &QueryMsg::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
+            &QueryMsg::NodesFromPointQuery(..) => "\tNodesFromPointQuery",
+            &QueryMsg::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+            &QueryMsg::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
+            &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
+            &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+            &QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
+            &QueryMsg::StyleQuery(_n) => "\tStyleQuery",
+            &QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
+            &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
+        },
     });
 
     debug_msg.push_str(match *reason {

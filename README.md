@@ -4,7 +4,7 @@
 
 Servo is a prototype web browser engine written in the
 [Rust](https://github.com/rust-lang/rust) language. It is currently developed on
-64-bit OS X, 64-bit Linux, 64-bit Windows, and Android.
+64-bit macOS, 64-bit Linux, 64-bit Windows, and Android.
 
 Servo welcomes contribution from everyone.  See
 [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`HACKING_QUICKSTART.md`](docs/HACKING_QUICKSTART.md)
@@ -41,7 +41,7 @@ https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods)
 ### Other dependencies
 
 Please select your operating system:
-* [OS X](#os-x)
+* [macOS](#macos)
 * [Debian-based Linuxes](#on-debian-based-linuxes)
 * [Fedora](#on-fedora)
 * [Arch Linux](#on-arch-linux)
@@ -50,19 +50,19 @@ Please select your operating system:
 * [Microsoft Windows](#on-windows-msvc)
 * [Android](#cross-compilation-for-android)
 
-#### OS X
-#### On OS X (homebrew)
+#### macOS
+#### On macOS (homebrew)
 
 ``` sh
 brew install automake pkg-config python cmake yasm
 pip install virtualenv
 ```
-#### On OS X (MacPorts)
+#### On macOS (MacPorts)
 
 ``` sh
 sudo port install python27 py27-virtualenv cmake yasm
 ```
-#### On OS X >= 10.11 (El Capitan), you also have to install OpenSSL
+#### On macOS >= 10.11 (El Capitan), you also have to install OpenSSL
 
 ``` sh
 brew install openssl
@@ -87,6 +87,8 @@ sudo apt install git curl autoconf libx11-dev \
 ```
 
 If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `libssl1.0-dev` with `libssl-dev`.
+
+If you are using **Ubuntu 16.04** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 

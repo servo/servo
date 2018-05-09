@@ -1,4 +1,4 @@
 {
-    "message": "Record key cannot have extended attribute",
+    "message": "Got an error during or right after parsing `interface Foo`: Record key cannot have extended attribute",
     "line": 2
 }

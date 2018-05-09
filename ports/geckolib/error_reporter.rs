@@ -14,7 +14,7 @@ use std::ptr;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::gecko_bindings::bindings::{Gecko_CreateCSSErrorReporter, Gecko_DestroyCSSErrorReporter};
 use style::gecko_bindings::bindings::Gecko_ReportUnexpectedCSSError;
-use style::gecko_bindings::structs::{Loader, ServoStyleSheet, nsIURI};
+use style::gecko_bindings::structs::{Loader, StyleSheet as DomStyleSheet, nsIURI};
 use style::gecko_bindings::structs::ErrorReporter as GeckoErrorReporter;
 use style::gecko_bindings::structs::URLExtraData as RawUrlExtraData;
 use style::stylesheets::UrlExtraData;
@@ -27,9 +27,11 @@ pub struct ErrorReporter(*mut GeckoErrorReporter);
 
 impl ErrorReporter {
     /// Create a new instance of the Gecko error reporter.
-    pub fn new(sheet: *mut ServoStyleSheet,
-               loader: *mut Loader,
-               extra_data: *mut RawUrlExtraData) -> ErrorReporter {
+    pub fn new(
+        sheet: *mut DomStyleSheet,
+        loader: *mut Loader,
+        extra_data: *mut RawUrlExtraData,
+    ) -> Self {
         unsafe {
             let url = extra_data.as_ref()
                 .map(|d| d.mBaseURI.raw::<nsIURI>())

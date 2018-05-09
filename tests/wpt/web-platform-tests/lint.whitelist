@@ -7,8 +7,6 @@
 
 ## Whitespace rules that we can't enforce yet ##
 
-CR AT EOL: svg/import/*
-
 INDENT TABS: .gitmodules
 INDENT TABS: conformance-checkers/*
 INDENT TABS: content-security-policy/*
@@ -16,7 +14,6 @@ INDENT TABS: custom-elements/*
 INDENT TABS: old-tests/*
 INDENT TABS: pointerlock/*
 INDENT TABS: shadow-dom/*
-INDENT TABS: svg/import/*
 INDENT TABS: tools/*
 INDENT TABS: web-animations/*
 INDENT TABS: webaudio/*
@@ -32,7 +29,6 @@ TRAILING WHITESPACE: html-longdesc/*
 TRAILING WHITESPACE: old-tests/*
 TRAILING WHITESPACE: pointerevents/*
 TRAILING WHITESPACE: shadow-dom/*
-TRAILING WHITESPACE: svg/import/*
 TRAILING WHITESPACE: tools/*
 TRAILING WHITESPACE: webaudio/*
 TRAILING WHITESPACE: WebIDL/*
@@ -58,6 +54,7 @@ TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.m4v
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.otf
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.ttf
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.TTF
+TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.ttc
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.woff
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.woff2
 TRAILING WHITESPACE, INDENT TABS, CR AT EOL: *.eot
@@ -197,6 +194,7 @@ SET TIMEOUT: screen-orientation/lock-bad-argument.html
 SET TIMEOUT: screen-orientation/onchange-event.html
 SET TIMEOUT: screen-orientation/resources/sandboxed-iframe-locking.html
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
+SET TIMEOUT: service-workers/cache-storage/script-tests/cache-abort.js
 SET TIMEOUT: service-workers/service-worker/activation.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-frame-resource.https.html
 SET TIMEOUT: service-workers/service-worker/fetch-request-redirect.https.html
@@ -276,14 +274,12 @@ GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-
 GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-percent-guess.html
 GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-specified-guess.1.html
 GENERATE_TESTS: css/css-tables/width-distribution/distribution-algo-min-content-specified-guess.html
-GENERATE_TESTS: css/cssom/index-002.html
 GENERATE_TESTS: dom/nodes/case.js
 GENERATE_TESTS: dom/ranges/Range-cloneRange.html
 GENERATE_TESTS: dom/ranges/Range-collapse.html
 GENERATE_TESTS: dom/ranges/Range-mutations.js
 GENERATE_TESTS: dom/ranges/Range-selectNode.html
 GENERATE_TESTS: dom/ranges/Range-set.html
-GENERATE_TESTS: dom/traversal/NodeIterator.html
 GENERATE_TESTS: dom/traversal/TreeWalker.html
 GENERATE_TESTS: domparsing/createContextualFragment.html
 GENERATE_TESTS: domxpath/001.html
@@ -313,6 +309,7 @@ GENERATE_TESTS: shadow-dom/untriaged/shadow-trees/upper-boundary-encapsulation/w
 SET TIMEOUT: css/css-fonts/font-display/font-display.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-change.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-change-ref.html
+SET TIMEOUT: css/css-fonts/font-display/font-display-preload.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
@@ -403,19 +400,6 @@ SUPPORT-WRONG-DIR: css/filter-effects/filter-external-002-filter.svg
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/check-for-references.sh
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests-filter
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/sync-tests.sh
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/aqua-yellow-32x32.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/aqua-yellow-37x37.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/border.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-bl.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-bo.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-br.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-ct.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-le.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-ri.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-tl.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-to.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule-tr.png
-SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/background/reticule.png
 SUPPORT-WRONG-DIR: css/vendor-imports/mozilla/mozilla-central-reftests/masking/blank.html
 SUPPORT-WRONG-DIR: css/WOFF2/testcaseindex.xht
 NON-EXISTENT-REF: css/css-masking/clip-path-svg-content/clip-path-clip-rule-008.svg
@@ -471,7 +455,6 @@ CONSOLE: css/css-values/viewport-units-css2-001.html
 CONSOLE: css/css-writing-modes/orthogonal-parent-shrink-to-fit-001*.html
 CONSOLE: css/css-writing-modes/tools/generators/gulpfile.js
 CONSOLE: css/css-writing-modes/tools/generators/text-orientation-generator.js
-CONSOLE: css/cssom/index-002.html
 
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-002.html
 TRAILING WHITESPACE: css/CSS2/generated-content/before-after-positioned-003.html
@@ -797,6 +780,8 @@ CSS-COLLIDING-REF-NAME: css/CSS2/visuren/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/CSS2/linebox/inline-formatting-context-001-ref.xht
 CSS-COLLIDING-REF-NAME: css/css-transforms/individual-transform/individual-transform-1-ref.html
 CSS-COLLIDING-REF-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/transforms/individual-transform-1-ref.html
+CSS-COLLIDING-REF-NAME: css/css-flexbox/reference/percentage-size-subitems-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-grid/grid-items/percentage-size-subitems-001-ref.html
 CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/mix-blend-mode/support/red.png
 CSS-COLLIDING-SUPPORT-NAME: css/compositing/background-blending/support/red.png
@@ -815,7 +800,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
 
 # CSS tests that used to be at the top level and weren't subject to lints
-MISSING-LINK: css/css-fonts/font-display/font-display.html
 MISSING-LINK: css/css-fonts/matching/fixed-stretch-style-over-weight.html
 SUPPORT-WRONG-DIR: css/css-fonts/matching/font-matching.css
 MISSING-LINK: css/css-fonts/matching/stretch-distance-over-weight-distance.html
@@ -902,25 +886,7 @@ SUPPORT-WRONG-DIR: css/css-timing/testcommon.js
 MISSING-LINK: css/css-typed-om/CSSMatrixComponent-DOMMatrix-mutable.html
 MISSING-LINK: css/css-typed-om/declared-styleMap-accepts-inherit.html
 MISSING-LINK: css/css-typed-om/styleMap-update-function.html
-MISSING-LINK: css/cssom/CSS.html
-MISSING-LINK: css/cssom/CSSKeyframeRule.html
-MISSING-LINK: css/cssom/CSSKeyframesRule.html
-MISSING-LINK: css/cssom/CSSNamespaceRule.html
-MISSING-LINK: css/cssom/CSSRuleList.html
-MISSING-LINK: css/cssom/CSSStyleSheet.html
-MISSING-LINK: css/cssom/GetBoundingRect.html
-MISSING-LINK: css/cssom/historical.html
-MISSING-LINK: css/cssom/MediaList.html
-MISSING-LINK: css/cssom/overflow-serialization.html
-MISSING-LINK: css/cssom/selectorText-modification-restyle-001.html
-MISSING-LINK: css/cssom/serialization-CSSDeclaration-with-important.html
-MISSING-LINK: css/cssom/serialize-values.html
-MISSING-LINK: css/cssom/serialize-variable-reference.html
-MISSING-LINK: css/cssom/shorthand-serialization.html
 SUPPORT-WRONG-DIR: css/cssom/stylesheet-same-origin.css
-MISSING-LINK: css/cssom/stylesheet-same-origin.sub.html
-MISSING-LINK: css/cssom/StyleSheetList.html
-MISSING-LINK: css/cssom/variable-names.html
 MISSING-LINK: css/cssom-view/DOMRectList.html
 MISSING-LINK: css/cssom-view/elementFromPoint-002.html
 MISSING-LINK: css/cssom-view/elementFromPoint-003.html
@@ -952,6 +918,7 @@ CSS-COLLIDING-TEST-NAME: css/cssom/interfaces.html
 
 # TODO https://github.com/w3c/web-platform-tests/issues/5770
 MISSING-LINK: css/geometry/*.worker.js
+MISSING-LINK: css/filter-effects/*.any.js
 
 WEBIDL2.JS: .gitmodules
 

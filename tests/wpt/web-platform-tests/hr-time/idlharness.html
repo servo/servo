@@ -16,14 +16,10 @@
 <script>
 'use strict';
 
-function doTest([html, hr_time]) {
+function doTest([dom, html, hr_time]) {
   var idl_array = new IdlArray();
-  // HTML is needed for WindowOrWorkerGlobalScope. Provide dummy interfaces for
-  // things that HTML depends on in turn which are not under tests.
-  idl_array.add_untested_idls('interface Document {};');
-  idl_array.add_untested_idls('interface EventTarget {};');
-  idl_array.add_untested_idls('interface LinkStyle {};');
-  idl_array.add_untested_idls(html);
+  idl_array.add_untested_idls(dom, { only: ['EventTarget'] });
+  idl_array.add_untested_idls(html, { only: ['WindowOrWorkerGlobalScope'] });
   idl_array.add_idls(hr_time);
   idl_array.add_objects({
     Performance: ["window.performance"],
@@ -37,7 +33,8 @@ function fetchText(url) {
 }
 
 promise_test(() => {
-  return Promise.all(['/interfaces/html.idl',
+  return Promise.all(['/interfaces/dom.idl',
+                      '/interfaces/html.idl',
                       '/interfaces/hr-time.idl'].map(fetchText))
                 .then(doTest);
 }, 'Test driver');

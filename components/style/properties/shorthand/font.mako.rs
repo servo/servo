@@ -19,6 +19,7 @@
                                     ${'font-language-override' if product == 'gecko' else ''}
                                     ${'font-feature-settings' if product == 'gecko' else ''}
                                     ${'font-variation-settings' if product == 'gecko' else ''}"
+                    derive_value_info="False"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use parser::Parse;
     use properties::longhands::{font_family, font_style, font_weight, font_stretch};
@@ -27,6 +28,7 @@
     use properties::longhands::system_font::SystemFont;
     use values::specified::text::LineHeight;
     use values::specified::FontSize;
+    use values::specified::font::{FontStretch, FontStretchKeyword};
 
     <%
         gecko_sub_properties = "kerning language_override size_adjust \
@@ -42,8 +44,10 @@
     % endif
     use self::font_family::SpecifiedValue as FontFamily;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut nb_normals = 0;
         let mut style = None;
         let mut variant_caps = None;
@@ -92,8 +96,8 @@
                 }
             }
             if stretch.is_none() {
-                if let Ok(value) = input.try(|input| font_stretch::parse(context, input)) {
-                    stretch = Some(value);
+                if let Ok(value) = input.try(FontStretchKeyword::parse) {
+                    stretch = Some(FontStretch::Keyword(value));
                     continue
                 }
             }
@@ -178,14 +182,30 @@
             % endfor
             % endif
 
-            // In case of serialization for canvas font, we need to drop
-            // initial values of properties other than size and family.
-            % for name in "style variant_caps weight stretch".split():
+            // Only font-stretch keywords are allowed as part as the font
+            // shorthand.
+            let font_stretch = match *self.font_stretch {
+                FontStretch::Keyword(kw) => kw,
+                FontStretch::Stretch(percentage) => {
+                    match FontStretchKeyword::from_percentage(percentage.get()) {
+                        Some(kw) => kw,
+                        None => return Ok(()),
+                    }
+                }
+                FontStretch::System(..) => return Ok(()),
+            };
+
+            % for name in "style variant_caps weight".split():
                 if self.font_${name} != &font_${name}::get_initial_specified_value() {
                     self.font_${name}.to_css(dest)?;
                     dest.write_str(" ")?;
                 }
             % endfor
+
+            if font_stretch != FontStretchKeyword::Normal {
+                font_stretch.to_css(dest)?;
+                dest.write_str(" ")?;
+            }
 
             self.font_size.to_css(dest)?;
 
@@ -239,6 +259,29 @@
         }
         % endif
     }
+
+    <%
+        subprops_for_value_info = ["font_style", "font_weight", "font_stretch",
+                                   "font_variant_caps", "font_size", "font_family"]
+        subprops_for_value_info = [
+            "<longhands::{}::SpecifiedValue as SpecifiedValueInfo>".format(p)
+            for p in subprops_for_value_info
+        ]
+    %>
+    impl SpecifiedValueInfo for Longhands {
+        const SUPPORTED_TYPES: u8 = 0
+            % for p in subprops_for_value_info:
+            | ${p}::SUPPORTED_TYPES
+            % endfor
+            ;
+
+        fn collect_completion_keywords(f: KeywordsCollectFn) {
+            % for p in subprops_for_value_info:
+            ${p}::collect_completion_keywords(f);
+            % endfor
+            <longhands::system_font::SystemFont as SpecifiedValueInfo>::collect_completion_keywords(f);
+        }
+    }
 </%helpers:shorthand>
 
 <%helpers:shorthand name="font-variant"
@@ -262,8 +305,10 @@
     #[allow(unused_imports)]
     use values::specified::FontVariantLigatures;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
     % for prop in sub_properties:
         let mut ${prop} = None;
     % endfor

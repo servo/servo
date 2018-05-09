@@ -19,14 +19,17 @@ use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject};
-use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};
-use js::jsapi::{JSContext, HandleValue, HandleObject, IsPromiseObject, GetFunctionNativeReserved};
-use js::jsapi::{JS_ClearPendingException, JSObject, AddRawValueRoot, RemoveRawValueRoot, PromiseState};
-use js::jsapi::{MutableHandleObject, NewPromiseObject, ResolvePromise, RejectPromise, GetPromiseState};
-use js::jsapi::{SetFunctionNativeReserved, NewFunctionWithReserved, AddPromiseReactions};
-use js::jsapi::Heap;
+use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
+use js::jsapi::{Heap, JS_ClearPendingException};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetContext, JS_GetFunctionObject};
+use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction};
+use js::jsapi::{NewFunctionWithReserved, PromiseState};
+use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+use js::rust::wrappers::{AddPromiseReactions, CallOriginalPromiseResolve, CallOriginalPromiseReject};
+use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
+use js::rust::wrappers::{NewPromiseObject, ResolvePromise, RejectPromise};
 use std::ptr;
 use std::rc::Rc;
 
@@ -61,8 +64,13 @@ impl PromiseHelper for Rc<Promise> {
 impl Drop for Promise {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
-        let cx = self.global().get_cx();
         unsafe {
+            let object = self.permanent_js_root.get().to_object();
+            assert!(!object.is_null());
+            let runtime = JS_GetObjectRuntime(object);
+            assert!(!runtime.is_null());
+            let cx = JS_GetContext(runtime);
+            assert!(!cx.is_null());
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
@@ -101,7 +109,7 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, obj: MutableHandleObject) {
+    unsafe fn create_js_promise(cx: *mut JSContext, proto: HandleObject, mut obj: MutableHandleObject) {
         let do_nothing_func = JS_NewFunction(cx, Some(do_nothing_promise_executor), /* nargs = */ 2,
                                              /* flags = */ 0, ptr::null());
         assert!(!do_nothing_func.is_null());
@@ -277,4 +285,3 @@ fn create_native_handler_function(cx: *mut JSContext,
         obj.get()
     }
 }
-

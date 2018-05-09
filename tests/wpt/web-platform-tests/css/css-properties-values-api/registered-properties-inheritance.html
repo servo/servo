@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-propertydescriptor-inherits" />
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#register-a-custom-property" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#outer {
+    --inherited-length-1: 10px;
+    --inherited-length-2: var(--non-inherited-length-1);
+    --inherited-length-3: 30px;
+    --non-inherited-length-1: 22px;
+    --non-inherited-length-3: calc(var(--non-inherited-length-2) * 10);
+}
+
+#inner {
+    --inherited-length-3: 15px;
+    --non-inherited-length-1: 40px;
+    --non-inherited-length-2: 90px;
+}
+</style>
+<div id=outer><div id=inner></div></div>
+<script>
+CSS.registerProperty({name: '--inherited-length-1', syntax: '<length>', initialValue: '1px', inherits: true});
+CSS.registerProperty({name: '--inherited-length-2', syntax: '<length>', initialValue: '2px', inherits: true});
+CSS.registerProperty({name: '--inherited-length-3', syntax: '<length>', initialValue: '3px', inherits: true});
+CSS.registerProperty({name: '--non-inherited-length-1', syntax: '<length>', initialValue: '4px'});
+CSS.registerProperty({name: '--non-inherited-length-2', syntax: '<length>', initialValue: '5px'});
+CSS.registerProperty({name: '--non-inherited-length-3', syntax: '<length>', initialValue: '6px'});
+
+test(function() {
+    outerComputedStyle = getComputedStyle(outer);
+    assert_equals(outerComputedStyle.getPropertyValue('--inherited-length-1'), '10px');
+    assert_equals(outerComputedStyle.getPropertyValue('--inherited-length-2'), '22px');
+    assert_equals(outerComputedStyle.getPropertyValue('--inherited-length-3'), '30px');
+    assert_equals(outerComputedStyle.getPropertyValue('--non-inherited-length-1'), '22px');
+    assert_equals(outerComputedStyle.getPropertyValue('--non-inherited-length-2'), '5px');
+    assert_equals(outerComputedStyle.getPropertyValue('--non-inherited-length-3'), '50px');
+
+    innerComputedStyle = getComputedStyle(inner);
+    assert_equals(innerComputedStyle.getPropertyValue('--inherited-length-1'), '10px');
+    assert_equals(innerComputedStyle.getPropertyValue('--inherited-length-2'), '22px');
+    assert_equals(innerComputedStyle.getPropertyValue('--inherited-length-3'), '15px');
+    assert_equals(innerComputedStyle.getPropertyValue('--non-inherited-length-1'), '40px');
+    assert_equals(innerComputedStyle.getPropertyValue('--non-inherited-length-2'), '90px');
+    assert_equals(innerComputedStyle.getPropertyValue('--non-inherited-length-3'), '6px');
+}, "Registered properties are correctly inherited (or not) depending on the inherits flag.");
+</script>

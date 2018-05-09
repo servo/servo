@@ -12,12 +12,17 @@
         if side[1]:
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-margin-%s" % side[1]
     %>
-    ${helpers.predefined_type("margin-%s" % side[0], "LengthOrPercentageOrAuto",
-                              "computed::LengthOrPercentageOrAuto::Length(computed::Length::new(0.))",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
-                              allow_quirks=not side[1],
-                              animation_value_type="ComputedValue", logical = side[1], spec = spec,
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              allowed_in_page_rule=True,
-                              servo_restyle_damage = "reflow")}
+    ${helpers.predefined_type(
+        "margin-%s" % side[0],
+        "LengthOrPercentageOrAuto",
+        "computed::LengthOrPercentageOrAuto::Length(computed::Length::new(0.))",
+        alias=maybe_moz_logical_alias(product, side, "-moz-margin-%s"),
+        allow_quirks=not side[1],
+        animation_value_type="ComputedValue",
+        logical=side[1],
+        spec=spec,
+        flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
+        allowed_in_page_rule=True,
+        servo_restyle_damage="reflow"
+    )}
 % endfor

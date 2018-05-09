@@ -141,7 +141,9 @@ promise_test(async t => {
                 'Hold time is initially set');
   // Then extend the duration so that the hold time is cleared and on
   // the next tick the current time will increase.
-  anim.effect.timing.duration *= 2;
+  anim.effect.updateTiming({
+    duration: anim.effect.getComputedTiming().duration * 2,
+  });
   await waitForNextFrame();
 
   assert_greater_than(anim.currentTime, 100 * MS_PER_SEC,
@@ -247,7 +249,7 @@ promise_test(async t => {
   anim.cancel();
   // Trigger a change that will cause the "update the finished state"
   // procedure to run.
-  anim.effect.timing.duration = 200 * MS_PER_SEC;
+  anim.effect.updateTiming({ duration: 200 * MS_PER_SEC });
   assert_equals(anim.currentTime, null,
                 'The animation hold time / start time should not be updated');
   // The "update the finished state" procedure is supposed to run after any
@@ -273,7 +275,7 @@ test(t => {
   // is greater than the target end. At this point the "update the finished
   // state" procedure should run and if we fail to check for a pending task
   // we will set the hold time to the target end, i.e. 50ms.
-  anim.effect.timing.duration = 50 * MS_PER_SEC;
+  anim.effect.updateTiming({ duration: 50 * MS_PER_SEC });
   assert_equals(anim.currentTime, 75 * MS_PER_SEC,
                 'Hold time should not be updated');
 }, 'Updating the finished state when there is a pending task');
@@ -289,7 +291,7 @@ promise_test(async t => {
   anim.currentTime = 150 * MS_PER_SEC;
   // Trigger a change that will cause the "update the finished state"
   // procedure to run (did seek = false).
-  anim.effect.timing.duration = 200 * MS_PER_SEC;
+  anim.effect.updateTiming({ duration: 200 * MS_PER_SEC });
   await waitForAnimationFrames(1);
 
   assert_equals(anim.currentTime, 150 * MS_PER_SEC,
@@ -348,7 +350,7 @@ promise_test(async t => {
 }, 'Finish notification steps run when the animation completes normally');
 
 promise_test(async t => {
-  const effect = new KeyframeEffectReadOnly(null, null, 1);
+  const effect = new KeyframeEffect(null, null, 1);
   const animation = new Animation(effect, document.timeline);
   animation.play();
   await animation.ready;
@@ -416,6 +418,39 @@ async_test(t => {
     };
   };
 }, 'Animation finish event is fired again after replaying from start');
+
+async_test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { duration: 100000, endDelay: 50000 });
+  anim.onfinish = t.step_func(event => {
+    assert_unreached('finish event should not be fired');
+  });
+
+  anim.ready.then(() => {
+    anim.currentTime = 100000;
+    return waitForAnimationFrames(2);
+  }).then(t.step_func(() => {
+    t.done();
+  }));
+}, 'finish event is not fired at the end of the active interval when the'
+   + ' endDelay has not expired');
+
+async_test(t => {
+  const anim = createDiv(t).animate(null,
+                                    { duration: 100000, endDelay: 30000 });
+  anim.ready.then(() => {
+    anim.currentTime = 110000; // during endDelay
+    anim.onfinish = t.step_func(event => {
+      assert_unreached('onfinish event should not be fired during endDelay');
+    });
+    return waitForAnimationFrames(2);
+  }).then(t.step_func(() => {
+    anim.onfinish = t.step_func(event => {
+      t.done();
+    });
+    anim.currentTime = 130000; // after endTime
+  }));
+}, 'finish event is fired after the endDelay has expired');
 
 </script>
 </body>

@@ -22,16 +22,16 @@
       </p>
     </d:testDescription>
     <d:operatorScript xmlns="http://www.w3.org/1999/xhtml">
-    	<p>
-    		Mouseover each of the red rectangles, and then click on the bottommost rectangle.
-    	</p>
+      <p>
+        Mouseover each of the red rectangles, and then click on the bottommost rectangle.
+      </p>
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
         This test contains four cases. The cases must produce the following results for the test to pass.
       </p>
       <ul>
-      	<li>Case 1: On a mouseover event on the top square, all four squares must turn blue.</li>
+        <li>Case 1: On a mouseover event on the top square, all four squares must turn blue.</li>
         <li>Case 2: On a mouseover event on the top middle square, all four squares must turn blue and a black stroke
         must appear on the referencing square (element).</li>
         <li>Case 3: On a mouseover event on the bottom middle square, all four squares must turn blue and a black
@@ -52,11 +52,11 @@
     </font-face>
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
-	
-		<defs>
-			<!-- SVGElementInstance animates fill on mouseover -->
-			<rect id="rect" width="50" height="50" fill="red" onmouseover="document.getElementById('rect').setAttribute('fill','blue')" onmouseout="document.getElementById('rect').setAttribute('fill','red')" />
-		</defs>
+
+    <defs>
+      <!-- SVGElementInstance animates fill on mouseover -->
+      <rect id="rect" width="50" height="50" fill="red" onmouseover="document.getElementById('rect').setAttribute('fill','blue')" onmouseout="document.getElementById('rect').setAttribute('fill','red')" />
+    </defs>
 
     <text x="120" y="20" font-size="15">Shadow tree event listener chain</text>
 
@@ -68,7 +68,7 @@
     <!-- all rectangles turn blue and second rectangle displays black stroke  -->
     <use id="use2" fill="red" x="30" y="100" xlink:href="#rect" onmouseover="document.getElementById('rect1').setAttribute('stroke','black')" onmouseout="document.getElementById('rect1').setAttribute('stroke','none')"/>
     <rect id="rect1" pointer-events="none" x="30" y="100" width="50" height="50" fill="none" stroke-width="5" stroke="none"/>
-    
+
     <g font-size="12">
       <text x="95" y="115">Case 2: on mouseover all squares must turn blue</text>
       <text x="95" y="130">and a black stroke must appear on reference square</text>

@@ -7,11 +7,11 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use gfx::display_list::{BorderDetails, ClipScrollNode};
-use gfx::display_list::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
-use gfx::display_list::{DisplayList, StackingContextType};
+use display_list::items::{BorderDetails, ClipScrollNode};
+use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
+use display_list::items::{DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
-use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder};
+use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -63,7 +63,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         };
         webrender_api::LayoutPrimitiveInfo {
             rect: self.base().bounds,
-            local_clip: self.base().local_clip,
+            clip_rect: self.base().clip_rect,
             // TODO(gw): Make use of the WR backface visibility functionality.
             is_backface_visible: true,
             tag,
@@ -111,17 +111,15 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 );
             },
             DisplayItem::Image(ref item) => {
-                if let Some(id) = item.webrender_image.key {
-                    if item.stretch_size.width > 0.0 && item.stretch_size.height > 0.0 {
-                        builder.push_image(
-                            &self.prim_info(),
-                            item.stretch_size,
-                            item.tile_spacing,
-                            item.image_rendering,
-                            webrender_api::AlphaType::PremultipliedAlpha,
-                            id,
-                        );
-                    }
+                if item.stretch_size.width > 0.0 && item.stretch_size.height > 0.0 {
+                    builder.push_image(
+                        &self.prim_info(),
+                        item.stretch_size,
+                        item.tile_spacing,
+                        item.image_rendering,
+                        webrender_api::AlphaType::PremultipliedAlpha,
+                        item.id,
+                    );
                 }
             },
             DisplayItem::Border(ref item) => {
@@ -129,7 +127,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::Normal(ref border) => {
                         webrender_api::BorderDetails::Normal(*border)
                     },
-                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::Image(*image),
+                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::NinePatch(*image),
                     BorderDetails::Gradient(ref gradient) => {
                         webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
@@ -204,14 +202,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 );
             },
             DisplayItem::PushTextShadow(ref item) => {
-                builder.push_shadow(
-                    &self.prim_info(),
-                    webrender_api::Shadow {
-                        blur_radius: item.blur_radius,
-                        offset: item.offset,
-                        color: item.color,
-                    },
-                );
+                builder.push_shadow(&self.prim_info(), item.shadow);
             },
             DisplayItem::PopAllTextShadows(_) => {
                 builder.pop_all_shadows();
@@ -225,12 +216,14 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 builder.push_stacking_context(
                     &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
+                    None,
                     stacking_context.scroll_policy,
                     stacking_context.transform.map(Into::into),
                     stacking_context.transform_style,
                     stacking_context.perspective,
                     stacking_context.mix_blend_mode,
                     stacking_context.filters.clone(),
+                    GlyphRasterSpace::Screen,
                 );
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),

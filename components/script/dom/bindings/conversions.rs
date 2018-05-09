@@ -41,19 +41,21 @@ use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use dom::bindings::utils::DOMClass;
 use js;
-pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
+pub use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 pub use js::conversions::ConversionBehavior;
 use js::conversions::latin1_to_string;
 use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
-use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext, JSObject, JSString};
-use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetProperty, JS_GetReservedSlot};
-use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject, JS_IsExceptionPending};
-use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars, MutableHandleValue};
+use js::glue::{UnwrapObject, RUST_JSID_IS_STRING, RUST_JSID_TO_STRING};
+use js::jsapi::{Heap, JSContext, JSObject, JSString};
+use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
+use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsExceptionPending};
+use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
-use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
+use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{get_object_class, is_dom_class, is_dom_object, maybe_wrap_value, ToString};
+use js::rust::wrappers::{JS_GetProperty, JS_IsArrayObject};
 use libc;
 use num_traits::Float;
 use servo_config::opts;
@@ -125,17 +127,37 @@ impl<T: ToJSValConvertible + JSTraceable> ToJSValConvertible for RootedTraceable
     }
 }
 
+impl<T> FromJSValConvertible for RootedTraceableBox<Heap<T>>
+    where
+        T: FromJSValConvertible + js::rust::GCMethods + Copy,
+        Heap<T>: JSTraceable + Default
+{
+    type Config = T::Config;
+
+    unsafe fn from_jsval(cx: *mut JSContext,
+                         value: HandleValue,
+                         config: Self::Config)
+                         -> Result<ConversionResult<Self>, ()> {
+        T::from_jsval(cx, value, config).map(|result| match result {
+            ConversionResult::Success(inner) =>
+                ConversionResult::Success(RootedTraceableBox::from_box(Heap::boxed(inner))),
+            ConversionResult::Failure(msg) => ConversionResult::Failure(msg),
+        })
+    }
+}
+
 /// Convert `id` to a `DOMString`. Returns `None` if `id` is not a string or
 /// integer.
 ///
 /// Handling of invalid UTF-16 in strings depends on the relevant option.
 pub unsafe fn jsid_to_string(cx: *mut JSContext, id: HandleId) -> Option<DOMString> {
-    if RUST_JSID_IS_STRING(id) {
-        return Some(jsstring_to_str(cx, RUST_JSID_TO_STRING(id)));
+    let id_raw = id.into();
+    if RUST_JSID_IS_STRING(id_raw) {
+        return Some(jsstring_to_str(cx, RUST_JSID_TO_STRING(id_raw)));
     }
 
-    if RUST_JSID_IS_INT(id) {
-        return Some(RUST_JSID_TO_INT(id).to_string().into());
+    if RUST_JSID_IS_INT(id_raw) {
+        return Some(RUST_JSID_TO_INT(id_raw).to_string().into());
     }
 
     None
@@ -250,7 +272,7 @@ impl FromJSValConvertible for USVString {
 
 // http://heycam.github.io/webidl/#es-ByteString
 impl ToJSValConvertible for ByteString {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         let jsstr = JS_NewStringCopyN(cx,
                                       self.as_ptr() as *const libc::c_char,
                                       self.len() as libc::size_t);
@@ -300,7 +322,7 @@ impl FromJSValConvertible for ByteString {
 
 
 impl ToJSValConvertible for Reflector {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());
         rval.set(ObjectValue(obj));
@@ -466,7 +488,7 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
 pub unsafe fn get_property_jsval(cx: *mut JSContext,
                                  object: HandleObject,
                                  name: &str,
-                                 rval: MutableHandleValue)
+                                 mut rval: MutableHandleValue)
                                  -> Fallible<()>
 {
     rval.set(UndefinedValue());

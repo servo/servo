@@ -28,9 +28,6 @@
  *
  *  :scope -> <style scoped>, pending discussion.
  *
- * This follows the order defined in layout/style/nsCSSPseudoClassList.h when
- * possible.
- *
  * $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
  * $state can be either "_" or an expression of type ElementState.  If present,
  *        the semantics are that the pseudo-class matches if any of the bits in

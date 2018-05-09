@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{RGBA, Token, Parser, serialize_identifier, CowRcStr, SourceLocation};
+pub use cssparser::{serialize_identifier, CowRcStr, Parser, SourceLocation, Token, RGBA};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
@@ -49,7 +49,10 @@ where
 
 /// Serialize an identifier which is represented as an atom.
 #[cfg(feature = "servo")]
-pub fn serialize_atom_identifier<Static, W>(ident: &::string_cache::Atom<Static>, dest: &mut W) -> fmt::Result
+pub fn serialize_atom_identifier<Static, W>(
+    ident: &::string_cache::Atom<Static>,
+    dest: &mut W,
+) -> fmt::Result
 where
     Static: ::string_cache::StaticAtomSet,
     W: Write,
@@ -68,17 +71,14 @@ where
 
 /// Convenience void type to disable some properties and values through types.
 #[cfg_attr(feature = "servo", derive(Deserialize, MallocSizeOf, Serialize))]
-#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedValue, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss)]
 pub enum Impossible {}
 
 // FIXME(nox): This should be derived but the derive code cannot cope
 // with uninhabited enums.
 impl ComputeSquaredDistance for Impossible {
     #[inline]
-    fn compute_squared_distance(
-        &self,
-        _other: &Self,
-    ) -> Result<SquaredDistance, ()> {
+    fn compute_squared_distance(&self, _other: &Self) -> Result<SquaredDistance, ()> {
         match *self {}
     }
 }
@@ -86,15 +86,16 @@ impl ComputeSquaredDistance for Impossible {
 impl Parse for Impossible {
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>)
-    -> Result<Self, ParseError<'i>> {
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
 /// A struct representing one of two kinds of values.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf)]
-#[derive(PartialEq, ToAnimatedValue, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero, ToComputedValue,
+         ToCss)]
 pub enum Either<A, B> {
     /// The first value.
     First(A),
@@ -112,8 +113,10 @@ impl<A: Debug, B: Debug> Debug for Either<A, B> {
 }
 
 impl<A: Parse, B: Parse> Parse for Either<A, B> {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                     -> Result<Either<A, B>, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Either<A, B>, ParseError<'i>> {
         if let Ok(v) = input.try(|i| A::parse(context, i)) {
             Ok(Either::First(v))
         } else {
@@ -123,13 +126,17 @@ impl<A: Parse, B: Parse> Parse for Either<A, B> {
 }
 
 /// <https://drafts.csswg.org/css-values-4/#custom-idents>
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue)]
 pub struct CustomIdent(pub Atom);
 
 impl CustomIdent {
     /// Parse an already-tokenizer identifier
-    pub fn from_ident<'i>(location: SourceLocation, ident: &CowRcStr<'i>, excluding: &[&str])
-                          -> Result<Self, ParseError<'i>> {
+    pub fn from_ident<'i>(
+        location: SourceLocation,
+        ident: &CowRcStr<'i>,
+        excluding: &[&str],
+    ) -> Result<Self, ParseError<'i>> {
         let valid = match_ignore_ascii_case! { ident,
             "initial" | "inherit" | "unset" | "default" => false,
             _ => true
@@ -155,7 +162,7 @@ impl ToCss for CustomIdent {
 }
 
 /// <https://drafts.csswg.org/css-animations/#typedef-keyframes-name>
-#[derive(Clone, Debug, MallocSizeOf, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
 pub enum KeyframesName {
     /// <custom-ident>
     Ident(CustomIdent),
@@ -203,16 +210,26 @@ impl PartialEq for KeyframesName {
 }
 
 impl hash::Hash for KeyframesName {
-    fn hash<H>(&self, state: &mut H) where H: hash::Hasher {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: hash::Hasher,
+    {
         self.as_atom().hash(state)
     }
 }
 
 impl Parse for KeyframesName {
-    fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         match *input.next()? {
-            Token::Ident(ref s) => Ok(KeyframesName::Ident(CustomIdent::from_ident(location, s, &["none"])?)),
+            Token::Ident(ref s) => Ok(KeyframesName::Ident(CustomIdent::from_ident(
+                location,
+                s,
+                &["none"],
+            )?)),
             Token::QuotedString(ref s) => Ok(KeyframesName::QuotedString(Atom::from(s.as_ref()))),
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         }
@@ -230,4 +247,3 @@ impl ToCss for KeyframesName {
         }
     }
 }
-

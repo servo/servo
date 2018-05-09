@@ -6,13 +6,16 @@
         "members": [
             {
                 "type": "legacyiterable",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "union": false,
-                    "idlType": "long"
-                },
+                "idlType": [
+                    {
+                        "type": null,
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "union": false,
+                        "idlType": "long"
+                    }
+                ],
                 "extAttrs": []
             }
         ],
@@ -20,4 +23,3 @@
         "extAttrs": []
     }
 ]
-

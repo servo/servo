@@ -14,6 +14,8 @@ extern crate clipboard;
 extern crate compositing;
 extern crate debugger;
 extern crate devtools_traits;
+#[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
+extern crate embedder_traits;
 extern crate euclid;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 extern crate gaol;
@@ -21,7 +23,6 @@ extern crate gfx;
 extern crate gfx_traits;
 extern crate hyper;
 extern crate ipc_channel;
-extern crate itertools;
 extern crate layout_traits;
 #[macro_use]
 extern crate log;
@@ -47,6 +48,7 @@ mod network_listener;
 mod pipeline;
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]
 mod sandboxing;
+mod session_history;
 mod timer_scheduler;
 
 pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, InitialConstellationState};

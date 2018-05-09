@@ -15,8 +15,8 @@ promise_test(() => {
     .then(service => service.getCharacteristic(device_name.name))
     .then(characteristic => {
         assert_equals(characteristic.value, null);
-        return characteristic.writeValue(asciiToDecimal('foo'))
-        .then(() => assert_equals(characteristic.value, 'foo'));
+        return characteristic.writeValue(Uint8Array.of(1, 2))
+        .then(() => assert_equals(characteristic.value, '\x01\x02'));
     });
 }, 'A regular write request to a writable characteristic should update value.');
 </script>
