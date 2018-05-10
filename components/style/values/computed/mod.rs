@@ -56,6 +56,7 @@ pub use self::inherited_box::{ImageOrientation, Orientation};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
+pub use self::resolution::Resolution;
 pub use super::{Auto, Either, None_};
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage};
@@ -105,6 +106,7 @@ pub mod outline;
 pub mod percentage;
 pub mod position;
 pub mod rect;
+pub mod resolution;
 pub mod svg;
 pub mod table;
 pub mod text;
