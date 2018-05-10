@@ -17,6 +17,9 @@ pub enum Resolution {
     /// Dots per inch.
     #[css(dimension)]
     Dpi(CSSFloat),
+    /// An alias unit for dots per pixel.
+    #[css(dimension)]
+    X(CSSFloat),
     /// Dots per pixel.
     #[css(dimension)]
     Dppx(CSSFloat),
@@ -29,6 +32,7 @@ impl Resolution {
     /// Convert this resolution value to dppx units.
     pub fn to_dppx(&self) -> CSSFloat {
         match *self {
+            Resolution::X(f) |
             Resolution::Dppx(f) => f,
             _ => self.to_dpi() / 96.0,
         }
@@ -38,6 +42,7 @@ impl Resolution {
     pub fn to_dpi(&self) -> CSSFloat {
         match *self {
             Resolution::Dpi(f) => f,
+            Resolution::X(f) |
             Resolution::Dppx(f) => f * 96.0,
             Resolution::Dpcm(f) => f * 2.54,
         }
@@ -65,6 +70,7 @@ impl Parse for Resolution {
             "dpi" => Ok(Resolution::Dpi(value)),
             "dppx" => Ok(Resolution::Dppx(value)),
             "dpcm" => Ok(Resolution::Dpcm(value)),
+            "x" => Ok(Resolution::X(value)),
             _ => Err(location.new_custom_error(
                 StyleParseErrorKind::UnexpectedDimension(unit.clone())
             )),
