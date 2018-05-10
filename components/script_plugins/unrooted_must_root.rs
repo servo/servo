@@ -158,9 +158,13 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
                         false
                     } else if cx.tcx.has_attr(did.did, "allow_unrooted_interior") {
                         false
+                    //} else if match_def_path(cx, did.did, &["mozjs", "conversions", "ToJSValConvertible"]) { // hadn't helped :(
+                    //    ret = true;
+                    //    false
                     } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
                             || match_def_path(cx, did.did, &["core", "cell", "RefMut"])
                             || match_def_path(cx, did.did, &["core", "slice", "Iter"])
+                            || match_def_path(cx, did.did, &["core", "ptr", "NonNull"])  // -- is ok?
                             || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Entry"])
                             || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "OccupiedEntry"])
                             || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"])
@@ -200,6 +204,7 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
             return false;
         }
         // TODO we'll see what's necessary and what is not
+        // TODO at the end, sort this list lexicographically
         else if match_def_path(cx, did, &["core", "cell", "Ref"])
              || match_def_path(cx, did, &["core", "cell", "RefMut"])
              || match_def_path(cx, did, &["core", "mem", "size_of"])  // -- is ok?
@@ -207,7 +212,26 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
              || match_def_path(cx, did, &["core", "option", "{{impl}}"])  // -- is ok?
              || match_def_path(cx, did, &["core", "option", "Option"])  // -- is ok? looks like misuse
              || match_def_path(cx, did, &["core", "ops", "deref", "Deref"])  // -- is ok? or only the deref method?
+             || match_def_path(cx, did, &["core", "cmp", "PartialEq"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "clone", "Clone"])  // -- is ok?
+             || match_def_path(cx, did, &["mozjs", "conversions", "ToJSValConvertible"])  // -- is ok?
+             || match_def_path(cx, did, &["std", "sync", "mpsc", "Sender"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "result", "Result"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "result", "{{impl}}", "map"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "option", "{{impl}}", "map"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "ptr", "NonNull"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "ptr", "{{impl}}"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "ptr", "read"])  // -- is ok?
+             || match_def_path(cx, did, &["alloc", "boxed", "Box"])  // -- is ok?
+             || match_def_path(cx, did, &["alloc", "boxed", "{{impl}}"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "cell", "UnsafeCell"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "cell", "RefCell"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "cell", "{{impl}}"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "mem", "drop"])  // -- is ok?
+             || match_def_path(cx, did, &["core", "marker", "PhantomData"])  // -- is ok?
+             || match_def_path(cx, did, &["std", "thread", "local", "{{impl}}", "with"])  // -- is ok?
              || match_def_path(cx, did, &["core", "slice", "Iter"])
+             || match_def_path(cx, did, &["std", "collections", "hash", "map", "HashMap"])  // -- is ok?
              || match_def_path(cx, did, &["std", "collections", "hash", "map", "Entry"])
              || match_def_path(cx, did, &["std", "collections", "hash", "map", "OccupiedEntry"])
              || match_def_path(cx, did, &["std", "collections", "hash", "map", "VacantEntry"])

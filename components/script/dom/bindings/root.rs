@@ -81,7 +81,7 @@ pub unsafe trait StableTraceObject {
     fn stable_trace_object(&self) -> *const JSTraceable;
 }
 
-unsafe impl<T> StableTraceObject for Dom<T>
+unsafe impl<#[must_root] T> StableTraceObject for Dom<T>
 where
     T: DomObject,
 {
@@ -128,9 +128,9 @@ where
 /// A rooted reference to a DOM object.
 pub type DomRoot<#[must_root] T> = Root<Dom<T>>;
 
-impl<T: Castable> DomRoot<T> {
+impl<#[must_root] T: Castable> DomRoot<T> {
     /// Cast a DOM object root upwards to one of the interfaces it derives from.
-    pub fn upcast<U>(root: DomRoot<T>) -> DomRoot<U>
+    pub fn upcast<#[must_root] U>(root: DomRoot<T>) -> DomRoot<U>
         where U: Castable,
               T: DerivedFrom<U>
     {
@@ -138,7 +138,7 @@ impl<T: Castable> DomRoot<T> {
     }
 
     /// Cast a DOM object root downwards to one of the interfaces it might implement.
-    pub fn downcast<U>(root: DomRoot<T>) -> Option<DomRoot<U>>
+    pub fn downcast<#[must_root] U>(root: DomRoot<T>) -> Option<DomRoot<U>>
         where U: DerivedFrom<T>
     {
         if root.is::<U>() {
@@ -149,14 +149,14 @@ impl<T: Castable> DomRoot<T> {
     }
 }
 
-impl<T: DomObject> DomRoot<T> {
+impl<#[must_root] T: DomObject> DomRoot<T> {
     /// Generate a new root from a reference
     pub fn from_ref(unrooted: &T) -> DomRoot<T> {
         unsafe { DomRoot::new(Dom::from_ref(unrooted)) }
     }
 }
 
-impl<T> MallocSizeOf for DomRoot<T>
+impl<#[must_root] T> MallocSizeOf for DomRoot<T>
 where
     T: DomObject + MallocSizeOf,
 {
@@ -165,7 +165,7 @@ where
     }
 }
 
-impl<T> PartialEq for DomRoot<T>
+impl<#[must_root] T> PartialEq for DomRoot<T>
 where
     T: DomObject,
 {
@@ -174,7 +174,7 @@ where
     }
 }
 
-impl<T> Clone for DomRoot<T>
+impl<#[must_root] T> Clone for DomRoot<T>
 where
     T: DomObject,
 {
@@ -183,7 +183,7 @@ where
     }
 }
 
-unsafe impl<T> JSTraceable for DomRoot<T>
+unsafe impl<#[must_root] T> JSTraceable for DomRoot<T>
 where
     T: DomObject,
 {
@@ -267,28 +267,28 @@ pub trait RootedReference<'root> {
     fn r(&'root self) -> Self::Ref;
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
+impl<'root, #[must_root] T: DomObject + 'root> RootedReference<'root> for DomRoot<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         self
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Dom<T> {
+impl<'root, #[must_root] T: DomObject + 'root> RootedReference<'root> for Dom<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         &self
     }
 }
 
-impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
+impl<'root, #[must_root] T: JSTraceable + DomObject + 'root> RootedReference<'root> for [Dom<T>] {
     type Ref = &'root [&'root T];
     fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(self) }
     }
 }
 
-impl<'root, T: DomObject + 'root> RootedReference<'root> for Rc<T> {
+impl<'root, #[must_root] T: DomObject + 'root> RootedReference<'root> for Rc<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         self
@@ -343,7 +343,7 @@ impl<#[must_root] T: DomObject> Dom<T> {
     }
 }
 
-impl<T: DomObject> Deref for Dom<T> {
+impl<#[must_root] T: DomObject> Deref for Dom<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -354,7 +354,7 @@ impl<T: DomObject> Deref for Dom<T> {
     }
 }
 
-unsafe impl<T: DomObject> JSTraceable for Dom<T> {
+unsafe impl<#[must_root] T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         #[cfg(all(feature = "unstable", debug_assertions))]
         let trace_str = format!("for {} on heap", ::std::intrinsics::type_name::<T>());
@@ -407,7 +407,7 @@ impl<T: Castable> LayoutDom<T> {
     }
 }
 
-impl<T: DomObject> LayoutDom<T> {
+impl<#[must_root] T: DomObject> LayoutDom<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         debug_assert!(thread_state::get().is_layout());
@@ -485,11 +485,11 @@ impl LayoutDom<Node> {
 /// on `Dom<T>`.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutDom<T: DomObject> {
+pub struct MutDom<#[must_root] T: DomObject> {
     val: UnsafeCell<Dom<T>>,
 }
 
-impl<T: DomObject> MutDom<T> {
+impl<#[must_root] T: DomObject> MutDom<T> {
     /// Create a new `MutDom`.
     pub fn new(initial: &T) -> MutDom<T> {
         debug_assert!(thread_state::get().is_script());
@@ -515,14 +515,14 @@ impl<T: DomObject> MutDom<T> {
     }
 }
 
-impl<T: DomObject> MallocSizeOf for MutDom<T> {
+impl<#[must_root] T: DomObject> MallocSizeOf for MutDom<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // See comment on MallocSizeOf for Dom<T>.
         0
     }
 }
 
-impl<T: DomObject> PartialEq for MutDom<T> {
+impl<#[must_root] T: DomObject> PartialEq for MutDom<T> {
    fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.val.get() == *other.val.get()
@@ -530,7 +530,7 @@ impl<T: DomObject> PartialEq for MutDom<T> {
     }
 }
 
-impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
+impl<#[must_root] T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
     fn eq(&self, other: &T) -> bool {
         unsafe {
             **self.val.get() == *other
@@ -648,11 +648,11 @@ impl<#[must_root] T: DomObject> MallocSizeOf for MutNullableDom<T> {
 /// This should only be used as a field in other DOM objects; see warning
 /// on `Dom<T>`.
 #[must_root]
-pub struct DomOnceCell<T: DomObject> {
+pub struct DomOnceCell<#[must_root] T: DomObject> {
     ptr: OnceCell<Dom<T>>,
 }
 
-impl<T> DomOnceCell<T>
+impl<#[must_root] T> DomOnceCell<T>
 where
     T: DomObject
 {
@@ -667,7 +667,7 @@ where
     }
 }
 
-impl<T: DomObject> Default for DomOnceCell<T> {
+impl<#[must_root] T: DomObject> Default for DomOnceCell<T> {
     #[allow(unrooted_must_root)]
     fn default() -> DomOnceCell<T> {
         debug_assert!(thread_state::get().is_script());
@@ -677,15 +677,15 @@ impl<T: DomObject> Default for DomOnceCell<T> {
     }
 }
 
-impl<T: DomObject> MallocSizeOf for DomOnceCell<T> {
+impl<#[must_root] T: DomObject> MallocSizeOf for DomOnceCell<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
         // See comment on MallocSizeOf for Dom<T>.
         0
     }
 }
 
-#[allow(unrooted_must_root)]
-unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
+#[allow(unrooted_must_root)]  // TODO mark must_root?
+unsafe impl<#[must_root] T: DomObject> JSTraceable for DomOnceCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         if let Some(ptr) = self.ptr.as_ref() {
             ptr.trace(trc);
@@ -693,7 +693,7 @@ unsafe impl<T: DomObject> JSTraceable for DomOnceCell<T> {
     }
 }
 
-impl<T: DomObject> LayoutDom<T> {
+impl<#[must_root] T: DomObject> LayoutDom<T> {
     /// Returns an unsafe pointer to the interior of this JS object. This is
     /// the only method that be safely accessed from layout. (The fact that
     /// this is unsafe is what necessitates the layout wrappers.)

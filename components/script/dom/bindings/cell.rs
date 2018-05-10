@@ -12,14 +12,15 @@ use style::thread_state::{self, ThreadState};
 /// This extends the API of `std::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
-pub struct DomRefCell<T> {
+#[must_root]
+pub struct DomRefCell<#[must_root] T> {
     value: RefCell<T>,
 }
 
 // Functionality specific to Servo's `DomRefCell` type
 // ===================================================
 
-impl<T> DomRefCell<T> {
+impl<#[must_root] T> DomRefCell<T> {
     /// Return a reference to the contents.
     ///
     /// For use in the layout thread only.
@@ -47,7 +48,7 @@ impl<T> DomRefCell<T> {
 
 // Functionality duplicated with `std::cell::RefCell`
 // ===================================================
-impl<T> DomRefCell<T> {
+impl<#[must_root] T> DomRefCell<T> {
     /// Create a new `DomRefCell` containing `value`.
     pub fn new(value: T) -> DomRefCell<T> {
         DomRefCell {
