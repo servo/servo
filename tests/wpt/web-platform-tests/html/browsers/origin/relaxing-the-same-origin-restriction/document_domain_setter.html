@@ -15,7 +15,7 @@
       var SUFFIX_HOST = ORIGINAL_HOST.substring(ORIGINAL_HOST.lastIndexOf('.') + 1); // e.g. "test"
       var PREFIX_HOST = "www1." + ORIGINAL_HOST; // e.g. "www1.web-platform.test"
       var iframe = document.getElementById("iframe");
-      var iframe_url = new URL("document_domain_setter_iframe.html", document.location);
+      var iframe_url = new URL("support/document_domain_setter_iframe.html", document.location);
       iframe_url.hostname = PREFIX_HOST;
       iframe.src = iframe_url;
       test(function() {
@@ -25,11 +25,11 @@
         assert_throws("SecurityError", function() { document.domain = "example.com"; });
       }, "failed setting of document.domain");
       async_test(function(t) {
-        iframe.addEventListener("load", t.step_func(function() {
+        iframe.addEventListener("load", t.step_func_done(function() {
           // Before setting document.domain, the iframe is not
           // same-origin-domain, so security checks fail.
           assert_equals(iframe.contentDocument, null);
-          assert_equals(iframe.contentWindow.frameElement, null);
+          assert_throws("SecurityError", () => iframe.contentWindow.frameElement);
           assert_throws("SecurityError", function() { iframe.contentWindow.location.origin; });
           assert_throws("SecurityError", function() { iframe.contentWindow.location.href; });
           assert_throws("SecurityError", function() { iframe.contentWindow.location.protocol; });
@@ -45,8 +45,8 @@
           // After setting document.domain, the iframe is
           // same-origin-domain, so security checks pass.
           assert_equals(iframe.contentDocument.domain, document.domain);
-          assert_equals(iframe.contentWindow.frameElement, iframe)
-          assert_equals(iframe.contentWindow.origin, window.origin);
+          assert_equals(iframe.contentWindow.frameElement, iframe);
+          assert_equals(iframe.contentWindow.origin, iframe_url.origin);
           assert_equals(iframe.contentWindow.location.href, iframe_url.href);
           assert_equals(iframe.contentWindow.location.protocol, iframe_url.protocol);
           assert_equals(iframe.contentWindow.location.host, iframe_url.host);
@@ -60,7 +60,6 @@
           // document.open checks for same-origin, not same-origin-domain,
           // https://github.com/whatwg/html/issues/2282
           assert_throws("SecurityError", function() { iframe.contentDocument.open(); });
-          t.done();
         }));
       }, "same-origin-domain iframe");
     </script>

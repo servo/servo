@@ -5,7 +5,7 @@
 function trimEmptyElements(array) {
   var start = 0;
   var end = array.length;
-  
+
   while (start < array.length) {
     if (array[start] !== 0) {
       break;
@@ -115,7 +115,7 @@ function compareBuffers(got, expected) {
  * + skipOfflineContextTests: optional. when true, skips running tests on an offline
  *                            context by circumventing testOnOfflineContext.
  *
- * [0]: http://web-platform-tests.org/writing-tests/testharness-api.html#single-page-tests
+ * [0]: https://web-platform-tests.org/writing-tests/testharness-api.html#single-page-tests
  */
 function runTest(name)
 {

@@ -6,6 +6,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 from abc import ABCMeta, abstractmethod
 from ConfigParser import RawConfigParser
 from datetime import datetime, timedelta
@@ -191,7 +192,7 @@ class Firefox(Browser):
         channel = {"a": "nightly", "b": "beta"}
         return version, channel.get(status, "stable")
 
-    def get_prefs_url(self, version, channel):
+    def get_profile_bundle_url(self, version, channel):
         if channel == "stable":
             repo = "https://hg.mozilla.org/releases/mozilla-release"
             tag = "FIREFOX_%s_RELEASE" % version.replace(".", "_")
@@ -205,7 +206,7 @@ class Firefox(Browser):
                 # can get if we have an application.ini file
                 tag = "tip"
 
-        return "%s/raw-file/%s/testing/profiles/prefs_general.js" % (repo, tag)
+        return "%s/archive/%s.zip/testing/profiles/" % (repo, tag)
 
     def install_prefs(self, binary, dest=None):
         version, channel = self.get_version_number(binary)
@@ -213,36 +214,37 @@ class Firefox(Browser):
         if dest is None:
             dest = os.pwd
 
-        dest = os.path.join(dest, "profiles")
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-        prefs_file = os.path.join(dest, "prefs_general.js")
-        cache_file = os.path.join(dest,
-                                  "%s-%s.cache" % (version, channel)
-                                  if channel != "nightly"
-                                  else "nightly.cache")
-
+        dest = os.path.join(dest, "profiles", channel, version)
         have_cache = False
-        if os.path.exists(cache_file):
+        if os.path.exists(dest):
             if channel != "nightly":
                 have_cache = True
             else:
                 now = datetime.now()
-                have_cache = (datetime.fromtimestamp(os.stat(cache_file).st_mtime) >
+                have_cache = (datetime.fromtimestamp(os.stat(dest).st_mtime) >
                               now - timedelta(days=1))
 
-        # If we don't have a recent download, grab the url
+        # If we don't have a recent download, grab and extract the latest one
         if not have_cache:
-            url = self.get_prefs_url(version, channel)
+            if os.path.exists(dest):
+                shutil.rmtree(dest)
+            os.makedirs(dest)
 
-            with open(cache_file, "wb") as f:
-                print("Installing test prefs from %s" % url)
-                resp = get(url)
-                f.write(resp.content)
+            url = self.get_profile_bundle_url(version, channel)
+
+            print("Installing test prefs from %s" % url)
+            try:
+                extract_dir = tempfile.mkdtemp()
+                unzip(get(url).raw, dest=extract_dir)
+
+                profiles = os.path.join(extract_dir, os.listdir(extract_dir)[0], 'testing', 'profiles')
+                for name in os.listdir(profiles):
+                    path = os.path.join(profiles, name)
+                    shutil.move(path, dest)
+            finally:
+                shutil.rmtree(extract_dir)
         else:
-            print("Using cached test prefs from %s" % cache_file)
-
-        shutil.copyfile(cache_file, prefs_file)
+            print("Using cached test prefs from %s" % dest)
 
         return dest
 

@@ -33,7 +33,7 @@
 </div>
 </body>
 <script>
-promise_test(t => {
+promise_test(async t => {
   const ids = createTestTree(host);
   document.body.appendChild(ids.host);
 
@@ -44,7 +44,11 @@ promise_test(t => {
   assert_equals(ids.root4.pictureInPictureElement, null);
   assert_equals(ids.root5.pictureInPictureElement, null);
 
-  return requestPictureInPictureWithTrustedClick(ids.video)
+  await new Promise(resolve => {
+    ids.video.src = '/media/movie_5.ogv';
+    ids.video.onloadeddata = resolve;
+  })
+  .then(() => requestPictureInPictureWithTrustedClick(ids.video))
   .then(() => {
     assert_equals(document.pictureInPictureElement, ids.host2);
     assert_equals(ids.root.pictureInPictureElement, null);

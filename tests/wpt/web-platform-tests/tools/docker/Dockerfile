@@ -60,17 +60,13 @@ USER test
 
 WORKDIR /home/test
 
-COPY .bashrc /home/test/.bashrc
-
-COPY start.sh /home/test/start.sh
-
 # Remove information on how to use sudo on login
 RUN sudo echo ""
 
-RUN git clone --depth=1 https://github.com/w3c/web-platform-tests.git
-
-RUN mkdir -p /home/test/.fonts && \
-    cp web-platform-tests/fonts/Ahem.ttf ~/.fonts && \
-    fc-cache -f -v
-
 RUN mkdir -p /home/test/artifacts
+
+WORKDIR /home/test/
+
+COPY .bashrc /home/test/.bashrc
+
+COPY start.sh /home/test/start.sh

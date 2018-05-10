@@ -64,7 +64,7 @@
         2.  Set transceiver's mid value to the mid of the corresponding media
             description.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('audio');
     assert_equals(transceiver.mid, null);
@@ -97,7 +97,7 @@
               transceiver be the result.
         3.  Set transceiver's mid value to the mid of the corresponding media description.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
 
@@ -137,7 +137,7 @@
             the RTCSessionDescription that is being rolled back, set the mid value
             of that transceiver to null, as described by [JSEP] (section 4.1.8.2.).
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('audio');
     assert_equals(transceiver.mid, null);
@@ -157,7 +157,7 @@
     });
   }, 'setLocalDescription(rollback) should unset transceiver.mid');
 
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const transceiver1 = pc.addTransceiver('audio');
     assert_equals(transceiver1.mid, null);
@@ -202,7 +202,7 @@
             addTrack, remove that transceiver from connection's set of transceivers,
             as described by [JSEP] (section 4.1.8.2.).
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
 

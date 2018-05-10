@@ -9,6 +9,7 @@ import yaml
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
+docker_image = "harjgam/web-platform-tests:0.11"
 
 task_template = {
     "provisionerId": "{{ taskcluster.docker.provisionerId }}",
@@ -21,17 +22,14 @@ task_template = {
     },
     "payload": {
         "maxRunTime": 7200,
-        "image": "harjgam/web-platform-tests:0.6",
+        "image": docker_image,
         "command":[
             "/bin/bash",
             "--login",
             "-c",
             """>-
-            ~/start.sh &&
-            cd /home/test/web-platform-tests &&
-            git fetch {{event.head.repo.url}} &&
-            git config advice.detachedHead false &&
-            git checkout {{event.head.sha}} &&
+            ~/start.sh {{event.head.repo.url}} {{ event.head.repo.branch }} {{event.head.sha}} %(browser_name)s &&
+            cd ~/web-platform-tests &&
             %(command)s"""],
         "artifacts": {
             "public/results": {
