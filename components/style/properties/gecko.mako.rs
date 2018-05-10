@@ -1436,6 +1436,7 @@ impl Clone for ${style_struct.gecko_struct_name} {
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "Color": impl_color,
+        "ColorOrAuto": impl_color,
         "GreaterThanOrEqualToOneNumber": impl_simple,
         "Integer": impl_simple,
         "length::LengthOrAuto": impl_style_coord,
@@ -5303,7 +5304,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedUI"
-                  skip_longhands="cursor caret-color">
+                  skip_longhands="cursor">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         use style_traits::cursor::CursorKind;
 
@@ -5449,8 +5450,6 @@ clip-path
 
         longhands::cursor::computed_value::T { images, keyword }
     }
-
-    <%call expr="impl_color('caret_color', 'mCaretColor')"></%call>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
