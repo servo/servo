@@ -466,12 +466,6 @@ pub trait TElement:
         &[]
     }
 
-    /// For a given NAC element, return the closest non-NAC ancestor, which is
-    /// guaranteed to exist.
-    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
-        unreachable!("Servo doesn't know about NAC");
-    }
-
     /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>;
 
@@ -657,9 +651,8 @@ pub trait TElement:
         false
     }
 
-    /// Returns true if this element is native anonymous (only Gecko has native
-    /// anonymous content).
-    fn is_native_anonymous(&self) -> bool {
+    /// Returns true if this element is in a native anonymous subtree.
+    fn is_in_native_anonymous_subtree(&self) -> bool {
         false
     }
 
@@ -794,7 +787,7 @@ pub trait TElement:
     /// element.
     fn rule_hash_target(&self) -> Self {
         if self.implemented_pseudo_element().is_some() {
-            self.closest_non_native_anonymous_ancestor()
+            self.pseudo_element_originating_element()
                 .expect("Trying to collect rules for a detached pseudo-element")
         } else {
             *self

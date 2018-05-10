@@ -191,7 +191,9 @@ where
         // Before doing the cascade, check the sharing cache and see if we can
         // reuse the style via rule node identity.
         let may_reuse =
-            !self.element.is_native_anonymous() && parent_style.is_some() && inputs.rules.is_some();
+            !self.element.is_in_native_anonymous_subtree() &&
+            parent_style.is_some() &&
+            inputs.rules.is_some();
 
         if may_reuse {
             let cached = self.context.thread_local.sharing_cache.lookup_by_rules(

@@ -565,7 +565,7 @@ impl<E: TElement> StyleSharingCache<E> {
             },
         };
 
-        if element.is_native_anonymous() {
+        if element.is_in_native_anonymous_subtree() {
             debug!("Failing to insert into the cache: NAC");
             return;
         }
@@ -656,7 +656,7 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.is_native_anonymous() {
+        if target.is_in_native_anonymous_subtree() {
             debug!("{:?} Cannot share style: NAC", target.element);
             return None;
         }
@@ -681,7 +681,7 @@ impl<E: TElement> StyleSharingCache<E> {
         nth_index_cache: &mut NthIndexCache,
         selector_flags_map: &mut SelectorFlagsMap<E>,
     ) -> Option<ResolvedElementStyles> {
-        debug_assert!(!target.is_native_anonymous());
+        debug_assert!(!target.is_in_native_anonymous_subtree());
 
         // Check that we have the same parent, or at least that the parents
         // share styles and permit sharing across their children. The latter
