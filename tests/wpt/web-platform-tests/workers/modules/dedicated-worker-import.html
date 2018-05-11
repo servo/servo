@@ -45,4 +45,11 @@ promise_test(() => {
       'resources/dynamic-import-and-then-static-import-worker.js', 3);
 }, 'Test dynamic import and then static import on DedicatedWorkerGlobalScope.');
 
+promise_test(() => {
+  const scriptURL = 'resources/import-scripts-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return (new Promise(resolve => worker.onmessage = resolve))
+      .then(e => assert_equals(e.data, 'TypeError'));
+}, 'importScripts() on module worker should throw an exception.');
+
 </script>

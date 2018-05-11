@@ -44,10 +44,10 @@ For example, on most UNIX-like systems, you can setup the hosts file with:
 ./wpt make-hosts-file | sudo tee -a /etc/hosts
 ```
 
-And on Windows (note this requires an Administrator privileged shell):
+And on Windows (this must be run in a PowerShell session with Administrator privileges):
 
 ```bash
-python wpt make-hosts-file >> %SystemRoot%\System32\drivers\etc\hosts
+python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -Encoding ascii -Append
 ```
 
 If you are behind a proxy, you also need to make sure the domains above are
@@ -69,22 +69,19 @@ python wpt serve
 ```
 
 This will start HTTP servers on two ports and a websockets server on
-one port. By default the web servers start on ports 8000 and 8443 and the other
-ports are randomly-chosen free ports. Tests must be loaded from the
-*first* HTTP server in the output. To change the ports, copy the
-`config.default.json` file to `config.json` and edit the new file,
-replacing the part that reads:
+one port. By default the web servers start on ports 8000 and 8443 and
+the other ports are randomly-chosen free ports. Tests must be loaded
+from the *first* HTTP server in the output. To change the ports,
+create a `config.json` file in the wpt root directory, and add
+port definitions of your choice e.g.:
 
 ```
-"http": [8000, "auto"],
-"https":[8443]
-```
-
-to some ports of your choice e.g.
-
-```
-"http": [1234, "auto"],
-"https":[5678]
+{
+  "ports": {
+    "http": [1234, "auto"],
+    "https":[5678]
+  }
+}
 ```
 
 After your `hosts` file is configured, the servers will be locally accessible at:
@@ -262,11 +259,26 @@ If you forget to do this part, you will most likely see a 'File Not Found'
 error when you start wptserve.
 
 Finally, set the path value in the server configuration file to the
-default OpenSSL configuration file location. To do this,
-copy `config.default.json` in the web-platform-tests root to `config.json`.
-Then edit the JSON so that the key `ssl/openssl/base_conf_path` has a
-value that is the path to the OpenSSL config file (typically this
-will be `C:\\OpenSSL-Win32\\bin\\openssl.cfg`).
+default OpenSSL configuration file location. To do this create a file
+called `config.json`.  Then add the OpenSSL configuration below,
+ensuring that the key `ssl/openssl/base_conf_path` has a value that is
+the path to the OpenSSL config file (typically this will be
+`C:\\OpenSSL-Win32\\bin\\openssl.cfg`):
+
+```
+{
+  "ssl": {
+    "type": "openssl",
+    "encrypt_after_connect": false,
+    "openssl": {
+      "openssl_binary": "openssl",
+      "base_path: "_certs",
+      "force_regenerate": false,
+      "base_conf_path": "C:\\OpenSSL-Win32\\bin\\openssl.cfg"
+    },
+  },
+}
+```
 
 ### Trusting Root CA
 
@@ -361,7 +373,7 @@ web-platform-tests root directory to suppress the error reports.
 
 For more details, see the [lint-tool documentation][lint-tool].
 
-[lint-tool]: http://web-platform-tests.org/writing-tests/lint-tool.html
+[lint-tool]: https://web-platform-tests.org/writing-tests/lint-tool.html
 
 Adding command-line scripts ("tools" subdirs)
 ---------------------------------------------
@@ -437,5 +449,5 @@ is [archived][ircarchive].
 Documentation
 =============
 
-* [How to write and review tests](http://web-platform-tests.org/)
+* [How to write and review tests](https://web-platform-tests.org/)
 * [Documentation for the wptserve server](http://wptserve.readthedocs.org/en/latest/)

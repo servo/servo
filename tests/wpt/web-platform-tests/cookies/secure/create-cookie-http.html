@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  //origin is who sets the cookie
+  //target is who tries to send cookie
+  function create_test(origin, target, expectedStatus, title) {
+    promise_test(t => {
+      var value = "" + Math.random();
+      return resetSecureCookies(origin, value)
+        .then(_ => {
+          return credFetch(target + "/cookies/resources/list.py")
+            .then(r => r.json())
+            .then(cookies => verifySecureCookieState(expectedStatus, value, cookies));
+        });
+    }, title);
+  }
+
+  //Given an |expectedStatus| and |expectedValue|, assert the |cookies| contains the
+  //proper set of cookie names and values.
+  function verifySecureCookieState(expectedStatus, expectedValue, cookies) {
+    assert_equals(cookies["alone_insecure"], expectedValue, "Insecure cookies are always present");
+    if (expectedStatus == SecureStatus.INSECURE_COOKIE_ONLY) {
+    	assert_equals(cookies["alone_secure"], undefined, "Secure cookies are not present");
+    } else if (expectedStatus == SecureStatus.BOTH_COOKIES) {
+    	assert_equals(cookies["alone_secure"], expectedValue, "Secure cookies are present");
+    }
+  }
+
+  //cookies set by insecure origins
+  create_test(INSECURE_ORIGIN, INSECURE_ORIGIN, SecureStatus.INSECURE_COOKIE_ONLY, "Secure cookies cannot be set by insecure origins");
+  //create_test(INSECURE_ORIGIN, SECURE_ORIGIN, SecureStatus.INSECURE_COOKIE_ONLY, "Secure cookies cannot be set by insecure origins, even if read from a secure origin");
+
+  //This test should set the secure cookie right but not be able to read it from the secure origin
+  //create_test(SECURE_ORIGIN, INSECURE_ORIGIN, SecureStatus.INSECURE_COOKIE_ONLY, "Secure cookies should not be read by insecure origins");
+  //create_test(SECURE_ORIGIN, SECURE_ORIGIN, SecureStatus.BOTH_COOKIES, "Secure cookies should be set and read by secure domains")
+</script>

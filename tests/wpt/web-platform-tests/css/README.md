@@ -67,5 +67,5 @@ complicated:
 
 
 [harness]: https://test.csswg.org/harness/
-[spec-link]: http://web-platform-tests.org/writing-tests/css-metadata.html#specification-links
+[spec-link]: https://web-platform-tests.org/writing-tests/css-metadata.html#specification-links
 [hg-patch-to-git-patch]: https://raw.githubusercontent.com/mozilla/moz-git-tools/master/hg-patch-to-git-patch
