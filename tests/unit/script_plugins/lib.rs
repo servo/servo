@@ -173,7 +173,7 @@ pub mod unrooted_must_root {
     */
     pub fn local_var() {}
 
-    /**
+    /* *  // TODO temporarily commented out since Box is temporarily on exception list
     ```compile_fail
     #![feature(plugin)]
     #![plugin(script_plugins)]
@@ -188,7 +188,7 @@ pub mod unrooted_must_root {
     fn main() {}
     ```
     */
-    pub fn ban_box() {}
+    //pub fn ban_box() {}
 
     /**
     ```compile_fail

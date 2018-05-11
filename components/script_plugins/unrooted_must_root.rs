@@ -239,7 +239,7 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
         // implicit treating it as #[must_root] if and only if T is #[must_root]
         // (auto-propagation).
         let cx = self.late_cx;
-        match_def_path(cx, did, &["alloc", "boxed", "Box"])  // -- is ok?
+        match_def_path(cx, did, &["alloc", "boxed", "Box"])  // -- is ok? // TODO uncomment unit test "ban_box"
         || match_def_path(cx, did, &["alloc", "boxed", "{{impl}}"])  // -- is ok?
         || match_def_path(cx, did, &["alloc", "rc", "Rc"])  // -- is ok?
         || match_def_path(cx, did, &["alloc", "slice", "{{impl}}"])  // -- is ok?
