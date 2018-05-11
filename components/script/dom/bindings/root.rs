@@ -151,7 +151,7 @@ impl<#[must_root] T: Castable> DomRoot<T> {
 
 impl<#[must_root] T: DomObject> DomRoot<T> {
     /// Generate a new root from a reference
-    pub fn from_ref(unrooted: &T) -> DomRoot<T> {
+    pub fn from_ref(unrooted: &T) -> DomRoot<T> {  // TODO probably should be treated like "new"/"new_*" methods
         unsafe { DomRoot::new(Dom::from_ref(unrooted)) }
     }
 }

@@ -12,9 +12,9 @@ use style::thread_state::{self, ThreadState};
 /// This extends the API of `std::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
-#[must_root]
+//#[must_root] // TODO should it be #[must_root]? then -> there are usages with #[must_root] types and with normal ones; two different structs for them? or hacking plugin compiler further to mark structure as #[must_root] if it generic type is #[must_root]?
 pub struct DomRefCell<#[must_root] T> {
-    value: RefCell<T>,
+    value: RefCell<T>,  // TODO currently a little bit hacky since RefCell is currently on the exception list
 }
 
 // Functionality specific to Servo's `DomRefCell` type
@@ -50,6 +50,7 @@ impl<#[must_root] T> DomRefCell<T> {
 // ===================================================
 impl<#[must_root] T> DomRefCell<T> {
     /// Create a new `DomRefCell` containing `value`.
+    #[allow(unrooted_must_root)]  // TODO don't know if it is okay; T is unrooted argument
     pub fn new(value: T) -> DomRefCell<T> {
         DomRefCell {
             value: RefCell::new(value),

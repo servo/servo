@@ -18,18 +18,19 @@ use dom::node::{Node, NodeDamage, window_from_node};
 use script_traits::ScriptToConstellationChan;
 use textinput::{SelectionDirection, SelectionState, TextInput};
 
+#[must_root]
 pub trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn set_dirty_value_flag(&self, value: bool);
 }
 
-pub struct TextControlSelection<'a, E: TextControlElement> {
+pub struct TextControlSelection<'a, #[must_root] E: TextControlElement> {
     element: &'a E,
     textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>,
 }
 
-impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
+impl<'a, #[must_root] E: TextControlElement> TextControlSelection<'a, E> {
     pub fn new(element: &'a E, textinput: &'a DomRefCell<TextInput<ScriptToConstellationChan>>) -> Self {
         TextControlSelection { element, textinput }
     }

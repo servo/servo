@@ -161,16 +161,7 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
                     //} else if match_def_path(cx, did.did, &["mozjs", "conversions", "ToJSValConvertible"]) { // hadn't helped :(
                     //    ret = true;
                     //    false
-                    } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
-                            || match_def_path(cx, did.did, &["core", "cell", "RefMut"])
-                            || match_def_path(cx, did.did, &["core", "slice", "Iter"])
-                            || match_def_path(cx, did.did, &["core", "ptr", "NonNull"])  // -- is ok?
-                            || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Entry"])
-                            || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "OccupiedEntry"])
-                            || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"])
-                            || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Iter"])
-                            || match_def_path(cx, did.did, &["std", "collections", "hash", "set", "Iter"]) {
-                        // Structures which are semantically similar to an &ptr.
+                    } else if self.is_ptr_like_structure(did.did) {
                         false
                     } else if did.is_box() && in_new_function {
                         // box in new() is okay
@@ -203,44 +194,12 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
         if cx.tcx.has_attr(did, "allow_unrooted_interior") {
             return false;
         }
-        // TODO we'll see what's necessary and what is not
-        // TODO at the end, sort this list lexicographically
-        else if match_def_path(cx, did, &["core", "cell", "Ref"])
-             || match_def_path(cx, did, &["core", "cell", "RefMut"])
-             || match_def_path(cx, did, &["core", "mem", "size_of"])  // -- is ok?
-             || match_def_path(cx, did, &["malloc_size_of", "MallocSizeOf"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "option", "{{impl}}"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "option", "Option"])  // -- is ok? looks like misuse
-             || match_def_path(cx, did, &["core", "ops", "deref", "Deref"])  // -- is ok? or only the deref method?
-             || match_def_path(cx, did, &["core", "cmp", "PartialEq"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "clone", "Clone"])  // -- is ok?
-             || match_def_path(cx, did, &["mozjs", "conversions", "ToJSValConvertible"])  // -- is ok?
-             || match_def_path(cx, did, &["std", "sync", "mpsc", "Sender"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "result", "Result"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "result", "{{impl}}", "map"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "option", "{{impl}}", "map"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "ptr", "NonNull"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "ptr", "{{impl}}"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "ptr", "read"])  // -- is ok?
-             || match_def_path(cx, did, &["alloc", "boxed", "Box"])  // -- is ok?
-             || match_def_path(cx, did, &["alloc", "boxed", "{{impl}}"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "cell", "UnsafeCell"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "cell", "RefCell"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "cell", "{{impl}}"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "mem", "drop"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "marker", "PhantomData"])  // -- is ok?
-             || match_def_path(cx, did, &["std", "thread", "local", "{{impl}}", "with"])  // -- is ok?
-             || match_def_path(cx, did, &["core", "slice", "Iter"])
-             || match_def_path(cx, did, &["std", "collections", "hash", "map", "HashMap"])  // -- is ok?
-             || match_def_path(cx, did, &["std", "collections", "hash", "map", "Entry"])
-             || match_def_path(cx, did, &["std", "collections", "hash", "map", "OccupiedEntry"])
-             || match_def_path(cx, did, &["std", "collections", "hash", "map", "VacantEntry"])
-             || match_def_path(cx, did, &["std", "collections", "hash", "map", "Iter"])
-             || match_def_path(cx, did, &["std", "collections", "hash", "set", "Iter"]) {
+        else if self.is_ptr_like_structure(did) {
             return false;
         }
 
         let def_path = get_def_path(cx, did);
+        st.push_str(&" $$ ");
         st.push_str(&def_path.join("::"));
         st.push_str(&"\n");
 
@@ -254,17 +213,135 @@ impl<'a, 'b, 'tcx> UnrootedCx<'a, 'b, 'tcx> {
 
             let arg_ty = substs.type_at(ty_param_def.index as usize);
             if self.is_unrooted_ty(arg_ty, false) {
-                st.push_str(&" > ");
+                st.push_str(&" $$ > ");
                 st.push_str(&arg_ty.to_string());
                 return true;
             }
         }
 
-        st.push_str(&" par$$ ");
+        st.push_str(&" par");
         match generics.parent {
             Some(p_did) => self.has_unrooted_generic_substs(p_did, substs, st),
             None => false,
         }
+    }
+
+    fn is_ptr_like_structure(&self, did: hir::def_id::DefId) -> bool {
+        // Structures which are semantically similar to an &ptr.
+
+        // ------------------- TODO --------------------
+        // (1) Not sure if this list should be same for is_unrooted_ty and
+        // has_unrooted_generic_substs
+        // (2) All entries below with comment (TODO/is ok?) should be checked if they really should
+        // be on this list. Currently it is used to mute existing violations and let servo compile.
+        // (3) Some ideas what can be done: in is_unrooted_ty some types from outside script crate
+        // can be treated always as #[must_root]. For types like Option<T> could be implemented
+        // implicit treating it as #[must_root] if and only if T is #[must_root]
+        // (auto-propagation).
+        let cx = self.late_cx;
+        match_def_path(cx, did, &["alloc", "boxed", "Box"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "boxed", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "rc", "Rc"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "slice", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "vec", "Drain"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "vec", "Vec"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "vec", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "vec_deque", "IterMut"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "vec_deque", "VecDeque"])  // -- is ok?
+        || match_def_path(cx, did, &["alloc", "vec_deque", "{{impl}}"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "cell", "Ref"])
+        || match_def_path(cx, did, &["core", "cell", "RefCell"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "cell", "RefMut"])
+        || match_def_path(cx, did, &["core", "cell", "UnsafeCell"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "cell", "{{impl}}", "map"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "cell", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "clone", "Clone"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "cmp", "PartialEq"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "cmp", "PartialOrd"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "default", "Default"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "fmt", "Debug"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "fmt", "Pointer"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "intrinsics", "", "type_name"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "iter", "Map"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "iter", "iterator", "Iterator", "cloned"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "iter", "iterator", "Iterator", "collect"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "iter", "iterator", "Iterator", "filter_map"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "iter", "iterator", "Iterator", "map"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "iter", "iterator", "Iterator"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "iter", "traits", "Extend"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "iter", "traits", "FromIterator"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "marker", "PhantomData"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "mem", "drop"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "mem", "size_of"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "mem", "swap"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "ops", "deref", "Deref"])  // -- is ok? or only the deref method?
+        || match_def_path(cx, did, &["core", "ops", "deref", "DerefMut"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "ops", "index", "Index"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "ops", "index", "IndexMut"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "ops", "try", "Try"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["core", "option", "Option"])  // -- is ok? looks like misuse
+        || match_def_path(cx, did, &["core", "option", "{{impl}}", "map"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "option", "{{impl}}", "unwrap_or_else"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "option", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "ptr", "NonNull"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "ptr", "read"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "ptr", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "result", "Result"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "result", "{{impl}}", "map"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "result", "{{impl}}", "map_err"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "slice", "Iter"])
+        || match_def_path(cx, did, &["core", "slice", "IterMut"])  // -- is ok?
+        || match_def_path(cx, did, &["core", "slice", "{{impl}}"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["malloc_size_of", "MallocSizeOf"])  // -- is ok?
+        || match_def_path(cx, did, &["metrics", "{{impl}}", "maybe_set_tti"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["mozjs", "conversions", "ToJSValConvertible"])  // -- is ok?
+        || match_def_path(cx, did, &["ref_filter_map", "ref_filter_map"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "body", "BodyOperations"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "activation", "Activatable"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "codegen", "Bindings", "FunctionBinding", "{{impl}}", "Call_"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "codegen", "Bindings", "MutationObserverBinding", "{{impl}}", "Call_"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "codegen", "Bindings", "NodeFilterBinding", "{{impl}}", "AcceptNode_"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "codegen", "Bindings", "PromiseBinding", "{{impl}}", "Call_"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "root", "RootedReference"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "root", "{{impl}}", "downcast"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "root", "{{impl}}", "upcast"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "root", "{{impl}}"])  // -- is ok? note: probably should be treated like "new"/"new_*" method
+        || match_def_path(cx, did, &["script", "dom", "bindings", "trace", "{{impl}}"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "utils", "AsVoidPtr"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "weakref", "MutableWeakRef"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bindings", "weakref", "{{impl}}"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "bluetooth", "response_async"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "dompointreadonly", "DOMPointWriteMethods"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "element", "RawLayoutElementHelpers"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "element", "{{impl}}", "is_in_same_home_subtree"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "eventtarget", "{{impl}}", "call_or_handle_event"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "htmlformelement", "FormControl"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "htmlformelement", "FormControlElementHelpers"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "node", "VecPreOrderInsertionHelper"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "node", "{{impl}}", "insert_cell_or_row"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "node", "{{impl}}", "reflect_node"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "permissions", "PermissionAlgorithm"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "promise", "{{impl}}", "resolve_native"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "virtualmethods", "VirtualMethods"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "webgl_extensions", "extensions", "{{impl}}", "is_enabled"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "webgl_extensions", "extensions", "{{impl}}", "register"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "webgl_extensions", "wrapper", "WebGLExtensionWrapper"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["script", "dom", "xmlhttprequest", "Extractable"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "Entry"])
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "HashMap"])  // -- is ok?
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "Iter"])
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "Keys"])  // -- is ok?
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "OccupiedEntry"])
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "VacantEntry"])
+        || match_def_path(cx, did, &["std", "collections", "hash", "map", "{{impl}}"])  // -- is ok?
+        || match_def_path(cx, did, &["std", "collections", "hash", "set", "HashSet"])  // -- is ok?
+        || match_def_path(cx, did, &["std", "collections", "hash", "set", "Iter"])
+        || match_def_path(cx, did, &["std", "collections", "hash", "set", "{{impl}}", "remove"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["std", "collections", "hash", "set", "{{impl}}"]) // -- TODO check if ok **autogenerated**
+        || match_def_path(cx, did, &["std", "sync", "mpsc", "Sender"])  // -- is ok?
+        || match_def_path(cx, did, &["std", "thread", "local", "{{impl}}", "with"])  // -- is ok?
+        || match_def_path(cx, did, &["style", "stylesheet_set", "DocumentStylesheetSet"])  // -- is ok?
+        || match_def_path(cx, did, &["style", "stylesheet_set", "{{impl}}"]) // -- TODO check if ok **autogenerated**
     }
 }
 

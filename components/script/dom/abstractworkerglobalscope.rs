@@ -13,12 +13,13 @@ use std::sync::mpsc::{Receiver, Sender};
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
-pub struct SendableWorkerScriptChan<T: DomObject> {
+#[must_root]
+pub struct SendableWorkerScriptChan<#[must_root] T: DomObject> {
     pub sender: Sender<(Trusted<T>, CommonScriptMsg)>,
     pub worker: Trusted<T>,
 }
 
-impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptChan<T> {
+impl<#[must_root] T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptChan<T> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender.send((self.worker.clone(), msg)).map_err(|_| ())
     }
@@ -35,12 +36,13 @@ impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptCh
 /// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
-pub struct WorkerThreadWorkerChan<T: DomObject> {
+#[must_root]
+pub struct WorkerThreadWorkerChan<#[must_root] T: DomObject> {
     pub sender: Sender<(Trusted<T>, WorkerScriptMsg)>,
     pub worker: Trusted<T>,
 }
 
-impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
+impl<#[must_root] T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender
             .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
@@ -55,7 +57,7 @@ impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan
     }
 }
 
-impl<T: DomObject> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
+impl<#[must_root] T: DomObject> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         match self.recv().map(|(_, msg)| msg) {
             Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),
