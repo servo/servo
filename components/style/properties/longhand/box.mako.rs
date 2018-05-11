@@ -606,8 +606,9 @@ ${helpers.single_keyword("-moz-appearance",
                             scalethumb-horizontal scalethumbstart scalethumbtick scalethumb-vertical scale-vertical
                             scrollbar scrollbar-horizontal scrollbar-small scrollbar-vertical scrollbarbutton-down
                             scrollbarbutton-left scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal
-                            scrollbarthumb-vertical scrollbartrack-horizontal scrollbartrack-vertical searchfield
-                            separator spinner spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar
+                            scrollbarthumb-vertical scrollbartrack-horizontal scrollbartrack-vertical scrollcorner
+                            searchfield separator
+                            spinner spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar
                             statusbarpanel tab tabpanel tabpanels tab-scroll-arrow-back tab-scroll-arrow-forward
                             textfield textfield-multiline toolbar toolbarbutton toolbarbutton-dropdown toolbargripper
                             toolbox tooltip treeheader treeheadercell treeheadersortarrow treeitem treeline treetwisty
