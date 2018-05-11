@@ -22,6 +22,7 @@ use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
+use std::fmt;
 use style_traits::CSSPixel;
 use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
@@ -41,6 +42,20 @@ pub enum LayoutMsg {
     SetCursor(CursorKind),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+}
+
+impl fmt::Debug for LayoutMsg {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        use self::LayoutMsg::*;
+        let variant = match *self {
+            ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
+            IFrameSizes(..) => "IFrameSizes",
+            PendingPaintMetric(..) => "PendingPaintMetric",
+            SetCursor(..) => "SetCursor",
+            ViewportConstrained(..) => "ViewportConstrained",
+        };
+        write!(formatter, "LayoutMsg::{}", variant)
+    }
 }
 
 /// Whether a DOM event was prevented by web content
@@ -170,6 +185,62 @@ pub enum ScriptMsg {
     HideIME,
     /// Requests that the compositor shut down.
     Exit,
+}
+
+impl fmt::Debug for ScriptMsg {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        use self::ScriptMsg::*;
+        let variant = match *self {
+            InitiateNavigateRequest(..) => "InitiateNavigateRequest",
+            BroadcastStorageEvent(..) => "BroadcastStorageEvent",
+            ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
+            CreateCanvasPaintThread(..) => "CreateCanvasPaintThread",
+            Focus => "Focus",
+            GetClipboardContents(..) => "GetClipboardContents",
+            GetBrowsingContextId(..) => "GetBrowsingContextId",
+            GetParentInfo(..) => "GetParentInfo",
+            GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
+            HeadParsed => "HeadParsed",
+            LoadComplete => "LoadComplete",
+            LoadUrl(..) => "LoadUrl",
+            AbortLoadUrl => "AbortLoadUrl",
+            PostMessage(..) => "PostMessage",
+            TraverseHistory(..) => "TraverseHistory",
+            PushHistoryState(..) => "PushHistoryState",
+            ReplaceHistoryState(..) => "ReplaceHistoryState",
+            JointSessionHistoryLength(..) => "JointSessionHistoryLength",
+            NewFavicon(..) => "NewFavicon",
+            NodeStatus(..) => "NodeStatus",
+            RemoveIFrame(..) => "RemoveIFrame",
+            SetVisible(..) => "SetVisible",
+            VisibilityChangeComplete(..) => "VisibilityChangeComplete",
+            ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
+            ScriptNewIFrame(..) => "ScriptNewIFrame",
+            SetClipboardContents(..) => "SetClipboardContents",
+            ActivateDocument => "ActivateDocument",
+            SetDocumentState(..) => "SetDocumentState",
+            SetFinalUrl(..) => "SetFinalUrl",
+            Alert(..) => "Alert",
+            SetTitle(..) => "SetTitle",
+            SendKeyEvent(..) => "SendKeyEvent",
+            MoveTo(..) => "MoveTo",
+            ResizeTo(..) => "ResizeTo",
+            TouchEventProcessed(..) => "TouchEventProcessed",
+            LogEntry(..) => "LogEntry",
+            DiscardDocument => "DiscardDocument",
+            PipelineExited => "PipelineExited",
+            ForwardDOMMessage(..) => "ForwardDOMMessage",
+            RegisterServiceWorker(..) => "RegisterServiceWorker",
+            SetFullscreenState(..) => "SetFullscreenState",
+            GetClientWindow(..) => "GetClientWindow",
+            GetScreenSize(..) => "GetScreenSize",
+            GetScreenAvailSize(..) => "GetScreenAvailSize",
+            ShowIME(..) => "ShowIME",
+            HideIME => "HideIME",
+            Exit => "Exit",
+        };
+        write!(formatter, "ScriptMsg::{}", variant)
+    }
 }
 
 /// Entities required to spawn service workers

@@ -364,7 +364,7 @@ impl fmt::Debug for ConstellationControlMsg {
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
         };
-        write!(formatter, "ConstellationMsg::{}", variant)
+        write!(formatter, "ConstellationControlMsg::{}", variant)
     }
 }
 
@@ -708,6 +708,34 @@ pub enum ConstellationMsg {
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(CursorKind),
+}
+
+impl fmt::Debug for ConstellationMsg {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        use self::ConstellationMsg::*;
+        let variant = match *self {
+            Exit => "Exit",
+            GetBrowsingContext(..) => "GetBrowsingContext",
+            GetPipeline(..) => "GetPipeline",
+            GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
+            IsReadyToSaveImage(..) => "IsReadyToSaveImage",
+            KeyEvent(..) => "KeyEvent",
+            LoadUrl(..) => "LoadUrl",
+            TraverseHistory(..) => "TraverseHistory",
+            WindowSize(..) => "WindowSize",
+            TickAnimation(..) => "TickAnimation",
+            WebDriverCommand(..) => "WebDriverCommand",
+            Reload(..) => "Reload",
+            LogEntry(..) => "LogEntry",
+            WebVREvents(..) => "WebVREvents",
+            NewBrowser(..) => "NewBrowser",
+            CloseBrowser(..) => "CloseBrowser",
+            SelectBrowser(..) => "SelectBrowser",
+            ForwardEvent(..) => "ForwardEvent",
+            SetCursor(..) => "SetCursor",
+        };
+        write!(formatter, "ConstellationMsg::{}", variant)
+    }
 }
 
 /// Resources required by workerglobalscopes
