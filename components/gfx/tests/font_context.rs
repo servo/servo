@@ -24,10 +24,8 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
-use style::values::computed::Percentage;
 use style::values::computed::font::{FamilyName, FamilyNameSyntax, FontFamily, FontFamilyList, FontSize};
-use style::values::computed::font::{FontWeight, SingleFontFamily};
-use style::values::generics::NonNegative;
+use style::values::computed::font::{FontStretch, FontWeight, SingleFontFamily};
 use style::values::generics::font::FontStyle;
 
 struct TestFontSource {
@@ -110,7 +108,7 @@ fn style() -> FontStyleStruct {
         font_variant_caps: FontVariantCaps::Normal,
         font_weight: FontWeight::normal(),
         font_size: FontSize::medium(),
-        font_stretch: NonNegative(Percentage(1.)),
+        font_stretch: FontStretch::hundred(),
         hash: 0,
     };
     style.compute_font_hash();
@@ -207,8 +205,8 @@ fn test_font_template_is_cached() {
     let mut font_descriptor = FontDescriptor {
         template_descriptor: FontTemplateDescriptor {
             weight: FontWeight::normal(),
-            stretch: FontStretch::Normal,
-            italic: false,
+            stretch: FontStretch::hundred(),
+            style: FontStyle::Normal,
         },
         variant: FontVariantCaps::Normal,
         pt_size: Au(10),
