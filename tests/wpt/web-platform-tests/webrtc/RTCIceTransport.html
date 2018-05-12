@@ -118,7 +118,7 @@
     validateCandidateParameter(iceTransport.getRemoteParameters());
   }
 
-  promise_test(() => {
+  promise_test(t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
 
@@ -163,7 +163,7 @@
     });
   }, 'Two connected iceTransports should has matching local/remote candidates returned');
 
-  promise_test(() => {
+  promise_test(t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
     pc1.createDataChannel('');

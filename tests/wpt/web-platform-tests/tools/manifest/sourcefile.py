@@ -55,7 +55,8 @@ _any_variants = {
     b"serviceworker": {"force_https": True},
     b"sharedworker": {},
     b"dedicatedworker": {"suffix": ".any.worker.html"},
-    b"worker": {"longhand": {b"dedicatedworker", b"sharedworker", b"serviceworker"}}
+    b"worker": {"longhand": {b"dedicatedworker", b"sharedworker", b"serviceworker"}},
+    b"jsshell": {"suffix": ".any.js"},
 }
 
 
@@ -100,8 +101,9 @@ def parse_variants(value):
 
 def global_suffixes(value):
     """
-    Yields the relevant filename suffixes (strings) for the variants defined by
-    the given comma-separated value.
+    Yields tuples of the relevant filename suffix (a string) and whether the
+    variant is intended to run in a JS shell, for the variants defined by the
+    given comma-separated value.
     """
     assert isinstance(value, binary_type), value
 
@@ -113,7 +115,7 @@ def global_suffixes(value):
         suffix = variant.get("suffix", ".any.%s.html" % global_type.decode("utf-8"))
         if variant.get("force_https", False):
             suffix = ".https" + suffix
-        rv.add(suffix)
+        rv.add((suffix, global_type == b"jsshell"))
 
     return rv
 
@@ -560,7 +562,7 @@ class SourceFile(object):
     @cached_property
     def content_is_css_visual(self):
         """Boolean indicating whether the file content represents a
-        CSS WG-style manual test"""
+        CSS WG-style visual test"""
         if self.root is None:
             return None
         return bool(self.ext in {'.xht', '.html', '.xhtml', '.htm', '.xml', '.svg'} and
@@ -605,8 +607,8 @@ class SourceFile(object):
                     break
 
             tests = [
-                TestharnessTest(self, global_variant_url(self.url, suffix) + variant, timeout=self.timeout)
-                for suffix in sorted(global_suffixes(globals))
+                TestharnessTest(self, global_variant_url(self.url, suffix) + variant, timeout=self.timeout, jsshell=jsshell)
+                for (suffix, jsshell) in sorted(global_suffixes(globals))
                 for variant in self.test_variants
             ]
             rv = TestharnessTest.item_type, tests

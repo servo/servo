@@ -66,6 +66,10 @@ scheme host and port.""")
 
     parser.add_argument("--no-capture-stdio", action="store_true", default=False,
                         help="Don't capture stdio and write to logging")
+    parser.add_argument("--no-fail-on-unexpected", action="store_false",
+                        default=True,
+                        dest="fail_on_unexpected",
+                        help="Exit with status code 0 when test expectations are violated")
 
     mode_group = parser.add_argument_group("Mode")
     mode_group.add_argument("--list-test-groups", action="store_true",
