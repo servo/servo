@@ -26,7 +26,7 @@ use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, Col
 use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
 use webrender_api::{GlyphInstance, GradientStop, ImageKey, ImageRendering, LayoutPoint};
 use webrender_api::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
-use webrender_api::{MixBlendMode, NinePatchBorder, NormalBorder, ScrollPolicy, ScrollSensitivity};
+use webrender_api::{MixBlendMode, NinePatchBorder, NormalBorder, ScrollSensitivity};
 use webrender_api::{Shadow, StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
@@ -188,9 +188,6 @@ pub struct StackingContext {
     /// The perspective matrix to be applied to children.
     pub perspective: Option<LayoutTransform>,
 
-    /// The scroll policy of this layer.
-    pub scroll_policy: ScrollPolicy,
-
     /// The clip and scroll info for this StackingContext.
     pub parent_clipping_and_scrolling: ClippingAndScrolling,
 }
@@ -209,7 +206,6 @@ impl StackingContext {
         transform: Option<LayoutTransform>,
         transform_style: TransformStyle,
         perspective: Option<LayoutTransform>,
-        scroll_policy: ScrollPolicy,
         parent_clipping_and_scrolling: ClippingAndScrolling,
     ) -> StackingContext {
         StackingContext {
@@ -223,7 +219,6 @@ impl StackingContext {
             transform,
             transform_style,
             perspective,
-            scroll_policy,
             parent_clipping_and_scrolling,
         }
     }
@@ -241,7 +236,6 @@ impl StackingContext {
             None,
             TransformStyle::Flat,
             None,
-            ScrollPolicy::Scrollable,
             ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
         )
     }
