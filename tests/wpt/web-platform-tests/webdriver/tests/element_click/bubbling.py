@@ -2,7 +2,7 @@ from tests.support.asserts import assert_success
 from tests.support.inline import inline
 
 
-def click(session, element):
+def element_click(session, element):
     return session.transport.send(
         "POST", "/session/{session_id}/element/{element_id}/click".format(
             session_id=session.session_id,
@@ -154,5 +154,5 @@ def test_element_disappears_during_click(session):
     over = session.find.css("#over", all=False)
 
     # should not time out
-    response = click(session, over)
+    response = element_click(session, over)
     assert_success(response)

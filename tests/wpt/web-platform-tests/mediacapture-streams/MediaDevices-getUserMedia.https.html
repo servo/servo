@@ -36,6 +36,34 @@ test(function () {
   //   list.deviceId
   //   list.groupId
   }, "mediaDevices.getUserMedia() is present on navigator");
+
+promise_test(t => {
+  return navigator.mediaDevices.enumerateDevices()
+    .then(t.step_func(async devices => {
+      for (var i in devices) {
+        await navigator.mediaDevices.getUserMedia(
+          {video: {groupId: {exact: devices[i].groupId}}})
+            .then(
+              t.step_func(stream => {
+                var found_device = devices.find(element => {
+                  return element.deviceId ==
+                           stream.getTracks()[0].getSettings().deviceId;
+                });
+                assert_true(undefined !== found_device);
+                assert_equals(found_device.kind, "videoinput");
+                assert_equals(found_device.groupId, devices[i].groupId);
+              }),
+              t.step_func(error => {
+                assert_equals(error.name, "OverconstrainedError");
+                assert_equals(error.constraint, "groupId");
+                var found_device = devices.find(element => {
+                  return element.kind == "videoinput" &&
+                        element.groupId == devices[i].groupId});
+                assert_true(undefined === found_device);
+              }));
+      }
+    }));
+}, 'groupId is correctly supported by getUserMedia() for video devices');
 </script>
 </body>
 </html>

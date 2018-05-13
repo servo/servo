@@ -36,7 +36,7 @@
         DOMString peerIdentity;
       };
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const port = window.location.port;
 
@@ -95,7 +95,7 @@
 
   // When generating assertion, the RTCPeerConnection doesn't care if the returned assertion
   // represents identity of different domain
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const port = window.location.port;
 
@@ -278,7 +278,7 @@
         value is provided for the peerIdentity member of RTCConfiguration, the value from
         RTCConfiguration is used.
   */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection({
       peerIdentity: 'bob@example.net'
     });
@@ -302,7 +302,7 @@
     9.6.  setIdentityProvider
       3.  If any identity provider value has changed, discard any stored identity assertion.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const port = window.location.port;
     const [idpDomain] = getIdpDomains();

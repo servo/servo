@@ -76,9 +76,9 @@ self.addEventListener('canmakepayment', event => {
   }
 
   const methodAsURL = new URL(methodName);
-  if (event.topLevelOrigin !== methodAsURL.origin) {
-    const msg = `Unexpected event.topLevelOrigin: "${
-      event.topLevelOrigin
+  if (event.topOrigin !== methodAsURL.origin) {
+    const msg = `Unexpected event.topOrigin: "${
+      event.topOrigin
     }". Expected "${methodAsURL.origin}".`;
     event.respondWith(Promise.reject(new Error(msg)));
     return;

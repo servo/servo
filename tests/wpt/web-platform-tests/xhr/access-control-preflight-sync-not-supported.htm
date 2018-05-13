@@ -21,17 +21,12 @@ test(() => {
   xhr = new XMLHttpRequest;
   xhr.open("PUT", url, false);
 
-  try {
-    xhr.send("");
-  } catch(e) {
-    xhr = new XMLHttpRequest;
-    xhr.open("GET", url + "&command=complete", false);
-    xhr.send();
-    assert_equals(xhr.responseText, "Request successfully blocked.");
-    return;
-  }
+  assert_throws("NetworkError", () => xhr.send(""));
 
-  assert_unreached("Cross-domain access allowed without throwing exception");
+  xhr = new XMLHttpRequest;
+  xhr.open("GET", url + "&command=complete", false);
+  xhr.send();
+  assert_equals(xhr.responseText, "Request successfully blocked.");
 });
     </script>
   </body>

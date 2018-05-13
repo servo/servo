@@ -31,4 +31,4 @@ specification. All content is provided as-is to help reach interoperability.
 Documentation
 -------------
 
-See [web-platform-tests.org](http://web-platform-tests.org/).
+See [web-platform-tests.org](https://web-platform-tests.org/).
