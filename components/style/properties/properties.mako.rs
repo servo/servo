@@ -2399,6 +2399,18 @@ pub mod style_structs {
                     -> longhands::${longhand.ident}::computed_value::SingleComputedValue {
                     self.${longhand.ident}_at(index % self.${longhand.ident}_count())
                 }
+
+                /// Clone the computed value for the property.
+                #[allow(non_snake_case)]
+                #[inline]
+                #[cfg(feature = "gecko")]
+                pub fn clone_${longhand.ident}(
+                    &self,
+                ) -> longhands::${longhand.ident}::computed_value::T {
+                    longhands::${longhand.ident}::computed_value::T(
+                        self.${longhand.ident}_iter().collect()
+                    )
+                }
             % endif
         % endfor
 

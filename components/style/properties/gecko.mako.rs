@@ -10,6 +10,7 @@
 %>
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
+use Atom;
 use app_units::Au;
 use custom_properties::CustomPropertiesMap;
 use gecko_bindings::bindings;
@@ -60,7 +61,7 @@ use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, CustomIdent, Either, KeyframesName, None_};
 use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
-use values::computed::font::{FontSize, SingleFontFamily};
+use values::computed::font::FontSize;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
 use values::generics::column::ColumnCount;
@@ -126,8 +127,6 @@ impl ComputedValues {
     }
 
     pub fn pseudo(&self) -> Option<PseudoElement> {
-        use string_cache::Atom;
-
         let atom = (self.0).mPseudoTag.mRawPtr;
         if atom.is_null() {
             return None;
@@ -1861,7 +1860,6 @@ fn static_assert() {
 
     pub fn clone_${value.name}(&self) -> longhands::${value.name}::computed_value::T {
         use gecko_bindings::structs::{nsStyleGridLine_kMinLine, nsStyleGridLine_kMaxLine};
-        use string_cache::Atom;
 
         longhands::${value.name}::computed_value::T {
             is_span: self.gecko.${value.gecko}.mHasSpan,
@@ -2034,7 +2032,6 @@ fn static_assert() {
 
     pub fn clone_grid_template_${kind}(&self) -> longhands::grid_template_${kind}::computed_value::T {
         <% self_grid = "self.gecko.mGridTemplate%s" % kind.title() %>
-        use Atom;
         use gecko_bindings::structs::nsTArray;
         use nsstring::nsStringRepr;
         use values::CustomIdent;
@@ -2307,14 +2304,6 @@ fn static_assert() {
             self.gecko.mGenericID = generic;
         }
         self.gecko.mFont.fontlist.mFontlist.mBasePtr.set_move((v.0).0.clone());
-    }
-
-    pub fn font_family_count(&self) -> usize {
-        0
-    }
-
-    pub fn font_family_at(&self, _: usize) -> SingleFontFamily {
-        unimplemented!()
     }
 
     pub fn copy_font_family_from(&mut self, other: &Self) {
@@ -2684,6 +2673,18 @@ fn static_assert() {
     }
 
     #[allow(non_snake_case)]
+    pub fn reset__x_lang(&mut self, other: &Self) {
+        self.copy__x_lang_from(other)
+    }
+
+    #[allow(non_snake_case)]
+    pub fn clone__x_lang(&self) -> longhands::_x_lang::computed_value::T {
+        longhands::_x_lang::computed_value::T(unsafe {
+            Atom::from_raw(self.gecko.mLanguage.mRawPtr)
+        })
+    }
+
+    #[allow(non_snake_case)]
     pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
         self.gecko.mAllowZoom = v.0;
     }
@@ -2699,8 +2700,8 @@ fn static_assert() {
     }
 
     #[allow(non_snake_case)]
-    pub fn reset__x_lang(&mut self, other: &Self) {
-        self.copy__x_lang_from(other)
+    pub fn clone__x_text_zoom(&self) -> longhands::_x_text_zoom::computed_value::T {
+        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoom)
     }
 
     ${impl_simple("_moz_script_level", "mScriptLevel")}
@@ -2777,7 +2778,6 @@ fn static_assert() {
     }
 
     pub fn clone_font_variant_alternates(&self) -> values::computed::font::FontVariantAlternates {
-        use Atom;
         % for value in "normal swash stylistic ornaments annotation styleset character_variant historical".split():
             use gecko_bindings::structs::NS_FONT_VARIANT_ALTERNATES_${value.upper()};
         % endfor
@@ -2832,6 +2832,13 @@ fn static_assert() {
     ${impl_simple_type_with_conversion("font_variant_ligatures", "mFont.variantLigatures")}
     ${impl_simple_type_with_conversion("font_variant_east_asian", "mFont.variantEastAsian")}
     ${impl_simple_type_with_conversion("font_variant_numeric", "mFont.variantNumeric")}
+
+    #[allow(non_snake_case)]
+    pub fn clone__moz_min_font_size_ratio(
+        &self,
+    ) -> longhands::_moz_min_font_size_ratio::computed_value::T {
+        Percentage(self.gecko.mMinFontSizeRatio as f32 / 100.)
+    }
 
     #[allow(non_snake_case)]
     pub fn set__moz_min_font_size_ratio(&mut self, v: longhands::_moz_min_font_size_ratio::computed_value::T) {
@@ -3286,7 +3293,6 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
-        use Atom;
 
         let property = self.gecko.mTransitions[index].mProperty;
         if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
@@ -3384,7 +3390,6 @@ fn static_assert() {
     pub fn animation_name_at(&self, index: usize)
         -> longhands::animation_name::computed_value::SingleComputedValue {
         use properties::longhands::animation_name::single_value::SpecifiedValue as AnimationName;
-        use Atom;
 
         let atom = self.gecko.mAnimations[index].mName.mRawPtr;
         if atom == atom!("").as_ptr() {
@@ -3590,7 +3595,6 @@ fn static_assert() {
         use properties::longhands::will_change::computed_value::T;
         use gecko_bindings::structs::nsAtom;
         use values::CustomIdent;
-        use Atom;
 
         if self.gecko.mWillChange.len() == 0 {
             return T::Auto
@@ -4263,6 +4267,13 @@ fn static_assert() {
     #[allow(non_snake_case)]
     pub fn set__x_span(&mut self, v: longhands::_x_span::computed_value::T) {
         self.gecko.mSpan = v.0
+    }
+
+    #[allow(non_snake_case)]
+    pub fn clone__x_span(&self) -> longhands::_x_span::computed_value::T {
+        longhands::_x_span::computed_value::T(
+            self.gecko.mSpan
+        )
     }
 
     ${impl_simple_copy('_x_span', 'mSpan')}
@@ -5210,9 +5221,27 @@ clip-path
     }
 
     #[allow(non_snake_case)]
+    pub fn _moz_context_properties_count(&self) -> usize {
+        self.gecko.mContextProps.len()
+    }
+
+    #[allow(non_snake_case)]
+    pub fn _moz_context_properties_at(
+        &self,
+        index: usize,
+    ) -> longhands::_moz_context_properties::computed_value::single_value::T {
+        longhands::_moz_context_properties::computed_value::single_value::T(
+            CustomIdent(unsafe {
+                Atom::from_raw(self.gecko.mContextProps[index].mRawPtr)
+            })
+        )
+    }
+
+    #[allow(non_snake_case)]
     pub fn set__moz_context_properties<I>(&mut self, v: I)
-        where I: IntoIterator<Item = longhands::_moz_context_properties::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator
+    where
+        I: IntoIterator<Item = longhands::_moz_context_properties::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator
     {
         let v = v.into_iter();
         unsafe {
@@ -5710,7 +5739,6 @@ clip-path
         ) -> longhands::counter_${counter_property.lower()}::computed_value::T {
             use values::generics::counters::CounterPair;
             use values::CustomIdent;
-            use gecko_string_cache::Atom;
 
             longhands::counter_${counter_property.lower()}::computed_value::T::new(
                 self.gecko.m${counter_property}s.iter().map(|ref gecko_counter| {
