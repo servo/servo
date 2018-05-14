@@ -348,8 +348,16 @@ function run() {
       expression_should_be_parseable(feature + ": 3.0dpi");
       expression_should_be_parseable(feature + ": 3.4dpi");
       expression_should_be_parseable(feature + "\t: 120dpcm");
+      expression_should_be_parseable(feature + ": 1dppx");
+      expression_should_be_parseable(feature + ": 1x");
+      expression_should_be_parseable(feature + ": 1.5dppx");
+      expression_should_be_parseable(feature + ": 1.5x");
+      expression_should_be_parseable(feature + ": 2.0dppx");
+      // TODO(emilio): Doesn't seem right to exclude 0 here.
       expression_should_not_be_parseable(feature + ": 0dpi");
       expression_should_not_be_parseable(feature + ": -3dpi");
+      expression_should_not_be_parseable(feature + ": 0dppx");
+      expression_should_not_be_parseable(feature + ": 0x");
     }
 
     // Find the resolution using max-resolution
@@ -370,6 +378,8 @@ function run() {
     if (query_applies("(min-resolution: " + resolution + "dpi)")) {
       // It's exact!
       should_apply("(resolution: " + resolution + "dpi)");
+      should_apply("(resolution: " + Math.floor(resolution/96) + "dppx)");
+      should_apply("(resolution: " + Math.floor(resolution/96) + "x)");
       should_not_apply("(resolution: " + (resolution + 1) + "dpi)");
       should_not_apply("(resolution: " + (resolution - 1) + "dpi)");
       dpi_high = resolution + 1;

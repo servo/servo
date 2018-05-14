@@ -9,17 +9,6 @@
 <div id="target0"></div>
 <script>
 test(function() {
-    var testTarget = document.getElementById('target0');
-    var touch1 = document.createTouch(window, testTarget, 42, 15, 20, 35, 40);
-    assert_equals(touch1.target, testTarget, "touch.target is target0");
-    assert_equals(touch1.identifier, 42, "touch.identifier is requested value");
-    assert_equals(touch1.pageX, 15, "touch.pageX is requested value");
-    assert_equals(touch1.pageY, 20, "touch.pageY is requested value");
-    assert_equals(touch1.screenX, 35, "touch.screenX is requested value");
-    assert_equals(touch1.screenY, 40, "touch.screenY is requested value");
-}, "document.createTouch exists and creates a Touch object with requested properties");
-
-test(function() {
     var touchList = document.createTouchList();
     assert_equals(touchList.length, 0, "touchList.length is 0");
     check_TouchList_object(touchList);
@@ -27,7 +16,7 @@ test(function() {
 
 test(function() {
     var testTarget = document.getElementById('target0');
-    var touch1 = document.createTouch(window, testTarget, 42, 15, 20, 35, 40);
+    var touch1 = new Touch({identifier: 123, target: testTarget});
     var touchList = document.createTouchList(touch1);
     assert_equals(touchList.length, 1, "touchList.length is 1");
     assert_equals(touchList.item(0), touch1, "touchList.item(0) is touch1");
@@ -36,8 +25,8 @@ test(function() {
 
 test(function() {
     var testTarget = document.getElementById('target0');
-    var touch1 = document.createTouch(window, testTarget, 42, 15, 20, 35, 40);
-    var touch2 = document.createTouch(window, target0, 44, 25, 30, 45, 50);
+    var touch1 = new Touch({identifier: 123, target: testTarget});
+    var touch2 = new Touch({identifier: 124, target: target0});
     var touchList = document.createTouchList(touch1, touch2);
     assert_equals(touchList.length, 2, "touchList.length is 2");
     assert_equals(touchList.item(0), touch1, "touchList.item(0) is touch1");
