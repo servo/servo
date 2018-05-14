@@ -2326,14 +2326,25 @@ fn static_assert() {
         let shared_fontlist = unsafe { fontlist.mFontlist.mBasePtr.to_safe() };
 
         if shared_fontlist.mNames.is_empty() {
-            let default = match fontlist.mDefaultFontType {
+            let default = fontlist.mDefaultFontType;
+            let default = match default {
                 FontFamilyType::eFamily_serif => {
                     SingleFontFamily::Generic(atom!("serif"))
                 }
-                FontFamilyType::eFamily_sans_serif => {
+                _ => {
+                    // This can break with some combinations of user prefs, see
+                    // bug 1442195 for example. It doesn't really matter in this
+                    // case...
+                    //
+                    // FIXME(emilio): Probably should be storing the whole
+                    // default font name instead though.
+                    debug_assert_eq!(
+                        default,
+                        FontFamilyType::eFamily_sans_serif,
+                        "Default generic should be serif or sans-serif"
+                    );
                     SingleFontFamily::Generic(atom!("sans-serif"))
                 }
-                _ => panic!("Default generic must be serif or sans-serif"),
             };
             FontFamily(FontFamilyList::new(Box::new([default])))
         } else {
