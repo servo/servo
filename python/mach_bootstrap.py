@@ -119,7 +119,7 @@ def _process_exec(args):
                 err.seek(0)
                 shutil.copyfileobj(err, sys.stdout)
 
-                sys.exit()
+                sys.exit(1)
 
 
 def wpt_path(is_firefox, topdir, *paths):
