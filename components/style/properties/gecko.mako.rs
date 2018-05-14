@@ -697,7 +697,7 @@ def set_gecko_property(ffi_name, expr):
             }
             SVGPaintKind::PaintServer(url) => {
                 unsafe {
-                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.url_value.get());
+                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.0.url_value.get());
                 }
             }
             SVGPaintKind::Color(color) => {
@@ -737,8 +737,8 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use values::computed::url::ComputedUrl;
         use values::generics::svg::{SVGPaint, SVGPaintKind};
-        use values::specified::url::SpecifiedUrl;
         use self::structs::nsStyleSVGPaintType;
         use self::structs::nsStyleSVGFallbackType;
         let ref paint = ${get_gecko_property(gecko_ffi_name)};
@@ -760,7 +760,7 @@ def set_gecko_property(ffi_name, expr):
             nsStyleSVGPaintType::eStyleSVGPaintType_Server => {
                 unsafe {
                     SVGPaintKind::PaintServer(
-                        SpecifiedUrl::from_url_value_data(
+                        ComputedUrl::from_url_value_data(
                             &(**paint.mPaint.mPaintServer.as_ref())._base
                         ).unwrap()
                     )
@@ -939,7 +939,7 @@ def set_gecko_property(ffi_name, expr):
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         match v {
             UrlOrNone::Url(ref url) => {
-                self.gecko.${gecko_ffi_name}.set_move(url.url_value.clone())
+                self.gecko.${gecko_ffi_name}.set_move(url.0.url_value.clone())
             }
             UrlOrNone::None => {
                 unsafe {
@@ -961,16 +961,18 @@ def set_gecko_property(ffi_name, expr):
 
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use values::specified::url::SpecifiedUrl;
+        use values::computed::url::ComputedUrl;
 
         if self.gecko.${gecko_ffi_name}.mRawPtr.is_null() {
-            UrlOrNone::none()
-        } else {
-            unsafe {
-                let ref gecko_url_value = *self.gecko.${gecko_ffi_name}.mRawPtr;
-                UrlOrNone::Url(SpecifiedUrl::from_url_value_data(&gecko_url_value._base)
-                               .expect("${gecko_ffi_name} could not convert to SpecifiedUrl"))
-            }
+            return UrlOrNone::none()
+        }
+
+        unsafe {
+            let gecko_url_value = &*self.gecko.${gecko_ffi_name}.mRawPtr;
+            UrlOrNone::Url(
+                ComputedUrl::from_url_value_data(&gecko_url_value._base)
+                    .expect("${gecko_ffi_name} could not convert to ComputedUrl")
+            )
         }
     }
 </%def>
@@ -4110,7 +4112,7 @@ fn static_assert() {
             }
             UrlOrNone::Url(ref url) => {
                 unsafe {
-                    Gecko_SetListStyleImageImageValue(&mut self.gecko, url.image_value.get());
+                    Gecko_SetListStyleImageImageValue(&mut self.gecko, url.0.image_value.get());
                 }
             }
         }
@@ -4125,7 +4127,7 @@ fn static_assert() {
     }
 
     pub fn clone_list_style_image(&self) -> longhands::list_style_image::computed_value::T {
-        use values::specified::url::SpecifiedImageUrl;
+        use values::computed::url::ComputedImageUrl;
 
         if self.gecko.mListStyleImage.mRawPtr.is_null() {
             return UrlOrNone::None;
@@ -4133,8 +4135,9 @@ fn static_assert() {
 
         unsafe {
             let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
-            UrlOrNone::Url(SpecifiedImageUrl::from_image_request(gecko_image_request)
-                           .expect("mListStyleImage could not convert to SpecifiedImageUrl"))
+            UrlOrNone::Url(ComputedImageUrl::from_image_request(
+                gecko_image_request
+            ).expect("mListStyleImage could not convert to ComputedImageUrl"))
         }
     }
 
@@ -4480,7 +4483,7 @@ fn static_assert() {
                 },
                 Url(ref url) => {
                     unsafe {
-                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.url_value.get());
+                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.0.url_value.get());
                     }
                 },
             }
@@ -4499,7 +4502,7 @@ fn static_assert() {
 
     pub fn clone_filter(&self) -> longhands::filter::computed_value::T {
         use values::generics::effects::Filter;
-        use values::specified::url::SpecifiedUrl;
+        use values::computed::url::ComputedUrl;
         use gecko_bindings::structs::NS_STYLE_FILTER_BLUR;
         use gecko_bindings::structs::NS_STYLE_FILTER_BRIGHTNESS;
         use gecko_bindings::structs::NS_STYLE_FILTER_CONTRAST;
@@ -4541,7 +4544,7 @@ fn static_assert() {
                 NS_STYLE_FILTER_URL => {
                     filters.push(unsafe {
                         Filter::Url(
-                            SpecifiedUrl::from_url_value_data(&(**filter.__bindgen_anon_1.mURL.as_ref())._base).unwrap()
+                            ComputedUrl::from_url_value_data(&(**filter.__bindgen_anon_1.mURL.as_ref())._base).unwrap()
                         )
                     });
                 }
@@ -5007,7 +5010,7 @@ fn static_assert() {
             % if ident == "clip_path":
             ShapeSource::ImageOrUrl(ref url) => {
                 unsafe {
-                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.url_value.get())
+                    bindings::Gecko_StyleShapeSource_SetURLValue(${ident}, url.0.url_value.get())
                 }
             }
             % elif ident == "shape_outside":
@@ -5347,7 +5350,7 @@ clip-path
             unsafe {
                 Gecko_SetCursorImageValue(
                     &mut self.gecko.mCursorImages[i],
-                    v.images[i].url.image_value.get(),
+                    v.images[i].url.0.image_value.get(),
                 );
             }
 
@@ -5377,8 +5380,8 @@ clip-path
 
     pub fn clone_cursor(&self) -> longhands::cursor::computed_value::T {
         use values::computed::ui::CursorImage;
+        use values::computed::url::ComputedImageUrl;
         use style_traits::cursor::CursorKind;
-        use values::specified::url::SpecifiedImageUrl;
 
         let keyword = match self.gecko.mCursor as u32 {
             structs::NS_STYLE_CURSOR_AUTO => CursorKind::Auto,
@@ -5423,8 +5426,8 @@ clip-path
         let images = self.gecko.mCursorImages.iter().map(|gecko_cursor_image| {
             let url = unsafe {
                 let gecko_image_request = gecko_cursor_image.mImage.mRawPtr.as_ref().unwrap();
-                SpecifiedImageUrl::from_image_request(&gecko_image_request)
-                    .expect("mCursorImages.mImage could not convert to SpecifiedImageUrl")
+                ComputedImageUrl::from_image_request(&gecko_image_request)
+                    .expect("mCursorImages.mImage could not convert to ComputedImageUrl")
             };
 
             let hotspot =
@@ -5483,7 +5486,7 @@ clip-path
 
     pub fn set_content(&mut self, v: longhands::content::computed_value::T, device: &Device) {
         use values::CustomIdent;
-        use values::computed::counters::{Content, ContentItem};
+        use values::generics::counters::{Content, ContentItem};
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentAttr;
@@ -5610,7 +5613,7 @@ clip-path
                             unsafe {
                                 bindings::Gecko_SetContentDataImageValue(
                                     &mut self.gecko.mContents[i],
-                                    url.image_value.get(),
+                                    url.0.image_value.get(),
                                 )
                             }
                         }
@@ -5635,10 +5638,10 @@ clip-path
         use {Atom, Namespace};
         use gecko::conversions::string_from_chars_pointer;
         use gecko_bindings::structs::nsStyleContentType::*;
-        use values::computed::counters::{Content, ContentItem};
+        use values::generics::counters::{Content, ContentItem};
+        use values::computed::url::ComputedImageUrl;
         use values::{CustomIdent, Either};
         use values::generics::CounterStyleOrNone;
-        use values::specified::url::SpecifiedImageUrl;
         use values::specified::Attr;
 
         if self.gecko.mContents.is_empty() {
@@ -5699,8 +5702,8 @@ clip-path
                             let gecko_image_request =
                                 &**gecko_content.mContent.mImage.as_ref();
                             ContentItem::Url(
-                                SpecifiedImageUrl::from_image_request(gecko_image_request)
-                                    .expect("mContent could not convert to SpecifiedImageUrl")
+                                ComputedImageUrl::from_image_request(gecko_image_request)
+                                    .expect("mContent could not convert to ComputedImageUrl")
                             )
                         }
                     },
