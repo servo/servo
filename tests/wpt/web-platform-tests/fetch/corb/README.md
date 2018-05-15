@@ -21,7 +21,7 @@ sure that CORB doesn't change the existing web behavior) and therefore are
 valuable independently from CORB's standardization efforts.
 
 Tests that cover behavior that is changed by CORB have to be marked as
-[tentative](http://web-platform-tests.org/writing-tests/file-names.html)
+[tentative](https://web-platform-tests.org/writing-tests/file-names.html)
 (using `.tentative` substring in their filename) until CORB
 is included in the official
 [Fetch spec](https://fetch.spec.whatwg.org/).  Such tests may fail unless
