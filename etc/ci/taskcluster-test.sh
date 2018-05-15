@@ -8,6 +8,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+export PATH="${HOME}/.cargo/bin:${PATH}"
+
 # Update this from the linux-dev builder in etc/ci/buildbot_steps.yml
 
 export RUST_BACKTRACE=1
