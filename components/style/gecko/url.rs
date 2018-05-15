@@ -15,8 +15,8 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use nsstring::nsCString;
 use parser::{Parse, ParserContext};
 use servo_arc::{Arc, RawOffsetArc};
-use std::mem;
 use std::fmt::{self, Write};
+use std::mem;
 use style_traits::{CssWriter, ParseError, ToCss};
 use values::computed::{Context, ToComputedValue};
 
@@ -282,7 +282,7 @@ where
 ///
 /// The only difference between specified and computed URLs is the
 /// serialization.
-#[derive(Clone, Debug, Eq, PartialEq, MallocSizeOf)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
 pub struct ComputedUrl(pub SpecifiedUrl);
 
 impl ToCss for ComputedUrl {
@@ -304,7 +304,7 @@ impl ComputedUrl {
 }
 
 /// The computed value of a CSS `url()` for image.
-#[derive(Clone, Debug, Eq, PartialEq, MallocSizeOf)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
 pub struct ComputedImageUrl(pub SpecifiedImageUrl);
 
 impl ToCss for ComputedImageUrl {

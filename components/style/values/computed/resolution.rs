@@ -8,9 +8,9 @@
 
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
+use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
 use values::specified;
-use values::CSSFloat;
 
 /// A computed `<resolution>`.
 pub struct Resolution(CSSFloat);

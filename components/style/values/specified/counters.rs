@@ -17,10 +17,10 @@ use values::generics::counters as generics;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use values::generics::counters::CounterPair;
 use values::generics::counters::CounterReset as GenericCounterReset;
-use values::specified::Integer;
-use values::specified::url::SpecifiedImageUrl;
 #[cfg(feature = "gecko")]
 use values::specified::Attr;
+use values::specified::Integer;
+use values::specified::url::SpecifiedImageUrl;
 
 /// A specified value for the `counter-increment` property.
 pub type CounterIncrement = GenericCounterIncrement<Integer>;
