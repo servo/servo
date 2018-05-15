@@ -14,6 +14,7 @@ use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA;
 use values::computed::{Angle, Number};
 use values::computed::length::Length;
+#[cfg(feature = "gecko")]
 use values::computed::url::ComputedUrl;
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::effects::BoxShadow as GenericBoxShadow;
@@ -47,7 +48,7 @@ pub type Filter = GenericFilter<Angle, Number, Length, SimpleShadow, ComputedUrl
 
 /// An animated value for a single `filter`.
 #[cfg(not(feature = "gecko"))]
-pub type Filter = GenericFilter<Angle, Number, Length, Impossible, ComputedUrl>;
+pub type Filter = GenericFilter<Angle, Number, Length, Impossible, Impossible>;
 
 /// An animated value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<Option<RGBA>, Length, Length>;

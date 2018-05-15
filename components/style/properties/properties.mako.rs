@@ -2643,10 +2643,10 @@ impl ComputedValuesInner {
     /// ineffective, and would yield an empty `::before` or `::after`
     /// pseudo-element.
     pub fn ineffective_content_property(&self) -> bool {
-        use properties::longhands::content::computed_value::T;
+        use values::generics::counters::Content;
         match self.get_counters().content {
-            T::Normal | T::None => true,
-            T::Items(ref items) => items.is_empty(),
+            Content::Normal | Content::None => true,
+            Content::Items(ref items) => items.is_empty(),
         }
     }
 

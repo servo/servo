@@ -54,7 +54,7 @@ use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::counters::ContentItem;
+use style::values::generics::counters::ContentItem;
 use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;

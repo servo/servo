@@ -51,6 +51,8 @@ impl ToLayout for Filter {
             GenericFilter::Sepia(amount) => wr::FilterOp::Sepia(amount.0),
             // Statically check that DropShadow is impossible.
             GenericFilter::DropShadow(ref shadow) => match *shadow {},
+            // Statically check that Url is impossible.
+            GenericFilter::Url(ref url) => match *url {},
         }
     }
 }

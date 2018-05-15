@@ -36,7 +36,8 @@ use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSaf
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::dom::{NodeInfo, TNode};
 use style::selector_parser::RestyleDamage;
-use style::values::computed::counters::{Content, ContentItem};
+use style::values::computed::counters::ContentItem;
+use style::values::generics::counters::Content;
 
 pub trait LayoutNodeLayoutData {
     /// Similar to borrow_data*, but returns the full PersistentLayoutData rather
@@ -113,12 +114,12 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
         if self.get_pseudo_element_type().is_replaced_content() {
             let style = self.as_element().unwrap().resolved_style();
 
-            return match style.as_ref().get_counters().content {
-                Content::Items(ref value) if !value.is_empty() => {
-                    TextContent::GeneratedContent((*value).to_vec())
+            return TextContent::GeneratedContent(
+                match style.as_ref().get_counters().content {
+                    Content::Items(ref value) => value.to_vec(),
+                    _ => vec![],
                 }
-                _ => TextContent::GeneratedContent(vec![]),
-            };
+            );
         }
 
         TextContent::Text(self.node_text_content().into_boxed_str())

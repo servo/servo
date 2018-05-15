@@ -66,7 +66,7 @@ use style::values::computed::Gradient;
 use style::values::computed::effects::SimpleShadow;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{GradientKind, Image, PaintWorklet};
-use style::values::generics::pointing::Cursor;
+use style::values::generics::ui::Cursor;
 use style_traits::CSSPixel;
 use style_traits::ToCss;
 use style_traits::cursor::CursorKind;
@@ -3012,8 +3012,8 @@ impl ComputedValuesCursorUtility for ComputedValues {
     #[inline]
     fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind> {
         match (
-            self.get_pointing().pointer_events,
-            &self.get_pointing().cursor,
+            self.get_inheritedui().pointer_events,
+            &self.get_inheritedui().cursor,
         ) {
             (PointerEvents::None, _) => None,
             (PointerEvents::Auto, &Cursor { keyword: CursorKind::Auto, .. }) => Some(default_cursor),
