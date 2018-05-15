@@ -237,8 +237,14 @@ class MachCommands(CommandBase):
         git_dir = path.join(cargo_dir, "git")
         git_db_dir = path.join(git_dir, "db")
         git_checkout_dir = path.join(git_dir, "checkouts")
-        git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
-        git_checkout_list = os.listdir(git_checkout_dir)
+        if os.path.isdir(git_db_dir):
+            git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
+        else:
+            git_db_list = []
+        if os.path.isdir(git_checkout_dir):
+            git_checkout_list = os.listdir(git_checkout_dir)
+        else:
+            git_checkout_list = []
 
         for d in list(set(git_db_list + git_checkout_list)):
             crate_name = d.replace("-{}".format(d.split("-")[-1]), "")
