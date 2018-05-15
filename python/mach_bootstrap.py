@@ -193,11 +193,18 @@ def _activate_virtualenv(topdir, is_firefox):
     if need_pip_upgrade:
         # Upgrade pip when virtualenv is created to fix the issue
         # https://github.com/servo/servo/issues/11074
-        pip = _get_exec_path(PIP_NAMES, is_valid_path=check_exec_path)
-        if not pip:
-            sys.exit("Python pip is either not installed or not found in virtualenv.")
+        if sys.platform in ['msys', 'win32']:
+            python = _get_exec_path(PYTHON_NAMES, is_valid_path=check_exec_path)
+            if not python:
+                sys.exit("Python is either not installed or not found in virtualenv.")
 
-        _process_exec([pip, "install", "-I", "-U", "pip"])
+            _process_exec([python, "-m", "pip", "install", "-I", "-U", "pip"])
+        else:
+            pip = _get_exec_path(PIP_NAMES, is_valid_path=check_exec_path)
+            if not pip:
+                sys.exit("Python pip is either not installed or not found in virtualenv.")
+
+            _process_exec([pip, "install", "-I", "-U", "pip"])
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
