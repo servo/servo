@@ -9,6 +9,12 @@ set -o nounset
 set -o pipefail
 
 # Update this from the linux-dev builder in etc/ci/buildbot_steps.yml
+
+export RUST_BACKTRACE=1
+export RUSTFLAGS="-Dwarnings"
+export CARGO_INCREMENTAL=0
+export SCCACHE_IDLE_TIMEOUT=1200
+
 ./mach test-tidy --no-progress --all
 ./mach test-tidy --no-progress --self-test
 env CC=gcc-5 CXX=g++-5 ./mach build --dev
