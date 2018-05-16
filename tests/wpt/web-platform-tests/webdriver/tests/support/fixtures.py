@@ -76,6 +76,7 @@ def _restore_windows(session):
     session.window_handle = current_window
 
 
+@ignore_exceptions
 def _switch_to_top_level_browsing_context(session):
     """If the current browsing context selected by WebDriver is a
     `<frame>` or an `<iframe>`, switch it back to the top-level

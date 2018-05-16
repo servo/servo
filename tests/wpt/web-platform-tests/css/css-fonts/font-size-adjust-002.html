@@ -4,21 +4,23 @@
 <link rel="author" title="Intel" href="http://www.intel.com/">
 <link rel="author" title="Shiyou Tan" href="mailto:shiyoux.tan@intel.com">
 <link rel="help" title="3.6 Relative sizing: the font-size-adjust property" href="http://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop">
+<link rel="match" href="font-size-adjust-002-ref.html">
 <meta name="flags" content="Ahem">
 <meta name="assert" content="Test checks that the actual font size is less than the specified size when the value of font-size-adjust
 is less than the aspect value of font">
 <style>
   div {
-    font-family: Ahem;
-    font-size: 40px;
+    position: absolute;
+    font: 40px/40px Ahem;
+    color: blue;
   }
   #test {
-    color: blue;
+    color: orange;
     font-size-adjust: 0.2;
   }
 </style>
 <body>
-  <p>Test passes if the size of blue rectangle is less than the black rectangle.</p>
+  <p>Test passes if the size of the blue rectangle is greater than the orange rectangle.</p>
   <div>FillerText</div>
   <div id="test">FillerText</div>
 </body>
