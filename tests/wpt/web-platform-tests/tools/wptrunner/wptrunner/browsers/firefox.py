@@ -102,7 +102,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
         options["prefs"] = {
-            "network.dns.localDomains": ",".join(server_config.domains.itervalues())
+            "network.dns.localDomains": ",".join(server_config.domains_set)
         }
         capabilities["moz:firefoxOptions"] = options
     if kwargs["certutil_binary"] is None:
@@ -198,7 +198,7 @@ class FirefoxBrowser(Browser):
         self.profile = FirefoxProfile(preferences=preferences)
         self.profile.set_preferences({"marionette.port": self.marionette_port,
                                       "dom.disable_open_during_load": False,
-                                      "network.dns.localDomains": ",".join(self.config.domains.itervalues()),
+                                      "network.dns.localDomains": ",".join(self.config.domains_set),
                                       "network.proxy.type": 0,
                                       "places.history.enabled": False,
                                       "dom.send_after_paint_to_content": True,
@@ -245,7 +245,7 @@ class FirefoxBrowser(Browser):
     def load_prefs(self):
         prefs = Preferences()
 
-        prefs_path = os.path.join(self.prefs_root, "prefs_general.js")
+        prefs_path = os.path.join(self.prefs_root, "user.js")
         if os.path.exists(prefs_path):
             prefs.add(Preferences.read_prefs(prefs_path))
         else:

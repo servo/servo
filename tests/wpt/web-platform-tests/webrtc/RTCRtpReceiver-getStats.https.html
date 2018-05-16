@@ -44,7 +44,7 @@
           added.
    */
 
-  promise_test(async () => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
     const { receiver } = caller.addTransceiver('audio');
@@ -55,7 +55,7 @@
     assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
   }, 'receiver.getStats() via addTransceiver should return stats report containing inbound-rtp stats');
 
-  promise_test(async () => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     const callee = new RTCPeerConnection();
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});

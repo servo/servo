@@ -245,6 +245,12 @@ def run_tests(config, test_paths, product, **kwargs):
                             if test.testdriver and not executor_cls.supports_testdriver:
                                 logger.test_start(test.id)
                                 logger.test_end(test.id, status="SKIP")
+                            elif test.jsshell and not executor_cls.supports_jsshell:
+                                # We expect that tests for JavaScript shells
+                                # will not be run along with tests that run in
+                                # a full web browser, so we silently skip them
+                                # here.
+                                pass
                             else:
                                 run_tests["testharness"].append(test)
                     else:

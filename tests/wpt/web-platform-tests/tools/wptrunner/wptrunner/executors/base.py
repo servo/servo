@@ -104,6 +104,7 @@ class TestExecutor(object):
     test_type = None
     convert_result = None
     supports_testdriver = False
+    supports_jsshell = False
 
     def __init__(self, browser, server_config, timeout_multiplier=1,
                  debug_info=None, **kwargs):

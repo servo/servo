@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<title>Keyboard Map IDL tests</title>
+<link rel="help" href="https://wicg.github.io/keyboard-map/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+'use strict';
+
+promise_test(async () =>  {
+  var idl_array = new IdlArray();
+  const keyboard_map_idl = await fetch("/interfaces/keyboard-map.idl")
+      .then(r => r.text());
+  const layout_map = await navigator.keyboard.getLayoutMap();
+
+  idl_array.add_untested_idls('interface Navigator {};');
+  idl_array.add_idls(keyboard_map_idl);
+
+  window.layout_map = layout_map;
+
+  idl_array.add_objects({
+    Navigator: ['navigator'],
+    Keyboard: ['navigator.keyboard'],
+    KeyboardLayoutMap: ['layout_map'],
+  });
+  idl_array.test();
+}, "Test IDL implementation of Keyboard Map API");
+</script>
