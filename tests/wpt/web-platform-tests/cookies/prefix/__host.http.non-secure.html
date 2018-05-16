@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  ["", "domain="+document.location.hostname, "MaxAge=10", "HttpOnly"].forEach(extraParams => {
+    // Without 'secure'
+    set_prefixed_cookie_via_http_test({
+      prefix: "__Host-",
+      params: "Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__Host: Non-secure origin: 'Path=/;" + extraParams + "'"
+    });
+
+    // With 'secure'
+    set_prefixed_cookie_via_http_test({
+      prefix: "__Host-",
+      params: "Secure; Path=/;" + extraParams,
+      shouldExistInDOM: false,
+      shouldExistViaHTTP: false,
+      title: "__Host: Non-secure origin: 'Secure; Path=/;" + extraParams + "'"
+    });
+  });
+
+  set_prefixed_cookie_via_http_test({
+    prefix: "__Host-",
+    params: "Secure; Path=/cookies/resources/list.py",
+    shouldExistInDOM: false,
+    shouldExistViaHTTP: false,
+    title: "__Host: Non-secure origin: 'Secure; Path=/cookies/resources/list.py'"
+  });
+</script>
+

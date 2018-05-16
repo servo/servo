@@ -16,7 +16,7 @@
     assert_false(name in Touch.prototype,
                  "Should not be supported on the prototype");
 
-    var touch = document.createTouch(window, window, 0, 0, 0, 0, 0);
+    var touch = new Touch({identifier: 12341, target:document.body});
     assert_false(name in touch,
                  "Should not be supported on the instance");
   }, "Touch::" + name);
@@ -39,4 +39,12 @@ test(function() {
   assert_false("initTouchEvent" in touchEvent,
                "Should not be supported on the instance");
 }, "TouchEvent::initTouchEvent");
+
+test(function() {
+  assert_false("createTouch" in Document.prototype,
+               "Should not be supported on the prototype");
+
+  assert_false("createTouch" in document,
+               "Should not be supported on the instance");
+}, "Document::createTouch");
 </script>

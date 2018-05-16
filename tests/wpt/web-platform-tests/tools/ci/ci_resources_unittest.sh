@@ -5,7 +5,11 @@ SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 WPT_ROOT=$(readlink -f $SCRIPT_DIR/../..)
 cd $WPT_ROOT
 
+source tools/ci/lib.sh
+
 main() {
+    hosts_fixup
+
     cd $WPT_ROOT
     pip install -U tox
     ./wpt install firefox browser --destination $HOME
