@@ -21,17 +21,12 @@ test(() => {
   xhr = new XMLHttpRequest;
   xhr.open("DELETE", url + "&command=method", false);
 
-  try {
-    xhr.send();
-  } catch(e) {
-    xhr = new XMLHttpRequest;
-    xhr.open("GET", url + "&command=complete", false);
-    xhr.send();
-    assert_equals(xhr.responseText, "Request successfully blocked.");
-    return;
-  }
+  assert_throws("NetworkError", () => xhr.send());
 
-  assert_unreached("Cross-domain access with non-CORS-safelisted method allowed without throwing exception");
+  xhr = new XMLHttpRequest;
+  xhr.open("GET", url + "&command=complete", false);
+  xhr.send();
+  assert_equals(xhr.responseText, "Request successfully blocked.");
 });
     </script>
   </body>

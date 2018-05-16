@@ -23,7 +23,7 @@ The **Variable Test Axis Matching** font contains reference glyphs 0-9 to match 
 
 ### Building reference tests
 
-Using the **Variable Test Axis Matching** font, [reference tests](http://web-platform-tests.org/writing-tests/reftests.html) in this directory are created as follows:
+Using the **Variable Test Axis Matching** font, [reference tests](https://web-platform-tests.org/writing-tests/reftests.html) in this directory are created as follows:
 
  1. Define `@font-face`s with range expressions, which trigger variation axes to be applied to the variable font.
  2. Use CSS style definitions to request font faces from the set of declared `@font-face`s and use blocks of the glyph sequence MNOP.

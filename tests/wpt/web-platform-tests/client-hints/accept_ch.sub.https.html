@@ -10,11 +10,10 @@
 // HTTP request headers depending on whether the resource is being fetched from
 // the same origin or a different origin. Test this functionality by fetching
 // same-origin and cross-origin resources from this page. The response headers
-// for this page include "Accept-CH: device-memory, dpr, viewport-width".
+// for this page include "Accept-CH: device-memory, dpr, viewport-width, rtt, downlink, ect".
 //
-// echo_client_hints_received.py includes "device-memory-received",
-// "dpr-received" and "viewport-width-received" in the response headers
-// depending on the set of client hints it receives in the request headers.
+// echo_client_hints_received.py sets the response headers depending on the set
+// of client hints it receives in the request headers.
 
 promise_test(t => {
   return fetch("https://{{domains[]}}:{{ports[https][0]}}/client-hints/echo_client_hints_received.py", {"mode": "no-cors"}).then(r => {
@@ -24,6 +23,9 @@ promise_test(t => {
     assert_true(r.headers.has("device-memory-received"), "device-memory-received");
     assert_true(r.headers.has("dpr-received"), "dpr-received");
     assert_true(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_true(r.headers.has("rtt-received"), "rtt-received");
+    assert_true(r.headers.has("downlink-received"), "downlink-received");
+    assert_true(r.headers.has("ect-received"), "ect-received");
   });
 }, "Accept-CH header test");
 
@@ -35,6 +37,9 @@ promise_test(t => {
     assert_false(r.headers.has("device-memory-received"), "device-memory-received");
     assert_false(r.headers.has("dpr-received"), "dpr-received");
     assert_false(r.headers.has("viewport-width-received"), "viewport-width-received");
+    assert_false(r.headers.has("rtt-received"), "rtt-received");
+    assert_false(r.headers.has("downlink-received"), "downlink-received");
+    assert_false(r.headers.has("ect-received"), "ect-received");
   });
 }, "Cross-Origin Accept-CH header test");
 

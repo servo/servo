@@ -7,8 +7,8 @@
 <script src="resources/picture-in-picture-helpers.js"></script>
 <body></body>
 <script>
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
 
   video.addEventListener('enterpictureinpicture', t.step_func_done(event => {
     assert_equals(event.target, video);
