@@ -64,5 +64,26 @@ test(t => {
                 'elements in this document');
 }, 'Test document.getAnimations with null target');
 
+async_test(t => {
+  const iframe = document.createElement('iframe');
+
+  iframe.addEventListener("load", t.step_func_done(function() {
+    const div = createDiv(t, iframe.contentDocument)
+    const effect = new KeyframeEffect(div, null, 100 * MS_PER_SEC);
+    const anim = new Animation(effect, document.timeline);
+    anim.play();
+
+    // The animation's timeline is from the main document, but the effect's
+    // target element is part of the iframe document and that is what matters
+    // for getAnimations.
+    assert_equals(document.getAnimations().length, 0);
+    assert_equals(iframe.contentDocument.getAnimations().length, 1);
+    anim.finish();
+  }));
+
+  document.body.appendChild(iframe);
+  t.add_cleanup(function() { document.body.removeChild(iframe); });
+}, 'Test document.getAnimations for elements inside same-origin iframes');
+
 </script>
 </body>

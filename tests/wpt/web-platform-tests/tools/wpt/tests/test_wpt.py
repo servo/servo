@@ -110,6 +110,52 @@ def test_run_chrome(manifest_dir):
 @pytest.mark.remote_network
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
+def test_run_zero_tests():
+    """A test execution describing zero tests should be reported as an error
+    even in the presence of the `--no-fail-on-unexpected` option."""
+    if is_port_8000_in_use():
+        pytest.skip("port 8000 already in use")
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
+                       "chrome", "/non-existent-dir/non-existent-file.html"])
+    assert excinfo.value.code != 0
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
+                       "--no-fail-on-unexpected",
+                       "chrome", "/non-existent-dir/non-existent-file.html"])
+    assert excinfo.value.code != 0
+
+@pytest.mark.slow
+@pytest.mark.remote_network
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="Tests currently don't work on Windows for path reasons")
+def test_run_failing_test():
+    """Failing tests should be reported with a non-zero exit status unless the
+    `--no-fail-on-unexpected` option has been specified."""
+    if is_port_8000_in_use():
+        pytest.skip("port 8000 already in use")
+    failing_test = "/infrastructure/expected-fail/failing-test.html"
+
+    assert os.path.isfile("../../%s" % failing_test)
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
+                       "chrome", failing_test])
+    assert excinfo.value.code != 0
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
+                       "--no-fail-on-unexpected",
+                       "chrome", failing_test])
+    assert excinfo.value.code == 0
+
+
+@pytest.mark.slow
+@pytest.mark.remote_network
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="Tests currently don't work on Windows for path reasons")
 def test_install_chromedriver():
     chromedriver_path = os.path.join(wpt.localpaths.repo_root, "_venv", "bin", "chromedriver")
     if os.path.exists(chromedriver_path):

@@ -16,11 +16,6 @@
 </div>
 
 <script>
-var host = document.querySelector("#host");
-var shadow = host.attachShadow({ mode: "open" });
-var tmpl = document.querySelector("template#shadow-dom");
-var clone = document.importNode(tmpl.content, true);
-shadow.appendChild(clone);
 
 function testLinkRelModification(testDiv, testLink) {
   assert_equals(getComputedStyle(testDiv).color, "rgb(0, 128, 0)");
@@ -38,6 +33,11 @@ test (() => {
 }, "Removing stylesheet from link rel attribute should remove the stylesheet for light DOM");
 
 test (() => {
+  var host = document.querySelector("#host");
+  var shadow = host.attachShadow({ mode: "open" });
+  var tmpl = document.querySelector("template#shadow-dom");
+  var clone = document.importNode(tmpl.content, true);
+  shadow.appendChild(clone);
   testLinkRelModification(shadow.querySelector("#shadow-div"),
                           shadow.querySelector("#shadow-link"));
 }, "Removing stylesheet from link rel attribute should remove the stylesheet for shadow DOM");

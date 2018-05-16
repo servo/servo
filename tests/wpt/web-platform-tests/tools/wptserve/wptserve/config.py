@@ -1,13 +1,9 @@
-import json
 import logging
 import os
 
 from collections import defaultdict, Mapping
 
 import sslutils
-
-from localpaths import repo_root
-
 from .utils import get_port
 
 
@@ -35,8 +31,31 @@ class Config(Mapping):
 
     Inherits from Mapping for backwards compatibility with the old dict-based config"""
 
-    with open(os.path.join(repo_root, "config.default.json"), "rb") as _fp:
-        _default = json.load(_fp)
+    _default = {
+        "browser_host": "localhost",
+        "alternate_hosts": {},
+        "doc_root": os.path.dirname("__file__"),
+        "server_host": None,
+        "ports": {"http": [8000]},
+        "check_subdomains": True,
+        "log_level": "debug",
+        "bind_address": True,
+        "ssl": {
+            "type": "none",
+            "encrypt_after_connect": False,
+            "openssl": {
+                "openssl_binary": "openssl",
+                "base_path": "_certs",
+                "force_regenerate": False,
+                "base_conf_path": None
+            },
+            "pregenerated": {
+                "host_key_path": None,
+                "host_cert_path": None,
+            },
+        },
+        "aliases": []
+    }
 
     def __init__(self,
                  logger=None,
@@ -149,22 +168,11 @@ class Config(Mapping):
 
     @property
     def doc_root(self):
-        return self._doc_root if self._doc_root is not None else repo_root
+        return self._doc_root
 
     @doc_root.setter
     def doc_root(self, v):
         self._doc_root = v
-
-    @property
-    def ws_doc_root(self):
-        if self._ws_doc_root is not None:
-            return self._ws_doc_root
-        else:
-            return os.path.join(self.doc_root, "websockets", "handlers")
-
-    @ws_doc_root.setter
-    def ws_doc_root(self, v):
-        self._ws_doc_root = v
 
     @property
     def server_host(self):
@@ -176,24 +184,56 @@ class Config(Mapping):
 
     @property
     def domains(self):
-        assert self.browser_host.encode("idna") == self.browser_host
-        domains = {subdomain: (subdomain.encode("idna") + u"." + self.browser_host)
-                   for subdomain in self.subdomains}
-        domains[""] = self.browser_host
-        return domains
+        hosts = self.alternate_hosts.copy()
+        assert "" not in hosts
+        hosts[""] = self.browser_host
+
+        rv = {}
+        for name, host in hosts.iteritems():
+            rv[name] = {subdomain: (subdomain.encode("idna") + u"." + host)
+                        for subdomain in self.subdomains}
+            rv[name][""] = host
+        return rv
 
     @property
     def not_domains(self):
-        assert self.browser_host.encode("idna") == self.browser_host
-        domains = {subdomain: (subdomain.encode("idna") + u"." + self.browser_host)
-                   for subdomain in self.not_subdomains}
-        return domains
+        hosts = self.alternate_hosts.copy()
+        assert "" not in hosts
+        hosts[""] = self.browser_host
+
+        rv = {}
+        for name, host in hosts.iteritems():
+            rv[name] = {subdomain: (subdomain.encode("idna") + u"." + host)
+                        for subdomain in self.not_subdomains}
+        return rv
 
     @property
     def all_domains(self):
-        domains = self.domains.copy()
-        domains.update(self.not_domains)
-        return domains
+        rv = self.domains.copy()
+        nd = self.not_domains
+        for host in rv:
+            rv[host].update(nd[host])
+        return rv
+
+    @property
+    def domains_set(self):
+        return {domain
+                for per_host_domains in self.domains.itervalues()
+                for domain in per_host_domains.itervalues()}
+
+    @property
+    def not_domains_set(self):
+        return {domain
+                for per_host_domains in self.not_domains.itervalues()
+                for domain in per_host_domains.itervalues()}
+
+    @property
+    def all_domains_set(self):
+        return self.domains_set | self.not_domains_set
+
+    @property
+    def paths(self):
+        return {"doc_root": self.doc_root}
 
     @property
     def ssl_env(self):
@@ -213,13 +253,8 @@ class Config(Mapping):
         return cls(self.logger, **kwargs)
 
     @property
-    def paths(self):
-        return {"doc_root": self.doc_root,
-                "ws_doc_root": self.ws_doc_root}
-
-    @property
     def ssl_config(self):
-        key_path, cert_path = self.ssl_env.host_cert_path(self.domains.itervalues())
+        key_path, cert_path = self.ssl_env.host_cert_path(self.domains_set)
         return {"key_path": key_path,
                 "cert_path": cert_path,
                 "encrypt_after_connect": self.ssl["encrypt_after_connect"]}
