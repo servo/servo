@@ -426,9 +426,10 @@ impl nsStyleImage {
         }
     }
 
-    unsafe fn get_image_url(self: &nsStyleImage) -> ComputedImageUrl {
-        let url_value = bindings::Gecko_GetURLValue(self);
-        ComputedImageUrl::from_url_value_data(url_value.as_ref().unwrap())
+    unsafe fn get_image_url(&self) -> ComputedImageUrl {
+        let image_request = bindings::Gecko_GetImageRequest(self)
+            .as_ref().expect("Null image request?");
+        ComputedImageUrl::from_image_request(image_request)
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {

@@ -309,18 +309,10 @@ impl ToCss for ComputedImageUrl {
 }
 
 impl ComputedImageUrl {
-    /// Convert from URLValueData to SpecifiedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData) -> Self {
-        ComputedImageUrl(
-            SpecifiedImageUrl::from_css_url(CssUrl::from_url_value_data(url))
-        )
-    }
-
     /// Convert from nsStyleImageReques to ComputedImageUrl.
     pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
-        let image_value = image_request.mImageValue.mRawPtr
-            .as_ref().expect("mImageValue is null");
-        let url_value_data = &image_value._base;
-        Self::from_url_value_data(url_value_data)
+        let image_value = image_request.mImageValue.to_safe();
+        let url = CssUrl::from_url_value_data(&image_value._base);
+        ComputedImageUrl(SpecifiedImageUrl { url, image_value })
     }
 }
