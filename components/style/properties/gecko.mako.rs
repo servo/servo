@@ -760,8 +760,8 @@ def set_gecko_property(ffi_name, expr):
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke => SVGPaintKind::ContextStroke,
             nsStyleSVGPaintType::eStyleSVGPaintType_Server => {
                 SVGPaintKind::PaintServer(unsafe {
-                    let url = RefPtr::from_ptr_ref(paint.mPaint.mPaintServer.as_ref());
-                    ComputedUrl::from_url_value(url.clone())
+                    let url = RefPtr::new(*paint.mPaint.mPaintServer.as_ref());
+                    ComputedUrl::from_url_value(url)
                 })
             }
             nsStyleSVGPaintType::eStyleSVGPaintType_Color => {
@@ -4546,8 +4546,8 @@ fn static_assert() {
                 },
                 NS_STYLE_FILTER_URL => {
                     filters.push(Filter::Url(unsafe {
-                        let url = RefPtr::from_ptr_ref(filter.__bindgen_anon_1.mURL.as_ref());
-                        ComputedUrl::from_url_value(url.clone())
+                        let url = RefPtr::new(*filter.__bindgen_anon_1.mURL.as_ref());
+                        ComputedUrl::from_url_value(url)
                     }));
                 }
                 _ => {},
