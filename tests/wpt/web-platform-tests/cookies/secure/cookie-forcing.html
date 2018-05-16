@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  function cookie_force_test(secure_origin, secure_cookie, present, title) {
+    var counter = 0;
+    promise_test(t => {
+
+      var testCookieValue = "" + Math.random();
+      var markerCookieName = "marker";
+      var markerCookieValue = "markerVal";
+
+      var brakes = 5000; //limit cookie setting limit in case browers are magic
+
+      // Set an initial cookie as a marker
+      create_cookie_from_js(markerCookieName, markerCookieValue, 10, secure_cookie);
+      //TODO we cant trust document.cookie to set secure cookies. Need a round trip to a secure origin.
+      assert_dom_cookie(markerCookieName, markerCookieValue, true);
+
+      // Set new cookies until marker is gone
+      try {
+        for (i = 0; i < brakes; i++) {
+          create_cookie_from_js(markerCookieName + counter++, markerCookieValue, 10, secure_cookie);
+          assert_dom_cookie(markerCookieName, markerCookieValue, true);
+        }
+      } catch(err) {
+        //shame on me, just fiddling for now
+      }
+
+      assert_dom_cookie(markerCookieName, markerCookieValue, present);
+
+      if (present == false) {
+        alert("It took " + counter + " cookies to force out the marker cookie");
+      } else {
+        alert("Even after " + counter + " cookies the marker cookie was not forced out. Try incresing the current limit of " + brakes);
+      }
+
+    }, title);
+  }
+
+
+  //actual tests to verify that non-secure origins should "leave secure cookies alone"
+  cookie_force_test(false, false, false, "non-secure origins should be able to force out insecure cookies.");
+
+</script>

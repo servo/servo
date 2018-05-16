@@ -1,3 +1,4 @@
+import json
 import os
 import platform
 import signal
@@ -102,7 +103,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         if kwargs["binary_args"]:
             options["args"] = kwargs["binary_args"]
         options["prefs"] = {
-            "network.dns.localDomains": ",".join(server_config.domains.itervalues())
+            "network.dns.localDomains": ",".join(server_config.domains_set)
         }
         capabilities["moz:firefoxOptions"] = options
     if kwargs["certutil_binary"] is None:
@@ -198,7 +199,7 @@ class FirefoxBrowser(Browser):
         self.profile = FirefoxProfile(preferences=preferences)
         self.profile.set_preferences({"marionette.port": self.marionette_port,
                                       "dom.disable_open_during_load": False,
-                                      "network.dns.localDomains": ",".join(self.config.domains.itervalues()),
+                                      "network.dns.localDomains": ",".join(self.config.domains_set),
                                       "network.proxy.type": 0,
                                       "places.history.enabled": False,
                                       "dom.send_after_paint_to_content": True,
@@ -245,11 +246,23 @@ class FirefoxBrowser(Browser):
     def load_prefs(self):
         prefs = Preferences()
 
-        prefs_path = os.path.join(self.prefs_root, "prefs_general.js")
-        if os.path.exists(prefs_path):
-            prefs.add(Preferences.read_prefs(prefs_path))
-        else:
-            self.logger.warning("Failed to find base prefs file in %s" % prefs_path)
+        pref_paths = []
+        prefs_general = os.path.join(self.prefs_root, 'prefs_general.js')
+        if os.path.isfile(prefs_general):
+            # Old preference file used in Firefox 60 and earlier (remove when no longer supported)
+            pref_paths.append(prefs_general)
+
+        profiles = os.path.join(self.prefs_root, 'profiles.json')
+        if os.path.isfile(profiles):
+            with open(profiles, 'r') as fh:
+                for name in json.load(fh)['web-platform-tests']:
+                    pref_paths.append(os.path.join(self.prefs_root, name, 'user.js'))
+
+        for path in pref_paths:
+            if os.path.exists(path):
+                prefs.add(Preferences.read_prefs(path))
+            else:
+                self.logger.warning("Failed to find base prefs file in %s" % path)
 
         # Add any custom preferences
         prefs.add(self.extra_prefs, cast=True)

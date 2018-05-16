@@ -7,17 +7,18 @@
 <script src="resources/picture-in-picture-helpers.js"></script>
 <body></body>
 <script>
-promise_test(t => {
-  return requestPictureInPictureWithTrustedClick(document.createElement('video'))
+promise_test(async t => {
+  const video = await loadVideo();
+  return requestPictureInPictureWithTrustedClick(video)
   .then(pipWindow => {
     assert_not_equals(pipWindow.width, 0);
     assert_not_equals(pipWindow.height, 0);
   });
 }, 'Picture-in-Picture window dimensions are set after entering Picture-in-Picture');
 
-promise_test(t => {
-  const video1 = document.createElement('video');
-  const video2 = document.createElement('video');
+promise_test(async t => {
+  const video1 = await loadVideo();
+  const video2 = await loadVideo();
   return requestPictureInPictureWithTrustedClick(video1)
   .then(pipWindow1 => {
     return requestPictureInPictureWithTrustedClick(video2)
@@ -31,19 +32,20 @@ promise_test(t => {
 }, 'Picture-in-Picture window dimensions are set to 0 after entering ' +
    'Picture-in-Picture for another video');
 
-promise_test(t => {
-  return requestPictureInPictureWithTrustedClick(document.createElement('video'))
+promise_test(async t => {
+  const video = await loadVideo();
+  return requestPictureInPictureWithTrustedClick(video)
   .then(pipWindow => {
     return document.exitPictureInPicture()
     .then(() => {
       assert_equals(pipWindow.width, 0);
       assert_equals(pipWindow.height, 0);
     });
-  })
+  });
 }, 'Picture-in-Picture window dimensions are set to 0 after exiting Picture-in-Picture');
 
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
   let thePipWindow;
 
   video.addEventListener('leavepictureinpicture', t.step_func_done(event => {

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: font-face unicode-range</title>
+<style>
+  @font-face {
+    font-family: base;
+    src: url(support/fonts/LigatureSymbolsWithSpaces.woff);
+  }
+  @font-face {
+    font-family: swoosh;
+    src: url(support/fonts/Rochester.otf);
+  }
+  .ref {
+    font-family: base;
+  }
+  .ref .amp {
+	  font-family: swoosh;
+  }
+  div {
+	  font-size: 5em;
+  }
+</style>
+<body>
+  <p>Test passes if the two lines look the same, with just the ampersand in italic</p>
+  <div class="ref">This <span class="amp">&amp;</span> That</div>
+  <div class="ref">This <span class="amp">&amp;</span> That</div>
+</body>

@@ -19,6 +19,7 @@
       // MIME-types not protected by CORB
       "image/gif", "image/png", "image/png;blah", "image/svg+xml",
       "application/javascript", "application/jsonp",
+      "image/gif;HI=THERE",
 
       // MIME types that may seem to be JSON or XML, but really aren't - i.e.
       // these MIME types are not covered by:
@@ -39,7 +40,8 @@
       "text/json", "application/json", "text/xml", "application/xml",
       "application/blah+json", "text/blah+json",
       "application/blah+xml", "text/blah+xml",
-      "TEXT/HTML", "TEXT/JSON", "TEXT/BLAH+JSON", "APPLICATION/BLAH+XML"]
+      "TEXT/HTML", "TEXT/JSON", "TEXT/BLAH+JSON", "APPLICATION/BLAH+XML",
+      "text/json;does=it;matter", "text/HTML;NO=it;does=NOT"]
 
   const get_url = (mime) => {
     // www1 is cross-origin, so the HTTP response is CORB-eligible -->
