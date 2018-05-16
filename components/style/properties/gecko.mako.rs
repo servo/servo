@@ -762,7 +762,7 @@ def set_gecko_property(ffi_name, expr):
                     SVGPaintKind::PaintServer(
                         ComputedUrl::from_url_value_data(
                             &(**paint.mPaint.mPaintServer.as_ref())._base
-                        ).unwrap()
+                        )
                     )
                 }
             }
@@ -971,7 +971,6 @@ def set_gecko_property(ffi_name, expr):
             let gecko_url_value = &*self.gecko.${gecko_ffi_name}.mRawPtr;
             UrlOrNone::Url(
                 ComputedUrl::from_url_value_data(&gecko_url_value._base)
-                    .expect("${gecko_ffi_name} could not convert to ComputedUrl")
             )
         }
     }
@@ -4555,7 +4554,7 @@ fn static_assert() {
                 NS_STYLE_FILTER_URL => {
                     filters.push(unsafe {
                         Filter::Url(
-                            ComputedUrl::from_url_value_data(&(**filter.__bindgen_anon_1.mURL.as_ref())._base).unwrap()
+                            ComputedUrl::from_url_value_data(&(**filter.__bindgen_anon_1.mURL.as_ref())._base)
                         )
                     });
                 }

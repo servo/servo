@@ -429,7 +429,6 @@ impl nsStyleImage {
     unsafe fn get_image_url(self: &nsStyleImage) -> ComputedImageUrl {
         let url_value = bindings::Gecko_GetURLValue(self);
         ComputedImageUrl::from_url_value_data(url_value.as_ref().unwrap())
-            .expect("Could not convert to ComputedUrl")
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
@@ -679,7 +678,7 @@ pub mod basic_shape {
                 StyleShapeSourceType::URL => unsafe {
                     let shape_image = &*other.mShapeImage.mPtr;
                     let other_url = &(**shape_image.__bindgen_anon_1.mURLValue.as_ref());
-                    let url = ComputedUrl::from_url_value_data(&other_url._base).unwrap();
+                    let url = ComputedUrl::from_url_value_data(&other_url._base);
                     ShapeSource::ImageOrUrl(url)
                 },
                 StyleShapeSourceType::Image => {

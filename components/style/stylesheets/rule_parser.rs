@@ -158,7 +158,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 }
 
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
-                let url = CssUrl::parse_from_string(url_string, &self.context)?;
+                let url = CssUrl::parse_from_string(url_string, &self.context);
 
                 let media = parse_media_query_list(&self.context, input,
                                                    self.error_context.error_reporter);
