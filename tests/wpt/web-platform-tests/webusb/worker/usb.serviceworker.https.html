@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+service_worker_test('/webusb/resources/usb.serviceworker.js',
+    'Ensure that WebUSB is inaccessible from a service worker.');
+
+</script>

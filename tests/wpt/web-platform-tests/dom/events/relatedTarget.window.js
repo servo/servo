@@ -21,13 +21,13 @@ test(() => {
     for (target of [new XMLHttpRequest(), self, host]) {
       const event = new FocusEvent("demo", { relatedTarget: relatedTarget });
       target.dispatchEvent(event);
-      assert_equals(event.target, null);
-      assert_equals(event.relatedTarget, null);
+      assert_equals(event.target, target);
+      assert_equals(event.relatedTarget, host);
     }
   }
-}, "Reset if relatedTarget pointed to a shadow tree");
+}, "Retarget a shadow-tree relatedTarget");
 
-async_test(t => {
+test(t => {
   const shadowChild = shadow.appendChild(document.createElement("div"));
   shadowChild.addEventListener("demo", t.step_func(() => document.body.appendChild(shadowChild)));
   const event = new FocusEvent("demo", { relatedTarget: new XMLHttpRequest() });
@@ -36,22 +36,20 @@ async_test(t => {
   assert_equals(event.target, null);
   assert_equals(event.relatedTarget, null);
   shadowChild.remove();
-  t.done();
 }, "Reset if target pointed to a shadow tree pre-dispatch");
 
-async_test(t => {
+test(t => {
   const shadowChild = shadow.appendChild(document.createElement("div"));
-  shadowChild.addEventListener("demo", t.step_func(() => document.body.appendChild(shadowChild)));
+  document.body.addEventListener("demo", t.step_func(() => document.body.appendChild(shadowChild)));
   const event = new FocusEvent("demo", { relatedTarget: shadowChild });
   document.body.dispatchEvent(event);
   assert_equals(shadowChild.parentNode, document.body);
-  assert_equals(event.target, null);
-  assert_equals(event.relatedTarget, null);
+  assert_equals(event.target, document.body);
+  assert_equals(event.relatedTarget, host);
   shadowChild.remove();
-  t.done();
-}, "Reset if relatedTarget pointed to a shadow tree pre-dispatch");
+}, "Retarget a shadow-tree relatedTarget, part 2");
 
-async_test(t => {
+test(t => {
   const event = new FocusEvent("heya", { relatedTarget: shadow, cancelable: true }),
         callback = t.unreached_func();
   host.addEventListener("heya", callback);
@@ -64,10 +62,9 @@ async_test(t => {
   // Check that the dispatch flag is cleared
   event.initEvent("x");
   assert_equals(event.type, "x");
-  t.done();
 }, "Reset targets on early return");
 
-async_test(t => {
+test(t => {
   const input = document.body.appendChild(document.createElement("input")),
         event = new MouseEvent("click", { relatedTarget: shadow });
   let seen = false;
@@ -81,5 +78,4 @@ async_test(t => {
   });
   assert_true(input.dispatchEvent(event));
   assert_true(seen);
-  t.done();
 }, "Reset targets before activation behavior");

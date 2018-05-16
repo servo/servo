@@ -1,10 +1,10 @@
 These tests are for browsers, but the data for
-`a-element.html`, `url-constructor.html`, and `a-element-xhtml.xhtml`
+`a-element.html`, `url-constructor.html`, `a-element-xhtml.xhtml`, and `failure.html`
 is in `urltestdata.json` and can be re-used by non-browser implementations.
 This file contains a JSON array of comments as strings and test cases as objects.
 The keys for each test case are:
 
-* `base`: an absolute URL as a string whose [parsing] without a base of its own should succeed.
+* `base`: an absolute URL as a string whose [parsing] without a base of its own must succeed.
   This key is always present,
   and may have a value like `"about:blank"` when `input` is an absolute URL.
 * `input`: an URL as a string to be [parsed][parsing] with `base` as its base URL.
@@ -18,6 +18,12 @@ The keys for each test case are:
 
     The `origin` key may be missing.
     In that case, the API’s `origin` attribute is not tested.
+
+In addition to testing that parsing `input` against `base` gives the result, a test harness for the
+`URL` constructor (or similar APIs) should additionally test the following pattern: if `failure` is
+true, parsing `about:blank` against `base` must give failure. This tests that the logic for
+converting base URLs into strings properly fails the whole parsing algorithm if the base URL cannot
+be parsed.
 
 [parsing]: https://url.spec.whatwg.org/#concept-basic-url-parser
 [API]: https://url.spec.whatwg.org/#api

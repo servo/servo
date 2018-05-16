@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Async local storage storage export smoke test</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { storage } from "std:async-local-storage";
+
+test(() => {
+  const { backingStore } = storage;
+  assert_array_equals(Object.keys(backingStore), ["database", "store", "version"]);
+  assert_own_property(backingStore, "database");
+  assert_own_property(backingStore, "store");
+  assert_own_property(backingStore, "version");
+  assert_equals(Object.getPrototypeOf(backingStore), Object.prototype);
+
+  assert_equals(backingStore.database, "async-local-storage:default");
+  assert_equals(backingStore.store, "store");
+  assert_equals(backingStore.version, 1);
+}, "backingStore returns the correct object");
+
+promise_test(async (t) => {
+  t.add_cleanup(async () => {
+    await storage.clear();
+  });
+
+  assert_equals(await storage.set("key", "value"), undefined);
+
+  assert_equals(await storage.get("key"), "value");
+  assert_equals(await storage.has("key"), true);
+  assert_array_equals(await storage.keys(), ["key"]);
+  assert_array_equals(await storage.values(), ["value"]);
+
+  const entries = await storage.entries();
+  assert_true(Array.isArray(entries));
+  assert_equals(entries.length, 1);
+  assert_array_equals(entries[0], ["key", "value"]);
+
+  assert_equals(await storage.delete("key"), undefined);
+
+  assert_equals(await storage.get("key"), undefined);
+  assert_equals(await storage.has("key"), false);
+}, "storage methods work, at least for one entry with string key and value");
+</script>

@@ -3,10 +3,9 @@ from tests.support.fixtures import is_element_in_viewport
 from tests.support.inline import inline
 
 
-def send_keys_to_element(session, element, text):
+def element_send_keys(session, element, text):
     return session.transport.send(
-        "POST",
-        "/session/{session_id}/element/{element_id}/value".format(
+        "POST", "/session/{session_id}/element/{element_id}/value".format(
             session_id=session.session_id,
             element_id=element.id),
         {"text": text})
@@ -16,7 +15,7 @@ def test_element_outside_of_not_scrollable_viewport(session):
     session.url = inline("<input style=\"position: relative; left: -9999px;\">")
     element = session.find.css("input", all=False)
 
-    response = send_keys_to_element(session, element, "foo")
+    response = element_send_keys(session, element, "foo")
     assert_success(response)
 
     assert not is_element_in_viewport(session, element)
@@ -26,7 +25,7 @@ def test_element_outside_of_scrollable_viewport(session):
     session.url = inline("<input style=\"margin-top: 102vh;\">")
     element = session.find.css("input", all=False)
 
-    response = send_keys_to_element(session, element, "foo")
+    response = element_send_keys(session, element, "foo")
     assert_success(response)
 
     assert is_element_in_viewport(session, element)
@@ -42,7 +41,7 @@ def test_option_select_container_outside_of_scrollable_viewport(session):
     element = session.find.css("option#bar", all=False)
     select = session.find.css("select", all=False)
 
-    response = send_keys_to_element(session, element, "bar")
+    response = element_send_keys(session, element, "bar")
     assert_success(response)
 
     assert is_element_in_viewport(session, select)
@@ -60,7 +59,7 @@ def test_option_stays_outside_of_scrollable_viewport(session):
     option_foo = session.find.css("option#foo", all=False)
     option_bar = session.find.css("option#bar", all=False)
 
-    response = send_keys_to_element(session, option_bar, "bar")
+    response = element_send_keys(session, option_bar, "bar")
     assert_success(response)
 
     assert is_element_in_viewport(session, select)
@@ -72,7 +71,7 @@ def test_contenteditable_element_outside_of_scrollable_viewport(session):
     session.url = inline("<div contenteditable style=\"margin-top: 102vh;\"></div>")
     element = session.find.css("div", all=False)
 
-    response = send_keys_to_element(session, element, "foo")
+    response = element_send_keys(session, element, "foo")
     assert_success(response)
 
     assert is_element_in_viewport(session, element)

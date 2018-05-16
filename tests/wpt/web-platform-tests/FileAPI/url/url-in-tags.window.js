@@ -31,7 +31,6 @@ async_test(t => {
 }, 'Blob URLs can be used in iframes, and are treated same origin');
 
 async_test(t => {
-  const scroll_position = 5000;
   const blob_contents = '<!doctype html>\n<meta charset="utf-8">\n' +
     '<style>body { margin: 0; } .block { height: 5000px; }</style>\n' +
     '<body>\n' +
@@ -43,8 +42,7 @@ async_test(t => {
   const frame = document.createElement('iframe');
   frame.setAttribute('src', url + '#block2');
   document.body.appendChild(frame);
-
-  frame.onload = t.step_func_done(() => {
+  frame.contentWindow.onscroll = t.step_func_done(() => {
     assert_equals(frame.contentWindow.scrollY, 5000);
   });
 }, 'Blob URL fragment is implemented.');
