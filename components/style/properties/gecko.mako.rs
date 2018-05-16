@@ -4145,9 +4145,7 @@ fn static_assert() {
 
         unsafe {
             let ref gecko_image_request = *self.gecko.mListStyleImage.mRawPtr;
-            UrlOrNone::Url(ComputedImageUrl::from_image_request(
-                gecko_image_request
-            ).expect("mListStyleImage could not convert to ComputedImageUrl"))
+            UrlOrNone::Url(ComputedImageUrl::from_image_request(gecko_image_request))
         }
     }
 
@@ -5437,7 +5435,6 @@ clip-path
             let url = unsafe {
                 let gecko_image_request = gecko_cursor_image.mImage.mRawPtr.as_ref().unwrap();
                 ComputedImageUrl::from_image_request(&gecko_image_request)
-                    .expect("mCursorImages.mImage could not convert to ComputedImageUrl")
             };
 
             let hotspot =
@@ -5713,7 +5710,6 @@ clip-path
                                 &**gecko_content.mContent.mImage.as_ref();
                             ContentItem::Url(
                                 ComputedImageUrl::from_image_request(gecko_image_request)
-                                    .expect("mContent could not convert to ComputedImageUrl")
                             )
                         }
                     },

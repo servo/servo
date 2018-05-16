@@ -317,13 +317,10 @@ impl ComputedImageUrl {
     }
 
     /// Convert from nsStyleImageReques to ComputedImageUrl.
-    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<Self, ()> {
-        if image_request.mImageValue.mRawPtr.is_null() {
-            return Err(());
-        }
-
-        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
+    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
+        let image_value = image_request.mImageValue.mRawPtr
+            .as_ref().expect("mImageValue is null");
         let url_value_data = &image_value._base;
-        Ok(Self::from_url_value_data(url_value_data))
+        Self::from_url_value_data(url_value_data)
     }
 }
