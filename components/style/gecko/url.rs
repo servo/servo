@@ -287,11 +287,10 @@ impl ToCss for ComputedUrl {
 }
 
 impl ComputedUrl {
-    /// Convert from URLValueData to ComputedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData) -> Self {
-        ComputedUrl(
-            SpecifiedUrl::from_css_url(CssUrl::from_url_value_data(url))
-        )
+    /// Convert from RefPtr<URLValue> to ComputedUrl.
+    pub unsafe fn from_url_value(url_value: RefPtr<URLValue>) -> Self {
+        let url = CssUrl::from_url_value_data(&url_value._base);
+        ComputedUrl(SpecifiedUrl { url, url_value })
     }
 }
 

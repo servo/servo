@@ -43,6 +43,7 @@ use gecko_bindings::structs::mozilla::CSSPseudoElementType;
 use gecko_bindings::structs::mozilla::CSSPseudoElementType_InheritingAnonBox;
 use gecko_bindings::structs::root::NS_STYLE_CONTEXT_TYPE_SHIFT;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
+use gecko_bindings::sugar::refptr::RefPtr;
 use gecko::values::convert_nscolor_to_rgba;
 use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::GeckoStyleCoordConvertible;
@@ -758,13 +759,10 @@ def set_gecko_property(ffi_name, expr):
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextFill => SVGPaintKind::ContextFill,
             nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke => SVGPaintKind::ContextStroke,
             nsStyleSVGPaintType::eStyleSVGPaintType_Server => {
-                unsafe {
-                    SVGPaintKind::PaintServer(
-                        ComputedUrl::from_url_value_data(
-                            &(**paint.mPaint.mPaintServer.as_ref())._base
-                        )
-                    )
-                }
+                SVGPaintKind::PaintServer(unsafe {
+                    let url = RefPtr::from_ptr_ref(paint.mPaint.mPaintServer.as_ref());
+                    ComputedUrl::from_url_value(url.clone())
+                })
             }
             nsStyleSVGPaintType::eStyleSVGPaintType_Color => {
                 unsafe { SVGPaintKind::Color(convert_nscolor_to_rgba(*paint.mPaint.mColor.as_ref())) }
@@ -967,12 +965,9 @@ def set_gecko_property(ffi_name, expr):
             return UrlOrNone::none()
         }
 
-        unsafe {
-            let gecko_url_value = &*self.gecko.${gecko_ffi_name}.mRawPtr;
-            UrlOrNone::Url(
-                ComputedUrl::from_url_value_data(&gecko_url_value._base)
-            )
-        }
+        UrlOrNone::Url(unsafe {
+            ComputedUrl::from_url_value(self.gecko.${gecko_ffi_name}.to_safe())
+        })
     }
 </%def>
 
@@ -4550,11 +4545,10 @@ fn static_assert() {
                     });
                 },
                 NS_STYLE_FILTER_URL => {
-                    filters.push(unsafe {
-                        Filter::Url(
-                            ComputedUrl::from_url_value_data(&(**filter.__bindgen_anon_1.mURL.as_ref())._base)
-                        )
-                    });
+                    filters.push(Filter::Url(unsafe {
+                        let url = RefPtr::from_ptr_ref(filter.__bindgen_anon_1.mURL.as_ref());
+                        ComputedUrl::from_url_value(url.clone())
+                    }));
                 }
                 _ => {},
             }
