@@ -1231,6 +1231,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("Sending reply to get parent info failed ({:?}).", e);
                 }
             }
+            FromScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, sender) => {
+                // We increment here because the 0th element is the parent browsing context itself
+                let result = self.all_descendant_browsing_contexts_iter(browsing_context_id)
+                    .nth(index + 1)
+                    .map(|bc| bc.id);
+                if let Err(e) = sender.send(result) {
+                    warn!("Sending reply to get child browsing context ID failed ({:?}).", e);
+                }
+            }
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);

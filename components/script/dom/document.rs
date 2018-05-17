@@ -3792,7 +3792,7 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size().unwrap().initial_viewport;
+        let viewport = window.window_size()?.initial_viewport;
 
         if self.browsing_context().is_none() {
             return None;
@@ -3826,7 +3826,10 @@ impl DocumentMethods for Document {
         let y = *y as f32;
         let point = &Point2D::new(x, y);
         let window = window_from_node(self);
-        let viewport = window.window_size().unwrap().initial_viewport;
+        let viewport = match window.window_size() {
+            Some(size) => size.initial_viewport,
+            None => return vec![]
+        };
 
         if self.browsing_context().is_none() {
             return vec!();

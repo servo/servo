@@ -1649,11 +1649,6 @@ impl Window {
         had_clip_rect
     }
 
-    // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
-    pub fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<DomRoot<Window>> {
-        None
-    }
-
     pub fn suspend(&self) {
         // Suspend timer events.
         self.upcast::<GlobalScope>().suspend();
