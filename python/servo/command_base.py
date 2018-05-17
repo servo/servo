@@ -559,6 +559,10 @@ class CommandBase(object):
             # where we want to run doctests as part of `./mach test-unit`
             env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
 
+        # Workaround for https://github.com/servo/servo/issues/20756
+        if sys.platform == "darwin":
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C codegen-units=1"
+
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
