@@ -490,7 +490,6 @@ def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \
        file_name.endswith(".mako.rs") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
-       file_name.endswith(os.path.join("geckolib", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
         raise StopIteration
 

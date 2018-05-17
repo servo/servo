@@ -8,4 +8,4 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-rm -rf target/{debug,release,doc,geckolib}
+rm -rf target/{debug,release,doc}
