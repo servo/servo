@@ -24,15 +24,26 @@ test(t => {
   assert_equals(video.getAttribute('disablepictureinpicture'), null);
 }, 'Test disablePictureInPicture IDL attribute');
 
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
   video.disablePictureInPicture = true;
   return promise_rejects(t, 'InvalidStateError',
       requestPictureInPictureWithTrustedClick(video));
 }, 'Request Picture-in-Picture rejects if disablePictureInPicture is true');
 
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
+  return callWithTrustedClick(async () => {
+    const promise = video.requestPictureInPicture();
+    video.disablePictureInPicture = true;
+    await promise_rejects(t, 'InvalidStateError', promise);
+    assert_equals(document.pictureInPictureElement, null);
+  });
+}, 'Request Picture-in-Picture rejects if disablePictureInPicture becomes ' +
+   'true before promise resolves.');
+
+promise_test(async t => {
+  const video = await loadVideo();
   return requestPictureInPictureWithTrustedClick(video)
   .then(() => {
     video.disablePictureInPicture = true;
@@ -40,8 +51,8 @@ promise_test(t => {
   });
 }, 'pictureInPictureElement is unset if disablePictureInPicture becomes true');
 
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
   return requestPictureInPictureWithTrustedClick(video)
   .then(() => {
     video.disablePictureInPicture = false;
@@ -49,8 +60,8 @@ promise_test(t => {
   });
 }, 'pictureInPictureElement is unchanged if disablePictureInPicture becomes false');
 
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
   return requestPictureInPictureWithTrustedClick(video)
   .then(() => {
     document.createElement('video').disablePictureInPicture = true;

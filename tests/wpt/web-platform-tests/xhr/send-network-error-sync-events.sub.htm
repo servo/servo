@@ -17,7 +17,7 @@
         {
             var xhr = new XMLHttpRequest();
 
-            xhr.open("POST", "http://nonexistent-origin.{{host}}:{{ports[http][0]}}", false);
+            xhr.open("POST", "http://nonexistent.{{host}}:{{ports[http][0]}}", false);
 
             assert_throws("NetworkError", function()
             {

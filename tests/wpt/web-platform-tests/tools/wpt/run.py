@@ -96,15 +96,19 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 def check_environ(product):
     if product not in ("firefox", "servo"):
-        config = serve.load_config(os.path.join(wpt_root, "config.default.json"),
-                                   os.path.join(wpt_root, "config.json"))
-        expected_hosts = (set(config["domains"].itervalues()) ^
-                          set(config["not_domains"].itervalues()))
+        config = serve.load_config(os.path.join(wpt_root, "config.json"))
+        expected_hosts = set(config.domains_set)
+        is_windows = platform.uname()[0] == "Windows"
+
+        if is_windows:
+            expected_hosts.update(config.not_domains_set)
+
         missing_hosts = set(expected_hosts)
-        if platform.uname()[0] != "Windows":
-            hosts_path = "/etc/hosts"
-        else:
+        if is_windows:
             hosts_path = "C:\Windows\System32\drivers\etc\hosts"
+        else:
+            hosts_path = "/etc/hosts"
+
         with open(hosts_path, "r") as f:
             for line in f:
                 line = line.split("#", 1)[0].strip()
@@ -113,16 +117,16 @@ def check_environ(product):
                 for host in hosts:
                     missing_hosts.discard(host)
             if missing_hosts:
-                if platform.uname()[0] != "Windows":
+                if is_windows:
                     message = """Missing hosts file configuration. Run
 
-./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
+python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -Encoding ascii -Append
+
+in PowerShell with Administrator privileges.""" % hosts_path
                 else:
                     message = """Missing hosts file configuration. Run
 
-python wpt make-hosts-file >> %s
-
-from a shell with Administrator privileges.""" % hosts_path
+./wpt make-hosts-file | sudo tee -a %s""" % hosts_path
                 raise WptrunError(message)
 
 
@@ -423,6 +427,7 @@ def setup_wptrunner(venv, prompt=True, install=False, **kwargs):
 
     venv.install_requirements(os.path.join(wptrunner_path, "requirements.txt"))
 
+    kwargs['browser_version'] = setup_cls.browser.version(kwargs.get("binary"))
     return kwargs
 
 
@@ -457,8 +462,7 @@ def run(venv, **kwargs):
 
 def run_single(venv, **kwargs):
     from wptrunner import wptrunner
-    wptrunner.start(**kwargs)
-    return
+    return wptrunner.start(**kwargs)
 
 
 def main():

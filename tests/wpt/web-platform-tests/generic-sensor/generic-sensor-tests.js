@@ -1,3 +1,54 @@
+// These tests rely on the User Agent providing an implementation of
+// platform sensor backends.
+//
+// In Chromium-based browsers this implementation is provided by a polyfill
+// in order to reduce the amount of test-only code shipped to users. To enable
+// these tests the browser must be run with these options:
+//
+//   --enable-blink-features=MojoJS,MojoJSTest
+let loadChromiumResources = Promise.resolve().then(() => {
+  if (!MojoInterfaceInterceptor) {
+    // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
+    // not present in the global namespace.
+    return;
+  }
+
+  let chain = Promise.resolve();
+  [
+    '/resources/chromium/mojo_bindings.js',
+    '/resources/chromium/string16.mojom.js',
+    '/resources/chromium/sensor.mojom.js',
+    '/resources/chromium/sensor_provider.mojom.js',
+    '/resources/chromium/generic_sensor_mocks.js',
+  ].forEach(path => {
+    let script = document.createElement('script');
+    script.src = path;
+    script.async = false;
+    chain = chain.then(() => new Promise(resolve => {
+      script.onload = resolve;
+    }));
+    document.head.appendChild(script);
+  });
+
+  return chain;
+});
+
+function sensor_test(func, name, properties) {
+  promise_test(async (t) => {
+    if (typeof GenericSensorTest === 'undefined') {
+      await loadChromiumResources;
+    }
+    assert_true(typeof GenericSensorTest !== 'undefined');
+    let sensorTest = new GenericSensorTest();
+    await sensorTest.initialize();
+    try {
+      await func(t);
+    } finally {
+      await sensorTest.reset();
+    };
+  }, name, properties);
+}
+
 const properties = {
   'AmbientLightSensor' : ['timestamp', 'illuminance'],
   'Accelerometer' : ['timestamp', 'x', 'y', 'z'],
@@ -45,8 +96,11 @@ function reading_to_array(sensor) {
   return arr;
 }
 
-function runGenericSensorTests(sensorType) {
-  promise_test(async t => {
+function runGenericSensorTests(sensorName) {
+  const sensorType = self[sensorName];
+
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -58,9 +112,10 @@ function runGenericSensorTests(sensorType) {
     sensor.stop();
     assert_reading_null(sensor);
     assert_false(sensor.hasReading);
-  }, `${sensorType.name}: Test that 'onreading' is called and sensor reading is valid`);
+  }, `${sensorName}: Test that 'onreading' is called and sensor reading is valid`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor1 = new sensorType();
     const sensor2 = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor1, ["reading", "error"]);
@@ -79,9 +134,10 @@ function runGenericSensorTests(sensorType) {
     assert_reading_not_null(sensor2);
     sensor2.stop();
     assert_reading_null(sensor2);
-  }, `${sensorType.name}: sensor reading is correct`);
+  }, `${sensorName}: sensor reading is correct`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -94,9 +150,10 @@ function runGenericSensorTests(sensorType) {
 
     assert_greater_than(cachedTimeStamp2, cachedTimeStamp1);
     sensor.stop();
-  }, `${sensorType.name}: sensor timestamp is updated when time passes`);
+  }, `${sensorName}: sensor timestamp is updated when time passes`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     assert_false(sensor.activated);
@@ -108,9 +165,10 @@ function runGenericSensorTests(sensorType) {
 
     sensor.stop();
     assert_false(sensor.activated);
-  }, `${sensorType.name}: Test that sensor can be successfully created and its states are correct.`);
+  }, `${sensorName}: Test that sensor can be successfully created and its states are correct.`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     const start_return = sensor.start();
@@ -118,9 +176,10 @@ function runGenericSensorTests(sensorType) {
     await sensorWatcher.wait_for("activate");
     assert_equals(start_return, undefined);
     sensor.stop();
-  }, `${sensorType.name}: sensor.start() returns undefined`);
+  }, `${sensorName}: sensor.start() returns undefined`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     sensor.start();
@@ -129,9 +188,10 @@ function runGenericSensorTests(sensorType) {
     await sensorWatcher.wait_for("activate");
     assert_true(sensor.activated);
     sensor.stop();
-  }, `${sensorType.name}: no exception is thrown when calling start() on already started sensor`);
+  }, `${sensorName}: no exception is thrown when calling start() on already started sensor`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     sensor.start();
@@ -139,9 +199,10 @@ function runGenericSensorTests(sensorType) {
     await sensorWatcher.wait_for("activate");
     const stop_return = sensor.stop();
     assert_equals(stop_return, undefined);
-  }, `${sensorType.name}: sensor.stop() returns undefined`);
+  }, `${sensorName}: sensor.stop() returns undefined`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     sensor.start();
@@ -150,9 +211,10 @@ function runGenericSensorTests(sensorType) {
     sensor.stop();
     sensor.stop();
     assert_false(sensor.activated);
-  }, `${sensorType.name}: no exception is thrown when calling stop() on already stopped sensor`);
+  }, `${sensorName}: no exception is thrown when calling stop() on already stopped sensor`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -169,28 +231,30 @@ function runGenericSensorTests(sensorType) {
     assert_greater_than(timestamp, 0);
     assert_greater_than(sensor.timestamp, timestamp);
     sensor.stop();
-  }, `${sensorType.name}: Test that fresh reading is fetched on start()`);
+  }, `${sensorName}: Test that fresh reading is fetched on start()`);
 
-  promise_test(async t => {
-    const sensor = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
-    const visibilityChangeWatcher = new EventWatcher(t, document, "visibilitychange");
-    sensor.start();
+//  TBD file a WPT issue: visibilityChangeWatcher times out.
+//  sensor_test(async t => {
+//    const sensor = new sensorType();
+//    const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
+//    const visibilityChangeWatcher = new EventWatcher(t, document, "visibilitychange");
+//    sensor.start();
 
-    await sensorWatcher.wait_for("reading");
-    assert_reading_not_null(sensor);
-    const cachedSensor1 = reading_to_array(sensor);
+//    await sensorWatcher.wait_for("reading");
+//    assert_reading_not_null(sensor);
+//    const cachedSensor1 = reading_to_array(sensor);
 
-    const win = window.open('', '_blank');
-    await visibilityChangeWatcher.wait_for("visibilitychange");
-    const cachedSensor2 = reading_to_array(sensor);
+//    const win = window.open('', '_blank');
+//    await visibilityChangeWatcher.wait_for("visibilitychange");
+//    const cachedSensor2 = reading_to_array(sensor);
 
-    win.close();
-    sensor.stop();
-    assert_object_equals(cachedSensor1, cachedSensor2);
-  }, `${sensorType.name}: sensor readings can not be fired on the background tab`);
+//    win.close();
+//    sensor.stop();
+//    assert_object_equals(cachedSensor1, cachedSensor2);
+//  }, `${sensorName}: sensor readings can not be fired on the background tab`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const fastSensor = new sensorType({frequency: 30});
     const slowSensor = new sensorType({frequency: 5});
     slowSensor.start();
@@ -217,9 +281,10 @@ function runGenericSensorTests(sensorType) {
     });
     assert_greater_than(fastCounter, 2,
                         "Fast sensor overtakes the slow one");
-  }, `${sensorType.name}: frequency hint works`);
+  }, `${sensorName}: frequency hint works`);
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     // Create a focused editbox inside a cross-origin iframe,
     // sensor notification must suspend.
     const iframeSrc = 'data:text/html;charset=utf-8,<html><body>'
@@ -248,18 +313,20 @@ function runGenericSensorTests(sensorType) {
     assert_greater_than(sensor.timestamp, cachedTimestamp);
 
     sensor.stop();
-  }, `${sensorType.name}: sensor receives suspend / resume notifications when\
+  }, `${sensorName}: sensor receives suspend / resume notifications when\
   cross-origin subframe is focused`);
 
-  test(() => {
-     assert_throws("NotSupportedError", () => { new sensorType({invalid: 1}) });
-     assert_throws("NotSupportedError", () => { new sensorType({frequency: 60, invalid: 1}) });
-     if (spatialSensors.indexOf(sensorType.name) == -1) {
-       assert_throws("NotSupportedError", () => { new sensorType({referenceFrame: "screen"}) });
-     }
-  }, `${sensorType.name}: throw 'NotSupportedError' for an unsupported sensor option`);
+//  Re-enable after https://github.com/w3c/sensors/issues/361 is fixed.
+//  test(() => {
+//     assert_throws("NotSupportedError", () => { new sensorType({invalid: 1}) });
+//     assert_throws("NotSupportedError", () => { new sensorType({frequency: 60, invalid: 1}) });
+//     if (spatialSensors.indexOf(sensorName) == -1) {
+//       assert_throws("NotSupportedError", () => { new sensorType({referenceFrame: "screen"}) });
+//     }
+//  }, `${sensorName}: throw 'NotSupportedError' for an unsupported sensor option`);
 
   test(() => {
+    assert_true(sensorName in self);
     const invalidFreqs = [
       "invalid",
       NaN,
@@ -273,14 +340,15 @@ function runGenericSensorTests(sensorType) {
                     () => { new sensorType({frequency: freq}) },
                     `when freq is ${freq}`);
     });
-  }, `${sensorType.name}: throw 'TypeError' if frequency is invalid`);
+  }, `${sensorName}: throw 'TypeError' if frequency is invalid`);
 
-  if (spatialSensors.indexOf(sensorType.name) == -1) {
+  if (spatialSensors.indexOf(sensorName) == -1) {
     // The sensorType does not represent a spatial sensor.
     return;
   }
 
-  promise_test(async t => {
+  sensor_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType({referenceFrame: "screen"});
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -291,34 +359,37 @@ function runGenericSensorTests(sensorType) {
     assert_reading_not_null(sensor);
 
     sensor.stop();
-  }, `${sensorType.name}: sensor reading is correct when options.referenceFrame is 'screen'`);
+  }, `${sensorName}: sensor reading is correct when options.referenceFrame is 'screen'`);
 
   test(() => {
+    assert_true(sensorName in self);
     const invalidRefFrames = [
       "invalid",
       null,
       123,
       {},
       "",
-      true,
-      undefined
+      true
     ];
     invalidRefFrames.map(refFrame => {
       assert_throws(new TypeError(),
                     () => { new sensorType({referenceFrame: refFrame}) },
                     `when refFrame is ${refFrame}`);
     });
-  }, `${sensorType.name}: throw 'TypeError' if referenceFrame is not one of enumeration values`);
+  }, `${sensorName}: throw 'TypeError' if referenceFrame is not one of enumeration values`);
 }
 
-function runGenericSensorInsecureContext(sensorType) {
+function runGenericSensorInsecureContext(sensorName) {
   test(() => {
-    assert_false(sensorType in window, `${sensorType} must not be exposed`);
-  }, `${sensorType} is not exposed in an insecure context`);
+    assert_false(sensorName in window, `${sensorName} must not be exposed`);
+  }, `${sensorName} is not exposed in an insecure context`);
 }
 
-function runGenericSensorOnerror(sensorType) {
+function runGenericSensorOnerror(sensorName) {
+  const sensorType = self[sensorName];
+
   promise_test(async t => {
+    assert_true(sensorName in self);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["error", "activate"]);
     sensor.start();
@@ -327,5 +398,5 @@ function runGenericSensorOnerror(sensorType) {
     assert_false(sensor.activated);
     assert_true(event.error.name == 'NotReadableError' ||
                 event.error.name == 'NotAllowedError');
-  }, `${sensorType.name}: 'onerror' event is fired when sensor is not supported`);
+  }, `${sensorName}: 'onerror' event is fired when sensor is not supported`);
 }

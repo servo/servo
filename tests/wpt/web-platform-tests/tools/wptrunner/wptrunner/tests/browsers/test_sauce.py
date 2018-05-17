@@ -110,6 +110,7 @@ def test_sauceconnect_tunnel_domains():
             sauce_connect_binary="ddd")
 
         env_config = Config(browser_host="example.net",
+                            alternate_hosts={"alt": "example.org"},
                             subdomains={"a", "b"},
                             not_subdomains={"x", "y"})
         sauce_connect(None, env_config)
@@ -125,4 +126,7 @@ def test_sauceconnect_tunnel_domains():
                 assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
             assert set(rest[0].split(",")) == {'example.net',
                                                'a.example.net',
-                                               'b.example.net'}
+                                               'b.example.net',
+                                               'example.org',
+                                               'a.example.org',
+                                               'b.example.org'}

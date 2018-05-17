@@ -19,6 +19,44 @@ documented in two sections:
 See [server features][] for advanced testing features that are commonly used
 with testharness.js. See also the [general guidelines][] for all test types.
 
+## Variants
+
+A test file can have multiple variants by including `meta` elements,
+for example:
+
+```
+<meta name="variant" content="">
+<meta name="variant" content="?wss">
+```
+
+The test can then do different things based on the URL.
+
+There is a utility script in `/common/subset-tests.js` that works
+well together with variants, where a test that would otherwise have
+too many tests to be useful can be split up in ranges of subtests.
+For example:
+
+```
+<!doctype html>
+<title>Testing variants</title>
+<meta name="variant" content="?1-1000">
+<meta name="variant" content="?1001-2000">
+<meta name="variant" content="?2001-last">
+<script src="/resources/testharness.js">
+<script src="/resources/testharnessreport.js">
+<script src="/common/subset-tests.js">
+<script>
+ const tests = [
+                 { fn: t => { ... }, name: "..." },
+                 ... lots of tests ...
+               ];
+ for (const test of tests) {
+   subsetTest(async_test, test.fn, test.name);
+ }
+</script>
+```
+
+
 ## Auto-generated test boilerplate
 
 While most JavaScript tests require a certain amount of HTML
@@ -121,7 +159,7 @@ can be used to include both the global and a local `utils.js` in a test.
 
 Use `// META: timeout=long` at the beginning of the resource.
 
-### Specifying test variants in auto-generated boilerplate tests
+### Specifying test [variants](#variants) in auto-generated boilerplate tests
 
 Use `// META: variant=url-suffix` at the beginning of the resource. For example,
 

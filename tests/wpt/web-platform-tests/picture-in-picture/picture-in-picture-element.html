@@ -7,9 +7,9 @@
 <script src="resources/picture-in-picture-helpers.js"></script>
 <body></body>
 <script>
-promise_test(t => {
+promise_test(async t => {
   assert_equals(document.pictureInPictureElement, null);
-  const video = document.createElement('video');
+  const video = await loadVideo();
 
   return requestPictureInPictureWithTrustedClick(video)
   .then(() => {
@@ -18,6 +18,6 @@ promise_test(t => {
   })
   .then(() => {
     assert_equals(document.pictureInPictureElement, null);
-  })
+  });
 });
 </script>

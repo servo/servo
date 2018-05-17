@@ -9,10 +9,10 @@
       setup({explicit_done: true})
 
       const hostInfo = get_host_info()
-      const resourceUrl = 'server-timing/resources/blue.png'
       const urls = {
-        'same-origin': `${hostInfo.HTTP_ORIGIN}/${resourceUrl}`,
-        'cross-origin': `${hostInfo.HTTP_REMOTE_ORIGIN}/${resourceUrl}`
+        'same-origin': `${hostInfo.HTTP_ORIGIN}/server-timing/resources/blue.png`,
+        'cross-origin': `${hostInfo.HTTP_REMOTE_ORIGIN}/server-timing/resources/blue.png`,
+        'cross-origin-tao': `${hostInfo.HTTP_REMOTE_ORIGIN}/server-timing/resources/blue_tao.png`
       }
       Object.keys(urls).forEach(function(key) {
         const img = document.createElement('img')
@@ -28,6 +28,7 @@
         }
         assertServerTimingEntries(urls['same-origin'], 1)
         assertServerTimingEntries(urls['cross-origin'], 0)
+        assertServerTimingEntries(urls['cross-origin-tao'], 1)
         done()
       })
     </script>

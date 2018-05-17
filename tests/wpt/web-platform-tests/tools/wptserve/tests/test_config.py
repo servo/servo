@@ -1,11 +1,8 @@
 import logging
-import os
 import pickle
 from logging import handlers
 
 import pytest
-
-import localpaths
 
 config = pytest.importorskip("wptserve.config")
 
@@ -207,11 +204,6 @@ def test_ports_openssl():
     assert ports["wss"] == [1004]
 
 
-def test_doc_root_default():
-    c = config.Config()
-    assert c.doc_root == localpaths.repo_root
-
-
 def test_init_doc_root():
     c = config.Config(doc_root="/")
     assert c._doc_root == "/"
@@ -225,31 +217,6 @@ def test_set_doc_root():
     assert c.doc_root == "/"
 
 
-def test_ws_doc_root_default():
-    c = config.Config()
-    assert c.ws_doc_root == os.path.join(localpaths.repo_root, "websockets", "handlers")
-
-
-def test_ws_doc_root_from_doc_root():
-    c = config.Config(doc_root="/foo")
-    assert c.ws_doc_root == os.path.join("/foo", "websockets", "handlers")
-
-
-def test_init_ws_doc_root():
-    c = config.Config(ws_doc_root="/")
-    assert c.doc_root == localpaths.repo_root  # check this hasn't changed
-    assert c._ws_doc_root == "/"
-    assert c.ws_doc_root == "/"
-
-
-def test_set_ws_doc_root():
-    c = config.Config()
-    c.ws_doc_root = "/"
-    assert c.doc_root == localpaths.repo_root  # check this hasn't changed
-    assert c._ws_doc_root == "/"
-    assert c.ws_doc_root == "/"
-
-
 def test_server_host_from_browser_host():
     c = config.Config(browser_host="foo.bar")
     assert c.server_host == "foo.bar"
@@ -257,7 +224,7 @@ def test_server_host_from_browser_host():
 
 def test_init_server_host():
     c = config.Config(server_host="foo.bar")
-    assert c.browser_host == "web-platform.test"  # check this hasn't changed
+    assert c.browser_host == "localhost"  # check this hasn't changed
     assert c._server_host == "foo.bar"
     assert c.server_host == "foo.bar"
 
@@ -265,55 +232,135 @@ def test_init_server_host():
 def test_set_server_host():
     c = config.Config()
     c.server_host = "/"
-    assert c.browser_host == "web-platform.test"  # check this hasn't changed
+    assert c.browser_host == "localhost"  # check this hasn't changed
     assert c._server_host == "/"
     assert c.server_host == "/"
 
 
 def test_domains():
     c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
                       subdomains={"a", "b"},
                       not_subdomains={"x", "y"})
     domains = c.domains
     assert domains == {
-        "": "foo.bar",
-        "a": "a.foo.bar",
-        "b": "b.foo.bar",
+        "": {
+            "": "foo.bar",
+            "a": "a.foo.bar",
+            "b": "b.foo.bar",
+        },
+        "alt": {
+            "": "foo2.bar",
+            "a": "a.foo2.bar",
+            "b": "b.foo2.bar",
+        },
     }
 
 
 def test_not_domains():
     c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
                       subdomains={"a", "b"},
                       not_subdomains={"x", "y"})
     not_domains = c.not_domains
     assert not_domains == {
-        "x": "x.foo.bar",
-        "y": "y.foo.bar",
+        "": {
+            "x": "x.foo.bar",
+            "y": "y.foo.bar",
+        },
+        "alt": {
+            "x": "x.foo2.bar",
+            "y": "y.foo2.bar",
+        },
     }
 
 
 def test_domains_not_domains_intersection():
     c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
                       subdomains={"a", "b"},
                       not_subdomains={"x", "y"})
     domains = c.domains
     not_domains = c.not_domains
-    assert len(set(domains.iterkeys()) & set(not_domains.iterkeys())) == 0
-    assert len(set(domains.itervalues()) & set(not_domains.itervalues())) == 0
+    assert len(set(domains.iterkeys()) ^ set(not_domains.iterkeys())) == 0
+    for host in domains.iterkeys():
+        host_domains = domains[host]
+        host_not_domains = not_domains[host]
+        assert len(set(host_domains.iterkeys()) & set(host_not_domains.iterkeys())) == 0
+        assert len(set(host_domains.itervalues()) & set(host_not_domains.itervalues())) == 0
 
 
 def test_all_domains():
     c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
                       subdomains={"a", "b"},
                       not_subdomains={"x", "y"})
     all_domains = c.all_domains
     assert all_domains == {
-        "": "foo.bar",
-        "a": "a.foo.bar",
-        "b": "b.foo.bar",
-        "x": "x.foo.bar",
-        "y": "y.foo.bar",
+        "": {
+            "": "foo.bar",
+            "a": "a.foo.bar",
+            "b": "b.foo.bar",
+            "x": "x.foo.bar",
+            "y": "y.foo.bar",
+        },
+        "alt": {
+            "": "foo2.bar",
+            "a": "a.foo2.bar",
+            "b": "b.foo2.bar",
+            "x": "x.foo2.bar",
+            "y": "y.foo2.bar",
+        },
+    }
+
+
+def test_domains_set():
+    c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
+                      subdomains={"a", "b"},
+                      not_subdomains={"x", "y"})
+    domains_set = c.domains_set
+    assert domains_set == {
+        "foo.bar",
+        "a.foo.bar",
+        "b.foo.bar",
+        "foo2.bar",
+        "a.foo2.bar",
+        "b.foo2.bar",
+    }
+
+
+def test_not_domains_set():
+    c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
+                      subdomains={"a", "b"},
+                      not_subdomains={"x", "y"})
+    not_domains_set = c.not_domains_set
+    assert not_domains_set == {
+        "x.foo.bar",
+        "y.foo.bar",
+        "x.foo2.bar",
+        "y.foo2.bar",
+    }
+
+
+def test_all_domains_set():
+    c = config.Config(browser_host="foo.bar",
+                      alternate_hosts={"alt": "foo2.bar"},
+                      subdomains={"a", "b"},
+                      not_subdomains={"x", "y"})
+    all_domains_set = c.all_domains_set
+    assert all_domains_set == {
+        "foo.bar",
+        "a.foo.bar",
+        "b.foo.bar",
+        "x.foo.bar",
+        "y.foo.bar",
+        "foo2.bar",
+        "a.foo2.bar",
+        "b.foo2.bar",
+        "x.foo2.bar",
+        "y.foo2.bar",
     }
 
 
