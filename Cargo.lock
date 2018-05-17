@@ -585,24 +585,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cstr"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "cstr-macros 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "procedural-masquerade 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "cstr-macros"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "procedural-masquerade 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "darling"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -989,25 +971,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "geckoservo"
-version = "0.0.1"
-dependencies = [
- "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cstr 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "malloc_size_of 0.0.1",
- "nsstring 0.1.0",
- "parking_lot 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.19.0",
- "servo_arc 0.1.1",
- "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "style 0.0.1",
- "style_traits 0.0.1",
 ]
 
 [[package]]
@@ -1974,13 +1937,6 @@ name = "nonzero"
 version = "0.0.1"
 dependencies = [
  "serde 1.0.37 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "nsstring"
-version = "0.1.0"
-dependencies = [
- "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3042,7 +2998,6 @@ dependencies = [
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "nsstring 0.1.0",
  "num-integer 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3121,27 +3076,6 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "webrender_api 0.57.2 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "stylo_tests"
-version = "0.0.1"
-dependencies = [
- "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "cstr 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "env_logger 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "geckoservo 0.0.1",
- "libc 0.2.39 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "malloc_size_of 0.0.1",
- "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.19.0",
- "size_of_test 0.0.1",
- "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "style 0.0.1",
- "style_traits 0.0.1",
 ]
 
 [[package]]
@@ -3861,8 +3795,6 @@ dependencies = [
 "checksum crossbeam-utils 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2760899e32a1d58d5abb31129f8fae5de75220bc2176e77ff7c627ae45c918d9"
 "checksum cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)" = "8a807ac3ab7a217829c2a3b65732b926b2befe6a35f33b4bf8b503692430f223"
 "checksum cssparser-macros 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "079adec4af52bb5275eadd004292028c79eb3c5f5b4ee8086a36d4197032f6df"
-"checksum cstr 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "bc6b738cea084b0bf479106e0089d58d8c3dbc35d1fef3c485e19e20ea47d252"
-"checksum cstr-macros 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0472c17c83d3ec1af32fb6ee2b3ad56ae0b6e69355d63d1d30602055c34324a8"
 "checksum darling 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "2a78af487e4eb8f4421a1770687b328af6bb4494ca93435210678c6eea875c11"
 "checksum darling_core 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b315f49c7b6db3708bca6e6913c194581a44ec619b7a39e131d4dd63733a3698"
 "checksum darling_macro 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "eb69a38fdeaeaf3db712e1df170de67ee9dfc24fb88ca3e9d21e703ec25a4d8e"
