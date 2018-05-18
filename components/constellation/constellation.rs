@@ -1036,7 +1036,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         match content {
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
-                self.embedder_proxy.send(embedder_msg);
+                self.embedder_proxy.send((Some(source_top_ctx_id), embedder_msg));
             }
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
@@ -1421,7 +1421,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 
-        self.embedder_proxy.send(EmbedderMsg::Panic(top_level_browsing_context_id, reason, backtrace));
+        self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::Panic(reason, backtrace)));
 
         let (window_size, pipeline_id) = {
             let browsing_context = self.browsing_contexts.get(&browsing_context_id);
@@ -1703,7 +1703,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: CursorKind) {
-        self.embedder_proxy.send(EmbedderMsg::SetCursor(cursor))
+        self.embedder_proxy.send((None, EmbedderMsg::SetCursor(cursor)))
     }
 
     fn handle_change_running_animations_state(&mut self,
@@ -1744,7 +1744,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 load_data: LoadData, replace: bool) -> Option<PipelineId> {
         // Allow the embedder to handle the url itself
         let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = EmbedderMsg::AllowNavigation(top_level_browsing_context_id, load_data.url.clone(), chan);
+        let msg = (Some(top_level_browsing_context_id), EmbedderMsg::AllowNavigation(load_data.url.clone(), chan));
         self.embedder_proxy.send(msg);
         if let Ok(false) = port.recv() {
             return None;
@@ -1852,7 +1852,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                              pipeline_id: PipelineId) {
         if self.pipelines.get(&pipeline_id).and_then(|p| p.parent_info).is_none() {
             // Notify embedder top level document started loading.
-            self.embedder_proxy.send(EmbedderMsg::LoadStart(top_level_browsing_context_id));
+            self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::LoadStart));
         }
     }
 
@@ -1886,7 +1886,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if !current_top_level_pipeline_will_be_replaced {
                 // Notify embedder and compositor top level document finished loading.
                 self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
-                self.embedder_proxy.send(EmbedderMsg::LoadComplete(top_level_browsing_context_id));
+                self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::LoadComplete));
             }
         }
         self.handle_subframe_loaded(pipeline_id);
@@ -2139,7 +2139,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = EmbedderMsg::KeyEvent(None, ch, key, state, mods);
+                let event = (None, EmbedderMsg::KeyEvent(ch, key, state, mods));
                 self.embedder_proxy.clone().send(event);
             }
         }
@@ -2312,7 +2312,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, reply) => {
                 self.webdriver.resize_channel = Some(reply);
-                self.embedder_proxy.send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
+                self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::ResizeTo(size)));
             },
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, reply) => {
                 self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, false);
@@ -2443,7 +2443,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         entries.extend(session_history.future.iter().rev()
             .scan(current_load_data.clone(), &resolve_load_data_future));
         let urls = entries.iter().map(|entry| entry.url.clone()).collect();
-        let msg = EmbedderMsg::HistoryChanged(top_level_browsing_context_id, urls, current_index);
+        let msg = (Some(top_level_browsing_context_id), EmbedderMsg::HistoryChanged(urls, current_index));
         self.embedder_proxy.send(msg);
     }
 

@@ -151,8 +151,7 @@ impl VirtualMethods for HTMLBodyElement {
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
         if window.is_top_level() {
-            let top_level_browsing_context_id = window.top_level_browsing_context_id();
-            let msg = EmbedderMsg::HeadParsed(top_level_browsing_context_id);
+            let msg = EmbedderMsg::HeadParsed;
             window.send_to_embedder(msg);
         }
     }

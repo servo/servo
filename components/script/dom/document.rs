@@ -856,8 +856,7 @@ impl Document {
 
             // Notify the embedder to hide the input method.
             if elem.input_method_type().is_some() {
-                let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
-                self.send_to_embedder(EmbedderMsg::HideIME(top_level_browsing_context_id));
+                self.send_to_embedder(EmbedderMsg::HideIME);
             }
         }
 
@@ -876,8 +875,7 @@ impl Document {
 
             // Notify the embedder to display an input method.
             if let Some(kind) = elem.input_method_type() {
-                let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
-                self.send_to_embedder(EmbedderMsg::ShowIME(top_level_browsing_context_id, kind));
+                self.send_to_embedder(EmbedderMsg::ShowIME(kind));
             }
         }
     }
@@ -894,8 +892,7 @@ impl Document {
         let window = self.window();
         if window.is_top_level() {
             let title = Some(String::from(self.Title()));
-            let top_level_browsing_context_id = window.top_level_browsing_context_id();
-            self.send_to_embedder(EmbedderMsg::ChangePageTitle(top_level_browsing_context_id, title));
+            self.send_to_embedder(EmbedderMsg::ChangePageTitle(title));
         }
     }
 
@@ -1364,8 +1361,7 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
-            let msg = EmbedderMsg::KeyEvent(Some(top_level_browsing_context_id), ch, key, state, modifiers);
+            let msg = EmbedderMsg::KeyEvent(ch, key, state, modifiers);
             self.send_to_embedder(msg);
 
             // This behavior is unspecced
@@ -2795,8 +2791,7 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
-            let event = EmbedderMsg::SetFullscreenState(top_level_browsing_context_id, true);
+            let event = EmbedderMsg::SetFullscreenState(true);
             self.send_to_embedder(event);
         }
 
@@ -2831,8 +2826,7 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let top_level_browsing_context_id = self.window().top_level_browsing_context_id();
-        let event = EmbedderMsg::SetFullscreenState(top_level_browsing_context_id, true);
+        let event = EmbedderMsg::SetFullscreenState(true);
         self.send_to_embedder(event);
 
         // Step 9

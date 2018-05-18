@@ -231,13 +231,13 @@ impl Browser {
         self.event_queue.push(event);
     }
 
-    pub fn handle_servo_events(&mut self, events: Vec<EmbedderMsg>) {
-        for event in events {
-            match event {
-                EmbedderMsg::Status(_browser_id, status) => {
+    pub fn handle_servo_events(&mut self, events: Vec<(Option<BrowserId>, EmbedderMsg)>) {
+        for (browser_id, msg) in events {
+            match msg {
+                EmbedderMsg::Status(status) => {
                     self.status = status;
                 },
-                EmbedderMsg::ChangePageTitle(_browser_id, title) => {
+                EmbedderMsg::ChangePageTitle(title) => {
                     self.title = title;
 
                     let fallback_title: String = if let Some(ref current_url) = self.current_url {
@@ -252,52 +252,52 @@ impl Browser {
                     let title = format!("{} - Servo", title);
                     self.window.set_title(&title);
                 }
-                EmbedderMsg::MoveTo(_browser_id, point) => {
+                EmbedderMsg::MoveTo(point) => {
                     self.window.set_position(point);
                 }
-                EmbedderMsg::ResizeTo(_browser_id, size) => {
+                EmbedderMsg::ResizeTo(size) => {
                     self.window.set_inner_size(size);
                 }
-                EmbedderMsg::Alert(browser_id, message, sender) => {
+                EmbedderMsg::Alert(message, sender) => {
                     display_alert_dialog(message.to_owned());
                     if let Err(e) = sender.send(()) {
                         let reason = format!("Failed to send Alert response: {}", e);
-                        self.event_queue.push(WindowEvent::SendError(Some(browser_id), reason));
+                        self.event_queue.push(WindowEvent::SendError(browser_id, reason));
                     }
                 }
-                EmbedderMsg::AllowNavigation(_browser_id, _url, response_chan) => {
+                EmbedderMsg::AllowNavigation(_url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
                         warn!("Failed to send allow_navigation() response: {}", e);
                     };
                 }
-                EmbedderMsg::KeyEvent(browser_id, ch, key, state, modified) => {
+                EmbedderMsg::KeyEvent(ch, key, state, modified) => {
                     self.handle_key_from_servo(browser_id, ch, key, state, modified);
                 }
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
                 }
-                EmbedderMsg::NewFavicon(_browser_id, url) => {
+                EmbedderMsg::NewFavicon(url) => {
                     self.favicon = Some(url);
                 }
-                EmbedderMsg::HeadParsed(_browser_id, ) => {
+                EmbedderMsg::HeadParsed => {
                     self.loading_state = Some(LoadingState::Loading);
                 }
-                EmbedderMsg::HistoryChanged(_browser_id, urls, current) => {
+                EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
                 }
-                EmbedderMsg::SetFullscreenState(_browser_id, state) => {
+                EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);
                 }
-                EmbedderMsg::LoadStart(_browser_id) => {
+                EmbedderMsg::LoadStart => {
                     self.loading_state = Some(LoadingState::Connecting);
                 }
-                EmbedderMsg::LoadComplete(_browser_id) => {
+                EmbedderMsg::LoadComplete => {
                     self.loading_state = Some(LoadingState::Loaded);
                 }
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },
-                EmbedderMsg::Panic(_browser_id, _reason, _backtrace) => {
+                EmbedderMsg::Panic(_reason, _backtrace) => {
                 },
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
                     let selected = platform_get_selected_devices(devices);
@@ -317,10 +317,10 @@ impl Browser {
                         self.event_queue.push(WindowEvent::SendError(None, reason));
                     };
                 }
-                EmbedderMsg::ShowIME(_browser_id, _kind) => {
+                EmbedderMsg::ShowIME(_kind) => {
                     debug!("ShowIME received");
                 }
-                EmbedderMsg::HideIME(_browser_id) => {
+                EmbedderMsg::HideIME => {
                     debug!("HideIME received");
                 }
             }
