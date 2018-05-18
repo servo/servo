@@ -17,7 +17,7 @@ pub use platform::*;
 mod platform {
     extern crate jemalloc_sys as ffi;
 
-    use std::alloc::{GlobalAlloc, Layout, Opaque};
+    use std::alloc::{GlobalAlloc, Layout, Opaque, System};
     use std::os::raw::{c_int, c_void};
 
     /// Get the size of a heap block.
@@ -93,6 +93,11 @@ mod platform {
                           new_size: usize) -> *mut Opaque {
             let flags = layout_to_flags(layout.align(), new_size);
             ffi::rallocx(ptr as *mut _, new_size, flags) as *mut Opaque
+        }
+
+        #[inline]
+        fn oom(&self) -> ! {
+            System.oom()
         }
     }
 }
