@@ -27,6 +27,10 @@ def vcs(bin_name):
         logger.debug(" ".join(command_line))
         try:
             return subprocess.check_output(command_line, stderr=subprocess.STDOUT, **proc_kwargs)
+        except OSError as e:
+            if log_error:
+                logger.error(e)
+            raise
         except subprocess.CalledProcessError as e:
             if log_error:
                 logger.error(e.output)
@@ -37,13 +41,13 @@ git = vcs("git")
 hg = vcs("hg")
 
 
-def bind_to_repo(vcs_func, repo):
-    return partial(vcs_func, repo=repo)
+def bind_to_repo(vcs_func, repo, log_error=True):
+    return partial(vcs_func, repo=repo, log_error=log_error)
 
 
-def is_git_root(path):
+def is_git_root(path, log_error=True):
     try:
-        rv = git("rev-parse", "--show-cdup", repo=path)
+        rv = git("rev-parse", "--show-cdup", repo=path, log_error=log_error)
     except subprocess.CalledProcessError:
         return False
     return rv == "\n"

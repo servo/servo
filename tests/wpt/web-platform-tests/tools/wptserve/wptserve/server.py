@@ -13,6 +13,7 @@ import types
 from six.moves.urllib.parse import urlsplit, urlunsplit
 
 from . import routes as default_routes
+from .config import Config
 from .logger import get_logger
 from .request import Server, Request
 from .response import Response
@@ -168,10 +169,8 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
             Server.config = config
         else:
             self.logger.debug("Using default configuration")
-            Server.config = {"browser_host": server_address[0],
-                             "server_host": server_address[0],
-                             "domains": {"": server_address[0]},
-                             "ports": {"http": [self.server_address[1]]}}
+            Server.config = Config(browser_host=server_address[0],
+                                   ports={"http": [self.server_address[1]]})
 
 
         self.key_file = key_file

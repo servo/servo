@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+#root {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 200px;
+  overflow-y: scroll;
+}
+#target1, #target2, #target3, #target4 {
+  width: 100px;
+  height: 100px;
+}
+#target1 {
+  background-color: green;
+}
+#target2 {
+  background-color: red;
+}
+#target3 {
+  background-color: blue;
+}
+#target4 {
+  background-color: yellow;
+}
+</style>
+
+<div id="root">
+  <div id="target1"></div>
+  <div id="target2"></div>
+  <div id="target3"></div>
+</div>
+
+<script>
+var entries = [];
+var observer;
+
+runTestCycle(function() {
+  var root = document.getElementById('root');
+  var target1 = document.getElementById('target1');
+  var target2 = document.getElementById('target2');
+  var target3 = document.getElementById('target3');
+  assert_true(!!root, "root element exists.");
+  assert_true(!!target1, "target1 element exists.");
+  assert_true(!!target2, "target2 element exists.");
+  assert_true(!!target3, "target3 element exists.");
+  observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  }, { root: root });
+  observer.observe(target1);
+  observer.observe(target2);
+  observer.observe(target3);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "Rects in initial notifications should report initial positions.");
+}, "isIntersecting changes should trigger notifications.");
+
+function step0() {
+  assert_equals(entries.length, 3, "Has 3 initial notifications.");
+  checkRect(entries[0].boundingClientRect, [0, 100, 0, 100], "Check 1st entry rect");
+  assert_equals(entries[0].target.id, 'target1', "Check 1st entry target id.");
+  checkIsIntersecting(entries, 0, true);
+  checkRect(entries[1].boundingClientRect, [0, 100, 100, 200], "Check 2nd entry rect");
+  assert_equals(entries[1].target.id, 'target2', "Check 2nd entry target id.");
+  checkIsIntersecting(entries, 1, true);
+  checkRect(entries[2].boundingClientRect, [0, 100, 200, 300], "Check 3rd entry rect");
+  assert_equals(entries[2].target.id, 'target3', "Check 3rd entry target id.");
+  checkIsIntersecting(entries, 2, true);
+  runTestCycle(step1, "Set scrollTop=100 and check for no new notifications.");
+  root.scrollTop = 100;
+}
+
+function step1() {
+  assert_equals(entries.length, 3, "Has 3 total notifications because isIntersecting did not change.");
+  runTestCycle(step2, "Add 4th target.");
+  root.scrollTop = 0;
+  var target4 = document.createElement('div');
+  target4.setAttribute('id', 'target4');
+  root.appendChild(target4);
+  observer.observe(target4);
+}
+
+function step2() {
+  assert_equals(entries.length, 4, "Has 3 total notifications because 4th element was added.");
+  checkRect(entries[3].boundingClientRect, [0, 100, 300, 400], "Check 4th entry rect");
+  assert_equals(entries[3].target.id, 'target4', "Check 4th entry target id.");
+  checkIsIntersecting(entries, 3, false);
+  assert_equals(entries[3].intersectionRatio, 0, 'target4 initially has intersectionRatio of 0.');
+  runTestCycle(step3, "Set scrollTop=100 and check for one new notification.");
+  root.scrollTop = 100;
+}
+
+function step3() {
+  assert_equals(entries.length, 5, "Has 5 total notifications.");
+  checkRect(entries[4].boundingClientRect, [0, 100, 200, 300], "Check 5th entry rect");
+  assert_equals(entries[4].target.id, 'target4', "Check 5th entry target id.");
+  checkIsIntersecting(entries, 4, true);
+  assert_equals(entries[4].intersectionRatio, 0, 'target4 still has intersectionRatio of 0.');
+  root.scrollTop = 0; // reset to make it easier to refresh and run the test
+}
+
+</script>

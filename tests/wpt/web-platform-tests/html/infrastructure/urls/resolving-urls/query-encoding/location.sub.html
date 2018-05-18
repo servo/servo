@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset={{GET[encoding]}}> <!-- ends up as <meta charset> by default which is windows-1252 -->
+<meta name=variant content="?encoding=x-cp1251">
+<meta name=variant content="?encoding=utf8">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+function expected(encoding) {
+  return "?" + {
+    "UTF-8": "%C3%BF",
+    "windows-1251": "&%23255;",
+    "windows-1252": "%FF"
+  }[encoding];
+}
+
+[
+  [(win, input) => { win.location = input; }, "location [PutForwards]"],
+  [(win, input) => { win.location.assign(input); }, "location.assign()"],
+  [(win, input) => { win.location.replace(input); }, "location.replace()"],
+  [(win, input) => { win.location.href = input; }, "location.href"]
+].forEach(([callback, desc]) => {
+  async_test(t => {
+    const frame = document.body.appendChild(document.createElement("iframe")),
+          actualEncoding = document.characterSet
+    callback(frame.contentWindow, "/common/blank.html?\u00FF");
+    frame.onload = t.step_func_done(() => {
+      assert_equals(frame.contentWindow.location.search, expected(actualEncoding));
+    });
+  }, desc);
+});
+
+async_test(t => {
+  const frame = document.body.appendChild(document.createElement("iframe")),
+        actualEncoding = document.characterSet;
+  frame.src = "/common/blank.html";
+  frame.onload = t.step_func(() => {
+    frame.contentWindow.location.search = "\u00FF";
+    frame.onload = t.step_func_done(() => {
+      assert_equals(frame.contentWindow.location.search, expected(actualEncoding));
+    });
+  });
+}, "location.search");
+</script>

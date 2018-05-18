@@ -17,6 +17,7 @@ promise_test(async () => {
   idl_array.add_untested_idls(dom_idl);
   idl_array.add_untested_idls("interface Navigator {};");
   idl_array.add_idls(webxr_idl);
+  idl_array.add_idls("dictionary WebGLContextAttributes {};");
   idl_array.add_objects({
     Navigator:['navigator'],
   });

@@ -40,5 +40,9 @@ def main(request, response):
     if doc is None:
         rv = 404, [("Content-Type", "text/plain")], "Missing doc parameter in query"
     else:
-        rv = [("Content-Type", content_type)], doc
+        response.headers.update([
+          ("Content-Type", content_type),
+          ("X-XSS-Protection", "0")
+        ])
+        rv = doc
     return rv

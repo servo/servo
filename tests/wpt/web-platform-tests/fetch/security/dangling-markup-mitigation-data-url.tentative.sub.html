@@ -16,7 +16,8 @@
   var doubleEscapedBrace = "&amp;amp;lt;";
   var rawNewline = "&#10;";
   var escapedNewline = "&amp;#10;";
-  var doubleEscapedNewline = "&amp;amp;#10;";
+  // doubleEscapedNewline is used inside a data URI, and so must have its '#' escaped.
+  var doubleEscapedNewline = "&amp;amp;%2310;";
 
   function appendFrameAndGetElement(test, frame) {
     return new Promise((resolve, reject) => {

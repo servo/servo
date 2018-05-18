@@ -36,6 +36,14 @@
         idl.add_untested_idls('interface B : A { };');
         idl.assert_throws('A has a circular dependency: A,B,A', i => i.test());
     }, 'should throw when inheritance is circular');
+
+    test(function () {
+        var idl = new IdlArray();
+        idl.add_untested_idls('interface A : B { };');
+        idl.assert_throws(
+            'Duplicate identifier A',
+            i => i.add_untested_idls('interface A : C { };'));
+    }, 'should throw when multiple inheritances defined');
 </script>
 </body>
 </html>

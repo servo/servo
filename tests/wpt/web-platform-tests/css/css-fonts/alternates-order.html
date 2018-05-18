@@ -65,13 +65,13 @@ div { margin: 0 20px; }
 }
 
 #test2 {
-  /* testing case-insensitivity of styleset name */
+  /* testing case-sensitivity of styleset name */
   font-family: fontB;
   font-variant-alternates: styleset(altW);
 }
 
 #test3 {
-  /* testing case-insensitivity of styleset name */
+  /* testing case-sensitivity of styleset name */
   font-family: fontB;
   font-variant-alternates: styleset(ALTW);
 }
@@ -79,7 +79,7 @@ div { margin: 0 20px; }
 #test4 {
   /* testing escapes in styleset name */
   font-family: fontB;
-  font-variant-alternates: styleset(\41 ltW);
+  font-variant-alternates: styleset(\41 lTw);
 }
 
 #test5 {

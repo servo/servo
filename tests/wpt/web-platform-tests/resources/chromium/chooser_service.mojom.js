@@ -257,7 +257,7 @@
   }
 
   var UsbChooserService = {
-    name: 'device::mojom::UsbChooserService',
+    name: 'device.mojom.UsbChooserService',
     kVersion: 0,
     ptrClass: UsbChooserServicePtr,
     proxyClass: UsbChooserServiceProxy,

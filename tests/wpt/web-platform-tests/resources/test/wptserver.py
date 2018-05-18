@@ -1,17 +1,16 @@
-import json
 import os
 import subprocess
 import time
+import sys
 import urllib2
 
 
 class WPTServer(object):
-
     def __init__(self, wpt_root):
         self.wpt_root = wpt_root
-        config_file = os.path.join(wpt_root, 'config.default.json')
-        with open(config_file, 'rb') as config_handle:
-            config = json.load(config_handle)
+        sys.path.insert(0, os.path.join(wpt_root, "tools"))
+        from serve.serve import Config
+        config = Config()
         self.host = config["browser_host"]
         self.http_port = config["ports"]["http"][0]
         self.https_port = config["ports"]["https"][0]

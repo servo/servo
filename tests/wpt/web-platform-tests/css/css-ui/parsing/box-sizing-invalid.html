@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS UI Level 3: parsing box-sizing with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-ui-3/#box-sizing">
+<meta name="assert" content="box-sizing supports only the grammar 'content-box | border-box'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("box-sizing", "auto");
+test_invalid_value("box-sizing", "content-box border-box");
+test_invalid_value("box-sizing", "fill-box");
+test_invalid_value("box-sizing", "margin-box");
+test_invalid_value("box-sizing", "padding-box");
+test_invalid_value("box-sizing", "view-box");
+</script>
+</body>
+</html>

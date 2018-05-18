@@ -6,6 +6,8 @@ import re
 import subprocess
 import sys
 
+from collections import OrderedDict
+
 from ..manifest import manifest, update
 
 here = os.path.dirname(__file__)
@@ -42,25 +44,45 @@ def branch_point():
         # This is a PR, so the base branch is in TRAVIS_BRANCH
         travis_branch = os.environ.get("TRAVIS_BRANCH")
         assert travis_branch, "TRAVIS_BRANCH environment variable is defined"
-        branch_point = git("rev-parse", travis_branch)
+        branch_point = git("merge-base", "HEAD", travis_branch)
     else:
         # Otherwise we aren't on a PR, so we try to find commits that are only in the
         # current branch c.f.
         # http://stackoverflow.com/questions/13460152/find-first-ancestor-commit-in-another-branch
+
+        # parse HEAD into an object ref
         head = git("rev-parse", "HEAD")
-        not_heads = [item for item in git("rev-parse", "--not", "--all").split("\n")
-                     if item.strip() and head not in item]
-        commits = git("rev-list", "HEAD", *not_heads).split("\n")
+
+        # get everything in refs/heads and refs/remotes that doesn't include HEAD
+        not_heads = [item for item in git("rev-parse", "--not", "--branches", "--remotes").split("\n")
+                     if item != "^%s" % head]
+
+        # get all commits on HEAD but not reachable from anything in not_heads
+        commits = git("rev-list", "--topo-order", "--parents", "HEAD", *not_heads)
+        commit_parents = OrderedDict()
+        if commits:
+            for line in commits.split("\n"):
+                line_commits = line.split(" ")
+                commit_parents[line_commits[0]] = line_commits[1:]
+
         branch_point = None
-        if len(commits):
-            first_commit = commits[-1]
-            if first_commit:
-                branch_point = git("rev-parse", first_commit + "^")
+
+        # if there are any commits, take the first parent that is not in commits
+        for commit, parents in commit_parents.iteritems():
+            for parent in parents:
+                if parent not in commit_parents:
+                    branch_point = parent
+                    break
+
+            if branch_point:
+                break
+
+        # if we had any commits, we should now have a branch point
+        assert branch_point or not commit_parents
 
         # The above heuristic will fail in the following cases:
         #
-        # - The current branch has fallen behind the version retrieved via the above
-        #   `fetch` invocation
+        # - The current branch has fallen behind the remote version
         # - Changes on the current branch were rebased and therefore do not exist on any
         #   other branch. This will result in the selection of a commit that is earlier
         #   in the history than desired (as determined by calculating the later of the

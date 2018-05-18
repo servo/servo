@@ -18,7 +18,7 @@ To use `testharness.js` you must include two scripts, in the order given:
 
 ### Full documentation
 
-For detailed API documentation please visit [http://web-platform-tests.org/writing-tests/testharness-api.html](http://web-platform-tests.org/writing-tests/testharness-api.html).
+For detailed API documentation please visit [https://web-platform-tests.org/writing-tests/testharness-api.html](https://web-platform-tests.org/writing-tests/testharness-api.html).
 
 ### Tutorials
 

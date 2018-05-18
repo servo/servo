@@ -1,3 +1,6 @@
+// NOTE: this file needs to be split up rather than expanded. See ../location.sub.html for some
+// extracted tests. Tracked by https://github.com/w3c/web-platform-tests/issues/4934.
+
 setup({explicit_done:true});
 onload = function() {
   var encoding = '{{GET[encoding]}}';
@@ -35,7 +38,7 @@ onload = function() {
                       // page and the test timing out
                       test_obj.force_timeout();
                   }
-                  step_timeout(poll, 200);
+                  test_obj.step_timeout(poll, 200);
               } else {
                   assert_equals(xhr.response, expected);
                   test_obj.done();
@@ -43,7 +46,7 @@ onload = function() {
           });
           xhr.send();
       })
-      step_timeout(poll, 200);
+      test_obj.step_timeout(poll, 200);
   }
 
   // background attribute, check with getComputedStyle
@@ -504,55 +507,6 @@ onload = function() {
     });
   }, 'window.open()',
   {help:'https://html.spec.whatwg.org/multipage/#dom-open'});
-
-  // location
-  function test_location(func, desc) {
-    async_test(function() {
-      var iframe = document.createElement('iframe');
-      document.body.appendChild(iframe);
-      this.add_cleanup(function() {
-        document.body.removeChild(iframe);
-      });
-      func(iframe.contentWindow, input_url_html);
-      iframe.onload = this.step_func(function() {
-        var got = iframe.contentDocument.body.textContent;
-        if (got != '') {
-          assert_equals(got, expected_current);
-          this.done();
-        }
-      });
-    }, desc,
-    {help:'https://html.spec.whatwg.org/multipage/#the-location-interface'});
-  }
-  [[function(win, input) { win.location = input; }, "location [PutForwards]"],
-   [function(win, input) { win.location.assign(input); }, "location.assign()"],
-   [function(win, input) { win.location.replace(input); }, "location.replace()"],
-   [function(win, input) { win.location.href = input; }, "location.href"]].forEach(function(arr) {
-    test_location(arr[0], arr[1]);
-  });
-
-  // location.search
-  async_test(function() {
-    var iframe = document.createElement('iframe');
-    iframe.src = input_url_html;
-    document.body.appendChild(iframe);
-    this.add_cleanup(function() {
-      document.body.removeChild(iframe);
-    });
-    var i = 0;
-    iframe.onload = this.step_func(function() {
-      i++;
-      if (i == 1) {
-        iframe.contentWindow.location.search = '?' + input_url_html.split('?')[1] + '&other=foobar';
-      } else {
-        var got = iframe.contentDocument.body.textContent;
-        assert_equals(got, expected_current);
-        this.done();
-      }
-    });
-  }, 'location.search',
-  {help:['https://html.spec.whatwg.org/multipage/#the-location-interface',
-         'http://url.spec.whatwg.org/#dom-url-search']});
 
   // a.search, area.search
   function test_hyperlink_search(tag) {

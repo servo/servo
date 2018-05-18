@@ -183,11 +183,19 @@ self.IdlArray = function()
      *   A implements C;
      *   D implements E;
      *
-     * results in { A: ["B", "C"], D: ["E"] }.
+     * results in this["implements"] = { A: ["B", "C"], D: ["E"] }.
+     *
+     * Similarly,
+     *
+     *   interface A : B {};
+     *   interface B : C {};
+     *
+     * results in this["inheritance"] = { A: "B", B: "C" }
      */
     this.partials = [];
     this["implements"] = {};
     this["includes"] = {};
+    this["inheritance"] = {};
 };
 
 //@}
@@ -204,19 +212,115 @@ IdlArray.prototype.add_untested_idls = function(raw_idls, options)
 {
     /** Entry point.  See documentation at beginning of file. */
     var parsed_idls = WebIDL2.parse(raw_idls);
-    for (var i = 0; i < parsed_idls.length; i++)
-    {
+    this.mark_as_untested(parsed_idls);
+    this.internal_add_idls(parsed_idls, options);
+};
+
+//@}
+IdlArray.prototype.mark_as_untested = function (parsed_idls)
+//@{
+{
+    for (var i = 0; i < parsed_idls.length; i++) {
         parsed_idls[i].untested = true;
-        if ("members" in parsed_idls[i])
-        {
-            for (var j = 0; j < parsed_idls[i].members.length; j++)
-            {
+        if ("members" in parsed_idls[i]) {
+            for (var j = 0; j < parsed_idls[i].members.length; j++) {
                 parsed_idls[i].members[j].untested = true;
             }
         }
     }
-    this.internal_add_idls(parsed_idls, options);
 };
+//@}
+
+//@}
+IdlArray.prototype.is_excluded_by_options = function (name, options)
+//@{
+{
+    return options &&
+        (options.except && options.except.includes(name)
+         || options.only && !options.only.includes(name));
+};
+//@}
+
+//@}
+IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
+//@{
+{
+    const parsed_idls = WebIDL2.parse(raw_idls);
+    const new_options = { only: [] }
+
+    const all_deps = new Set();
+    Object.values(this.inheritance).forEach(v => all_deps.add(v));
+    Object.values(this.implements).forEach(v => all_deps.add(v));
+    // NOTE: If 'A includes B' for B that we care about, then A is also a dep.
+    Object.keys(this.includes).forEach(k => {
+        all_deps.add(k);
+        this.includes[k].forEach(v => all_deps.add(v));
+    });
+    this.partials.map(p => p.name).forEach(v => all_deps.add(v));
+    // Add the attribute idlTypes of all the nested members of all tested idls.
+    Object.values(this.members).filter(m => !m.untested && m.members).forEach(parsed => {
+        Object.values(parsed.members).filter(m => m.type === 'attribute').forEach(m => {
+            all_deps.add(m.idlType.idlType);
+        });
+    });
+
+    if (options && options.except && options.only) {
+        throw new IdlHarnessError("The only and except options can't be used together.");
+    }
+
+    const should_skip = name => {
+        // NOTE: Deps are untested, so we're lenient, and skip re-encountered definitions.
+        // e.g. for 'idl' containing A:B, B:C, C:D
+        //      array.add_idls(idl, {only: ['A','B']}).
+        //      array.add_dependency_idls(idl);
+        // B would be encountered as tested, and encountered as a dep, so we ignore.
+        return name in this.members
+            || this.is_excluded_by_options(name, options);
+    }
+    // Record of skipped items, in case we later determine they are a dependency.
+    // Maps name -> [parsed_idl, ...]
+    const skipped = new Map();
+    const process = function(parsed) {
+        let name = parsed.name
+            || parsed.type == "implements" && parsed.target
+            || parsed.type == "includes" && parsed.target;
+        if (!name || should_skip(name) || !all_deps.has(name)) {
+            name &&
+                skipped.has(name)
+                    ? skipped.get(name).push(parsed)
+                    : skipped.set(name, [parsed]);
+            return;
+        }
+
+        new_options.only.push(name);
+        const follow_up = [];
+        for (const dep_type of ["inheritance", "implements", "includes"]) {
+            if (parsed[dep_type]) {
+                const dep = parsed[dep_type];
+                new_options.only.push(dep);
+                all_deps.add(dep);
+                follow_up.push(dep);
+            }
+        }
+
+        for (const deferred of follow_up) {
+            if (skipped.has(deferred)) {
+                const next = skipped.get(deferred);
+                skipped.delete(deferred);
+                next.forEach(process);
+            }
+        }
+    }
+    for (let parsed of parsed_idls) {
+        process(parsed);
+    }
+
+    this.mark_as_untested(parsed_idls);
+
+    if (new_options.only.length) {
+        this.internal_add_idls(parsed_idls, new_options);
+    }
+}
 
 //@}
 IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
@@ -242,17 +346,8 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
         throw new IdlHarnessError("The only and except options can't be used together.");
     }
 
-    function should_skip(name)
-    {
-        if (options && options.only && options.only.indexOf(name) == -1)
-        {
-            return true;
-        }
-        if (options && options.except && options.except.indexOf(name) != -1)
-        {
-            return true;
-        }
-        return false;
+    var should_skip = name => {
+        return this.is_excluded_by_options(name, options);
     }
 
     parsed_idls.forEach(function(parsed_idl)
@@ -304,6 +399,17 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
         {
             throw new IdlHarnessError("Duplicate identifier " + parsed_idl.name);
         }
+
+        if (parsed_idl["inheritance"]) {
+            // NOTE: Clash should be impossible (would require redefinition of parsed_idl.name).
+            if (parsed_idl.name in this["inheritance"]
+                && parsed_idl["inheritance"] != this["inheritance"][parsed_idl.name]) {
+                throw new IdlHarnessError(
+                    `Inheritance for ${parsed_idl.name} was already defined`);
+            }
+            this["inheritance"][parsed_idl.name] = parsed_idl["inheritance"];
+        }
+
         switch(parsed_idl.type)
         {
         case "interface":

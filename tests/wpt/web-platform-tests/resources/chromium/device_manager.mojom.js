@@ -702,7 +702,7 @@
   }
 
   var UsbDeviceManager = {
-    name: 'device::mojom::UsbDeviceManager',
+    name: 'device.mojom.UsbDeviceManager',
     kVersion: 0,
     ptrClass: UsbDeviceManagerPtr,
     proxyClass: UsbDeviceManagerProxy,
@@ -822,7 +822,7 @@
   }
 
   var UsbDeviceManagerClient = {
-    name: 'device::mojom::UsbDeviceManagerClient',
+    name: 'device.mojom.UsbDeviceManagerClient',
     kVersion: 0,
     ptrClass: UsbDeviceManagerClientPtr,
     proxyClass: UsbDeviceManagerClientProxy,
