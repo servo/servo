@@ -307,8 +307,7 @@ impl HTMLLinkElement {
             Ok(url) => {
                 let window = document.window();
                 if window.is_top_level() {
-                    let top_level_browsing_context_id = window.top_level_browsing_context_id();
-                    let msg = EmbedderMsg::NewFavicon(top_level_browsing_context_id, url.clone());
+                    let msg = EmbedderMsg::NewFavicon(url.clone());
                     window.send_to_embedder(msg);
                 }
 

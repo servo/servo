@@ -59,7 +59,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::PipelineId;
 use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse};
 use net_traits::image_cache::{PendingImageId, PendingImageResponse};
@@ -355,11 +355,6 @@ impl Window {
         self.parent_info
     }
 
-    pub fn top_level_browsing_context_id(&self) -> TopLevelBrowsingContextId {
-        let window_proxy = self.window_proxy.get().unwrap();
-         window_proxy.top_level_browsing_context_id()
-    }
-
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let (tx, rx) = channel();
         (Box::new(SendableMainThreadScriptChan(tx)), Box::new(rx))
@@ -534,9 +529,7 @@ impl WindowMethods for Window {
             stderr.flush().unwrap();
         }
         let (sender, receiver) = ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let window_proxy = self.window_proxy.get().unwrap();
-        let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
-        let msg = EmbedderMsg::Alert(top_level_browsing_context_id, s.to_string(), sender);
+        let msg = EmbedderMsg::Alert(s.to_string(), sender);
         self.send_to_embedder(msg);
         receiver.recv().unwrap();
     }
@@ -927,8 +920,7 @@ impl WindowMethods for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let size = TypedSize2D::new(width, height).to_f32() * dpr;
-        let top_level_browsing_context_id = self.top_level_browsing_context_id();
-        self.send_to_embedder(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size.to_u32()));
+        self.send_to_embedder(EmbedderMsg::ResizeTo(size.to_u32()));
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -944,9 +936,7 @@ impl WindowMethods for Window {
         //TODO determine if this operation is allowed
         let dpr = self.device_pixel_ratio();
         let point = TypedPoint2D::new(x, y).to_f32() * dpr;
-        let window_proxy = self.window_proxy.get().unwrap();
-        let top_level_browsing_context_id = window_proxy.top_level_browsing_context_id();
-        let msg = EmbedderMsg::MoveTo(top_level_browsing_context_id, point.to_i32());
+        let msg = EmbedderMsg::MoveTo(point.to_i32());
         self.send_to_embedder(msg);
     }
 

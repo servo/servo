@@ -382,7 +382,7 @@ impl BluetoothManager {
         }
 
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender);
+        let msg = (None, EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender));
         self.embedder_proxy.send(msg);
 
         match ipc_receiver.recv() {

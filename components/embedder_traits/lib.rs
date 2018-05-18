@@ -33,12 +33,12 @@ pub trait EventLoopWaker : 'static + Send {
 
 /// Sends messages to the embedder.
 pub struct EmbedderProxy {
-    pub sender: Sender<EmbedderMsg>,
+    pub sender: Sender<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>,
     pub event_loop_waker: Box<EventLoopWaker>,
 }
 
 impl EmbedderProxy {
-    pub fn send(&self, msg: EmbedderMsg) {
+    pub fn send(&self, msg: (Option<TopLevelBrowsingContextId>, EmbedderMsg)) {
         // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({}).", err);
@@ -58,14 +58,14 @@ impl Clone for EmbedderProxy {
 
 /// The port that the embedder receives messages on.
 pub struct EmbedderReceiver {
-    pub receiver: Receiver<EmbedderMsg>
+    pub receiver: Receiver<(Option<TopLevelBrowsingContextId>, EmbedderMsg)>
 }
 
 impl EmbedderReceiver {
-    pub fn try_recv_embedder_msg(&mut self) -> Option<EmbedderMsg> {
+    pub fn try_recv_embedder_msg(&mut self) -> Option<(Option<TopLevelBrowsingContextId>, EmbedderMsg)> {
         self.receiver.try_recv().ok()
     }
-    pub fn recv_embedder_msg(&mut self) -> EmbedderMsg {
+    pub fn recv_embedder_msg(&mut self) -> (Option<TopLevelBrowsingContextId>, EmbedderMsg) {
         self.receiver.recv().unwrap()
     }
 }
@@ -73,43 +73,43 @@ impl EmbedderReceiver {
 #[derive(Deserialize, Serialize)]
 pub enum EmbedderMsg {
     /// A status message to be displayed by the browser chrome.
-    Status(TopLevelBrowsingContextId, Option<String>),
+    Status(Option<String>),
     /// Alerts the embedder that the current page has changed its title.
-    ChangePageTitle(TopLevelBrowsingContextId, Option<String>),
+    ChangePageTitle(Option<String>),
     /// Move the window to a point
-    MoveTo(TopLevelBrowsingContextId, DeviceIntPoint),
+    MoveTo(DeviceIntPoint),
     /// Resize the window to size
-    ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
+    ResizeTo(DeviceUintSize),
     // Show an alert message.
-    Alert(TopLevelBrowsingContextId, String, IpcSender<()>),
+    Alert(String, IpcSender<()>),
     /// Wether or not to follow a link
-    AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
+    AllowNavigation(ServoUrl, IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
-    KeyEvent(Option<TopLevelBrowsingContextId>, Option<char>, Key, KeyState, KeyModifiers),
+    KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Changes the cursor.
     SetCursor(CursorKind),
     /// A favicon was detected
-    NewFavicon(TopLevelBrowsingContextId, ServoUrl),
+    NewFavicon(ServoUrl),
     /// <head> tag finished parsing
-    HeadParsed(TopLevelBrowsingContextId),
+    HeadParsed,
     /// The history state has changed.
-    HistoryChanged(TopLevelBrowsingContextId, Vec<ServoUrl>, usize),
+    HistoryChanged(Vec<ServoUrl>, usize),
     /// Enter or exit fullscreen
-    SetFullscreenState(TopLevelBrowsingContextId, bool),
+    SetFullscreenState(bool),
     /// The load of a page has begun
-    LoadStart(TopLevelBrowsingContextId),
+    LoadStart,
     /// The load of a page has completed
-    LoadComplete(TopLevelBrowsingContextId),
+    LoadComplete,
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
-    Panic(TopLevelBrowsingContextId, String, Option<String>),
+    Panic(String, Option<String>),
     /// Open dialog to select bluetooth device.
     GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
     /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
     SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
     /// Request to present an IME to the user when an editable element is focused.
-    ShowIME(TopLevelBrowsingContextId, InputMethodType),
+    ShowIME(InputMethodType),
     /// Request to hide the IME when the editable element is blurred.
-    HideIME(TopLevelBrowsingContextId),
+    HideIME,
     /// Servo has shut down
     Shutdown,
 }
@@ -126,16 +126,16 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
             EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
-            EmbedderMsg::HeadParsed(..) => write!(f, "HeadParsed"),
+            EmbedderMsg::HeadParsed => write!(f, "HeadParsed"),
             EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
             EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
-            EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
-            EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
+            EmbedderMsg::LoadStart => write!(f, "LoadStart"),
+            EmbedderMsg::LoadComplete => write!(f, "LoadComplete"),
             EmbedderMsg::Panic(..) => write!(f, "Panic"),
             EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
             EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
             EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
-            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
+            EmbedderMsg::HideIME => write!(f, "HideIME"),
             EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }

@@ -124,7 +124,7 @@ pub struct Servo<Window: WindowMethods + 'static> {
     compositor: IOCompositor<Window>,
     constellation_chan: Sender<ConstellationMsg>,
     embedder_receiver: EmbedderReceiver,
-    embedder_events: Vec<EmbedderMsg>,
+    embedder_events: Vec<(Option<BrowserId>, EmbedderMsg)>,
 }
 
 impl<Window> Servo<Window> where Window: WindowMethods + 'static {
@@ -357,7 +357,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
     }
 
     fn receive_messages(&mut self) {
-        while let Some(msg) = self.embedder_receiver.try_recv_embedder_msg() {
+        while let Some((top_level_browsing_context, msg)) = self.embedder_receiver.try_recv_embedder_msg() {
             match (msg, self.compositor.shutdown_state) {
                 (_, ShutdownState::FinishedShuttingDown) => {
                     error!("embedder shouldn't be handling messages after compositor has shut down");
@@ -365,22 +365,22 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
                 (_, ShutdownState::ShuttingDown) => {},
 
-                (EmbedderMsg::KeyEvent(top_level_browsing_context, ch, key, state, modified),
+                (EmbedderMsg::KeyEvent(ch, key, state, modified),
                  ShutdownState::NotShuttingDown) => {
                     if state == KeyState::Pressed {
-                        let msg = EmbedderMsg::KeyEvent(top_level_browsing_context, ch, key, state, modified);
-                        self.embedder_events.push(msg);
+                        let event = (top_level_browsing_context, EmbedderMsg::KeyEvent(ch, key, state, modified));
+                        self.embedder_events.push(event);
                     }
                 },
 
                 (msg, ShutdownState::NotShuttingDown) => {
-                    self.embedder_events.push(msg);
+                    self.embedder_events.push((top_level_browsing_context, msg));
                 },
             }
         }
     }
 
-    pub fn get_events(&mut self) -> Vec<EmbedderMsg> {
+    pub fn get_events(&mut self) -> Vec<(Option<BrowserId>, EmbedderMsg)> {
         ::std::mem::replace(&mut self.embedder_events, Vec::new())
     }
 
@@ -394,7 +394,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
         if self.compositor.shutdown_state != ShutdownState::FinishedShuttingDown {
             self.compositor.perform_updates();
         } else {
-            self.embedder_events.push(EmbedderMsg::Shutdown);
+            self.embedder_events.push((None, EmbedderMsg::Shutdown));
         }
     }
 
