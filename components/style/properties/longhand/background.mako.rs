@@ -36,6 +36,7 @@ ${helpers.predefined_type("background-image", "ImageLayer",
         spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
         animation_value_type="ComputedValue",
         vector=True,
+        vector_animation_type="repeatable_list",
         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     )}
 % endfor
@@ -76,13 +77,15 @@ ${helpers.single_keyword("background-origin",
                          animation_value_type="discrete",
                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
 
-${helpers.predefined_type("background-size", "BackgroundSize",
+${helpers.predefined_type(
+    "background-size",
+    "BackgroundSize",
     initial_value="computed::BackgroundSize::auto()",
     initial_specified_value="specified::BackgroundSize::auto()",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-size",
     vector=True,
+    vector_animation_type="repeatable_list",
     animation_value_type="BackgroundSizeList",
-    need_animatable=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     extra_prefixes="webkit")}
 

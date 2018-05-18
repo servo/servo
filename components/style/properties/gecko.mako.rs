@@ -3249,7 +3249,7 @@ fn static_assert() {
 
     pub fn clone_scroll_snap_coordinate(&self) -> longhands::scroll_snap_coordinate::computed_value::T {
         let vec = self.gecko.mScrollSnapCoordinate.iter().map(|f| f.into()).collect();
-        longhands::scroll_snap_coordinate::computed_value::T(vec)
+        longhands::scroll_snap_coordinate::computed_value::List(vec)
     }
 
     ${impl_css_url('_moz_binding', 'mBinding')}
@@ -3755,8 +3755,9 @@ fn static_assert() {
     <% copy_simple_image_array_property(name, shorthand, layer_field_name, field_name) %>
 
     pub fn set_${ident}<I>(&mut self, v: I)
-        where I: IntoIterator<Item=longhands::${ident}::computed_value::single_value::T>,
-              I::IntoIter: ExactSizeIterator
+    where
+        I: IntoIterator<Item=longhands::${ident}::computed_value::single_value::T>,
+        I::IntoIter: ExactSizeIterator,
     {
         use properties::longhands::${ident}::single_value::computed_value::T as Keyword;
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
@@ -3791,7 +3792,7 @@ fn static_assert() {
         % endfor
         % endif
 
-        longhands::${ident}::computed_value::T (
+        longhands::${ident}::computed_value::List(
             self.gecko.${layer_field_name}.mLayers.iter()
                 .take(self.gecko.${layer_field_name}.${field_name}Count as usize)
                 .map(|ref layer| {
@@ -3858,7 +3859,7 @@ fn static_assert() {
             }
         }
 
-        longhands::${shorthand}_repeat::computed_value::T (
+        longhands::${shorthand}_repeat::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mRepeatCount as usize)
                 .map(|ref layer| {
@@ -3897,7 +3898,7 @@ fn static_assert() {
 
     pub fn clone_${shorthand}_position_${orientation}(&self)
         -> longhands::${shorthand}_position_${orientation}::computed_value::T {
-        longhands::${shorthand}_position_${orientation}::computed_value::T(
+        longhands::${shorthand}_position_${orientation}::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mPosition${orientation.upper()}Count as usize)
                 .map(|position| position.mPosition.m${orientation.upper()}Position.into())
@@ -3941,11 +3942,11 @@ fn static_assert() {
             BackgroundSize::Explicit { width: explicit_width, height: explicit_height } => {
                 let mut w_type = nsStyleImageLayers_Size_DimensionType::eAuto;
                 let mut h_type = nsStyleImageLayers_Size_DimensionType::eAuto;
-                if let Some(w) = explicit_width.to_calc_value() {
+                if let Some(w) = explicit_width.0.to_calc_value() {
                     width = w;
                     w_type = nsStyleImageLayers_Size_DimensionType::eLengthPercentage;
                 }
-                if let Some(h) = explicit_height.to_calc_value() {
+                if let Some(h) = explicit_height.0.to_calc_value() {
                     height = h;
                     h_type = nsStyleImageLayers_Size_DimensionType::eLengthPercentage;
                 }
@@ -3973,22 +3974,23 @@ fn static_assert() {
         }
     </%self:simple_image_array_property>
 
-    pub fn clone_${shorthand}_size(&self) -> longhands::background_size::computed_value::T {
+    pub fn clone_${shorthand}_size(&self) -> longhands::${shorthand}_size::computed_value::T {
         use gecko_bindings::structs::nsStyleCoord_CalcValue as CalcValue;
         use gecko_bindings::structs::nsStyleImageLayers_Size_DimensionType as DimensionType;
-        use values::computed::LengthOrPercentageOrAuto;
+        use values::generics::NonNegative;
+        use values::computed::NonNegativeLengthOrPercentageOrAuto;
         use values::generics::background::BackgroundSize;
 
-        fn to_servo(value: CalcValue, ty: u8) -> LengthOrPercentageOrAuto {
+        fn to_servo(value: CalcValue, ty: u8) -> NonNegativeLengthOrPercentageOrAuto {
             if ty == DimensionType::eAuto as u8 {
-                LengthOrPercentageOrAuto::Auto
+                NonNegativeLengthOrPercentageOrAuto::auto()
             } else {
                 debug_assert_eq!(ty, DimensionType::eLengthPercentage as u8);
-                value.into()
+                NonNegative(value.into())
             }
         }
 
-        longhands::background_size::computed_value::T(
+        longhands::${shorthand}_size::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter().map(|ref layer| {
                 if DimensionType::eCover as u8 == layer.mSize.mWidthType {
                     debug_assert_eq!(layer.mSize.mHeightType, DimensionType::eCover as u8);
@@ -4059,7 +4061,7 @@ fn static_assert() {
     pub fn clone_${shorthand}_image(&self) -> longhands::${shorthand}_image::computed_value::T {
         use values::None_;
 
-        longhands::${shorthand}_image::computed_value::T(
+        longhands::${shorthand}_image::computed_value::List(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mImageCount as usize)
                 .map(|ref layer| {
@@ -4315,7 +4317,7 @@ fn static_assert() {
 
     pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
         let buf = self.gecko.mBoxShadow.iter().map(|v| v.to_box_shadow()).collect();
-        longhands::box_shadow::computed_value::T(buf)
+        longhands::box_shadow::computed_value::List(buf)
     }
 
     pub fn set_clip(&mut self, v: longhands::clip::computed_value::T) {
@@ -4560,7 +4562,7 @@ fn static_assert() {
                 _ => {},
             }
         }
-        longhands::filter::computed_value::T(filters)
+        longhands::filter::computed_value::List(filters)
     }
 
 </%self:impl_trait>
@@ -4681,7 +4683,7 @@ fn static_assert() {
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
         let buf = self.gecko.mTextShadow.iter().map(|v| v.to_simple_shadow()).collect();
-        longhands::text_shadow::computed_value::T(buf)
+        longhands::text_shadow::computed_value::List(buf)
     }
 
     pub fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {

@@ -192,6 +192,7 @@ ${helpers.predefined_type(
     "SimpleShadow",
     None,
     vector=True,
+    vector_animation_type="with_zero",
     animation_value_type="AnimatedTextShadowList",
     ignored_when_colors_disabled=True,
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",

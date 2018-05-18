@@ -324,8 +324,8 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq, ToAnimatedZero,
-         ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq,
+         ToAnimatedValue, ToAnimatedZero, ToCss)]
 #[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentage {
     Length(Length),

@@ -29,11 +29,10 @@ use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo};
 use super::ComputedValues;
-use values::{CSSFloat, CustomIdent, Either};
+use values::{CSSFloat, CustomIdent};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA as AnimatedRGBA;
 use values::animated::effects::Filter as AnimatedFilter;
-use values::animated::effects::FilterList as AnimatedFilterList;
 use values::computed::{Angle, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context};
 use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -53,13 +52,10 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
 use values::computed::font::FontVariationSettings;
 use values::generics::effects::Filter;
-use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use void::{self, Void};
 
-/// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
-pub trait RepeatableListAnimatable: Animate {}
 
 /// Returns true if this nsCSSPropertyID is one of the animatable properties.
 #[cfg(feature = "gecko")]
@@ -755,18 +751,45 @@ impl ToAnimatedZero for AnimationValue {
     }
 }
 
-impl RepeatableListAnimatable for LengthOrPercentage {}
-impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
-impl RepeatableListAnimatable for Either<NonNegativeNumber, NonNegativeLengthOrPercentage> {}
-impl RepeatableListAnimatable for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {}
+/// A trait to abstract away the different kind of animations over a list that
+/// there may be.
+pub trait ListAnimation<T> : Sized {
+    /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
+    fn animate_repeatable_list(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
+    where
+        T: Animate;
 
-macro_rules! repeated_vec_impl {
-    ($($ty:ty),*) => {
-        $(impl<T> Animate for $ty
-        where
-            T: RepeatableListAnimatable,
-        {
-            fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+    /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
+    fn squared_distance_repeatable_list(&self, other: &Self) -> Result<SquaredDistance, ()>
+    where
+        T: ComputeSquaredDistance;
+
+    /// This is the animation used for some of the types like shadows and
+    /// filters, where the interpolation happens with the zero value if one of
+    /// the sides is not present.
+    fn animate_with_zero(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
+    where
+        T: Animate + Clone + ToAnimatedZero;
+
+    /// This is the animation used for some of the types like shadows and
+    /// filters, where the interpolation happens with the zero value if one of
+    /// the sides is not present.
+    fn squared_distance_with_zero(&self, other: &Self) -> Result<SquaredDistance, ()>
+    where
+        T: ToAnimatedZero + ComputeSquaredDistance;
+}
+
+macro_rules! animated_list_impl {
+    (<$t:ident> for $ty:ty) => {
+        impl<$t> ListAnimation<$t> for $ty {
+            fn animate_repeatable_list(
+                &self,
+                other: &Self,
+                procedure: Procedure,
+            ) -> Result<Self, ()>
+            where
+                T: Animate,
+            {
                 // If the length of either list is zero, the least common multiple is undefined.
                 if self.is_empty() || other.is_empty() {
                     return Err(());
@@ -777,14 +800,14 @@ macro_rules! repeated_vec_impl {
                     this.animate(other, procedure)
                 }).collect()
             }
-        }
 
-        impl<T> ComputeSquaredDistance for $ty
-        where
-            T: ComputeSquaredDistance + RepeatableListAnimatable,
-        {
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+            fn squared_distance_repeatable_list(
+                &self,
+                other: &Self,
+            ) -> Result<SquaredDistance, ()>
+            where
+                T: ComputeSquaredDistance,
+            {
                 if self.is_empty() || other.is_empty() {
                     return Err(());
                 }
@@ -794,11 +817,59 @@ macro_rules! repeated_vec_impl {
                     this.compute_squared_distance(other)
                 }).sum()
             }
-        })*
-    };
+
+            fn animate_with_zero(
+                &self,
+                other: &Self,
+                procedure: Procedure,
+            ) -> Result<Self, ()>
+            where
+                T: Animate + Clone + ToAnimatedZero
+            {
+                if procedure == Procedure::Add {
+                    return Ok(
+                        self.iter().chain(other.iter()).cloned().collect()
+                    );
+                }
+                self.iter().zip_longest(other.iter()).map(|it| {
+                    match it {
+                        EitherOrBoth::Both(this, other) => {
+                            this.animate(other, procedure)
+                        },
+                        EitherOrBoth::Left(this) => {
+                            this.animate(&this.to_animated_zero()?, procedure)
+                        },
+                        EitherOrBoth::Right(other) => {
+                            other.to_animated_zero()?.animate(other, procedure)
+                        }
+                    }
+                }).collect()
+            }
+
+            fn squared_distance_with_zero(
+                &self,
+                other: &Self,
+            ) -> Result<SquaredDistance, ()>
+            where
+                T: ToAnimatedZero + ComputeSquaredDistance
+            {
+                self.iter().zip_longest(other.iter()).map(|it| {
+                    match it {
+                        EitherOrBoth::Both(this, other) => {
+                            this.compute_squared_distance(other)
+                        },
+                        EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
+                            list.to_animated_zero()?.compute_squared_distance(list)
+                        },
+                    }
+                }).sum()
+            }
+        }
+    }
 }
 
-repeated_vec_impl!(SmallVec<[T; 1]>, Vec<T>);
+animated_list_impl!(<T> for SmallVec<[T; 1]>);
+animated_list_impl!(<T> for Vec<T>);
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-visibility>
 impl Animate for Visibility {
@@ -1026,9 +1097,6 @@ impl<'a> Iterator for FontSettingTagIter<'a> {
         }
     }
 }
-
-impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
-    where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-rect>
 impl Animate for ClipRect {
@@ -2668,27 +2736,16 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
 impl ComputeSquaredDistance for ComputedTransform {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let list1 = &self.0;
-        let list2 = &other.0;
+        let squared_dist = self.0.squared_distance_with_zero(&other.0);
 
-        let squared_dist: Result<SquaredDistance, _> = list1.iter().zip_longest(list2).map(|it| {
-            match it {
-                EitherOrBoth::Both(this, other) => {
-                    this.compute_squared_distance(other)
-                },
-                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
-                    list.to_animated_zero()?.compute_squared_distance(list)
-                },
-            }
-        }).sum();
-
-        // Roll back to matrix interpolation if there is any Err(()) in the transform lists, such
-        // as mismatched transform functions.
-        if let Err(_) = squared_dist {
+        // Roll back to matrix interpolation if there is any Err(()) in the
+        // transform lists, such as mismatched transform functions.
+        if squared_dist.is_err() {
             let matrix1: Matrix3D = self.to_transform_3d_matrix(None)?.0.into();
             let matrix2: Matrix3D = other.to_transform_3d_matrix(None)?.0.into();
             return matrix1.compute_squared_distance(&matrix2);
         }
+
         squared_dist
     }
 }
@@ -2828,7 +2885,7 @@ where
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty>
 impl<L> Animate for SVGStrokeDashArray<L>
 where
-    L: Clone + RepeatableListAnimatable,
+    L: Clone + Animate,
 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -2838,7 +2895,22 @@ where
         }
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                Ok(SVGStrokeDashArray::Values(this.animate(other, procedure)?))
+                Ok(SVGStrokeDashArray::Values(this.animate_repeatable_list(other, procedure)?))
+            },
+            _ => Err(()),
+        }
+    }
+}
+
+impl<L> ComputeSquaredDistance for SVGStrokeDashArray<L>
+where
+    L: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
+                this.squared_distance_repeatable_list(other)
             },
             _ => Err(()),
         }
@@ -2926,50 +2998,6 @@ impl ToAnimatedZero for AnimatedFilter {
             % endif
             _ => Err(()),
         }
-    }
-}
-
-impl Animate for AnimatedFilterList {
-    #[inline]
-    fn animate(
-        &self,
-        other: &Self,
-        procedure: Procedure,
-    ) -> Result<Self, ()> {
-        if procedure == Procedure::Add {
-            return Ok(AnimatedFilterList(
-                self.0.iter().chain(other.0.iter()).cloned().collect(),
-            ));
-        }
-        Ok(AnimatedFilterList(self.0.iter().zip_longest(other.0.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(this, other) => {
-                    this.animate(other, procedure)
-                },
-                EitherOrBoth::Left(this) => {
-                    this.animate(&this.to_animated_zero()?, procedure)
-                },
-                EitherOrBoth::Right(other) => {
-                    other.to_animated_zero()?.animate(other, procedure)
-                },
-            }
-        }).collect::<Result<Vec<_>, _>>()?))
-    }
-}
-
-impl ComputeSquaredDistance for AnimatedFilterList {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        self.0.iter().zip_longest(other.0.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(this, other) => {
-                    this.compute_squared_distance(other)
-                },
-                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
-                    list.to_animated_zero()?.compute_squared_distance(list)
-                },
-            }
-        }).sum()
     }
 }
 

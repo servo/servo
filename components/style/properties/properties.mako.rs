@@ -2216,12 +2216,13 @@ pub mod style_structs {
                         #[allow(non_snake_case)]
                         #[inline]
                         pub fn set_${longhand.ident}<I>(&mut self, v: I)
-                            where I: IntoIterator<Item = longhands::${longhand.ident}
-                                                                  ::computed_value::single_value::T>,
-                                  I::IntoIter: ExactSizeIterator
+                        where
+                            I: IntoIterator<Item = longhands::${longhand.ident}
+                                                              ::computed_value::single_value::T>,
+                            I::IntoIter: ExactSizeIterator
                         {
                             self.${longhand.ident} = longhands::${longhand.ident}::computed_value
-                                                              ::T(v.into_iter().collect());
+                                                              ::List(v.into_iter().collect());
                         }
                     % elif longhand.ident == "display":
                         /// Set `display`.
@@ -2404,7 +2405,7 @@ pub mod style_structs {
                 pub fn clone_${longhand.ident}(
                     &self,
                 ) -> longhands::${longhand.ident}::computed_value::T {
-                    longhands::${longhand.ident}::computed_value::T(
+                    longhands::${longhand.ident}::computed_value::List(
                         self.${longhand.ident}_iter().collect()
                     )
                 }

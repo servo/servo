@@ -11,6 +11,7 @@
 use app_units::Au;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
+use values::computed::length::CalcLengthOrPercentage;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::MaxLength as ComputedMaxLength;
@@ -257,6 +258,7 @@ macro_rules! trivial_to_animated_value {
 }
 
 trivial_to_animated_value!(Au);
+trivial_to_animated_value!(CalcLengthOrPercentage);
 trivial_to_animated_value!(ComputedAngle);
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);

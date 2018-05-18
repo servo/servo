@@ -188,8 +188,10 @@
     use values::specified::position::Position;
     use parser::Parse;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         // Vec grows from 0 to 4 by default on first push().  So allocate with
         // capacity 1, so in the common case of only one item we don't way
         // overallocate.  Note that we always push at least one item if parsing
@@ -205,7 +207,8 @@
             any = true;
             Ok(())
         })?;
-        if any == false {
+
+        if !any {
             return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
 
