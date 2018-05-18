@@ -2284,7 +2284,6 @@ impl ScriptThread {
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
                 let window = document.window();
-                let top_level_browsing_context_id = window.top_level_browsing_context_id();
 
                 // Get the previous target temporarily
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
@@ -2313,7 +2312,7 @@ impl ScriptThread {
                                                let url = document.url();
                                                url.join(&value).map(|url| url.to_string()).ok()
                                            });
-                        let event = EmbedderMsg::Status(top_level_browsing_context_id, status);
+                        let event = EmbedderMsg::Status(status);
                         window.send_to_embedder(event);
 
                         state_already_changed = true;
@@ -2327,7 +2326,7 @@ impl ScriptThread {
                                                .inclusive_ancestors()
                                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                                                .next() {
-                            let event = EmbedderMsg::Status(top_level_browsing_context_id, None);
+                            let event = EmbedderMsg::Status(None);
                             window.send_to_embedder(event);
                         }
                     }
