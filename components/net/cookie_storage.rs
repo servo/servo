@@ -175,14 +175,14 @@ impl CookieStorage {
     pub fn cookies_data_for_url<'a>(&'a mut self,
                                     url: &'a ServoUrl,
                                     source: CookieSource)
-                                    -> Box<Iterator<Item = cookie_rs::Cookie<'static>> + 'a> {
+                                    -> impl Iterator<Item = cookie_rs::Cookie<'static>> + 'a {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
-        Box::new(cookies.iter_mut().filter(move |c| c.appropriate_for_url(url, source)).map(|c| {
+        cookies.iter_mut().filter(move |c| c.appropriate_for_url(url, source)).map(|c| {
             c.touch();
             c.cookie.clone()
-        }))
+        })
     }
 }
 
