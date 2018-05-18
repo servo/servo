@@ -3089,7 +3089,6 @@ dependencies = [
  "app_units 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.23.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "embedder_traits 0.0.1",
  "euclid 0.17.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever 0.22.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
-use embedder_traits::resources::register_resources_for_tests;
 use hyper::header::{Header, SetCookie};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
@@ -57,7 +56,6 @@ fn test_default_path() {
 #[test]
 fn fn_cookie_constructor() {
     use net_traits::CookieSource;
-    register_resources_for_tests();
 
     let url = &ServoUrl::parse("http://example.com/foo").unwrap();
 
@@ -104,7 +102,6 @@ fn fn_cookie_constructor() {
 
 #[test]
 fn test_cookie_secure_prefix() {
-    register_resources_for_tests();
     let url = &ServoUrl::parse("https://example.com").unwrap();
     let cookie = cookie_rs::Cookie::parse("__Secure-SID=12345").unwrap();
     assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
@@ -132,7 +129,6 @@ fn test_cookie_secure_prefix() {
 
 #[test]
 fn test_cookie_host_prefix() {
-    register_resources_for_tests();
     let url = &ServoUrl::parse("https://example.com").unwrap();
     let cookie = cookie_rs::Cookie::parse("__Host-SID=12345").unwrap();
     assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
@@ -186,7 +182,6 @@ fn delay_to_ensure_different_timestamp() {}
 #[test]
 fn test_sort_order() {
     use std::cmp::Ordering;
-    register_resources_for_tests();
 
     let url = &ServoUrl::parse("http://example.com/foo").unwrap();
     let a_wrapped = cookie_rs::Cookie::parse("baz=bar; Path=/foo/bar/").unwrap();
@@ -206,7 +201,6 @@ fn test_sort_order() {
 
 fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str: &str)
 {
-    register_resources_for_tests();
     let source = CookieSource::HTTP;
     let cookie = cookie_rs::Cookie::parse(cookie_str.to_owned()).unwrap();
     let cookie = Cookie::new_wrapped(cookie, url, source).unwrap();
@@ -215,7 +209,6 @@ fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str
 
 #[test]
 fn test_insecure_cookies_cannot_evict_secure_cookie() {
-    register_resources_for_tests();
     let mut storage = CookieStorage::new(5);
     let secure_url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
     let source = CookieSource::HTTP;
@@ -252,7 +245,6 @@ fn test_insecure_cookies_cannot_evict_secure_cookie() {
 
 #[test]
 fn test_secure_cookies_eviction() {
-    register_resources_for_tests();
     let mut storage = CookieStorage::new(5);
     let url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
     let source = CookieSource::HTTP;
@@ -288,7 +280,6 @@ fn test_secure_cookies_eviction() {
 
 #[test]
 fn test_secure_cookies_eviction_non_http_source() {
-    register_resources_for_tests();
     let mut storage = CookieStorage::new(5);
     let url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
     let source = CookieSource::NonHTTP;
@@ -350,7 +341,6 @@ fn add_retrieve_cookies(set_location: &str,
 
 #[test]
 fn test_cookie_eviction_expired() {
-    register_resources_for_tests();
     let mut vec = Vec::new();
     for i in 1..6 {
         let st = format!("extra{}=bar; Secure; expires=Sun, 18-Apr-2000 21:06:29 GMT",
@@ -366,7 +356,6 @@ fn test_cookie_eviction_expired() {
 
 #[test]
 fn test_cookie_eviction_all_secure_one_nonsecure() {
-    register_resources_for_tests();
     let mut vec = Vec::new();
     for i in 1..5 {
         let st = format!("extra{}=bar; Secure; expires=Sun, 18-Apr-2026 21:06:29 GMT",
@@ -383,7 +372,6 @@ fn test_cookie_eviction_all_secure_one_nonsecure() {
 
 #[test]
 fn test_cookie_eviction_all_secure_new_nonsecure() {
-    register_resources_for_tests();
     let mut vec = Vec::new();
     for i in 1..6 {
         let st = format!("extra{}=bar; Secure; expires=Sun, 18-Apr-2026 21:06:29 GMT",
@@ -399,7 +387,6 @@ fn test_cookie_eviction_all_secure_new_nonsecure() {
 
 #[test]
 fn test_cookie_eviction_all_nonsecure_new_secure() {
-    register_resources_for_tests();
     let mut vec = Vec::new();
     for i in 1..6 {
         let st = format!("extra{}=bar; expires=Sun, 18-Apr-2026 21:06:29 GMT", i);
@@ -414,7 +401,6 @@ fn test_cookie_eviction_all_nonsecure_new_secure() {
 
 #[test]
 fn test_cookie_eviction_all_nonsecure_new_nonsecure() {
-    register_resources_for_tests();
     let mut vec = Vec::new();
     for i in 1..6 {
         let st = format!("extra{}=bar; expires=Sun, 18-Apr-2026 21:06:29 GMT", i);
