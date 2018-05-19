@@ -84,6 +84,8 @@ pub enum EmbedderMsg {
     Alert(String, IpcSender<()>),
     /// Wether or not to follow a link
     AllowNavigation(ServoUrl, IpcSender<bool>),
+    /// Wether or not to unload a document
+    AllowUnload(IpcSender<bool>),
     /// Sends an unconsumed key event back to the embedder.
     KeyEvent(Option<char>, Key, KeyState, KeyModifiers),
     /// Changes the cursor.
@@ -122,6 +124,7 @@ impl Debug for EmbedderMsg {
             EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
             EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
             EmbedderMsg::Alert(..) => write!(f, "Alert"),
+            EmbedderMsg::AllowUnload(..) => write!(f, "AllowUnload"),
             EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
             EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
             EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
