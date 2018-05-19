@@ -15,21 +15,20 @@ use gecko_bindings::sugar::refptr::RefPtr;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
-#[cfg(feature = "gecko")]
 use std::hash::{Hash, Hasher};
 #[cfg(feature = "servo")]
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
-use values::computed::{Angle, Context, Integer, NonNegativeLength, Number, ToComputedValue};
+use values::computed::{Angle, Context, Integer, NonNegative, NonNegativeLength, NonNegativePercentage};
+use values::computed::{Number, Percentage, ToComputedValue};
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, VariationValue};
 use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
 use values::specified::length::{FontBaseSize, NoCalcLength};
 
 pub use values::computed::Length as MozScriptMinSize;
 pub use values::specified::font::{FontSynthesis, MozScriptSizeMultiplier, XLang, XTextZoom};
-pub use values::computed::NonNegativePercentage as FontStretch;
 
 /// A value for the font-weight property per:
 ///
@@ -40,6 +39,12 @@ pub use values::computed::NonNegativePercentage as FontStretch;
          ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct FontWeight(pub Number);
+
+impl Hash for FontWeight {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        hasher.write_u64((self.0 * 10000.).trunc() as u64);
+    }
+}
 
 impl ToAnimatedValue for FontWeight {
     type AnimatedValue = Number;
@@ -853,6 +858,12 @@ impl ToAnimatedValue for FontStyleAngle {
     }
 }
 
+impl Hash for FontStyleAngle {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        hasher.write_u64((self.0.degrees() * 10000.).trunc() as u64);
+    }
+}
+
 /// The computed value of `font-style`.
 ///
 /// FIXME(emilio): Angle should be a custom type to handle clamping during
@@ -914,5 +925,45 @@ impl ToCss for FontStyle {
                 Ok(())
             }
         }
+    }
+}
+
+/// A value for the font-stretch property per:
+///
+/// https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+pub struct FontStretch(pub NonNegativePercentage);
+
+impl FontStretch {
+    /// 100%
+    pub fn hundred() -> Self {
+        FontStretch(NonNegativePercentage::hundred())
+    }
+
+    /// The float value of the percentage
+    #[inline]
+    pub fn value(&self) -> CSSFloat {
+        ((self.0).0).0
+    }
+}
+
+impl ToAnimatedValue for FontStretch {
+    type AnimatedValue = Percentage;
+
+    #[inline]
+    fn to_animated_value(self) -> Self::AnimatedValue {
+        (self.0).0
+    }
+
+    #[inline]
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        FontStretch(NonNegative(animated))
+    }
+}
+
+impl Hash for FontStretch {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        hasher.write_u64((self.value() * 10000.).trunc() as u64);
     }
 }

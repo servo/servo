@@ -84,7 +84,7 @@ ${helpers.predefined_type("font-synthesis",
 ${helpers.predefined_type(
     "font-stretch",
     "FontStretch",
-    initial_value="computed::NonNegativePercentage::hundred()",
+    initial_value="computed::FontStretch::hundred()",
     initial_specified_value="specified::FontStretch::normal()",
     animation_value_type="Percentage",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",

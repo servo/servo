@@ -229,7 +229,7 @@ impl FontHandleMethods for FontHandle {
         use style::values::generics::NonNegative;
 
         let normalized = self.ctfont.all_traits().normalized_width();  // [-1.0, 1.0]
-        NonNegative(Percentage(normalized as f32 + 1.0))
+        FontStretch(NonNegative(Percentage(normalized as f32 + 1.0)))
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
