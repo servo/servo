@@ -68,9 +68,9 @@ function runCredentialsTests(worklet_type) {
     return runCredentialsTest({ workletType: worklet_type,
                                 credentials: '',
                                 origin: 'same',
-                                expectCredentialsSent: false });
+                                expectCredentialsSent: true });
   }, 'Importing a same-origin script with the default WorkletOptions should ' +
-     'not send the credentials');
+     'send the credentials');
 
   promise_test(() => {
     return runCredentialsTest({ workletType: worklet_type,

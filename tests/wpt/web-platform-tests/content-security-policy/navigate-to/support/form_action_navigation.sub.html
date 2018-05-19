@@ -13,9 +13,21 @@
 <body>
 <form action='{{GET[action]}}' target='_self' id='form'>
   <input type="text" name="dummy">
+  <div id="form-div"></div>
 </form>
 
 <script>
-  document.getElementById('form').submit();
+ try {
+  url = new URL("{{GET[action]}}", location.href);
+  for (var p of url.searchParams) {
+    var elem = document.createElement('input');
+    elem.type = 'text';
+    elem.name = p[0];
+    elem.value = p[1];
+    document.getElementById('form-div').appendChild(elem);
+  }
+ } catch(ex) {}
+ 
+ document.getElementById('form').submit();
 </script>
 </body>

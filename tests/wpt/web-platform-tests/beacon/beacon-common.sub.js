@@ -56,7 +56,8 @@ var bufferSourceTests = [emptyBufferSourceTest, smallBufferSourceTest, mediumBuf
 var bufferSourceMaxTest = [maxBufferSourceTest];
 var formDataTests = [emptyFormDataTest, smallFormDataTest, mediumFormDataTest, largeFormDataTest];
 var formDataMaxTest = [largeFormDataTest];
-var allTests = [].concat(stringTests, stringMaxTest, blobTests, blobMaxTest, bufferSourceTests, bufferSourceMaxTest, formDataTests, formDataMaxTest);
+var contentTypeTests = [smallSafeContentTypeEncodedTest,smallSafeContentTypeFormTest,smallSafeContentTypeTextTest,smallCORSContentTypeTextTest];
+var allTests = [].concat(stringTests, stringMaxTest, blobTests, blobMaxTest, bufferSourceTests, bufferSourceMaxTest, formDataTests, formDataMaxTest, contentTypeTests);
 
 // This special cross section of test cases is meant to provide a slimmer but reasonably-
 // representative set of tests for parameterization across variables (e.g. redirect codes,

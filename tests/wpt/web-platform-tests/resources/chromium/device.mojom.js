@@ -3395,7 +3395,7 @@
   }
 
   var UsbDevice = {
-    name: 'device::mojom::UsbDevice',
+    name: 'device.mojom.UsbDevice',
     kVersion: 0,
     ptrClass: UsbDevicePtr,
     proxyClass: UsbDeviceProxy,

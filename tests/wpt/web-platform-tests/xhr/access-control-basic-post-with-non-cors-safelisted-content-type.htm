@@ -29,13 +29,8 @@
 
       xhr.setRequestHeader("Content-Type", "application/xml");
 
-      try {
-        xhr.send();
-      } catch(e) {
-        assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
-        return;
-      }
-      assert_unreached("Cross-domain access was not denied in 'send'.");
+      assert_throws("NetworkError", () => xhr.send());
+      assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
     }, "CORS request with non-safelisted content type sends preflight and fails");
     </script>
   </body>

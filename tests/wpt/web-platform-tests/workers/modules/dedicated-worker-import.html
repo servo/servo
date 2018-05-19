@@ -45,4 +45,32 @@ promise_test(() => {
       'resources/dynamic-import-and-then-static-import-worker.js', 3);
 }, 'Test dynamic import and then static import on DedicatedWorkerGlobalScope.');
 
+promise_test(() => {
+  const scriptURL = 'resources/import-scripts-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return (new Promise(resolve => worker.onmessage = resolve))
+      .then(e => assert_equals(e.data, 'TypeError'));
+}, 'importScripts() on module worker should throw an exception.');
+
+promise_test(() => {
+  const scriptURL = 'resources/non-existent-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Worker construction for non-existent script should throw an exception.');
+
+promise_test(() => {
+  const scriptURL = 'resources/static-import-non-existent-script-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Static import for non-existent script should throw an exception.');
+
+promise_test(() => {
+  const script_url = './non-existent-worker.js';
+  const worker = new Worker('resources/dynamic-import-given-url-worker.js',
+                            { type: 'module' });
+  worker.postMessage(script_url);
+  return new Promise(resolve => worker.onmessage = resolve)
+      .then(msg_event => assert_equals(msg_event.data, 'ERROR'));
+}, 'Dynamic import for non-existent script should throw an exception.');
+
 </script>

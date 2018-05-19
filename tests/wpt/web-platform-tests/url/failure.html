@@ -16,7 +16,13 @@ function runTests(testData) {
 
     const name = test.input + " should throw"
 
-    self.test(() => { // new URL itself is already tested by url-constructor.html
+    self.test(() => { // URL's constructor's first argument is tested by url-constructor.html
+      // If a URL fails to parse with any valid base, it must also fail to parse with no base, i.e.
+      // when used as a base URL itself.
+      assert_throws(new TypeError(), () => new URL("about:blank", test.input));
+    }, "URL's constructor's base argument: " + name)
+
+    self.test(() => {
       const url = new URL("about:blank")
       assert_throws(new TypeError, () => url.href = test.input)
     }, "URL's href: " + name)

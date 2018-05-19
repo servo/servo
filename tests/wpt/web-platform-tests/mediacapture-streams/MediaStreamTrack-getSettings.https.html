@@ -57,4 +57,22 @@
       });
     });
   }, 'A device can be opened twice with different resolutions');
+
+  promise_test(t => {
+    return navigator.mediaDevices.enumerateDevices().then(async devices => {
+      for (var device of devices) {
+        if (device.kind == "audiooutput")
+          continue;
+        var device_id_constraint = {deviceId: {exact: device.deviceId}};
+        var constraints = device.kind == "audioinput"
+          ? {audio: device_id_constraint}
+          : {video: device_id_constraint};
+
+        var stream = await navigator.mediaDevices.getUserMedia(constraints);
+        assert_equals(stream.getTracks()[0].getSettings().groupId,
+                      device.groupId);
+        assert_true(device.groupId.length > 0);
+      }
+    });
+  }, 'groupId is correctly reported by getSettings() for all devices');
 </script>

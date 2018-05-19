@@ -489,7 +489,6 @@
       "redirection": "*",
       "origin": "*",
       "subresource": [
-        "script-tag",
         "xhr-request",
         "worker-request",
         "fetch-request"

@@ -8,15 +8,20 @@ class WptreportFormatter(BaseFormatter):
 
     def __init__(self):
         self.raw_results = {}
+        self.results = {}
+
+    def suite_start(self, data):
+        self.results['run_info'] = data['run_info']
+        self.results['time_start'] = data['time']
 
     def suite_end(self, data):
-        results = {}
-        results["results"] = []
+        self.results['time_end'] = data['time']
+        self.results["results"] = []
         for test_name in self.raw_results:
             result = {"test": test_name}
             result.update(self.raw_results[test_name])
-            results["results"].append(result)
-        return json.dumps(results)
+            self.results["results"].append(result)
+        return json.dumps(self.results)
 
     def find_or_create_test(self, data):
         test_name = data["test"]

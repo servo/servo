@@ -121,6 +121,22 @@ async_test(function(t) {
 }, 'HTTP protocol, punycode subdomain #2, port #2');
 
 async_test(function(t) {
+  check('http', 'nonexistent.{{domains[]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, non-existent domain, port #1');
+
+async_test(function(t) {
+  check('http', 'nonexistent.{{domains[]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, non-existent domain, port #2');
+
+async_test(function(t) {
   check('https', '{{browser_host}}', {{ports[https][0]}}, t.step_func(function(result) {
     assert_true(result);
 
@@ -167,6 +183,22 @@ async_test(function(t) {
     t.done();
   }));
 }, 'HTTPS protocol, punycode subdomain #2');
+
+async_test(function(t) {
+  check('https', 'nonexistent.{{domains[]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, non-existent domain, port #1');
+
+async_test(function(t) {
+  check('https', 'nonexistent.{{domains[]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, non-existent domain, port #2');
 </script>
 </body>
 </html>
