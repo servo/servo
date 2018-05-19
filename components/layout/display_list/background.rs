@@ -711,7 +711,7 @@ fn handle_overlapping_radii(size: LayoutSize, radii: BorderRadius) -> BorderRadi
 }
 
 pub fn build_border_radius(
-    abs_bounds: &Rect<Au>,
+    abs_bounds: Rect<Au>,
     border_style: &style_structs::Border,
 ) -> BorderRadius {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
@@ -811,10 +811,7 @@ pub fn build_image_border_details(
     }
 }
 
-fn calculate_border_image_outset_side(
-    outset: LengthOrNumber,
-    border_width: Au,
-) -> Au {
+fn calculate_border_image_outset_side(outset: LengthOrNumber, border_width: Au) -> Au {
     match outset {
         Either::First(length) => length.into(),
         Either::Second(factor) => border_width.scale_by(factor),
