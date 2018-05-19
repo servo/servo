@@ -38,11 +38,6 @@
     property: 'lastModified',
     instance: new File([''], '', {lastModified: 123}),
   },
-  {
-    type: 'File',
-    property: 'lastModifiedDate',
-    instance: new File([''], '', {lastModified: 123}),
-  },
 ].forEach(function(testcase) {
   indexeddb_test(
     (t, db) => {

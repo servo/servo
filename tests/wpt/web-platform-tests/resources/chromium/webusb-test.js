@@ -360,15 +360,17 @@ class FakeDeviceManager {
   }
 
   getDevice(guid, request) {
-    let device = this.devicesByGuid_.get(guid);
-    if (device) {
+    let retrievedDevice = this.devicesByGuid_.get(guid);
+    if (retrievedDevice) {
       let binding = new mojo.Binding(
-          window.device.mojom.UsbDevice, new FakeDevice(device.info), request);
+          device.mojom.UsbDevice,
+          new FakeDevice(retrievedDevice.info),
+          request);
       binding.setConnectionErrorHandler(() => {
-        if (device.fakeDevice.onclose)
-          device.fakeDevice.onclose();
+        if (retrievedDevice.fakeDevice.onclose)
+          retrievedDevice.fakeDevice.onclose();
       });
-      device.bindingArray.push(binding);
+      retrievedDevice.bindingArray.push(binding);
     } else {
       request.close();
     }

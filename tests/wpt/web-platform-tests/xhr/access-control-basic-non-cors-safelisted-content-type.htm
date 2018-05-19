@@ -22,13 +22,8 @@
           "/xhr/resources/access-control-basic-put-allow.py", false);
       xhr.setRequestHeader("Content-Type", "application/xml");
 
-      try {
-        xhr.send("FAIL: PUT data received");
-      } catch(e) {
-        assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
-        return;
-      }
-      assert_unreached("Cross-domain access was not denied in 'send'.");
+      assert_throws("NetworkError", () => xhr.send("FAIL: PUT data received"));
+      assert_equals(xhr.status, 0, "Cross-domain access was denied in 'send'.");
     }, "Deny cross-origin request with non-CORS-safelisted content type");
     </script>
   </body>

@@ -9,10 +9,8 @@ import pytest
 from .base import all_products, active_products
 
 sys.path.insert(0, join(dirname(__file__), "..", "..", "..", ".."))  # repo root
-
 from tools import localpaths
-
-import sslutils
+from wptserve import sslutils
 
 from wptrunner import environment
 from wptrunner import products

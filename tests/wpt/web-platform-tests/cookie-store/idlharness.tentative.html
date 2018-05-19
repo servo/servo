@@ -43,6 +43,11 @@ promise_test(async t => {
   ] });
 
   idl_array.add_untested_idls(
+    `dictionary ExtendableEventInit {};`);
+  idl_array.add_untested_idls(
+    `[Global=ExtendableEvent, Exposed=ServiceWorker]
+     interface ExtendableEvent : Event {};`);
+  idl_array.add_untested_idls(
     `[Global=ServiceWorker, Exposed=ServiceWorker]
      interface ServiceWorkerGlobalScope {};`);
 

@@ -4061,7 +4061,7 @@
   }
 
   var FakeBluetooth = {
-    name: 'bluetooth::mojom::FakeBluetooth',
+    name: 'bluetooth.mojom.FakeBluetooth',
     kVersion: 0,
     ptrClass: FakeBluetoothPtr,
     proxyClass: FakeBluetoothProxy,
@@ -5293,7 +5293,7 @@
   }
 
   var FakeCentral = {
-    name: 'bluetooth::mojom::FakeCentral',
+    name: 'bluetooth.mojom.FakeCentral',
     kVersion: 0,
     ptrClass: FakeCentralPtr,
     proxyClass: FakeCentralProxy,

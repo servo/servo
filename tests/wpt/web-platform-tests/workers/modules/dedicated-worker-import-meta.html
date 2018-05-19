@@ -20,4 +20,19 @@ promise_test(() => {
       .then(msg_event => assert_true(msg_event.data.endsWith(script_url)));
 }, 'Test import.meta.url on the imported module script.');
 
+promise_test(() => {
+  const script_url = 'import-meta-url-worker.js';
+  const worker = new Worker('resources/dynamic-import-given-url-worker.js',
+                            { type: 'module' });
+  worker.postMessage('./' + script_url);
+
+  return new Promise(resolve => worker.onmessage = resolve)
+      .then(msg_event => assert_true(msg_event.data.endsWith(script_url)))
+      .then(() => {
+        worker.postMessage('./' + script_url + '#1');
+        return new Promise(resolve => worker.onmessage = resolve);
+      })
+      .then(msg_event => assert_true(msg_event.data.endsWith(script_url)));
+}, 'Test import.meta.url on the imported module script with a fragment.');
+
 </script>

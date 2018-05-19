@@ -13,25 +13,18 @@
   const SCOPE = '../resources/basic.html';
   const BODY_METHODS = ['arrayBuffer', 'blob', 'formData', 'json', 'text'];
 
-  async function cleanup() {
-    for (const iframe of document.querySelectorAll('.test-iframe')) {
-      iframe.parentNode.removeChild(iframe);
-    }
-
-    const reg = await navigator.serviceWorker.getRegistration(SCOPE);
-    if (reg) await reg.unregister();
-  }
-
-  async function setupRegistration(t) {
-    await cleanup();
-    const reg = await navigator.serviceWorker.register('../resources/sw-intercept.js', { scope: SCOPE });
+  async function setupRegistration(t, scope) {
+    const reg = await navigator.serviceWorker.register('../resources/sw-intercept.js', { scope });
     await wait_for_state(t, reg.installing, 'activated');
+    add_completion_callback(_ => reg.unregister());
     return reg;
   }
 
   promise_test(async t => {
-    await setupRegistration(t);
-    const iframe = await with_iframe(SCOPE);
+    const scope = SCOPE + "?q=aborted-not-intercepted";
+    await setupRegistration(t, scope);
+    const iframe = await with_iframe(scope);
+    add_completion_callback(_ => iframe.remove());
     const w = iframe.contentWindow;
 
     const controller = new w.AbortController();
@@ -56,8 +49,10 @@
 
   for (const bodyMethod of BODY_METHODS) {
     promise_test(async t => {
-      await setupRegistration(t);
-      const iframe = await with_iframe(SCOPE);
+      const scope = SCOPE + "?q=aborted-" + bodyMethod + "-rejects";
+      await setupRegistration(t, scope);
+      const iframe = await with_iframe(scope);
+      add_completion_callback(_ => iframe.remove());
       const w = iframe.contentWindow;
 
       const controller = new w.AbortController();
@@ -82,8 +77,10 @@
   }
 
   promise_test(async t => {
-    await setupRegistration(t);
-    const iframe = await with_iframe(SCOPE);
+    const scope = SCOPE + "?q=aborted-stream-errors";
+    await setupRegistration(t, scope);
+    const iframe = await with_iframe(scope);
+    add_completion_callback(_ => iframe.remove());
     const w = iframe.contentWindow;
 
     const controller = new w.AbortController();

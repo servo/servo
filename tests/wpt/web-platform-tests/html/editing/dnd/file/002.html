@@ -66,8 +66,8 @@ window.onload = function() {
       fails[fails.length] = 'dataTransfer.files['+i0+'].size '+e.dataTransfer.files[i0].size+' instead of '+filesize1;
     }
     /*
-    if( !e.dataTransfer.files[i0].lastModifiedDate ) {
-      fails[fails.length] = 'no dataTransfer.files['+i0+'].lastModifiedDate';
+    if( !e.dataTransfer.files[i0].lastModified ) {
+      fails[fails.length] = 'no dataTransfer.files['+i0+'].lastModified';
     }
     */
     if( e.dataTransfer.files[i0].name != filename1 ) {
@@ -80,8 +80,8 @@ window.onload = function() {
       fails[fails.length] = 'dataTransfer.files['+i1+'].size '+e.dataTransfer.files[i1].size+' instead of '+filesize2;
     }
     /*
-    if( !e.dataTransfer.files[i1].lastModifiedDate ) {
-      fails[fails.length] = 'no dataTransfer.files['+i1+'].lastModifiedDate';
+    if( !e.dataTransfer.files[i1].lastModified ) {
+      fails[fails.length] = 'no dataTransfer.files['+i1+'].lastModified';
     }
     */
     if( e.dataTransfer.files[i1].name != filename2 ) {

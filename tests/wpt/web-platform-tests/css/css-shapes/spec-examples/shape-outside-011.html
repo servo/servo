@@ -30,8 +30,13 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="support/spec-example-utils.js"></script>
+    <script>
+    function checkFloats() {
+      approxShapeTest('test', 'line-', 2, [218, 236, 238, 236, 218, 160]);
+    }
+    </script>
 </head>
-<body>
+<body onload="checkFloats();">
     <p>
         The test passes if the green horizontal bars are to the right of the circle,
         and no bars intersect the circle's shadow. There should be no red.
@@ -46,8 +51,5 @@
         <span id="line-5">XXXXXX</span>
     </div>
     <div id="log"></div>
-    <script>
-        approxShapeTest('test', 'line-', 2, [218, 236, 238, 236, 218, 160]);
-    </script>
 </body>
 </html>

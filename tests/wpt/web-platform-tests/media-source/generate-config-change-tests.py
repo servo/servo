@@ -83,7 +83,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <script src="/w3c/resources/testharnessreport.js"></script>
         <script src="mediasource-util.js"></script>
         <script src="mediasource-config-changes.js"></script>
-        <link rel="stylesheet" href="/w3c/resources/testharness.css">
     </head>
     <body>
         <div id="log"></div>

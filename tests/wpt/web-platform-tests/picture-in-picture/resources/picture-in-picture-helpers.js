@@ -14,6 +14,16 @@ function callWithTrustedClick(callback) {
   });
 }
 
+function loadVideo() {
+  return new Promise(resolve => {
+    let video = document.createElement('video');
+    video.src = '/media/movie_5.ogv';
+    video.onloadedmetadata = () => {
+      resolve(video);
+    };
+  });
+}
+
 // Calls requestPictureInPicture() in a context that's 'allowed to request PiP'.
 function requestPictureInPictureWithTrustedClick(videoElement) {
   return callWithTrustedClick(

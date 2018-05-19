@@ -16,13 +16,22 @@ __wptrunner__ = {"product": "edge",
                  "env_extras": "env_extras",
                  "env_options": "env_options"}
 
+def get_timeout_multiplier(test_type, run_info_data, **kwargs):
+    if kwargs["timeout_multiplier"] is not None:
+        return kwargs["timeout_multiplier"]
+    if test_type == "wdspec":
+        return 10
+    return 1
 
 def check_args(**kwargs):
     require_arg(kwargs, "webdriver_binary")
 
 def browser_kwargs(test_type, run_info_data, **kwargs):
     return {"webdriver_binary": kwargs["webdriver_binary"],
-            "webdriver_args": kwargs.get("webdriver_args")}
+            "webdriver_args": kwargs.get("webdriver_args"),
+            "timeout_multiplier": get_timeout_multiplier(test_type,
+                                                         run_info_data,
+                                                         **kwargs)}
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
@@ -31,6 +40,9 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, **kwargs)
     executor_kwargs["close_after_done"] = True
+    executor_kwargs["timeout_multiplier"] = get_timeout_multiplier(test_type,
+                                                                   run_info_data,
+                                                                   **kwargs)
     executor_kwargs["capabilities"] = dict(DesiredCapabilities.EDGE.items())
     return executor_kwargs
 
@@ -42,14 +54,18 @@ def env_options():
 
 class EdgeBrowser(Browser):
     used_ports = set()
+    init_timeout = 60
 
-    def __init__(self, logger, webdriver_binary, webdriver_args=None):
+    def __init__(self, logger, webdriver_binary, timeout_multiplier=None, webdriver_args=None):
         Browser.__init__(self, logger)
         self.server = EdgeDriverServer(self.logger,
                                        binary=webdriver_binary,
                                        args=webdriver_args)
         self.webdriver_host = "localhost"
         self.webdriver_port = self.server.port
+        if timeout_multiplier:
+            self.init_timeout = self.init_timeout * timeout_multiplier
+
 
     def start(self, **kwargs):
         print self.server.url

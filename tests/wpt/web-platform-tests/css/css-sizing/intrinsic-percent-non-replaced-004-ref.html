@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>Reference</title>
+
+<style>
+  /* establish context */
+  .container {
+    clear: both;
+    padding: 10px;
+    width: 0;
+  }
+
+  span {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: blue;
+  }
+
+  /* visualize size contribution */
+  .container > div {
+    float: left;
+    border: solid orange 20px;
+    border-style: none solid;
+  }
+  .container > div > div {
+    border-right: solid 20px aqua;
+    writing-mode: vertical-rl;
+    width: 40px;
+    height: 20px;
+  }
+
+  /* controls for min-width */
+  /* content = 100% = 80px = 4ch + border */
+  /* choose sizes that are larger than content to see if how they take effect */
+  .container > div > .raw-percent {
+    width: 120px;
+  }
+  .container > div > .calc-percent,
+  .container > div > .no-percent {
+    width: 160px;
+  }
+</style>
+
+<!-- calculating min-content widths -->
+<div class='container'>
+  <div><div class="control"><span></span></div></div>
+</div>
+<div class='container'>
+  <div style='width: 60px;'><div class="raw-percent"><span></span></div></div>
+</div>
+<div class='container'>
+  <div style='width: 60px;'><div class="calc-percent"><span></span></div></div>
+</div>
+<div class='container'>
+  <div><div class="no-percent"><span></span></div></div>
+</div>

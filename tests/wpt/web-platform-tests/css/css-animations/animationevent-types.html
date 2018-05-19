@@ -39,9 +39,11 @@
 
       assert_idl_attribute(evt, "animationName", "animationstart has animationName property");
       assert_idl_attribute(evt, "elapsedTime", "animationstart has elapsedTime property");
+      assert_idl_attribute(evt, "pseudoElement", "animationstart has pseudoElement property");
 
       assert_equals(evt.animationName, "sample", "animationstart has animationName value");
       assert_equals(evt.elapsedTime, 1, "animationstart has elapsedTime value");
+      assert_equals(evt.pseudoElement, "", "animaitonstart has correct pseudoElement value");
 
       t.done();
     }), true);
@@ -53,9 +55,11 @@
 
       assert_idl_attribute(evt, "animationName", "animationend has animationName property");
       assert_idl_attribute(evt, "elapsedTime", "animationend has elapsedTime property");
+      assert_idl_attribute(evt, "pseudoElement", "animationstart has pseudoElement property");
 
       assert_equals(evt.animationName, "sample", "animationend has animationName value");
       assert_equals(evt.elapsedTime, 4, "animationend has elapsedTime value");
+      assert_equals(evt.pseudoElement, "", "animaitonstart has correct pseudoElement value");
 
       t.done();
     }), true);
@@ -67,9 +71,11 @@
 
       assert_idl_attribute(evt, "animationName", "animationiteration has animationName property");
       assert_idl_attribute(evt, "elapsedTime", "animationiteration has elapsedTime property");
+      assert_idl_attribute(evt, "pseudoElement", "animationstart has pseudoElement property");
 
       assert_equals(evt.animationName, "sample", "animationiteration has animationName value");
       assert_equals(evt.elapsedTime, 2, "animationiteration has elapsedTime value");
+      assert_equals(evt.pseudoElement, "", "animaitonstart has correct pseudoElement value");
 
       t.done();
     }), true);

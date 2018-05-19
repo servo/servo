@@ -39,12 +39,12 @@
         1.  Gather the stats indicated by selector according to the stats selection algorithm.
         2.  Resolve p with the resulting RTCStatsReport object, containing the gathered stats.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     return pc.getStats();
   }, 'getStats() with no argument should succeed');
 
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     return pc.getStats(null);
   }, 'getStats(null) should succeed');
@@ -160,7 +160,7 @@
         - All stats objects referenced directly or indirectly by the RTCOutboundRTPStreamStats
           objects added.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
@@ -183,7 +183,7 @@
         - All stats objects referenced directly or indirectly by the RTCInboundRTPStreamStats
           added.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('audio');
 

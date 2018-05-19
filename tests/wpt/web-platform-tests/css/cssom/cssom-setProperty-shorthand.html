@@ -42,8 +42,8 @@
 
             element = document.createElement('span');
 
-            function canSetProperty(propertyName) {
-                element.style.setProperty(propertyName, 'initial');
+            function canSetProperty(propertyName, priority) {
+                element.style.setProperty(propertyName, 'initial', priority);
                 return element.style.getPropertyValue(propertyName) == 'initial';
             }
 
@@ -56,12 +56,20 @@
                 var propertyName = shorthandProperties[i];
 
                 test(function(){
-                    assert_true(canSetProperty(propertyName), 'can setPropertyValue with shorthand');
+                    assert_true(canSetProperty(propertyName, ''), 'can setPropertyValue with shorthand');
                 }, 'shorthand ' + propertyName + ' can be set with setProperty');
 
                 test(function(){
                     assert_true(canRemoveProperty(propertyName), 'can setPropertyValue with shorthand');
                 }, 'shorthand ' + propertyName + ' can be removed with removeProperty');
+
+                test(function(){
+                    assert_true(canSetProperty(propertyName, 'important'), 'can setPropertyValue with shorthand');
+                }, 'shorthand ' + propertyName + ' can be set with setProperty and priority !important');
+
+                test(function(){
+                    assert_true(canRemoveProperty(propertyName), 'can setPropertyValue with shorthand');
+                }, 'shorthand ' + propertyName + ' can be removed with removeProperty even when set with !important');
 
             }
         </script>

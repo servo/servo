@@ -27,7 +27,7 @@
                 });
             });
 
-            xhr.open("POST", "http://nonexistent-origin.{{host}}:{{ports[http][0]}}", true);
+            xhr.open("POST", "http://nonexistent.{{host}}:{{ports[http][0]}}", true);
             xhr.send("Test Message");
         });
     </script>
