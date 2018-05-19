@@ -386,49 +386,6 @@ class MachCommands(CommandBase):
         print("Build %s in %s" % ("Completed" if status == 0 else "FAILED", format_duration(elapsed)))
         return status
 
-    @Command('build-geckolib',
-             description='Build a static library of components used by Gecko',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    def build_geckolib(self, jobs=None, verbose=False, release=False):
-        self.set_use_geckolib_toolchain()
-        self.ensure_bootstrapped()
-        self.ensure_clobbered()
-
-        env = self.build_env(is_build=True, geckolib=True)
-
-        ret = None
-        opts = ["-p", "geckoservo"]
-        features = []
-
-        if jobs is not None:
-            opts += ["-j", jobs]
-        if verbose:
-            opts += ["-v"]
-        if release:
-            opts += ["--release"]
-        if features:
-            opts += ["--features", ' '.join(features)]
-
-        build_start = time()
-        ret = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
-        elapsed = time() - build_start
-
-        # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(self.config, elapsed)
-
-        print("GeckoLib build completed in %s" % format_duration(elapsed))
-
-        return ret
-
     @Command('clean',
              description='Clean the build directory.',
              category='build')

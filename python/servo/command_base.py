@@ -285,27 +285,10 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-        self.set_use_geckolib_toolchain(False)
-
-    _use_geckolib_toolchain = False
-    _geckolib_toolchain = None
     _default_toolchain = None
 
-    def set_use_geckolib_toolchain(self, use_geckolib_toolchain=True):
-        self._use_geckolib_toolchain = use_geckolib_toolchain
-
     def toolchain(self):
-        if self._use_geckolib_toolchain:
-            return self.geckolib_toolchain()
-        else:
-            return self.default_toolchain()
-
-    def geckolib_toolchain(self):
-        if self._geckolib_toolchain is None:
-            filename = path.join(self.context.topdir, "geckolib-rust-toolchain")
-            with open(filename) as f:
-                self._geckolib_toolchain = f.read().strip()
-        return self._geckolib_toolchain
+        return self.default_toolchain()
 
     def default_toolchain(self):
         if self._default_toolchain is None:
@@ -474,7 +457,7 @@ class CommandBase(object):
             bin_folder = path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
         return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False, test_unit=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -593,10 +576,7 @@ class CommandBase(object):
 
         env['GIT_INFO'] = '-'.join(git_info)
 
-        if geckolib:
-            geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
-            env["CARGO_TARGET_DIR"] = geckolib_build_path
-        elif self.config["build"]["thinlto"]:
+        if self.config["build"]["thinlto"]:
             env['RUSTFLAGS'] += " -Z thinlto"
 
         return env
@@ -606,9 +586,6 @@ class CommandBase(object):
 
     def servo_manifest(self):
         return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
-
-    def geckolib_manifest(self):
-        return path.join(self.context.topdir, "ports", "geckolib", "Cargo.toml")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""

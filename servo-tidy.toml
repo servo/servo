@@ -55,11 +55,6 @@ files = [
   "./components/style/properties/helpers/animated_properties.mako.rs",
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
-  # Generated and upstream code combined with our own. Could use cleanup
-  "./components/style/gecko/generated/bindings.rs",
-  "./components/style/gecko/generated/pseudo_element_definition.rs",
-  "./components/style/gecko/generated/structs.rs",
-  "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./support/android/openssl.sh",

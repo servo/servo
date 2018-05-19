@@ -295,28 +295,6 @@ class MachCommands(CommandBase):
             if err is not 0:
                 return err
 
-    @Command('test-stylo',
-             description='Run stylo unit tests',
-             category='testing')
-    @CommandArgument('test_name', nargs=argparse.REMAINDER,
-                     help="Only run tests that match this pattern or file path")
-    @CommandArgument('--release', default=False, action="store_true",
-                     help="Run with a release build of servo")
-    def test_stylo(self, release=False, test_name=None):
-        self.set_use_geckolib_toolchain()
-        self.ensure_bootstrapped()
-
-        env = self.build_env()
-        env["RUST_BACKTRACE"] = "1"
-        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
-
-        args = (
-            ["cargo", "test", "--manifest-path", self.geckolib_manifest(), "-p", "stylo_tests"] +
-            (["--release"] if release else []) +
-            (test_name or [])
-        )
-        return self.call_rustup_run(args, env=env)
-
     @Command('test-content',
              description='Run the content tests',
              category='testing')
