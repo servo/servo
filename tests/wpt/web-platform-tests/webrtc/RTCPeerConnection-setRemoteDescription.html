@@ -11,11 +11,8 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   generateOffer()
-  //   generateAnswer()
   //   assert_session_desc_not_equals()
   //   assert_session_desc_equals()
-  //   test_state_change_event()
 
   /*
     4.3.2.  Interface Definition
@@ -48,76 +45,101 @@
   /*
     4.6.1.  enum RTCSdpType
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     // SDP is validated after WebIDL validation
-    return promise_rejects(t, new TypeError(),
-      pc.setRemoteDescription({
-        type: 'bogus',
-        sdp: 'bogus'
-      }));
+    try {
+      await pc.setRemoteDescription({ type: 'bogus', sdp: 'bogus' });
+      t.unreached_func("Should have rejected.");
+    } catch (e) {
+      assert_throws(new TypeError(), () => { throw e });
+    }
   }, 'setRemoteDescription with invalid type and invalid SDP should reject with TypeError');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     // SDP is validated after validating type
-    return promise_rejects(t, 'InvalidStateError',
-      pc.setRemoteDescription({
-        type: 'answer',
-        sdp: 'invalid'
-      }));
+    try {
+      await pc.setRemoteDescription({ type: 'answer', sdp: 'invalid' });
+      t.unreached_func("Should have rejected.");
+    } catch (e) {
+      assert_throws('InvalidStateError', () => { throw e });
+    }
   }, 'setRemoteDescription() with invalid SDP and stable state should reject with InvalidStateError');
+
+  /* Dedicated signalingstate events test. */
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    t.add_cleanup(() => pc2.close());
+
+    let eventCount = 0;
+    const states = [
+      'stable', 'have-local-offer', 'stable', 'have-remote-offer', 'closed'
+    ];
+    pc.onsignalingstatechange = () =>
+        assert_equals(pc.signalingState, states[++eventCount]);
+
+    const assert_state = state => {
+      assert_equals(state, pc.signalingState);
+      assert_equals(state, states[eventCount]);
+    };
+
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    assert_state('stable');
+    await pc.setLocalDescription(offer);
+    assert_state('have-local-offer');
+    await pc2.setRemoteDescription(offer);
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc.setRemoteDescription(pc2.localDescription);
+    assert_state('stable');
+    await pc.setRemoteDescription(await pc2.createOffer());
+    assert_state('have-remote-offer');
+    pc.close();
+    assert_state('closed');
+  }, 'Negotiation should fire signalingsstate events');
 
   /* Operations after returning to stable state */
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    t.add_cleanup(() => pc2.close());
 
-    test_state_change_event(t, pc,
-      ['have-remote-offer', 'stable', 'have-remote-offer']);
-
-    return pc2.createOffer({ offerToReceiveAudio: true })
-    .then(offer1 =>
-      pc.setRemoteDescription(offer1)
-      .then(() => pc.createAnswer())
-      .then(answer => pc.setLocalDescription(answer))
-      .then(() => pc2.createOffer({ offerToReceiveVideo: true }))
-      .then(offer2 => {
-        return pc.setRemoteDescription(offer2)
-        .then(() => {
-          assert_equals(pc.signalingState, 'have-remote-offer');
-          assert_session_desc_not_equals(offer1, offer2);
-          assert_session_desc_equals(pc.remoteDescription, offer2);
-          assert_session_desc_equals(pc.currentRemoteDescription, offer1);
-          assert_session_desc_equals(pc.pendingRemoteDescription, offer2);
-        });
-      }));
+    const offer1 = await pc2.createOffer({ offerToReceiveAudio: true });
+    await pc.setRemoteDescription(offer1);
+    await pc.setLocalDescription(await pc.createAnswer());
+    const offer2 = await pc2.createOffer({ offerToReceiveVideo: true });
+    await pc.setRemoteDescription(offer2);
+    assert_session_desc_not_equals(offer1, offer2);
+    assert_session_desc_equals(pc.remoteDescription, offer2);
+    assert_session_desc_equals(pc.currentRemoteDescription, offer1);
+    assert_session_desc_equals(pc.pendingRemoteDescription, offer2);
   }, 'Calling setRemoteDescription() again after one round of remote-offer/local-answer should succeed');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    t.add_cleanup(() => pc2.close());
 
-    test_state_change_event(t, pc,
-       ['have-local-offer', 'stable', 'have-remote-offer']);
-
-    return pc.createOffer({ offerToReceiveAudio: true })
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(answer =>
-      pc.setRemoteDescription(answer)
-      .then(() => generateOffer({ pc, data: true }))
-      .then(offer =>
-        pc.setRemoteDescription(offer)
-        .then(() => {
-          assert_equals(pc.signalingState, 'have-remote-offer');
-          assert_session_desc_equals(pc.remoteDescription, offer);
-          assert_session_desc_equals(pc.currentRemoteDescription, answer);
-          assert_session_desc_equals(pc.pendingRemoteDescription, offer);
-        })));
+    const offer = await pc.createOffer({ offerToReceiveAudio: true });
+    await pc.setLocalDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc.setRemoteDescription(answer);
+    await pc.setRemoteDescription(await pc2.createOffer());
+    assert_equals(pc.remoteDescription.sdp, pc.pendingRemoteDescription.sdp);
+    assert_session_desc_equals(pc.remoteDescription, offer);
+    assert_session_desc_equals(pc.currentRemoteDescription, answer);
   }, 'Switching role from offerer to answerer after going back to stable state should succeed');
 
   /*

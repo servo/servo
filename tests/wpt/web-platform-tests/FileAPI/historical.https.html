@@ -53,9 +53,13 @@
         assert_false('isClosed' in Blob.prototype, 'isClosed in Blob.prototype');
     }, 'Blob.close() should not be supported');
 
-    // Only add service worker test if service workers are actually supported.
-    if (navigator.serviceWorker)
-      service_worker_test('support/historical-serviceworker.js', 'Service worker test setup');
+    test(() => {
+      const f = new File([], "");
+      assert_false("lastModifiedDate" in f);
+      assert_false("lastModifiedDate" in File.prototype);
+    }, "File's lastModifiedDate should not be supported");
+
+    service_worker_test('support/historical-serviceworker.js', 'Service worker test setup');
   </script>
  </body>
 </html>

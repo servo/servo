@@ -69,6 +69,11 @@
   }, "animationEventInit argument is empty dictionary");
 
   test(function() {
+    var event = new AnimationEvent("test", {pseudoElement: "::testPseudo"});
+    assert_equals(event.pseudoElement, "::testPseudo");
+  }, "AnimationEvent.pseudoElement initialized from the dictionary");
+
+  test(function() {
     var event = new AnimationEvent("test", {animationName: "sample"});
     assert_equals(event.animationName, "sample");
   }, "animationName set to 'sample'");

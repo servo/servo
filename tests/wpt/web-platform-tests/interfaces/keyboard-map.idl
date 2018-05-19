@@ -1,0 +1,11 @@
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute Keyboard keyboard;
+};
+
+interface KeyboardLayoutMap {
+  readonly maplike<DOMString, DOMString>;
+};
+
+[SecureContext, Exposed=Window] interface Keyboard {
+  Promise<KeyboardLayoutMap> getLayoutMap();
+};

@@ -65,7 +65,7 @@ test(() => {
   const reader = stream.getReader();
   assert_false(response.bodyUsed, "After getting a reader");
 
-  reader.read();
+  reader.read().then(() => { }, () => { });
   assert_true(response.bodyUsed, "After calling stream.read()");
 }, "An errored stream on which read() has been called");
 
@@ -81,7 +81,7 @@ test(() => {
   const reader = stream.getReader();
   assert_false(response.bodyUsed, "After getting a reader");
 
-  reader.cancel();
+  reader.cancel().then(() => { }, () => { });
   assert_true(response.bodyUsed, "After calling stream.cancel()");
 }, "An errored stream on which cancel() has been called");
 

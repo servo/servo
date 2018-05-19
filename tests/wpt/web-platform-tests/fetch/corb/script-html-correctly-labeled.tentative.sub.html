@@ -26,5 +26,5 @@ async_test(function(t) {
   // www1 is cross-origin, so the HTTP response is CORB-eligible.
   script.src = 'http://{{domains[www1]}}:{{ports[http][0]}}/fetch/corb/resources/html-correctly-labeled.html';
   document.body.appendChild(script)
-});
+}, "CORB-blocked script has no syntax errors");
 </script>

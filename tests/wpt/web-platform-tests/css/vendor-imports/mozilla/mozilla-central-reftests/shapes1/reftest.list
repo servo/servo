@@ -60,6 +60,7 @@
 == shape-outside-circle-053.html shape-outside-circle-053-ref.html
 == shape-outside-circle-054.html shape-outside-circle-054-ref.html
 == shape-outside-circle-055.html shape-outside-circle-055-ref.html
+== shape-outside-circle-056.html shape-outside-circle-056-ref.html
 
 # Basic shape: ellipse()
 == shape-outside-ellipse-032.html shape-outside-ellipse-032-ref.html
@@ -82,6 +83,7 @@
 == shape-outside-ellipse-049.html shape-outside-ellipse-049-ref.html
 == shape-outside-ellipse-050.html shape-outside-ellipse-050-ref.html
 == shape-outside-ellipse-051.html shape-outside-ellipse-051-ref.html
+== shape-outside-ellipse-052.html shape-outside-ellipse-052-ref.html
 
 # Basic shape: inset()
 == shape-outside-inset-016.html shape-outside-inset-016-ref.html
@@ -112,3 +114,4 @@
 == shape-outside-polygon-029.html shape-outside-polygon-027-ref.html
 == shape-outside-polygon-030.html shape-outside-polygon-030-ref.html
 == shape-outside-polygon-031.html shape-outside-polygon-031-ref.html
+== shape-outside-polygon-032.html shape-outside-polygon-032-ref.html

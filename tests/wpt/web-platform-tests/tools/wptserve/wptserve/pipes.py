@@ -1,4 +1,5 @@
 from cgi import escape
+from collections import deque
 import gzip as gzip_module
 import hashlib
 import os
@@ -420,17 +421,18 @@ def template(request, content, escape_type="html"):
         content, = match.groups()
 
         tokens = tokenizer.tokenize(content)
+        tokens = deque(tokens)
 
-        if tokens[0][0] == "var":
-            variable = tokens[0][1]
-            tokens = tokens[1:]
+        token_type, field = tokens.popleft()
+
+        if token_type == "var":
+            variable = field
+            token_type, field = tokens.popleft()
         else:
             variable = None
 
-        assert tokens[0][0] == "ident", tokens
-        assert all(item[0] in ("index", "arguments") for item in tokens[1:]), tokens
-
-        field = tokens[0][1]
+        if token_type != "ident":
+            raise Exception("unexpected token type %s (token '%r'), expected ident" % (token_type, field))
 
         if field in variables:
             value = variables[field]
@@ -440,16 +442,14 @@ def template(request, content, escape_type="html"):
             value = request.headers
         elif field == "GET":
             value = FirstWrapper(request.GET)
+        elif field == "hosts":
+            value = request.server.config.all_domains
         elif field == "domains":
-            if ('not_domains' in request.server.config and
-                    tokens[1][1] in request.server.config['not_domains']):
-                value = request.server.config['not_domains']
-            else:
-                value = request.server.config['domains']
+            value = request.server.config.all_domains[""]
         elif field == "host":
             value = request.server.config["browser_host"]
         elif field in request.server.config:
-            value = request.server.config[tokens[0][1]]
+            value = request.server.config[field]
         elif field == "location":
             value = {"server": "%s://%s:%s" % (request.url_parts.scheme,
                                                request.url_parts.hostname,
@@ -467,11 +467,16 @@ def template(request, content, escape_type="html"):
         else:
             raise Exception("Undefined template variable %s" % field)
 
-        for item in tokens[1:]:
-            if item[0] == "index":
-                value = value[item[1]]
+        while tokens:
+            ttype, field = tokens.popleft()
+            if ttype == "index":
+                value = value[field]
+            elif ttype == "arguments":
+                value = value(request, *field)
             else:
-                value = value(request, *item[1])
+                raise Exception(
+                    "unexpected token type %s (token '%r'), expected ident or arguments" % (ttype, field)
+                )
 
         assert isinstance(value, (int,) + types.StringTypes), tokens
 

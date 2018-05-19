@@ -39,7 +39,7 @@
             xhr.upload.onloadend   = test.step_func(e => { actual.push("upload." + e.type); })
             xhr.upload.onerror     = test.step_func(e => { actual.push("upload." + e.type); })
 
-            xhr.open("POST", "http://nonexistent-origin.{{host}}:{{ports[http][0]}}", true);
+            xhr.open("POST", "http://nonexistent.{{host}}:{{ports[http][0]}}", true);
             xhr.send("Test Message");
         });
     </script>

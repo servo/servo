@@ -3,12 +3,12 @@
 <title>CSS Color 4: Specifying Lab and LCH</title>
 <link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
 <link rel="help" href="https://drafts.csswg.org/css-color-4/#specifying-lab-lch">
-<link rel="match" href="blacktext-ref.html">
+<link rel="match" href="lab-005-ref.html">
 <meta name="assert" content="lch() with no alpha, negative a axis">
 <style>
     .test { color: red; }
-    .test { color: lab(70 45 180)}
-    .match { color: rgb(10.79%, 75.55%, 66.40%)} /* lch(70,45,180) converted to sRGB */
+    .test { color: lch(70 45 -180)}
+    .match { color: rgb(10.79%, 75.55%, 66.40%)} /* lch(70 45 180) converted to sRGB */
 </style>
 <body>
     <p>Test passes if the two lines of filler text are the same color.</p>
