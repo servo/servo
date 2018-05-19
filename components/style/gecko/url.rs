@@ -12,10 +12,13 @@ use gecko_bindings::structs::root::{RustString, nsStyleImageRequest};
 use gecko_bindings::structs::root::mozilla::css::{ImageValue, URLValue};
 use gecko_bindings::sugar::refptr::RefPtr;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use nsstring::nsCString;
 use parser::{Parse, ParserContext};
 use servo_arc::{Arc, RawOffsetArc};
+use std::fmt::{self, Write};
 use std::mem;
-use style_traits::ParseError;
+use style_traits::{CssWriter, ParseError, ToCss};
+use values::computed::{Context, ToComputedValue};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
@@ -70,10 +73,8 @@ impl CssUrl {
         self.as_str().chars().next().map_or(false, |c| c == '#')
     }
 
-    /// Return the resolved url as string, or the empty string if it's invalid.
-    ///
-    /// FIXME(bholley): This returns the unresolved URL while the servo version
-    /// returns the resolved URL.
+    /// Return the unresolved url as string, or the empty string if it's
+    /// invalid.
     pub fn as_str(&self) -> &str {
         &*self.serialization
     }
@@ -121,7 +122,7 @@ impl MallocSizeOf for CssUrl {
 }
 
 /// A specified url() value for general usage.
-#[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToCss)]
 pub struct SpecifiedUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -139,14 +140,10 @@ impl SpecifiedUrl {
             debug_assert!(!ptr.is_null());
             RefPtr::from_addrefed(ptr)
         };
-        SpecifiedUrl { url, url_value }
-    }
-
-    /// Convert from URLValueData to SpecifiedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
-        CssUrl::from_url_value_data(url).map(Self::from_css_url)
+        Self { url, url_value }
     }
 }
+
 
 impl PartialEq for SpecifiedUrl {
     fn eq(&self, other: &Self) -> bool {
@@ -179,7 +176,7 @@ impl MallocSizeOf for SpecifiedUrl {
 /// A specified url() value for image.
 ///
 /// This exists so that we can construct `ImageValue` and reuse it.
-#[derive(Clone, Debug, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, SpecifiedValueInfo, ToCss)]
 pub struct SpecifiedImageUrl {
     /// The specified url value.
     pub url: CssUrl,
@@ -190,16 +187,6 @@ pub struct SpecifiedImageUrl {
 }
 
 impl SpecifiedImageUrl {
-    fn from_css_url(url: CssUrl) -> Self {
-        let image_value = unsafe {
-            let ptr = bindings::Gecko_ImageValue_Create(url.for_ffi());
-            // We do not expect Gecko_ImageValue_Create returns null.
-            debug_assert!(!ptr.is_null());
-            RefPtr::from_addrefed(ptr)
-        };
-        SpecifiedImageUrl { url, image_value }
-    }
-
     /// Parse a URL from a string value. See SpecifiedUrl::parse_from_string.
     pub fn parse_from_string<'a>(
         url: String,
@@ -208,20 +195,14 @@ impl SpecifiedImageUrl {
         CssUrl::parse_from_string(url, context).map(Self::from_css_url)
     }
 
-    /// Convert from URLValueData to SpecifiedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
-        CssUrl::from_url_value_data(url).map(Self::from_css_url)
-    }
-
-    /// Convert from nsStyleImageRequest to SpecifiedUrl.
-    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<Self, ()> {
-        if image_request.mImageValue.mRawPtr.is_null() {
-            return Err(());
-        }
-
-        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
-        let url_value_data = &image_value._base;
-        Self::from_url_value_data(url_value_data)
+    fn from_css_url(url: CssUrl) -> Self {
+        let image_value = unsafe {
+            let ptr = bindings::Gecko_ImageValue_Create(url.for_ffi());
+            // We do not expect Gecko_ImageValue_Create returns null.
+            debug_assert!(!ptr.is_null());
+            RefPtr::from_addrefed(ptr)
+        };
+        Self { url, image_value }
     }
 }
 
@@ -253,7 +234,104 @@ impl MallocSizeOf for SpecifiedImageUrl {
     }
 }
 
+impl ToComputedValue for SpecifiedUrl {
+    type ComputedValue = ComputedUrl;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        ComputedUrl(self.clone())
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        computed.0.clone()
+    }
+}
+
+impl ToComputedValue for SpecifiedImageUrl {
+    type ComputedValue = ComputedImageUrl;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+        ComputedImageUrl(self.clone())
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        computed.0.clone()
+    }
+}
+
+fn serialize_computed_url<W>(
+    url_value_data: &URLValueData,
+    dest: &mut CssWriter<W>,
+) -> fmt::Result
+where
+    W: Write,
+{
+    dest.write_str("url(")?;
+    unsafe {
+        let mut string = nsCString::new();
+        bindings::Gecko_GetComputedURLSpec(url_value_data, &mut string);
+        string.as_str_unchecked().to_css(dest)?;
+    }
+    dest.write_char(')')
+}
+
 /// The computed value of a CSS `url()`.
-pub type ComputedUrl = SpecifiedUrl;
+///
+/// The only difference between specified and computed URLs is the
+/// serialization.
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+pub struct ComputedUrl(pub SpecifiedUrl);
+
+impl ToCss for ComputedUrl {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write
+    {
+        serialize_computed_url(&self.0.url_value._base, dest)
+    }
+}
+
+impl ComputedUrl {
+    /// Convert from URLValueData to ComputedUrl.
+    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+        Ok(ComputedUrl(
+            SpecifiedUrl::from_css_url(CssUrl::from_url_value_data(url)?)
+        ))
+    }
+}
+
 /// The computed value of a CSS `url()` for image.
-pub type ComputedImageUrl = SpecifiedImageUrl;
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
+pub struct ComputedImageUrl(pub SpecifiedImageUrl);
+
+impl ToCss for ComputedImageUrl {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write
+    {
+        serialize_computed_url(&self.0.image_value._base, dest)
+    }
+}
+
+impl ComputedImageUrl {
+    /// Convert from URLValueData to SpecifiedUrl.
+    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+        Ok(ComputedImageUrl(
+            SpecifiedImageUrl::from_css_url(CssUrl::from_url_value_data(url)?)
+        ))
+    }
+
+    /// Convert from nsStyleImageReques to ComputedImageUrl.
+    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<Self, ()> {
+        if image_request.mImageValue.mRawPtr.is_null() {
+            return Err(());
+        }
+
+        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
+        let url_value_data = &image_value._base;
+        Self::from_url_value_data(url_value_data)
+    }
+}

@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
+<% data.new_style_struct("InheritedUI", inherited=True, gecko_name="UserInterface") %>
 
 ${helpers.predefined_type("cursor",
                           "Cursor",
@@ -44,7 +44,7 @@ ${helpers.single_keyword("-moz-user-focus",
 ${helpers.predefined_type(
     "caret-color",
     "CaretColor",
-    "generics::pointing::CaretColor::Auto",
+    "generics::ui::CaretColor::Auto",
     spec="https://drafts.csswg.org/css-ui/#caret-color",
     animation_value_type="AnimatedCaretColor",
     ignored_when_colors_disabled=True,

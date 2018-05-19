@@ -56,6 +56,7 @@ pub use self::inherited_box::{ImageOrientation, Orientation};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
+pub use self::resolution::Resolution;
 pub use super::{Auto, Either, None_};
 pub use super::specified::{BorderStyle, TextDecorationLine};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage};
@@ -67,9 +68,6 @@ pub use self::list::Quotes;
 pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
 pub use self::percentage::{Percentage, NonNegativePercentage};
-pub use self::pointing::{CaretColor, Cursor};
-#[cfg(feature = "gecko")]
-pub use self::pointing::CursorImage;
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, ZIndex};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
 pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
@@ -80,7 +78,9 @@ pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle, TextOve
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform, TransformOperation};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
-pub use self::ui::MozForceBrokenImageIcon;
+pub use self::ui::{CaretColor, Cursor, MozForceBrokenImageIcon};
+#[cfg(feature = "gecko")]
+pub use self::ui::CursorImage;
 
 #[cfg(feature = "gecko")]
 pub mod align;
@@ -104,9 +104,9 @@ pub mod length;
 pub mod list;
 pub mod outline;
 pub mod percentage;
-pub mod pointing;
 pub mod position;
 pub mod rect;
+pub mod resolution;
 pub mod svg;
 pub mod table;
 pub mod text;

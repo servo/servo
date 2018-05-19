@@ -4,7 +4,7 @@
 
 import re
 
-PHYSICAL_SIDES = ["top", "left", "bottom", "right"]
+PHYSICAL_SIDES = ["top", "right", "bottom", "left"]
 LOGICAL_SIDES = ["block-start", "block-end", "inline-start", "inline-end"]
 PHYSICAL_SIZES = ["width", "height"]
 LOGICAL_SIZES = ["block-size", "inline-size"]

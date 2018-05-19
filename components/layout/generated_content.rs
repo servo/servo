@@ -20,7 +20,7 @@ use style::computed_values::list_style_type::T as ListStyleType;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::counters::ContentItem;
+use style::values::generics::counters::ContentItem;
 use text::TextRunScanner;
 use traversal::InorderFlowTraversal;
 
@@ -239,6 +239,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                     if self.traversal.quote >= 1 {
                         self.traversal.quote -= 1
                     }
+                }
+                GeneratedContentInfo::ContentItem(ContentItem::Url(..)) => {
+                    unreachable!("Servo doesn't parse content: url(..) yet")
                 }
             }
         };

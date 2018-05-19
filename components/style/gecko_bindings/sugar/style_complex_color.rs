@@ -7,7 +7,7 @@
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::{nscolor, StyleComplexColor};
 use values::computed::Color as ComputedColor;
-use values::generics::pointing::CaretColor;
+use values::generics::ui::CaretColor;
 
 impl From<nscolor> for StyleComplexColor {
     fn from(other: nscolor) -> Self {

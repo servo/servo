@@ -759,7 +759,7 @@
 
 <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function,
                                  needs_context=True, allow_quirks=False, **kwargs)">
-    <% sub_properties=' '.join(sub_property_pattern % side for side in ['top', 'right', 'bottom', 'left']) %>
+    <% sub_properties=' '.join(sub_property_pattern % side for side in PHYSICAL_SIDES) %>
     <%call expr="self.shorthand(name, sub_properties=sub_properties, **kwargs)">
         #[allow(unused_imports)]
         use parser::Parse;

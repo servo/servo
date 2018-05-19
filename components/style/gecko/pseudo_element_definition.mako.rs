@@ -216,11 +216,7 @@ impl PseudoElement {
         None
     }
 
-    /// Constructs an atom from a string of text, and whether we're in a
-    /// user-agent stylesheet.
-    ///
-    /// If we're not in a user-agent stylesheet, we will never parse anonymous
-    /// box pseudo-elements.
+    /// Constructs a pseudo-element from a string of text.
     ///
     /// Returns `None` if the pseudo-element is not recognised.
     #[inline]
@@ -234,6 +230,10 @@ impl PseudoElement {
                 return Some(${pseudo_element_variant(pseudo)})
             }
             % endfor
+            // Alias "-moz-selection" to "selection" at parse time.
+            "-moz-selection" => {
+                return Some(PseudoElement::Selection);
+            }
             _ => {
                 // FIXME: -moz-tree check should probably be
                 // ascii-case-insensitive.
