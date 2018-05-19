@@ -8,7 +8,7 @@ metadata:
   source: '{{ event.head.repo.url }}'
 tasks:
   - provisionerId: '{{ taskcluster.docker.provisionerId }}'
-    workerType: '{{ taskcluster.docker.workerType }}'
+    workerType: 'servo-docker-worker'
     extra:
       github:
         events:
