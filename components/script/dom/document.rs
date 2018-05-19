@@ -10,8 +10,10 @@ use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
+use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -95,7 +97,7 @@ use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -108,7 +110,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
-use profile_traits::ipc;
+use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
@@ -1665,7 +1667,15 @@ impl Document {
         // Step 7
         self.salvageable.set(!has_listeners);
         let mut can_unload = true;
-        // TODO: Step 8 send a message to embedder to prompt user.
+        // TODO: Step 8, also check sandboxing modals flag.
+        let default_prevented = event.DefaultPrevented();
+        let return_value_not_empty = !event.downcast::<BeforeUnloadEvent>().unwrap().ReturnValue().is_empty();
+        if default_prevented || return_value_not_empty {
+            let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
+            let msg = EmbedderMsg::AllowUnload(chan);
+            self.send_to_embedder(msg);
+            can_unload = port.recv().unwrap();
+        }
         // Step 9
         if !recursive_flag {
             for iframe in self.iter_iframes() {
@@ -3638,7 +3648,7 @@ impl DocumentMethods for Document {
         }
 
         let url = self.url();
-        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (tx, rx) = profile_ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let _ = self.window
             .upcast::<GlobalScope>()
             .resource_threads()

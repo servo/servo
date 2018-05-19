@@ -265,6 +265,13 @@ impl Browser {
                         self.event_queue.push(WindowEvent::SendError(browser_id, reason));
                     }
                 }
+                EmbedderMsg::AllowUnload(sender) => {
+                    // Always allow unload for now.
+                    if let Err(e) = sender.send(true) {
+                        let reason = format!("Failed to send AllowUnload response: {}", e);
+                        self.event_queue.push(WindowEvent::SendError(browser_id, reason));
+                    }
+                }
                 EmbedderMsg::AllowNavigation(_url, response_chan) => {
                     if let Err(e) = response_chan.send(true) {
                         warn!("Failed to send allow_navigation() response: {}", e);
