@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+'use strict';
+
+promise_test(() => {
+  let iframe = document.createElement('iframe');
+  iframe.src = 'resources/iframe-lock-helper.html';
+  iframe.onload = () => {
+    iframe.contentWindow.postMessage('Ready', '*');
+  }
+
+  document.body.appendChild(iframe);
+
+  return new Promise((resolve,reject) => {
+    window.onmessage = message => {
+      if (message.data == 'Success') {
+        resolve();
+      } else if (message.data == 'Failure') {
+        reject();
+      }
+    }
+  });
+}, '[Keyboard Lock] navigator.keyboard.lock blocked from within iframe');
+
+</script>

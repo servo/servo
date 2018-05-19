@@ -49,7 +49,7 @@ function setup_activation_test(t, scope, worker_url) {
         return wait_for_state(t, registration.installing, 'installed');
       })
     .then(() => {
-        return wait_for_activation_on_dummy_scope(t);
+        return wait_for_activation_on_dummy_scope(t, self);
       })
     .then(() => {
         assert_not_equals(registration.waiting, null);
@@ -69,7 +69,7 @@ promise_test(t => {
           iframe = result.iframe;
           // Finish the in-flight request.
           registration.active.postMessage('go');
-          return wait_for_activation_on_dummy_scope(t);
+          return wait_for_activation_on_dummy_scope(t, self);
         })
       .then(() => {
           // The new worker is still waiting. Remove the frame and it should

@@ -9,8 +9,9 @@
 is greater than the aspect value of font">
 <style>
   div {
-    font-family: Ahem;
-    font-size: 40px;
+    position: absolute;
+    font: 40px/40px Ahem;
+    color: orange;
   }
   #test {
     color: blue;
@@ -18,7 +19,7 @@ is greater than the aspect value of font">
   }
 </style>
 <body>
-  <p>Test passes if the size of blue rectangle is greater than the black rectangle.</p>
-  <div>FillerText</div>
+  <p>Test passes if the size of the blue rectangle is greater than the orange rectangle.</p>
   <div id="test">FillerText</div>
+  <div>FillerText</div>
 </body>

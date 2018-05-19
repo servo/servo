@@ -22,17 +22,12 @@ test(() => {
   xhr.open("GET", url + "&command=header", false);
   xhr.setRequestHeader("x-test", "foo");
 
-  try {
-    xhr.send();
-  } catch(e) {
-    xhr = new XMLHttpRequest;
-    xhr.open("GET", url + "&command=complete", false);
-    xhr.send();
-    assert_equals(xhr.responseText, "Request successfully blocked.");
-    return;
-  }
+  assert_throws("NetworkError", () => xhr.send());
 
-  assert_unreached("Cross-domain access with custom header allowed without throwing exception");
+  xhr = new XMLHttpRequest;
+  xhr.open("GET", url + "&command=complete", false);
+  xhr.send();
+  assert_equals(xhr.responseText, "Request successfully blocked.");
 }, "Sync request denied at preflight");
     </script>
   </body>

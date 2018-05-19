@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events pointer lock tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="/external/wpt/pointerevents/pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+        </style>
+        <script>
+            var lock_change_count = 0;
+            var mouseeventMovements = []
+            var pointereventMovements = []
+
+            function resetTestState() {
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent movementX/Y when lock test", ['mouse']);
+                var div1 = document.getElementById("target");
+
+                on_event(div1, 'pointerdown', function(event) {
+                    if (lock_change_count == 0)
+                       div1.requestPointerLock();
+                });
+                on_event(div1, 'pointerup', function(event) {
+                    if (lock_change_count == 1)
+                        document.exitPointerLock();
+                });
+                on_event(div1, 'pointermove', function(event) {
+                    if (lock_change_count == 1) {
+                        pointereventMovements.push(`${event.movementX}, ${event.movementY}`);
+                    }
+                });
+                on_event(div1, 'mousemove', function(event) {
+                    if (lock_change_count == 1) {
+                        mouseeventMovements.push(`${event.movementX}, ${event.movementY}`);
+                    }
+                });
+                on_event(document, 'pointerlockchange', function(event) {
+                    lock_change_count++;
+                    if (lock_change_count == 1) {
+                        test_pointerEvent.step(function() {
+                            assert_equals(document.pointerLockElement, div1, "document.pointerLockElement should be div1.");
+                        });
+                    } else if (lock_change_count == 2) {
+                        test_pointerEvent.step(function() {
+                            assert_equals(document.pointerLockElement, null, "document.pointerLockElement should be null.");
+                            assert_not_equals(mouseeventMovements.length, 0);
+                            assert_array_equals(pointereventMovements, mouseeventMovements, "pointermove should have movementX/Y same as mousemove");
+                        });
+                        test_pointerEvent.done();
+                    }
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events movement in locked state test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks if pointermove.movementX/Y matches mousemove.movementX/Y when pointer is locked.
+            <ol>
+                 <li>Press left button down on the green rectangle and hold it.</li>
+                 <li>Move the mouse inside the green rectangle.</li>
+            </ol>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="target" style="width:800px;height:250px;background:green"></div>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>

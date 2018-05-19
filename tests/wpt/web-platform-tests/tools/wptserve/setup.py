@@ -1,6 +1,6 @@
 from setuptools import setup
 
-PACKAGE_VERSION = '1.4.0'
+PACKAGE_VERSION = '2.0'
 deps = ["six>=1.8"]
 
 setup(name='wptserve',
@@ -16,7 +16,7 @@ setup(name='wptserve',
       author_email='james@hoppipolla.co.uk',
       url='http://wptserve.readthedocs.org/',
       license='BSD',
-      packages=['wptserve'],
+      packages=['wptserve', 'wptserve.sslutils'],
       include_package_data=True,
       zip_safe=False,
       install_requires=deps

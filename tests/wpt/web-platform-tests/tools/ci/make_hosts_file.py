@@ -11,7 +11,6 @@ def create_parser():
     return parser
 
 def run(**kwargs):
-    config = load_config(os.path.join(repo_root, "config.default.json"),
-                         os.path.join(repo_root, "config.json"))
+    config = load_config(os.path.join(repo_root, "config.json"))
 
     print(make_hosts_file(config, kwargs["address"]))

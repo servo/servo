@@ -668,6 +668,17 @@ or a [`ServiceWorker`](https://slightlyoff.github.io/ServiceWorker/spec/service_
 Once called, the containing document fetches all the tests from the worker and
 behaves as if those tests were running in the containing document itself.
 
+`fetch_tests_from_worker` returns a promise that resolves once all the remote
+tests have completed. This is useful if you're importing tests from multiple
+workers and want to ensure they run in series:
+
+```js
+(async function() {
+  await fetch_tests_from_worker(new Worker("worker-1.js"));
+  await fetch_tests_from_worker(new Worker("worker-2.js"));
+})();
+```
+
 ## List of Assertions ##
 
 ### `assert_true(actual, description)`

@@ -1,0 +1,16 @@
+<!doctype HTML>
+<link rel="match" href="foreign-object-paints-before-rect-expected.html">
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#embedded-ForeignObjectElement"/>
+<style>
+* {
+  margin: 0
+}
+</style>
+<!-- Test that the <foreignObject> root element paints in element order
+within the SVG, but content within it is atomic. -->
+<svg style="width: 500px; height: 500px">
+  <foreignObject width="100%" height="100%">
+    <div style="width: 500px; height: 500px; background: blue"></div>
+  </foreignObject>
+  <rect x="0" y="0" width="50%" height="50%"/>
+</svg>

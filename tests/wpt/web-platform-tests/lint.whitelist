@@ -10,18 +10,13 @@
 INDENT TABS: .gitmodules
 INDENT TABS: conformance-checkers/*
 INDENT TABS: content-security-policy/*
-INDENT TABS: custom-elements/*
-INDENT TABS: old-tests/*
 INDENT TABS: pointerlock/*
 INDENT TABS: shadow-dom/*
-INDENT TABS: tools/*
-INDENT TABS: web-animations/*
 INDENT TABS: webaudio/*
 INDENT TABS: webvtt/*
 INDENT TABS: encoding/legacy*/*
 
 TRAILING WHITESPACE: 2dcontext/tools/current-work-canvas.xhtml
-TRAILING WHITESPACE: battery-status/*
 TRAILING WHITESPACE: conformance-checkers/*
 TRAILING WHITESPACE: content-security-policy/*
 TRAILING WHITESPACE: custom-elements/*
@@ -29,11 +24,9 @@ TRAILING WHITESPACE: html-longdesc/*
 TRAILING WHITESPACE: old-tests/*
 TRAILING WHITESPACE: pointerevents/*
 TRAILING WHITESPACE: shadow-dom/*
-TRAILING WHITESPACE: tools/*
 TRAILING WHITESPACE: webaudio/*
 TRAILING WHITESPACE: WebIDL/*
 TRAILING WHITESPACE: webvtt/*
-TRAILING WHITESPACE: encoding/legacy*/*
 TRAILING WHITESPACE: server-timing/resources/parsing/*.sub.headers
 
 ## File types that should never be checked ##
@@ -77,9 +70,6 @@ WEB-PLATFORM.TEST:docs/*
 
 ## Helper scripts ##
 
-W3C-TEST.ORG: tools/*
-PRINT STATEMENT: tools/*
-W3C-TEST.ORG: */tools/*
 PRINT STATEMENT: */tools/*
 
 ## Deliberate copies of Ahem ##
@@ -101,7 +91,6 @@ CR AT EOL: html/form-elements/the-textarea-element/multiline-placeholder-cr.html
 CR AT EOL: html/form-elements/the-textarea-element/multiline-placeholder-crlf.html
 CR AT EOL: html/input/the-placeholder-attribute/multiline-cr.html
 CR AT EOL: html/input/the-placeholder-attribute/multiline-crlf.html
-CR AT EOL: html/semantics/embedded-content/the-canvas-element/size.attributes.parse.whitespace.html
 CR AT EOL: webvtt/parsing/file-parsing/tests/support/newlines.vtt
 
 # Intentional use of tabs
@@ -139,7 +128,6 @@ PARSE-FAILED: dom/nodes/Document-createElement-namespace-tests/minimal_html.xml
 
 # setTimeout usage (should probably mostly be fixed)
 SET TIMEOUT: *-manual.*
-SET TIMEOUT: 2dcontext/*
 SET TIMEOUT: annotation-model/scripts/ajv.min.js
 SET TIMEOUT: apng/animated-png-timeout.html
 SET TIMEOUT: cookies/resources/testharness-helpers.js
@@ -181,18 +169,13 @@ SET TIMEOUT: mixed-content/generic/sanity-checker.js
 SET TIMEOUT: navigation-timing/*
 SET TIMEOUT: offscreen-canvas/the-offscreen-canvas/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
-SET TIMEOUT: page-visibility/resources/pagevistestharness.js
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
 SET TIMEOUT: payment-request/allowpaymentrequest/setting-allowpaymentrequest-timing.https.sub.html
-SET TIMEOUT: payment-request/payment-request-response-id.html
-SET TIMEOUT: pointerevents/pointerevent_support.js
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
 SET TIMEOUT: resource-timing/resource-timing.js
 SET TIMEOUT: resource-timing/single-entry-per-resource.html
-SET TIMEOUT: screen-orientation/lock-bad-argument.html
 SET TIMEOUT: screen-orientation/onchange-event.html
-SET TIMEOUT: screen-orientation/resources/sandboxed-iframe-locking.html
 SET TIMEOUT: secure-contexts/basic-popup-and-iframe-tests.https.js
 SET TIMEOUT: service-workers/cache-storage/script-tests/cache-abort.js
 SET TIMEOUT: service-workers/service-worker/activation.https.html
@@ -208,12 +191,10 @@ SET TIMEOUT: service-workers/service-worker/resources/opaque-response-being-prel
 SET TIMEOUT: service-workers/service-worker/resources/opaque-response-preloaded-xhr.html
 SET TIMEOUT: service-workers/service-worker/resources/performance-timeline-worker.js
 SET TIMEOUT: service-workers/service-worker/resources/resource-timing-worker.js
-SET TIMEOUT: service-workers/service-worker/resources/register-foreign-fetch-errors-worker.js
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
 SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html
 SET TIMEOUT: shadow-dom/slotchange-event.html
 SET TIMEOUT: shadow-dom/untriaged/html-elements-in-shadow-trees/html-forms/test-003.html
-SET TIMEOUT: shadow-dom/untriaged/html-elements-in-shadow-trees/inert-html-elements/test-001.html
 SET TIMEOUT: streams/piping/close-propagation-forward.js
 SET TIMEOUT: streams/piping/error-propagation-backward.js
 SET TIMEOUT: streams/piping/error-propagation-forward.js
@@ -222,12 +203,10 @@ SET TIMEOUT: streams/readable-streams/cancel.js
 SET TIMEOUT: streams/resources/rs-utils.js
 SET TIMEOUT: streams/writable-streams/byte-length-queuing-strategy.js
 SET TIMEOUT: user-timing/*
-SET TIMEOUT: webaudio/js/lodash.js
 SET TIMEOUT: webaudio/the-audio-api/the-mediaelementaudiosourcenode-interface/mediaElementAudioSourceToScriptProcessorTest.html
 SET TIMEOUT: webauthn/*timeout.https.html
 SET TIMEOUT: webdriver/*
 SET TIMEOUT: webmessaging/*
-SET TIMEOUT: websockets/*
 SET TIMEOUT: webstorage/eventTestHarness.js
 SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*
@@ -250,16 +229,12 @@ GENERATE_TESTS: css/css-tables/fixed-layout-2.html
 GENERATE_TESTS: css/css-tables/height-distribution/computing-row-measure-0.html
 GENERATE_TESTS: css/css-tables/height-distribution/computing-row-measure-1.html
 GENERATE_TESTS: css/css-tables/height-distribution/percentage-sizing-of-table-cell-children.html
-GENERATE_TESTS: css/css-tables/height-distribution/percentage-sizing-of-table-cell-children.html
 GENERATE_TESTS: css/css-tables/html-to-css-mapping-1.html
 GENERATE_TESTS: css/css-tables/html-to-css-mapping-2.html
-GENERATE_TESTS: css/css-tables/html5-table-formatting-1.html
 GENERATE_TESTS: css/css-tables/html5-table-formatting-1.html
 GENERATE_TESTS: css/css-tables/html5-table-formatting-2.html
 GENERATE_TESTS: css/css-tables/html5-table-formatting-3.html
 GENERATE_TESTS: css/css-tables/html5-table-formatting-fixed-layout-1.html
-GENERATE_TESTS: css/css-tables/table-model-fixup-2.html
-GENERATE_TESTS: css/css-tables/table-model-fixup-2.html
 GENERATE_TESTS: css/css-tables/table-model-fixup-2.html
 GENERATE_TESTS: css/css-tables/table-model-fixup.html
 GENERATE_TESTS: css/css-tables/visibility-collapse-col-001.html
@@ -323,12 +298,8 @@ SET TIMEOUT: resources/testharness.js
 SET TIMEOUT: acid/acid3/test.html
 
 # Travis
-W3C-TEST.ORG: .travis.yml
 WEB-PLATFORM.TEST: .travis.yml
 
-# Config
-WEB-PLATFORM.TEST: config.default.json
-WEB-PLATFORM.TEST: resources/test/config.test.json
 
 # Third party code
 *: css/tools/apiclient/*
@@ -339,28 +310,21 @@ WEB-PLATFORM.TEST: resources/test/config.test.json
 # Build system virtualenv
 *: css/tools/_virtualenv/*
 
-
 ## Third party data files
 TRAILING WHITESPACE: css/css-writing-modes/tools/generators/ucd/Blocks.txt
 TRAILING WHITESPACE: resources/chromium/*
 
-
 ## Test generation files
 CONSOLE: css/css-writing-modes/tools/generators/unicode-data.js
 
-
 ## Test plans and implementation reports
-*: css/*/reports/*
 *: css/*/test-plan/*
-
 
 ## Things we don't have enabled yet
 OPEN-NO-MODE: css/*
-PARSE-FAILED: css/*
 PRINT STATEMENT: css/*
 CONTENT-VISUAL: css/*
 CONTENT-MANUAL: css/*
-
 
 ## Support files not in /support/ or similar
 SUPPORT-WRONG-DIR: css/requirements.txt
@@ -374,10 +338,8 @@ SUPPORT-WRONG-DIR: css/*/README.md
 SUPPORT-WRONG-DIR: css/*-README
 SUPPORT-WRONG-DIR: css/*/LICENSE
 SUPPORT-WRONG-DIR: css/*/LICENSE-*
-SUPPORT-WRONG-DIR: css/*/COPYING
 SUPPORT-WRONG-DIR: css/*/Makefile
 SUPPORT-WRONG-DIR: css/*/OWNERS
-SUPPORT-WRONG-DIR: fonts/*
 
 # The selectors-3 testsuite has a weird build system
 SUPPORT-WRONG-DIR: css/selectors/*
@@ -420,8 +382,6 @@ INDENT TABS: css/css-images/*
 INDENT TABS: css/css-lists/*
 INDENT TABS: css/css-masking/*
 INDENT TABS: css/css-multicol/*
-INDENT TABS: css/cssom/*
-INDENT TABS: css/cssom-view/*
 INDENT TABS: css/css-page/*
 INDENT TABS: css/css-pseudo/*
 INDENT TABS: css/css-regions/*
@@ -437,7 +397,6 @@ INDENT TABS: css/css-values/*
 INDENT TABS: css/css-variables/*
 INDENT TABS: css/css-writing-modes/*
 INDENT TABS: css/filter-effects/*
-INDENT TABS: fonts/*
 INDENT TABS: css/mediaqueries/*
 INDENT TABS: css/selectors/*
 INDENT TABS: css/vendor-imports/*
@@ -474,10 +433,7 @@ TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-slotted-rule.html
 TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-outside-rules.html
 TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-rules.html
 TRAILING WHITESPACE: css/css-scoping/css-scoping-shadow-with-rules-no-style-leak.html
-TRAILING WHITESPACE: css/css-transforms/css3-transform-rotateY.html
 TRAILING WHITESPACE: css/css-variables/reference/vars-font-shorthand-001-ref.html
-TRAILING WHITESPACE: css/css-variables/vars-font-shorthand-001.html
-TRAILING WHITESPACE: css/geometry/DOMMatrix-001.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-7-ref.html
 TRAILING WHITESPACE: css/vendor-imports/mozilla/mozilla-central-reftests/css21/pagination/moz-css21-float-page-break-inside-avoid-8.html
@@ -549,24 +505,10 @@ SET TIMEOUT: css/CSS2/generated-content/counter-reset-002.xht
 SET TIMEOUT: css/CSS2/selectors/dom-hover-001.xht
 SET TIMEOUT: css/CSS2/selectors/dom-hover-002.xht
 SET TIMEOUT: css/CSS2/tables/tables-102.xht
-SET TIMEOUT: css/cssom-view/matchMediaAddListener.html
 SET TIMEOUT: css/mediaqueries/min-width-tables-001.html
-SET TIMEOUT: css/selectors/focus-within-shadow-001.html
-SET TIMEOUT: css/selectors/focus-within-shadow-002.html
-SET TIMEOUT: css/selectors/focus-within-shadow-003.html
-SET TIMEOUT: css/selectors/focus-within-shadow-004.html
-SET TIMEOUT: css/selectors/focus-within-shadow-005.html
 
 ## Build system stuff
-CSS-COLLIDING-TEST-NAME: css/*/OWNERS
-CSS-COLLIDING-TEST-NAME: css/*/README
-CSS-COLLIDING-TEST-NAME: css/*/README.md
-CSS-COLLIDING-TEST-NAME: css/*/LICENSE
-CSS-COLLIDING-TEST-NAME: css/*/Makefile
-CSS-COLLIDING-TEST-NAME: css/*/reftest.list
-CSS-COLLIDING-TEST-NAME: css/*/.htaccess
 CSS-COLLIDING-SUPPORT-NAME: css/*/README
-CSS-COLLIDING-SUPPORT-NAME: css/*/.htaccess
 CSS-COLLIDING-SUPPORT-NAME: css/*/LOCK
 
 # These are all the current "merge mismatch" errors the build system produces
@@ -664,95 +606,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/pattern-grg-rgr-grg.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/pattern-grg-rgr-grg.png
 
-# These are thrown off by their support/support/ copies
-# https:css///github.com/w3c/csswg-test/issues/1235
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/support/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/pagination/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/csswg-issues/submitted/css2.1/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/i18n/syndata/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/positioning/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generate/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/swatch-red.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-flexbox/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generated-content/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/text/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-values/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/csswg-issues/submitted/css2.1/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/borders/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/filter-effects/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/support/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-writing-modes/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/positioning/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-fonts/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-images/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/box-display/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/colors/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/generate/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transforms/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-text/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-page/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/bidi-text/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-style-attr/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/zindex/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-transitions/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/fonts/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/i18n/syndata/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/selectors/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/syntax/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/lists/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/margin-padding-clear/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-backgrounds/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/tables/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/cascade/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-multicol/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/values/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/css-regions/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/floats-clear/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/cssom-view/support/swatch-green.png
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/pagination/support/swatch-green.png
-
 # Duplicate filename not picked up by the build system
 # https:css///github.com/w3c/csswg-test/issues/1236
 CSS-COLLIDING-REF-NAME: css/css-masking/clip-path-svg-content/reference/clip-path-square-001-ref.svg
@@ -794,7 +647,6 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/support/50x50-green.png
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/ui/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/backgrounds/support/animated.gif
 CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/shape-outside/shape-image/support/animated.gif
-CSS-COLLIDING-SUPPORT-NAME: css/CSS2/css1/support/pattern-gg-gr.png
 CSS-COLLIDING-SUPPORT-NAME: css/css-display/support/util.js
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
@@ -885,7 +737,6 @@ MISSING-LINK: css/css-scroll-anchoring/wrapped-text.html
 SUPPORT-WRONG-DIR: css/css-timing/testcommon.js
 MISSING-LINK: css/css-typed-om/CSSMatrixComponent-DOMMatrix-mutable.html
 MISSING-LINK: css/css-typed-om/declared-styleMap-accepts-inherit.html
-MISSING-LINK: css/css-typed-om/styleMap-update-function.html
 SUPPORT-WRONG-DIR: css/cssom/stylesheet-same-origin.css
 MISSING-LINK: css/cssom-view/DOMRectList.html
 MISSING-LINK: css/cssom-view/elementFromPoint-002.html
@@ -913,20 +764,14 @@ MISSING-LINK: css/cssom-view/scrollingElement.html
 MISSING-LINK: css/cssom-view/scrollIntoView-shadow.html
 MISSING-LINK: css/cssom-view/scrollIntoView-smooth.html
 MISSING-LINK: css/cssom-view/scrollTop-display-change.html
-CSS-COLLIDING-TEST-NAME: css/cssom-view/interfaces.html
-CSS-COLLIDING-TEST-NAME: css/cssom/interfaces.html
 
 # TODO https://github.com/w3c/web-platform-tests/issues/5770
 MISSING-LINK: css/geometry/*.worker.js
 MISSING-LINK: css/filter-effects/*.any.js
 
-WEBIDL2.JS: .gitmodules
-
-# Manual test that uses console.logs for feedback
-CONSOLE: payment-request/payment-request-response-id.html
-
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
+LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 
 # Existing use of WEB-PLATFORM.TEST
 WEB-PLATFORM.TEST: clear-site-data/support/test_utils.sub.js
@@ -939,12 +784,7 @@ WEB-PLATFORM.TEST: fetch/api/request/request-structure.html
 WEB-PLATFORM.TEST: html/browsers/origin/relaxing-the-same-origin-restriction/document_domain_setter.html
 WEB-PLATFORM.TEST: html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html
 WEB-PLATFORM.TEST: html/semantics/forms/the-label-element/label-attributes.html
-WEB-PLATFORM.TEST: longtask-timing/longtask-in-childiframe-crossorigin.html
-WEB-PLATFORM.TEST: longtask-timing/longtask-in-sibling-iframe-crossorigin.html
 WEB-PLATFORM.TEST: navigation-timing/nav2_test_attributes_values.html
 WEB-PLATFORM.TEST: navigation-timing/nav2_test_instance_accessors.html
-WEB-PLATFORM.TEST: service-workers/service-worker/update-bytecheck.https.html
-WEB-PLATFORM.TEST: webdriver/tests/cookies/add_cookie.py
-WEB-PLATFORM.TEST: webdriver/tests/cookies/get_named_cookie.py
 WEB-PLATFORM.TEST: webrtc/RTCPeerConnection-getIdentityAssertion.html
 WEB-PLATFORM.TEST: webrtc/identity-helper.js

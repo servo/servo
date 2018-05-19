@@ -376,6 +376,37 @@ test()""" % input
 
     for item, url in zip(items, expected_urls):
         assert item.url == url
+        assert item.jsshell is False
+        assert item.timeout is None
+
+
+def test_multi_global_with_jsshell_globals():
+    contents = b"""// META: global=jsshell
+test()"""
+
+    s = create("html/test.any.js", contents=contents)
+    assert not s.name_is_non_test
+    assert not s.name_is_manual
+    assert not s.name_is_visual
+    assert s.name_is_multi_global
+    assert not s.name_is_worker
+    assert not s.name_is_reference
+
+    assert not s.content_is_testharness
+
+    item_type, items = s.manifest_items()
+    assert item_type == "testharness"
+
+    expected = [
+        ("/html/test.any.html", False),
+        ("/html/test.any.js", True),
+        ("/html/test.any.worker.html", False),
+    ]
+    assert len(items) == len(expected)
+
+    for item, (url, jsshell) in zip(items, expected):
+        assert item.url == url
+        assert item.jsshell == jsshell
         assert item.timeout is None
 
 

@@ -47,7 +47,6 @@ matrix:
           packages:
             - libnss3-tools
       env:
-        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=firefox:nightly
     - os: linux
       sudo: required
@@ -58,7 +57,6 @@ matrix:
             - libappindicator1
             - fonts-liberation
       env:
-        - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
         - JOB=stability SCRIPT=tools/ci/ci_stability.sh PRODUCT=chrome:dev
     - python: 2.7
       env: JOB=tools_unittest TOXENV=py27 HYPOTHESIS_PROFILE=ci SCRIPT=tools/ci/ci_tools_unittest.sh
@@ -95,4 +93,3 @@ notifications:
   email:
     on_success: never
     on_failure: always
-  webhooks: https://pulls.web-platform-tests.org/api/build

@@ -11,15 +11,16 @@
 'use strict';
 
 promise_test(async () => {
-  const text = await fetch('/interfaces/web-animations.idl').then(response =>
-    response.text(),
-  );
-  const idlArray = new IdlArray();
-  idlArray.add_idls(text, { only: ['Animation', 'AnimationPlayState'] });
+  const idl = await fetch('/interfaces/web-animations.idl').then(r => r.text());
+  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  const html = await fetch('/interfaces/html.idl').then(r => r.text());
 
-  idlArray.add_untested_idls('interface AnimationTimeline {};');
-  idlArray.add_untested_idls('interface EventHandler {};');
-  idlArray.add_untested_idls('interface EventTarget {};');
+  const idlArray = new IdlArray();
+  idlArray.add_idls(idl, {only: ['Animation', 'AnimationPlayState']});
+  idlArray.add_dependency_idls(idl);
+  idlArray.add_dependency_idls(dom);
+  idlArray.add_dependency_idls(html);
+  idlArray.add_untested_idls('interface CSSPseudoElement {};');
   idlArray.add_objects( { Animation: ['new Animation()'] } );
   idlArray.test();
   done();

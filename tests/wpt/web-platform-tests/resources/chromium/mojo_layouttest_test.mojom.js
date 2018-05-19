@@ -248,7 +248,7 @@
   }
 
   var MojoLayoutTestHelper = {
-    name: 'content::mojom::MojoLayoutTestHelper',
+    name: 'content.mojom.MojoLayoutTestHelper',
     kVersion: 0,
     ptrClass: MojoLayoutTestHelperPtr,
     proxyClass: MojoLayoutTestHelperProxy,

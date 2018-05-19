@@ -37,8 +37,13 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="support/spec-example-utils.js"></script>
+    <script>
+    function checkFloats() {
+      approxShapeTest('test', 'line-', 2, [48, 88, 128, 168, 180, 0]);
+    }
+    </script>
 </head>
-<body>
+<body onload="checkFloats();">
     <p>
         The test passes if the longest green horizontal bar is beneath the triangle and the
         rest of them are to its right and none intersect it. There should be no red.
@@ -54,8 +59,5 @@
         <span id="line-5">XXXXXXXXXXXX</span>
     </div>
     <div id="log"></div>
-    <script>
-        approxShapeTest('test', 'line-', 2, [48, 88, 128, 168, 180, 0]);
-    </script>
 </body>
 </html>

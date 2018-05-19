@@ -13,9 +13,22 @@ dictionary CookieChangeEventInit : EventInit {
 };
 
 [
-  Exposed=(ServiceWorker,Window),
+  Exposed=Window,
   Constructor(DOMString type, optional CookieChangeEventInit eventInitDict)
 ] interface CookieChangeEvent : Event {
+  readonly attribute CookieList changed;
+  readonly attribute CookieList deleted;
+};
+
+dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
+  CookieList changed;
+  CookieList deleted;
+};
+
+[
+  Exposed=ServiceWorker,
+  Constructor(DOMString type, optional ExtendableCookieChangeEventInit eventInitDict)
+] interface ExtendableCookieChangeEvent : ExtendableEvent {
   readonly attribute CookieList changed;
   readonly attribute CookieList deleted;
 };
@@ -59,7 +72,11 @@ dictionary CookieStoreSetOptions {
   Promise<void> delete(USVString name, optional CookieStoreSetOptions options);
   Promise<void> delete(CookieStoreSetOptions options);
 
-  attribute EventHandler onchange;
+  [Exposed=ServiceWorker] Promise<void> subscribeToChanges(sequence<CookieStoreGetOptions> subscriptions);
+
+  [Exposed=ServiceWorker] Promise<sequence<CookieStoreGetOptions>> getChangeSubscriptions();
+
+  [Exposed=Window] attribute EventHandler onchange;
 };
 
 partial interface Window {

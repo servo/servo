@@ -17,12 +17,12 @@
                         var t = async_test()
 
                         function test() {
-                                var script = createScript('data:text\/javascript,log("Script #1 ran")');
+                                var script = createScript('data:text\/javascript,log("Script %231 ran")');
                                 var script2 = createScript('','log("Script #2 ran")');
                                 if(script2) {
                                     head.removeChild(script2);
                                 }
-                                var script3 = createScript('data:text\/javascript, log("Script #3 ran"); createScript(\'\', \'log("Script #4 ran")\')');
+                                var script3 = createScript('data:text\/javascript, log("Script %233 ran"); createScript(\'\', \'log("Script #4 ran")\')');
                                 if(script3) {
                                     head.removeChild(script3);
                                 }
