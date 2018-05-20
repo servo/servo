@@ -1,0 +1,21 @@
+<!doctype html>
+004-1
+<script>
+onbeforeunload = function() {
+  onbeforeunload = null;
+  parent.beforeunload_fired = true;
+  setTimeout(function() {
+               parent.timeout_fired = true;
+             }, 1000);
+}
+onload = function() {
+  if (!parent.loaded) {
+    parent.loaded = true;
+    location="004-2.html?" + Math.random();
+  }
+}
+</script>
+// child frame with no onbeforeunload listener. Should leave the parent as unsalvageable.
+// Adding the iframe prevents bugs where the the recursive steps of #prompt-to-unload-a-document
+// would overwrite the salvageable state of the parent.
+<iframe></iframe>
