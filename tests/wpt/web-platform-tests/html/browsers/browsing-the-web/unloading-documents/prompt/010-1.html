@@ -1,0 +1,21 @@
+<!doctype html>
+010-1
+<script>
+onbeforeunload = function() {
+  onbeforeunload = null;
+  parent.beforeunload_fired = true;
+  setTimeout(function() {
+               parent.timeout_fired = true;
+             }, 200);
+}
+onload = function() {
+  if (!parent.loaded) {
+    parent.loaded = true;
+    setTimeout(parent.t.step_func(
+       function() {
+         location="010-2.html?" + Math.random();
+       }
+    ), 100);
+  }
+}
+</script>

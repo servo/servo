@@ -1654,7 +1654,9 @@ impl Document {
         );
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
-        self.salvageable.set(!has_listeners);
+        if has_listeners {
+            self.salvageable.set(false);
+        }
         let mut can_unload = true;
         // TODO: Step 8 send a message to embedder to prompt user.
         // Step 9
@@ -1663,7 +1665,9 @@ impl Document {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
                 if !document.prompt_to_unload(true) {
-                    self.salvageable.set(document.salvageable());
+                    if !document.salvageable() {
+                       self.salvageable.set(false); 
+                    }
                     can_unload = false;
                     break;
                 }
@@ -1715,7 +1719,9 @@ impl Document {
             );
             self.fired_unload.set(true);
             // Step 9
-            self.salvageable.set(!has_listeners);
+            if has_listeners {
+                self.salvageable.set(false);
+            }
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
 
