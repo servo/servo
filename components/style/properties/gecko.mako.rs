@@ -2607,10 +2607,16 @@ fn static_assert() {
     }
 
     pub fn set_font_stretch(&mut self, v: longhands::font_stretch::computed_value::T) {
-        unsafe { bindings::Gecko_FontStretch_SetFloat(&mut self.gecko.mFont.stretch, (v.0).0) };
+        unsafe {
+            bindings::Gecko_FontStretch_SetFloat(
+                &mut self.gecko.mFont.stretch,
+                v.value(),
+            )
+        };
     }
     ${impl_simple_copy('font_stretch', 'mFont.stretch')}
     pub fn clone_font_stretch(&self) -> longhands::font_stretch::computed_value::T {
+        use values::computed::font::FontStretch;
         use values::computed::Percentage;
         use values::generics::NonNegative;
 
@@ -2618,7 +2624,7 @@ fn static_assert() {
             unsafe { bindings::Gecko_FontStretch_ToFloat(self.gecko.mFont.stretch) };
         debug_assert!(stretch >= 0.);
 
-        NonNegative(Percentage(stretch))
+        FontStretch(NonNegative(Percentage(stretch)))
     }
 
     pub fn set_font_style(&mut self, v: longhands::font_style::computed_value::T) {
