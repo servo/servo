@@ -28,7 +28,7 @@ use style::values::computed::font::FamilyName;
 use webrender_api;
 
 /// A list of font templates that make up a given font family.
-pub struct FontTemplates {
+pub struct FontTemplateFamily {
     templates: Vec<FontTemplate>,
 }
 
@@ -38,9 +38,9 @@ pub struct FontTemplateInfo {
     pub font_key: webrender_api::FontKey,
 }
 
-impl FontTemplates {
-    pub fn new() -> FontTemplates {
-        FontTemplates {
+impl FontTemplateFamily {
+    pub fn new() -> FontTemplateFamily {
+        FontTemplateFamily {
             templates: vec!(),
         }
     }
@@ -123,8 +123,8 @@ struct FontCache {
     port: IpcReceiver<Command>,
     channel_to_self: IpcSender<Command>,
     generic_fonts: HashMap<FontFamilyName, LowercaseString>,
-    local_families: HashMap<LowercaseString, FontTemplates>,
-    web_families: HashMap<LowercaseString, FontTemplates>,
+    local_families: HashMap<LowercaseString, FontTemplateFamily>,
+    web_families: HashMap<LowercaseString, FontTemplateFamily>,
     font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
     webrender_api: webrender_api::RenderApi,
@@ -219,8 +219,8 @@ impl FontCache {
         };
 
         if !self.web_families.contains_key(&family_name) {
-            let templates = FontTemplates::new();
-            self.web_families.insert(family_name.clone(), templates);
+            let family = FontTemplateFamily::new();
+            self.web_families.insert(family_name.clone(), family);
         }
 
         match src {
@@ -310,8 +310,8 @@ impl FontCache {
         for_each_available_family(|family_name| {
             let family_name = LowercaseString::new(&family_name);
             if !self.local_families.contains_key(&family_name) {
-                let templates = FontTemplates::new();
-                self.local_families.insert(family_name, templates);
+                let family = FontTemplateFamily::new();
+                self.local_families.insert(family_name, family);
             }
         });
     }

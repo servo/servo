@@ -11,7 +11,7 @@ extern crate webrender_api;
 
 use app_units::Au;
 use gfx::font::{fallback_font_families, FontDescriptor, FontFamilyDescriptor, FontFamilyName, FontSearchScope};
-use gfx::font_cache_thread::{FontTemplates, FontTemplateInfo};
+use gfx::font_cache_thread::{FontTemplateFamily, FontTemplateInfo};
 use gfx::font_context::{FontContext, FontContextHandle, FontSource};
 use gfx::font_template::FontTemplateDescriptor;
 use servo_arc::Arc;
@@ -30,19 +30,19 @@ use style::values::generics::font::FontStyle;
 
 struct TestFontSource {
     handle: FontContextHandle,
-    families: HashMap<String, FontTemplates>,
+    families: HashMap<String, FontTemplateFamily>,
     find_font_count: Rc<Cell<isize>>,
 }
 
 impl TestFontSource {
     fn new() -> TestFontSource {
-        let mut csstest_ascii = FontTemplates::new();
+        let mut csstest_ascii = FontTemplateFamily::new();
         Self::add_face(&mut csstest_ascii, "csstest-ascii", None);
 
-        let mut csstest_basic = FontTemplates::new();
+        let mut csstest_basic = FontTemplateFamily::new();
         Self::add_face(&mut csstest_basic, "csstest-basic-regular", None);
 
-        let mut fallback = FontTemplates::new();
+        let mut fallback = FontTemplateFamily::new();
         Self::add_face(&mut fallback, "csstest-basic-regular", Some("fallback"));
 
         let mut families = HashMap::new();
@@ -57,7 +57,7 @@ impl TestFontSource {
         }
     }
 
-    fn add_face(family: &mut FontTemplates, name: &str, identifier: Option<&str>) {
+    fn add_face(family: &mut FontTemplateFamily, name: &str, identifier: Option<&str>) {
         let mut path: PathBuf = [
             env!("CARGO_MANIFEST_DIR"),
             "tests",
