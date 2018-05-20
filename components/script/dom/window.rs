@@ -1560,7 +1560,7 @@ impl Window {
 
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
 
-        // Step 4
+        // Step 4 and 5
         let window_proxy = self.window_proxy();
         if let Some(active) = window_proxy.currently_active() {
             if pipeline_id == active {
