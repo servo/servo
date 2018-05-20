@@ -426,10 +426,10 @@ impl nsStyleImage {
         }
     }
 
-    unsafe fn get_image_url(self: &nsStyleImage) -> ComputedImageUrl {
-        let url_value = bindings::Gecko_GetURLValue(self);
-        ComputedImageUrl::from_url_value_data(url_value.as_ref().unwrap())
-            .expect("Could not convert to ComputedUrl")
+    unsafe fn get_image_url(&self) -> ComputedImageUrl {
+        let image_request = bindings::Gecko_GetImageRequest(self)
+            .as_ref().expect("Null image request?");
+        ComputedImageUrl::from_image_request(image_request)
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
@@ -634,6 +634,7 @@ pub mod basic_shape {
     use gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource, StyleShapeSourceType};
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
+    use gecko_bindings::sugar::refptr::RefPtr;
     use std::borrow::Borrow;
     use values::computed::basic_shape::{BasicShape, ClippingShape, FloatAreaShape, ShapeRadius};
     use values::computed::border::{BorderCornerRadius, BorderRadius};
@@ -678,8 +679,8 @@ pub mod basic_shape {
             match other.mType {
                 StyleShapeSourceType::URL => unsafe {
                     let shape_image = &*other.mShapeImage.mPtr;
-                    let other_url = &(**shape_image.__bindgen_anon_1.mURLValue.as_ref());
-                    let url = ComputedUrl::from_url_value_data(&other_url._base).unwrap();
+                    let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref());
+                    let url = ComputedUrl::from_url_value(other_url);
                     ShapeSource::ImageOrUrl(url)
                 },
                 StyleShapeSourceType::Image => {

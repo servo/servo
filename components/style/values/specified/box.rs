@@ -212,6 +212,8 @@ impl Display {
             Display::Table => Display::InlineTable,
             Display::Flex => Display::InlineFlex,
             Display::Grid => Display::InlineGrid,
+            // XXX bug 1105868 this should probably be InlineListItem:
+            Display::ListItem => Display::Inline,
             Display::MozBox => Display::MozInlineBox,
             Display::MozStack => Display::MozInlineStack,
             Display::WebkitBox => Display::WebkitInlineBox,

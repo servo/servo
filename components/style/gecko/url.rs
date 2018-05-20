@@ -38,16 +38,11 @@ pub struct CssUrl {
 impl CssUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
     /// URL.
-    ///
-    /// Returns `Err` in the case that extra_data is incomplete.
-    pub fn parse_from_string<'a>(
-        url: String,
-        context: &ParserContext,
-    ) -> Result<Self, ParseError<'a>> {
-        Ok(CssUrl {
+    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
+        CssUrl {
             serialization: Arc::new(url),
             extra_data: context.url_data.clone(),
-        })
+        }
     }
 
     /// Returns true if the URL is definitely invalid. We don't eagerly resolve
@@ -58,13 +53,13 @@ impl CssUrl {
     }
 
     /// Convert from URLValueData to SpecifiedUrl.
-    unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
+    unsafe fn from_url_value_data(url: &URLValueData) -> Self {
         let arc_type =
             &url.mString as *const _ as *const RawOffsetArc<String>;
-        Ok(CssUrl {
+        CssUrl {
             serialization: Arc::from_raw_offset((*arc_type).clone()),
             extra_data: url.mExtraData.to_safe(),
-        })
+        }
     }
 
     /// Returns true if this URL looks like a fragment.
@@ -104,7 +99,7 @@ impl Parse for CssUrl {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let url = input.expect_url()?;
-        Self::parse_from_string(url.as_ref().to_owned(), context)
+        Ok(Self::parse_from_string(url.as_ref().to_owned(), context))
     }
 }
 
@@ -188,11 +183,8 @@ pub struct SpecifiedImageUrl {
 
 impl SpecifiedImageUrl {
     /// Parse a URL from a string value. See SpecifiedUrl::parse_from_string.
-    pub fn parse_from_string<'a>(
-        url: String,
-        context: &ParserContext,
-    ) -> Result<Self, ParseError<'a>> {
-        CssUrl::parse_from_string(url, context).map(Self::from_css_url)
+    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
+        Self::from_css_url(CssUrl::parse_from_string(url, context))
     }
 
     fn from_css_url(url: CssUrl) -> Self {
@@ -295,11 +287,10 @@ impl ToCss for ComputedUrl {
 }
 
 impl ComputedUrl {
-    /// Convert from URLValueData to ComputedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
-        Ok(ComputedUrl(
-            SpecifiedUrl::from_css_url(CssUrl::from_url_value_data(url)?)
-        ))
+    /// Convert from RefPtr<URLValue> to ComputedUrl.
+    pub unsafe fn from_url_value(url_value: RefPtr<URLValue>) -> Self {
+        let url = CssUrl::from_url_value_data(&url_value._base);
+        ComputedUrl(SpecifiedUrl { url, url_value })
     }
 }
 
@@ -317,21 +308,10 @@ impl ToCss for ComputedImageUrl {
 }
 
 impl ComputedImageUrl {
-    /// Convert from URLValueData to SpecifiedUrl.
-    pub unsafe fn from_url_value_data(url: &URLValueData) -> Result<Self, ()> {
-        Ok(ComputedImageUrl(
-            SpecifiedImageUrl::from_css_url(CssUrl::from_url_value_data(url)?)
-        ))
-    }
-
     /// Convert from nsStyleImageReques to ComputedImageUrl.
-    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Result<Self, ()> {
-        if image_request.mImageValue.mRawPtr.is_null() {
-            return Err(());
-        }
-
-        let image_value = image_request.mImageValue.mRawPtr.as_ref().unwrap();
-        let url_value_data = &image_value._base;
-        Self::from_url_value_data(url_value_data)
+    pub unsafe fn from_image_request(image_request: &nsStyleImageRequest) -> Self {
+        let image_value = image_request.mImageValue.to_safe();
+        let url = CssUrl::from_url_value_data(&image_value._base);
+        ComputedImageUrl(SpecifiedImageUrl { url, image_value })
     }
 }

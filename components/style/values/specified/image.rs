@@ -990,7 +990,7 @@ impl Parse for MozImageRect {
         input.try(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
             let string = i.expect_url_or_string()?;
-            let url = SpecifiedImageUrl::parse_from_string(string.as_ref().to_owned(), context)?;
+            let url = SpecifiedImageUrl::parse_from_string(string.as_ref().to_owned(), context);
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;
             i.expect_comma()?;

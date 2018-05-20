@@ -40,18 +40,14 @@ pub struct CssUrl {
 
 impl CssUrl {
     /// Try to parse a URL from a string value that is a valid CSS token for a
-    /// URL. Never fails - the API is only fallible to be compatible with the
-    /// gecko version.
-    pub fn parse_from_string<'a>(
-        url: String,
-        context: &ParserContext,
-    ) -> Result<Self, ParseError<'a>> {
+    /// URL.
+    pub fn parse_from_string(url: String, context: &ParserContext) -> Self {
         let serialization = Arc::new(url);
         let resolved = context.url_data.join(&serialization).ok();
-        Ok(CssUrl {
+        CssUrl {
             original: Some(serialization),
             resolved: resolved,
-        })
+        }
     }
 
     /// Returns true if the URL is definitely invalid. For Servo URLs, we can
@@ -110,7 +106,7 @@ impl Parse for CssUrl {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let url = input.expect_url()?;
-        Self::parse_from_string(url.as_ref().to_owned(), context)
+        Ok(Self::parse_from_string(url.as_ref().to_owned(), context))
     }
 }
 

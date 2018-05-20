@@ -335,7 +335,7 @@ ${helpers.predefined_type("-x-text-zoom",
                 use gecko_bindings::structs::{LookAndFeel_FontID, nsFont};
                 use std::mem;
                 use values::computed::Percentage;
-                use values::computed::font::{FontSize, FontStyle, FontFamilyList};
+                use values::computed::font::{FontSize, FontStretch, FontStyle, FontFamilyList};
                 use values::generics::NonNegative;
 
                 let id = match *self {
@@ -356,9 +356,9 @@ ${helpers.predefined_type("-x-text-zoom",
                     )
                 }
                 let font_weight = longhands::font_weight::computed_value::T::from_gecko_weight(system.weight);
-                let font_stretch = NonNegative(Percentage(unsafe {
+                let font_stretch = FontStretch(NonNegative(Percentage(unsafe {
                     bindings::Gecko_FontStretch_ToFloat(system.stretch)
-                }));
+                })));
                 let font_style = FontStyle::from_gecko(system.style);
                 let ret = ComputedSystemFont {
                     font_family: longhands::font_family::computed_value::T(
