@@ -1,1 +1,1 @@
-mozprocess >= 0.19
+mozprocess == 0.26

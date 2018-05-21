@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Filled Background with Rounded Corner</title>
+<link rel="match" href="clip-rounded-corner-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#corner-clipping">
+<style>
+    #b {
+        width: 100px;
+        height: 80px;
+        border: 20px blue solid;
+        border-top-right-radius: 20px;
+        background-color: green;
+        background-clip: content-box;
+    }
+    #shield {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        left: 120px;
+        top: 5px;
+        background-color: black;
+    }
+</style>
+<body>
+    <div id="b"></div>
+    <!-- Hide the curved outside border to deal with imprecise rendering. -->
+    <div id="shield"></div>
+</body>

@@ -17,6 +17,8 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+extern crate itertools;
+
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use devtools;
@@ -25,7 +27,6 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use devtools_traits::CSSError;
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
@@ -73,17 +74,16 @@ use js::glue::GetWindowProxyClass;
 use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
 use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
-use malloc_size_of::MallocSizeOfOps;
-use mem::malloc_size_of_including_self;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{BrowsingContextId, FrameType, PipelineId, PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
-use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
+use profile_traits::mem::{self, OpaqueSender, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, Msg, NewLayoutThreadInfo, ReflowGoal};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
@@ -91,13 +91,12 @@ use script_runtime::{ScriptPort, get_reports, new_rt_and_cx, Runtime};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DiscardBrowsingContext, DocumentActivity, EventResult};
 use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData};
-use script_traits::{MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
+use script_traits::{MouseButton, MouseEventType, NewLayoutInfo};
 use script_traits::{ProgressiveWebMetricType, Painter, ScriptMsg, ScriptThreadFactory};
 use script_traits::{ScriptToConstellationChan, TimerEvent, TimerSchedulerMsg};
 use script_traits::{TimerSource, TouchEventType, TouchId, UntrustedNodeAddress};
 use script_traits::{UpdatePipelineIdReason, WindowSizeData, WindowSizeType};
-use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
-use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
+use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue};
 use servo_atoms::Atom;
@@ -154,7 +153,7 @@ struct InProgressLoad {
     /// The top level ancestor browsing context.
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
-    parent_info: Option<(PipelineId, FrameType)>,
+    parent_info: Option<PipelineId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -180,7 +179,7 @@ impl InProgressLoad {
     fn new(id: PipelineId,
            browsing_context_id: BrowsingContextId,
            top_level_browsing_context_id: TopLevelBrowsingContextId,
-           parent_info: Option<(PipelineId, FrameType)>,
+           parent_info: Option<PipelineId>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
@@ -485,8 +484,8 @@ pub struct ScriptThread {
     /// The unit of related similar-origin browsing contexts' list of MutationObserver objects
     mutation_observers: DomRefCell<Vec<Dom<MutationObserver>>>,
 
-    /// A handle to the webgl thread
-    webgl_chan: WebGLPipeline,
+    /// A handle to the WebGL thread
+    webgl_chan: Option<WebGLPipeline>,
 
     /// A handle to the webvr thread, if available
     webvr_chan: Option<IpcSender<WebVRMsg>>,
@@ -981,7 +980,7 @@ impl ScriptThread {
                         let origin = if new_layout_info.load_data.url.as_str() != "about:blank" {
                             MutableOrigin::new(new_layout_info.load_data.url.origin())
                         } else if let Some(parent) = new_layout_info.parent_info
-                                .and_then(|(pipeline_id, _)| self.documents.borrow()
+                                .and_then(|pipeline_id| self.documents.borrow()
                                 .find_document(pipeline_id)) {
                             parent.origin().clone()
                         } else if let Some(creator) = new_layout_info.load_data.creator_pipeline_id
@@ -1158,6 +1157,7 @@ impl ScriptThread {
                     AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
                     Resize(id, ..) => Some(id),
                     ResizeInactive(id, ..) => Some(id),
+                    UnloadDocument(id) => Some(id),
                     ExitPipeline(id, ..) => Some(id),
                     ExitScriptThread => None,
                     SendEvent(id, ..) => Some(id),
@@ -1169,8 +1169,9 @@ impl ScriptThread {
                     NotifyVisibilityChange(id, ..) => Some(id),
                     Navigate(id, ..) => Some(id),
                     PostMessage(id, ..) => Some(id),
-                    MozBrowserEvent(id, ..) => Some(id),
                     UpdatePipelineId(_, _, id, _) => Some(id),
+                    UpdateHistoryState(id, ..) => Some(id),
+                    RemoveHistoryStates(id, ..) => Some(id),
                     FocusIFrame(id, ..) => Some(id),
                     WebDriverScriptCommand(id, ..) => Some(id),
                     TickAllAnimations(id) => Some(id),
@@ -1275,6 +1276,8 @@ impl ScriptThread {
             },
             ConstellationControlMsg::Navigate(parent_pipeline_id, browsing_context_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(browsing_context_id), load_data, replace),
+            ConstellationControlMsg::UnloadDocument(pipeline_id) =>
+                self.handle_unload_document(pipeline_id),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ResizeInactive(id, new_size) =>
@@ -1289,12 +1292,6 @@ impl ScriptThread {
                 self.handle_visibility_change_complete_msg(parent_pipeline_id, browsing_context_id, visible),
             ConstellationControlMsg::PostMessage(pipeline_id, origin, data) =>
                 self.handle_post_message_msg(pipeline_id, origin, data),
-            ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
-                                                     top_level_browsing_context_id,
-                                                     event) =>
-                self.handle_mozbrowser_event_msg(parent_pipeline_id,
-                                                 top_level_browsing_context_id,
-                                                 event),
             ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
                                                       browsing_context_id,
                                                       new_pipeline_id,
@@ -1303,6 +1300,10 @@ impl ScriptThread {
                                                browsing_context_id,
                                                new_pipeline_id,
                                                reason),
+            ConstellationControlMsg::UpdateHistoryState(pipeline_id, history_state_id, url) =>
+                self.handle_update_history_state_msg(pipeline_id, history_state_id, url),
+            ConstellationControlMsg::RemoveHistoryStates(pipeline_id, history_states) =>
+                self.handle_remove_history_states(pipeline_id, history_states),
             ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id) =>
                 self.handle_focus_iframe_msg(parent_pipeline_id, frame_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1557,7 +1558,8 @@ impl ScriptThread {
             paint_time_metrics: PaintTimeMetrics::new(new_pipeline_id,
                                                       self.time_profiler_chan.clone(),
                                                       self.layout_to_constellation_chan.clone(),
-                                                      self.control_chan.clone()),
+                                                      self.control_chan.clone(),
+                                                      load_data.url.clone()),
         });
 
         // Pick a layout thread, any layout thread
@@ -1588,34 +1590,11 @@ impl ScriptThread {
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
-        let mut path_seg = String::from("url(");
-        let mut dom_tree_size = 0;
+        let documents = self.documents.borrow();
+        let urls = itertools::join(documents.iter().map(|(_, d)| d.url().to_string()), ", ");
+        let path_seg = format!("url({})", urls);
+
         let mut reports = vec![];
-        // Servo uses vanilla jemalloc, which doesn't have a
-        // malloc_enclosing_size_of function.
-        let mut ops = MallocSizeOfOps::new(::servo_allocator::usable_size, None, None);
-
-        for (_, document) in self.documents.borrow().iter() {
-            let current_url = document.url();
-
-            for child in document.upcast::<Node>().traverse_preorder() {
-                dom_tree_size += malloc_size_of_including_self(&mut ops, &*child);
-            }
-            dom_tree_size += malloc_size_of_including_self(&mut ops, document.window());
-
-            if reports.len() > 0 {
-                path_seg.push_str(", ");
-            }
-            path_seg.push_str(current_url.as_str());
-
-            reports.push(Report {
-                path: path![format!("url({})", current_url.as_str()), "dom-tree"],
-                kind: ReportKind::ExplicitJemallocHeapSize,
-                size: dom_tree_size,
-            });
-        }
-
-        path_seg.push_str(")");
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
@@ -1692,24 +1671,10 @@ impl ScriptThread {
         }
     }
 
-    /// Handles a mozbrowser event, for example see:
-    /// <https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart>
-    fn handle_mozbrowser_event_msg(&self,
-                                   parent_pipeline_id: PipelineId,
-                                   top_level_browsing_context_id: Option<TopLevelBrowsingContextId>,
-                                   event: MozBrowserEvent) {
-        let doc = match { self.documents.borrow().find_document(parent_pipeline_id) } {
-            None => return warn!("Mozbrowser event after pipeline {} closed.", parent_pipeline_id),
-            Some(doc) => doc,
-        };
-
-        match top_level_browsing_context_id {
-            None => doc.window().dispatch_mozbrowser_event(event),
-            Some(top_level_browsing_context_id) => match doc.find_mozbrowser_iframe(top_level_browsing_context_id) {
-                None => warn!("Mozbrowser event after iframe {}/{} closed.",
-                              parent_pipeline_id, top_level_browsing_context_id),
-                Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
-            },
+    fn handle_unload_document(&self, pipeline_id: PipelineId) {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            document.unload(false, false);
         }
     }
 
@@ -1721,6 +1686,24 @@ impl ScriptThread {
         let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id, reason);
+        }
+    }
+
+    fn handle_update_history_state_msg(
+        &self, pipeline_id: PipelineId,
+        history_state_id: Option<HistoryStateId>,
+        url: ServoUrl,
+    ) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            Some(window) => window.History().r().activate_state(history_state_id, url),
+        }
+    }
+
+    fn handle_remove_history_states(&self, pipeline_id: PipelineId, history_states: Vec<HistoryStateId>) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("update history state after pipeline {} closed.", pipeline_id),
+            Some(window) => window.History().r().remove_states(history_states),
         }
     }
 
@@ -1954,7 +1937,7 @@ impl ScriptThread {
         node.dirty(NodeDamage::NodeStyleDamaged);
 
         if let Some(el) = node.downcast::<Element>() {
-            if &*window.GetComputedStyle(el, None).Display() == "none" {
+            if !el.has_css_layout_box() {
                 return;
             }
         }
@@ -2026,7 +2009,7 @@ impl ScriptThread {
         result_receiver.recv().expect("Failed to get frame id from constellation.")
     }
 
-    fn ask_constellation_for_parent_info(&self, pipeline_id: PipelineId) -> Option<(PipelineId, FrameType)> {
+    fn ask_constellation_for_parent_info(&self, pipeline_id: PipelineId) -> Option<PipelineId> {
         let (result_sender, result_receiver) = ipc::channel().unwrap();
         let msg = ScriptMsg::GetParentInfo(pipeline_id, result_sender);
         self.script_sender.send((pipeline_id, msg)).expect("Failed to send to constellation.");
@@ -2049,12 +2032,9 @@ impl ScriptThread {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
-        let parent = match self.ask_constellation_for_parent_info(pipeline_id) {
-            Some((parent_id, FrameType::IFrame)) => self.remote_window_proxy(global_to_clone,
-                                                                             top_level_browsing_context_id,
-                                                                             parent_id),
-            _ => None,
-        };
+        let parent = self.ask_constellation_for_parent_info(pipeline_id).and_then(|parent_id| {
+            self.remote_window_proxy(global_to_clone, top_level_browsing_context_id, parent_id)
+        });
         let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone,
                                                               browsing_context_id,
                                                               top_level_browsing_context_id,
@@ -2073,22 +2053,21 @@ impl ScriptThread {
                           window: &Window,
                           browsing_context_id: BrowsingContextId,
                           top_level_browsing_context_id: TopLevelBrowsingContextId,
-                          parent_info: Option<(PipelineId, FrameType)>)
+                          parent_info: Option<PipelineId>)
                           -> DomRoot<WindowProxy>
     {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             window_proxy.set_currently_active(&*window);
             return DomRoot::from_ref(window_proxy);
         }
-        let iframe = match parent_info {
-            Some((parent_id, FrameType::IFrame)) => self.documents.borrow().find_iframe(parent_id, browsing_context_id),
-            _ => None,
-        };
+        let iframe = parent_info.and_then(|parent_id| {
+            self.documents.borrow().find_iframe(parent_id, browsing_context_id)
+        });
         let parent = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
-            (Some((parent_id, FrameType::IFrame)), _) => self.remote_window_proxy(window.upcast(),
-                                                                                  top_level_browsing_context_id,
-                                                                                  parent_id),
+            (Some(parent_id), _) => self.remote_window_proxy(window.upcast(),
+                                                              top_level_browsing_context_id,
+                                                              parent_id),
             _ => None,
         };
         let window_proxy = WindowProxy::new(&window,
@@ -2163,7 +2142,7 @@ impl ScriptThread {
             origin,
             incomplete.navigation_start,
             incomplete.navigation_start_precise,
-            self.webgl_chan.channel(),
+            self.webgl_chan.as_ref().map(|chan| chan.channel()),
             self.webvr_chan.clone(),
             self.microtask_queue.clone(),
             self.webrender_document,
@@ -2182,7 +2161,7 @@ impl ScriptThread {
 
         let content_type = metadata.content_type
                                    .as_ref()
-                                   .map(|&Serde(ContentType(ref mimetype))| DOMString::from(mimetype.to_string()));
+                                   .map(|&Serde(ContentType(ref mimetype))| mimetype.clone());
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
                                                       Some(final_url.clone()));
@@ -2375,19 +2354,6 @@ impl ScriptThread {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
                     }
                 }
-            }
-
-            TouchpadPressureEvent(_point, pressure, phase, node_address) => {
-                let doc = match { self.documents.borrow().find_document(pipeline_id) } {
-                    Some(doc) => doc,
-                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
-                };
-                doc.handle_touchpad_pressure_event(
-                    self.js_runtime.rt(),
-                    pressure,
-                    phase,
-                    node_address
-                );
             }
 
             KeyEvent(ch, key, state, modifiers) => {

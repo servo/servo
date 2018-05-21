@@ -720,6 +720,17 @@
             }
         },
         {
+            "comment": "Port number is removed if new port is scheme default and existing URL has a non-default port",
+            "href": "http://example.net:8080",
+            "new_value": "example.com:80",
+            "expected": {
+                "href": "http://example.com/",
+                "host": "example.com",
+                "hostname": "example.com",
+                "port": ""
+            }
+        },
+        {
             "comment": "Stuff after a / delimiter is ignored",
             "href": "http://example.net/path",
             "new_value": "example.com/stuff",
@@ -1786,12 +1797,52 @@
             }
         },
         {
+            "href": "http://example.net",
+            "new_value": "#foo bar",
+            "expected": {
+                "href": "http://example.net/#foo%20bar",
+                "hash": "#foo%20bar"
+            }
+        },
+        {
+            "href": "http://example.net",
+            "new_value": "#foo\"bar",
+            "expected": {
+                "href": "http://example.net/#foo%22bar",
+                "hash": "#foo%22bar"
+            }
+        },
+        {
+            "href": "http://example.net",
+            "new_value": "#foo<bar",
+            "expected": {
+                "href": "http://example.net/#foo%3Cbar",
+                "hash": "#foo%3Cbar"
+            }
+        },
+        {
+            "href": "http://example.net",
+            "new_value": "#foo>bar",
+            "expected": {
+                "href": "http://example.net/#foo%3Ebar",
+                "hash": "#foo%3Ebar"
+            }
+        },
+        {
+            "href": "http://example.net",
+            "new_value": "#foo`bar",
+            "expected": {
+                "href": "http://example.net/#foo%60bar",
+                "hash": "#foo%60bar"
+            }
+        },
+        {
             "comment": "Simple percent-encoding; nuls, tabs, and newlines are removed",
             "href": "a:/",
             "new_value": "\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\u007f\u0080\u0081Éé",
             "expected": {
-                "href": "a:/#%01%1F !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~%7F%C2%80%C2%81%C3%89%C3%A9",
-                "hash": "#%01%1F !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
+                "href": "a:/#%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9",
+                "hash": "#%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
             }
         },
         {

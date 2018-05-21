@@ -15,7 +15,7 @@ function doTest([dom, generic_sensor, orientation_sensor]) {
   const idl_array = new IdlArray();
   idl_array.add_untested_idls(dom);
   idl_array.add_untested_idls('interface EventHandler {};');
-  idl_array.add_idls(generic_sensor, { only: ['Sensor'] });
+  idl_array.add_idls(generic_sensor, { only: ['Sensor', 'SensorOptions'] });
   idl_array.add_idls(orientation_sensor);
   idl_array.add_objects({
     AbsoluteOrientationSensor: ['new AbsoluteOrientationSensor();'],
@@ -31,7 +31,7 @@ function fetchText(url) {
 promise_test(() => {
   return Promise.all([
     "/interfaces/dom.idl",
-    "/interfaces/generic-sensor.idl",
+    "/interfaces/sensors.idl",
     "/interfaces/orientation-sensor.idl",
   ].map(fetchText)).then(doTest);
 }, "Test IDL implementation of Orientation Sensor");

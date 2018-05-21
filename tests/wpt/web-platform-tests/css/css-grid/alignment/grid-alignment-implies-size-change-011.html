@@ -26,16 +26,17 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
-<script src="../support/style-change.js"></script>
+<script src="support/style-change.js"></script>
 <script>
 function runTest() {
   evaluateStyleChange(item, "before", "data-expected-height", 200);
   grid.style.alignItems = "start";
   evaluateStyleChange(item, "after", "data-expected-height", 100);
+  done();
 }
 </script>
 <body onload="runTest()">
 <div class="grid" id="grid">
-  <img data-expected-width="100" id="item" src="../grid-items/support/100x100-green.png"></img>
+  <img data-expected-width="100" id="item" src="support/100x100-green.png"></img>
 </div>
 </body>

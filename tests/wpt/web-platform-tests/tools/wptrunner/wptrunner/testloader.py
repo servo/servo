@@ -93,7 +93,7 @@ class EqualTimeChunker(TestChunker):
         for i, (test_type, test_path, tests) in enumerate(manifest_items):
             test_dir = tuple(os.path.split(test_path)[0].split(os.path.sep)[:3])
 
-            if not test_dir in by_dir:
+            if test_dir not in by_dir:
                 by_dir[test_dir] = PathData(test_dir)
 
             data = by_dir[test_dir]
@@ -261,7 +261,7 @@ class EqualTimeChunker(TestChunker):
                 return self.paths.popleft()
 
             @property
-            def badness(self_):
+            def badness(self_):  # noqa: N805
                 """Badness metric for this chunk"""
                 return self._badness(self_.time)
 
@@ -376,6 +376,7 @@ class TagFilter(object):
             if test.tags & self.tags:
                 yield test
 
+
 class ManifestLoader(object):
     def __init__(self, test_paths, force_manifest_update=False, manifest_download=False):
         do_delayed_imports()
@@ -415,10 +416,12 @@ class ManifestLoader(object):
                 with open(manifest_path) as f:
                     json_data = json.load(f)
             except IOError:
-                #If the existing file doesn't exist just create one from scratch
-                pass
+                self.logger.info("Unable to find test manifest")
+            except ValueError:
+                self.logger.info("Unable to parse test manifest")
 
         if not json_data:
+            self.logger.info("Creating test manifest")
             manifest_file = manifest.Manifest(url_base)
         else:
             try:
@@ -430,8 +433,7 @@ class ManifestLoader(object):
 
         manifest.write(manifest_file, manifest_path)
 
-    def load_manifest(self, tests_path, metadata_path, url_base="/"):
-        manifest_path = os.path.join(metadata_path, "MANIFEST.json")
+    def load_manifest(self, tests_path, manifest_path, url_base="/", **kwargs):
         if (not os.path.exists(manifest_path) or
             self.force_manifest_update):
             self.update_manifest(manifest_path, tests_path, url_base, download=self.manifest_download)
@@ -443,6 +445,7 @@ class ManifestLoader(object):
             manifest.write(manifest_file, manifest_path)
 
         return manifest_file
+
 
 def iterfilter(filters, iter):
     for f in filters:
@@ -460,7 +463,8 @@ class TestLoader(object):
                  chunk_type="none",
                  total_chunks=1,
                  chunk_number=1,
-                 include_https=True):
+                 include_https=True,
+                 skip_timeout=False):
 
         self.test_types = test_types
         self.run_info = run_info
@@ -472,6 +476,7 @@ class TestLoader(object):
         self.tests = None
         self.disabled_tests = None
         self.include_https = include_https
+        self.skip_timeout = skip_timeout
 
         self.chunk_type = chunk_type
         self.total_chunks = total_chunks
@@ -557,6 +562,8 @@ class TestLoader(object):
             enabled = not test.disabled()
             if not self.include_https and test.environment["protocol"] == "https":
                 enabled = False
+            if self.skip_timeout and test.expected() == "TIMEOUT":
+                enabled = False
             key = "enabled" if enabled else "disabled"
             tests[key][test_type].append(test)
 
@@ -583,6 +590,7 @@ class TestSource(object):
         self.current_metadata = None
 
     @abstractmethod
+    # noqa: N805
     #@classmethod (doesn't compose with @abstractmethod)
     def make_queue(cls, tests, **kwargs):
         pass

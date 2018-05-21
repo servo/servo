@@ -18,11 +18,11 @@ use font::{FontHandleMethods, FontMetrics, FontTableMethods, FontTableTag, Fract
 use font::{GPOS, GSUB, KERN};
 use platform::font_template::FontTemplateData;
 use platform::macos::font_context::FontContextHandle;
+use servo_atoms::Atom;
 use std::{fmt, ptr};
 use std::ops::Range;
 use std::sync::Arc;
-use style::computed_values::font_stretch::T as FontStretch;
-use style::computed_values::font_weight::T as FontWeight;
+use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 use text::glyph::GlyphId;
 
 const KERN_PAIR_LEN: usize = 6;
@@ -69,11 +69,7 @@ impl FontHandle {
     /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
     /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
     fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
-        let font_table = match self.table_for_tag(KERN) {
-            Some(table) => table,
-            None => return None
-        };
-
+        let font_table = self.table_for_tag(KERN)?;
         let mut result = CachedKernTable {
             font_table: font_table,
             pair_data_range: 0..0,
@@ -207,34 +203,33 @@ impl FontHandleMethods for FontHandle {
         Some(self.ctfont.face_name())
     }
 
-    fn is_italic(&self) -> bool {
-        self.ctfont.symbolic_traits().is_italic()
+    fn style(&self) -> FontStyle {
+        use style::values::generics::font::FontStyle::*;
+        if self.ctfont.symbolic_traits().is_italic() {
+            Italic
+        } else {
+            Normal
+        }
     }
 
     fn boldness(&self) -> FontWeight {
         let normalized = self.ctfont.all_traits().normalized_weight();  // [-1.0, 1.0]
+        // TODO(emilio): It may make sense to make this range [.01, 10.0], to
+        // align with css-fonts-4's range of [1, 1000].
         let normalized = if normalized <= 0.0 {
             4.0 + normalized * 3.0  // [1.0, 4.0]
         } else {
             4.0 + normalized * 5.0  // [4.0, 9.0]
         }; // [1.0, 9.0], centered on 4.0
-        FontWeight::from_int(normalized.round() as i32 * 100).unwrap()
+        FontWeight(normalized as f32 * 100.)
     }
 
     fn stretchiness(&self) -> FontStretch {
+        use style::values::computed::Percentage;
+        use style::values::generics::NonNegative;
+
         let normalized = self.ctfont.all_traits().normalized_width();  // [-1.0, 1.0]
-        let normalized = (normalized + 1.0) / 2.0 * 9.0;  // [0.0, 9.0]
-        match normalized {
-            v if v < 1.0 => FontStretch::UltraCondensed,
-            v if v < 2.0 => FontStretch::ExtraCondensed,
-            v if v < 3.0 => FontStretch::Condensed,
-            v if v < 4.0 => FontStretch::SemiCondensed,
-            v if v < 5.0 => FontStretch::Normal,
-            v if v < 6.0 => FontStretch::SemiExpanded,
-            v if v < 7.0 => FontStretch::Expanded,
-            v if v < 8.0 => FontStretch::ExtraExpanded,
-            _ => FontStretch::UltraExpanded,
-        }
+        FontStretch(NonNegative(Percentage(normalized as f32 + 1.0)))
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -251,7 +246,7 @@ impl FontHandleMethods for FontHandle {
             return None;
         }
 
-        assert!(glyphs[0] != 0); // FIXME: error handling
+        assert_ne!(glyphs[0], 0); // FIXME: error handling
         return Some(glyphs[0] as GlyphId);
     }
 
@@ -321,5 +316,9 @@ impl FontHandleMethods for FontHandle {
         result.and_then(|data| {
             Some(FontTable::wrap(data))
         })
+    }
+
+    fn identifier(&self) -> Atom {
+        self.font_data.identifier.clone()
     }
 }

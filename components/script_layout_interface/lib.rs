@@ -7,6 +7,7 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
+#![feature(associated_type_defaults)]
 
 extern crate app_units;
 extern crate atomic_refcell;
@@ -24,7 +25,6 @@ extern crate malloc_size_of;
 extern crate metrics;
 extern crate msg;
 extern crate net_traits;
-extern crate nonzero;
 extern crate profile_traits;
 extern crate range;
 extern crate script_traits;
@@ -41,13 +41,13 @@ pub mod rpc;
 pub mod wrapper_traits;
 
 use atomic_refcell::AtomicRefCell;
-use canvas_traits::canvas::CanvasMsg;
+use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use net_traits::image_cache::PendingImageId;
-use nonzero::NonZero;
 use script_traits::UntrustedNodeAddress;
 use servo_url::ServoUrl;
+use std::ptr::NonNull;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
@@ -77,7 +77,7 @@ pub struct OpaqueStyleAndLayoutData {
     // NB: We really store a `StyleAndLayoutData` here, so be careful!
     #[ignore_malloc_size_of = "TODO(#6910) Box value that should be counted but \
                                the type lives in layout"]
-    pub ptr: NonZero<*mut StyleData>,
+    pub ptr: NonNull<StyleData>,
 }
 
 #[allow(unsafe_code)]
@@ -108,11 +108,13 @@ pub enum LayoutNodeType {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LayoutElementType {
     Element,
+    HTMLBRElement,
     HTMLCanvasElement,
     HTMLIFrameElement,
     HTMLImageElement,
     HTMLInputElement,
     HTMLObjectElement,
+    HTMLParagraphElement,
     HTMLTableCellElement,
     HTMLTableColElement,
     HTMLTableElement,
@@ -131,6 +133,7 @@ pub struct HTMLCanvasData {
     pub source: HTMLCanvasDataSource,
     pub width: u32,
     pub height: u32,
+    pub canvas_id: CanvasId,
 }
 
 pub struct SVGSVGData {

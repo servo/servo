@@ -102,17 +102,22 @@ your `%Path%` [Environment Variable](http://www.computerhope.com/issues/ch000549
 and read the [Windows Notes](#windows-notes) section below.
 
 To get the tests running, you need to set up the test domains in your
-[`hosts` file](http://en.wikipedia.org/wiki/Hosts_%28file%29%23Location_in_the_file_system). The
-following entries are required:
+[`hosts` file](http://en.wikipedia.org/wiki/Hosts_%28file%29%23Location_in_the_file_system).
 
+The necessary content can be generated with `./wpt make-hosts-file`; on
+Windows, you will need to preceed the prior command with `python` or
+the path to the Python binary (`python wpt make-hosts-file`).
+
+For example, on most UNIX-like systems, you can setup the hosts file with:
+
+```bash
+./wpt make-hosts-file | sudo tee -a /etc/hosts
 ```
-127.0.0.1   web-platform.test
-127.0.0.1   www.web-platform.test
-127.0.0.1   www1.web-platform.test
-127.0.0.1   www2.web-platform.test
-127.0.0.1   xn--n8j6ds53lwwkrqhv28a.web-platform.test
-127.0.0.1   xn--lve-6lad.web-platform.test
-0.0.0.0     nonexistent-origin.web-platform.test
+
+And on Windows (this must be run in a PowerShell session with Administrator privileges):
+
+```bash
+python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -Encoding ascii -Append
 ```
 
 If you are behind a proxy, you also need to make sure the domains above are
@@ -123,21 +128,27 @@ The test environment can then be started using
     ./wpt serve
 
 This will start HTTP servers on two ports and a websockets server on
-one port. By default one web server starts on port 8000 and the other
+one port. By default the web servers start on ports 8000 and 8443 and the other
 ports are randomly-chosen free ports. Tests must be loaded from the
-*first* HTTP server in the output. To change the ports, copy the
-`config.default.json` file to `config.json` and edit the new file,
-replacing the part that reads:
+*first* HTTP server in the output. To change the ports,
+create a `config.json` file in the wpt root directory, and add
+port definitions of your choice e.g.:
 
 ```
-"http": [8000, "auto"]
+{
+  "ports": {
+    "http": [1234, "auto"],
+    "https":[5678]
+  }
+}
 ```
 
-to some port of your choice e.g.
+After your `hosts` file is configured, the servers will be locally accessible at:
 
-```
-"http": [1234, "auto"]
-```
+http://web-platform.test:8000/<br>
+https://web-platform.test:8443/ *
+
+\**See [Trusting Root CA](https://github.com/w3c/web-platform-tests/blob/master/README.md#trusting-root-ca)*
 
 ## Running tests automatically
 

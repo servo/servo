@@ -307,6 +307,18 @@
      {}
     ]
    ],
+   "css/background_border_padding_crash.html": [
+    [
+     "/_mozilla/css/background_border_padding_crash.html",
+     [
+      [
+       "/_mozilla/css/background_border_padding_crash-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/background_clip_a.html": [
     [
      "/_mozilla/css/background_clip_a.html",
@@ -2267,6 +2279,42 @@
      {}
     ]
    ],
+   "css/font_fallback_01.html": [
+    [
+     "/_mozilla/css/font_fallback_01.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_02.html": [
+    [
+     "/_mozilla/css/font_fallback_02.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_03.html": [
+    [
+     "/_mozilla/css/font_fallback_03.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/font_size.html": [
     [
      "/_mozilla/css/font_size.html",
@@ -2381,18 +2429,6 @@
      [
       [
        "/_mozilla/css/iframe/hide_layers_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "css/iframe/mozbrowser_navigation.html": [
-    [
-     "/_mozilla/css/iframe/mozbrowser_navigation.html",
-     [
-      [
-       "/_mozilla/css/iframe/mozbrowser_navigation_ref.html",
        "=="
       ]
      ],
@@ -3881,6 +3917,18 @@
      [
       [
        "/_mozilla/css/link_style_order_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/list_item_marker_around_float.html": [
+    [
+     "/_mozilla/css/list_item_marker_around_float.html",
+     [
+      [
+       "/_mozilla/css/list_item_marker_around_float_ref.html",
        "=="
       ]
      ],
@@ -5837,6 +5885,18 @@
      {}
     ]
    ],
+   "css/table_rowspan_notequal_a.html": [
+    [
+     "/_mozilla/css/table_rowspan_notequal_a.html",
+     [
+      [
+       "/_mozilla/css/table_rowspan_notequal_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/table_rowspan_rowgroup_a.html": [
     [
      "/_mozilla/css/table_rowspan_rowgroup_a.html",
@@ -6857,630 +6917,6 @@
      {}
     ]
    ],
-   "mozilla/css-paint-api/background-image-alpha.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/background-image-alpha.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/background-image-alpha-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/background-image-multiple.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/background-image-multiple.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/background-image-multiple-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/background-image-tiled.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/background-image-tiled.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/background-image-tiled-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-001.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-background-image-001.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-background-image-001-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-002.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-background-image-002.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-background-image-002-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-003.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-background-image-003.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-background-image-003-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-tiled-001.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-001.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-001-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-tiled-002.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-002.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-002-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-tiled-003.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-003.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-background-image-tiled-003-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-001.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-border-image-001.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-border-image-001-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-002.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-border-image-002.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-border-image-002-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-003.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-border-image-003.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-border-image-003-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-004.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-border-image-004.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-border-image-004-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-005.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/geometry-border-image-005.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/geometry-border-image-005-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/invalid-image-constructor-error.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/invalid-image-constructor-error.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/invalid-image-constructor-error-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/invalid-image-paint-error.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/invalid-image-paint-error.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/invalid-image-paint-error-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/invalid-image-pending-script.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/invalid-image-pending-script.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/invalid-image-pending-script-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/overdraw.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/overdraw.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/overdraw-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint-arguments.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint-arguments.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint-function-arguments.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint-function-arguments.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint-function-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-composite.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-composite.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-composite-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-filter.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-filter.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-filter-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-gradient.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-gradient.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-gradient-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-image.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-image.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-image-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-paths.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-paths.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-paths-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-rects.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-rects.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-rects-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-shadows.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-shadows.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-shadows-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-transform.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-transform.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-transform-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-zoom.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/paint2d-zoom.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/paint2d-zoom-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-001.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-001.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-002.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-002.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-003.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-003.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-004.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-004.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-005.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-005.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-006.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-006.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-007.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-007.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-008.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-008.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-009.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-009.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-010.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-010.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-011.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-011.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-012.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-012.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-013.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-013.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-014.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-014.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-015.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-015.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-016.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-016.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-017.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/parse-input-arguments-017.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/registered-properties-in-custom-paint.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/registered-properties-in-custom-paint.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/parse-input-arguments-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/style-background-image.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/style-background-image.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/style-background-image-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/style-before-pseudo.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/style-before-pseudo.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/style-before-pseudo-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/style-first-letter-pseudo.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/style-first-letter-pseudo.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/style-first-letter-pseudo-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/valid-image-after-load.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/valid-image-after-load.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/valid-image-after-load-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/valid-image-before-load.html": [
-    [
-     "/_mozilla/mozilla/css-paint-api/valid-image-before-load.html",
-     [
-      [
-       "/_mozilla/mozilla/css-paint-api/valid-image-before-load-ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
    "mozilla/details_ui_closed.html": [
     [
      "/_mozilla/mozilla/details_ui_closed.html",
@@ -7499,6 +6935,18 @@
      [
       [
        "/_mozilla/mozilla/details_ui_opened_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "mozilla/duplicated_scroll_ids.html": [
+    [
+     "/_mozilla/mozilla/duplicated_scroll_ids.html",
+     [
+      [
+       "/_mozilla/mozilla/duplicated_scroll_ids_ref.html",
        "=="
       ]
      ],
@@ -7804,6 +7252,18 @@
      ],
      {}
     ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.html": [
+    [
+     "/_mozilla/mozilla/worklets/test_paint_worklet_timeout.html",
+     [
+      [
+       "/_mozilla/mozilla/worklets/test_paint_worklet_timeout_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
    ]
   },
   "reftest_node": {
@@ -8007,6 +7467,11 @@
     ]
    ],
    "css/attr_selector_case_sensitivity_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/background_border_padding_crash-ref.html": [
     [
      {}
     ]
@@ -8836,6 +8301,11 @@
      {}
     ]
    ],
+   "css/font_fallback_failed_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/font_size_ref.html": [
     [
      {}
@@ -8907,11 +8377,6 @@
     ]
    ],
    "css/iframe/hide_layers_ref.html": [
-    [
-     {}
-    ]
-   ],
-   "css/iframe/mozbrowser_navigation_ref.html": [
     [
      {}
     ]
@@ -9522,6 +8987,11 @@
     ]
    ],
    "css/link_style_order_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/list_item_marker_around_float_ref.html": [
     [
      {}
     ]
@@ -10356,6 +9826,11 @@
      {}
     ]
    ],
+   "css/table_rowspan_notequal_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/table_rowspan_rowgroup_ref.html": [
     [
      {}
@@ -10811,202 +10286,17 @@
      {}
     ]
    ],
-   "mozilla/css-paint-api/OWNERS": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/background-image-alpha-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/background-image-multiple-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/background-image-tiled-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/css-paint-tests.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-001-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-002-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-003-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-tiled-001-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-tiled-002-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-background-image-tiled-003-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-001-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-002-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-003-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-004-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/geometry-border-image-005-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/invalid-image-constructor-error-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/invalid-image-paint-error-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/invalid-image-pending-script-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/overdraw-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint-arguments-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint-function-arguments-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-composite-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-filter-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-gradient-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-image-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-paths-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-rects-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-shadows-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-transform-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/paint2d-zoom-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/parse-input-arguments-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/resources/html5.png": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/style-background-image-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/style-before-pseudo-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/style-first-letter-pseudo-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/valid-image-after-load-ref.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/css-paint-api/valid-image-before-load-ref.html": [
-    [
-     {}
-    ]
-   ],
    "mozilla/details_ui_closed_ref.html": [
     [
      {}
     ]
    ],
    "mozilla/details_ui_opened_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/duplicated_scroll_ids_ref.html": [
     [
      {}
     ]
@@ -11052,101 +10342,6 @@
     ]
    ],
    "mozilla/interfaces.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/helper.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_contentDocument_inner.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_privateContent_grandchild.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_privateContent_inner.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe1.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe2.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe3.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_child.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_grandchild.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_harness.js": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsericonchange_event_test.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowserlocationchange_event_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_nested_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_no_params_alert.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event_iframe.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/redirect_final.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/redirect_init.html": [
-    [
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/stash.py": [
     [
      {}
     ]
@@ -12456,11 +11651,6 @@
      {}
     ]
    ],
-   "mozilla/resources/content.py": [
-    [
-     {}
-    ]
-   ],
    "mozilla/resources/external.js": [
     [
      {}
@@ -12697,6 +11887,16 @@
     ]
    ],
    "mozilla/worklets/test_paint_worklet_size_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout.js": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
     [
      {}
     ]
@@ -32633,6 +31833,12 @@
      {}
     ]
    ],
+   "css/issue_18544_flow_list_crash.html": [
+    [
+     "/_mozilla/css/issue_18544_flow_list_crash.html",
+     {}
+    ]
+   ],
    "css/matchMedia.html": [
     [
      "/_mozilla/css/matchMedia.html",
@@ -32819,6 +32025,12 @@
      {}
     ]
    ],
+   "mozilla/codegen_unions.html": [
+    [
+     "/_mozilla/mozilla/codegen_unions.html",
+     {}
+    ]
+   ],
    "mozilla/collections.html": [
     [
      "/_mozilla/mozilla/collections.html",
@@ -32842,6 +32054,12 @@
    "mozilla/cross-origin-objects/cross-origin-postMessage.html": [
     [
      "/_mozilla/mozilla/cross-origin-objects/cross-origin-postMessage.html",
+     {}
+    ]
+   ],
+   "mozilla/custom_auto_rooter.html": [
+    [
+     "/_mozilla/mozilla/custom_auto_rooter.html",
      {}
     ]
    ],
@@ -33217,6 +32435,12 @@
      {}
     ]
    ],
+   "mozilla/http-cache-xhr.html": [
+    [
+     "/_mozilla/mozilla/http-cache-xhr.html",
+     {}
+    ]
+   ],
    "mozilla/http-cache.html": [
     [
      "/_mozilla/mozilla/http-cache.html",
@@ -33394,96 +32618,6 @@
    "mozilla/mime_sniffing_font_context.html": [
     [
      "/_mozilla/mozilla/mime_sniffing_font_context.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/crossorigin_xhr.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/crossorigin_xhr.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_goback.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/iframe_goback.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_reload_twice.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/iframe_reload_twice.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/iframe_visibility.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/iframe_visibility.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_iframe_parentage.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowser_iframe_parentage.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowser_loadevents.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowser_loadevents.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsericonchange_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsericonchange_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowserlocationchange_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowserlocationchange_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsersecuritychange_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsersecuritychange_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/private_browsing.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/private_browsing.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/redirect.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/redirect.html",
-     {}
-    ]
-   ],
-   "mozilla/mozbrowser/reload.html": [
-    [
-     "/_mozilla/mozilla/mozbrowser/reload.html",
      {}
     ]
    ],
@@ -40015,18 +39149,6 @@
      {}
     ]
    ],
-   "mozilla/send-arraybuffer.htm": [
-    [
-     "/_mozilla/mozilla/send-arraybuffer.htm",
-     {}
-    ]
-   ],
-   "mozilla/send-blob.htm": [
-    [
-     "/_mozilla/mozilla/send-blob.htm",
-     {}
-    ]
-   ],
    "mozilla/sequence-hole.html": [
     [
      "/_mozilla/mozilla/sequence-hole.html",
@@ -40069,9 +39191,21 @@
      {}
     ]
    ],
+   "mozilla/table_rowspan_colspan_crashtest.html": [
+    [
+     "/_mozilla/mozilla/table_rowspan_colspan_crashtest.html",
+     {}
+    ]
+   ],
    "mozilla/textcontent.html": [
     [
      "/_mozilla/mozilla/textcontent.html",
+     {}
+    ]
+   ],
+   "mozilla/textcontrol-selection-cannot-exceed-content.html": [
+    [
+     "/_mozilla/mozilla/textcontrol-selection-cannot-exceed-content.html",
      {}
     ]
    ],
@@ -40141,6 +39275,12 @@
      {}
     ]
    ],
+   "mozilla/webgl/bindBuffer.html": [
+    [
+     "/_mozilla/mozilla/webgl/bindBuffer.html",
+     {}
+    ]
+   ],
    "mozilla/webgl/bufferData.html": [
     [
      "/_mozilla/mozilla/webgl/bufferData.html",
@@ -40150,6 +39290,12 @@
    "mozilla/webgl/bufferSubData.html": [
     [
      "/_mozilla/mozilla/webgl/bufferSubData.html",
+     {}
+    ]
+   ],
+   "mozilla/webgl/clear.html": [
+    [
+     "/_mozilla/mozilla/webgl/clear.html",
      {}
     ]
    ],
@@ -40192,6 +39338,12 @@
    "mozilla/window_performance.html": [
     [
      "/_mozilla/mozilla/window_performance.html",
+     {}
+    ]
+   ],
+   "mozilla/window_performance_topLevelDomComplete.html": [
+    [
+     "/_mozilla/mozilla/window_performance_topLevelDomComplete.html",
      {}
     ]
    ],
@@ -59939,7 +59091,7 @@
  },
  "paths": {
   "./lint.whitelist": [
-   "28c20b33fcbd818a46005dcbf53473f8b8346c89",
+   "3e30a95c5b79cc3752c21739da62f47b37c025e5",
    "support"
   ],
   "bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
@@ -60379,7 +59531,7 @@
    "testharness"
   ],
   "bluetooth/interfaces.html": [
-   "4d97da8dc427bd500dafd684e08da59a9a0d35c4",
+   "4558862f81e4a5a3a3d16f7156c5cff63f4b7073",
    "testharness"
   ],
   "bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
@@ -60763,7 +59915,7 @@
    "testharness"
   ],
   "bluetooth/writeValue/characteristic/write-updates-value.html": [
-   "7f7366bc66c31db8716ae84613d876b4b7f62626",
+   "3c67dbbdf28c71dcba42b0422885937f0a737864",
    "testharness"
   ],
   "bluetooth/writeValue/descriptor/blocklisted-descriptor.html": [
@@ -60795,7 +59947,7 @@
    "testharness"
   ],
   "bluetooth/writeValue/descriptor/write-updates-value.html": [
-   "d92db44be1e1f4720337cb38acc7eea3f34abadd",
+   "2c71ee45a923996bd4a80c063e7761d7c28ac18d",
    "testharness"
   ],
   "css/100x100_green.png": [
@@ -61056,6 +60208,14 @@
   ],
   "css/background.html": [
    "a85620b9a57b3cb46b7629b7a8fead6417d2dd28",
+   "reftest"
+  ],
+  "css/background_border_padding_crash-ref.html": [
+   "eae17c2be5646f7fa1dc26e5a28a89c527da00e6",
+   "support"
+  ],
+  "css/background_border_padding_crash.html": [
+   "600d0c014aabfe13f09dec11757d5d7740a5ba74",
    "reftest"
   ],
   "css/background_clip_a.html": [
@@ -62418,6 +61578,22 @@
    "0c8f70a37e6d56370576c7f5ba7f1df359db8f9c",
    "support"
   ],
+  "css/font_fallback_01.html": [
+   "1dee8f90d8d1ee1f91e9ad9d1442a3abfec5d596",
+   "reftest"
+  ],
+  "css/font_fallback_02.html": [
+   "60d61d9d51206c8b741ef7914447329722950d67",
+   "reftest"
+  ],
+  "css/font_fallback_03.html": [
+   "4ef0d7e423624e93b3f028d9baa5a11f9e8f28b2",
+   "reftest"
+  ],
+  "css/font_fallback_failed_ref.html": [
+   "ebc502a8b3e0fd4dd5eb79a1dae83ab3e6774178",
+   "support"
+  ],
   "css/font_size.html": [
    "7c944acb4f7d909083888a355e6d664c23081b99",
    "reftest"
@@ -62451,7 +61627,7 @@
    "support"
   ],
   "css/get-computed-style-for-url.html": [
-   "2e90c0abd6c83bb11113f39a557a4c1c1c24364b",
+   "cb3b467160026d20c4e283c12ded20fe2d025f88",
    "testharness"
   ],
   "css/green.png": [
@@ -62520,14 +61696,6 @@
   ],
   "css/iframe/hide_layers_ref.html": [
    "e30451b16fc0c4b025a2160e6c7b849901150718",
-   "support"
-  ],
-  "css/iframe/mozbrowser_navigation.html": [
-   "7a17922ce48c8138284ad1a1f0f88317df35b541",
-   "reftest"
-  ],
-  "css/iframe/mozbrowser_navigation_ref.html": [
-   "368a46cfb7c6cdce26381121d803427d6ad93c69",
    "support"
   ],
   "css/iframe/multiple_external.html": [
@@ -63286,6 +62454,10 @@
    "863e3c8c5ffa1627a20f51e89b7eca884ea381dd",
    "reftest"
   ],
+  "css/issue_18544_flow_list_crash.html": [
+   "9e41b681e414db9bd5f3fc75210de12a6e660c28",
+   "testharness"
+  ],
   "css/jpeg_normal.html": [
    "4e9d02f232492b55f8e6b71046b392c4dc2c9fb6",
    "reftest"
@@ -63516,6 +62688,14 @@
   ],
   "css/link_style_order_ref.html": [
    "958f9315c950502cdadb2297e1ab77e197774113",
+   "support"
+  ],
+  "css/list_item_marker_around_float.html": [
+   "1023fced99e1181fadce849978c4e111da8ad4aa",
+   "reftest"
+  ],
+  "css/list_item_marker_around_float_ref.html": [
+   "1c13844df9055d73a8421ca3f8398cb4c289c44e",
    "support"
   ],
   "css/list_item_overflow.html": [
@@ -64858,6 +64038,14 @@
    "e045db1f738850e516079b66f915ba314b54ed99",
    "support"
   ],
+  "css/table_rowspan_notequal_a.html": [
+   "ec7ab6318a498f6b88369f097af53a0626c6fb1d",
+   "reftest"
+  ],
+  "css/table_rowspan_notequal_ref.html": [
+   "2a07facbd9f417264b46f6419ab00593051dae56",
+   "support"
+  ],
   "css/table_rowspan_rowgroup_a.html": [
    "aadc4cdd09585330446dd231452c04810833f586",
    "reftest"
@@ -65646,6 +64834,10 @@
    "5183977a0d29ba4d74d049c9391090e3c27264a8",
    "testharness"
   ],
+  "mozilla/codegen_unions.html": [
+   "7f772fffb75acc92f9c949a482d387b3ed18d0ed",
+   "testharness"
+  ],
   "mozilla/collections.html": [
    "d0bebe808ebb45b6c853f4b88e1a6ebbf9b91345",
    "testharness"
@@ -65670,365 +64862,9 @@
    "0163758c92997c6723c9d21be49ef7f51d8b3daf",
    "testharness"
   ],
-  "mozilla/css-paint-api/OWNERS": [
-   "0c1517f7ba747014c7c091b61d48f11421ed91c2",
-   "support"
-  ],
-  "mozilla/css-paint-api/background-image-alpha-ref.html": [
-   "45ef6e998e5f266741f5403df650cd9557dbe005",
-   "support"
-  ],
-  "mozilla/css-paint-api/background-image-alpha.html": [
-   "ec35a42013e36c05a26266f0f78a16283acc843d",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/background-image-multiple-ref.html": [
-   "9ff536499d72240f67eb6911b768c624371ea678",
-   "support"
-  ],
-  "mozilla/css-paint-api/background-image-multiple.html": [
-   "f8c286926ccf981713eb34259e3f5389bf3c37f6",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/background-image-tiled-ref.html": [
-   "a879be73470aae683bd7596132225770bc8be27b",
-   "support"
-  ],
-  "mozilla/css-paint-api/background-image-tiled.html": [
-   "4c7b8e525a909cbc38a2ad0b6a44a803595b6772",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/css-paint-tests.js": [
-   "0e88a610e5ad9ff1deb04adec35b73caadbff201",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-001-ref.html": [
-   "bca138ca3ce5b6dee10f935fd2ff9756d18b12ef",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-001.html": [
-   "042380a14db00ace100393719f74e8864d16c6cd",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-002-ref.html": [
-   "4d33168e6298c1ed7d44ff431791615cdaf9038f",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-002.html": [
-   "fd962b9a8f7645615a0dbb3dc247e0d408060c9c",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-003-ref.html": [
-   "e5b4098a1f1b9aab0a27c7bdae0532db4dc26a92",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-003.html": [
-   "bb1f458f7672995804e0e1565aa5a78d5d3527c2",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-tiled-001-ref.html": [
-   "df994fa58244f5e8d4b4aac7f0ad335fe8570dcc",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-tiled-001.html": [
-   "bfe687843bcc155746ded14983f0cd1fc956ff66",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-tiled-002-ref.html": [
-   "c5363f4f7843ff8025ae5457524c0c9f4aac144c",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-tiled-002.html": [
-   "6b33b4456f3e91f0867aaacd68a842b10fbbbd08",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-tiled-003-ref.html": [
-   "d4f9428be3b8f9003eb9373b3eb87ebed0c55c15",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-background-image-tiled-003.html": [
-   "728cb8ad6268a57d8729588648d9d68ffc685073",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-001-ref.html": [
-   "81026e756ea8e3be653e176c09f1762507915cb8",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-001.html": [
-   "3e45991eaddb310c517cb804ff2511150b12fbda",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-002-ref.html": [
-   "076c1f3e3b5cfd3a434e94f33872f5f598a7225b",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-002.html": [
-   "37ebb2c728fe88bbd8745050b573e2ca0c3f865c",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-003-ref.html": [
-   "141bf94dcd935420b95ee4da52139bf51318196d",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-003.html": [
-   "d29cfb4fb9895ef72dc281c55be2cf356a7259a5",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-004-ref.html": [
-   "d730b44bd1020305b70da095a15f9a4f7e9f262a",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-004.html": [
-   "09219c8985bb2f66682a6df393ecfcf283978ac3",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-005-ref.html": [
-   "b401ed261976a4acd2408a84fda9d63d27d1c3a4",
-   "support"
-  ],
-  "mozilla/css-paint-api/geometry-border-image-005.html": [
-   "83efcbdc5e2cd1850ea4c490b6c7e7327f329923",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/invalid-image-constructor-error-ref.html": [
-   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
-   "support"
-  ],
-  "mozilla/css-paint-api/invalid-image-constructor-error.html": [
-   "694efcb525fed448cc757cff38ec034dad9cdb3c",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/invalid-image-paint-error-ref.html": [
-   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
-   "support"
-  ],
-  "mozilla/css-paint-api/invalid-image-paint-error.html": [
-   "3b0e6a034f3edbde6d30ad9483a50fbea0ab48bd",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/invalid-image-pending-script-ref.html": [
-   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
-   "support"
-  ],
-  "mozilla/css-paint-api/invalid-image-pending-script.html": [
-   "54a69d6d408e77bf2e91ee09564d62c8d16d1eb3",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/overdraw-ref.html": [
-   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
-   "support"
-  ],
-  "mozilla/css-paint-api/overdraw.html": [
-   "a2d730dbd6faefbd8bbd07d33f6942f6573b842e",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint-arguments-ref.html": [
-   "cbe0372259011ca94f0fd8d233413439ba9cf117",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint-arguments.html": [
-   "2807e0bc8b2e8aa9e5edf69f9de3e8d4ee853ef9",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint-function-arguments-ref.html": [
-   "a3aebfce59d0f62ab229248b7903b0dc731835d5",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint-function-arguments.html": [
-   "f3c461e7e5797d3b65058109ffc58b6c95e1a340",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-composite-ref.html": [
-   "60c069de8135b934df166560db5c592d5becbc92",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-composite.html": [
-   "f9d0cceb6360cbdf3478673740ecfbe67a4a11d2",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-filter-ref.html": [
-   "6f1be576ae7ead2a724357b16ea88c92b3b19a0d",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-filter.html": [
-   "c266200a6a990b5b23e6f9d5859f8f5c4c271be8",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-gradient-ref.html": [
-   "3b2abb3632893c0f5a2714fc325467f0076001a8",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-gradient.html": [
-   "6cf101de7a3aa627cb372f00eeb36e969ff25734",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-image-ref.html": [
-   "c71e0b960177b13614d2c11392c94ea155927ebe",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-image.html": [
-   "769d066054b6cabb77ed3f958d52bfdb17e99b8d",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-paths-ref.html": [
-   "cf154ab8a37bdbce2175193dfc456f4771bfeca8",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-paths.html": [
-   "8f98b1d34bb3719b5e337f279adbe63fc6c122fd",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-rects-ref.html": [
-   "2a469427fbdbee6b096a63b95846cdeda92c0255",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-rects.html": [
-   "e2e82b82b28af9e509a9eabf48f728dbe06b0d18",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-shadows-ref.html": [
-   "f882c26b0dfb58fe1ab3177060f421dad0148456",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-shadows.html": [
-   "7ca525ddfa56a8571857a8656e6bed38c440705a",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-transform-ref.html": [
-   "5eff507eeee563399205645668c7ed3df79213c9",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-transform.html": [
-   "e4b544068821f6f8882f05836a07a19891fc85b8",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/paint2d-zoom-ref.html": [
-   "37354f2479a070eadd2a571ff6207953cad3597d",
-   "support"
-  ],
-  "mozilla/css-paint-api/paint2d-zoom.html": [
-   "00c20556fef8169662a4e230e10c0952ab4bfa42",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-001.html": [
-   "5afe3f03b880000bb94803cb2a6eee8d423f5d68",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-002.html": [
-   "ba0f7dd2398ab0e786792b83eec77e3dda297ece",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-003.html": [
-   "9170929ec7d55285884701d8b18abe53ce1114e3",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-004.html": [
-   "5feae438f32bb77d58431b7958f31afde4c73ba9",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-005.html": [
-   "106cf8d73dad4355d5184b1306d2ba8b92ef55ec",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-006.html": [
-   "018090e38d8354d9ebfceecdfee315e6f069aaaa",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-007.html": [
-   "58f132ed442b4e6385436e60ba809f3ce36444c2",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-008.html": [
-   "68c0f9c8b91ec1fc42a1599d7af2cff1bf8ecf33",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-009.html": [
-   "c8c5ad5eb83db204ff0ba1c3747626ba252297f5",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-010.html": [
-   "9c4e808e6b52cdfc595227c2a1b17a1bd458073a",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-011.html": [
-   "32d14db912ad9a267b5f879a3b3574eec7e0a591",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-012.html": [
-   "ed8c9c408d7dee8e4315305e736a58766fe06575",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-013.html": [
-   "06ca97c7addc23faeeb929a927c9065101a90410",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-014.html": [
-   "0d899ca87aad315a5d59a506dc2ea306d0a32504",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-015.html": [
-   "2e4b898ff93047ef399450a762a152d05a63fd21",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-016.html": [
-   "fa390361d9f0237401c3fcee13ed44bd386d3a8f",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-017.html": [
-   "4e540c471f67e6e3554fcb436833ba80fe868cc8",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/parse-input-arguments-ref.html": [
-   "6133bd65ef569456f58f1e501d81e088256bdc0a",
-   "support"
-  ],
-  "mozilla/css-paint-api/registered-properties-in-custom-paint.html": [
-   "c33bf95ab3196bb958c3ddbb08b73792a5cacae7",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/resources/html5.png": [
-   "83ef56b6e4d0dcb0d2dcecfb3fc78035051e8627",
-   "support"
-  ],
-  "mozilla/css-paint-api/style-background-image-ref.html": [
-   "0985e20363c8aac715c534ad59f1209889244fb0",
-   "support"
-  ],
-  "mozilla/css-paint-api/style-background-image.html": [
-   "02a66fa36821edd082de0d0752f304960837fd07",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/style-before-pseudo-ref.html": [
-   "6dcbe78ab89343178e18e3e92744b25759ec8241",
-   "support"
-  ],
-  "mozilla/css-paint-api/style-before-pseudo.html": [
-   "e6b43224b40bca0703faccd7eb2688ca7cbea255",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/style-first-letter-pseudo-ref.html": [
-   "c6a94e5bafa098b8f4023312db97abebe992abc3",
-   "support"
-  ],
-  "mozilla/css-paint-api/style-first-letter-pseudo.html": [
-   "7f9ccf3429a327c4fdbde077d0fb4c61438d198d",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/valid-image-after-load-ref.html": [
-   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
-   "support"
-  ],
-  "mozilla/css-paint-api/valid-image-after-load.html": [
-   "4f20acb987ed51fc374d873db74522ed4bd1dc1c",
-   "reftest"
-  ],
-  "mozilla/css-paint-api/valid-image-before-load-ref.html": [
-   "b0c34ee1480fe1108fe8dc53f2bbb2f3ffa1c408",
-   "support"
-  ],
-  "mozilla/css-paint-api/valid-image-before-load.html": [
-   "67d8cdd3e3a1656ba315fcbf6dae7236680bac16",
-   "reftest"
+  "mozilla/custom_auto_rooter.html": [
+   "3466095fb0846b848c948dd1596764fff456fa9b",
+   "testharness"
   ],
   "mozilla/deep_serialization_succeeds.html": [
    "cb3d201d577c17d19babf1f6c04ba882fa42048e",
@@ -66149,6 +64985,14 @@
   "mozilla/double_focus.html": [
    "614fb3a1e9d775f07bf1d5b9a846ca48729f7805",
    "testharness"
+  ],
+  "mozilla/duplicated_scroll_ids.html": [
+   "3a10b783d1f411d7afdb3132b8eb43532c39c683",
+   "reftest"
+  ],
+  "mozilla/duplicated_scroll_ids_ref.html": [
+   "b2627acdddf71cf3b2a91d99f6db456397f71032",
+   "support"
   ],
   "mozilla/element_attribute.html": [
    "35625bedf3b323f8538174058c755cbccd25157c",
@@ -66310,8 +65154,12 @@
    "592f69ee432ba5bc7a2f2649e72e083d21393496",
    "testharness"
   ],
+  "mozilla/http-cache-xhr.html": [
+   "56c44d5100ec2b5a585192e4ec319bb133123c93",
+   "testharness"
+  ],
   "mozilla/http-cache.html": [
-   "33827dc9bdb0efcbcae4f730086693be315cfc14",
+   "929fdc40e9a193d0ead4c95e2d21d030d27d4bf0",
    "testharness"
   ],
   "mozilla/iframe-unblock-onload.html": [
@@ -66387,7 +65235,7 @@
    "testharness"
   ],
   "mozilla/interfaces.html": [
-   "ad914ab4c7a794b251c03f7b0f50aaef1ea78df0",
+   "365c76c771b3d79a671b04047923f5644efb9b93",
    "testharness"
   ],
   "mozilla/interfaces.js": [
@@ -66453,142 +65301,6 @@
   "mozilla/mime_sniffing_font_context.html": [
    "1311e72e0a0dafa6fae594ca1ce2deca164acd36",
    "testharness"
-  ],
-  "mozilla/mozbrowser/crossorigin_xhr.html": [
-   "e716ee75552f0e531fef1a71b20799ccb8b221d9",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/helper.html": [
-   "652e88e7a84b50ca1d4ed3cc2d1f1e354fb9ab32",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_contentDocument_inner.html": [
-   "a098b74e081838bcbf4ceb854a48a57eb5ae3cab",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_goback.html": [
-   "a850e2549dfdbcfbb344ccc23ff03717d392bfdc",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/iframe_privateContent_grandchild.html": [
-   "13d4e88f2581ff7d5cbbf149463563d0754978fe",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_privateContent_inner.html": [
-   "354b3b6d6596559bac45119db6549f1347b93bef",
-   "support"
-  ],
-  "mozilla/mozbrowser/iframe_reload_twice.html": [
-   "c6e6cc7ca336154723c658fb8cae8989ca8b7ee7",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/iframe_visibility.html": [
-   "c2a2df3f85f7ed1d76fbc694fe247071050ebb81",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html": [
-   "30fa150f6f22a989bf7e85d3b367ec7d61f57f09",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe1.html": [
-   "375566a899295a1da1685cd85127c2da60e1eee8",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe2.html": [
-   "e4d4a2acd91a4f12323b5aca458a5c4068e70782",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_click_fires_openwindow_iframe3.html": [
-   "9d714203485baed8faff37c312190dd384769c83",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_child.html": [
-   "a51e76f9c72896a539b08d40f48fef0412336a34",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_grandchild.html": [
-   "441c2e80ad3ecc9da321507a3c41b3c346bea0f0",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_harness.js": [
-   "c5db7a8f3c32f79a4e24d176cb95563a999240e5",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowser_iframe_parentage.html": [
-   "3f03a10f8f8c72cbd0a73fc130f705246c308871",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowser_loadevents.html": [
-   "03ef403ece408147f23f5dc898a0509102c4d75c",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsericonchange_event.html": [
-   "fbaeb75787aa039e506c32ec0487dc05dc6280cf",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsericonchange_event_test.html": [
-   "61e39bc9ead6d4bfc9bf60bed3323753dc0e791a",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowserlocationchange_event.html": [
-   "35a0671b553ae5787b8444deac127e2ee071d0f7",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowserlocationchange_event_iframe.html": [
-   "ed175a1b2426de141ccb47e4d13c88ff0db0506e",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsersecuritychange_event.html": [
-   "58a58e552f21dd650020197b7e28c87c4d84e691",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event.html": [
-   "ff8971b64dda52903009697dc56df6b3a9cecdb3",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_iframe.html": [
-   "1cd97f725237d9ccba830a2e7f61b85da82319c5",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_nested_iframe.html": [
-   "4b40aeb217cfe9d557dbd4b87120b788ba7a0fd8",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsershowmodalprompt_event_no_params_alert.html": [
-   "8c67b9c24de045fe36be9ff74a0700d7e7af6588",
-   "support"
-  ],
-  "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event.html": [
-   "2beae7d4e20e0b535144ac91113a73724f970321",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/mozbrowsertitlechangedeagerly_event_iframe.html": [
-   "d7a0b1eced93ae16b2ccc7d1d1f2b1d383ff75ed",
-   "support"
-  ],
-  "mozilla/mozbrowser/private_browsing.html": [
-   "bc8f9bfde5b6eb53ec1362b0cfae5d300af15c7e",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/redirect.html": [
-   "7377e38b6bdaea746d8e3c2801112200dca502d2",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/redirect_final.html": [
-   "db82c9a14bc76e3548200bc2e507d6044660514c",
-   "support"
-  ],
-  "mozilla/mozbrowser/redirect_init.html": [
-   "ab668d7af80b7560bf3afa732b1198e2825929e9",
-   "support"
-  ],
-  "mozilla/mozbrowser/reload.html": [
-   "f8c4f6b0ccf95426a3e6816fce5490ef9704e267",
-   "testharness"
-  ],
-  "mozilla/mozbrowser/stash.py": [
-   "5513229f79ab37de67eb4d60ea9dd23cd31d133f",
-   "support"
   ],
   "mozilla/mql_borrow.html": [
    "f8f9adebe09f9473a52e5ec4f075540b10b32d7e",
@@ -71978,10 +70690,6 @@
    "1a76b81400b1e150f008d11180adcdf786e77b67",
    "support"
   ],
-  "mozilla/resources/content.py": [
-   "5cf25421cc9c0e0f88a159b363f99f37036d019f",
-   "support"
-  ],
   "mozilla/resources/external.js": [
    "78686147f85e4146e7fc58c1f67a613f65b099a2",
    "support"
@@ -72070,14 +70778,6 @@
    "fc757effccd93c56ab79b0510a01ae815b7a8714",
    "testharness"
   ],
-  "mozilla/send-arraybuffer.htm": [
-   "dc04c6f888458b28bd29a3a43f4dab7f12e72a33",
-   "testharness"
-  ],
-  "mozilla/send-blob.htm": [
-   "5d8d62c0c2c27edbb875183a31a9005c950141cc",
-   "testharness"
-  ],
   "mozilla/sequence-hole.html": [
    "db0cc2660c8d937ccf6e3334c92dc48208c69841",
    "testharness"
@@ -72095,7 +70795,7 @@
    "support"
   ],
   "mozilla/servo-max-session-history.html": [
-   "14e8b67eea2c1b6302cf5166218ed5b073624ee8",
+   "fc925a10010ee4ae6e318d571e03502e5e9cba83",
    "testharness"
   ],
   "mozilla/sigsegv.html": [
@@ -72146,6 +70846,10 @@
    "f43703402d539a05a55990cd2a03c50eabea122b",
    "support"
   ],
+  "mozilla/table_rowspan_colspan_crashtest.html": [
+   "6890b7ec8b29dd5fb02c8e93035728f2b5bf8668",
+   "testharness"
+  ],
   "mozilla/table_valign_bottom.html": [
    "43814fb9c385f2501ff88673acf4b58079670015",
    "reftest"
@@ -72194,6 +70898,10 @@
    "094fbd794b78520d6c2d8aae549557bed3529a7a",
    "testharness"
   ],
+  "mozilla/textcontrol-selection-cannot-exceed-content.html": [
+   "f8b982ba0abb23f8e53ef28413e8da2f8dd7ca17",
+   "testharness"
+  ],
   "mozilla/timeout-in-discarded-document.html": [
    "7ff88491f20ee72ed40aa5ce4e84840b98d5eef5",
    "testharness"
@@ -72219,7 +70927,7 @@
    "testharness"
   ],
   "mozilla/transitionend_safety.html": [
-   "778e43b049aa421bad7f86eb03d0955576a84ce0",
+   "16d238e94b2cc2843c9aee4210db43d496bb3114",
    "testharness"
   ],
   "mozilla/union.html": [
@@ -72242,12 +70950,20 @@
    "bc2a964c294e678b3c0e98ba83ce30a59a8bee3f",
    "testharness"
   ],
+  "mozilla/webgl/bindBuffer.html": [
+   "659d53041373a6e40b9ab4cbf7e2afad45048377",
+   "testharness"
+  ],
   "mozilla/webgl/bufferData.html": [
    "e58b2257043682723fbd17eac6dcbadb32c3ca3e",
    "testharness"
   ],
   "mozilla/webgl/bufferSubData.html": [
    "c333c7b99156d63fcd3ad28014c7915a12cf8169",
+   "testharness"
+  ],
+  "mozilla/webgl/clear.html": [
+   "14cc534be5da96b0cc128d5c44f662b2fdfb294c",
    "testharness"
   ],
   "mozilla/webgl/clearcolor.html": [
@@ -72342,6 +71058,10 @@
    "f03283e68b82d972ad21f674243070643ef89489",
    "testharness"
   ],
+  "mozilla/window_performance_topLevelDomComplete.html": [
+   "4b953e63ffa6bf4ed1bc9a2baaea457d46502b9d",
+   "testharness"
+  ],
   "mozilla/window_requestAnimationFrame.html": [
    "86310f3e4b88cce70ef92b56e4f65f034999096e",
    "testharness"
@@ -72367,7 +71087,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet.html": [
-   "67fccbde17c28e13b5f4dc54d70b1279d6e9d602",
+   "582287f9808afef465529e9fd80deadf10715868",
    "reftest"
   ],
   "mozilla/worklets/test_paint_worklet.js": [
@@ -72387,7 +71107,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet_loading.html": [
-   "20fef90b09fdf8dfb5e7461a01c8bd0f7e5d31af",
+   "753dee7a328c99a42f4e6e46719a02fb9e179a09",
    "testharness"
   ],
   "mozilla/worklets/test_paint_worklet_no_paint.js": [
@@ -72411,7 +71131,7 @@
    "support"
   ],
   "mozilla/worklets/test_paint_worklet_size.html": [
-   "6ddcf8ad81eaf4a5112de39a87cbd3d290fd9ab4",
+   "eba8c08b2b1fe1992772c01a1b85e709fa580bbc",
    "reftest"
   ],
   "mozilla/worklets/test_paint_worklet_size.js": [
@@ -72420,6 +71140,18 @@
   ],
   "mozilla/worklets/test_paint_worklet_size_ref.html": [
    "7c92e508e08d7d146354a5be7fa256ccbd465dde",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.html": [
+   "9ff9ce5392fd214f2939b26ede875ec74c4abfdd",
+   "reftest"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout.js": [
+   "3e4ff24fc85ad2956b741ff1785cecfb9641d792",
+   "support"
+  ],
+  "mozilla/worklets/test_paint_worklet_timeout_ref.html": [
+   "193529394981b09b56404678124f6b08ff230a74",
    "support"
   ],
   "mozilla/worklets/test_worklet.html": [

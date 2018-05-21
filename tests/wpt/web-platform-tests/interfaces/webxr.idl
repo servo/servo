@@ -1,0 +1,176 @@
+[SecureContext, Exposed=Window] interface XR : EventTarget {
+  // Methods
+  Promise<XRDevice?> requestDevice();
+
+  // Events
+  attribute EventHandler ondevicechange;
+};
+
+[SecureContext]
+partial interface Navigator {
+  [SameObject] readonly attribute XR xr;
+};
+
+[SecureContext, Exposed=Window] interface XRDevice : EventTarget {
+  // Methods
+  Promise<void> supportsSession(optional XRSessionCreationOptions options);
+  Promise<XRSession> requestSession(optional XRSessionCreationOptions options);
+};
+
+dictionary XRSessionCreationOptions {
+  boolean exclusive = false;
+  XRPresentationContext outputContext;
+};
+
+[SecureContext, Exposed=Window] interface XRSession : EventTarget {
+  // Attributes
+  readonly attribute XRDevice device;
+  readonly attribute boolean exclusive;
+  readonly attribute XRPresentationContext outputContext;
+
+  attribute double depthNear;
+  attribute double depthFar;
+  attribute XRLayer baseLayer;
+
+  // Methods
+  Promise<XRFrameOfReference> requestFrameOfReference(XRFrameOfReferenceType type, optional XRFrameOfReferenceOptions options);
+
+  long requestAnimationFrame(XRFrameRequestCallback callback);
+  void cancelAnimationFrame(long handle);
+
+  Promise<void> end();
+
+  // Events
+  attribute EventHandler onblur;
+  attribute EventHandler onfocus;
+  attribute EventHandler onresetpose;
+  attribute EventHandler onend;
+};
+
+callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRPresentationFrame frame);
+
+[SecureContext, Exposed=Window] interface XRPresentationFrame {
+  readonly attribute FrozenArray<XRView> views;
+
+  XRDevicePose? getDevicePose(XRCoordinateSystem coordinateSystem);
+};
+
+[SecureContext, Exposed=Window] interface XRCoordinateSystem : EventTarget {
+  Float32Array? getTransformTo(XRCoordinateSystem other);
+};
+
+enum XRFrameOfReferenceType {
+  "headModel",
+  "eyeLevel",
+  "stage",
+};
+
+dictionary XRFrameOfReferenceOptions {
+  boolean disableStageEmulation = false;
+  double stageEmulationHeight = 0.0;
+};
+
+[SecureContext, Exposed=Window] interface XRFrameOfReference : XRCoordinateSystem {
+  readonly attribute XRStageBounds? bounds;
+  readonly attribute double emulatedHeight;
+
+  attribute EventHandler onboundschange;
+};
+
+[SecureContext, Exposed=Window] interface XRStageBounds {
+  readonly attribute FrozenArray<XRStageBoundsPoint> geometry;
+};
+
+[SecureContext, Exposed=Window] interface XRStageBoundsPoint {
+  readonly attribute double x;
+  readonly attribute double z;
+};
+
+enum XREye {
+  "left",
+  "right"
+};
+
+[SecureContext, Exposed=Window] interface XRView {
+  readonly attribute XREye eye;
+  readonly attribute Float32Array projectionMatrix;
+};
+
+[SecureContext, Exposed=Window] interface XRViewport {
+  readonly attribute long x;
+  readonly attribute long y;
+  readonly attribute long width;
+  readonly attribute long height;
+};
+
+[SecureContext, Exposed=Window] interface XRDevicePose {
+  readonly attribute Float32Array poseModelMatrix;
+
+  Float32Array getViewMatrix(XRView view);
+};
+
+[SecureContext, Exposed=Window] interface XRLayer {};
+
+typedef (WebGLRenderingContext or
+         WebGL2RenderingContext) XRWebGLRenderingContext;
+
+dictionary XRWebGLLayerInit {
+  boolean antialias = true;
+  boolean depth = false;
+  boolean stencil = false;
+  boolean alpha = true;
+  boolean multiview = false;
+  double framebufferScaleFactor;
+};
+
+[SecureContext, Exposed=Window, Constructor(XRSession session,
+             XRWebGLRenderingContext context,
+             optional XRWebGLLayerInit layerInit)]
+interface XRWebGLLayer : XRLayer {
+  // Attributes
+  readonly attribute XRWebGLRenderingContext context;
+
+  readonly attribute boolean antialias;
+  readonly attribute boolean depth;
+  readonly attribute boolean stencil;
+  readonly attribute boolean alpha;
+  readonly attribute boolean multiview;
+
+  readonly attribute WebGLFramebuffer framebuffer;
+  readonly attribute unsigned long framebufferWidth;
+  readonly attribute unsigned long framebufferHeight;
+
+  // Methods
+  XRViewport? getViewport(XRView view);
+  void requestViewportScaling(double viewportScaleFactor);
+};
+
+partial dictionary WebGLContextAttributes {
+    XRDevice compatibleXRDevice = null;
+};
+
+partial interface mixin WebGLRenderingContextBase {
+    Promise<void> setCompatibleXRDevice(XRDevice device);
+};
+
+[SecureContext, Exposed=Window] interface XRPresentationContext {
+  readonly attribute HTMLCanvasElement canvas;
+};
+
+[SecureContext, Exposed=Window, Constructor(DOMString type, XRSessionEventInit eventInitDict)]
+interface XRSessionEvent : Event {
+  readonly attribute XRSession session;
+};
+
+dictionary XRSessionEventInit : EventInit {
+  required XRSession session;
+};
+
+[SecureContext, Exposed=Window, Constructor(DOMString type, XRCoordinateSystemEventInit eventInitDict)]
+interface XRCoordinateSystemEvent : Event {
+  readonly attribute XRCoordinateSystem coordinateSystem;
+};
+
+dictionary XRCoordinateSystemEventInit : EventInit {
+  required XRCoordinateSystem coordinateSystem;
+};

@@ -361,8 +361,8 @@ promise_test(t => {
                       'closePromise must reject with the error returned from the sink\'s close method'),
       promise_rejects(t, error1, abortPromise,
                       'abortPromise must reject with the error returned from the sink\'s close method'),
-      promise_rejects(t, new TypeError(), writer.closed,
-                      'writer.closed must reject with a TypeError indicating the stream was aborted')
+      promise_rejects(t, error2, writer.closed,
+                      'writer.closed must reject with error2')
     ]).then(() => {
       assert_array_equals(events, ['closePromise', 'abortPromise', 'closed'],
                           'promises must fulfill/reject in the expected order');

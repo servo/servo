@@ -2,6 +2,7 @@
 
 if (self.importScripts) {
   self.importScripts('../resources/rs-utils.js');
+  self.importScripts('../resources/test-utils.js');
   self.importScripts('/resources/testharness.js');
 }
 
@@ -299,22 +300,28 @@ function extractViewInfo(view) {
 promise_test(() => {
   let pullCount = 0;
   let controller;
-  let byobRequest;
-  let viewDefined = false;
-  let viewInfo;
+  const byobRequests = [];
 
   const stream = new ReadableStream({
     start(c) {
       controller = c;
     },
     pull() {
-      byobRequest = controller.byobRequest;
+      const byobRequest = controller.byobRequest;
       const view = byobRequest.view;
-      viewDefined = view !== undefined;
-      viewInfo = extractViewInfo(view);
-
-      view[0] = 0x01;
-      byobRequest.respond(1);
+      byobRequests[pullCount] = {
+        defined: byobRequest !== undefined,
+        viewDefined: view !== undefined,
+        viewInfo: extractViewInfo(view)
+      };
+      if (pullCount === 0) {
+        view[0] = 0x01;
+        byobRequest.respond(1);
+      } else if (pullCount === 1) {
+        view[0] = 0x02;
+        view[1] = 0x03;
+        byobRequest.respond(2);
+      }
 
       ++pullCount;
     },
@@ -325,28 +332,52 @@ promise_test(() => {
   });
 
   const reader = stream.getReader();
-  const readPromise = reader.read();
-  const ignoredReadPromise = reader.read();
+  const p0 = reader.read();
+  const p1 = reader.read();
 
   assert_equals(pullCount, 0, 'No pull() as start() just finished and is not yet reflected to the state of the stream');
 
   return Promise.resolve().then(() => {
     assert_equals(pullCount, 1, 'pull() must have been invoked once');
-    assert_not_equals(byobRequest, undefined, 'byobRequest must not be undefined');
-    assert_true(viewDefined, 'byobRequest.view must not be undefined');
-    assert_equals(viewInfo.constructor, Uint8Array, 'view.constructor should be Uint8Array');
-    assert_equals(viewInfo.bufferByteLength, 16, 'view.buffer.byteLength should be 16');
-    assert_equals(viewInfo.byteOffset, 0, 'view.byteOffset should be 0');
-    assert_equals(viewInfo.byteLength, 16, 'view.byteLength should be 16');
-    return readPromise;
+    const byobRequest = byobRequests[0];
+    assert_true(byobRequest.defined, 'first byobRequest must not be undefined');
+    assert_true(byobRequest.viewDefined, 'first byobRequest.view must not be undefined');
+    const viewInfo = byobRequest.viewInfo;
+    assert_equals(viewInfo.constructor, Uint8Array, 'first view.constructor should be Uint8Array');
+    assert_equals(viewInfo.bufferByteLength, 16, 'first view.buffer.byteLength should be 16');
+    assert_equals(viewInfo.byteOffset, 0, 'first view.byteOffset should be 0');
+    assert_equals(viewInfo.byteLength, 16, 'first view.byteLength should be 16');
+
+    return p0;
   }).then(result => {
-    assert_not_equals(result.value, undefined);
-    assert_equals(result.value.constructor, Uint8Array);
-    assert_equals(result.value.buffer.byteLength, 16);
-    assert_equals(result.value.byteOffset, 0);
-    assert_equals(result.value.byteLength, 1);
-    assert_equals(result.value[0], 0x01);
-    assert_equals(pullCount, 1, 'pull() should only be invoked once');
+    assert_equals(pullCount, 2, 'pull() must have been invoked twice');
+    const value = result.value;
+    assert_not_equals(value, undefined, 'first read should have a value');
+    assert_equals(value.constructor, Uint8Array, 'first value should be a Uint8Array');
+    assert_equals(value.buffer.byteLength, 16, 'first value.buffer.byteLength should be 16');
+    assert_equals(value.byteOffset, 0, 'first value.byteOffset should be 0');
+    assert_equals(value.byteLength, 1, 'first value.byteLength should be 1');
+    assert_equals(value[0], 0x01, 'first value[0] should be 0x01');
+    const byobRequest = byobRequests[1];
+    assert_true(byobRequest.defined, 'second byobRequest must not be undefined');
+    assert_true(byobRequest.viewDefined, 'second byobRequest.view must not be undefined');
+    const viewInfo = byobRequest.viewInfo;
+    assert_equals(viewInfo.constructor, Uint8Array, 'second view.constructor should be Uint8Array');
+    assert_equals(viewInfo.bufferByteLength, 16, 'second view.buffer.byteLength should be 16');
+    assert_equals(viewInfo.byteOffset, 0, 'second view.byteOffset should be 0');
+    assert_equals(viewInfo.byteLength, 16, 'second view.byteLength should be 16');
+
+    return p1;
+  }).then(result => {
+    assert_equals(pullCount, 2, 'pull() should only be invoked twice');
+    const value = result.value;
+    assert_not_equals(value, undefined, 'second read should have a value');
+    assert_equals(value.constructor, Uint8Array, 'second value should be a Uint8Array');
+    assert_equals(value.buffer.byteLength, 16, 'second value.buffer.byteLength should be 16');
+    assert_equals(value.byteOffset, 0, 'second value.byteOffset should be 0');
+    assert_equals(value.byteLength, 2, 'second value.byteLength should be 2');
+    assert_equals(value[0], 0x02, 'second value[0] should be 0x02');
+    assert_equals(value[1], 0x03, 'second value[1] should be 0x03');
   });
 }, 'ReadableStream with byte source: autoAllocateChunkSize');
 
@@ -386,12 +417,13 @@ promise_test(() => {
 
   const reader = stream.getReader();
   return reader.read().then(result => {
-    assert_not_equals(result.value, undefined);
-    assert_equals(result.value.constructor, Uint8Array);
-    assert_equals(result.value.buffer.byteLength, 16);
-    assert_equals(result.value.byteOffset, 0);
-    assert_equals(result.value.byteLength, 1);
-    assert_equals(result.value[0], 0x01);
+    const value = result.value;
+    assert_not_equals(value, undefined, 'first read should have a value');
+    assert_equals(value.constructor, Uint8Array, 'first value should be a Uint8Array');
+    assert_equals(value.buffer.byteLength, 16, 'first value.buffer.byteLength should be 16');
+    assert_equals(value.byteOffset, 0, 'first value.byteOffset should be 0');
+    assert_equals(value.byteLength, 1, 'first value.byteLength should be 1');
+    assert_equals(value[0], 0x01, 'first value[0] should be 0x01');
     const byobRequest = byobRequests[0];
     assert_true(byobRequest.defined, 'first byobRequest must not be undefined');
     assert_true(byobRequest.viewDefined, 'first byobRequest.view must not be undefined');
@@ -405,13 +437,14 @@ promise_test(() => {
     const byobReader = stream.getReader({ mode: 'byob' });
     return byobReader.read(new Uint8Array(32));
   }).then(result => {
-    assert_not_equals(result.value, undefined);
-    assert_equals(result.value.constructor, Uint8Array);
-    assert_equals(result.value.buffer.byteLength, 32);
-    assert_equals(result.value.byteOffset, 0);
-    assert_equals(result.value.byteLength, 2);
-    assert_equals(result.value[0], 0x02);
-    assert_equals(result.value[1], 0x03);
+    const value = result.value;
+    assert_not_equals(value, undefined, 'second read should have a value');
+    assert_equals(value.constructor, Uint8Array, 'second value should be a Uint8Array');
+    assert_equals(value.buffer.byteLength, 32, 'second value.buffer.byteLength should be 32');
+    assert_equals(value.byteOffset, 0, 'second value.byteOffset should be 0');
+    assert_equals(value.byteLength, 2, 'second value.byteLength should be 2');
+    assert_equals(value[0], 0x02, 'second value[0] should be 0x02');
+    assert_equals(value[1], 0x03, 'second value[1] should be 0x03');
     const byobRequest = byobRequests[1];
     assert_true(byobRequest.defined, 'second byobRequest must not be undefined');
     assert_true(byobRequest.viewDefined, 'second byobRequest.view must not be undefined');
@@ -520,27 +553,12 @@ promise_test(() => {
   return promise;
 }, 'ReadableStream with byte source: Push source that doesn\'t understand pull signal');
 
-promise_test(t => {
-  const stream = new ReadableStream({
+test(() => {
+  assert_throws(new TypeError(), () => new ReadableStream({
     pull: 'foo',
     type: 'bytes'
-  });
-
-  const reader = stream.getReader();
-
-  return promise_rejects(t, new TypeError(), reader.read(), 'read() must fail');
-}, 'ReadableStream with byte source: read(), but pull() function is not callable');
-
-promise_test(t => {
-  const stream = new ReadableStream({
-    pull: 'foo',
-    type: 'bytes'
-  });
-
-  const reader = stream.getReader({ mode: 'byob' });
-
-  return promise_rejects(t, new TypeError(), reader.read(new Uint8Array(1)), 'read() must fail');
-}, 'ReadableStream with byte source: read(view), but pull() function is not callable');
+  }), 'constructor should throw');
+}, 'ReadableStream with byte source: pull() function is not callable');
 
 promise_test(() => {
   const stream = new ReadableStream({
@@ -707,7 +725,7 @@ promise_test(() => {
     },
     type: 'bytes'
   }, {
-    highWaterMark: 256
+    highWaterMark: 0
   });
 
   const reader = stream.getReader();
@@ -731,12 +749,61 @@ promise_test(() => {
     assert_equals(result[2].done, false, 'result[2].done');
     assert_equals(result[2].value.byteLength, 1, 'result[2].value.byteLength');
     assert_equals(byobRequest, undefined, 'byobRequest should be undefined');
-    assert_equals(desiredSizes[0], 256, 'desiredSize on pull should be 256');
-    assert_equals(desiredSizes[1], 256, 'desiredSize after 1st enqueue() should be 256');
-    assert_equals(desiredSizes[2], 256, 'desiredSize after 2nd enqueue() should be 256');
+    assert_equals(desiredSizes[0], 0, 'desiredSize on pull should be 0');
+    assert_equals(desiredSizes[1], 0, 'desiredSize after 1st enqueue() should be 0');
+    assert_equals(desiredSizes[2], 0, 'desiredSize after 2nd enqueue() should be 0');
     assert_equals(pullCount, 1, 'pull() should only be called once');
   });
 }, 'ReadableStream with byte source: Respond to pull() by enqueue() asynchronously');
+
+promise_test(() => {
+  let pullCount = 0;
+
+  let byobRequest;
+  const desiredSizes = [];
+
+  const stream = new ReadableStream({
+    pull(c) {
+      byobRequest = c.byobRequest;
+      desiredSizes.push(c.desiredSize);
+
+      if (pullCount < 3) {
+        c.enqueue(new Uint8Array(1));
+      } else {
+        c.close();
+      }
+
+      ++pullCount;
+    },
+    type: 'bytes'
+  }, {
+    highWaterMark: 256
+  });
+
+  const reader = stream.getReader();
+
+  const p0 = reader.read();
+  const p1 = reader.read();
+  const p2 = reader.read();
+
+  assert_equals(pullCount, 0, 'No pull as start() just finished and is not yet reflected to the state of the stream');
+
+  return Promise.all([p0, p1, p2]).then(result => {
+    assert_equals(pullCount, 4, 'pullCount after completion of all read()s');
+
+    assert_equals(result[0].done, false, 'result[0].done');
+    assert_equals(result[0].value.byteLength, 1, 'result[0].value.byteLength');
+    assert_equals(result[1].done, false, 'result[1].done');
+    assert_equals(result[1].value.byteLength, 1, 'result[1].value.byteLength');
+    assert_equals(result[2].done, false, 'result[2].done');
+    assert_equals(result[2].value.byteLength, 1, 'result[2].value.byteLength');
+    assert_equals(byobRequest, undefined, 'byobRequest should be undefined');
+    assert_equals(desiredSizes[0], 256, 'desiredSize on pull should be 256');
+    assert_equals(desiredSizes[1], 256, 'desiredSize after 1st enqueue() should be 256');
+    assert_equals(desiredSizes[2], 256, 'desiredSize after 2nd enqueue() should be 256');
+    assert_equals(desiredSizes[3], 256, 'desiredSize after 3rd enqueue() should be 256');
+  });
+}, 'ReadableStream with byte source: Respond to multiple pull() by separate enqueue()');
 
 promise_test(() => {
   let controller;
@@ -1898,6 +1965,93 @@ promise_test(t => {
    'errored in it');
 
 promise_test(() => {
+  let byobRequest;
+  const rs = new ReadableStream({
+    pull(controller) {
+      byobRequest = controller.byobRequest;
+      byobRequest.respond(4);
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  const view = new Uint8Array(16);
+  return reader.read(view).then(() => {
+    assert_throws(new TypeError(), () => byobRequest.respond(4), 'respond() should throw a TypeError');
+  });
+}, 'calling respond() twice on the same byobRequest should throw');
+
+promise_test(() => {
+  let byobRequest;
+  const newView = () => new Uint8Array(16);
+  const rs = new ReadableStream({
+    pull(controller) {
+      byobRequest = controller.byobRequest;
+      byobRequest.respondWithNewView(newView());
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  return reader.read(newView()).then(() => {
+    assert_throws(new TypeError(), () => byobRequest.respondWithNewView(newView()),
+                  'respondWithNewView() should throw a TypeError');
+  });
+}, 'calling respondWithNewView() twice on the same byobRequest should throw');
+
+promise_test(() => {
+  let byobRequest;
+  let resolvePullCalledPromise;
+  const pullCalledPromise = new Promise(resolve => {
+    resolvePullCalledPromise = resolve;
+  });
+  let resolvePull;
+  const rs = new ReadableStream({
+    pull(controller) {
+      byobRequest = controller.byobRequest;
+      resolvePullCalledPromise();
+      return new Promise(resolve => {
+        resolvePull = resolve;
+      });
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  const readPromise = reader.read(new Uint8Array(16));
+  return pullCalledPromise.then(() => {
+    const cancelPromise = reader.cancel('meh');
+    resolvePull();
+    byobRequest.respond(0);
+    return Promise.all([readPromise, cancelPromise]).then(() => {
+      assert_throws(new TypeError(), () => byobRequest.respond(0), 'respond() should throw');
+    });
+  });
+}, 'calling respond(0) twice on the same byobRequest should throw even when closed');
+
+promise_test(() => {
+  let resolvePullCalledPromise;
+  const pullCalledPromise = new Promise(resolve => {
+    resolvePullCalledPromise = resolve;
+  });
+  let resolvePull;
+  const rs = new ReadableStream({
+    pull() {
+      resolvePullCalledPromise();
+      return new Promise(resolve => {
+        resolvePull = resolve;
+      });
+    },
+    type: 'bytes'
+  });
+  const reader = rs.getReader({ mode: 'byob' });
+  reader.read(new Uint8Array(16));
+  return pullCalledPromise.then(() => {
+    resolvePull();
+    return delay(0).then(() => {
+      assert_throws(new TypeError(), () => reader.releaseLock(), 'releaseLock() should throw');
+    });
+  });
+}, 'pull() resolving should not make releaseLock() possible');
+
+promise_test(() => {
   // Tests https://github.com/whatwg/streams/issues/686
 
   let controller;
@@ -1942,5 +2096,31 @@ test(() => {
   const stream = new ReadableStream();
   assert_throws(new TypeError(), () => new ReadableStreamBYOBReader(stream), 'constructor must throw');
 }, 'ReadableStreamBYOBReader constructor requires a ReadableStream with type "bytes"');
+
+test(() => {
+  assert_throws(new RangeError(), () => new ReadableStream({ type: 'bytes' }, {
+    size() {
+      return 1;
+    }
+  }), 'constructor should throw for size function');
+
+  assert_throws(new RangeError(), () => new ReadableStream({ type: 'bytes' }, { size: null }),
+                'constructor should throw for size defined');
+
+  assert_throws(new RangeError(),
+                () => new ReadableStream({ type: 'bytes' }, new CountQueuingStrategy({ highWaterMark: 1 })),
+                'constructor should throw when strategy is CountQueuingStrategy');
+
+  assert_throws(new RangeError(),
+                () => new ReadableStream({ type: 'bytes' }, new ByteLengthQueuingStrategy({ highWaterMark: 512 })),
+                'constructor should throw when strategy is ByteLengthQueuingStrategy');
+
+  class HasSizeMethod {
+    size() {}
+ }
+
+  assert_throws(new RangeError(), () => new ReadableStream({ type: 'bytes' }, new HasSizeMethod()),
+                'constructor should throw when size on the prototype chain');
+}, 'ReadableStream constructor should not accept a strategy with a size defined if type is "bytes"');
 
 done();

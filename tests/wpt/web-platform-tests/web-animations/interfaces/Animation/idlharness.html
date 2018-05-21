@@ -1,47 +1,29 @@
 <!doctype html>
 <meta charset=utf-8>
 <title>Animation IDL</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#animation">
+<link rel="help" href="https://drafts.csswg.org/web-animations/#animation">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <div id="log"></div>
-<script type="text/plain" id="Animation-IDL">
-enum AnimationPlayState { "idle", "pending", "running", "paused", "finished" };
-
-[Constructor (optional AnimationEffectReadOnly? effect = null,
-              optional AnimationTimeline? timeline)]
-interface Animation : EventTarget {
-             attribute DOMString                id;
-             attribute AnimationEffectReadOnly? effect;
-             attribute AnimationTimeline?       timeline;
-             attribute double?                  startTime;
-             attribute double?                  currentTime;
-             attribute double                   playbackRate;
-    readonly attribute AnimationPlayState       playState;
-    readonly attribute Promise<Animation>       ready;
-    readonly attribute Promise<Animation>       finished;
-             attribute EventHandler             onfinish;
-             attribute EventHandler             oncancel;
-    void cancel ();
-    void finish ();
-    void play ();
-    void pause ();
-    void reverse ();
-};
-</script>
 <script>
 'use strict';
 
-const idlArray = new IdlArray();
+promise_test(async () => {
+  const idl = await fetch('/interfaces/web-animations.idl').then(r => r.text());
+  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  const html = await fetch('/interfaces/html.idl').then(r => r.text());
 
-idlArray.add_untested_idls('interface AnimationTimeline {};');
-idlArray.add_untested_idls('interface EventHandler {};');
-idlArray.add_untested_idls('interface EventTarget {};');
-idlArray.add_idls(document.getElementById('Animation-IDL').textContent);
-idlArray.add_objects( { Animation: ['new Animation()'] } );
-
-idlArray.test();
+  const idlArray = new IdlArray();
+  idlArray.add_idls(idl, {only: ['Animation', 'AnimationPlayState']});
+  idlArray.add_dependency_idls(idl);
+  idlArray.add_dependency_idls(dom);
+  idlArray.add_dependency_idls(html);
+  idlArray.add_untested_idls('interface CSSPseudoElement {};');
+  idlArray.add_objects( { Animation: ['new Animation()'] } );
+  idlArray.test();
+  done();
+}, 'Animation interface.');
 
 </script>

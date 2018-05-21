@@ -13,6 +13,15 @@ path = "main.rs"
 test = false
 bench = false
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[package.metadata.winres]
+FileDescription = "Servo"
+LegalCopyright = "© The Servo Project Developers"
+OriginalFilename = "servo.exe"
+ProductName = "Servo"
+
 [features]
 default = ["unstable", "default-except-unstable"]
 default-except-unstable = ["webdriver", "max_log_level"]
@@ -26,13 +35,36 @@ unstable = ["libservo/unstable"]
 
 [dependencies]
 backtrace = "0.3"
-browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
-glutin_app = {path = "../../ports/glutin"}
-log = "0.3"
+bitflags = "1.0"
+euclid = "0.17"
+gleam = "0.5"
+glutin = "0.13"
+lazy_static = "1"
 libservo = {path = "../../components/servo"}
+log = "0.4"
+tinyfiledialogs = "3.0"
+winit = "0.11.2"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"
 
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+osmesa-sys = "0.1.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11 = "2.0.0"
+
 [target.'cfg(target_os = "android")'.dependencies]
 android_injected_glue = "0.2"
+servo-egl = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = "0.2"
+user32-sys = "0.2"
+gdi32-sys = "0.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+osmesa-src = {git = "https://github.com/servo/osmesa-src"}
+
+[target.x86_64-unknown-linux-gnu.dependencies]
+osmesa-src = {git = "https://github.com/servo/osmesa-src"}

@@ -39,7 +39,7 @@
         interior, a light blue border and a black string that says "Clip to
         inner 'svg'" is painted four times such that it will overflow each of
         the top, left, right and bottom sides of the bounds of an inner 'svg'
-        element, respectively.  
+        element, respectively.
       </p>
       <p>
         Note that minor text layout differences, as are permissible under CSS2

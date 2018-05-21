@@ -38,37 +38,31 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
-extern crate libc;
+#[cfg(any(target_os = "linux", target_os = "android"))] extern crate libc;
 #[macro_use]
 extern crate log;
 #[cfg_attr(target_os = "windows", macro_use)]
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
-extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
 extern crate range;
 #[macro_use] extern crate serde;
 extern crate servo_arc;
-extern crate servo_geometry;
-extern crate servo_url;
 #[macro_use] extern crate servo_atoms;
+extern crate servo_url;
 #[cfg(feature = "unstable")]
 #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 extern crate simd;
 extern crate smallvec;
 extern crate style;
-extern crate style_traits;
 extern crate time;
+extern crate ucd;
 extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate webrender_api;
 extern crate xi_unicode;
 #[cfg(target_os = "android")]
 extern crate xml5ever;
-
-#[deny(unsafe_code)]
-pub mod display_list;
 
 // Fonts
 #[macro_use] pub mod font;

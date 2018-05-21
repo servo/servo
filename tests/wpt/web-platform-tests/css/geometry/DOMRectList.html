@@ -10,12 +10,12 @@ setup(() => {
 });
 
 test(() => {
-  assert_false('DOMRectList' in window);
-}, 'DOMRectList [NoInterfaceObject]');
+  assert_true('DOMRectList' in window);
+}, 'DOMRectList is not [NoInterfaceObject]');
 
 test(() => {
-  assert_true(domRectList instanceof Array);
-}, 'DOMRectList [LegacyArrayClass]');
+  assert_false(domRectList instanceof Array);
+}, 'DOMRectList is not [LegacyArrayClass]');
 
 test(() => {
   assert_equals(domRectList.length, 1);

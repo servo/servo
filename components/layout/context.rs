@@ -4,8 +4,8 @@
 
 //! Data needed by the layout thread.
 
+use display_list::items::{WebRenderImageInfo, OpaqueNode};
 use fnv::FnvHasher;
-use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -27,10 +27,12 @@ use std::thread;
 use style::context::RegisteredSpeculativePainter;
 use style::context::SharedStyleContext;
 
-thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<FontContext>> = RefCell::new(None));
+pub type LayoutFontContext = FontContext<FontCacheThread>;
+
+thread_local!(static FONT_CONTEXT_KEY: RefCell<Option<LayoutFontContext>> = RefCell::new(None));
 
 pub fn with_thread_local_font_context<F, R>(layout_context: &LayoutContext, f: F) -> R
-    where F: FnOnce(&mut FontContext) -> R
+    where F: FnOnce(&mut LayoutFontContext) -> R
 {
     FONT_CONTEXT_KEY.with(|k| {
         let mut font_context = k.borrow_mut();

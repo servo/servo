@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation type for the 'visibility' property</title>
+<!-- FIXME: The following spec link should be updated once this definition has
+  been moved to CSS Values & Units. -->
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#animtype-visibility">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = createDiv(t);
+  const anim = div.animate({ visibility: ['hidden','visible'] },
+                           { duration: 100 * MS_PER_SEC, fill: 'both' });
+
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(div).visibility, 'hidden',
+                'Visibility when progress = 0');
+
+  anim.currentTime = 10 * MS_PER_SEC + 1;
+  assert_equals(getComputedStyle(div).visibility, 'visible',
+                'Visibility when progress > 0 due to linear easing');
+
+  anim.finish();
+  assert_equals(getComputedStyle(div).visibility, 'visible',
+                'Visibility when progress = 1');
+
+}, 'Visibility clamping behavior');
+
+test(t => {
+  const div = createDiv(t);
+  const anim = div.animate({ visibility: ['hidden', 'visible'] },
+                           { duration: 100 * MS_PER_SEC, fill: 'both',
+                             easing: 'cubic-bezier(0.25, -0.6, 0, 0.5)' });
+
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(div).visibility, 'hidden',
+                'Visibility when progress = 0');
+
+  // Timing function is below zero. So we expected visibility is hidden.
+  anim.currentTime = 10 * MS_PER_SEC + 1;
+  assert_equals(getComputedStyle(div).visibility, 'hidden',
+                'Visibility when progress < 0 due to cubic-bezier easing');
+
+  anim.currentTime = 60 * MS_PER_SEC;
+  assert_equals(getComputedStyle(div).visibility, 'visible',
+                'Visibility when progress > 0 due to cubic-bezier easing');
+
+}, 'Visibility clamping behavior with an easing that has a negative component');
+
+</script>
+</body>

@@ -51,22 +51,16 @@ function runLegacyEventTest(type, legacyType, ctor, setup) {
 }
 
 function setupTransition(elem) {
-  elem.style.transition = '';
-  requestAnimationFrame(function() {
-    elem.style.color = 'red';
-    elem.style.transition = 'color 30ms';
-    requestAnimationFrame(function() {
-      elem.style.color = 'green';
-    });
-  });
+  getComputedStyle(elem).color;
+  elem.style.color = 'green';
+  elem.style.transition = 'color 30ms';
 }
 
 function setupAnimation(elem) {
-  elem.style.animation = 'test 30ms 2';
+  elem.style.animation = 'test 30ms';
 }
 
 runLegacyEventTest('transitionend', 'webkitTransitionEnd', "TransitionEvent", setupTransition);
 runLegacyEventTest('animationend', 'webkitAnimationEnd', "AnimationEvent", setupAnimation);
-runLegacyEventTest('animationiteration', 'webkitAnimationIteration', "AnimationEvent", setupAnimation);
 runLegacyEventTest('animationstart', 'webkitAnimationStart', "AnimationEvent", setupAnimation);
 </script>

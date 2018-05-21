@@ -6,21 +6,23 @@ The test suite for the `testharness.js` testing framework.
 
 Install the following dependencies:
 
-- [Python 2.7](https://www.python.org/)
+- [Python 2.7.9+](https://www.python.org/)
 - [the tox Python package](https://tox.readthedocs.io/en/latest/)
 - [the Mozilla Firefox web browser](https://mozilla.org/firefox)
 - [the GeckoDriver server](https://github.com/mozilla/geckodriver)
 
-Once these dependencies are satisfied, the tests may be run from a command line
-by executing the following command from this directory:
+Make sure `geckodriver` can be found in your `PATH`.
 
-    tox
-
-Currently, the tests should be run with Firefox Nightly.
-
-In order to specify the path to Firefox Nightly, use the following command-line option:
+Currently, the tests should be run with the latest *Firefox Nightly*. In order to
+specify the path to Firefox Nightly, use the following command-line option:
 
     tox -- --binary=/path/to/FirefoxNightly
+
+### Automated Script
+
+Alternatively, you may run `tools/ci/ci_resources_unittest.sh`, which only depends on
+Python 2. The script will install other dependencies automatically and start `tox` with
+the correct arguments.
 
 ## Authoring Tests
 

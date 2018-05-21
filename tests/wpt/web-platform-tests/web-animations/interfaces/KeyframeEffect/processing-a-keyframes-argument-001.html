@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Tests for processing a keyframes argument (property access)</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#processing-a-keyframes-argument">
+<title>Processing a keyframes argument (property access)</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#processing-a-keyframes-argument">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -13,7 +13,7 @@
 'use strict';
 
 // This file only tests the KeyframeEffect constructor since it is
-// assumed that the implementation of the KeyframeEffectReadOnly constructor,
+// assumed that the implementation of the KeyframeEffect constructor,
 // Animatable.animate() method, and KeyframeEffect.setKeyframes() method will
 // all share common machinery and it is not necessary to test each method.
 
@@ -180,9 +180,27 @@ test(() => {
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', left: '100px' },
-    { offset: null, computedOffset: 0.5, easing: 'linear', left: '300px' },
-    { offset: null, computedOffset: 1, easing: 'linear', left: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 0.5,
+      easing: 'linear',
+      left: '300px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      composite: null,
+    },
   ]);
 }, 'Keyframes are read from a custom iterator');
 
@@ -197,11 +215,29 @@ test(() => {
   keyframes.offset = '0.1';
   const effect = new KeyframeEffect(null, keyframes);
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', left: '100px' },
-    { offset: null, computedOffset: 0.5, easing: 'linear', left: '300px' },
-    { offset: null, computedOffset: 1, easing: 'linear', left: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 0.5,
+      easing: 'linear',
+      left: '300px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      composite: null,
+    },
   ]);
-}, "'easing' and 'offset' are ignored on iterable objects");
+}, '\'easing\' and \'offset\' are ignored on iterable objects');
 
 test(() => {
   const effect = new KeyframeEffect(null, createIterable([
@@ -211,11 +247,29 @@ test(() => {
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', left: '100px',
-      top: '200px' },
-    { offset: null, computedOffset: 0.5, easing: 'linear', left: '300px' },
-    { offset: null, computedOffset: 1, easing: 'linear', left: '200px',
-      top: '100px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      top: '200px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 0.5,
+      easing: 'linear',
+      left: '300px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      top: '100px',
+      composite: null,
+    },
   ]);
 }, 'Keyframes are read from a custom iterator with multiple properties'
    + ' specified');
@@ -228,12 +282,44 @@ test(() => {
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', left: '100px' },
-    { offset: 0.75, computedOffset: 0.75, easing: 'linear', left: '250px' },
-    { offset: null, computedOffset: 1, easing: 'linear', left: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      left: '100px',
+      composite: null,
+    },
+    {
+      offset: 0.75,
+      computedOffset: 0.75,
+      easing: 'linear',
+      left: '250px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      left: '200px',
+      composite: null,
+    },
   ]);
 }, 'Keyframes are read from a custom iterator with where an offset is'
    + ' specified');
+
+test(() => {
+  const test_error = { name: 'test' };
+  const bad_keyframe = { get left() { throw test_error; } };
+  assert_throws(test_error, () => {
+    new KeyframeEffect(null, createIterable([
+      { done: false, value: { left: '100px' } },
+      { done: false, value: bad_keyframe },
+      { done: false, value: { left: '200px' } },
+      { done: true },
+    ]));
+  });
+}, 'If a keyframe throws for an animatable property, that exception should be'
+    + ' propagated');
 
 test(() => {
   assert_throws({ name: 'TypeError' }, () => {
@@ -249,13 +335,81 @@ test(() => {
 
 test(() => {
   const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false },  // No value member; keyframe is undefined.
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: null },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: null },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: null },
+  ]);
+}, 'An undefined keyframe returned from a custom iterator should be treated as a'
+    + ' default keyframe');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
+    { done: false, value: { left: '100px' } },
+    { done: false, value: null },
+    { done: false, value: { left: '200px' } },
+    { done: true },
+  ]));
+  assert_frame_lists_equal(effect.getKeyframes(), [
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: null },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: null },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: null },
+  ]);
+}, 'A null keyframe returned from a custom iterator should be treated as a'
+    + ' default keyframe');
+
+test(() => {
+  const effect = new KeyframeEffect(null, createIterable([
     { done: false, value: { left: ['100px', '200px'] } },
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 1, easing: 'linear' }
+    { offset: null, computedOffset: 1, easing: 'linear', composite: null }
   ]);
 }, 'A list of values returned from a custom iterator should be ignored');
+
+test(() => {
+  const test_error = { name: 'test' };
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      return { next() { throw test_error; } };
+    },
+  };
+  assert_throws(test_error, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'If a custom iterator throws from next(), the exception should be rethrown');
+
+// Test handling of invalid Symbol.iterator
+
+test(() => {
+  const test_error = { name: 'test' };
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      throw test_error;
+    },
+  };
+  assert_throws(test_error, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'Accessing a Symbol.iterator property that throws should rethrow');
+
+test(() => {
+  const keyframe_obj = {
+    [Symbol.iterator]() {
+      return 42;  // Not an object.
+    },
+  };
+  assert_throws({ name: 'TypeError' }, () => {
+    new KeyframeEffect(null, keyframe_obj);
+  });
+}, 'A non-object returned from the Symbol.iterator property should cause a'
+    + ' TypeError to be thrown');
 
 test(() => {
   const keyframe = {};
@@ -270,8 +424,20 @@ test(() => {
   const effect = new KeyframeEffect(null, [keyframe, { height: '200px' }]);
 
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', height: '100px' },
-    { offset: null, computedOffset: 1, easing: 'linear', height: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      height: '100px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      height: '200px',
+      composite: null,
+    },
   ]);
 }, 'Only enumerable properties on keyframes are read');
 
@@ -289,8 +455,20 @@ test(() => {
   const effect = new KeyframeEffect(null, [keyframe, { top: '200px' }]);
 
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', top: '100px' },
-    { offset: null, computedOffset: 1, easing: 'linear', top: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      top: '100px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      top: '200px',
+      composite: null,
+    },
   ]);
 }, 'Only properties defined directly on keyframes are read');
 
@@ -305,8 +483,20 @@ test(() => {
   const effect = new KeyframeEffect(null, keyframes);
 
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', height: '100px' },
-    { offset: null, computedOffset: 1, easing: 'linear', height: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      height: '100px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      height: '200px',
+      composite: null,
+    },
   ]);
 }, 'Only enumerable properties on property-indexed keyframes are read');
 
@@ -324,8 +514,20 @@ test(() => {
   const effect = new KeyframeEffect(null, keyframes);
 
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 0, easing: 'linear', top: '100px' },
-    { offset: null, computedOffset: 1, easing: 'linear', top: '200px' },
+    {
+      offset: null,
+      computedOffset: 0,
+      easing: 'linear',
+      top: '100px',
+      composite: null,
+    },
+    {
+      offset: null,
+      computedOffset: 1,
+      easing: 'linear',
+      top: '200px',
+      composite: null,
+    },
   ]);
 }, 'Only properties defined directly on property-indexed keyframes are read');
 

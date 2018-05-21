@@ -12,12 +12,14 @@ function isInterfaceNuked(name) {
 }
 var nukedInterfaces = [
   "DOMConfiguration",
+  "DOMCursor",
   "DOMError",
   "DOMErrorHandler",
   "DOMImplementationList",
   "DOMImplementationSource",
   "DOMLocator",
   "DOMObject",
+  "DOMRequest",
   "DOMSettableTokenList",
   "DOMUserData",
   "Entity",
@@ -178,4 +180,14 @@ var EventRemoved = [
   "CHANGE"
 ]
 EventRemoved.forEach(isRemovedFromEvent)
+
+var EventPrototypeRemoved = [
+  "getPreventDefault",
+]
+EventPrototypeRemoved.forEach(name => {
+  test(() => {
+    assert_equals(Event.prototype[name], undefined)
+    assert_equals((new Event("test"))[name], undefined)
+  }, "Event.prototype should not have this property: " + name)
+})
 </script>

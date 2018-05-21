@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      waveshaper.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../resources/audit-util.js"></script>
+    <script src="../../resources/audit.js"></script>
+    <script src="../../resources/buffer-loader.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      let sampleRate = 44100;
+      let lengthInSeconds = 4;
+      let numberOfRenderFrames = sampleRate * lengthInSeconds;
+      let numberOfCurveFrames = 65536;
+      let inputBuffer;
+      let waveShapingCurve;
+
+      let context;
+
+      function generateInputBuffer() {
+        // Create mono input buffer.
+        let buffer =
+            context.createBuffer(1, numberOfRenderFrames, context.sampleRate);
+        let data = buffer.getChannelData(0);
+
+        // Generate an input vector with values from -1 -> +1 over a duration of
+        // lengthInSeconds. This exercises the full nominal input range and will
+        // touch every point of the shaping curve.
+        for (let i = 0; i < numberOfRenderFrames; ++i) {
+          let x = i / numberOfRenderFrames;  // 0 -> 1
+          x = 2 * x - 1;                     // -1 -> +1
+          data[i] = x;
+        }
+
+        return buffer;
+      }
+
+      // Generates a symmetric curve: Math.atan(5 * x) / (0.5 * Math.PI)
+      // (with x == 0 corresponding to the center of the array)
+      // This curve is arbitrary, but would be useful in the real-world.
+      // To some extent, the actual curve we choose is not important in this
+      // test, since the input vector walks through all possible curve values.
+      function generateWaveShapingCurve() {
+        let curve = new Float32Array(numberOfCurveFrames);
+
+        let n = numberOfCurveFrames;
+        let n2 = n / 2;
+
+        for (let i = 0; i < n; ++i) {
+          let x = (i - n2) / n2;
+          let y = Math.atan(5 * x) / (0.5 * Math.PI);
+        }
+
+        return curve;
+      }
+
+      function checkShapedCurve(buffer, should) {
+        let inputData = inputBuffer.getChannelData(0);
+        let outputData = buffer.getChannelData(0);
+
+        let success = true;
+
+        // Go through every sample and make sure it has been shaped exactly
+        // according to the shaping curve we gave it.
+        for (let i = 0; i < buffer.length; ++i) {
+          let input = inputData[i];
+
+          // Calculate an index based on input -1 -> +1 with 0 being at the
+          // center of the curve data.
+          let index = Math.floor(numberOfCurveFrames * 0.5 * (input + 1));
+
+          // Clip index to the input range of the curve.
+          // This takes care of input outside of nominal range -1 -> +1
+          index = index < 0 ? 0 : index;
+          index =
+              index > numberOfCurveFrames - 1 ? numberOfCurveFrames - 1 : index;
+
+          let expectedOutput = waveShapingCurve[index];
+
+          let output = outputData[i];
+
+          if (output != expectedOutput) {
+            success = false;
+            break;
+          }
+        }
+
+        should(
+            success, 'WaveShaperNode applied non-linear distortion correctly')
+            .beTrue();
+      }
+
+      audit.define('test', function(task, should) {
+        // Create offline audio context.
+        context = new OfflineAudioContext(1, numberOfRenderFrames, sampleRate);
+
+        // source -> waveshaper -> destination
+        let source = context.createBufferSource();
+        let waveshaper = context.createWaveShaper();
+        source.connect(waveshaper);
+        waveshaper.connect(context.destination);
+
+        // Create an input test vector.
+        inputBuffer = generateInputBuffer();
+        source.buffer = inputBuffer;
+
+        // We'll apply non-linear distortion according to this shaping curve.
+        waveShapingCurve = generateWaveShapingCurve();
+        waveshaper.curve = waveShapingCurve;
+
+        source.start(0);
+
+        context.startRendering()
+            .then(buffer => checkShapedCurve(buffer, should))
+            .then(task.done.bind(task));
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

@@ -34,16 +34,25 @@ function getSecureCrossOrigin() {
   return url.toString();
 }
 
-function generateURL(host, path) {
+function generateURL(host, path, include_second_level_iframe, second_level_iframe_csp) {
   var url = new URL("http://{{host}}:{{ports[http][0]}}/content-security-policy/embedded-enforcement/support/");
   url.hostname = host == Host.SAME_ORIGIN ? "{{host}}" : "{{domains[天気の良い日]}}";
   url.pathname += path;
+  if (include_second_level_iframe) {
+    url.searchParams.append("include_second_level_iframe", "");
+    if (second_level_iframe_csp)
+      url.searchParams.append("second_level_iframe_csp", second_level_iframe_csp);
+  }
 
   return url;
 }
 
 function generateURLString(host, path) {
-  return generateURL(host, path).toString();
+  return generateURL(host, path, false, "").toString();
+}
+
+function generateURLStringWithSecondIframeParams(host, path, second_level_iframe_csp) {
+  return generateURL(host, path, true, second_level_iframe_csp).toString();
 }
 
 function generateRedirect(host, target) {
@@ -77,8 +86,13 @@ function assert_required_csp(t, url, csp, expected) {
   window.addEventListener('message', t.step_func(e => {
     if (e.source != i.contentWindow || !('required_csp' in e.data))
       return;
-    assert_equals(e.data['required_csp'], expected);
-    t.done();
+
+    if (expected.indexOf(e.data['required_csp']) == -1)
+      assert_unreached('Child iframes have unexpected csp:"' + e.data['required_csp'] + '"');
+
+    expected.splice(expected.indexOf(e.data['required_csp']), 1);
+    if (expected.length == 0)
+      t.done();
   }));
 
   document.body.appendChild(i);
@@ -104,7 +118,7 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
     window.onmessage = function (e) {
       if (e.source != i.contentWindow)
           return;
-      t.unreached_func('No message should be sent from the frame.');
+      t.assert_unreached('No message should be sent from the frame.');
     }
     i.onload = t.step_func(function () {
       // Delay the check until after the postMessage has a chance to execute.
@@ -124,12 +138,18 @@ function assert_iframe_with_csp(t, url, csp, shouldBlock, urlId, blockedURI) {
       t.done();
     }));
   } else {
-    // Assert iframe loads.
+    // Assert iframe loads.  Wait for both the load event and the postMessage.
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+      assert_true(loaded[urlId]);
+      if (i.onloadReceived)
+        t.done();
+    }));
     i.onload = t.step_func(function () {
-      // Delay the check until after the postMessage has a chance to execute.
-      setTimeout(t.step_func_done(function () {
-        assert_true(loaded[urlId]);
-      }), 1);
+      if (loaded[urlId])
+        t.done();
+      i.onloadReceived = true;
     });
   }
   document.body.appendChild(i);

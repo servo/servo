@@ -19,8 +19,8 @@ use dom::promise::Promise;
 use dom::vrdisplay::VRDisplay;
 use dom::vrdisplayevent::VRDisplayEvent;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use ipc_channel::ipc::IpcSender;
+use profile_traits::ipc;
 use std::rc::Rc;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVREvent, WebVRMsg};
 use webvr_traits::{WebVRGamepadData, WebVRGamepadEvent, WebVRGamepadState};
@@ -61,7 +61,7 @@ impl VRMethods for VR {
         let promise = Promise::new(&self.global());
 
         if let Some(webvr_thread) = self.webvr_thread() {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             webvr_thread.send(WebVRMsg::GetDisplays(sender)).unwrap();
             match receiver.recv().unwrap() {
                 Ok(displays) => {
@@ -234,7 +234,7 @@ impl VR {
     // motion capture or drawing applications.
     pub fn get_gamepads(&self) -> Vec<DomRoot<Gamepad>> {
         if let Some(wevbr_sender) = self.webvr_thread() {
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
             let synced_ids = self.gamepads.borrow().iter().map(|g| g.gamepad_id()).collect();
             wevbr_sender.send(WebVRMsg::GetGamepads(synced_ids, sender)).unwrap();
             match receiver.recv().unwrap() {

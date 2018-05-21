@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSPositionValue normalization tests</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#positionvalue-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/testhelper.js"></script>
+<body>
+<script>
+'use strict';
+
+const gSingleTestCases = [
+  { cssText: 'left', x: CSS.percent(0), y: CSS.percent(50) },
+  { cssText: 'right', x: CSS.percent(100), y: CSS.percent(50) },
+  { cssText: 'center', x: CSS.percent(50), y: CSS.percent(50) },
+  { cssText: 'top', x: CSS.percent(50), y: CSS.percent(0) },
+  { cssText: 'bottom', x: CSS.percent(50), y: CSS.percent(100) },
+  { cssText: '3.14px', x: CSS.px(3.14), y: CSS.percent(50) },
+  { cssText: '25%', x: CSS.percent(25), y: CSS.percent(50) },
+];
+
+const gXTestCases = [
+  { cssText: 'left', x: CSS.percent(0), type: 'ident' },
+  { cssText: 'center', x: CSS.percent(50), type: 'ident' },
+  { cssText: 'right', x: CSS.percent(100), type: 'ident' },
+  { cssText: '3.14px', x: CSS.px(3.14), type: 'length' },
+  { cssText: '10%', x: CSS.percent(10), type: 'length' },
+  { cssText: 'calc(1px + 1em)', x: new CSSMathSum(CSS.px(1), CSS.em(1)), type: 'length' },
+  { cssText: 'left 3.14px', x: CSS.px(3.14), type: 'offset' },
+  { cssText: 'right 3.14px', x: CSS.percent(100).sub(CSS.px(3.14)), type: 'offset' },
+];
+
+const gYTestCases = [
+  { cssText: 'top', y: CSS.percent(0), type: 'ident' },
+  { cssText: 'center', y: CSS.percent(50), type: 'ident' },
+  { cssText: 'bottom', y: CSS.percent(100), type: 'ident' },
+  { cssText: '3.14px', y: CSS.px(3.14), type: 'length' },
+  { cssText: '10%', y: CSS.percent(10), type: 'length' },
+  { cssText: 'calc(1px + 1em)', y: new CSSMathSum(CSS.px(1), CSS.em(1)), type: 'length' },
+  { cssText: 'top 3.14px', y: CSS.px(3.14), type: 'offset' },
+  { cssText: 'bottom 3.14px', y: CSS.percent(100).sub(CSS.px(3.14)), type: 'offset' },
+];
+
+for (const {cssText, x, y} of gSingleTestCases) {
+    test(t => {
+      const styleMap = createInlineStyleMap(t, 'object-position: ' + cssText);
+      assert_style_value_equals(styleMap.get('object-position'), new CSSPositionValue(x, y));
+    }, 'CSS <position> value "' + cssText + '" normalizes to CSSPositionValue');
+}
+
+for (const {cssText: xCssText, x, type: xType} of gXTestCases) {
+  for (const {cssText: yCssText, y, type: yType} of gYTestCases) {
+    const cssText = xCssText + ' ' + yCssText;
+
+    // Can't have position values with 3 parts
+    if ((xType === 'offset') !== (yType === 'offset'))
+      continue;
+
+    test(t => {
+      const styleMap = createInlineStyleMap(t, 'object-position: ' + cssText);
+      assert_style_value_equals(styleMap.get('object-position'), new CSSPositionValue(x, y));
+    }, 'CSS <position> value "' + cssText + '" normalizes to CSSPositionValue');
+  }
+}
+
+</script>

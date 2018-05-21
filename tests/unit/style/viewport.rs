@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput};
-use euclid::ScaleFactor;
+use euclid::TypedScale;
 use euclid::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_arc::Arc;
@@ -75,12 +75,12 @@ fn test_meta_viewport<F>(meta: &str, callback: F)
 
 macro_rules! assert_decl_len {
     ($declarations:ident == 1) => {
-        assert!($declarations.len() == 1,
+        assert_eq!($declarations.len(), 1,
                 "expected 1 declaration; have {}: {:?})",
                 $declarations.len(), $declarations)
     };
     ($declarations:ident == $len:expr) => {
-        assert!($declarations.len() == $len,
+        assert_eq!($declarations.len(), $len,
                 "expected {} declarations; have {}: {:?})",
                 $len, $declarations.len(), $declarations)
     }
@@ -97,7 +97,7 @@ macro_rules! viewport_length {
 
 #[test]
 fn empty_viewport_rule() {
-    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), TypedScale::new(1.0));
 
     test_viewport_rule("@viewport {}", &device, |declarations, css| {
         println!("{}", css);
@@ -109,18 +109,18 @@ macro_rules! assert_decl_eq {
     ($d:expr, $origin:ident, $expected:ident: $value:expr) => {{
         assert_eq!($d.origin, Origin::$origin);
         assert_eq!($d.descriptor, ViewportDescriptor::$expected($value));
-        assert!($d.important == false, "descriptor should not be !important");
+        assert_eq!($d.important, false, "descriptor should not be !important");
     }};
     ($d:expr, $origin:ident, $expected:ident: $value:expr, !important) => {{
         assert_eq!($d.origin, Origin::$origin);
         assert_eq!($d.descriptor, ViewportDescriptor::$expected($value));
-        assert!($d.important == true, "descriptor should be !important");
+        assert_eq!($d.important, true, "descriptor should be !important");
     }};
 }
 
 #[test]
 fn simple_viewport_rules() {
-    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), TypedScale::new(1.0));
 
     test_viewport_rule("@viewport { width: auto; height: auto;\
                                     zoom: auto; min-zoom: 0; max-zoom: 200%;\
@@ -192,7 +192,7 @@ fn simple_meta_viewport_contents() {
 
 #[test]
 fn cascading_within_viewport_rule() {
-    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), TypedScale::new(1.0));
 
     // normal order of appearance
     test_viewport_rule("@viewport { min-width: 200px; min-width: auto; }",
@@ -258,7 +258,7 @@ fn cascading_within_viewport_rule() {
 #[test]
 fn multiple_stylesheets_cascading() {
     PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
-    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), TypedSize2D::new(800., 600.), TypedScale::new(1.0));
     let error_reporter = CSSErrorReporterTest;
     let shared_lock = SharedRwLock::new();
     let stylesheets = vec![
@@ -314,7 +314,7 @@ fn constrain_viewport() {
     }
 
     let initial_viewport = TypedSize2D::new(800., 600.);
-    let device = Device::new(MediaType::screen(), initial_viewport, ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), initial_viewport, TypedScale::new(1.0));
     let mut input = ParserInput::new("");
     assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks), None);
 
@@ -363,7 +363,7 @@ fn constrain_viewport() {
                }));
 
     let initial_viewport = TypedSize2D::new(200., 150.);
-    let device = Device::new(MediaType::screen(), initial_viewport, ScaleFactor::new(1.0));
+    let device = Device::new(MediaType::screen(), initial_viewport, TypedScale::new(1.0));
     let mut input = ParserInput::new("width: 320px auto");
     assert_eq!(ViewportConstraints::maybe_new(&device, from_css!(input), QuirksMode::NoQuirks),
                Some(ViewportConstraints {

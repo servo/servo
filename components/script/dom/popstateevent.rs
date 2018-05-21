@@ -12,10 +12,12 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, HandleValue, JSContext};
+use js::jsapi::{Heap, JSContext};
 use js::jsval::JSVal;
+use js::rust::HandleValue;
 use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
@@ -64,6 +66,13 @@ impl PopStateEvent {
                               init.parent.bubbles,
                               init.parent.cancelable,
                               init.state.handle()))
+    }
+
+    pub fn dispatch_jsval(target: &EventTarget,
+                          window: &Window,
+                          state: HandleValue) {
+        let event = PopStateEvent::new(window, atom!("popstate"), true, false, state);
+        event.upcast::<Event>().fire(target);
     }
 }
 

@@ -5,10 +5,9 @@
 //! Specified time values.
 
 use cssparser::{Parser, Token};
-use parser::{ParserContext, Parse};
-#[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
-use style_traits::{ToCss, ParseError, StyleParseErrorKind};
+use parser::{Parse, ParserContext};
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use style_traits::values::specified::AllowedNumericType;
 use values::CSSFloat;
 use values::computed::{Context, ToComputedValue};
@@ -35,7 +34,11 @@ pub enum TimeUnit {
 impl Time {
     /// Returns a time value that represents `seconds` seconds.
     pub fn from_seconds(seconds: CSSFloat) -> Self {
-        Time { seconds, unit: TimeUnit::Second, was_calc: false }
+        Time {
+            seconds,
+            unit: TimeUnit::Second,
+            was_calc: false,
+        }
     }
 
     /// Returns `0s`.
@@ -49,18 +52,18 @@ impl Time {
     }
 
     /// Parses a time according to CSS-VALUES § 6.2.
-    pub fn parse_dimension(
-        value: CSSFloat,
-        unit: &str,
-        was_calc: bool
-    ) -> Result<Time, ()> {
+    pub fn parse_dimension(value: CSSFloat, unit: &str, was_calc: bool) -> Result<Time, ()> {
         let (seconds, unit) = match_ignore_ascii_case! { unit,
             "s" => (value, TimeUnit::Second),
             "ms" => (value / 1000.0, TimeUnit::Millisecond),
             _ => return Err(())
         };
 
-        Ok(Time { seconds, unit, was_calc })
+        Ok(Time {
+            seconds,
+            unit,
+            was_calc,
+        })
     }
 
     /// Returns a `Time` value from a CSS `calc()` expression.
@@ -75,7 +78,7 @@ impl Time {
     fn parse_with_clamping_mode<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        clamping_mode: AllowedNumericType
+        clamping_mode: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
         use style_traits::ParsingMode;
 
@@ -87,13 +90,16 @@ impl Time {
             // values for SMIL regardless of clamping_mode, but in this Time
             // value case, the value does not animate for SMIL at all, so we use
             // ParsingMode::DEFAULT directly.
-            Ok(&Token::Dimension { value, ref unit, .. }) if clamping_mode.is_ok(ParsingMode::DEFAULT, value) => {
+            Ok(&Token::Dimension {
+                value, ref unit, ..
+            }) if clamping_mode.is_ok(ParsingMode::DEFAULT, value) =>
+            {
                 return Time::parse_dimension(value, unit, /* from_calc = */ false)
-                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                    .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
-            Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {}
+            Ok(&Token::Function(ref name)) if name.eq_ignore_ascii_case("calc") => {},
             Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-            Err(e) => return Err(e.into())
+            Err(e) => return Err(e.into()),
         }
         match input.parse_nested_block(|i| CalcNode::parse_time(context, i)) {
             Ok(time) if clamping_mode.is_ok(ParsingMode::DEFAULT, time.seconds) => Ok(time),
@@ -104,7 +110,7 @@ impl Time {
     /// Parses a non-negative time value.
     pub fn parse_non_negative<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::NonNegative)
     }
@@ -127,15 +133,18 @@ impl ToComputedValue for Time {
 }
 
 impl Parse for Time {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_with_clamping_mode(context, input, AllowedNumericType::All)
     }
 }
 
 impl ToCss for Time {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         if self.was_calc {
             dest.write_str("calc(")?;
@@ -144,11 +153,11 @@ impl ToCss for Time {
             TimeUnit::Second => {
                 self.seconds.to_css(dest)?;
                 dest.write_str("s")?;
-            }
+            },
             TimeUnit::Millisecond => {
                 (self.seconds * 1000.).to_css(dest)?;
                 dest.write_str("ms")?;
-            }
+            },
         }
         if self.was_calc {
             dest.write_str(")")?;
@@ -156,3 +165,5 @@ impl ToCss for Time {
         Ok(())
     }
 }
+
+impl SpecifiedValueInfo for Time {}

@@ -7,8 +7,6 @@ import subprocess
 import sys
 from ConfigParser import SafeConfigParser
 
-import requests
-
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 sys.path.insert(0, wpt_root)
@@ -22,7 +20,7 @@ from tools.wpt import markdown
 from tools import localpaths
 
 logger = None
-run, write_inconsistent, write_results = None, None, None
+stability_run, write_inconsistent, write_results = None, None, None
 wptrunner = None
 
 def setup_logging():
@@ -37,8 +35,9 @@ def setup_logging():
 
 
 def do_delayed_imports():
-    global run, write_inconsistent, write_results, wptrunner
-    from tools.wpt.stability import run, write_inconsistent, write_results
+    global stability_run, write_inconsistent, write_results, wptrunner
+    from tools.wpt.stability import run as stability_run
+    from tools.wpt.stability import write_inconsistent, write_results
     from wptrunner import wptrunner
 
 
@@ -132,11 +131,6 @@ def get_sha1():
     return git("rev-parse", "HEAD").strip()
 
 
-def install_wptrunner():
-    """Install wptrunner."""
-    call("pip", "install", wptrunner_root)
-
-
 def deepen_checkout(user):
     """Convert from a shallow checkout to a full one"""
     fetch_args = [user, "+refs/heads/*:refs/remotes/origin/*"]
@@ -177,71 +171,9 @@ def get_parser():
     return parser
 
 
-def set_default_args(kwargs):
-    kwargs.set_if_none("sauce_platform",
-                       os.environ.get("PLATFORM"))
-    kwargs.set_if_none("sauce_build",
-                       os.environ.get("TRAVIS_BUILD_NUMBER"))
-    python_version = os.environ.get("TRAVIS_PYTHON_VERSION")
-    kwargs.set_if_none("sauce_tags",
-                       [python_version] if python_version else [])
-    kwargs.set_if_none("sauce_tunnel_id",
-                       os.environ.get("TRAVIS_JOB_NUMBER"))
-    kwargs.set_if_none("sauce_user",
-                       os.environ.get("SAUCE_USERNAME"))
-    kwargs.set_if_none("sauce_key",
-                       os.environ.get("SAUCE_ACCESS_KEY"))
-
-
 def pr():
     pr = os.environ.get("TRAVIS_PULL_REQUEST", "false")
     return pr if pr != "false" else None
-
-
-def post_results(results, pr_number, iterations, product, url, status):
-    """Post stability results to a given URL."""
-    payload_results = []
-
-    for test_name, test in results.iteritems():
-        subtests = []
-        for subtest_name, subtest in test['subtests'].items():
-            subtests.append({
-                'test': subtest_name,
-                'result': {
-                    'messages': list(subtest['messages']),
-                    'status': subtest['status']
-                },
-            })
-        payload_results.append({
-            'test': test_name,
-            'result': {
-                'status': test['status'],
-                'subtests': subtests
-            }
-        })
-
-    payload = {
-        "pull": {
-            "number": int(pr_number),
-            "sha": os.environ.get("TRAVIS_PULL_REQUEST_SHA"),
-        },
-        "job": {
-            "id": int(os.environ.get("TRAVIS_JOB_ID")),
-            "number": os.environ.get("TRAVIS_JOB_NUMBER"),
-            "allow_failure": os.environ.get("TRAVIS_ALLOW_FAILURE") == 'true',
-            "status": status,
-        },
-        "build": {
-            "id": int(os.environ.get("TRAVIS_BUILD_ID")),
-            "number": os.environ.get("TRAVIS_BUILD_NUMBER"),
-        },
-        "product": product,
-        "iterations": iterations,
-        "message": "All results were stable." if status == "passed" else "Unstable results.",
-        "results": payload_results,
-    }
-
-    requests.post(url, json=payload)
 
 
 def get_changed_files(manifest_path, rev, ignore_changes, skip_tests):
@@ -268,19 +200,15 @@ def main():
 
     venv = Virtualenv(os.environ.get("VIRTUAL_ENV", os.path.join(wpt_root, "_venv")))
     venv.install_requirements(os.path.join(wpt_root, "tools", "wptrunner", "requirements.txt"))
-    venv.install("requests")
 
     args, wpt_args = get_parser().parse_known_args()
     return run(venv, wpt_args, **vars(args))
 
 
 def run(venv, wpt_args, **kwargs):
-    global logger
-
     do_delayed_imports()
 
     retcode = 0
-    parser = get_parser()
 
     wpt_args = create_parser().parse_args(wpt_args)
 
@@ -289,7 +217,6 @@ def run(venv, wpt_args, **kwargs):
         config.readfp(config_fp)
         skip_tests = config.get("file detection", "skip_tests").split()
         ignore_changes = set(config.get("file detection", "ignore_changes").split())
-        results_url = config.get("file detection", "results_url")
 
     if kwargs["output_bytes"] is not None:
         replace_streams(kwargs["output_bytes"],
@@ -303,12 +230,6 @@ def run(venv, wpt_args, **kwargs):
         pass
 
     setup_logging()
-
-    browser_name = wpt_args.product.split(":")[0]
-
-    if browser_name == "sauce" and not wpt_args.sauce_key:
-        logger.warning("Cannot run tests on Sauce Labs. No access key.")
-        return retcode
 
     pr_number = pr()
 
@@ -343,8 +264,6 @@ def run(venv, wpt_args, **kwargs):
 
             wpt_kwargs["test_list"] = list(tests_changed | files_affected)
 
-        set_default_args(wpt_kwargs)
-
         do_delayed_imports()
 
         wpt_kwargs["stability"] = True
@@ -362,7 +281,7 @@ def run(venv, wpt_args, **kwargs):
 
 
         wpt_logger = wptrunner.logger
-        iterations, results, inconsistent = run(venv, wpt_logger, **wpt_kwargs)
+        iterations, results, inconsistent = stability_run(venv, wpt_logger, **wpt_kwargs)
 
     if results:
         if inconsistent:
@@ -374,22 +293,19 @@ def run(venv, wpt_args, **kwargs):
             write_results(logger.info, results, iterations,
                           pr_number=pr_number,
                           use_details=True)
-            if pr_number:
-                post_results(results, iterations=iterations, url=results_url,
-                             product=wpt_args.product, pr_number=pr_number,
-                             status="failed" if inconsistent else "passed")
     else:
         logger.info("No tests run.")
+        # Be conservative and only return errors when we know for sure tests are changed.
+        if tests_changed:
+            retcode = 3
 
     return retcode
 
 
 if __name__ == "__main__":
     try:
-        retcode = main()
+        sys.exit(main())
     except Exception:
         import traceback
         traceback.print_exc()
         sys.exit(1)
-    else:
-        sys.exit(retcode)

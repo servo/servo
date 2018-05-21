@@ -211,15 +211,15 @@ class TokenizerTest(unittest.TestCase):
 """)
 
     def test_atom_1(self):
-            self.compare(r"""key: @True
+        self.compare(r"""key: @True
 """)
 
     def test_atom_2(self):
-            self.compare(r"""key: @False
+        self.compare(r"""key: @False
 """)
 
     def test_atom_3(self):
-            self.compare(r"""key: @Reset
+        self.compare(r"""key: @Reset
 """)
 
     def test_atom_4(self):

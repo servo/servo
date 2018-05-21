@@ -6,7 +6,6 @@ use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::XMLDocumentBinding::{self, XMLDocumentMethods};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
@@ -16,8 +15,11 @@ use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use js::jsapi::JSContext;
+use js::jsapi::JSObject;
+use mime::Mime;
 use script_traits::DocumentActivity;
 use servo_url::{MutableOrigin, ServoUrl};
+use std::ptr::NonNull;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]
@@ -31,7 +33,7 @@ impl XMLDocument {
                      url: Option<ServoUrl>,
                      origin: MutableOrigin,
                      is_html_document: IsHTMLDocument,
-                     content_type: Option<DOMString>,
+                     content_type: Option<Mime>,
                      last_modified: Option<String>,
                      activity: DocumentActivity,
                      source: DocumentSource,
@@ -58,7 +60,7 @@ impl XMLDocument {
                url: Option<ServoUrl>,
                origin: MutableOrigin,
                doctype: IsHTMLDocument,
-               content_type: Option<DOMString>,
+               content_type: Option<Mime>,
                last_modified: Option<String>,
                activity: DocumentActivity,
                source: DocumentSource,
@@ -101,7 +103,7 @@ impl XMLDocumentMethods for XMLDocument {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNullJSObjectPtr> {
+    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
         self.upcast::<Document>().NamedGetter(_cx, name)
     }
 }

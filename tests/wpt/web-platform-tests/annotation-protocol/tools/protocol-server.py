@@ -9,6 +9,8 @@
 #
 # for license information, see http://www.w3.org/Consortium/Legal/2008/04-testsuite-copyright.html
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -345,8 +347,8 @@ def annotation_post(request, response):
     newID = incoming['id']
     key = os.path.basename(newID)
 
-    print "post:" + newID
-    print "post:" + key
+    print("post:" + newID)
+    print("post:" + key)
 
     tempAnnotations[key] = dump_json(incoming)
 
@@ -366,8 +368,8 @@ def annotation_put(request, response):
     newID = incoming['id']
     key = os.path.basename(newID)
 
-    print "put:" + newID
-    print "put:" + key
+    print("put:" + newID)
+    print("put:" + key)
 
     tempAnnotations[key] = dump_json(incoming)
 
@@ -402,9 +404,9 @@ def annotation_delete(request, response):
         response.content = 'Not Found'
 
 if __name__ == '__main__':
-    print 'http://' + myhost + ':{0}/'.format(port)
-    print 'container URI is http://' + myhost + ':{0}/'.format(port) + "/annotations/"
-    print 'example annotation URI is http://' + myhost + ':{0}/'.format(port) + "/annotations/anno1.json"
+    print('http://' + myhost + ':{0}/'.format(port))
+    print('container URI is http://' + myhost + ':{0}/'.format(port) + "/annotations/")
+    print('example annotation URI is http://' + myhost + ':{0}/'.format(port) + "/annotations/anno1.json")
 
     routes = [
         ("GET", "", wptserve.handlers.file_handler),

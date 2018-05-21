@@ -85,6 +85,7 @@ function processListener (e) {
    // firefox seems to process events after disconnect
    processor.removeEventListener('audioprocess', processListener)
 
+   // Note: the expected result is from a mono source file.
    var expectedBuffer = expected[0];
 
    // Trim the actual elements because we don't have a fine-grained
@@ -110,7 +111,7 @@ function processListener (e) {
        "comparing expected and rendered buffers (channel 0)");
      assert_array_approx_equals(
        actualTrimmedC1,
-       trimEmptyElements(expectedBuffer.getChannelData(1)),
+       trimEmptyElements(expectedBuffer.getChannelData(0)),
        1e-4,
        "comparing expected and rendered buffers (channel 1)");
    }, "All data processed correctly");

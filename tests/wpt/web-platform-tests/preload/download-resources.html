@@ -8,7 +8,7 @@
 <link rel=preload href="resources/dummy.js" as=script>
 <link rel=preload href="resources/dummy.css" as=style>
 <link rel=preload href="resources/square.png" as=image>
-<link rel=preload href="resources/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
 <link rel=preload href="resources/white.mp4" as=video>
 <link rel=preload href="resources/sound_5.oga" as=audio>
 <link rel=preload href="resources/foo.vtt" as=track>
@@ -22,7 +22,7 @@
         verifyPreloadAndRTSupport()
         verifyNumberOfDownloads("resources/dummy.js", 1);
         verifyNumberOfDownloads("resources/dummy.css", 1);
-        verifyNumberOfDownloads("resources/CanvasTest.ttf", 1);
+        verifyNumberOfDownloads("/fonts/CanvasTest.ttf", 1);
         verifyNumberOfDownloads("resources/white.mp4", 1);
         verifyNumberOfDownloads("resources/sound_5.oga", 1);
         verifyNumberOfDownloads("resources/foo.vtt", 1);

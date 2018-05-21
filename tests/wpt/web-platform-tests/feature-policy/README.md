@@ -28,7 +28,7 @@ HTTP tests are used to test features with header policy.
 
 * Define the header policy in `<feature-name>-<enabled | disabled | enabled-on-self-origin>-by-feature-policy.https.sub.html.headers`. Example:
 
-    Feature-Policy: {"feature-name": ["*"]}
+    Feature-Policy: feature-name *
 
 
 * In `<feature-name>-<enabled | disabled | enabled-on-self-origin>-by-feature-policy.https.sub.html`:

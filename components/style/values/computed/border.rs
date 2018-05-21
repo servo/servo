@@ -16,6 +16,8 @@ use values::generics::border::BorderSpacing as GenericBorderSpacing;
 use values::generics::rect::Rect;
 use values::generics::size::Size;
 
+pub use values::specified::border::BorderImageRepeat;
+
 /// A computed value for the `border-image-width` property.
 pub type BorderImageWidth = Rect<BorderImageSideWidth>;
 
@@ -45,7 +47,10 @@ impl BorderImageSideWidth {
 impl BorderSpacing {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderSpacing(Size::new(NonNegativeLength::zero(), NonNegativeLength::zero()))
+        GenericBorderSpacing(Size::new(
+            NonNegativeLength::zero(),
+            NonNegativeLength::zero(),
+        ))
     }
 
     /// Returns the horizontal spacing.
@@ -62,15 +67,10 @@ impl BorderSpacing {
 impl BorderCornerRadius {
     /// Returns `0 0`.
     pub fn zero() -> Self {
-        GenericBorderCornerRadius(Size::new(LengthOrPercentage::zero(), LengthOrPercentage::zero()))
-    }
-}
-
-impl ToAnimatedZero for BorderSpacing {
-    #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> {
-        // FIXME(emilio): Why?
-        Err(())
+        GenericBorderCornerRadius(Size::new(
+            LengthOrPercentage::zero(),
+            LengthOrPercentage::zero(),
+        ))
     }
 }
 

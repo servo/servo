@@ -4,24 +4,31 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
+autotests = false  # Inhibit lookup for tests/*.rs without [[test]] sections
 
 [lib]
 name = "net"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
 base64 = "0.6"
 brotli = "1.0.6"
 cookie = "0.10"
+compositing = {path = "../compositing"}
 devtools_traits = {path = "../devtools_traits"}
-flate2 = "0.2.0"
+embedder_traits = { path = "../embedder_traits" }
+flate2 = "1"
 hyper = "0.10"
 hyper_serde = "0.8"
 hyper-openssl = "0.2.2"
-immeta = "0.3.1"
-ipc-channel = "0.9"
+immeta = "0.3.6"
+ipc-channel = "0.10"
 lazy_static = "1"
-log = "0.3.5"
+log = "0.4"
+malloc_size_of = { path = "../malloc_size_of" }
+malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
 mime = "0.2.1"
 mime_guess = "1.8.0"
@@ -31,15 +38,21 @@ openssl = "0.9"
 profile_traits = {path = "../profile_traits"}
 serde = "1.0"
 serde_json = "1.0"
+servo_allocator = {path = "../allocator"}
+servo_arc = {path = "../servo_arc"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-servo-websocket = "0.20"
+servo-websocket = { version = "0.21", default-features = false, features = ["sync"] }
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
 url = "1.2"
-uuid = {version = "0.5", features = ["v4"]}
+uuid = {version = "0.6", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
-[target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
-tinyfiledialogs = "2.5.9"
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }
+
+[[test]]
+name = "main"
+path = "tests/main.rs"

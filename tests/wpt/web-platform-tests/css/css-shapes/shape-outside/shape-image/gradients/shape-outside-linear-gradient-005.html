@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Test: Test float with linear gradient under writing-mode: vertical-rl</title>
+    <link rel="author" title="Ting-Yu Lin" href="mailto:aethanyc@gmail.com"/>
+    <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image"/>
+    <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property"/>
+    <link rel="match" href="reference/shape-outside-linear-gradient-001-ref.html"/>
+    <meta name="flags" content="ahem"/>
+    <meta name="assert" content="This test verifies that shape-outside respects a simple linear gradient under vertical-rl."/>
+    <style type="text/css">
+    .container {
+      writing-mode: vertical-rl;
+      inline-size: 100px;
+      block-size: 200px;
+      background-color: red;
+      font-family: Ahem;
+      font-size: 50px;
+      line-height: 1;
+    }
+    #test {
+      color: green;
+    }
+    #float-left {
+      /* Note: In .container's writing-mode, "float: left" actually floats
+         us towards the top. */
+      float: left;
+      inline-size: 100px;
+      block-size: 200px;
+      background: linear-gradient(to bottom, green 50%, transparent 50%);
+      shape-outside: linear-gradient(to bottom, green 50%, transparent 50%);
+    }
+    #float-right {
+      /* Note: In .container's writing-mode, "float: right" actually floats
+         us towards the bottom. */
+      float: right;
+      inline-size: 100px;
+      block-size: 200px;
+      background: linear-gradient(to top, green 50%, transparent 50%);
+      shape-outside: linear-gradient(to top, green 50%, transparent 50%);
+    }
+    </style>
+  </head>
+  <body>
+    <p>
+      The test passes if you see a green square. There should be no red.
+    </p>
+    <div id="test" class="container">
+      <div id="float-left"></div>
+      x x x x
+    </div>
+    <div id="test" class="container" style="direction: rtl;">
+      <div id="float-right"></div>
+      x x x x
+    </div>
+  </body>
+</html>

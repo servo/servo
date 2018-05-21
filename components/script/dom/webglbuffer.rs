@@ -7,6 +7,7 @@ use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLMsgSend
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
+use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
@@ -29,6 +30,8 @@ pub struct WebGLBuffer {
     pending_delete: Cell<bool>,
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
+    /// https://www.khronos.org/registry/OpenGL-Refpages/es2.0/xhtml/glGetBufferParameteriv.xml
+    usage: Cell<u32>,
 }
 
 impl WebGLBuffer {
@@ -44,6 +47,7 @@ impl WebGLBuffer {
             vao_references: DomRefCell::new(None),
             pending_delete: Cell::new(false),
             renderer: renderer,
+            usage: Cell::new(WebGLRenderingContextConstants::STATIC_DRAW),
         }
     }
 
@@ -73,6 +77,9 @@ impl WebGLBuffer {
 
     // NB: Only valid buffer targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
+        if self.is_deleted() || self.is_pending_delete() {
+            return Err(WebGLError::InvalidOperation);
+        }
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
@@ -86,14 +93,26 @@ impl WebGLBuffer {
         Ok(())
     }
 
-    pub fn buffer_data(&self, target: u32, data: &[u8], usage: u32) -> WebGLResult<()> {
+    pub fn buffer_data<T>(&self, target: u32, data: T, usage: u32) -> WebGLResult<()>
+    where
+        T: Into<Vec<u8>>,
+    {
+        match usage {
+            WebGLRenderingContextConstants::STREAM_DRAW |
+            WebGLRenderingContextConstants::STATIC_DRAW |
+            WebGLRenderingContextConstants::DYNAMIC_DRAW => (),
+            _ => return Err(WebGLError::InvalidEnum),
+        }
+
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
             }
         }
+        let data = data.into();
         self.capacity.set(data.len());
-        self.renderer.send(WebGLCommand::BufferData(target, data.to_vec(), usage)).unwrap();
+        self.usage.set(usage);
+        self.renderer.send(WebGLCommand::BufferData(target, data.into(), usage)).unwrap();
 
         Ok(())
     }
@@ -125,6 +144,10 @@ impl WebGLBuffer {
         self.pending_delete.set(true);
     }
 
+    pub fn is_pending_delete(&self) -> bool {
+        self.pending_delete.get()
+    }
+
     pub fn add_vao_reference(&self, id: WebGLVertexArrayId) {
         let mut vao_refs = self.vao_references.borrow_mut();
         if let Some(ref mut vao_refs) = *vao_refs {
@@ -145,6 +168,10 @@ impl WebGLBuffer {
                 self.is_deleted.set(true);
             }
         }
+    }
+
+    pub fn usage(&self) -> u32 {
+        self.usage.get()
     }
 }
 

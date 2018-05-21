@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>CSSOM serialize values</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#serializing-css-values">
 <meta name="author" title="Josh Matthews" href="mailto:josh@joshmatthews.net">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -89,8 +90,8 @@
     }
 
     function counter() {
-      var values = [{actual: 'counter(par-num)',
-                     serialized: 'counter(par-num, decimal)'},
+      var values = ['counter(par-num)',
+                    { actual: 'counter(par-num, decimal)', serialized: 'counter(par-num)' },
                     'counter(par-num, upper-roman)'];
       return iterable(values);
     }

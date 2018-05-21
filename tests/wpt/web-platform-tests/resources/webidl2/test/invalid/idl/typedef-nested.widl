@@ -19,4 +19,4 @@
     boolean allPointsWithinBounds(PointSequence ps);
   };
 
-  typedef [Clamp] octet value; 
+  typedef [Clamp] octet value;

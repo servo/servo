@@ -20,9 +20,11 @@
 <script>
   "use strict";
 
-  function doIdlTest(idlText) {
+  function doIdlTest([dom, idlText]) {
     const MDI_idl = new IdlArray();
 
+    MDI_idl.add_untested_idls(dom, { only: ['Event', 'EventInit'] });
+    MDI_idl.add_untested_idls("interface EventTarget {};");
     MDI_idl.add_untested_idls("interface Navigator {};");
     MDI_idl.add_idls(idlText);
 
@@ -32,15 +34,20 @@
     return navigator.mediaDevices.enumerateDevices()
     .then(function(list) {
       if( list.length > 0 ) {
-        window._mediaInfo = list[0];
-        MDI_idl.add_objects({MediaDeviceInfo: ["_mediaInfo"]});
+        var kind = list[0].kind;
+        if (kind == "audioinput" ||
+            kind == "videoinput") {
+          MDI_idl.add_objects({InputDeviceInfo: [list[0]]});
+        } else if (kind == "audiooutput" ) {
+          MDI_idl.add_objects({MediaDeviceInfo: [list[0]]});
+        }
       }
 
       for(const media of list) {
-        if( media.kind == "audioinput" ||
+        if (media.kind == "audioinput" ||
             media.kind == "videoinput") {
           // TODO -- Check InputDeviceInfo IDL, getCapabilities()
-        } else if ( media.kind == "audiooutput" ) {
+        } else if (media.kind == "audiooutput" ) {
           // TODO -- pass
         } else {
           assert_unreached("media.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
@@ -52,8 +59,11 @@
   }
 
   promise_test(() => {
-    return fetch('/interfaces/mediacapture-main.idl')
-      .then(response => response.text())
+      return Promise.all(
+        [
+          '/interfaces/dom.idl',
+          '/interfaces/mediacapture-main.idl',
+        ].map(url => fetch(url).then(r => r.text())))
       .then(doIdlTest);
 
   }, "Test MediaDevices.enumerateDevices call and result. Types only.");

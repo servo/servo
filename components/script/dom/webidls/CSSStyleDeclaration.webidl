@@ -189,6 +189,9 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transform-style;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString backfaceVisibility;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString backface-visibility;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString rotate;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString scale;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString translate;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString direction;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString unicodeBidi;
@@ -241,8 +244,10 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString whiteSpace;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString white-space;
 
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString writingMode;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString writing-mode;
+  [Pref="layout.writing-mode.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString writingMode;
+  [Pref="layout.writing-mode.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString writing-mode;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString letterSpacing;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString letter-spacing;
@@ -382,13 +387,20 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString imageRendering;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString image-rendering;
 
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnCount;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-count;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnWidth;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-width;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columns;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnGap;
-  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-gap;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columnCount;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString column-count;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columnWidth;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString column-width;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columns;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString columnGap;
+  [Pref="layout.columns.enabled", CEReactions, SetterThrows, TreatNullAs=EmptyString]
+  attribute DOMString column-gap;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transition;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString transitionDuration;

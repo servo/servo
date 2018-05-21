@@ -4,8 +4,6 @@
 <link rel="author" title="Mozilla Corporation" href="http://mozilla.com/" />
 <style type="text/css">
 span#table { display: inline-table; }
-span#rowgroup { display: table-row-group; }
-span#row { display: table-row; }
 span#cell { display: table-cell; }
 span#table, span#rowgroup, span#row, span#cell {
   border: 4px solid white;
@@ -19,7 +17,10 @@ span#block { display: block; visibility: hidden; }
 </head>
 <body>
 <table border=""><tbody><tr><td>
-<p><span id="table"><span id="rowgroup"><span id="row"><span id="cell">abcde<span id="block">x</span></span></span></span></span></p>
+        <p>
+          a<span id="table"><span id="cell">bcd</span></span>e
+          <span id="block">x</span>
+        </p>
 </td></tr></tbody></table>
 
 

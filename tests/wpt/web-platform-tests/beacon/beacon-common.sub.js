@@ -39,6 +39,10 @@ var emptyFormDataTest = { id: "EmptyFormData", data: CreateEmptyFormDataPayload(
 var smallFormDataTest = { id: "SmallFormData", data: CreateFormDataFromPayload(smallPayload) };
 var mediumFormDataTest = { id: "MediumFormData", data: CreateFormDataFromPayload(mediumPayload) };
 var largeFormDataTest = { id: "LargeFormData", data: CreateFormDataFromPayload(largePayload) };
+var smallSafeContentTypeEncodedTest = { id: "SmallSafeContentTypeEncoded", data: new Blob([smallPayload], { type: 'application/x-www-form-urlencoded' }) };
+var smallSafeContentTypeFormTest = { id: "SmallSafeContentTypeForm", data: new FormData() };
+var smallSafeContentTypeTextTest = { id: "SmallSafeContentTypeText", data: new Blob([smallPayload], { type: 'text/plain' }) };
+var smallCORSContentTypeTextTest = { id: "SmallCORSContentTypeText", data: new Blob([smallPayload], { type: 'text/html' }) };
 // We don't test maxFormData because the extra multipart separators make it difficult to
 // calculate a maxPayload.
 
@@ -52,12 +56,15 @@ var bufferSourceTests = [emptyBufferSourceTest, smallBufferSourceTest, mediumBuf
 var bufferSourceMaxTest = [maxBufferSourceTest];
 var formDataTests = [emptyFormDataTest, smallFormDataTest, mediumFormDataTest, largeFormDataTest];
 var formDataMaxTest = [largeFormDataTest];
-var allTests = [].concat(stringTests, stringMaxTest, blobTests, blobMaxTest, bufferSourceTests, bufferSourceMaxTest, formDataTests, formDataMaxTest);
+var contentTypeTests = [smallSafeContentTypeEncodedTest,smallSafeContentTypeFormTest,smallSafeContentTypeTextTest,smallCORSContentTypeTextTest];
+var allTests = [].concat(stringTests, stringMaxTest, blobTests, blobMaxTest, bufferSourceTests, bufferSourceMaxTest, formDataTests, formDataMaxTest, contentTypeTests);
 
 // This special cross section of test cases is meant to provide a slimmer but reasonably-
 // representative set of tests for parameterization across variables (e.g. redirect codes,
 // cors modes, etc.)
-var sampleTests = [noDataTest, nullDataTest, undefinedDataTest, smallStringTest, smallBlobTest, smallBufferSourceTest, smallFormDataTest];
+var sampleTests = [noDataTest, nullDataTest, undefinedDataTest, smallStringTest, smallBlobTest, smallBufferSourceTest, smallFormDataTest, smallSafeContentTypeEncodedTest, smallSafeContentTypeFormTest, smallSafeContentTypeTextTest];
+
+var preflightTests = [smallCORSContentTypeTextTest];
 
 // Build a test lookup table, which is useful when instructing a web worker or an iframe
 // to run a test, so that we don't have to marshal the entire test case across a process boundary.

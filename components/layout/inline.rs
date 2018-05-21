@@ -7,20 +7,19 @@
 use ServoArc;
 use app_units::{Au, MIN_AU};
 use block::AbsoluteAssignBSizesTraversal;
-use context::LayoutContext;
-use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding};
-use display_list_builder::StackingContextCollectionState;
+use context::{LayoutContext, LayoutFontContext};
+use display_list::{DisplayListBuildState, InlineFlowDisplayListBuilding};
+use display_list::StackingContextCollectionState;
+use display_list::items::OpaqueNode;
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
-use flow::{FlowFlags, EarlyAbsolutePositionInfo, OpaqueFlow};
+use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag};
+use flow::{FlowFlags, EarlyAbsolutePositionInfo, GetBaseFlow, OpaqueFlow};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::FragmentFlags;
 use fragment::SpecificFragmentInfo;
-use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
-use gfx::font_context::FontContext;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -111,7 +110,7 @@ pub struct Line {
     /// For example, for the HTML below...
     ///
     /// ~~~html
-    /// <div><span>I <span>like      truffles, <img></span></div>
+    /// <div><span>I like      truffles, <img></span></div>
     /// ~~~
     ///
     /// ...the bounds would be:
@@ -267,10 +266,10 @@ impl LineBreaker {
     }
 
     /// Reinitializes the pending line to blank data.
-    fn reset_line(&mut self) -> Line {
+    fn reset_line(&mut self) {
         self.last_known_line_breaking_opportunity = None;
-        mem::replace(&mut self.pending_line,
-                     Line::new(self.floats.writing_mode, &self.minimum_metrics))
+        // https://github.com/rust-lang/rust/issues/49282
+        self.pending_line = Line::new(self.floats.writing_mode, &self.minimum_metrics);
     }
 
     /// Reflows fragments for the given inline flow.
@@ -554,7 +553,6 @@ impl LineBreaker {
                        layout_context: &LayoutContext) {
         // Undo any whitespace stripping from previous reflows.
         fragment.reset_text_range_and_inline_size();
-
         // Determine initial placement for the fragment if we need to.
         //
         // Also, determine whether we can legally break the line before, or
@@ -566,7 +564,21 @@ impl LineBreaker {
             self.pending_line.green_zone = line_bounds.size;
             false
         } else {
-            fragment.white_space().allow_wrap()
+            // In case of Foo<span style="...">bar</span>, the line breaker will
+            // set the "suppress line break before" flag for the second fragment.
+            //
+            // In case of Foo<span>bar</span> the second fragment ("bar") will
+            // start _within_ a glyph run, so we also avoid breaking there
+            //
+            // is_on_glyph_run_boundary does a binary search, but this is ok
+            // because the result will be cached and reused in
+            // `calculate_split_position` later
+            if fragment.suppress_line_break_before() ||
+               !fragment.is_on_glyph_run_boundary() {
+                false
+            } else {
+                fragment.white_space().allow_wrap()
+            }
         };
 
         debug!("LineBreaker: trying to append to line {} \
@@ -657,10 +669,10 @@ impl LineBreaker {
         };
 
         inline_start_fragment = split_result.inline_start.as_ref().map(|x| {
-            fragment.transform_with_split_info(x, split_result.text_run.clone())
+            fragment.transform_with_split_info(x, split_result.text_run.clone(), true)
         });
         inline_end_fragment = split_result.inline_end.as_ref().map(|x| {
-            fragment.transform_with_split_info(x, split_result.text_run.clone())
+            fragment.transform_with_split_info(x, split_result.text_run.clone(), false)
         });
 
         // Push the first fragment onto the line we're working on and start off the next line with
@@ -791,7 +803,7 @@ impl LineBreaker {
         self.work_list.push_front(cur_fragment);
         for fragment_index in (last_known_line_breaking_opportunity.get()..
                                self.pending_line.range.end().get()).rev() {
-            debug_assert!(fragment_index == (self.new_fragments.len() as isize) - 1);
+            debug_assert_eq!(fragment_index, (self.new_fragments.len() as isize) - 1);
             self.work_list.push_front(self.new_fragments.pop().unwrap());
         }
 
@@ -1119,7 +1131,7 @@ impl InlineFlow {
     /// Computes the minimum metrics for each line. This is done during flow construction.
     ///
     /// `style` is the style of the block.
-    pub fn minimum_line_metrics(&self, font_context: &mut FontContext, style: &ComputedValues)
+    pub fn minimum_line_metrics(&self, font_context: &mut LayoutFontContext, style: &ComputedValues)
                                 -> LineMetrics {
         InlineFlow::minimum_line_metrics_for_fragments(&self.fragments.fragments,
                                                        font_context,
@@ -1131,7 +1143,7 @@ impl InlineFlow {
     ///
     /// `style` is the style of the block that these fragments belong to.
     pub fn minimum_line_metrics_for_fragments(fragments: &[Fragment],
-                                              font_context: &mut FontContext,
+                                              font_context: &mut LayoutFontContext,
                                               style: &ComputedValues)
                                               -> LineMetrics {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
@@ -1143,7 +1155,11 @@ impl InlineFlow {
         let font_style = style.clone_font();
         let font_metrics = text::font_metrics_for_style(font_context, font_style);
         let line_height = text::line_height_from_style(style, &font_metrics);
-        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
+        let inline_metrics = if fragments.iter().any(Fragment::is_text_or_replaced) {
+            InlineMetrics::from_font_metrics(&font_metrics, line_height)
+        } else {
+            InlineMetrics::new(Au(0), Au(0), Au(0))
+        };
 
         let mut line_metrics = LineMetrics::new(Au(0), MIN_AU);
         let mut largest_block_size_for_top_fragments = Au(0);
@@ -1315,7 +1331,7 @@ impl Flow for InlineFlow {
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter_mut() {
-            flow::mut_base(kid).floats = Floats::new(writing_mode);
+            kid.mut_base().floats = Floats::new(writing_mode);
         }
 
         self.base.flags.remove(FlowFlags::CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
@@ -1423,7 +1439,7 @@ impl Flow for InlineFlow {
         // sizes down to them.
         let block_container_explicit_block_size = self.base.block_container_explicit_block_size;
         for kid in self.base.child_iter_mut() {
-            let kid_base = flow::mut_base(kid);
+            let kid_base = kid.mut_base();
 
             kid_base.block_container_inline_size = inline_size;
             kid_base.block_container_writing_mode = container_mode;
@@ -1432,7 +1448,7 @@ impl Flow for InlineFlow {
     }
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
-    /// Note that we do not need to do in-order traversal becase the children
+    /// Note that we do not need to do in-order traversal because the children
     /// are always block formatting context.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("inline::assign_block_size {:x}",
@@ -1524,14 +1540,14 @@ impl Flow for InlineFlow {
             match f.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     let block = FlowRef::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    block.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
                 }
                 SpecificFragmentInfo::InlineAbsolute(ref mut info) => {
                     let block = FlowRef::deref_mut(&mut info.flow_ref);
-                    flow::mut_base(block).early_absolute_position_info = EarlyAbsolutePositionInfo {
+                    block.mut_base().early_absolute_position_info = EarlyAbsolutePositionInfo {
                         relative_containing_block_size: containing_block_size,
                         relative_containing_block_mode: writing_mode,
                     };
@@ -1601,7 +1617,7 @@ impl Flow for InlineFlow {
                                                           .relative_containing_block_mode,
                                                       CoordinateSystem::Parent);
             let stacking_relative_content_box =
-                fragment.stacking_relative_content_box(&stacking_relative_border_box);
+                fragment.stacking_relative_content_box(stacking_relative_border_box);
 
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
@@ -1757,7 +1773,7 @@ impl fmt::Debug for InlineFlow {
                "{:?}({:x}) {:?}",
                self.class(),
                self.base.debug_id(),
-               flow::base(self))
+               self.base())
     }
 }
 
@@ -1766,7 +1782,7 @@ pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
     pub style: ServoArc<ComputedValues>,
     pub selected_style: ServoArc<ComputedValues>,
-    pub pseudo: PseudoElementType<()>,
+    pub pseudo: PseudoElementType,
     pub flags: InlineFragmentNodeFlags,
 }
 

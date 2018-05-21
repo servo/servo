@@ -8,10 +8,15 @@
 
 function testCommitPushesContents(offscreenCanvas)
 {
+  try {
     var ctx = offscreenCanvas.getContext('2d');
     ctx.fillStyle = "#0f0";
     ctx.fillRect(0, 0, 10, 10);
     ctx.commit();
+    return true;
+  } catch(e) {
+    return false;
+  }
 }
 
 function isInvalidStateError(funcStr, ctx)
@@ -37,8 +42,7 @@ function testCommitException()
 self.onmessage = function(e) {
     switch (e.data.msg) {
         case 'test1':
-            testCommitPushesContents(e.data.data);
-            self.postMessage('worker finished');
+            self.postMessage(testCommitPushesContents(e.data.data));
             break;
         case 'test2':
             self.postMessage(testCommitException());
@@ -71,7 +75,8 @@ async_test(function(t) {
     var offscreenCanvas = placeholder.transferControlToOffscreen();
     var worker = makeWorker(document.getElementById("myWorker").textContent);
     worker.addEventListener('message', t.step_func_done(function(msg) {
-        verifyPlaceholder(placeholder);
+      assert_true(msg.data);
+      verifyPlaceholder(placeholder);
     }));
     worker.postMessage({msg: 'test1', data: offscreenCanvas}, [offscreenCanvas]);
 }, "Test that calling OffscreenCanvas's commit pushes its contents to its placeholder.");
@@ -85,4 +90,3 @@ async_test(function(t) {
 }, "Test that calling commit on an OffscreenCanvas that is not transferred from a HTMLCanvasElement throws an exception in a worker.");
 
 </script>
-

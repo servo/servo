@@ -7,7 +7,8 @@
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
+use js::jsapi::{JSContext, JSObject, Heap};
+use js::rust::HandleObject;
 use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
@@ -46,7 +47,8 @@ impl Reflector {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject {
-        self.object.handle()
+        // We're rooted, so it's safe to hand out a handle to object in Heap
+        unsafe { self.object.handle() }
     }
 
     /// Initialize the reflector. (May be called only once.)

@@ -7,17 +7,23 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+from errno import ENOENT as NO_SUCH_FILE_OR_DIRECTORY
 from glob import glob
 import gzip
 import itertools
 import locale
 import os
 from os import path
+import platform
+import re
 import contextlib
 import subprocess
 from subprocess import PIPE
 import sys
 import tarfile
+from xml.etree.ElementTree import XML
+from servo.util import download_file
+import urllib2
 
 from mach.registrar import Registrar
 import toml
@@ -26,6 +32,7 @@ from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
+NIGHTLY_REPOSITORY_URL = "https://servo-builds.s3.amazonaws.com/"
 
 
 @contextlib.contextmanager
@@ -60,13 +67,6 @@ def find_dep_path_newest(package, bin_path):
     if candidates:
         return max(candidates, key=lambda c: path.getmtime(path.join(c, "output")))
     return None
-
-
-def get_browserhtml_path(binary_path):
-    browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-    if browserhtml_path:
-        return path.join(browserhtml_path, "out")
-    sys.exit("Could not find browserhtml package; perhaps you haven't built Servo.")
 
 
 def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
@@ -136,6 +136,18 @@ def call(*args, **kwargs):
     # we have to use shell=True in order to get PATH handling
     # when looking for the binary on Windows
     return subprocess.call(*args, shell=sys.platform == 'win32', **kwargs)
+
+
+def check_output(*args, **kwargs):
+    """Wrap `subprocess.call`, printing the command if verbose=True."""
+    verbose = kwargs.pop('verbose', False)
+    if verbose:
+        print(' '.join(args[0]))
+    if 'env' in kwargs:
+        kwargs['env'] = normalize_env(kwargs['env'])
+    # we have to use shell=True in order to get PATH handling
+    # when looking for the binary on Windows
+    return subprocess.check_output(*args, shell=sys.platform == 'win32', **kwargs)
 
 
 def check_call(*args, **kwargs):
@@ -254,10 +266,7 @@ class CommandBase(object):
 
         context.sharedir = self.config["tools"]["cache-dir"]
 
-        self.config["tools"].setdefault("system-rust", False)
-        self.config["tools"].setdefault("system-cargo", False)
-        self.config["tools"].setdefault("rust-root", "")
-        self.config["tools"].setdefault("cargo-root", "")
+        self.config["tools"].setdefault("use-rustup", True)
         self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         self.config.setdefault("build", {})
@@ -266,7 +275,7 @@ class CommandBase(object):
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
-        self.config["build"].setdefault("incremental", False)
+        self.config["build"].setdefault("incremental", None)
         self.config["build"].setdefault("thinlto", False)
 
         self.config.setdefault("android", {})
@@ -276,63 +285,41 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-        self.set_cargo_root()
-        self.set_use_stable_rust(False)
+    _default_toolchain = None
 
-    _use_stable_rust = False
-    _rust_stable_version = None
-    _rust_nightly_date = None
+    def toolchain(self):
+        return self.default_toolchain()
 
-    def set_cargo_root(self):
-        if not self.config["tools"]["system-cargo"]:
-            self.config["tools"]["cargo-root"] = path.join(
-                self.context.sharedir, "cargo", self.rust_nightly_date())
-
-    def set_use_stable_rust(self, use_stable_rust=True):
-        self._use_stable_rust = use_stable_rust
-        if not self.config["tools"]["system-rust"]:
-            self.config["tools"]["rust-root"] = path.join(
-                self.context.sharedir, "rust", self.rust_path())
-        if use_stable_rust:
-            # Cargo maintainer's position is that CARGO_INCREMENTAL is a nightly-only feature
-            # and should not be used on the stable channel.
-            # https://github.com/rust-lang/cargo/issues/3835
-            self.config["build"]["incremental"] = False
-
-    def use_stable_rust(self):
-        return self._use_stable_rust
-
-    def rust_install_dir(self):
-        if self._use_stable_rust:
-            return self.rust_stable_version()
-        else:
-            return self.rust_nightly_date()
-
-    def rust_path(self):
-        if self._use_stable_rust:
-            version = self.rust_stable_version()
-        else:
-            version = "nightly"
-
-        subdir = "rustc-%s-%s" % (version, host_triple())
-        return os.path.join(self.rust_install_dir(), subdir)
-
-    def rust_stable_version(self):
-        if self._rust_stable_version is None:
-            filename = path.join("rust-stable-version")
-            with open(filename) as f:
-                self._rust_stable_version = f.read().strip()
-        return self._rust_stable_version
-
-    def rust_nightly_date(self):
-        if self._rust_nightly_date is None:
+    def default_toolchain(self):
+        if self._default_toolchain is None:
             filename = path.join(self.context.topdir, "rust-toolchain")
             with open(filename) as f:
-                toolchain = f.read().strip()
-                prefix = "nightly-"
-                assert toolchain.startswith(prefix)
-                self._rust_nightly_date = toolchain[len(prefix):]
-        return self._rust_nightly_date
+                self._default_toolchain = f.read().strip()
+        return self._default_toolchain
+
+    def call_rustup_run(self, args, **kwargs):
+        if self.config["tools"]["use-rustup"]:
+            try:
+                version_line = subprocess.check_output(["rustup" + BIN_SUFFIX, "--version"])
+            except OSError as e:
+                if e.errno == NO_SUCH_FILE_OR_DIRECTORY:
+                    print "It looks like rustup is not installed. See instructions at " \
+                          "https://github.com/servo/servo/#setting-up-your-environment"
+                    print
+                    return 1
+                raise
+            version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
+            if version < (1, 8, 0):
+                print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
+                print "Try running 'rustup self update'."
+                return 1
+            toolchain = self.toolchain()
+            if platform.system() == "Windows":
+                toolchain += "-x86_64-pc-windows-msvc"
+            args = ["rustup" + BIN_SUFFIX, "run", "--install", toolchain] + args
+        else:
+            args[0] += BIN_SUFFIX
+        return call(args, **kwargs)
 
     def get_top_dir(self):
         return self.context.topdir
@@ -388,7 +375,89 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False):
+    def get_nightly_binary_path(self, nightly_date):
+        if nightly_date is None:
+            return
+        if not nightly_date:
+            print(
+                "No nightly date has been provided although the --nightly or -n flag has been passed.")
+            sys.exit(1)
+        # Will alow us to fetch the relevant builds from the nightly repository
+        os_prefix = "linux"
+        if is_windows():
+            os_prefix = "windows-msvc"
+        if is_macosx():
+            print("The nightly flag is not supported on mac yet.")
+            sys.exit(1)
+        nightly_date = nightly_date.strip()
+        # Fetch the filename to download from the build list
+        repository_index = NIGHTLY_REPOSITORY_URL + "?list-type=2&prefix=nightly"
+        req = urllib2.Request(
+            "{}/{}/{}".format(repository_index, os_prefix, nightly_date))
+        try:
+            response = urllib2.urlopen(req).read()
+            tree = XML(response)
+            namespaces = {'ns': tree.tag[1:tree.tag.index('}')]}
+            file_to_download = tree.find('ns:Contents', namespaces).find(
+                'ns:Key', namespaces).text
+        except urllib2.URLError as e:
+            print("Could not fetch the available nightly versions from the repository : {}".format(
+                e.reason))
+            sys.exit(1)
+        except AttributeError as e:
+            print("Could not fetch a nightly version for date {} and platform {}".format(
+                nightly_date, os_prefix))
+            sys.exit(1)
+
+        nightly_target_directory = path.join(self.context.topdir, "target")
+        # ':' is not an authorized character for a file name on Windows
+        # make sure the OS specific separator is used
+        target_file_path = file_to_download.replace(':', '-').split('/')
+        destination_file = os.path.join(
+            nightly_target_directory, os.path.join(*target_file_path))
+        # Once extracted, the nightly folder name is the tar name without the extension
+        # (eg /foo/bar/baz.tar.gz extracts to /foo/bar/baz)
+        destination_folder = os.path.splitext(destination_file)[0]
+        nightlies_folder = path.join(
+            nightly_target_directory, 'nightly', os_prefix)
+
+        # Make sure the target directory exists
+        if not os.path.isdir(nightlies_folder):
+            print("The nightly folder for the target does not exist yet. Creating {}".format(
+                nightlies_folder))
+            os.makedirs(nightlies_folder)
+
+        # Download the nightly version
+        if os.path.isfile(path.join(nightlies_folder, destination_file)):
+            print("The nightly file {} has already been downloaded.".format(
+                destination_file))
+        else:
+            print("The nightly {} does not exist yet, downloading it.".format(
+                destination_file))
+            download_file(destination_file, NIGHTLY_REPOSITORY_URL +
+                          file_to_download, destination_file)
+
+        # Extract the downloaded nightly version
+        if os.path.isdir(destination_folder):
+            print("The nightly file {} has already been extracted.".format(
+                destination_folder))
+        else:
+            print("Extracting to {} ...".format(destination_folder))
+            if is_windows():
+                command = 'msiexec /a {} /qn TARGETDIR={}'.format(
+                    os.path.join(nightlies_folder, destination_file), destination_folder)
+                if subprocess.call(command, stdout=PIPE, stderr=PIPE) != 0:
+                    print("Could not extract the nightly executable from the msi package.")
+                    sys.exit(1)
+            else:
+                with tarfile.open(os.path.join(nightlies_folder, destination_file), "r") as tar:
+                    tar.extractall(destination_folder)
+        bin_folder = path.join(destination_folder, "servo")
+        if is_windows():
+            bin_folder = path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
+        return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
+
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -423,31 +492,13 @@ class CommandBase(object):
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
-        if not self.config["tools"]["system-rust"] \
-                or self.config["tools"]["rust-root"]:
-            env["RUST_ROOT"] = self.config["tools"]["rust-root"]
-            # These paths are for when rust-root points to an unpacked installer
-            extra_path += [path.join(self.config["tools"]["rust-root"], "rustc", "bin")]
-            extra_lib += [path.join(self.config["tools"]["rust-root"], "rustc", "lib")]
-            # These paths are for when rust-root points to a rustc sysroot
-            extra_path += [path.join(self.config["tools"]["rust-root"], "bin")]
-            extra_lib += [path.join(self.config["tools"]["rust-root"], "lib")]
-
-        if not self.config["tools"]["system-cargo"] \
-                or self.config["tools"]["cargo-root"]:
-            # This path is for when rust-root points to an unpacked installer
-            extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "cargo", "bin")]
-            # This path is for when rust-root points to a rustc sysroot
-            extra_path += [
-                path.join(self.config["tools"]["cargo-root"], "bin")]
-
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
 
-        env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
+        elif self.config["build"]["incremental"] is not None:
+            env["CARGO_INCREMENTAL"] = "0"
 
         if extra_lib:
             if sys.platform == "darwin":
@@ -486,7 +537,10 @@ class CommandBase(object):
         if hosts_file_path:
             env['HOST_FILE'] = hosts_file_path
 
-        env['RUSTDOCFLAGS'] = "--document-private-items"
+        if not test_unit:
+            # This wrapper script is in bash and doesn't work on Windows
+            # where we want to run doctests as part of `./mach test-unit`
+            env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
 
         if self.config["build"]["rustflags"]:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
@@ -522,10 +576,7 @@ class CommandBase(object):
 
         env['GIT_INFO'] = '-'.join(git_info)
 
-        if geckolib:
-            geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
-            env["CARGO_TARGET_DIR"] = geckolib_build_path
-        elif self.config["build"]["thinlto"]:
+        if self.config["build"]["thinlto"]:
             env['RUSTFLAGS'] += " -Z thinlto"
 
         return env
@@ -535,12 +586,6 @@ class CommandBase(object):
 
     def servo_manifest(self):
         return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
-
-    def geckolib_manifest(self):
-        return path.join(self.context.topdir, "ports", "geckolib", "Cargo.toml")
-
-    def cef_manifest(self):
-        return path.join(self.context.topdir, "ports", "cef", "Cargo.toml")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""
@@ -588,32 +633,9 @@ class CommandBase(object):
 
         target_platform = target or host_triple()
 
-        rust_root = self.config["tools"]["rust-root"]
-        rustc_path = path.join(
-            rust_root, "rustc", "bin", "rustc" + BIN_SUFFIX
-        )
-        rustc_binary_exists = path.exists(rustc_path)
-
-        base_target_path = path.join(rust_root, "rustc", "lib", "rustlib")
-
-        target_path = path.join(base_target_path, target_platform)
-        target_exists = path.exists(target_path)
-
         # Always check if all needed MSVC dependencies are installed
         if "msvc" in target_platform:
             Registrar.dispatch("bootstrap", context=self.context)
-
-        if not (self.config['tools']['system-rust'] or (rustc_binary_exists and target_exists)):
-            print("Looking for rustc at %s" % (rustc_path))
-            Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]),
-                               stable=self._use_stable_rust)
-
-        cargo_path = path.join(self.config["tools"]["cargo-root"], "cargo", "bin",
-                               "cargo" + BIN_SUFFIX)
-        cargo_binary_exists = path.exists(cargo_path)
-
-        if not self.config["tools"]["system-cargo"] and not cargo_binary_exists:
-            Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
 

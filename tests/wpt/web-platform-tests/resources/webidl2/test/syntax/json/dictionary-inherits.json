@@ -9,10 +9,10 @@
                 "name": "fillPattern",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -27,10 +27,10 @@
                 "name": "strokePattern",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -44,10 +44,10 @@
                 "name": "position",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Point"
                 },
@@ -67,10 +67,10 @@
                 "name": "hydrometry",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },

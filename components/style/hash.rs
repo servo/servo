@@ -14,7 +14,6 @@ pub use hashglobe::hash_map::HashMap;
 #[cfg(feature = "gecko")]
 pub use hashglobe::hash_set::HashSet;
 
-
 #[cfg(feature = "servo")]
 pub use hashglobe::fake::{HashMap, HashSet};
 

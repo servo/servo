@@ -4,20 +4,25 @@
 
 //! Helper types for the `@viewport` rule.
 
-use {CSSPixel, PinchZoomFactor, ParseError, ToCss};
+use {CSSPixel, CssWriter, ParseError, PinchZoomFactor, ToCss};
 use cssparser::Parser;
 use euclid::TypedSize2D;
-#[allow(unused_imports)] use std::ascii::AsciiExt;
-use std::fmt;
+use std::fmt::{self, Write};
 
-define_css_keyword_enum!(UserZoom:
-                         "zoom" => Zoom,
-                         "fixed" => Fixed);
+define_css_keyword_enum! {
+    pub enum UserZoom {
+        Zoom = "zoom",
+        Fixed = "fixed",
+    }
+}
 
-define_css_keyword_enum!(Orientation:
-                         "auto" => Auto,
-                         "portrait" => Portrait,
-                         "landscape" => Landscape);
+define_css_keyword_enum! {
+    pub enum Orientation {
+        Auto = "auto",
+        Portrait = "portrait",
+        Landscape = "landscape",
+    }
+}
 
 /// A set of viewport descriptors:
 ///
@@ -42,8 +47,9 @@ pub struct ViewportConstraints {
 }
 
 impl ToCss for ViewportConstraints {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         dest.write_str("@viewport { width: ")?;
         self.size.width.to_css(dest)?;
@@ -86,7 +92,7 @@ pub enum Zoom {
 }
 
 impl ToCss for Zoom {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
         where W: fmt::Write,
     {
         match *self {

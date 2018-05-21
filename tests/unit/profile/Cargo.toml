@@ -10,9 +10,11 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-ipc-channel = "0.9"
+ipc-channel = "0.10"
 profile = {path = "../../../components/profile"}
 profile_traits = {path = "../../../components/profile_traits"}
 
 # Work around https://github.com/alexcrichton/jemallocator/issues/19
 servo_allocator = {path = "../../../components/allocator"}
+servo_config = {path = "../../../components/config"}
+

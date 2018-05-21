@@ -22,5 +22,3 @@ partial interface WorkerGlobalScope { // not obsolete
   void importScripts(DOMString... urls);
   readonly attribute WorkerNavigator navigator;
 };
-WorkerGlobalScope implements WindowTimers;
-WorkerGlobalScope implements WindowBase64;

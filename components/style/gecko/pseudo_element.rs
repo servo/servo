@@ -8,15 +8,19 @@
 //! `pseudo_element_definition.mako.rs`. If you touch that file, you probably
 //! need to update the checked-in files for Servo.
 
-use cssparser::{ToCss, serialize_identifier};
+use cssparser::ToCss;
 use gecko_bindings::structs::{self, CSSPseudoElementType};
-use properties::{ComputedValues, PropertyFlags};
+use properties::{CascadeFlags, ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use string_cache::Atom;
+use values::serialize_atom_identifier;
 
-include!(concat!(env!("OUT_DIR"), "/gecko/pseudo_element_definition.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/gecko/pseudo_element_definition.rs"
+));
 
 impl ::selectors::parser::PseudoElement for PseudoElement {
     type Impl = SelectorImpl;
@@ -41,14 +45,23 @@ impl PseudoElement {
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
         if self.is_eager() {
             debug_assert!(!self.is_anon_box());
-            return PseudoElementCascadeType::Eager
+            return PseudoElementCascadeType::Eager;
         }
 
         if self.is_precomputed() {
-            return PseudoElementCascadeType::Precomputed
+            return PseudoElementCascadeType::Precomputed;
         }
 
         PseudoElementCascadeType::Lazy
+    }
+
+    /// The CascadeFlags needed to cascade this pseudo-element.
+    ///
+    /// This is only needed to support the broken INHERIT_ALL pseudo mode for
+    /// Servo.
+    #[inline]
+    pub fn cascade_flags(&self) -> CascadeFlags {
+        CascadeFlags::empty()
     }
 
     /// Whether the pseudo-element should inherit from the default computed
@@ -63,7 +76,9 @@ impl PseudoElement {
     /// Gets the canonical index of this eagerly-cascaded pseudo-element.
     #[inline]
     pub fn eager_index(&self) -> usize {
-        EAGER_PSEUDOS.iter().position(|p| p == self)
+        EAGER_PSEUDOS
+            .iter()
+            .position(|p| p == self)
             .expect("Not an eager pseudo")
     }
 
@@ -115,20 +130,30 @@ impl PseudoElement {
         !self.is_eager() && !self.is_precomputed()
     }
 
-    /// Whether this pseudo-element is web-exposed.
-    pub fn exposed_in_non_ua_sheets(&self) -> bool {
-        (self.flags() & structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY) == 0
-    }
-
     /// Whether this pseudo-element supports user action selectors.
     pub fn supports_user_action_state(&self) -> bool {
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_SUPPORTS_USER_ACTION_STATE) != 0
     }
 
+    /// Whether this pseudo-element is enabled for all content.
+    pub fn enabled_in_content(&self) -> bool {
+        (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME) == 0
+    }
+
+    /// Whether this pseudo is enabled explicitly in UA sheets.
+    pub fn enabled_in_ua_sheets(&self) -> bool {
+        (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS) != 0
+    }
+
+    /// Whether this pseudo is enabled explicitly in chrome sheets.
+    pub fn enabled_in_chrome(&self) -> bool {
+        (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_CHROME) != 0
+    }
+
     /// Whether this pseudo-element skips flex/grid container display-based
     /// fixup.
     #[inline]
-    pub fn skip_item_based_display_fixup(&self) -> bool {
+    pub fn skip_item_display_fixup(&self) -> bool {
         (self.flags() & structs::CSS_PSEUDO_ELEMENT_IS_FLEX_OR_GRID_ITEM) == 0
     }
 

@@ -11,15 +11,17 @@ use cssparser::Parser;
 use hash::FnvHashMap;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
-use std::fmt;
+use servo_arc::Arc;
+use std::fmt::{self, Write};
 use std::ops::Range;
 use str::HTML_SPACE_CHARACTERS;
-use style_traits::{ToCss, StyleParseErrorKind, ParseError};
+use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::{Either, None_};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage as ComputedLengthOrPercentage};
 use values::computed::{Context, Percentage, ToComputedValue};
 use values::generics::position::Position as GenericPosition;
-use values::specified::{AllowQuirks, LengthOrPercentage};
+use values::generics::position::ZIndex as GenericZIndex;
+use values::specified::{AllowQuirks, Integer, LengthOrPercentage};
 use values::specified::transform::OriginComponent;
 
 /// The specified value of a CSS `<position>`
@@ -32,7 +34,7 @@ pub type HorizontalPosition = PositionComponent<X>;
 pub type VerticalPosition = PositionComponent<Y>;
 
 /// The specified value of a component of a CSS `<position>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum PositionComponent<S> {
     /// `center`
     Center,
@@ -42,34 +44,45 @@ pub enum PositionComponent<S> {
     Side(S, Option<LengthOrPercentage>),
 }
 
-define_css_keyword_enum! { X:
-    "left" => Left,
-    "right" => Right,
+/// A keyword for the X direction.
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[allow(missing_docs)]
+pub enum X {
+    Left,
+    Right,
 }
-add_impls_for_keyword_enum!(X);
 
-define_css_keyword_enum! { Y:
-    "top" => Top,
-    "bottom" => Bottom,
+/// A keyword for the Y direction.
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[allow(missing_docs)]
+pub enum Y {
+    Top,
+    Bottom,
 }
-add_impls_for_keyword_enum!(Y);
 
 impl Parse for Position {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl Position {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
-                if let Ok(y_pos) = input.try(|i|
-                    PositionComponent::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_pos) =
+                    input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
@@ -85,7 +98,9 @@ impl Position {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_keyword) = input.try(Y::parse) {
-                    let y_lop = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+                    let y_lop = input
+                        .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                        .ok();
                     let x_pos = PositionComponent::Side(x_keyword, lop);
                     let y_pos = PositionComponent::Side(y_keyword, y_lop);
                     return Ok(Self::new(x_pos, y_pos));
@@ -99,7 +114,9 @@ impl Position {
                     let y_pos = PositionComponent::Side(y_keyword, None);
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_lop) =
+                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                {
                     let y_pos = PositionComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
@@ -111,9 +128,11 @@ impl Position {
         }
         let y_keyword = Y::parse(input)?;
         let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
-            let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+            let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                .ok();
             if let Ok(x_keyword) = i.try(X::parse) {
-                let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+                let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                    .ok();
                 let x_pos = PositionComponent::Side(x_keyword, x_lop);
                 return Ok((y_lop, x_pos));
             };
@@ -138,14 +157,23 @@ impl Position {
 }
 
 impl ToCss for Position {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         match (&self.horizontal, &self.vertical) {
-            (x_pos @ &PositionComponent::Side(_, Some(_)), &PositionComponent::Length(ref y_lop)) => {
+            (
+                x_pos @ &PositionComponent::Side(_, Some(_)),
+                &PositionComponent::Length(ref y_lop),
+            ) => {
                 x_pos.to_css(dest)?;
                 dest.write_str(" top ")?;
                 y_lop.to_css(dest)
             },
-            (&PositionComponent::Length(ref x_lop), y_pos @ &PositionComponent::Side(_, Some(_))) => {
+            (
+                &PositionComponent::Length(ref x_lop),
+                y_pos @ &PositionComponent::Side(_, Some(_)),
+            ) => {
                 dest.write_str("left ")?;
                 x_lop.to_css(dest)?;
                 dest.write_str(" ")?;
@@ -161,17 +189,21 @@ impl ToCss for Position {
 }
 
 impl<S: Parse> Parse for PositionComponent<S> {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl<S: Parse> PositionComponent<S> {
     /// Parses a component of a CSS position, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("center")).is_ok() {
             return Ok(PositionComponent::Center);
         }
@@ -179,7 +211,9 @@ impl<S: Parse> PositionComponent<S> {
             return Ok(PositionComponent::Length(lop));
         }
         let keyword = S::parse(context, input)?;
-        let lop = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)).ok();
+        let lop = input
+            .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+            .ok();
         Ok(PositionComponent::Side(keyword, lop))
     }
 }
@@ -196,19 +230,16 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
 
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
-            PositionComponent::Center => {
-                ComputedLengthOrPercentage::Percentage(Percentage(0.5))
-            },
+            PositionComponent::Center => ComputedLengthOrPercentage::Percentage(Percentage(0.5)),
             PositionComponent::Side(ref keyword, None) => {
                 let p = Percentage(if keyword.is_start() { 0. } else { 1. });
                 ComputedLengthOrPercentage::Percentage(p)
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 match length.to_computed_value(context) {
-                    ComputedLengthOrPercentage::Length(length) => {
-                        ComputedLengthOrPercentage::Calc(
-                            CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())))
-                    },
+                    ComputedLengthOrPercentage::Length(length) => ComputedLengthOrPercentage::Calc(
+                        CalcLengthOrPercentage::new(-length, Some(Percentage::hundred())),
+                    ),
                     ComputedLengthOrPercentage::Percentage(p) => {
                         ComputedLengthOrPercentage::Percentage(Percentage(1.0 - p.0))
                     },
@@ -220,9 +251,7 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
                 }
             },
             PositionComponent::Side(_, Some(ref length)) |
-            PositionComponent::Length(ref length) => {
-                length.to_computed_value(context)
-            },
+            PositionComponent::Length(ref length) => length.to_computed_value(context),
         }
     }
 
@@ -289,21 +318,24 @@ pub type LegacyHPosition = OriginComponent<X>;
 pub type LegacyVPosition = OriginComponent<Y>;
 
 impl Parse for LegacyPosition {
-    fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         Self::parse_quirky(context, input, AllowQuirks::No)
     }
 }
 
 impl LegacyPosition {
     /// Parses a `<position>`, with quirks.
-    pub fn parse_quirky<'i, 't>(context: &ParserContext,
-                                input: &mut Parser<'i, 't>,
-                                allow_quirks: AllowQuirks)
-                                -> Result<Self, ParseError<'i>> {
+    pub fn parse_quirky<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        allow_quirks: AllowQuirks,
+    ) -> Result<Self, ParseError<'i>> {
         match input.try(|i| OriginComponent::parse(context, i)) {
             Ok(x_pos @ OriginComponent::Center) => {
-                if let Ok(y_pos) = input.try(|i|
-                    OriginComponent::parse(context, i)) {
+                if let Ok(y_pos) = input.try(|i| OriginComponent::parse(context, i)) {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
@@ -319,8 +351,10 @@ impl LegacyPosition {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = OriginComponent::Side(x_keyword);
-                if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
-                    return Ok(Self::new(x_pos, OriginComponent::Length(y_lop)))
+                if let Ok(y_lop) =
+                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                {
+                    return Ok(Self::new(x_pos, OriginComponent::Length(y_lop)));
                 }
                 let _ = input.try(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, OriginComponent::Center));
@@ -330,7 +364,9 @@ impl LegacyPosition {
                     let y_pos = OriginComponent::Side(y_keyword);
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_lop) = input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks)) {
+                if let Ok(y_lop) =
+                    input.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                {
                     let y_pos = OriginComponent::Length(y_lop);
                     return Ok(Self::new(x_pos, y_pos));
                 }
@@ -365,14 +401,18 @@ impl LegacyPosition {
 }
 
 impl ToCss for LegacyPosition {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.horizontal.to_css(dest)?;
         dest.write_str(" ")?;
         self.vertical.to_css(dest)
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Auto-placement algorithm Option
 pub enum AutoFlow {
     /// The auto-placement algorithm places items by filling each row in turn,
@@ -383,13 +423,15 @@ pub enum AutoFlow {
     Column,
 }
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// Controls how the auto-placement algorithm works
 /// specifying exactly how auto-placed items get flowed into the grid
 pub struct GridAutoFlow {
     /// Specifiy how auto-placement algorithm fills each `row` or `column` in turn
     pub autoflow: AutoFlow,
     /// Specify use `dense` packing algorithm or not
+    #[css(represents_keyword)]
     pub dense: bool,
 }
 
@@ -404,20 +446,11 @@ impl GridAutoFlow {
     }
 }
 
-impl ToCss for GridAutoFlow {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        self.autoflow.to_css(dest)?;
-
-        if self.dense { dest.write_str(" dense")?; }
-        Ok(())
-    }
-}
-
 impl Parse for GridAutoFlow {
     /// [ row | column ] || dense
     fn parse<'i, 't>(
         _context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<GridAutoFlow, ParseError<'i>> {
         let mut value = None;
         let mut dense = false;
@@ -441,7 +474,8 @@ impl Parse for GridAutoFlow {
                 _ => false
             };
             if !success {
-                return Err(location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+                return Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
             }
         }
 
@@ -462,14 +496,12 @@ impl From<u8> for GridAutoFlow {
         use gecko_bindings::structs;
 
         GridAutoFlow {
-            autoflow:
-                if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
-                    AutoFlow::Row
-                } else {
-                    AutoFlow::Column
-                },
-            dense:
-                bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
+            autoflow: if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
+                AutoFlow::Row
+            } else {
+                AutoFlow::Column
+            },
+            dense: bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
         }
     }
 }
@@ -492,14 +524,17 @@ impl From<GridAutoFlow> for u8 {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
     /// `named area` containing for each template area
+    #[css(skip)]
     pub areas: Box<[NamedArea]>,
     /// The original CSS string value of each template area
+    #[css(iterable)]
     pub strings: Box<[Box<str>]>,
     /// The number of columns of the grid.
+    #[css(skip)]
     pub width: u32,
 }
 
@@ -579,18 +614,6 @@ impl TemplateAreas {
     }
 }
 
-impl ToCss for TemplateAreas {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        for (i, string) in self.strings.iter().enumerate() {
-            if i != 0 {
-                dest.write_str(" ")?;
-            }
-            string.to_css(dest)?;
-        }
-        Ok(())
-    }
-}
-
 impl Parse for TemplateAreas {
     fn parse<'i, 't>(
         _context: &ParserContext,
@@ -606,10 +629,24 @@ impl Parse for TemplateAreas {
     }
 }
 
-trivial_to_computed_value!(TemplateAreas);
+/// Arc type for `Arc<TemplateAreas>`
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
+pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
+
+impl Parse for TemplateAreasArc {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let parsed = TemplateAreas::parse(context, input)?;
+
+        Ok(TemplateAreasArc(Arc::new(parsed)))
+    }
+}
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo)]
 /// Not associated with any particular grid item, but can
 /// be referenced from the grid-placement properties.
 pub struct NamedArea {
@@ -648,21 +685,35 @@ impl<'a> Iterator for TemplateAreasTokenizer<'a> {
 }
 
 fn is_name_code_point(c: char) -> bool {
-    c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' ||
-    c >= '\u{80}' || c == '_' ||
-    c >= '0' && c <= '9' || c == '-'
+    c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '\u{80}' || c == '_' ||
+        c >= '0' && c <= '9' || c == '-'
 }
 
 /// This property specifies named grid areas.
 /// The syntax of this property also provides a visualization of
 /// the structure of the grid, making the overall layout of
 /// the grid container easier to understand.
-pub type GridTemplateAreas = Either<TemplateAreas, None_>;
+pub type GridTemplateAreas = Either<TemplateAreasArc, None_>;
 
 impl GridTemplateAreas {
     #[inline]
     /// Get default value as `none`
     pub fn none() -> GridTemplateAreas {
         Either::Second(None_)
+    }
+}
+
+/// A specified value for the `z-index` property.
+pub type ZIndex = GenericZIndex<Integer>;
+
+impl Parse for ZIndex {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+            return Ok(GenericZIndex::Auto);
+        }
+        Ok(GenericZIndex::Integer(Integer::parse(context, input)?))
     }
 }

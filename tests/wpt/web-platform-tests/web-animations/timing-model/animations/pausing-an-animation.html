@@ -2,7 +2,7 @@
 <meta charset=utf-8>
 <title>Pausing an animation</title>
 <link rel="help"
-  href="https://w3c.github.io/web-animations/#finishing-an-animation-section">
+  href="https://drafts.csswg.org/web-animations/#pausing-an-animation-section">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -11,17 +11,36 @@
 <script>
 'use strict';
 
-promise_test(function(t) {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   const promise = animation.ready;
   animation.pause();
-  return promise.then(p => {
-    assert_equals(p, animation);
-    assert_equals(animation.ready, promise);
-    assert_equals(animation.playState, 'paused');
-  });
+
+  const promiseResult = await promise;
+
+  assert_equals(promiseResult, animation);
+  assert_equals(animation.ready, promise);
+  assert_false(animation.pending, 'No longer pause-pending');
 }, 'A pending ready promise should be resolved and not replaced when the'
    + ' animation is paused');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  // Let animation start roughly half-way through
+  animation.currentTime = 50 * MS_PER_SEC;
+  await animation.ready;
+
+  // Go pause-pending and also set a pending playback rate
+  animation.pause();
+  animation.updatePlaybackRate(0.5);
+
+  await animation.ready;
+  // If the current time was updated using the new playback rate it will jump
+  // back to 25s but if we correctly used the old playback rate the current time
+  // will be >50s.
+  assert_greater_than(animation.currentTime, 50 * MS_PER_SEC);
+}, 'A pause-pending animation maintains the current time when applying a'
+   + ' pending playback rate');
 
 </script>
 </body>

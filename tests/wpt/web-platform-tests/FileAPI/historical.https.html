@@ -10,17 +10,20 @@
  <body>
   <div id="log"></div>
   <script>
-    test(function() {
-        assert_false('toNativeLineEndings' in window);
-    }, '"toNativeLineEndings" should not be supported');
+    var removedFromWindow = [
+        'toNativeLineEndings',
+        'FileError',
+        'FileException',
+        'FileHandle',
+        'FileRequest',
+        'MutableFile',
+    ];
 
-    test(function() {
-        assert_false('FileError' in window);
-    }, '"FileError" should not be supported');
-
-    test(function() {
-        assert_false('FileException' in window);
-    }, '"FileException" should not be supported');
+    removedFromWindow.forEach(function(name) {
+        test(function() {
+            assert_false(name in window);
+        }, '"' + name + '" should not be supported');
+    });
 
     test(function() {
         var b = new Blob();
@@ -50,9 +53,13 @@
         assert_false('isClosed' in Blob.prototype, 'isClosed in Blob.prototype');
     }, 'Blob.close() should not be supported');
 
-    // Only add service worker test if service workers are actually supported.
-    if (navigator.serviceWorker)
-      service_worker_test('support/historical-serviceworker.js', 'Service worker test setup');
+    test(() => {
+      const f = new File([], "");
+      assert_false("lastModifiedDate" in f);
+      assert_false("lastModifiedDate" in File.prototype);
+    }, "File's lastModifiedDate should not be supported");
+
+    service_worker_test('support/historical-serviceworker.js', 'Service worker test setup');
   </script>
  </body>
 </html>

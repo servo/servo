@@ -7,17 +7,24 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::USVString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
+use js::jsapi::Heap;
 use js::jsapi::JSContext;
+use js::jsapi::JSObject;
 use js::jsapi::JS_ClearPendingException;
-use js::jsapi::JS_ParseJSON;
 use js::jsapi::Value as JSValue;
+use js::jsval::JSVal;
 use js::jsval::UndefinedValue;
+use js::rust::wrappers::JS_GetPendingException;
+use js::rust::wrappers::JS_ParseJSON;
+use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Ref;
+use std::ptr;
 use std::rc::Rc;
 use std::str;
 use url::form_urlencoded;
@@ -27,14 +34,17 @@ pub enum BodyType {
     Blob,
     FormData,
     Json,
-    Text
+    Text,
+    ArrayBuffer
 }
 
 pub enum FetchedData {
     Text(String),
-    Json(JSValue),
+    Json(RootedTraceableBox<Heap<JSValue>>),
     BlobData(DomRoot<Blob>),
     FormData(DomRoot<FormData>),
+    ArrayBuffer(RootedTraceableBox<Heap<*mut JSObject>>),
+    JSException(RootedTraceableBox<Heap<JSVal>>)
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
@@ -83,6 +93,8 @@ pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
                 FetchedData::Json(j) => promise.resolve_native(&j),
                 FetchedData::BlobData(b) => promise.resolve_native(&b),
                 FetchedData::FormData(f) => promise.resolve_native(&f),
+                FetchedData::ArrayBuffer(a) => promise.resolve_native(&a),
+                FetchedData::JSException(e) => promise.reject_native(&e.handle()),
             };
         },
         Err(err) => promise.reject_error(err),
@@ -104,6 +116,9 @@ fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
         BodyType::Json => run_json_data_algorithm(cx, bytes),
         BodyType::Blob => run_blob_data_algorithm(&global, bytes, mime),
         BodyType::FormData => run_form_data_algorithm(&global, bytes, mime),
+        BodyType::ArrayBuffer => unsafe {
+            run_array_buffer_data_algorithm(cx, bytes)
+        }
     }
 }
 
@@ -122,11 +137,13 @@ fn run_json_data_algorithm(cx: *mut JSContext,
                          json_text.as_ptr(),
                          json_text.len() as u32,
                          rval.handle_mut()) {
+            rooted!(in(cx) let mut exception = UndefinedValue());
+            assert!(JS_GetPendingException(cx, exception.handle_mut()));
             JS_ClearPendingException(cx);
-            // TODO: See issue #13464. Exception should be thrown instead of cleared.
-            return Err(Error::Type("Failed to parse JSON".to_string()));
+            return Ok(FetchedData::JSException(RootedTraceableBox::from_box(Heap::boxed(exception.get()))));
         }
-        Ok(FetchedData::Json(rval.get()))
+        let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(rval.get()));
+        Ok(FetchedData::Json(rooted_heap))
     }
 }
 
@@ -164,6 +181,17 @@ fn run_form_data_algorithm(root: &GlobalScope, bytes: Vec<u8>, mime: &[u8]) -> F
         },
         _ => return Err(Error::Type("Inappropriate MIME-type for Body".to_string())),
     }
+}
+
+#[allow(unsafe_code)]
+unsafe fn run_array_buffer_data_algorithm(cx: *mut JSContext, bytes: Vec<u8>) -> Fallible<FetchedData> {
+    rooted!(in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
+    let arraybuffer = ArrayBuffer::create(cx, CreateWith::Slice(&bytes), array_buffer_ptr.handle_mut());
+    if arraybuffer.is_err() {
+        return Err(Error::JSFailed);
+    }
+    let rooted_heap = RootedTraceableBox::from_box(Heap::boxed(array_buffer_ptr.get()));
+    Ok(FetchedData::ArrayBuffer(rooted_heap))
 }
 
 pub trait BodyOperations {

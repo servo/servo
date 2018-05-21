@@ -4,6 +4,7 @@ import urlparse
 
 import error
 
+from six import text_type
 
 """Implements HTTP transport for the WebDriver wire protocol."""
 
@@ -19,6 +20,7 @@ class Response(object):
         self.body = body
 
     def __repr__(self):
+        cls_name = self.__class__.__name__
         if self.error:
             return "<%s status=%s error=%s>" % (cls_name, self.status, repr(self.error))
         return "<% status=%s body=%s>" % (cls_name, self.status, json.dumps(self.body))
@@ -37,8 +39,8 @@ class Response(object):
         try:
             body = json.load(http_response, cls=decoder, **kwargs)
         except ValueError:
-            raise ValueError("Failed to decode response body as JSON:\n"
-                "%s" % json.dumps(body, indent=2))
+            raise ValueError("Failed to decode response body as JSON:\n" +
+                http_response.read())
 
         return cls(http_response.status, body)
 
@@ -129,13 +131,16 @@ class HTTPWireProtocol(object):
         if body is None and method == "POST":
             body = {}
 
-        try:
-            payload = json.dumps(body, cls=encoder, **codec_kwargs)
-        except ValueError:
-            raise ValueError("Failed to encode request body as JSON:\n"
-                "%s" % json.dumps(body, indent=2))
-        if isinstance(payload, unicode):
-            payload = body.encode("utf-8")
+        payload = None
+        if body is not None:
+            try:
+                payload = json.dumps(body, cls=encoder, **codec_kwargs)
+            except ValueError:
+                raise ValueError("Failed to encode request body as JSON:\n"
+                    "%s" % json.dumps(body, indent=2))
+
+            if isinstance(payload, text_type):
+                payload = body.encode("utf-8")
 
         if headers is None:
             headers = {}

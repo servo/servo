@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/feature-policy/resources/featurepolicy.js></script>
+  <!-- Feature-Policy: fullscreen 'self' cross_origin https://www.example.com; -->
+  <script>
+  'use strict';
+  var same_origin = 'https://{{domains[]}}:{{ports[https][0]}}';
+  var cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  var same_origin_src = '/feature-policy/resources/feature-policy-allowedfeatures.html';
+  var cross_origin_src = cross_origin + same_origin_src;
+  var header_policy = 'Feature-Policy: fullscreen \'self\' ' + cross_origin +
+  ' https://www.example.com;';
+
+  // Test that fullscreen's allowlist is [same_origin, cross_origin, 'https://www.example.com']
+  test(function() {
+    assert_array_equals(
+      document.policy.getAllowlistForFeature('fullscreen'),
+      [same_origin, cross_origin, 'https://www.example.com']);
+  }, header_policy + ' -- test allowlist is [same_origin, cross_origin, https://www.example.com]');
+
+  // Test that fullscreen is allowed on same_origin, some cross_origin subframes.
+  test_allowed_feature_for_subframe(
+    header_policy + ' -- test fullscreen is allowed on same-origin subframe',
+    'fullscreen',
+    same_origin_src);
+  test_allowed_feature_for_subframe(
+    header_policy + ' -- test fullscreen is allowed on cross-origin ' + cross_origin_src + ' subframe',
+    'fullscreen',
+    cross_origin_src);
+  var cross_origin_src1 = 'https://{{domains[www1]}}:{{ports[https][0]}}' + same_origin_src;
+  test_disallowed_feature_for_subframe(
+    header_policy + ' -- test fullscreen is disallowed on cross-origin ' + cross_origin_src1 + ' subframe',
+    'fullscreen',
+    cross_origin_src1);
+
+  // dynamically update sub frame's container policy
+  var allow = "fullscreen 'none';"
+  test_disallowed_feature_for_subframe(
+    header_policy + ', iframe.allow = ' + allow + ' -- test fullscreen is disallowed on same-origin subframe',
+    'fullscreen',
+    same_origin_src,
+    allow);
+
+  test_disallowed_feature_for_subframe(
+    header_policy + 'iframe.allow = ' + allow + ' -- test fullscreen is disallowed on cross-origin subframe',
+    'fullscreen',
+    cross_origin_src,
+    allow);
+  </script>
+</body>

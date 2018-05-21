@@ -11,10 +11,10 @@
                 "inherit": false,
                 "readonly": true,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned long"
                 },
@@ -25,16 +25,14 @@
                 "type": "operation",
                 "getter": true,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "any"
                 },
@@ -45,10 +43,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "unsigned long"
                         },
@@ -61,16 +59,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": true,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -81,10 +77,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "unsigned long"
                         },
@@ -95,10 +91,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "any"
                         },
@@ -111,16 +107,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": true,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -131,10 +125,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "unsigned long"
                         },
@@ -147,16 +141,14 @@
                 "type": "operation",
                 "getter": true,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "any"
                 },
@@ -167,10 +159,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
@@ -183,16 +175,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": true,
-                "creator": true,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -203,10 +193,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
@@ -217,10 +207,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "any"
                         },
@@ -233,16 +223,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": true,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -253,10 +241,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from os import path, listdir
 from hashlib import sha512, sha384, sha256, md5
 from base64 import b64encode
@@ -63,15 +65,15 @@ def md5_uri(content):
 def main():
   ed25519_key = ed25519_key_pair()
   for file in js_and_css_files():
-    print "Listing hash values for %s" % file
+    print("Listing hash values for %s" % file)
     with open(file, "r") as content_file:
       content = content_file.read()
-      print "\tSHA512 integrity:  %s" % sha512_uri(content)
-      print "\tSHA384 integrity:  %s" % sha384_uri(content)
-      print "\tSHA256 integrity:  %s" % sha256_uri(content)
-      print "\tMD5 integrity:     %s" % md5_uri(content)
-      print "\tEd25519 integrity: %s" % ed25519_signature(ed25519_key, content)
-  print "\nEd25519 public key (used above): %s" % format_digest(ed25519_key[1])
+      print("\tSHA512 integrity:  %s" % sha512_uri(content))
+      print("\tSHA384 integrity:  %s" % sha384_uri(content))
+      print("\tSHA256 integrity:  %s" % sha256_uri(content))
+      print("\tMD5 integrity:     %s" % md5_uri(content))
+      print("\tEd25519 integrity: %s" % ed25519_signature(ed25519_key, content))
+  print("\nEd25519 public key (used above): %s" % format_digest(ed25519_key[1]))
 
 if __name__ == "__main__":
   main()

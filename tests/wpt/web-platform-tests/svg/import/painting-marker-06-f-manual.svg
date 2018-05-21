@@ -1,5 +1,5 @@
-<svg id="svg-root" width="100%" height="100%" 
-  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg" 
+<svg id="svg-root" width="100%" height="100%"
+  viewBox="0 0 480 360" xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink">
   <!--======================================================================-->
   <!--=  Copyright 2008 World Wide Web Consortium, (Massachusetts          =-->
@@ -65,95 +65,95 @@
   </defs>
   <g id="test-body-content" font-family="SVGFreeSansASCII,sans-serif" font-size="18">
     <defs>
-		<!-- ===================================================================== -->
-		<!-- Define a few simple marker elements                                   -->
-		<!-- ===================================================================== -->
+    <!-- ===================================================================== -->
+    <!-- Define a few simple marker elements                                   -->
+    <!-- ===================================================================== -->
     <marker id="marker1" viewBox="20 20 10 10" markerWidth="2" markerHeight="2" refX="25" refY="25" markerUnits="strokeWidth">
       <rect x="20" y="20" width="10" height="10" fill="purple" stroke="none"/>
     </marker>
     <marker id="marker2" viewBox="-5 -5 10 10" markerWidth="2" markerHeight="2" markerUnits="strokeWidth" orient="auto">
       <path d="M 0 -5 L 5 5 L -5 5 Z" fill="blue" stroke="none"/>
     </marker>
-  	<marker id="markerStart" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
-			<rect width="10" height="10" fill="purple" stroke="none"/>
-		</marker>
-		<marker id="markerMiddle" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
-			<circle cx="5" cy="5" r="5" fill="green" stroke="none"/>
-		</marker>
-		<marker id="markerEnd" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
-			<path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
-		</marker>
-	</defs>
-		<!-- ===================================================================== -->
-		<!-- Basic Marker Test                                                     -->
-		<!-- ===================================================================== -->
-		<text x="170" y="30" font-size="14">Basic Markers</text>
-		<path fill="none" stroke="black" stroke-width="8" marker-start="url(#marker1)" marker-mid="url(#marker1)" marker-end="url(#marker1)" d="M 130 40 L 180 40 L 180 90"/>
-		<!-- ===================================================================== -->
-		<!-- Generate the equivalent SVG                                           -->
-		<!-- ===================================================================== -->
-		<g transform="translate(120,0)">
-			<path fill="none" stroke="black" stroke-width="8" d="M 130 40 L 180 40 L 180 90"/>
-			<g transform="translate(130,40) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<rect width="10" height="10" fill="purple" stroke="none"/>
-			</g>
-			<g transform="translate(180,40) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<rect width="10" height="10" fill="purple" stroke="none"/>
-			</g>
-			<g transform="translate(180,90) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<rect width="10" height="10" fill="purple" stroke="none"/>
-			</g>
-		</g>
-		<!-- ===================================================================== -->
-		<!-- Start, Middle and End Marker Test                                     -->
-		<!-- ===================================================================== -->
-		<text x="145" y="125" font-size="14">Start, Middle and End</text>
-		<path fill="none" stroke="black" stroke-width="8" marker-start="url(#markerStart)" marker-mid="url(#markerMiddle)" marker-end="url(#markerEnd)" d="M 130 135 L 180 135 L 180 185"/>
-		<!-- ===================================================================== -->
-		<!-- Generate the equivalent SVG                                           -->
-		<!-- ===================================================================== -->
-		<g transform="translate(120,0)">
-			<path fill="none" stroke="black" stroke-width="8" d="M 130 135 L 180 135 L 180 185"/>
-			<g transform="translate(130,135) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<rect width="10" height="10" fill="purple" stroke="none"/>
-			</g>
-			<g transform="translate(180,135) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<circle cx="5" cy="5" r="5" fill="green" stroke="none"/>
-			</g>
-			<g transform="translate(180,185) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
-			</g>
-		</g>
-		<!-- ===================================================================== -->
-		<!-- Auto Orientation Marker Test                                          -->
-		<!-- ===================================================================== -->
-		<text x="145" y="220" font-size="14">Automatic Orientation</text>
-		<path fill="none" stroke="black" stroke-width="8" marker-start="url(#marker2)" marker-mid="url(#marker2)" marker-end="url(#marker2)" d="M 130 230 L 180 230 L 180 280"/>
-		<!-- ===================================================================== -->
-		<!-- Generate the equivalent SVG                                           -->
-		<!-- ===================================================================== -->
-		<g transform="translate(120,0)">
-			<path fill="none" stroke="black" stroke-width="8" d="M 130 230 L 180 230 L 180 280"/>
-			<g transform="translate(130,230) rotate(0) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
-			</g>
-			<g transform="translate(180,230) rotate(45) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
-			</g>
-			<g transform="translate(180,280) rotate(90) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
-				<path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
-			</g>
-		</g>    
+    <marker id="markerStart" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
+      <rect width="10" height="10" fill="purple" stroke="none"/>
+    </marker>
+    <marker id="markerMiddle" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
+      <circle cx="5" cy="5" r="5" fill="green" stroke="none"/>
+    </marker>
+    <marker id="markerEnd" viewBox="0 0 10 10" markerWidth="2" markerHeight="2" refX="5" refY="5" markerUnits="strokeWidth">
+      <path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
+    </marker>
+  </defs>
+    <!-- ===================================================================== -->
+    <!-- Basic Marker Test                                                     -->
+    <!-- ===================================================================== -->
+    <text x="170" y="30" font-size="14">Basic Markers</text>
+    <path fill="none" stroke="black" stroke-width="8" marker-start="url(#marker1)" marker-mid="url(#marker1)" marker-end="url(#marker1)" d="M 130 40 L 180 40 L 180 90"/>
+    <!-- ===================================================================== -->
+    <!-- Generate the equivalent SVG                                           -->
+    <!-- ===================================================================== -->
+    <g transform="translate(120,0)">
+      <path fill="none" stroke="black" stroke-width="8" d="M 130 40 L 180 40 L 180 90"/>
+      <g transform="translate(130,40) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <rect width="10" height="10" fill="purple" stroke="none"/>
+      </g>
+      <g transform="translate(180,40) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <rect width="10" height="10" fill="purple" stroke="none"/>
+      </g>
+      <g transform="translate(180,90) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <rect width="10" height="10" fill="purple" stroke="none"/>
+      </g>
+    </g>
+    <!-- ===================================================================== -->
+    <!-- Start, Middle and End Marker Test                                     -->
+    <!-- ===================================================================== -->
+    <text x="145" y="125" font-size="14">Start, Middle and End</text>
+    <path fill="none" stroke="black" stroke-width="8" marker-start="url(#markerStart)" marker-mid="url(#markerMiddle)" marker-end="url(#markerEnd)" d="M 130 135 L 180 135 L 180 185"/>
+    <!-- ===================================================================== -->
+    <!-- Generate the equivalent SVG                                           -->
+    <!-- ===================================================================== -->
+    <g transform="translate(120,0)">
+      <path fill="none" stroke="black" stroke-width="8" d="M 130 135 L 180 135 L 180 185"/>
+      <g transform="translate(130,135) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <rect width="10" height="10" fill="purple" stroke="none"/>
+      </g>
+      <g transform="translate(180,135) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <circle cx="5" cy="5" r="5" fill="green" stroke="none"/>
+      </g>
+      <g transform="translate(180,185) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
+      </g>
+    </g>
+    <!-- ===================================================================== -->
+    <!-- Auto Orientation Marker Test                                          -->
+    <!-- ===================================================================== -->
+    <text x="145" y="220" font-size="14">Automatic Orientation</text>
+    <path fill="none" stroke="black" stroke-width="8" marker-start="url(#marker2)" marker-mid="url(#marker2)" marker-end="url(#marker2)" d="M 130 230 L 180 230 L 180 280"/>
+    <!-- ===================================================================== -->
+    <!-- Generate the equivalent SVG                                           -->
+    <!-- ===================================================================== -->
+    <g transform="translate(120,0)">
+      <path fill="none" stroke="black" stroke-width="8" d="M 130 230 L 180 230 L 180 280"/>
+      <g transform="translate(130,230) rotate(0) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
+      </g>
+      <g transform="translate(180,230) rotate(45) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
+      </g>
+      <g transform="translate(180,280) rotate(90) scale(8) scale(0.2, 0.2) translate(-5, -5)" fill="none" stroke="black" stroke-width="8">
+        <path d="M 5 0 L 10 10 L 0 10 Z" fill="blue" stroke="none"/>
+      </g>
+    </g>
   </g>
   <g font-family="SVGFreeSansASCII,sans-serif" font-size="32">
-  <text id="revision" x="10" y="340" stroke="none" 
+  <text id="revision" x="10" y="340" stroke="none"
     fill="black">$Revision: 1.9 $</text>
   </g>
   <rect id="test-frame" x="1" y="1" width="478" height="358" fill="none" stroke="#000"/>
   <!-- comment out this watermark once the test is approved -->
   <!--<g id="draft-watermark">
     <rect x="1" y="1" width="478" height="20" fill="red" stroke="black" stroke-width="1"/>
-    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240" 
+    <text font-family="SVGFreeSansASCII,sans-serif" font-weight="bold" font-size="20" x="240"
       text-anchor="middle" y="18" stroke-width="0.5" stroke="black" fill="white">DRAFT</text>
   </g>-->
 </svg>

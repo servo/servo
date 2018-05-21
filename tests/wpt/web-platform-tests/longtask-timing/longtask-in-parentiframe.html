@@ -9,7 +9,12 @@
 <script>
   const t = async_test(t => {
     window.addEventListener('message', t.step_func(e => {
-      assert_equals(e.data, 'longtask+same-origin-ancestor+script+++');
+      assert_equals(e.data['entryType'], 'longtask');
+      assert_equals(e.data['frame-attribution'], 'same-origin-ancestor');
+      assert_equals(e.data['task-attribution'], 'script');
+      assert_equals(e.data['containerId'], '');
+      assert_equals(e.data['containerName'], '');
+      assert_equals(e.data['containerSrc'], '');
       t.done();
     }));
   }, 'Performance longtask entries in parent are observable in child iframe.');

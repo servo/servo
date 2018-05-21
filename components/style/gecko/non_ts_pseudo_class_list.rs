@@ -28,9 +28,6 @@
  *
  *  :scope -> <style scoped>, pending discussion.
  *
- * This follows the order defined in layout/style/nsCSSPseudoClassList.h when
- * possible.
- *
  * $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
  * $state can be either "_" or an expression of type ElementState.  If present,
  *        the semantics are that the pseudo-class matches if any of the bits in
@@ -43,7 +40,6 @@ macro_rules! apply_non_ts_list {
     ($apply_macro:ident) => {
         $apply_macro! {
             bare: [
-                ("unresolved", Unresolved, unresolved, IN_UNRESOLVED_STATE, _),
                 ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("link", Link, link, IN_UNVISITED_STATE, _),
@@ -117,9 +113,6 @@ macro_rules! apply_non_ts_list {
             ],
             string: [
                 ("lang", Lang, lang, _, _),
-            ],
-            keyword: [
-                ("-moz-locale-dir", MozLocaleDir, mozLocaleDir, _, _),
             ]
         }
     }

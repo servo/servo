@@ -10,22 +10,22 @@ name = "script_layout_interface"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 atomic_refcell = "0.1"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.23.0"
-euclid = "0.15"
+euclid = "0.17"
 gfx_traits = {path = "../gfx_traits"}
-html5ever = "0.21.0"
-ipc-channel = "0.9"
+html5ever = "0.22"
+ipc-channel = "0.10"
 libc = "0.2"
-log = "0.3.5"
+log = "0.4"
+time = "0.1.17"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-nonzero = {path = "../nonzero"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 script_traits = {path = "../script_traits"}

@@ -90,6 +90,7 @@ var validSelectors = [
 
   // - value                     [att=val]
   {name: "Attribute value selector, matching align attribute with value",                                    selector: "#attr-value [align=\"center\"]",                                     expect: ["attr-value-div1"], level: 2, testType: TEST_QSA | TEST_MATCH},
+  {name: "Attribute value selector, matching align attribute with value, unclosed bracket",                  selector: "#attr-value [align=\"center\"",                                      expect: ["attr-value-div1"], level: 2, testType: TEST_QSA | TEST_MATCH},
   {name: "Attribute value selector, matching align attribute with empty value",                              selector: "#attr-value [align=\"\"]",                                           expect: ["attr-value-div2"], level: 2, testType: TEST_QSA | TEST_MATCH},
   {name: "Attribute value selector, not matching align attribute with partial value",                        selector: "#attr-value [align=\"c\"]",                                          expect: [] /*no matches*/,   level: 2, testType: TEST_QSA},
   {name: "Attribute value selector, not matching align attribute with incorrect value",                      selector: "#attr-value [align=\"centera\"]",                                    expect: [] /*no matches*/,   level: 2, testType: TEST_QSA},

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: system extends, invalid</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#extends-system">
+<link rel="match" href="system-extends-invalid-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: extends b;
+    prefix: a;
+  }
+  @counter-style b {
+    system: extends c;
+    suffix: b;
+  }
+  @counter-style c {
+    system: extends b;
+    pad: 2 c;
+  }
+  @counter-style d {
+    system: extends d;
+    prefix: d;
+  }
+  @counter-style e {
+    system: extends unknown;
+    prefix: e;
+  }
+  @counter-style f {
+    system: extends decimal;
+    symbols: a;
+  }
+  @counter-style g {
+    system: extends decimal;
+    additive-symbols: 1 a;
+  }
+</style>
+<ol>
+  <li style="list-style-type: a;">
+  <li style="list-style-type: b;">
+  <li style="list-style-type: c;">
+  <li style="list-style-type: d;">
+  <li style="list-style-type: e;">
+  <li style="list-style-type: f;">foo
+  <li style="list-style-type: g;">bar
+</ol>

@@ -9,7 +9,7 @@
 <div id=log></div>
 
 <div style="display:none">
-    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[www]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
+    <iframe width="70%" onload="PostMessageTest()" src="{{location[scheme]}}://{{domains[天気の良い日]}}:{{location[port]}}/webmessaging/support/ChildWindowPostMessage.htm"></iframe>
     <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
 </div>
 
@@ -23,7 +23,7 @@
     var PORT = location.port !== "" ? ":" + location.port : "";
     var TARGET1 = document.querySelectorAll("iframe")[0];
     var TARGET2 = document.querySelectorAll("iframe")[1];
-    var XORIGIN = "{{location[scheme]}}://{{domains[www]}}" + PORT;
+    var XORIGIN = "{{location[scheme]}}://{{domains[天気の良い日]}}" + PORT;
     var SORIGIN = "{{location[scheme]}}://{{host}}" + PORT;
     var ExpectedResult = ["#1", XORIGIN, "#2", SORIGIN];
     var ActualResult = [];
@@ -42,13 +42,23 @@
 
     window.onmessage = t.step_func(function(e)
     {
-        // testharness.js uses postMessage so we must check what data we want to receive
-        if (e.data.toString() === "#1" || e.data.toString() === "#2") {
-            ActualResult.push(e.data, e.origin);
-            if (ActualResult.length === ExpectedResult.length) {
-                assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
-                t.done();
-            }
+        // Messages from TARGET1 and TARGET2 can come in any order
+        // (since one of them is cross-origin and can run in parallel).
+        // To make the tests immune to message reordering, always
+        // put the response from TARGET1 at the start of the list.
+        if (e.data.toString() === "#1")
+        {
+            ActualResult = [e.data, e.origin].concat(ActualResult);
+        }
+        else if (e.data.toString() === "#2")
+        {
+            ActualResult = ActualResult.concat([e.data, e.origin]);
+        }
+
+        if (ActualResult.length >= ExpectedResult.length)
+        {
+            assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
+            t.done();
         }
     });
 </script>

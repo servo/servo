@@ -28,6 +28,9 @@ include conditional3/reftest.list
 # Containment
 include contain/reftest.list
 
+# Counter Styles Level 3
+include counter-styles-3/reftest.list
+
 # Filter Effects Module
 include filters/reftest.list
 
@@ -36,6 +39,9 @@ include flexbox/reftest.list
 
 # Fonts Level 3
 include fonts3/reftest.list
+
+# block-inside-inline splits
+include ib-split/reftest.list
 
 # Image Values and Replaced Content Level 3
 include images3/reftest.list

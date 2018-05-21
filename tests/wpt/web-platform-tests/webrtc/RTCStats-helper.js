@@ -1,17 +1,11 @@
 'use strict';
 
 // Test is based on the following editor draft:
-// https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
-// https://w3c.github.io/webrtc-stats/archives/20170614/webrtc-stats.html
-
+// webrtc-pc 20171130
+// webrtc-stats 20171122
 
 // This file depends on dictionary-helper.js which should
 // be loaded from the main HTML file.
-
-// To improve readability, the WebIDL definitions of the Stats
-// dictionaries are modified to annotate with required fields when
-// they are required by section 8.6 of webrtc-pc. ID fields are
-// also annotated with the stats type that they are linked to.
 
 /*
   [webrtc-stats]
@@ -82,6 +76,16 @@ function assert_stats_report_has_stats(statsReport, statsTypes) {
   }
 }
 
+function findStatsFromReport(statsReport, predicate, message) {
+  for (const stats of statsReport.values()) {
+    if (predicate(stats)) {
+      return stats;
+    }
+  }
+
+  assert_unreached(message || 'none of stats in statsReport satisfy given condition')
+}
+
 // Get stats object of type that is expected to be
 // found in the statsReport
 function getRequiredStats(statsReport, type) {
@@ -132,7 +136,7 @@ function validateOptionalIdField(statsReport, stats, field, type) {
     };
  */
 function validateRtcStats(statsReport, stats) {
-  assert_number_field(stats, 'timeStamp');
+  assert_number_field(stats, 'timestamp');
   assert_string_field(stats, 'type');
   assert_string_field(stats, 'id');
 }
@@ -141,35 +145,32 @@ function validateRtcStats(statsReport, stats) {
   [webrtc-stats]
   7.1.  RTCRTPStreamStats dictionary
     dictionary RTCRTPStreamStats : RTCStats {
-      required  unsigned long      ssrc;
-      required  DOMString          mediaType;
-
-      [RTCMediaStreamTrackStats]
-      required  DOMString          trackId;
-
-      [RTCTransportStats]
-      required  DOMString          transportId;
-
-      [RTCCodecStats]
-      required  DOMString          codecId;
-
-                unsigned long      firCount;
-                unsigned long      pliCount;
-      required  unsigned long      nackCount;
-                unsigned long      sliCount;
-                unsigned long long qpSum;
+      unsigned long      ssrc;
+      DOMString          mediaType;
+      DOMString          trackId;
+      DOMString          transportId;
+      DOMString          codecId;
+      unsigned long      firCount;
+      unsigned long      pliCount;
+      unsigned long      nackCount;
+      unsigned long      sliCount;
+      unsigned long long qpSum;
     };
+
+    mediaType of type DOMString
+      Either "audio" or "video".
 
   [webrtc-pc]
   8.6.  Mandatory To Implement Stats
-    - RTCRTPStreamStats, with attributes ssrc, associateStatsId, isRemote, mediaType,
-      mediaTrackId, transportId, codecId, nackCount
+    - RTCRTPStreamStats, with attributes ssrc, mediaType, trackId,
+      transportId, codecId, nackCount
  */
 function validateRtpStreamStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   assert_unsigned_int_field(stats, 'ssrc');
   assert_string_field(stats, 'mediaType');
+  assert_enum_field(stats, 'mediaType', ['audio', 'video'])
 
   validateIdField(statsReport, stats, 'trackId', 'track');
   validateIdField(statsReport, stats, 'transportId', 'transport');
@@ -177,7 +178,7 @@ function validateRtpStreamStats(statsReport, stats) {
 
   assert_optional_unsigned_int_field(stats, 'firCount');
   assert_optional_unsigned_int_field(stats, 'pliCount');
-  assert_unsigned_int_field(stats, 'nackCount');
+  assert_optional_unsigned_int_field(stats, 'nackCount');
   assert_optional_unsigned_int_field(stats, 'sliCount');
   assert_optional_unsigned_int_field(stats, 'qpSum');
 }
@@ -186,15 +187,12 @@ function validateRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.2.  RTCCodecStats dictionary
     dictionary RTCCodecStats : RTCStats {
-      required  unsigned long payloadType;
-      required  RTCCodecType  codecType;
-
-      [RTCTransportStats]
+      unsigned long payloadType;
+      RTCCodecType  codecType;
       DOMString     transportId;
-
       DOMString     mimeType;
-      required  unsigned long clockRate;
-      required  unsigned long channels;
+      unsigned long clockRate;
+      unsigned long channels;
       DOMString     sdpFmtpLine;
       DOMString     implementation;
     };
@@ -206,20 +204,20 @@ function validateRtpStreamStats(statsReport, stats) {
 
   [webrtc-pc]
   8.6.  Mandatory To Implement Stats
-    - RTCCodecStats, with attributes payloadType, codec, clockRate, channels, parameters
+    - RTCCodecStats, with attributes payloadType, codec, clockRate, channels, sdpFmtpLine
  */
 
 function validateCodecStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   assert_unsigned_int_field(stats, 'payloadType');
-  assert_enum_field(stats, 'codecType', ['encode', 'decode']);
+  assert_optional_enum_field(stats, 'codecType', ['encode', 'decode']);
 
   validateOptionalIdField(statsReport, stats, 'transportId', 'transport');
 
   assert_optional_string_field(stats, 'mimeType');
   assert_unsigned_int_field(stats, 'clockRate');
-  assert_unsigned_int_field(stats, 'channels');
+  assert_optional_unsigned_int_field(stats, 'channels');
 
   assert_optional_string_field(stats, 'sdpFmtpLine');
   assert_optional_string_field(stats, 'implementation');
@@ -229,34 +227,42 @@ function validateCodecStats(statsReport, stats) {
   [webrtc-stats]
   7.3.  RTCReceivedRTPStreamStats dictionary
     dictionary RTCReceivedRTPStreamStats : RTCRTPStreamStats {
-      unsigned long      packetsReceived;
-      unsigned long long bytesReceived;
-      unsigned long      packetsLost;
-      double             jitter;
-      double             fractionLost;
-      unsigned long      packetsDiscarded;
-      unsigned long      packetsRepaired;
-      unsigned long      burstPacketsLost;
-      unsigned long      burstPacketsDiscarded;
-      unsigned long      burstLossCount;
-      unsigned long      burstDiscardCount;
-      double             burstLossRate;
-      double             burstDiscardRate;
-      double             gapLossRate;
-      double             gapDiscardRate;
+        unsigned long      packetsReceived;
+        unsigned long long bytesReceived;
+        long               packetsLost;
+        double             jitter;
+        double             fractionLost;
+        unsigned long      packetsDiscarded;
+        unsigned long      packetsFailedDecryption;
+        unsigned long      packetsRepaired;
+        unsigned long      burstPacketsLost;
+        unsigned long      burstPacketsDiscarded;
+        unsigned long      burstLossCount;
+        unsigned long      burstDiscardCount;
+        double             burstLossRate;
+        double             burstDiscardRate;
+        double             gapLossRate;
+        double             gapDiscardRate;
     };
+
+    [webrtc-pc]
+    8.6.  Mandatory To Implement Stats
+      - RTCReceivedRTPStreamStats, with all required attributes from its
+        inherited dictionaries, and also attributes packetsReceived,
+        bytesReceived, packetsLost, jitter, packetsDiscarded
  */
 function validateReceivedRtpStreamStats(statsReport, stats) {
   validateRtpStreamStats(statsReport, stats);
 
-  assert_optional_unsigned_int_field(stats, 'packetsReceived');
-  assert_optional_unsigned_int_field(stats, 'bytesReceived');
-  assert_optional_unsigned_int_field(stats, 'packetsLost');
+  assert_unsigned_int_field(stats, 'packetsReceived');
+  assert_unsigned_int_field(stats, 'bytesReceived');
+  assert_unsigned_int_field(stats, 'packetsLost');
 
-  assert_optional_number_field(stats, 'jitter');
+  assert_number_field(stats, 'jitter');
   assert_optional_number_field(stats, 'fractionLost');
 
-  assert_optional_unsigned_int_field(stats, 'packetsDiscarded');
+  assert_unsigned_int_field(stats, 'packetsDiscarded');
+  assert_optional_unsigned_int_field(stats, 'packetsFailedDecryption');
   assert_optional_unsigned_int_field(stats, 'packetsRepaired');
   assert_optional_unsigned_int_field(stats, 'burstPacketsLost');
   assert_optional_unsigned_int_field(stats, 'burstPacketsDiscarded');
@@ -273,37 +279,21 @@ function validateReceivedRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.4.  RTCInboundRTPStreamStats dictionary
     dictionary RTCInboundRTPStreamStats : RTCReceivedRTPStreamStats {
-      required  unsigned long      packetsReceived;
-      required  unsigned long long bytesReceived;
-      required  unsigned long      packetsLost;
-      required  double             jitter;
-      required  unsigned long      packetsDiscarded;
-
-      [RTCRemoteOutboundRTPStreamStats]
       DOMString           remoteId;
-
       unsigned long       framesDecoded;
       DOMHighResTimeStamp lastPacketReceivedTimestamp;
     };
 
   [webrtc-pc]
   8.6.  Mandatory To Implement Stats
-    - RTCInboundRTPStreamStats, with all required attributes from RTCRTPStreamStats,
-      and also attributes packetsReceived, bytesReceived, packetsLost, jitter,
-      packetsDiscarded
+    - RTCInboundRTPStreamStats, with all required attributes from its inherited
+      dictionaries, and also attributes remoteId, framesDecoded
  */
 function validateInboundRtpStreamStats(statsReport, stats) {
   validateReceivedRtpStreamStats(statsReport, stats);
 
-  assert_unsigned_int_field(stats, 'packetsReceived');
-  assert_unsigned_int_field(stats, 'bytesReceived');
-  assert_unsigned_int_field(stats, 'packetsLost');
-  assert_number_field(stats, 'jitter');
-  assert_unsigned_int_field(stats, 'packetsDiscarded');
-
-  validateOptionalIdField(statsReport, stats, 'remoteId', 'remote-outbound-rtp');
-
-  assert_optional_unsigned_int_field(stats, 'framesDecoded');
+  validateIdField(statsReport, stats, 'remoteId', 'remote-outbound-rtp');
+  assert_unsigned_int_field(stats, 'framesDecoded');
   assert_optional_number_field(stats, 'lastPacketReceivedTimeStamp');
 }
 
@@ -311,18 +301,20 @@ function validateInboundRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.5.  RTCRemoteInboundRTPStreamStats dictionary
     dictionary RTCRemoteInboundRTPStreamStats : RTCReceivedRTPStreamStats {
-      [RTCOutboundRTPStreamStats]
-      DOMString localId;
-
-      double    roundTripTime;
+        DOMString localId;
+        double    roundTripTime;
     };
- */
 
+  [webrtc-pc]
+  8.6.  Mandatory To Implement Stats
+    - RTCRemoteInboundRTPStreamStats, with all required attributes from its
+      inherited dictionaries, and also attributes localId, roundTripTime
+ */
 function validateRemoteInboundRtpStreamStats(statsReport, stats) {
   validateReceivedRtpStreamStats(statsReport, stats);
 
-  validateOptionalIdField(statsReport, stats, 'localId', 'outbound-rtp');
-  assert_optional_number_field(stats, 'roundTripTime');
+  validateIdField(statsReport, stats, 'localId', 'outbound-rtp');
+  assert_number_field(stats, 'roundTripTime');
 }
 
 /*
@@ -334,13 +326,18 @@ function validateRemoteInboundRtpStreamStats(statsReport, stats) {
       unsigned long long bytesSent;
       unsigned long long bytesDiscardedOnSend;
     };
+
+    [webrtc-pc]
+    8.6.  Mandatory To Implement Stats
+      - RTCSentRTPStreamStats, with all required attributes from its inherited
+        dictionaries, and also attributes packetsSent, bytesSent
  */
 function validateSentRtpStreamStats(statsReport, stats) {
   validateRtpStreamStats(statsReport, stats);
 
-  assert_optional_unsigned_int_field(stats, 'packetsSent');
+  assert_unsigned_int_field(stats, 'packetsSent');
   assert_optional_unsigned_int_field(stats, 'packetsDiscardedOnSend');
-  assert_optional_unsigned_int_field(stats, 'bytesSent');
+  assert_unsigned_int_field(stats, 'bytesSent');
   assert_optional_unsigned_int_field(stats, 'bytesDiscardedOnSend');
 }
 
@@ -348,12 +345,7 @@ function validateSentRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.7.  RTCOutboundRTPStreamStats dictionary
     dictionary RTCOutboundRTPStreamStats : RTCSentRTPStreamStats {
-      required  unsigned long      packetsSent;
-      required  unsigned long long bytesSent;
-
-      [RTCRemoteInboundRTPStreamStats]
       DOMString           remoteId;
-
       DOMHighResTimeStamp lastPacketSentTimestamp;
       double              targetBitrate;
       unsigned long       framesEncoded;
@@ -361,20 +353,21 @@ function validateSentRtpStreamStats(statsReport, stats) {
       double              averageRTCPInterval;
     };
 
-  [webrtc-pc]
-  8.6.  Mandatory To Implement Stats
-    - RTCOutboundRTPStreamStats, with all required attributes from RTCRTPStreamStats,
-      and also attributes packetsSent, bytesSent, roundTripTime
+    [webrtc-pc]
+    8.6.  Mandatory To Implement Stats
+      - RTCOutboundRTPStreamStats, with all required attributes from its
+        inherited dictionaries, and also attributes remoteId, framesEncoded
  */
 function validateOutboundRtpStreamStats(statsReport, stats) {
-  validateOptionalIdField(statsReport, stats, 'remoteId', 'remote-inbound-rtp');
+  validateSentRtpStreamStats(statsReport, stats)
 
-  assert_unsigned_int_field(stats, 'packetsSent');
-  assert_unsigned_int_field(stats, 'bytesSent');
+  validateIdField(statsReport, stats, 'remoteId', 'remote-inbound-rtp');
 
   assert_optional_number_field(stats, 'lastPacketSentTimestamp');
   assert_optional_number_field(stats, 'targetBitrate');
-  assert_optional_unsigned_int_field(stats, 'framesEncoded');
+  if (stats['mediaType'] == 'video') {
+    assert_unsigned_int_field(stats, 'framesEncoded');
+  }
   assert_optional_number_field(stats, 'totalEncodeTime');
   assert_optional_number_field(stats, 'averageRTCPInterval');
 }
@@ -383,17 +376,20 @@ function validateOutboundRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.8.  RTCRemoteOutboundRTPStreamStats dictionary
     dictionary RTCRemoteOutboundRTPStreamStats : RTCSentRTPStreamStats {
-      [RTCInboundRTPStreamStats]
       DOMString           localId;
-
       DOMHighResTimeStamp remoteTimestamp;
     };
+
+  [webrtc-pc]
+  8.6.  Mandatory To Implement Stats
+    - RTCRemoteOutboundRTPStreamStats, with all required attributes from its
+      inherited dictionaries, and also attributes localId, remoteTimestamp
  */
 function validateRemoteOutboundRtpStreamStats(statsReport, stats) {
   validateSentRtpStreamStats(statsReport, stats);
 
-  validateOptionalIdField(statsReport, stats, 'localId', 'inbound-rtp');
-  assert_optional_number_field(stats, 'remoteTimeStamp');
+  validateIdField(statsReport, stats, 'localId', 'inbound-rtp');
+  assert_number_field(stats, 'remoteTimeStamp');
 }
 
 /*
@@ -401,10 +397,7 @@ function validateRemoteOutboundRtpStreamStats(statsReport, stats) {
   7.9.  RTCRTPContributingSourceStats
     dictionary RTCRTPContributingSourceStats : RTCStats {
       unsigned long contributorSsrc;
-
-      [RTCInboundRTPStreamStats]
       DOMString     inboundRtpStreamId;
-
       unsigned long packetsContributedTo;
       double        audioLevel;
     };
@@ -423,10 +416,10 @@ function validateContributingSourceStats(statsReport, stats) {
   [webrtc-stats]
   7.10. RTCPeerConnectionStats dictionary
     dictionary RTCPeerConnectionStats : RTCStats {
-      required  unsigned long dataChannelsOpened;
-      required  unsigned long dataChannelsClosed;
-                unsigned long dataChannelsRequested;
-                unsigned long dataChannelsAccepted;
+      unsigned long dataChannelsOpened;
+      unsigned long dataChannelsClosed;
+      unsigned long dataChannelsRequested;
+      unsigned long dataChannelsAccepted;
     };
 
   [webrtc-pc]
@@ -446,10 +439,8 @@ function validatePeerConnectionStats(statsReport, stats) {
   [webrtc-stats]
   7.11. RTCMediaStreamStats dictionary
     dictionary RTCMediaStreamStats : RTCStats {
-      required  DOMString           streamIdentifier;
-
-      [RTCMediaStreamTrackStats]
-      required  sequence<DOMString> trackIds;
+      DOMString           streamIdentifier;
+      sequence<DOMString> trackIds;
     };
 
   [webrtc-pc]
@@ -479,35 +470,37 @@ function validateMediaStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.12. RTCMediaStreamTrackStats dictionary
     dictionary RTCMediaStreamTrackStats : RTCStats {
-      required  DOMString           trackIdentifier;
-      required  boolean             remoteSource;
-      required  boolean             ended;
-      required  boolean             detached;
-                DOMString           kind;
-                DOMHighResTimeStamp estimatedPlayoutTimestamp;
-      required  unsigned long       frameWidth;
-      required  unsigned long       frameHeight;
-      required  double              framesPerSecond;
-                unsigned long       framesCaptured;
-      required  unsigned long       framesSent;
-      required  unsigned long       framesReceived;
-      required  unsigned long       framesDecoded;
-      required  unsigned long       framesDropped;
-      required  unsigned long       framesCorrupted;
-                unsigned long       partialFramesLost;
-                unsigned long       fullFramesLost;
-      required  double              audioLevel;
-                double              totalAudioEnergy;
-                boolean             voiceActivityFlag;
-                double              echoReturnLoss;
-                double              echoReturnLossEnhancement;
-                unsigned long long  totalSamplesSent;
-                unsigned long long  totalSamplesReceived;
-                double              totalSamplesDuration;
-                unsigned long long  concealedSamples;
-                unsigned long long  concealmentEvents;
-                double              jitterBufferDelay;
-                RTCPriorityType     priority;
+      DOMString           trackIdentifier;
+      boolean             remoteSource;
+      boolean             ended;
+      boolean             detached;
+      DOMString           kind;
+      DOMHighResTimeStamp estimatedPlayoutTimestamp;
+      unsigned long       frameWidth;
+      unsigned long       frameHeight;
+      double              framesPerSecond;
+      unsigned long       framesCaptured;
+      unsigned long       framesSent;
+      unsigned long       keyFramesSent;
+      unsigned long       framesReceived;
+      unsigned long       keyFramesReceived;
+      unsigned long       framesDecoded;
+      unsigned long       framesDropped;
+      unsigned long       framesCorrupted;
+      unsigned long       partialFramesLost;
+      unsigned long       fullFramesLost;
+      double              audioLevel;
+      double              totalAudioEnergy;
+      boolean             voiceActivityFlag;
+      double              echoReturnLoss;
+      double              echoReturnLossEnhancement;
+      unsigned long long  totalSamplesSent;
+      unsigned long long  totalSamplesReceived;
+      double              totalSamplesDuration;
+      unsigned long long  concealedSamples;
+      unsigned long long  concealmentEvents;
+      double              jitterBufferDelay;
+      RTCPriorityType     priority;
     };
 
   [webrtc-pc]
@@ -520,48 +513,53 @@ function validateMediaStreamStats(statsReport, stats) {
     };
 
   8.6.  Mandatory To Implement Stats
-    - RTCMediaStreamTrackStats, with attributes trackIdentifier, remoteSource, ended,
-      detached, ssrcIds, frameWidth, frameHeight, framesPerSecond, framesSent,
+    - RTCMediaStreamTrackStats, with attributes trackIdentifier, remoteSource,
+      ended, detached, frameWidth, frameHeight, framesPerSecond, framesSent,
       framesReceived, framesDecoded, framesDropped, framesCorrupted, audioLevel
  */
 
-function validateMediaStreamTrackStats(stats, stat) {
+function validateMediaStreamTrackStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
-  assert_string_field(stat, 'trackIdentifier');
-  assert_boolean_field(stat, 'remoteSource');
-  assert_boolean_field(stat, 'ended');
-  assert_boolean_field(stat, 'detached');
+  assert_string_field(stats, 'trackIdentifier');
+  assert_boolean_field(stats, 'remoteSource');
+  assert_boolean_field(stats, 'ended');
+  assert_boolean_field(stats, 'detached');
 
-  assert_optional_string_field(stat, 'kind');
-  assert_optional_number_field(stat, 'estimatedPlayoutTimestamp');
+  assert_optional_enum_field(stats, 'kind', ['audio', 'video']);
+  assert_optional_number_field(stats, 'estimatedPlayoutTimestamp');
+  if (stats['kind'] === 'video') {
+    assert_unsigned_int_field(stats, 'frameWidth');
+    assert_unsigned_int_field(stats, 'frameHeight');
+    assert_number_field(stats, 'framesPerSecond');
+    if (stats['framesSent']) {
+      assert_optional_unsigned_int_field(stats, 'framesCaptured');
+      assert_unsigned_int_field(stats, 'framesSent');
+      assert_optional_unsigned_int_field(stats, 'keyFramesSent');
+    } else {
+      assert_unsigned_int_field(stats, 'framesReceived');
+      assert_optional_unsigned_int_field(stats, 'keyFramesReceived');
+      assert_unsigned_int_field(stats, 'framesDecoded');
+      assert_unsigned_int_field(stats, 'framesDropped');
+      assert_unsigned_int_field(stats, 'framesCorrupted');
+    }
 
-  assert_unsigned_int_field(stat, 'frameWidth');
-  assert_unsigned_int_field(stat, 'frameHeight');
-  assert_number_field(stat, 'framesPerSecond');
+    assert_optional_unsigned_int_field(stats, 'partialFramesLost');
+    assert_optional_unsigned_int_field(stats, 'fullFramesLost');
+  } else {
+    assert_number_field(stats, 'audioLevel');
+    assert_optional_number_field(stats, 'totalAudioEnergy');
+    assert_optional_boolean_field(stats, 'voiceActivityFlag');
+    assert_optional_number_field(stats, 'echoReturnLoss');
+    assert_optional_number_field(stats, 'echoReturnLossEnhancement');
 
-  assert_optional_unsigned_int_field(stat, 'framesCaptured');
-  assert_unsigned_int_field(stat, 'frameSent');
-  assert_unsigned_int_field(stat, 'frameReceived');
-  assert_unsigned_int_field(stat, 'frameDecoded');
-  assert_unsigned_int_field(stat, 'frameDropped');
-  assert_unsigned_int_field(stat, 'frameCorrupted');
-
-  assert_optional_unsigned_int_field(stat, 'partialFramesLost');
-  assert_optional_unsigned_int_field(stat, 'fullFramesLost');
-
-  assert_number_field(stat, 'audioLevel');
-  assert_optional_number_field(stat, 'totalAudioEnergy');
-  assert_optional_boolean_field(stat, 'voiceActivityFlag');
-  assert_optional_number_field(stat, 'echoReturnLoss');
-  assert_optional_number_field(stat, 'echoReturnLossEnhancement');
-
-  assert_optional_unsigned_int_field(stat, 'totalSamplesSent');
-  assert_optional_unsigned_int_field(stat, 'totalSamplesReceived');
-  assert_optional_number_field(stat, 'totalSamplesDuration');
-  assert_optional_unsigned_int_field(stat, 'concealedSamples');
-  assert_optional_unsigned_int_field(stat, 'concealmentEvents');
-  assert_optional_number_field(stat, 'jitterBufferDelay');
+    assert_optional_unsigned_int_field(stats, 'totalSamplesSent');
+    assert_optional_unsigned_int_field(stats, 'totalSamplesReceived');
+    assert_optional_number_field(stats, 'totalSamplesDuration');
+    assert_optional_unsigned_int_field(stats, 'concealedSamples');
+    assert_optional_unsigned_int_field(stats, 'concealmentEvents');
+    assert_optional_number_field(stats, 'jitterBufferDelay');
+  }
 
   assert_optional_enum_field(stats, 'priority',
     ['very-low', 'low', 'medium', 'high']);
@@ -571,18 +569,15 @@ function validateMediaStreamTrackStats(stats, stat) {
   [webrtc-stats]
   7.13. RTCDataChannelStats dictionary
     dictionary RTCDataChannelStats : RTCStats {
-      required  DOMString           label;
-      required  DOMString           protocol;
-      required  long                datachannelid;
-
-      [RTCTransportStats]
-                DOMString           transportId;
-
-      required  RTCDataChannelState state;
-      required  unsigned long       messagesSent;
-      required  unsigned long long  bytesSent;
-      required  unsigned long       messagesReceived;
-      required  unsigned long long  bytesReceived;
+      DOMString           label;
+      DOMString           protocol;
+      long                dataChannelIdentifier;
+      DOMString           transportId;
+      RTCDataChannelState state;
+      unsigned long       messagesSent;
+      unsigned long long  bytesSent;
+      unsigned long       messagesReceived;
+      unsigned long long  bytesReceived;
     };
 
   [webrtc-pc]
@@ -598,22 +593,19 @@ function validateMediaStreamTrackStats(stats, stat) {
     - RTCDataChannelStats, with attributes label, protocol, datachannelId, state,
       messagesSent, bytesSent, messagesReceived, bytesReceived
  */
-
 function validateDataChannelStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   assert_string_field(stats, 'label');
   assert_string_field(stats, 'protocol');
-  assert_int_field(stats, 'datachannelid');
+  assert_int_field(stats, 'dataChannelIdentifier');
 
   validateOptionalIdField(statsReport, stats, 'transportId', 'transport');
 
   assert_enum_field(stats, 'state',
     ['connecting', 'open', 'closing', 'closed']);
 
-  assert_unsigned_int_field(stats, 'messageSent');
-
-  assert_unsigned_int_field(stats, 'messageSent');
+  assert_unsigned_int_field(stats, 'messagesSent');
   assert_unsigned_int_field(stats, 'bytesSent');
   assert_unsigned_int_field(stats, 'messagesReceived');
   assert_unsigned_int_field(stats, 'bytesReceived');
@@ -623,25 +615,16 @@ function validateDataChannelStats(statsReport, stats) {
   [webrtc-stats]
   7.14. RTCTransportStats dictionary
     dictionary RTCTransportStats : RTCStats {
-                unsigned long         packetsSent;
-                unsigned long         packetsReceived;
-      required  unsigned long long    bytesSent;
-      required  unsigned long long    bytesReceived;
-
-      [RTCTransportStats]
-      required  DOMString             rtcpTransportStatsId;
-
-                RTCIceRole            iceRole;
-                RTCDtlsTransportState dtlsState;
-
-      [RTCIceCandidatePairStats]
-      required  DOMString             selectedCandidatePairId;
-
-      [RTCCertificateStats]
-      required  DOMString             localCertificateId;
-
-      [RTCCertificateStats]
-      required  DOMString             remoteCertificateId;
+      unsigned long         packetsSent;
+      unsigned long         packetsReceived;
+      unsigned long long    bytesSent;
+      unsigned long long    bytesReceived;
+      DOMString             rtcpTransportStatsId;
+      RTCIceRole            iceRole;
+      RTCDtlsTransportState dtlsState;
+      DOMString             selectedCandidatePairId;
+      DOMString             localCertificateId;
+      DOMString             remoteCertificateId;
     };
 
   [webrtc-pc]
@@ -661,10 +644,10 @@ function validateDataChannelStats(statsReport, stats) {
     };
 
   8.6.  Mandatory To Implement Stats
-    - RTCTransportStats, with attributes bytesSent, bytesReceived, rtcpTransportStatsId,
-      activeConnection, selectedCandidatePairId, localCertificateId, remoteCertificateId
+    - RTCTransportStats, with attributes bytesSent, bytesReceived,
+      rtcpTransportStatsId, selectedCandidatePairId, localCertificateId,
+      remoteCertificateId
  */
-
 function validateTransportStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
@@ -673,7 +656,8 @@ function validateTransportStats(statsReport, stats) {
   assert_unsigned_int_field(stats, 'bytesSent');
   assert_unsigned_int_field(stats, 'bytesReceived');
 
-  validateIdField(statsReport, stats, 'rtcpTransportStatsId', 'transport');
+  validateOptionalIdField(statsReport, stats, 'rtcpTransportStatsId',
+                          'transport');
 
   assert_optional_enum_field(stats, 'iceRole',
     ['controlling', 'controlled']);
@@ -682,26 +666,35 @@ function validateTransportStats(statsReport, stats) {
     ['new', 'connecting', 'connected', 'closed', 'failed']);
 
   validateIdField(statsReport, stats, 'selectedCandidatePairId', 'candidate-pair');
-  validateIdField(stateReport, stats, 'localCertificateId', 'certificate');
-  validateIdField(stateReport, stats, 'remoteCertificateId', 'certificate');
+  validateIdField(statsReport, stats, 'localCertificateId', 'certificate');
+  validateIdField(statsReport, stats, 'remoteCertificateId', 'certificate');
 }
 
 /*
   [webrtc-stats]
   7.15. RTCIceCandidateStats dictionary
     dictionary RTCIceCandidateStats : RTCStats {
-      [RTCTransportStats]
-                DOMString           transportId;
+      DOMString           transportId;
+      boolean             isRemote;
+      RTCNetworkType      networkType;
+      DOMString           ip;
+      long                port;
+      DOMString           protocol;
+      RTCIceCandidateType candidateType;
+      long                priority;
+      DOMString           url;
+      DOMString           relayProtocol;
+      boolean             deleted = false;
+    };
 
-                boolean             isRemote;
-      required  DOMString           ip;
-      required  long                port;
-      required  DOMString           protocol;
-      required  RTCIceCandidateType candidateType;
-      required  long                priority;
-      required  DOMString           url;
-                DOMString           relayProtocol;
-                boolean             deleted = false;
+    enum RTCNetworkType {
+      "bluetooth",
+      "cellular",
+      "ethernet",
+      "wifi",
+      "wimax",
+      "vpn",
+      "unknown"
     };
 
   [webrtc-pc]
@@ -714,15 +707,17 @@ function validateTransportStats(statsReport, stats) {
     };
 
   8.6.  Mandatory To Implement Stats
-    - RTCIceCandidateStats, with attributes ip, port, protocol, candidateType, priority,
-      url
+    - RTCIceCandidateStats, with attributes ip, port, protocol, candidateType,
+      priority, url
  */
-
 function validateIceCandidateStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   validateOptionalIdField(statsReport, stats, 'transportId', 'transport');
   assert_optional_boolean_field(stats, 'isRemote');
+
+  assert_optional_enum_field(stats, 'networkType',
+    ['bluetooth', 'cellular', 'ethernet', 'wifi', 'wimax', 'vpn', 'unknown'])
 
   assert_string_field(stats, 'ip');
   assert_int_field(stats, 'port');
@@ -732,7 +727,7 @@ function validateIceCandidateStats(statsReport, stats) {
     ['host', 'srflx', 'prflx', 'relay']);
 
   assert_int_field(stats, 'priority');
-  assert_string_field(stats, 'url');
+  assert_optional_string_field(stats, 'url');
   assert_optional_string_field(stats, 'relayProtocol');
   assert_optional_boolean_field(stats, 'deleted');
 }
@@ -741,40 +736,34 @@ function validateIceCandidateStats(statsReport, stats) {
   [webrtc-stats]
   7.16. RTCIceCandidatePairStats dictionary
     dictionary RTCIceCandidatePairStats : RTCStats {
-      [RTCTransportStats]
-      required  DOMString                     transportId;
-
-      [RTCIceCandidateStats]
-      required  DOMString                     localCandidateId;
-
-      [RTCIceCandidateStats]
-      required  DOMString                     remoteCandidateId;
-
-      required  RTCStatsIceCandidatePairState state;
-      required  unsigned long long            priority;
-      required  boolean                       nominated;
-                unsigned long                 packetsSent;
-                unsigned long                 packetsReceived;
-      required  unsigned long long            bytesSent;
-      required  unsigned long long            bytesReceived;
-                DOMHighResTimeStamp           lastPacketSentTimestamp;
-                DOMHighResTimeStamp           lastPacketReceivedTimestamp;
-                DOMHighResTimeStamp           firstRequestTimestamp;
-                DOMHighResTimeStamp           lastRequestTimestamp;
-                DOMHighResTimeStamp           lastResponseTimestamp;
-      required  double                        totalRoundTripTime;
-      required  double                        currentRoundTripTime;
-                double                        availableOutgoingBitrate;
-                double                        availableIncomingBitrate;
-                unsigned long                 circuitBreakerTriggerCount;
-                unsigned long long            requestsReceived;
-                unsigned long long            requestsSent;
-                unsigned long long            responsesReceived;
-                unsigned long long            responsesSent;
-                unsigned long long            retransmissionsReceived;
-                unsigned long long            retransmissionsSent;
-                unsigned long long            consentRequestsSent;
-                DOMHighResTimeStamp           consentExpiredTimestamp;
+      DOMString                     transportId;
+      DOMString                     localCandidateId;
+      DOMString                     remoteCandidateId;
+      RTCStatsIceCandidatePairState state;
+      unsigned long long            priority;
+      boolean                       nominated;
+      unsigned long                 packetsSent;
+      unsigned long                 packetsReceived;
+      unsigned long long            bytesSent;
+      unsigned long long            bytesReceived;
+      DOMHighResTimeStamp           lastPacketSentTimestamp;
+      DOMHighResTimeStamp           lastPacketReceivedTimestamp;
+      DOMHighResTimeStamp           firstRequestTimestamp;
+      DOMHighResTimeStamp           lastRequestTimestamp;
+      DOMHighResTimeStamp           lastResponseTimestamp;
+      double                        totalRoundTripTime;
+      double                        currentRoundTripTime;
+      double                        availableOutgoingBitrate;
+      double                        availableIncomingBitrate;
+      unsigned long                 circuitBreakerTriggerCount;
+      unsigned long long            requestsReceived;
+      unsigned long long            requestsSent;
+      unsigned long long            responsesReceived;
+      unsigned long long            responsesSent;
+      unsigned long long            retransmissionsReceived;
+      unsigned long long            retransmissionsSent;
+      unsigned long long            consentRequestsSent;
+      DOMHighResTimeStamp           consentExpiredTimestamp;
     };
 
     enum RTCStatsIceCandidatePairState {
@@ -788,8 +777,7 @@ function validateIceCandidateStats(statsReport, stats) {
   [webrtc-pc]
   8.6.  Mandatory To Implement Stats
     - RTCIceCandidatePairStats, with attributes transportId, localCandidateId,
-      remoteCandidateId, state, priority, nominated, writable, readable, bytesSent,
-      bytesReceived, totalRtt, currentRtt
+      remoteCandidateId, state, priority, nominated, bytesSent, bytesReceived, totalRoundTripTime, currentRoundTripTime
  */
 function validateIceCandidatePairStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
@@ -806,7 +794,7 @@ function validateIceCandidatePairStats(statsReport, stats) {
   assert_optional_unsigned_int_field(stats, 'packetsSent');
   assert_optional_unsigned_int_field(stats, 'packetsReceived');
   assert_unsigned_int_field(stats, 'bytesSent');
-  assert_unsigned_int_field(stats, 'byteReceived');
+  assert_unsigned_int_field(stats, 'bytesReceived');
 
   assert_optional_number_field(stats, 'lastPacketSentTimestamp');
   assert_optional_number_field(stats, 'lastPacketReceivedTimestamp');
@@ -835,10 +823,10 @@ function validateIceCandidatePairStats(statsReport, stats) {
   [webrtc-stats]
   7.17. RTCCertificateStats dictionary
     dictionary RTCCertificateStats : RTCStats {
-      required  DOMString fingerprint;
-      required  DOMString fingerprintAlgorithm;
-      required  DOMString base64Certificate;
-      required  DOMString issuerCertificateId;
+      DOMString fingerprint;
+      DOMString fingerprintAlgorithm;
+      DOMString base64Certificate;
+      DOMString issuerCertificateId;
     };
 
   [webrtc-pc]
@@ -846,12 +834,11 @@ function validateIceCandidatePairStats(statsReport, stats) {
     - RTCCertificateStats, with attributes fingerprint, fingerprintAlgorithm,
       base64Certificate, issuerCertificateId
  */
-
 function validateCertificateStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   assert_string_field(stats, 'fingerprint');
   assert_string_field(stats, 'fingerprintAlgorithm');
   assert_string_field(stats, 'base64Certificate');
-  assert_string_field(stats, 'issuerCertificateId');
+  assert_optional_string_field(stats, 'issuerCertificateId');
 }

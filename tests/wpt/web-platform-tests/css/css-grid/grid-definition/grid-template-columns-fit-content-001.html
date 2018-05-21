@@ -7,7 +7,7 @@
 <link rel="match" href="grid-template-columns-fit-content-001-ref.html">
 <meta name="assert" content="This test checks that 'fit-content()' works as expected in grid-template-columns, i.e., it's similar to 'auto' ('minmax(auto, max-content)') except that the growth limit is clamped at the argument of 'fit-content' (if greater than the 'auto' minimum).">
 <meta name="flags" content="ahem">
-<link rel="stylesheet" href="../support/grid.css">
+<link rel="stylesheet" href="support/grid.css">
 <style>
 .grid {
   justify-content: start;
@@ -281,7 +281,7 @@ h3 { font-size: 1em; }
 </div>
 
 <div class="floatLeft">
-  <h3>max-content < fit-content() argument.</h3>
+  <h3>max-content &lt; fit-content() argument.</h3>
 
   <div class="grid fc110">
 	<div class="item">XXX XXX</div>

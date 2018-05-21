@@ -8,12 +8,14 @@
 #![deny(unsafe_code)]
 
 use Atom;
+use CaseSensitivityExt;
 use LocalName as SelectorLocalName;
-use dom::{TElement, TNode};
+use dom::{TDocument, TElement, TNode};
 use fnv::FnvHashSet;
+use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::restyle_hints::RestyleHint;
 use media_queries::Device;
-use selector_parser::SelectorImpl;
+use selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
 use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, LocalName, Selector};
 use shared_lock::SharedRwLockReadGuard;
@@ -23,15 +25,17 @@ use stylesheets::{CssRule, StylesheetInDocument};
 /// need to be restyled. Whether it represents a whole subtree or just a single
 /// element is determined by whether the invalidation is stored in the
 /// StylesheetInvalidationSet's invalid_scopes or invalid_elements table.
-#[derive(Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 enum Invalidation {
     /// An element with a given id.
     ID(Atom),
     /// An element with a given class name.
     Class(Atom),
     /// An element with a given local name.
-    LocalName { name: SelectorLocalName, lower_name: SelectorLocalName },
+    LocalName {
+        name: SelectorLocalName,
+        lower_name: SelectorLocalName,
+    },
 }
 
 impl Invalidation {
@@ -43,31 +47,55 @@ impl Invalidation {
         matches!(*self, Invalidation::ID(..) | Invalidation::Class(..))
     }
 
-    fn matches<E>(&self, element: E) -> bool
-        where E: TElement,
+    fn matches<E>(
+        &self,
+        element: E,
+        snapshot: Option<&Snapshot>,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool
+    where
+        E: TElement,
     {
         match *self {
             Invalidation::Class(ref class) => {
-                // FIXME This should look at the quirks mode of the document to
-                // determine case sensitivity.
-                element.has_class(class, CaseSensitivity::CaseSensitive)
-            }
-            Invalidation::ID(ref id) => {
-                match element.get_id() {
-                    // FIXME This should look at the quirks mode of the document
-                    // to determine case sensitivity.
-                    Some(element_id) => element_id == *id,
-                    None => false,
+                if element.has_class(class, case_sensitivity) {
+                    return true;
                 }
-            }
-            Invalidation::LocalName { ref name, ref lower_name } => {
+
+                if let Some(snapshot) = snapshot {
+                    if snapshot.has_class(class, case_sensitivity) {
+                        return true;
+                    }
+                }
+            },
+            Invalidation::ID(ref id) => {
+                if let Some(ref element_id) = element.id() {
+                    if case_sensitivity.eq_atom(element_id, id) {
+                        return true;
+                    }
+                }
+
+                if let Some(snapshot) = snapshot {
+                    if let Some(ref old_id) = snapshot.id_attr() {
+                        if case_sensitivity.eq_atom(old_id, id) {
+                            return true;
+                        }
+                    }
+                }
+            },
+            Invalidation::LocalName {
+                ref name,
+                ref lower_name,
+            } => {
                 // This could look at the quirks mode of the document, instead
                 // of testing against both names, but it's probably not worth
                 // it.
-                let local_name = element.get_local_name();
-                *local_name == **name || *local_name == **lower_name
-            }
+                let local_name = element.local_name();
+                return *local_name == **name || *local_name == **lower_name;
+            },
         }
+
+        false
     }
 }
 
@@ -75,7 +103,7 @@ impl Invalidation {
 ///
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(MallocSizeOf)]
 pub struct StylesheetInvalidationSet {
     /// The subtrees we know we have to restyle so far.
     invalid_scopes: FnvHashSet<Invalidation>,
@@ -110,9 +138,8 @@ impl StylesheetInvalidationSet {
         &mut self,
         device: &Device,
         stylesheet: &S,
-        guard: &SharedRwLockReadGuard
-    )
-    where
+        guard: &SharedRwLockReadGuard,
+    ) where
         S: StylesheetInDocument,
     {
         debug!("StylesheetInvalidationSet::collect_invalidations_for");
@@ -121,14 +148,13 @@ impl StylesheetInvalidationSet {
             return;
         }
 
-        if !stylesheet.enabled() ||
-           !stylesheet.is_effective_for_device(device, guard) {
+        if !stylesheet.enabled() || !stylesheet.is_effective_for_device(device, guard) {
             debug!(" > Stylesheet was not effective");
             return; // Nothing to do here.
         }
 
         for rule in stylesheet.effective_rules(device, guard) {
-            self.collect_invalidations_for_rule(rule, guard);
+            self.collect_invalidations_for_rule(rule, guard, device);
             if self.fully_invalid {
                 self.invalid_scopes.clear();
                 self.invalid_elements.clear();
@@ -136,8 +162,14 @@ impl StylesheetInvalidationSet {
             }
         }
 
-        debug!(" > resulting subtree invalidations: {:?}", self.invalid_scopes);
-        debug!(" > resulting self invalidations: {:?}", self.invalid_elements);
+        debug!(
+            " > resulting subtree invalidations: {:?}",
+            self.invalid_scopes
+        );
+        debug!(
+            " > resulting self invalidations: {:?}",
+            self.invalid_elements
+        );
         debug!(" > fully_invalid: {}", self.fully_invalid);
     }
 
@@ -145,11 +177,17 @@ impl StylesheetInvalidationSet {
     /// `document_element` is provided.
     ///
     /// Returns true if any invalidations ocurred.
-    pub fn flush<E>(&mut self, document_element: Option<E>) -> bool
-        where E: TElement,
+    pub fn flush<E>(&mut self, document_element: Option<E>, snapshots: Option<&SnapshotMap>) -> bool
+    where
+        E: TElement,
     {
+        debug!(
+            "Stylist::flush({:?}, snapshots: {})",
+            document_element,
+            snapshots.is_some()
+        );
         let have_invalidations = match document_element {
-            Some(e) => self.process_invalidations(e),
+            Some(e) => self.process_invalidations(e, snapshots),
             None => false,
         };
         self.clear();
@@ -163,9 +201,15 @@ impl StylesheetInvalidationSet {
         self.fully_invalid = false;
     }
 
-    fn process_invalidations<E>(&self, element: E) -> bool
-        where E: TElement,
+    fn process_invalidations<E>(&self, element: E, snapshots: Option<&SnapshotMap>) -> bool
+    where
+        E: TElement,
     {
+        debug!(
+            "Stylist::process_invalidations({:?}, {:?}, {:?})",
+            element, self.invalid_scopes, self.invalid_elements,
+        );
+
         {
             let mut data = match element.mutate_data() {
                 Some(data) => data,
@@ -173,8 +217,7 @@ impl StylesheetInvalidationSet {
             };
 
             if self.fully_invalid {
-                debug!("process_invalidations: fully_invalid({:?})",
-                       element);
+                debug!("process_invalidations: fully_invalid({:?})", element);
                 data.hint.insert(RestyleHint::restyle_subtree());
                 return true;
             }
@@ -185,7 +228,12 @@ impl StylesheetInvalidationSet {
             return false;
         }
 
-        self.process_invalidations_in_subtree(element)
+        let case_sensitivity = element
+            .as_node()
+            .owner_doc()
+            .quirks_mode()
+            .classes_and_ids_case_sensitivity();
+        self.process_invalidations_in_subtree(element, snapshots, case_sensitivity)
     }
 
     /// Process style invalidations in a given subtree. This traverses the
@@ -194,9 +242,16 @@ impl StylesheetInvalidationSet {
     ///
     /// Returns whether it invalidated at least one element's style.
     #[allow(unsafe_code)]
-    fn process_invalidations_in_subtree<E>(&self, element: E) -> bool
-        where E: TElement,
+    fn process_invalidations_in_subtree<E>(
+        &self,
+        element: E,
+        snapshots: Option<&SnapshotMap>,
+        case_sensitivity: CaseSensitivity,
+    ) -> bool
+    where
+        E: TElement,
     {
+        debug!("process_invalidations_in_subtree({:?})", element);
         let mut data = match element.mutate_data() {
             Some(data) => data,
             None => return false,
@@ -207,15 +262,21 @@ impl StylesheetInvalidationSet {
         }
 
         if data.hint.contains_subtree() {
-            debug!("process_invalidations_in_subtree: {:?} was already invalid",
-                   element);
+            debug!(
+                "process_invalidations_in_subtree: {:?} was already invalid",
+                element
+            );
             return false;
         }
 
+        let element_wrapper = snapshots.map(|s| ElementWrapper::new(element, s));
+        let snapshot = element_wrapper.as_ref().and_then(|e| e.snapshot());
         for invalidation in &self.invalid_scopes {
-            if invalidation.matches(element) {
-                debug!("process_invalidations_in_subtree: {:?} matched subtree {:?}",
-                       element, invalidation);
+            if invalidation.matches(element, snapshot, case_sensitivity) {
+                debug!(
+                    "process_invalidations_in_subtree: {:?} matched subtree {:?}",
+                    element, invalidation
+                );
                 data.hint.insert(RestyleHint::restyle_subtree());
                 return true;
             }
@@ -225,9 +286,11 @@ impl StylesheetInvalidationSet {
 
         if !data.hint.contains(RestyleHint::RESTYLE_SELF) {
             for invalidation in &self.invalid_elements {
-                if invalidation.matches(element) {
-                    debug!("process_invalidations_in_subtree: {:?} matched self {:?}",
-                           element, invalidation);
+                if invalidation.matches(element, snapshot, case_sensitivity) {
+                    debug!(
+                        "process_invalidations_in_subtree: {:?} matched self {:?}",
+                        element, invalidation
+                    );
                     data.hint.insert(RestyleHint::RESTYLE_SELF);
                     self_invalid = true;
                     break;
@@ -243,44 +306,50 @@ impl StylesheetInvalidationSet {
                 None => continue,
             };
 
-            any_children_invalid |= self.process_invalidations_in_subtree(child);
+            any_children_invalid |=
+                self.process_invalidations_in_subtree(child, snapshots, case_sensitivity);
         }
 
         if any_children_invalid {
-            debug!("Children of {:?} changed, setting dirty descendants",
-                   element);
+            debug!(
+                "Children of {:?} changed, setting dirty descendants",
+                element
+            );
             unsafe { element.set_dirty_descendants() }
         }
 
-        return self_invalid || any_children_invalid
+        return self_invalid || any_children_invalid;
     }
 
     fn scan_component(
         component: &Component<SelectorImpl>,
-        invalidation: &mut Option<Invalidation>)
-    {
+        invalidation: &mut Option<Invalidation>,
+    ) {
         match *component {
-            Component::LocalName(LocalName { ref name, ref lower_name }) => {
+            Component::LocalName(LocalName {
+                ref name,
+                ref lower_name,
+            }) => {
                 if invalidation.as_ref().map_or(true, |s| !s.is_id_or_class()) {
                     *invalidation = Some(Invalidation::LocalName {
                         name: name.clone(),
                         lower_name: lower_name.clone(),
                     });
                 }
-            }
+            },
             Component::Class(ref class) => {
                 if invalidation.as_ref().map_or(true, |s| !s.is_id()) {
                     *invalidation = Some(Invalidation::Class(class.clone()));
                 }
-            }
+            },
             Component::ID(ref id) => {
                 if invalidation.is_none() {
                     *invalidation = Some(Invalidation::ID(id.clone()));
                 }
-            }
+            },
             _ => {
                 // Ignore everything else, at least for now.
-            }
+            },
         }
     }
 
@@ -299,7 +368,10 @@ impl StylesheetInvalidationSet {
     /// of the selector, to reduce the amount of traversal we need to do
     /// when flushing invalidations.
     fn collect_invalidations(&mut self, selector: &Selector<SelectorImpl>) {
-        debug!("StylesheetInvalidationSet::collect_invalidations({:?})", selector);
+        debug!(
+            "StylesheetInvalidationSet::collect_invalidations({:?})",
+            selector
+        );
 
         let mut element_invalidation: Option<Invalidation> = None;
         let mut subtree_invalidation: Option<Invalidation> = None;
@@ -321,7 +393,7 @@ impl StylesheetInvalidationSet {
                 None => break,
                 Some(combinator) => {
                     scan_for_subtree_invalidation = combinator.is_ancestor();
-                }
+                },
             }
             scan_for_element_invalidation = false;
         }
@@ -344,8 +416,9 @@ impl StylesheetInvalidationSet {
     fn collect_invalidations_for_rule(
         &mut self,
         rule: &CssRule,
-        guard: &SharedRwLockReadGuard)
-    {
+        guard: &SharedRwLockReadGuard,
+        device: &Device,
+    ) {
         use stylesheets::CssRule::*;
         debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
         debug_assert!(!self.fully_invalid, "Not worth to be here!");
@@ -359,30 +432,41 @@ impl StylesheetInvalidationSet {
                         return;
                     }
                 }
-            }
-            Document(..) |
-            Namespace(..) |
-            Import(..) |
-            Media(..) |
-            Supports(..) => {
+            },
+            Document(..) | Namespace(..) | Import(..) | Media(..) | Supports(..) => {
                 // Do nothing, relevant nested rules are visited as part of the
                 // iteration.
-            }
-            FontFace(..) |
-            CounterStyle(..) |
-            Keyframes(..) |
-            Page(..) |
-            Viewport(..) |
-            FontFeatureValues(..) => {
-                debug!(" > Found unsupported rule, marking the whole subtree \
-                       invalid.");
+            },
+            FontFace(..) => {
+                // Do nothing, @font-face doesn't affect computed style
+                // information. We'll restyle when the font face loads, if
+                // needed.
+            },
+            Keyframes(ref lock) => {
+                let keyframes_rule = lock.read_with(guard);
+                if device.animation_name_may_be_referenced(&keyframes_rule.name) {
+                    debug!(
+                        " > Found @keyframes rule potentially referenced \
+                         from the page, marking the whole tree invalid."
+                    );
+                    self.fully_invalid = true;
+                } else {
+                    // Do nothing, this animation can't affect the style of
+                    // existing elements.
+                }
+            },
+            CounterStyle(..) | Page(..) | Viewport(..) | FontFeatureValues(..) => {
+                debug!(
+                    " > Found unsupported rule, marking the whole subtree \
+                     invalid."
+                );
 
                 // TODO(emilio): Can we do better here?
                 //
                 // At least in `@page`, we could check the relevant media, I
                 // guess.
                 self.fully_invalid = true;
-            }
+            },
         }
     }
 }

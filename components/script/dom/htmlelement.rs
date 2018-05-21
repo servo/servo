@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -16,10 +17,12 @@ use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::{Document, FocusType};
+use dom::documentfragment::DocumentFragment;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{AttributeMutation, Element};
 use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlbrelement::HTMLBRElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmlinputelement::{HTMLInputElement, InputType};
@@ -27,9 +30,11 @@ use dom::htmllabelelement::HTMLLabelElement;
 use dom::node::{Node, NodeFlags};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use script_layout_interface::message::QueryMsg;
 use std::collections::HashSet;
 use std::default::Default;
 use std::rc::Rc;
@@ -400,6 +405,79 @@ impl HTMLElementMethods for HTMLElement {
 
         rect.size.height.to_nearest_px()
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+    fn InnerText(&self) -> DOMString {
+        let node = self.upcast::<Node>();
+        let window = window_from_node(node);
+        let element = self.upcast::<Element>();
+
+        // Step 1.
+        let element_not_rendered = !node.is_in_doc() || !element.has_css_layout_box();
+        if element_not_rendered {
+            return node.GetTextContent().unwrap();
+        }
+
+        window.layout_reflow(QueryMsg::ElementInnerTextQuery(node.to_trusted_node_address()));
+        DOMString::from(window.layout().element_inner_text())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+    fn SetInnerText(&self, input: DOMString) {
+        // Step 1.
+        let document = document_from_node(self);
+
+        // Step 2.
+        let fragment = DocumentFragment::new(&document);
+
+        // Step 3. The given value is already named 'input'.
+
+        // Step 4.
+        let mut position = input.chars().peekable();
+
+        // Step 5.
+        let mut text = String::new();
+
+        // Step 6.
+        while let Some(ch) = position.next() {
+            match ch {
+                '\u{000A}' | '\u{000D}' => {
+                    if ch == '\u{000D}' && position.peek() == Some(&'\u{000A}') {
+                        // a \r\n pair should only generate one <br>,
+                        // so just skip the \r.
+                        position.next();
+                    }
+
+                    if !text.is_empty() {
+                        append_text_node_to_fragment(&document, &fragment, text);
+                        text = String::new();
+                    }
+
+                    let br = HTMLBRElement::new(local_name!("br"), None, &document);
+                    fragment.upcast::<Node>().AppendChild(&br.upcast()).unwrap();
+                },
+                _ => {
+                    text.push(ch);
+                }
+            }
+        }
+
+        if !text.is_empty() {
+            append_text_node_to_fragment(&document, &fragment, text);
+        }
+
+        // Step 7.
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
+    }
+}
+
+fn append_text_node_to_fragment(
+    document: &Document,
+    fragment: &DocumentFragment,
+    text: String
+) {
+    let text = Text::new(DOMString::from(text), document);
+    fragment.upcast::<Node>().AppendChild(&text.upcast()).unwrap();
 }
 
 // https://html.spec.whatwg.org/multipage/#attr-data-*

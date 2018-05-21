@@ -33,8 +33,10 @@
         }
     }
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         let mut background_color = None;
 
         % for name in "image position_x position_y repeat size attachment origin clip".split():
@@ -131,7 +133,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let len = self.background_image.0.len();
             // There should be at least one declared value
             if len == 0 {
@@ -200,8 +202,10 @@
     use values::specified::AllowQuirks;
     use values::specified::position::Position;
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         // Vec grows from 0 to 4 by default on first push().  So allocate with
         // capacity 1, so in the common case of only one item we don't way
         // overallocate.  Note that we always push at least one item if parsing
@@ -228,7 +232,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let len = self.background_position_x.0.len();
             if len == 0 || len != self.background_position_y.0.len() {
                 return Ok(());

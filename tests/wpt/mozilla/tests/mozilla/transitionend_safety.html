@@ -11,7 +11,6 @@
     elem.textContent = 'hi there';
     elem.style.transition = 'color 10ms';
     elem.style.color = 'black';
-    elem.ontransitionend = t.step_func_done();
 
     t.step_timeout(function() {
       elem.style.color = 'red';
@@ -20,6 +19,7 @@
         document.body.removeChild(elem);
         elem = null;
         window.gc();
+        t.step_timeout(t.step_func_done(), 100);
       }, 0);
     }, 0);
   }, 'Nodes cannot be GCed while a CSS transition is in effect.');

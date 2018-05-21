@@ -54,7 +54,7 @@ ${helpers.predefined_type(
 ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),
                          vector=True,
-                         gecko_constant_prefix="NS_STYLE_IMAGELAYER_ATTACHMENT",
+                         gecko_enum_prefix="StyleImageLayerAttachment",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
                          animation_value_type="discrete",
                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}

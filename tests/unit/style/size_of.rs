@@ -12,7 +12,7 @@ size_of_test!(test_size_of_property_declaration, properties::PropertyDeclaration
 
 // This is huge, but we allocate it on the stack and then never move it,
 // we only pass `&mut SourcePropertyDeclaration` references around.
-size_of_test!(test_size_of_parsed_declaration, properties::SourcePropertyDeclaration, 576);
+size_of_test!(test_size_of_parsed_declaration, properties::SourcePropertyDeclaration, 568);
 
 size_of_test!(test_size_of_selector_parse_error_kind, SelectorParseErrorKind, 40);
 size_of_test!(test_size_of_style_parse_error_kind, ::style_traits::StyleParseErrorKind, 56);

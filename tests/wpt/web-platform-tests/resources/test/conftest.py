@@ -24,8 +24,8 @@ def pytest_configure(config):
     config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
-    config.add_cleanup(lambda: config.server.stop())
-    config.add_cleanup(lambda: config.driver.quit())
+    config.add_cleanup(config.server.stop)
+    config.add_cleanup(config.driver.quit)
 
 class HTMLItem(pytest.Item, pytest.Collector):
     def __init__(self, filename, parent):
@@ -80,24 +80,20 @@ class HTMLItem(pytest.Item, pytest.Collector):
         if not self.expected:
             assert summarized[u'summarized_status'][u'status_string'] == u'OK', summarized[u'summarized_status'][u'message']
             for test in summarized[u'summarized_tests']:
-                msg = "%s\n%s:\n%s" % (test[u'name'], test[u'message'], test[u'stack'])
+                msg = "%s\n%s" % (test[u'name'], test[u'message'])
                 assert test[u'status_string'] == u'PASS', msg
         else:
             assert summarized == self.expected
 
     @staticmethod
     def _assert_sequence(nums):
-        assert nums == range(1, nums[-1] + 1)
+        if nums and len(nums) > 0:
+            assert nums == range(1, nums[-1] + 1)
 
     @staticmethod
     def _scrub_stack(test_obj):
         copy = dict(test_obj)
-
-        assert 'stack' in copy
-
-        if copy['stack'] is not None:
-            copy['stack'] = u'(implementation-defined)'
-
+        del copy['stack']
         return copy
 
     @staticmethod

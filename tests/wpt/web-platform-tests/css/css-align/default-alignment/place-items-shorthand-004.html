@@ -5,7 +5,7 @@
 <meta name="assert" content="Check that place-items's invalid values are properly detected at parsing time." />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../resources/alignment-parsing-utils.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
 <div id="log"></div>
 <script>
     function checkInvalidValues(value)
@@ -14,24 +14,19 @@
     }
 
     test(function() {
-        checkInvalidValues("center safe")
-        checkInvalidValues("true center")
-    }, "Verify overflow keywords are invalid");
+        checkInvalidValues("center end start")
+    }, "Verify fallback values are invalid");
 
     test(function() {
-        checkInvalidValues("center space-between start")
-    }, "Verify fallback values are invalid");
+        checkInvalidValues("left")
+        checkInvalidValues("left start")
+        checkInvalidValues("right center")
+    }, "Verify 'left' and 'right' values are invalid for block/cross axis alignment");
 
     test(function() {
         checkInvalidValues("10px left")
         checkInvalidValues("right 10%")
     }, "Verify numeric values are invalid");
-
-    test(function() {
-       checkInvalidValues("auto")
-       checkInvalidValues("auto right")
-       checkInvalidValues("auto auto")
-    }, "Verify 'auto' value is invalid as first longhand value.");
 
     test(function() {
         checkInvalidValues("")

@@ -22,8 +22,9 @@ use dom::globalscope::GlobalScope;
 use dom::node::{Node, window_from_node};
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoCompartment, ObjectClassName};
+use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
+use js::rust::wrappers::ObjectClassName;
 use msg::constellation_msg::PipelineId;
 use script_thread::Documents;
 use std::ffi::CStr;
@@ -154,12 +155,13 @@ pub fn handle_get_layout(documents: &Documents,
 }
 
 fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
-    let margin = window.margin_style_query(node.to_trusted_node_address());
+    let style = window.style_query(node.to_trusted_node_address()).unwrap();
+    let margin = style.get_margin();
     AutoMargins {
-        top: margin.top == margin_top::computed_value::T::Auto,
-        right: margin.right == margin_right::computed_value::T::Auto,
-        bottom: margin.bottom == margin_bottom::computed_value::T::Auto,
-        left: margin.left == margin_left::computed_value::T::Auto,
+        top: margin.margin_top == margin_top::computed_value::T::Auto,
+        right: margin.margin_right == margin_right::computed_value::T::Auto,
+        bottom: margin.margin_bottom == margin_bottom::computed_value::T::Auto,
+        left: margin.margin_left == margin_left::computed_value::T::Auto,
     }
 }
 

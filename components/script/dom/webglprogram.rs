@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLParameter, WebGLProgramId, WebGLResult};
+use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLProgramId, WebGLResult};
 use canvas_traits::webgl::webgl_channel;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -29,6 +29,46 @@ pub struct WebGLProgram {
     vertex_shader: MutNullableDom<WebGLShader>,
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
+}
+
+/// ANGLE adds a `_u` prefix to variable names:
+///
+/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
+///
+/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
+/// API to look up the `x.name` and `x.mappedName` members,
+/// then build a data structure for bi-directional lookup (so either linear scan or two hashmaps).
+/// Even then, this would probably only support plain variable names like "foo".
+/// Strings passed to e.g. `GetUniformLocation` can be expressions like "foo[0].bar",
+/// with the mapping for that "bar" name in yet another part of ANGLE’s API.
+const ANGLE_NAME_PREFIX: &'static str = "_u";
+
+fn to_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(ANGLE_NAME_PREFIX);
+        mapped.push_str(s);
+    })
+}
+
+fn from_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
+            &s[ANGLE_NAME_PREFIX.len()..]
+        } else {
+            s
+        })
+    })
+}
+
+fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
+    let mut iter = s.split('.');
+    let mut mapped = String::new();
+    f(iter.next().unwrap(), &mut mapped);
+    for s in iter {
+        mapped.push('.');
+        f(s, &mut mapped);
+    }
+    mapped
 }
 
 impl WebGLProgram {
@@ -213,8 +253,10 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
+        let name = to_name_in_compiled_shader(&name);
+
         self.renderer
-            .send(WebGLCommand::BindAttribLocation(self.id, index, String::from(name)))
+            .send(WebGLCommand::BindAttribLocation(self.id, index, name))
             .unwrap();
         Ok(())
     }
@@ -228,8 +270,10 @@ impl WebGLProgram {
             .send(WebGLCommand::GetActiveUniform(self.id, index, sender))
             .unwrap();
 
-        receiver.recv().unwrap().map(|(size, ty, name)|
-            WebGLActiveInfo::new(self.global().as_window(), size, ty, DOMString::from(name)))
+        receiver.recv().unwrap().map(|(size, ty, name)| {
+            let name = DOMString::from(from_name_in_compiled_shader(&name));
+            WebGLActiveInfo::new(self.global().as_window(), size, ty, name)
+        })
     }
 
     /// glGetActiveAttrib
@@ -242,8 +286,10 @@ impl WebGLProgram {
             .send(WebGLCommand::GetActiveAttrib(self.id, index, sender))
             .unwrap();
 
-        receiver.recv().unwrap().map(|(size, ty, name)|
-            WebGLActiveInfo::new(self.global().as_window(), size, ty, DOMString::from(name)))
+        receiver.recv().unwrap().map(|(size, ty, name)| {
+            let name = DOMString::from(from_name_in_compiled_shader(&name));
+            WebGLActiveInfo::new(self.global().as_window(), size, ty, name)
+        })
     }
 
     /// glGetAttribLocation
@@ -257,16 +303,19 @@ impl WebGLProgram {
 
         // Check if the name is reserved
         if name.starts_with("gl_") {
-            return Err(WebGLError::InvalidOperation);
-        }
-
-        if name.starts_with("webgl") || name.starts_with("_webgl_") {
             return Ok(None);
         }
 
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#GLSL_CONSTRUCTS
+        if name.starts_with("webgl_") || name.starts_with("_webgl_") {
+            return Ok(None);
+        }
+
+        let name = to_name_in_compiled_shader(&name);
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer
-            .send(WebGLCommand::GetAttribLocation(self.id, String::from(name), sender))
+            .send(WebGLCommand::GetAttribLocation(self.id, name, sender))
             .unwrap();
         Ok(receiver.recv().unwrap())
     }
@@ -285,9 +334,11 @@ impl WebGLProgram {
             return Ok(None);
         }
 
+        let name = to_name_in_compiled_shader(&name);
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer
-            .send(WebGLCommand::GetUniformLocation(self.id, String::from(name), sender))
+            .send(WebGLCommand::GetUniformLocation(self.id, name, sender))
             .unwrap();
         Ok(receiver.recv().unwrap())
     }
@@ -311,11 +362,17 @@ impl WebGLProgram {
         Ok(receiver.recv().unwrap())
     }
 
-    /// glGetProgramParameter
-    pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.renderer.send(WebGLCommand::GetProgramParameter(self.id, param_id, sender)).unwrap();
-        receiver.recv().unwrap()
+    pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
+        if self.is_deleted.get() {
+            return Err(WebGLError::InvalidValue);
+        }
+        Ok(match (self.vertex_shader.get(), self.fragment_shader.get()) {
+            (Some(vertex_shader), Some(fragment_shader)) => {
+                vec![vertex_shader, fragment_shader]
+            }
+            (Some(shader), None) | (None, Some(shader)) => vec![shader],
+            (None, None) => vec![]
+        })
     }
 }
 

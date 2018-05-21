@@ -54,40 +54,35 @@
   </div>
 
   <!--
-  Both column boxes of div#inner start in the 1st
-  column box of div#outer multi-column element.
-  The first 3 lines boxes of 1st
-  column box of div#inner will be rendered inside the
-  1st column box of div#outer but not its 2nd.
-  Because 1st column box of div#outer is
-  6em wide while the div#inner multi-column element
-  is 14em wide, this makes the first 3 line boxes
-  (with the 'z' trios) of 2nd column box of div#inner
-  clipped.
+  Both column boxes of div#inner start in the 1st column box of
+  div#outer multi-column element.  All the 6 lines of div#inner will
+  be rendered inside the 1st column box of div#outer. The first three
+  lines in the first inner column, and the last three in the second
+  inner column, which will overflow the first outer column, and
+  actually appear as if they were part of the second outer column. No
+  clipping should occur, unless explicitly requested.
 
-  Then, at this point, the div#inner multi-column
-  element should be fragmented in order to continue to
-  render the 5 empty line boxes it has into the
-  2nd column box of div#outer. Since those 5 line
-  boxes are empty, we only see the extension it
-  creates horizontally, which is
-  14em - 6em == 8em horizontally and
-  5 lines boxes == 5em tall
-
+  All the 6 lines of #inner fit in a column row that resides in the
+  first outer column. #inner has a fixed height, and is taller than
+  what can fit in the first outer column, so it needs to continue in
+  the second outer column, with no inner column content left to
+  fragment. #inner is a 14em wide block that is put into a 6em wide
+  outer column, so it will overflow the outer column all the way to
+  22em, relatively to the left edge of the outer multicol container.
 
   Expected results:
 
- 0em                        14em            22em
-  v                           v               v
+ 0em           7em          14em            22em
+  v             v             v               v
 0 *********************************************
-  * bla                       |               *
-  * bla                       |               *
-  * bla                       |               *
-  * bla                       |               *
-5 * bla                       |               *
-6 * orn                       |****************
-7 * orn                       |
-8 * orn                       |
+  * bla         |             |               *
+  * bla         |             |               *
+  * bla         |             |               *
+  * bla         |             |               *
+5 * bla         |             |               *
+6 * orn         | zzz         |****************
+7 * orn         | zzz         |
+8 * orn         | zzz         |
   *****************************
 
   -->

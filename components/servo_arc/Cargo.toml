@@ -1,9 +1,10 @@
 [package]
 name = "servo_arc"
-version = "0.0.1"
+version = "0.1.1"
 authors = ["The Servo Project Developers"]
-license = "MPL-2.0"
-publish = false
+license = "MIT/Apache-2.0"
+repository = "https://github.com/servo/servo"
+description = "A fork of std::sync::Arc with some extra functionality and without weak references"
 
 [lib]
 name = "servo_arc"

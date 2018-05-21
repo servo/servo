@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#dom-css-registerproperty" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#inner {
+  --length: 10px;
+  --color: red;
+}
+#outer {
+  --length: 77px;
+  --color: blue;
+}
+</style>
+
+<div id=outer>
+  <div id=inner></div>
+</div>
+
+<script>
+var computedStyle = getComputedStyle(inner);
+var inlineStyle = inner.style;
+var sheetStyle = document.styleSheets[0].cssRules[0].style;
+
+test(function() {
+  // Nothing registered yet, whatever you specify works
+  assert_equals(computedStyle.getPropertyValue('--length'), ' 10px');
+  assert_equals(computedStyle.getPropertyValue('--color'), ' red');
+
+  inlineStyle.setProperty('--length', '5');
+  inlineStyle.setProperty('--color', 'hello');
+
+  assert_equals(inlineStyle.getPropertyValue('--length'), '5');
+  assert_equals(inlineStyle.getPropertyValue('--color'), 'hello');
+  assert_equals(computedStyle.getPropertyValue('--length'), '5');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'hello');
+}, "CSSOM setters function as expected for unregistered properties");
+
+CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--color', syntax: '<color>', initialValue: 'white', inherits: true});
+
+test(function() {
+  assert_equals(inlineStyle.getPropertyValue('--length'), '5');
+  assert_equals(inlineStyle.getPropertyValue('--color'), 'hello');
+  assert_equals(computedStyle.getPropertyValue('--length'), '0px');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'blue');
+}, "Formerly valid values are still readable from inline styles but are computed as the unset value");
+
+test(function() {
+  inlineStyle.setProperty('--length', 'hi');
+  inlineStyle.setProperty('--color', '20');
+  assert_equals(inlineStyle.getPropertyValue('--length'), '5');
+  assert_equals(inlineStyle.getPropertyValue('--color'), 'hello');
+}, "Values not matching the registered type can't be set");
+
+test(function() {
+  inlineStyle.removeProperty('--length');
+  inlineStyle.setProperty('--color', '');
+  assert_equals(inlineStyle.getPropertyValue('--length'), '');
+  assert_equals(inlineStyle.getPropertyValue('--color'), '');
+  assert_equals(computedStyle.getPropertyValue('--length'), '10px');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'red');
+}, "Values can be removed from inline styles");
+
+test(function() {
+  sheetStyle.setProperty('--length', 'banana'); // Invalid, no change
+  assert_equals(computedStyle.getPropertyValue('--length'), '10px');
+  sheetStyle.setProperty('--length', '20px');
+  assert_equals(computedStyle.getPropertyValue('--length'), '20px');
+  sheetStyle.setProperty('--length', 'initial');
+  assert_equals(computedStyle.getPropertyValue('--length'), '0px');
+}, "Stylesheets can be modified by CSSOM");
+
+test(function() {
+  inlineStyle.setProperty('--length', '30px');
+  inlineStyle.setProperty('--color', 'pink');
+  assert_equals(inlineStyle.getPropertyValue('--length'), '30px');
+  assert_equals(inlineStyle.getPropertyValue('--color'), 'pink');
+  assert_equals(computedStyle.getPropertyValue('--length'), '30px');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'pink');
+  inlineStyle.setProperty('--color', 'inherit');
+  assert_equals(inlineStyle.getPropertyValue('--color'), 'inherit');
+  assert_equals(computedStyle.getPropertyValue('--color'), 'blue');
+}, "Valid values can be set on inline styles");
+</script>

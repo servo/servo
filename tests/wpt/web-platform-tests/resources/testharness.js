@@ -10,10 +10,10 @@ policies and contribution forms [3].
 [3] http://www.w3.org/2004/10/27-testcases
 */
 
-/* Documentation: http://web-platform-tests.org/writing-tests/testharness-api.html
+/* Documentation: https://web-platform-tests.org/writing-tests/testharness-api.html
  * (../docs/_writing-tests/testharness-api.md) */
 
-(function ()
+(function (global_scope)
 {
     var debug = false;
     // default timeout is 10 seconds, test can override if needed
@@ -48,9 +48,6 @@ policies and contribution forms [3].
      *
      *   // Should return the test harness timeout duration in milliseconds.
      *   float test_timeout();
-     *
-     *   // Should return the global scope object.
-     *   object global_scope();
      * };
      */
 
@@ -248,10 +245,6 @@ policies and contribution forms [3].
         return settings.harness_timeout.normal;
     };
 
-    WindowTestEnvironment.prototype.global_scope = function() {
-        return window;
-    };
-
     /*
      * Base TestEnvironment implementation for a generic web worker.
      *
@@ -342,10 +335,6 @@ policies and contribution forms [3].
         // Tests running in a worker don't have a default timeout. I.e. all
         // worker tests behave as if settings.explicit_timeout is true.
         return null;
-    };
-
-    WorkerTestEnvironment.prototype.global_scope = function() {
-        return self;
     };
 
     /*
@@ -462,25 +451,73 @@ policies and contribution forms [3].
         }
     };
 
+    /*
+     * JavaScript shells.
+     *
+     * This class is used as the test_environment when testharness is running
+     * inside a JavaScript shell.
+     */
+    function ShellTestEnvironment() {
+        this.name_counter = 0;
+        this.all_loaded = false;
+        this.on_loaded_callback = null;
+        Promise.resolve().then(function() {
+            this.all_loaded = true
+            if (this.on_loaded_callback) {
+                this.on_loaded_callback();
+            }
+        }.bind(this));
+        this.message_list = [];
+        this.message_ports = [];
+    }
+
+    ShellTestEnvironment.prototype.next_default_test_name = function() {
+        var suffix = this.name_counter > 0 ? " " + this.name_counter : "";
+        this.name_counter++;
+        return "Untitled" + suffix;
+    };
+
+    ShellTestEnvironment.prototype.on_new_harness_properties = function() {};
+
+    ShellTestEnvironment.prototype.on_tests_ready = function() {};
+
+    ShellTestEnvironment.prototype.add_on_loaded_callback = function(callback) {
+        if (this.all_loaded) {
+            callback();
+        } else {
+            this.on_loaded_callback = callback;
+        }
+    };
+
+    ShellTestEnvironment.prototype.test_timeout = function() {
+        // Tests running in a shell don't have a default timeout, so behave as
+        // if settings.explicit_timeout is true.
+        return null;
+    };
+
     function create_test_environment() {
-        if ('document' in self) {
+        if ('document' in global_scope) {
             return new WindowTestEnvironment();
         }
-        if ('DedicatedWorkerGlobalScope' in self &&
-            self instanceof DedicatedWorkerGlobalScope) {
+        if ('DedicatedWorkerGlobalScope' in global_scope &&
+            global_scope instanceof DedicatedWorkerGlobalScope) {
             return new DedicatedWorkerTestEnvironment();
         }
-        if ('SharedWorkerGlobalScope' in self &&
-            self instanceof SharedWorkerGlobalScope) {
+        if ('SharedWorkerGlobalScope' in global_scope &&
+            global_scope instanceof SharedWorkerGlobalScope) {
             return new SharedWorkerTestEnvironment();
         }
-        if ('ServiceWorkerGlobalScope' in self &&
-            self instanceof ServiceWorkerGlobalScope) {
+        if ('ServiceWorkerGlobalScope' in global_scope &&
+            global_scope instanceof ServiceWorkerGlobalScope) {
             return new ServiceWorkerTestEnvironment();
         }
-        if ('WorkerGlobalScope' in self &&
-            self instanceof WorkerGlobalScope) {
+        if ('WorkerGlobalScope' in global_scope &&
+            global_scope instanceof WorkerGlobalScope) {
             return new DedicatedWorkerTestEnvironment();
+        }
+
+        if (!('self' in global_scope)) {
+            return new ShellTestEnvironment();
         }
 
         throw new Error("Unsupported test environment");
@@ -489,13 +526,13 @@ policies and contribution forms [3].
     var test_environment = create_test_environment();
 
     function is_shared_worker(worker) {
-        return 'SharedWorker' in self && worker instanceof SharedWorker;
+        return 'SharedWorker' in global_scope && worker instanceof SharedWorker;
     }
 
     function is_service_worker(worker) {
         // The worker object may be from another execution context,
         // so do not use instanceof here.
-        return 'ServiceWorker' in self &&
+        return 'ServiceWorker' in global_scope &&
             Object.prototype.toString.call(worker) == '[object ServiceWorker]';
     }
 
@@ -1247,6 +1284,13 @@ policies and contribution forms [3].
     }
     expose(assert_readonly, "assert_readonly");
 
+    /**
+     * Assert an Exception with the expected code is thrown.
+     *
+     * @param {object|number|string} code The expected exception code.
+     * @param {Function} func Function which should throw.
+     * @param {string} description Error description for the case that the error is not thrown.
+     */
     function assert_throws(code, func, description)
     {
         try {
@@ -1257,11 +1301,22 @@ policies and contribution forms [3].
             if (e instanceof AssertionError) {
                 throw e;
             }
+
+            assert(typeof e === "object",
+                   "assert_throws", description,
+                   "${func} threw ${e} with type ${type}, not an object",
+                   {func:func, e:e, type:typeof e});
+
+            assert(e !== null,
+                   "assert_throws", description,
+                   "${func} threw null, not an object",
+                   {func:func});
+
             if (code === null) {
                 throw new AssertionError('Test bug: need to pass exception to assert_throws()');
             }
             if (typeof code === "object") {
-                assert(typeof e == "object" && "name" in e && e.name == code.name,
+                assert("name" in e && e.name == code.name,
                        "assert_throws", description,
                        "${func} threw ${actual} (${actual_name}) expected ${expected} (${expected_name})",
                                     {func:func, actual:e, actual_name:e.name,
@@ -1340,8 +1395,7 @@ policies and contribution forms [3].
             var required_props = { code: name_code_map[name] };
 
             if (required_props.code === 0 ||
-               (typeof e == "object" &&
-                "name" in e &&
+               ("name" in e &&
                 e.name !== e.name.toUpperCase() &&
                 e.name !== "DOMException")) {
                 // New style exception: also test the name property.
@@ -1353,13 +1407,8 @@ policies and contribution forms [3].
             //in.  It might be an instanceof the appropriate interface on some
             //unknown other window.  TODO: Work around this somehow?
 
-            assert(typeof e == "object",
-                   "assert_throws", description,
-                   "${func} threw ${e} with type ${type}, not an object",
-                   {func:func, e:e, type:typeof e});
-
             for (var prop in required_props) {
-                assert(typeof e == "object" && prop in e && e[prop] == required_props[prop],
+                assert(prop in e && e[prop] == required_props[prop],
                        "assert_throws", description,
                        "${func} threw ${e} that is not a DOMException " + code + ": property ${prop} is equal to ${actual}, expected ${expected}",
                        {func:func, e:e, prop:prop, actual:e[prop], expected:required_props[prop]});
@@ -1569,11 +1618,6 @@ policies and contribution forms [3].
         this._add_cleanup(callback);
     };
 
-    Test.prototype.force_timeout = function() {
-        this.set_status(this.TIMEOUT);
-        this.phase = this.phases.HAS_RESULT;
-    };
-
     Test.prototype.set_timeout = function()
     {
         if (this.timeout_length !== null) {
@@ -1600,6 +1644,8 @@ policies and contribution forms [3].
         this.done();
     };
 
+    Test.prototype.force_timeout = Test.prototype.timeout;
+
     Test.prototype.done = function()
     {
         if (this.phase == this.phases.COMPLETE) {
@@ -1612,7 +1658,9 @@ policies and contribution forms [3].
 
         this.phase = this.phases.COMPLETE;
 
-        clearTimeout(this.timeout_id);
+        if (global_scope.clearTimeout) {
+            clearTimeout(this.timeout_id);
+        }
         tests.result(this);
         this.cleanup();
     };
@@ -1711,7 +1759,13 @@ policies and contribution forms [3].
         this.tests = new Array();
 
         var this_obj = this;
-        remote.onerror = function(error) { this_obj.remote_error(error); };
+        // If remote context is cross origin assigning to onerror is not
+        // possible, so silently catch those errors.
+        try {
+          remote.onerror = function(error) { this_obj.remote_error(error); };
+        } catch (e) {
+          // Ignore.
+        }
 
         // Keeping a reference to the remote object and the message handler until
         // remote_done() is seen prevents the remote object and its message channel
@@ -1725,6 +1779,12 @@ policies and contribution forms [3].
                 this_obj.message_handlers[message.data.type].call(this_obj, message.data);
             }
         };
+
+        if (self.Promise) {
+            this.done = new Promise(function(resolve) {
+                this_obj.doneResolve = resolve;
+            });
+        }
 
         this.message_target.addEventListener("message", this.message_handler);
     }
@@ -1775,6 +1835,10 @@ policies and contribution forms [3].
         this.running = false;
         this.remote = null;
         this.message_target = null;
+        if (this.doneResolve) {
+            this.doneResolve();
+        }
+
         if (tests.all_done()) {
             tests.complete();
         }
@@ -1921,12 +1985,14 @@ policies and contribution forms [3].
     };
 
     Tests.prototype.set_timeout = function() {
-        var this_obj = this;
-        clearTimeout(this.timeout_id);
-        if (this.timeout_length !== null) {
-            this.timeout_id = setTimeout(function() {
-                                             this_obj.timeout();
-                                         }, this.timeout_length);
+        if (global_scope.clearTimeout) {
+            var this_obj = this;
+            clearTimeout(this.timeout_id);
+            if (this.timeout_length !== null) {
+                this.timeout_id = setTimeout(function() {
+                                                 this_obj.timeout();
+                                             }, this.timeout_length);
+            }
         }
     };
 
@@ -2084,11 +2150,7 @@ policies and contribution forms [3].
         var message_port;
 
         if (is_service_worker(worker)) {
-            // Microsoft Edge's implementation of ServiceWorker doesn't support MessagePort yet.
-            // Feature detection isn't a straightforward option here; it's only possible in the
-            // worker's script context.
-            var isMicrosoftEdgeBrowser = navigator.userAgent.includes("Edge");
-            if (window.MessageChannel && !isMicrosoftEdgeBrowser) {
+            if (window.MessageChannel) {
                 // The ServiceWorker's implicit MessagePort is currently not
                 // reliably accessible from the ServiceWorkerGlobalScope due to
                 // Blink setting MessageEvent.source to null for messages sent
@@ -2135,11 +2197,13 @@ policies and contribution forms [3].
             return;
         }
 
-        this.pending_remotes.push(this.create_remote_worker(worker));
+        var remoteContext = this.create_remote_worker(worker);
+        this.pending_remotes.push(remoteContext);
+        return remoteContext.done;
     };
 
     function fetch_tests_from_worker(port) {
-        tests.fetch_tests_from_worker(port);
+        return tests.fetch_tests_from_worker(port);
     }
     expose(fetch_tests_from_worker, 'fetch_tests_from_worker');
 
@@ -2266,10 +2330,14 @@ policies and contribution forms [3].
             if (output_document.body) {
                 output_document.body.appendChild(node);
             } else {
+                var is_html = false;
                 var is_svg = false;
                 var output_window = output_document.defaultView;
                 if (output_window && "SVGSVGElement" in output_window) {
                     is_svg = output_document.documentElement instanceof output_window.SVGSVGElement;
+                } else if (output_window) {
+                    is_html = (output_document.namespaceURI == "http://www.w3.org/1999/xhtml" &&
+                               output_document.localName == "html");
                 }
                 if (is_svg) {
                     var foreignObject = output_document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
@@ -2277,6 +2345,10 @@ policies and contribution forms [3].
                     foreignObject.setAttribute("height", "100%");
                     output_document.documentElement.appendChild(foreignObject);
                     foreignObject.appendChild(node);
+                } else if (is_html) {
+                    var body = output_document.createElementNS("http://www.w3.org/1999/xhtml", "body");
+                    output_document.documentElement.appendChild(body);
+                    body.appendChild(node);
                 } else {
                     output_document.documentElement.appendChild(node);
                 }
@@ -2805,7 +2877,7 @@ policies and contribution forms [3].
     function expose(object, name)
     {
         var components = name.split(".");
-        var target = test_environment.global_scope();
+        var target = global_scope;
         for (var i = 0; i < components.length - 1; i++) {
             if (!(components[i] in target)) {
                 target[components[i]] = {};
@@ -2827,7 +2899,7 @@ policies and contribution forms [3].
     /** Returns the 'src' URL of the first <script> tag in the page to include the file 'testharness.js'. */
     function get_script_url()
     {
-        if (!('document' in self)) {
+        if (!('document' in global_scope)) {
             return undefined;
         }
 
@@ -2902,38 +2974,40 @@ policies and contribution forms [3].
 
     var tests = new Tests();
 
-    var error_handler = function(e) {
-        if (tests.tests.length === 0 && !tests.allow_uncaught_exception) {
-            tests.set_file_is_test();
-        }
-
-        var stack;
-        if (e.error && e.error.stack) {
-            stack = e.error.stack;
-        } else {
-            stack = e.filename + ":" + e.lineno + ":" + e.colno;
-        }
-
-        if (tests.file_is_test) {
-            var test = tests.tests[0];
-            if (test.phase >= test.phases.HAS_RESULT) {
-                return;
+    if (global_scope.addEventListener) {
+        var error_handler = function(e) {
+            if (tests.tests.length === 0 && !tests.allow_uncaught_exception) {
+                tests.set_file_is_test();
             }
-            test.set_status(test.FAIL, e.message, stack);
-            test.phase = test.phases.HAS_RESULT;
-            test.done();
-        } else if (!tests.allow_uncaught_exception) {
-            tests.status.status = tests.status.ERROR;
-            tests.status.message = e.message;
-            tests.status.stack = stack;
-        }
-        done();
-    };
 
-    addEventListener("error", error_handler, false);
-    addEventListener("unhandledrejection", function(e){ error_handler(e.reason); }, false);
+            var stack;
+            if (e.error && e.error.stack) {
+                stack = e.error.stack;
+            } else {
+                stack = e.filename + ":" + e.lineno + ":" + e.colno;
+            }
+
+            if (tests.file_is_test) {
+                var test = tests.tests[0];
+                if (test.phase >= test.phases.HAS_RESULT) {
+                    return;
+                }
+                test.set_status(test.FAIL, e.message, stack);
+                test.phase = test.phases.HAS_RESULT;
+                test.done();
+            } else if (!tests.allow_uncaught_exception) {
+                tests.status.status = tests.status.ERROR;
+                tests.status.message = e.message;
+                tests.status.stack = stack;
+            }
+            done();
+        };
+
+        addEventListener("error", error_handler, false);
+        addEventListener("unhandledrejection", function(e){ error_handler(e.reason); }, false);
+    }
 
     test_environment.on_tests_ready();
 
-})();
+})(this);
 // vim: set expandtab shiftwidth=4 tabstop=4:

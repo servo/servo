@@ -1,6 +1,7 @@
 [configs]
 skip-check-length = false
 skip-check-licenses = false
+check-alphabetical-order = true
 check-ordered-json-keys = [
   "./resources/prefs.json",
 ]
@@ -28,41 +29,39 @@ rand = [
   "tempfile",
   "uuid",
   "ws",
+  "rand",
 ]
-num = []
+num = [
+  "chrono",
+]
 
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
-  "cookie",
-  "lazy_static",
-  "mime",
-  "semver",
-  "toml",
-  "unicase",
-  "smallvec",
+  "itoa",
+  "log",
+  "num-traits",
+  "quote",
+  "rand",
+  "syn",
+  "unicode-xid",
+  "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
+  "./components/net/tests/parsable_mime/text",
   # Mako does not lend itself easily to splitting long lines
   "./components/style/properties/helpers/animated_properties.mako.rs",
   # Helper macro where actually a pseudo-element per line makes sense.
   "./components/style/gecko/non_ts_pseudo_class_list.rs",
-  # Generated and upstream code combined with our own. Could use cleanup
-  "./components/style/gecko/generated/bindings.rs",
-  "./components/style/gecko/generated/pseudo_element_definition.rs",
-  "./components/style/gecko/generated/structs.rs",
-  "./components/style/gecko/generated/atom_macro.rs",
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
-  "./components/script/dom/webidls/ForceTouchEvent.webidl",
   "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/mozilla/tests/webgl",
   # Ignore those files since the issues reported are on purpose
   "./tests/html/bad-line-ends.html",
-  "./tests/unit/net/parsable_mime/text",
   "./tests/wpt/mozilla/tests/css/fonts",
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
@@ -84,7 +83,6 @@ directories = [
   "./components/hashglobe/src",
   # Generated and upstream code combined with our own. Could use cleanup
   "./target",
-  "./ports/cef",
 ]
 
 # Directories that are checked for correct file extension

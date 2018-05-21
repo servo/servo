@@ -1,0 +1,163 @@
+<!--
+Copyright 2015 Google Inc. All rights reserved.
+
+Use of this source code is governed by a BSD-style
+license that can be found in the COPYING file or at
+https://developers.google.com/open-source/licenses/bsd
+-->
+<html>
+<head>
+<title>Fetch API benchmark</title>
+<script src="util_main.js"></script>
+<script src="util.js"></script>
+<script src="fetch_benchmark.js"></script>
+<script>
+var addressBox = null;
+
+function getConfig() {
+  return {
+    prefixUrl: addressBox.value,
+    printSize: getBoolFromCheckBox('printsize'),
+    numFetches: getIntFromInput('numFetches'),
+    // Initial size of messages.
+    numIterations: getIntFromInput('numiterations'),
+    numWarmUpIterations: getIntFromInput('numwarmupiterations'),
+    startSize: getIntFromInput('startsize'),
+    // Stops benchmark when the size of message exceeds this threshold.
+    stopThreshold: getIntFromInput('stopthreshold'),
+    multipliers: getFloatArrayFromInput('multipliers'),
+    verifyData: getBoolFromCheckBox('verifydata'),
+    addToLog: addToLog,
+    addToSummary: addToSummary,
+    measureValue: measureValue,
+    notifyAbort: notifyAbort
+  };
+}
+
+function onSendBenchmark() {
+  var config = getConfig();
+  config.dataType = getStringFromRadioBox('datatyperadio');
+  doAction(config, getBoolFromCheckBox('worker'), 'sendBenchmark');
+}
+
+function onReceiveBenchmark() {
+  var config = getConfig();
+  config.dataType = getStringFromRadioBox('datatyperadio');
+  doAction(config, getBoolFromCheckBox('worker'), 'receiveBenchmark');
+}
+
+function onBatchBenchmark() {
+  var config = getConfig();
+  doAction(config, getBoolFromCheckBox('worker'), 'batchBenchmark');
+}
+
+function onStop() {
+  var config = getConfig();
+  doAction(config, getBoolFromCheckBox('worker'), 'stop');
+}
+
+function init() {
+  addressBox = document.getElementById('address');
+  logBox = document.getElementById('log');
+
+  summaryBox = document.getElementById('summary');
+
+  // Special address of pywebsocket for XHR/Fetch API benchmark.
+  addressBox.value = '/073be001e10950692ccbf3a2ad21c245';
+
+  addToLog(window.navigator.userAgent.toLowerCase());
+  addToSummary(window.navigator.userAgent.toLowerCase());
+
+  initWorker('fetch', '');
+}
+</script>
+</head>
+<body onload="init()">
+
+<form id="benchmark_form">
+  url prefix <input type="text" id="address" size="40">
+  <input type="button" value="send" onclick="onSendBenchmark()">
+  <input type="button" value="receive" onclick="onReceiveBenchmark()">
+  <input type="button" value="batch" onclick="onBatchBenchmark()">
+  <input type="button" value="stop" onclick="onStop()">
+
+  <br/>
+
+  <input type="checkbox" id="printsize" checked>
+  <label for="printsize">Print size and time per message</label>
+  <input type="checkbox" id="verifydata" checked>
+  <label for="verifydata">Verify data</label>
+  <input type="checkbox" id="worker">
+  <label for="worker">Run on worker</label>
+
+  <br/>
+
+  Parameters:
+
+  <br/>
+
+  <table>
+    <tr>
+      <td>Number of fetch() requests</td>
+      <td><input type="text" id="numFetches" value="1"></td>
+    </tr>
+    <tr>
+      <td>Number of iterations</td>
+      <td><input type="text" id="numiterations" value="1"></td>
+    </tr>
+    <tr>
+      <td>Number of warm-up iterations</td>
+      <td><input type="text" id="numwarmupiterations" value="0"></td>
+    </tr>
+    <tr>
+      <td>Start size</td>
+      <td><input type="text" id="startsize" value="10240"></td>
+    </tr>
+    <tr>
+      <td>Stop threshold</td>
+      <td><input type="text" id="stopthreshold" value="102400000"></td>
+    </tr>
+    <tr>
+      <td>Multipliers</td>
+      <td><input type="text" id="multipliers" value="5, 2"></td>
+    </tr>
+  </table>
+
+  Set data type
+  <input type="radio"
+         name="datatyperadio"
+         id="datatyperadiotext"
+         value="text"
+         checked><label for="datatyperadiotext">text</label>
+  <input type="radio"
+         name="datatyperadio"
+         id="datatyperadioblob"
+         value="blob"
+         ><label for="datatyperadioblob">blob</label>
+  <input type="radio"
+         name="datatyperadio"
+         id="datatyperadioarraybuffer"
+         value="arraybuffer"
+         ><label for="datatyperadioarraybuffer">arraybuffer</label>
+</form>
+
+<div id="log_div">
+  <textarea
+      id="log" rows="20" style="width: 100%" readonly></textarea>
+</div>
+<div id="summary_div">
+  Summary
+  <textarea
+      id="summary" rows="20" style="width: 100%" readonly></textarea>
+</div>
+
+<div id="note_div">
+  Note:
+  <ul>
+    <li>Effect of RTT and time spent for ArrayBuffer creation in receive benchmarks are not eliminated.</li>
+    <li>The Stddev column shows NaN when the number of iterations is set to 1.</li>
+  </ul>
+</div>
+
+</body>
+</html>

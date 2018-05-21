@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Content Disrtribution: align-content - setting values via JS</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-content" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-content-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-content-distribution" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-baseline-position" />
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-overflow-position" />
+<meta name="assert" content="Check that the computed value is the specified value and the same than the JS value."/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
+<div id="log"></div>
+<script>
+    element = document.createElement("div");
+    document.body.appendChild(element);
+
+    let classes = Object.assign({"Normal":"normal"}, contentPositionClasses, distributionClasses,
+                                baselineClasses, overflowClasses);
+
+    for (var key in classes) {
+        let specifiedValue = classes[key];
+        test(function() {
+            element.style.alignContent = "";
+            element.style.alignContent = specifiedValue;
+            if (specifiedValue === "first baseline")
+                checkValues(element, "alignContent", "align-content", "baseline", "baseline");
+            else
+                checkValues(element, "alignContent", "align-content",  specifiedValue, specifiedValue);
+        }, "Checking align-content: " + specifiedValue);
+    }
+</script>

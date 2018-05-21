@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Gradient Background aligned to Content Box</title>
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#the-background-origin">
+  <link rel="match" href="gradient-content-box-ref.html">
+  <meta name="assert" content="The background-origin: content-box; statement is understood.">
+  <style>
+#x {
+  background-origin: content-box;
+  width: 200px;
+  height: 200px;
+  padding: 40px;
+  background-image: repeating-linear-gradient(to bottom right, white, black, white 30px);
+}
+  </style>
+</head>
+<body>
+  <div id="x"></div>
+</body>
+</html>

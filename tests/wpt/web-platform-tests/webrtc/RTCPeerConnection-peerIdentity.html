@@ -54,7 +54,7 @@
       is, there is a current value for peerIdentity ), then this also establishes a
       target peer identity.
    */
-  promise_test(() => {
+  promise_test(t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
 
@@ -284,7 +284,7 @@
       pc2.setRemoteDescription(offer))
     .then(() =>
       assert_rtcerror_rejection('idp-execution-failure',
-        peerIdentityPromise,
+        peerIdentityPromise1,
         `Expect first peerIdentity promise to be rejected with RTCError('idp-execution-failure')`))
     .then(() => {
       const peerIdentityPromise2 = pc2.peerIdentity;

@@ -10,7 +10,7 @@
                     margin: 10px; border: 3px solid blue; padding: 5px;"></div>
     </body>
     <script>
-        window.paintWorklet
+        CSS.paintWorklet
             .addModule("test_paint_worklet_size.js")
             .then(function() { document.documentElement.classList.remove("reftest-wait"); });
     </script>

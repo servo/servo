@@ -1,0 +1,16 @@
+<!doctype html>
+<title>CSS Test: :host in DOM APIs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<div id="host"></div>
+<script>
+test(function() {
+  let root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `<div></div>`;
+  assert_false(host.matches(":host"), ":host shouldn't match from CSSOM from outside the shadow tree");
+  assert_true(root.firstElementChild.matches(":host div"), ":host should match from within the shadow tree");
+  assert_equals(root.querySelector(":host div"), root.firstElementChild, ":host should match from within the shadow tree");
+})
+</script>

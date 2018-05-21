@@ -17,6 +17,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 extern crate rand;
+extern crate uuid;
 
 pub use rand::{Rand, Rng, SeedableRng};
 #[cfg(target_pointer_width = "64")]
@@ -30,6 +31,7 @@ use std::mem;
 use std::rc::Rc;
 use std::sync::Mutex;
 use std::u64;
+use uuid::Uuid;
 
 // Slightly annoying having to cast between sizes.
 
@@ -155,4 +157,12 @@ impl Rng for ServoThreadRng {
 #[inline]
 pub fn random<T: Rand>() -> T {
     thread_rng().gen()
+}
+
+// TODO(eijebong): Replace calls to this by random once `uuid::Uuid` implements `rand::Rand` again.
+#[inline]
+pub fn random_uuid() -> Uuid {
+    let mut bytes = [0; 16];
+    thread_rng().fill_bytes(&mut bytes);
+    Uuid::from_random_bytes(bytes)
 }

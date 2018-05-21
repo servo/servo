@@ -166,4 +166,62 @@ test(function() {
   doc.body = new_frameset;
   assert_equals(doc.body, new_frameset, "test6-3, append frameset to a new document");
 }, "Setting document.body to a new frameset element.");
+
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var f =
+    html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, f);
+
+  var b = doc.createElement("body");
+  doc.body = b;
+
+  assert_equals(f.parentNode, null,
+                "Frameset should have been removed from the tree");
+  assert_equals(doc.body, b, "Body should be the new doc.body");
+}, "Setting document.body to a body will replace an existing frameset if there is one.");
+
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var b =
+    html.appendChild(doc.createElement("body"));
+  assert_equals(doc.body, b);
+
+  var f = doc.createElement("frameset");
+  doc.body = f;
+
+  assert_equals(b.parentNode, null,
+                "Body should have been removed from the tree");
+  assert_equals(doc.body, f, "Frameset should be the new doc.body");
+}, "Setting document.body to a frameset will replace an existing body if there is one.");
+
+test(function() {
+  var doc = createDocument();
+  var html = doc.appendChild(doc.createElement("html"));
+  var b =
+    html.appendChild(doc.createElement("body"));
+  var f1 = html.appendChild(doc.createElement("frameset"));
+  assert_equals(doc.body, b);
+
+  var f2 = doc.createElement("frameset");
+  doc.body = f2;
+
+  assert_equals(b.parentNode, null,
+                "Body should have been removed from the tree");
+  assert_equals(f1.parentNode, html,
+                "Frameset following body should still be in the tree.");
+  assert_equals(doc.body, f2, "New frameset should be the new doc.body");
+  assert_equals(f2.nextSibling, f1, "New frameset should have replaced the body");
+}, "Setting document.body to a frameset will replace the first existing body/frameset.");
+
+test(function() {
+  var doc = createDocument();
+  doc.appendChild(doc.createElement("test"));
+  var new_body = doc.createElement("body");
+  doc.body = new_body;
+  assert_equals(doc.documentElement.firstChild, new_body, "new_body should be inserted");
+  assert_equals(doc.body, null, "Getter should return null when the root is not html");
+}, "Setting document.body to a new body element when the root element is a test element.");
 </script>

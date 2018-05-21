@@ -1,149 +1,69 @@
 <!DOCTYPE html>
 <title>Nested right-constrained position:sticky elements should render correctly</title>
-<link rel="match" href="position-sticky-nested-right-ref.html" />
+
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that nested position:sticky elements with a right constraint render correctly" />
 
-<style>
-.group {
-  position: relative;
-  width: 250px;
-  height: 150px;
-}
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 
-.scroller {
-  position: relative;
-  width: 200px;
-  height: 100px;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
+<script src="resources/sticky-util.js"></script>
 
-.contents {
-  height: 100%;
-  width: 500px;
-  /* Allow nice formatting of inline divs. Fonts are not used in this test. */
-  font-size: 0;
-}
-
-.prepadding {
-  display: inline-block;
-  height: 100%;
-  width: 200px;
-}
-
-.container {
-  display: inline-block;
-  height: 100%;
-  width: 200px;
-}
-
-.filler {
-  display: inline-block;
-  height: 100%;
-  width: 100px;
-}
-
-.outerIndicator {
-  background-color: red;
-  position: absolute;
-  top: 0;
-  display: inline-block;
-  height: 100%;
-  width: 100px;
-}
-
-.innerIndicator {
-  background-color: red;
-  position: absolute;
-  top: 0;
-  display: inline-block;
-  height: 100%;
-  width: 50px;
-}
-
-.outerSticky {
-  background-color: green;
-  position: sticky;
-  right: 25px;
-  display: inline-block;
-  height: 100%;
-  width: 100px;
-}
-
-.innerFiller {
-  display: inline-block;
-  height: 100%;
-  width: 50px;
-}
-
-.innerSticky {
-  background-color: blue;
-  position: sticky;
-  right: 35px;
-  display: inline-block;
-  height: 100%;
-  width: 50px;
-}
-</style>
+<body></body>
 
 <script>
-window.addEventListener('load', function() {
-  document.getElementById('scroller1').scrollLeft = 75;
-  document.getElementById('scroller2').scrollLeft = 175;
-  document.getElementById('scroller3').scrollLeft = 250;
-});
+test(() => {
+  const elements = setupNestedStickyTest('right', 25, 35);
+  elements.scroller.scrollLeft = 200;
+  const nonStickyLeftX = elements.container.offsetLeft +
+      elements.filler.clientWidth;
+  assert_equals(elements.sticky.offsetLeft, nonStickyLeftX);
+  // The inner sticky should not be offset from the outer.
+  const nonStickyInnerLeftX = elements.sticky.clientWidth -
+      elements.innerSticky.clientWidth;
+  assert_equals(elements.innerSticky.offsetLeft, nonStickyInnerLeftX);
+}, 'before reaching the sticking point, neither sticky box should be offset');
+
+test(() => {
+  const elements = setupNestedStickyTest('right', 25, 50);
+  elements.scroller.scrollLeft = 150;
+  const nonStickyLeftX = elements.container.offsetLeft +
+      elements.filler.clientWidth;
+  assert_equals(elements.sticky.offsetLeft, nonStickyLeftX);
+  assert_equals(elements.innerSticky.offsetLeft, 35);
+}, 'the inner sticky can stick before the outer one if necessary');
+
+test(() => {
+  const elements = setupNestedStickyTest('right', 25, 35);
+  elements.scroller.scrollLeft = 100;
+
+  const nonStickyLeftX = elements.container.offsetLeft +
+      elements.filler.clientWidth;
+  const nonStickyBottomX = nonStickyLeftX + elements.sticky.clientWidth;
+  const targetBottomX = elements.scroller.clientWidth +
+      elements.scroller.scrollLeft - 25;
+  const stickyOffset = nonStickyBottomX - targetBottomX;
+  assert_equals(elements.sticky.offsetLeft, nonStickyLeftX - stickyOffset);
+
+  // The inner sticky has similar math, but its offsetLeft is relative to the
+  // sticky element and in this test is (height - the difference between the
+  // top values).
+  assert_equals(elements.innerSticky.offsetLeft, 40);
+}, 'both sticky boxes can be stuck at the same time');
+
+test(() => {
+  const elements = setupNestedStickyTest('right', 25, 35);
+  elements.scroller.scrollLeft = 0;
+  assert_equals(elements.sticky.offsetLeft, elements.container.offsetLeft);
+  assert_equals(elements.innerSticky.offsetLeft, 0);
+}, 'neither sticky can escape their containing block');
+
+test(() => {
+  const elements = setupNestedStickyTest('right', 25, 500);
+  elements.scroller.scrollLeft = 200;
+  // It doesn't matter how big the inner sticky offset is, it cannot escape its
+  // containing block (the outer sticky).
+  assert_equals(elements.innerSticky.offsetLeft, 0);
+}, 'the inner sticky cannot be pushed outside the outer sticky');
+
 </script>
-
-<div class="group">
-  <div id="scroller1" class="scroller">
-    <div class="outerIndicator" style="left: 200px;"></div>
-    <div class="contents">
-      <div class="prepadding"></div>
-      <div class="container">
-        <div class="filler"></div>
-        <div class="outerSticky">
-          <div class="innerIndicator" style="left: 0;"></div>
-          <div class="innerFiller"></div>
-          <div class="innerSticky"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="group">
-  <div id="scroller2" class="scroller">
-    <div class="outerIndicator" style="left: 250px;"></div>
-    <div class="contents">
-      <div class="prepadding"></div>
-      <div class="container">
-        <div class="filler"></div>
-        <div class="outerSticky">
-          <div class="innerIndicator" style="left: 40px;"></div>
-          <div class="innerFiller"></div>
-          <div class="innerSticky"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="group">
-  <div id="scroller3" class="scroller">
-    <div class="outerIndicator" style="left: 300px;"></div>
-    <div class="contents">
-      <div class="prepadding"></div>
-      <div class="container">
-        <div class="filler"></div>
-        <div class="outerSticky">
-          <div class="innerIndicator" style="left: 50px;"></div>
-          <div class="innerFiller"></div>
-          <div class="innerSticky"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div>You should see three green and three blue boxes above. No red should be visible.</div>

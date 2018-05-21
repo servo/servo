@@ -31,6 +31,13 @@ function checkModification(e, funcName, args, expectedRes, before, after,
     }
     setClass(e, before);
 
+    var obs;
+    // If we have MutationObservers available,  do some checks to make
+    // sure attribute sets are happening at sane times.
+    if (self.MutationObserver) {
+      obs = new MutationObserver(() => {});
+      obs.observe(e, { attributes: true });
+    }
     if (shouldThrow) {
       assert_throws(expectedException, function() {
         var list = e.classList;
@@ -39,6 +46,21 @@ function checkModification(e, funcName, args, expectedRes, before, after,
     } else {
       var list = e.classList;
       var res = list[funcName].apply(list, args);
+    }
+    if (obs) {
+      var mutationRecords = obs.takeRecords();
+      obs.disconnect();
+      if (shouldThrow) {
+        assert_equals(mutationRecords.length, 0,
+                      "There should have been no mutation");
+      } else if (funcName == "replace") {
+        assert_equals(mutationRecords.length == 1,
+                      expectedRes,
+                      "Should have a mutation exactly when replace() returns true");
+      } else {
+        // For other functions, would need to check when exactly
+        // mutations are supposed to happen.
+      }
     }
     if (!shouldThrow) {
       assert_equals(res, expectedRes, "wrong return value");
@@ -370,65 +392,66 @@ function testClassList(e, desc) {
 
 
   // replace() method
-  function checkReplace(before, token, newToken, after, expectedException) {
-    checkModification(e, "replace", [token, newToken], undefined, before,
+  function checkReplace(before, token, newToken, expectedRes, after, expectedException) {
+    checkModification(e, "replace", [token, newToken], expectedRes, before,
                       after, expectedException, desc);
   }
 
-  checkReplace(null, "", "a", null, "SyntaxError");
-  checkReplace(null, "", " ", null, "SyntaxError");
-  checkReplace(null, " ", "a", null, "InvalidCharacterError");
-  checkReplace(null, "\ta", "b", null, "InvalidCharacterError");
-  checkReplace(null, "a\t", "b", null, "InvalidCharacterError");
-  checkReplace(null, "\na", "b", null, "InvalidCharacterError");
-  checkReplace(null, "a\n", "b", null, "InvalidCharacterError");
-  checkReplace(null, "\fa", "b", null, "InvalidCharacterError");
-  checkReplace(null, "a\f", "b", null, "InvalidCharacterError");
-  checkReplace(null, "\ra", "b", null, "InvalidCharacterError");
-  checkReplace(null, "a\r", "b", null, "InvalidCharacterError");
-  checkReplace(null, " a", "b", null, "InvalidCharacterError");
-  checkReplace(null, "a ", "b", null, "InvalidCharacterError");
+  checkReplace(null, "", "a", null, null, "SyntaxError");
+  checkReplace(null, "", " ", null, null, "SyntaxError");
+  checkReplace(null, " ", "a", null, null, "InvalidCharacterError");
+  checkReplace(null, "\ta", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "a\t", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "\na", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "a\n", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "\fa", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "a\f", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "\ra", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "a\r", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, " a", "b", null, null, "InvalidCharacterError");
+  checkReplace(null, "a ", "b", null, null, "InvalidCharacterError");
 
-  checkReplace(null, "a", "", null, "SyntaxError");
-  checkReplace(null, " ", "", null, "SyntaxError");
-  checkReplace(null, "a", " ", null, "InvalidCharacterError");
-  checkReplace(null, "b", "\ta", null, "InvalidCharacterError");
-  checkReplace(null, "b", "a\t", null, "InvalidCharacterError");
-  checkReplace(null, "b", "\na", null, "InvalidCharacterError");
-  checkReplace(null, "b", "a\n", null, "InvalidCharacterError");
-  checkReplace(null, "b", "\fa", null, "InvalidCharacterError");
-  checkReplace(null, "b", "a\f", null, "InvalidCharacterError");
-  checkReplace(null, "b", "\ra", null, "InvalidCharacterError");
-  checkReplace(null, "b", "a\r", null, "InvalidCharacterError");
-  checkReplace(null, "b", " a", null, "InvalidCharacterError");
-  checkReplace(null, "b", "a ", null, "InvalidCharacterError");
+  checkReplace(null, "a", "", null, null, "SyntaxError");
+  checkReplace(null, " ", "", null, null, "SyntaxError");
+  checkReplace(null, "a", " ", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "\ta", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "a\t", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "\na", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "a\n", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "\fa", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "a\f", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "\ra", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "a\r", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", " a", null, null, "InvalidCharacterError");
+  checkReplace(null, "b", "a ", null, null, "InvalidCharacterError");
 
-  checkReplace("a", "a", "a", "a");
-  checkReplace("a", "a", "b", "b");
-  checkReplace("a", "A", "b", "a");
-  checkReplace("a b", "b", "A", "a A");
-  checkReplace("a b c", "d", "e", "a b c");
+  checkReplace("a", "a", "a", true, "a");
+  checkReplace("a", "a", "b", true, "b");
+  checkReplace("a", "A", "b", false, "a");
+  checkReplace("a b", "b", "A", true, "a A");
+  checkReplace("a b", "c", "a", false, "a b");
+  checkReplace("a b c", "d", "e", false, "a b c");
   // https://github.com/whatwg/dom/issues/443
-  checkReplace("a a a  b", "a", "a", "a b");
-  checkReplace("a a a  b", "c", "d", "a a a  b");
-  checkReplace(null, "a", "b", null);
-  checkReplace("", "a", "b", "");
-  checkReplace(" ", "a", "b", " ");
-  checkReplace(" a  \f", "a", "b", "b");
-  checkReplace("a b c", "b", "d", "a d c");
-  checkReplace("a b c", "c", "a", "a b");
-  checkReplace("c b a", "c", "a", "a b");
-  checkReplace("a b a", "a", "c", "c b");
-  checkReplace("a b a", "b", "c", "a c");
-  checkReplace("   a  a b", "a", "c", "c b");
-  checkReplace("   a  a b", "b", "c", "a c");
-  checkReplace("\t\n\f\r a\t\n\f\r b\t\n\f\r ", "a", "c", "c b");
-  checkReplace("\t\n\f\r a\t\n\f\r b\t\n\f\r ", "b", "c", "a c");
+  checkReplace("a a a  b", "a", "a", true, "a b");
+  checkReplace("a a a  b", "c", "d", false, "a a a  b");
+  checkReplace(null, "a", "b", false, null);
+  checkReplace("", "a", "b", false, "");
+  checkReplace(" ", "a", "b", false, " ");
+  checkReplace(" a  \f", "a", "b", true, "b");
+  checkReplace("a b c", "b", "d", true, "a d c");
+  checkReplace("a b c", "c", "a", true, "a b");
+  checkReplace("c b a", "c", "a", true, "a b");
+  checkReplace("a b a", "a", "c", true, "c b");
+  checkReplace("a b a", "b", "c", true, "a c");
+  checkReplace("   a  a b", "a", "c", true, "c b");
+  checkReplace("   a  a b", "b", "c", true, "a c");
+  checkReplace("\t\n\f\r a\t\n\f\r b\t\n\f\r ", "a", "c", true, "c b");
+  checkReplace("\t\n\f\r a\t\n\f\r b\t\n\f\r ", "b", "c", true, "a c");
 
-  checkReplace("a null", null, "b", "a b");
-  checkReplace("a b", "a", null, "null b");
-  checkReplace("a undefined", undefined, "b", "a b");
-  checkReplace("a b", "a", undefined, "undefined b");
+  checkReplace("a null", null, "b", true, "a b");
+  checkReplace("a b", "a", null, true, "null b");
+  checkReplace("a undefined", undefined, "b", true, "a b");
+  checkReplace("a b", "a", undefined, true, "undefined b");
 }
 
 var content = document.getElementById("content");

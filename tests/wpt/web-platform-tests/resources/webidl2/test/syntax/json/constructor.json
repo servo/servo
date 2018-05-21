@@ -11,10 +11,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -28,10 +28,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -45,10 +45,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -62,10 +62,10 @@
                 "inherit": false,
                 "readonly": true,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -77,7 +77,9 @@
         "extAttrs": [
             {
                 "name": "Constructor",
-                "arguments": null
+                "arguments": null,
+                "type": "extended-attribute",
+                "rhs": null
             },
             {
                 "name": "Constructor",
@@ -87,16 +89,18 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "float"
                         },
                         "name": "radius"
                     }
-                ]
+                ],
+                "type": "extended-attribute",
+                "rhs": null
             }
         ]
     }

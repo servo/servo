@@ -32,7 +32,8 @@
   }
 
   window.addEventListener("load", function() {
-    document.fonts.ready.then(runTests);
+    // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
+    requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
   });
 
   function runTests() {

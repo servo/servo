@@ -778,9 +778,10 @@ impl<K, V> RawTable<K, V> {
         let buffer = alloc(size, alignment);
 
         if buffer.is_null() {
+            use AllocationInfo;
             return Err(FailedAllocationError {
                 reason: "out of memory when allocating RawTable",
-                allocation_size: Some(size),
+                allocation_info: Some(AllocationInfo { size, alignment }),
             });
         }
 

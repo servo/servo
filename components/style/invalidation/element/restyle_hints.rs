@@ -67,9 +67,8 @@ impl RestyleHint {
     /// Returns whether we need to restyle this element.
     pub fn has_non_animation_invalidations(&self) -> bool {
         self.intersects(
-            RestyleHint::RESTYLE_SELF |
-            RestyleHint::RECASCADE_SELF |
-            (Self::replacements() & !Self::for_animations())
+            RestyleHint::RESTYLE_SELF | RestyleHint::RECASCADE_SELF |
+                (Self::replacements() & !Self::for_animations()),
         )
     }
 
@@ -84,23 +83,24 @@ impl RestyleHint {
             return Self::empty();
         }
 
-        debug_assert!(!self.has_animation_hint(),
-                      "There should not be any animation restyle hints \
-                       during normal traversal");
+        debug_assert!(
+            !self.has_animation_hint(),
+            "There should not be any animation restyle hints \
+             during normal traversal"
+        );
 
         // Else we should clear ourselves, and return the propagated hint.
-        mem::replace(self, Self::empty())
-            .propagate_for_non_animation_restyle()
+        mem::replace(self, Self::empty()).propagate_for_non_animation_restyle()
     }
 
     /// Returns a new `CascadeHint` appropriate for children of the current
     /// element.
     fn propagate_for_non_animation_restyle(&self) -> Self {
         if self.contains(RestyleHint::RESTYLE_DESCENDANTS) {
-            return Self::restyle_subtree()
+            return Self::restyle_subtree();
         }
         if self.contains(RestyleHint::RECASCADE_DESCENDANTS) {
-            return Self::recascade_subtree()
+            return Self::recascade_subtree();
         }
         Self::empty()
     }
@@ -119,7 +119,8 @@ impl RestyleHint {
     /// The replacements for the animation cascade levels.
     #[inline]
     pub fn for_animations() -> Self {
-        RestyleHint::RESTYLE_SMIL | RestyleHint::RESTYLE_CSS_ANIMATIONS | RestyleHint::RESTYLE_CSS_TRANSITIONS
+        RestyleHint::RESTYLE_SMIL | RestyleHint::RESTYLE_CSS_ANIMATIONS |
+            RestyleHint::RESTYLE_CSS_TRANSITIONS
     }
 
     /// Returns whether the hint specifies that the currently element must be
@@ -199,8 +200,10 @@ impl From<nsRestyleHint> for RestyleHint {
 
         let mut hint = RestyleHint::empty();
 
-        debug_assert!(raw.0 & eRestyle_LaterSiblings.0 == 0,
-                      "Handle later siblings manually if necessary plz.");
+        debug_assert!(
+            raw.0 & eRestyle_LaterSiblings.0 == 0,
+            "Handle later siblings manually if necessary plz."
+        );
 
         if (raw.0 & (eRestyle_Self.0 | eRestyle_Subtree.0)) != 0 {
             raw.0 &= !eRestyle_Self.0;

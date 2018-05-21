@@ -44,4 +44,3 @@ def main():
     assert structuredlog.get_default_logger() is not None
     success = run_update(logger, **args)
     sys.exit(0 if success else 1)
-

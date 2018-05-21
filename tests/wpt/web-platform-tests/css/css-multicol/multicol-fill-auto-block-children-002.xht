@@ -18,16 +18,11 @@
   background-color: blue;
   height: 200px;
   margin: 8px;
-  width: 680px;
+  width: 60%;
 
   column-count: 3;
   column-fill: auto;
   column-gap: 10px;
-
-  /*
-  So, each column box should be
-  [680px minus (2 mult 10px)] divided by 3 == 220px wide
-  */
   }
 
   h1
@@ -74,26 +69,6 @@
   <h2>&nbsp;</h2>
 
   <h2>PASS!</h2>
-
-  <!--
-
-  Expected result:
-
-  8px                                           688px
-  v                                              v
-  ************************************************
-  *                                              *
-  *  <h1>Test passes if the word "PASS!" is<br />*  1st line box
-  *  on the right &#8600;</h1>                   *  2nd line box
-  *                                              *
-  ************************************************
-  *                                              *
-  * <h2>nbsp;<h2>  <h2>nbsp;<h2>  <h2>nbsp;<h2>  *  <h2>PASS!</h2>
-  *                                              *
-  ************************************************
-                ^              ^
-               228px          458px
-  -->
 
  </body>
 </html>

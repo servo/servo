@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="match" href="geometry-with-float-size-ref.html">
+<link rel="help" href="https://drafts.css-houdini.org/css-paint-api/#dom-css-paintworklet">
+<style>
+.container {
+  width: 100.5px;
+  height: 200.5px;
+}
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+
+<script id="code" type="text/worklet">
+registerPaint('geometry', class {
+    paint(ctx, geom) {
+        if (geom.width == 101 && geom.height == 201)
+            ctx.fillStyle = 'green';
+        else
+            ctx.fillStyle = 'red';
+        ctx.fillRect(0, 0, 50, 50);
+    }
+});
+</script>
+
+<script>
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+</script>
+</body>
+</html>

@@ -7,7 +7,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "boolean",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "boolean"
+                },
                 "name": "DEBUG",
                 "value": {
                     "type": "boolean",
@@ -18,51 +21,66 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "short",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "short"
+                },
                 "name": "negative",
                 "value": {
                     "type": "number",
-                    "value": -1
+                    "value": "-1"
                 },
                 "extAttrs": []
             },
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "octet",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "octet"
+                },
                 "name": "LF",
                 "value": {
                     "type": "number",
-                    "value": 10
+                    "value": "10"
                 },
                 "extAttrs": []
             },
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "unsigned long",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "unsigned long"
+                },
                 "name": "BIT_MASK",
                 "value": {
                     "type": "number",
-                    "value": 64512
+                    "value": "0x0000fc00"
                 },
                 "extAttrs": []
             },
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "float",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "float"
+                },
                 "name": "AVOGADRO",
                 "value": {
                     "type": "number",
-                    "value": 6.022e+23
+                    "value": "6.022e23"
                 },
                 "extAttrs": []
             },
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "unrestricted float",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "unrestricted float"
+                },
                 "name": "sobig",
                 "value": {
                     "type": "Infinity",
@@ -73,7 +91,10 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "unrestricted double",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "unrestricted double"
+                },
                 "name": "minusonedividedbyzero",
                 "value": {
                     "type": "Infinity",
@@ -84,53 +105,13 @@
             {
                 "type": "const",
                 "nullable": false,
-                "idlType": "short",
+                "idlType": {
+                    "type": "const-type",
+                    "idlType": "short"
+                },
                 "name": "notanumber",
                 "value": {
                     "type": "NaN"
-                },
-                "extAttrs": []
-            }
-        ],
-        "inheritance": null,
-        "extAttrs": []
-    },
-    {
-        "type": "exception",
-        "name": "Error",
-        "members": [
-            {
-                "type": "const",
-                "nullable": false,
-                "idlType": "short",
-                "name": "ERR_UNKNOWN",
-                "value": {
-                    "type": "number",
-                    "value": 0
-                },
-                "extAttrs": []
-            },
-            {
-                "type": "const",
-                "nullable": false,
-                "idlType": "short",
-                "name": "ERR_OUT_OF_MEMORY",
-                "value": {
-                    "type": "number",
-                    "value": 1
-                },
-                "extAttrs": []
-            },
-            {
-                "type": "field",
-                "name": "errorCode",
-                "idlType": {
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "array": false,
-                    "union": false,
-                    "idlType": "short"
                 },
                 "extAttrs": []
             }

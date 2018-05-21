@@ -5,7 +5,7 @@
 .container {
   width: 100px;
   height: 100px;
-  border-radius: 2px;
+  margin-left: 2px;
   --foo: bar;
 }
 
@@ -14,7 +14,7 @@
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<script src="/common/css-paint-tests.js"></script>
+<script src="/common/worklet-reftest.js"></script>
 <body>
 <div id="canvas-geometry" class="container"></div>
 
@@ -24,12 +24,12 @@ registerPaint('geometry', class {
         return [
             '--bar',
             '--foo',
-            'align-items',
-            'border-radius',
+            'empty-cells',
+            'margin-left',
         ];
     }
     paint(ctx, geom, styleMap) {
-        const properties = styleMap.getProperties().sort();
+        const properties = [...styleMap.keys()].sort();
         var serializedStrings = [];
         for (let i = 0; i < properties.length; i++) {
             const value = styleMap.get(properties[i]);
@@ -41,13 +41,13 @@ registerPaint('geometry', class {
             serializedStrings.push(serialized);
         }
         ctx.strokeStyle = 'green';
-        if (serializedStrings[0] != "--bar: [null]")
+        if (serializedStrings[0] != "--bar: [CSSUnparsedValue=]")
             ctx.strokeStyle = 'red';
-        if (serializedStrings[1] != "--foo: [CSSStyleValue= bar]")
+        if (serializedStrings[1] != "--foo: [CSSUnparsedValue= bar]")
             ctx.strokeStyle = 'blue';
-        if (serializedStrings[2] != "align-items: [CSSKeywordValue=normal]")
+        if (serializedStrings[2] != "empty-cells: [CSSKeywordValue=show]")
             ctx.strokeStyle = 'yellow';
-        if (serializedStrings[3] != "border-radius: [CSSStyleValue=2px]")
+        if (serializedStrings[3] != "margin-left: [CSSUnitValue=2px]")
             ctx.strokeStyle = 'cyan';
         ctx.lineWidth = 4;
         ctx.strokeRect(0, 0, geom.width, geom.height);
@@ -56,7 +56,7 @@ registerPaint('geometry', class {
 </script>
 
 <script>
-    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
 </script>
 </body>
 </html>

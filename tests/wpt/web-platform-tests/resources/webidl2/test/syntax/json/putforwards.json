@@ -11,10 +11,10 @@
                 "inherit": false,
                 "readonly": true,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Name"
                 },
@@ -23,6 +23,7 @@
                     {
                         "name": "PutForwards",
                         "arguments": null,
+                        "type": "extended-attribute",
                         "rhs": {
                             "type": "identifier",
                             "value": "full"
@@ -37,10 +38,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "unsigned short"
                 },

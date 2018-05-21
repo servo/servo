@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>CSS Reftest Reference</title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css">
+  <style>
+  .container {
+    display: block;
+    border: 2px solid purple;
+    padding: 2px;
+    margin-bottom: 2em;
+    height: 150px;
+    width: 500px;
+  }
+
+  span {
+    display: block;
+    background: lightgrey;
+    border: 2px solid black;
+    margin: 11px 13px 17px 7px;
+    inline-size: 6px;
+  }
+
+  nocollapse {
+    /* special element to disable margin-collapsing */
+    display: block;
+    overflow: hidden;
+    height: 0;
+  }
+  .small { font: 12px Ahem; }
+  .big   { font: 20px Ahem; }
+
+  .hl  { writing-mode: horizontal-tb;  direction: ltr; }
+  .hr  { writing-mode: horizontal-tb;  direction: rtl; }
+  .vl  { writing-mode: vertical-lr;    direction: ltr; }
+  .vr  { writing-mode: vertical-rl;    direction: ltr; }
+  .vl_rtl { writing-mode: vertical-lr; direction: rtl; }
+  .vr_rtl { writing-mode: vertical-rl; direction: rtl; }
+
+  .container > .hl, .container > .hr {
+    /* In the testcase, these items are stretched vertically
+       via the default "align-self:stretch" behavior, and because
+       they have a height of "auto".
+       (The rest of the items have a non-auto height from "inline-size"
+       and their vertical writing-mode, so those ones do not stretch.) */
+    height: 118px;
+  }
+  </style>
+</head>
+<body>
+
+<div class="container vl">
+  <span class="hl small">p b c</span>    <nocollapse></nocollapse>
+  <span class="hl big">p e</span>        <nocollapse></nocollapse>
+  <span class="hr small">p b c</span>    <nocollapse></nocollapse>
+  <span class="hr big">p e</span>        <nocollapse></nocollapse>
+  <span class="vl small">p b c</span>    <nocollapse></nocollapse>
+  <span class="vl big">p e</span>        <nocollapse></nocollapse>
+</div>
+<div class="container vl">
+  <span class="vr small">p b c</span>    <nocollapse></nocollapse>
+  <span class="vr big">p e</span>        <nocollapse></nocollapse>
+  <span class="vl_rtl small">p b c</span><nocollapse></nocollapse>
+  <span class="vl_rtl big">p e</span>    <nocollapse></nocollapse>
+  <span class="vr_rtl small">p b c</span><nocollapse></nocollapse>
+  <span class="vr_rtl big">p e</span>    <nocollapse></nocollapse>
+</div>
+<div class="container vr">
+  <span class="hl small">p b c</span>    <nocollapse></nocollapse>
+  <span class="hl big">p e</span>        <nocollapse></nocollapse>
+  <span class="hr small">p b c</span>    <nocollapse></nocollapse>
+  <span class="hr big">p e</span>        <nocollapse></nocollapse>
+  <span class="vl small">p b c</span>    <nocollapse></nocollapse>
+  <span class="vl big">p e</span>        <nocollapse></nocollapse>
+</div>
+<div class="container vr">
+  <span class="vr small">p b c</span>    <nocollapse></nocollapse>
+  <span class="vr big">p e</span>        <nocollapse></nocollapse>
+  <span class="vl_rtl small">p b c</span><nocollapse></nocollapse>
+  <span class="vl_rtl big">p e</span>    <nocollapse></nocollapse>
+  <span class="vr_rtl small">p b c</span><nocollapse></nocollapse>
+  <span class="vr_rtl big">p e</span>    <nocollapse></nocollapse>
+</div>
+
+</body>
+</html>

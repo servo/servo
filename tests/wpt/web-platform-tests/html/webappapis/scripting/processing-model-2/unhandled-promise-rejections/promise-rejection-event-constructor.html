@@ -33,7 +33,7 @@ test(function() {
   // reason is passed.
   var r = new Error();
   assert_equals(new PromiseRejectionEvent('eventType', { promise: p, reason: r }).reason, r);
-
+  assert_equals(new PromiseRejectionEvent('eventType', { promise: p, reason: null }).reason, null);
 
   // All initializers are passed.
   assert_equals(new PromiseRejectionEvent('eventType', { bubbles: true, cancelable: true, promise: p, reason: r }).bubbles, true);

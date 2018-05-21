@@ -32,7 +32,7 @@ use hyper::status::StatusCode;
 use hyper_openssl::OpensslClient;
 use hyper_serde::Serde;
 use log;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
@@ -40,7 +40,7 @@ use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use resource_thread::AuthCache;
 use servo_url::{ImmutableOrigin, ServoUrl};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::iter::FromIterator;
@@ -73,6 +73,7 @@ pub struct HttpState {
     pub cookie_jar: RwLock<CookieStorage>,
     pub http_cache: RwLock<HttpCache>,
     pub auth_cache: RwLock<AuthCache>,
+    pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub ssl_client: OpensslClient,
     pub connector: Pool<Connector>,
 }
@@ -83,6 +84,7 @@ impl HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
             auth_cache: RwLock::new(AuthCache::new()),
+            history_states: RwLock::new(HashMap::new()),
             http_cache: RwLock::new(HttpCache::new()),
             ssl_client: ssl_client.clone(),
             connector: create_http_connector(ssl_client),
@@ -290,7 +292,7 @@ impl StreamedResponse {
         let decoder = {
             if let Some(ref encoding) = response.headers.get::<ContentEncoding>().cloned() {
                 if encoding.contains(&Encoding::Gzip) {
-                    Decoder::Gzip(GzDecoder::new(response)?)
+                    Decoder::Gzip(GzDecoder::new(response))
                 }
                 else if encoding.contains(&Encoding::Deflate) {
                     Decoder::Deflate(DeflateDecoder::new(response))
@@ -410,7 +412,7 @@ fn obtain_response(connector: &Pool<Connector>,
             }
         }
 
-        if log_enabled!(log::LogLevel::Info) {
+        if log_enabled!(log::Level::Info) {
             info!("{} {}", method, url);
             for header in headers.iter() {
                 info!(" - {}", header);
@@ -771,7 +773,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 11
     if cors_flag || (http_request.method != Method::Get && http_request.method != Method::Head) {
-        debug_assert!(http_request.origin != Origin::Client);
+        debug_assert_ne!(http_request.origin, Origin::Client);
         if let Origin::Origin(ref url_origin) = http_request.origin {
             if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
                 http_request.headers.set(hyper_origin)
@@ -872,7 +874,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 
     // Step 21
     if let Ok(http_cache) = context.state.http_cache.read() {
-        if let Some(response_from_cache) = http_cache.construct_response(&http_request) {
+        if let Some(response_from_cache) = http_cache.construct_response(&http_request, done_chan) {
             let response_headers = response_from_cache.response.headers.clone();
             // Substep 1, 2, 3, 4
             let (cached_response, needs_revalidation) = match (http_request.cache_mode, &http_request.mode) {
@@ -902,6 +904,27 @@ fn http_network_or_cache_fetch(request: &mut Request,
             }
         }
     }
+
+    if let Some(ref ch) = *done_chan {
+        // The cache constructed a response with a body of ResponseBody::Receiving.
+        // We wait for the response in the cache to "finish",
+        // with a body of either Done or Cancelled.
+        loop {
+            match ch.1.recv()
+                    .expect("HTTP cache should always send Done or Cancelled") {
+                Data::Payload(_) => {},
+                Data::Done => break, // Return the full response as if it was initially cached as such.
+                Data::Cancelled => {
+                    // The response was cancelled while the fetch was ongoing.
+                    // Set response to None, which will trigger a network fetch below.
+                    response = None;
+                    break;
+                }
+            }
+        }
+    }
+    // Set done_chan back to None, it's cache-related usefulness ends here.
+    *done_chan = None;
 
     // Step 22
     if response.is_none() {
@@ -1048,7 +1071,7 @@ fn http_network_fetch(request: &Request,
         Err(error) => return Response::network_error(error),
     };
 
-    if log_enabled!(log::LogLevel::Info) {
+    if log_enabled!(log::Level::Info) {
         info!("response for {}", url);
         for header in res.headers.iter() {
             info!(" - {}", header);

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Shadow DOM: Attaching a ShadowRoot for custom elements</title>
+<meta name="author" title="Hayato Ito" href="mailto:hayato@chromium.org">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-element-attachshadow">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+class MyAutonomousCustomElement extends HTMLElement {
+}
+
+customElements.define('my-custom', MyAutonomousCustomElement);
+
+test(() => {
+  assert_true(document.createElement('my-custom').attachShadow({mode: "open"}) instanceof ShadowRoot);
+}, 'Element.attachShadow must create an instance of ShadowRoot for autonomous custom elements');
+
+class MyCustomizedBuiltinElement extends HTMLInputElement {
+}
+
+customElements.define('my-input', MyCustomizedBuiltinElement, { extends: 'input' });
+
+test(() => {
+  assert_throws({'name': 'NotSupportedError'}, () => {
+    document.createElement('input', {is: 'my-input'}).attachShadow({mode: "open"});
+  });
+}, 'Element.attachShadow must throw a NotSupportedError for customized built-in elements');
+</script>
+</body>
+</html>

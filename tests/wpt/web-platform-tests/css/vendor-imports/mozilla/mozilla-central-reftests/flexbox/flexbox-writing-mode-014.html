@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>
+    CSS Test: Testing a mix of flex items with various values for
+    'writing-mode' / 'direction' in a vertical column-oriented flex container.
+  </title>
+  <meta charset="utf-8">
+  <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+  <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#flex-direction-property">
+  <link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#propdef-writing-mode">
+  <link rel="match" href="flexbox-writing-mode-014-ref.html">
+  <link rel="stylesheet" type="text/css" href="support/ahem.css">
+  <style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid purple;
+    padding: 2px;
+    margin-bottom: 2em;
+    height: 150px;
+    width: 500px;
+  }
+
+  span {
+    display: block;
+    background: lightgrey;
+    border: 2px solid black;
+    margin: 11px 13px 17px 7px;
+    inline-size: 6px;
+  }
+
+  .small { font: 12px Ahem; }
+  .big   { font: 20px Ahem; }
+
+  .hl  { writing-mode: horizontal-tb;  direction: ltr; }
+  .hr  { writing-mode: horizontal-tb;  direction: rtl; }
+  .vl  { writing-mode: vertical-lr;    direction: ltr; }
+  .vr  { writing-mode: vertical-rl;    direction: ltr; }
+  .vl_rtl { writing-mode: vertical-lr; direction: rtl; }
+  .vr_rtl { writing-mode: vertical-rl; direction: rtl; }
+  </style>
+</head>
+<body>
+
+<div class="container vl">
+  <span class="hl small">p b c</span>
+  <span class="hl big">p e</span>
+  <span class="hr small">p b c</span>
+  <span class="hr big">p e</span>
+  <span class="vl small">p b c</span>
+  <span class="vl big">p e</span>
+</div>
+<div class="container vl">
+  <span class="vr small">p b c</span>
+  <span class="vr big">p e</span>
+  <span class="vl_rtl small">p b c</span>
+  <span class="vl_rtl big">p e</span>
+  <span class="vr_rtl small">p b c</span>
+  <span class="vr_rtl big">p e</span>
+</div>
+<div class="container vr">
+  <span class="hl small">p b c</span>
+  <span class="hl big">p e</span>
+  <span class="hr small">p b c</span>
+  <span class="hr big">p e</span>
+  <span class="vl small">p b c</span>
+  <span class="vl big">p e</span>
+</div>
+<div class="container vr">
+  <span class="vr small">p b c</span>
+  <span class="vr big">p e</span>
+  <span class="vl_rtl small">p b c</span>
+  <span class="vl_rtl big">p e</span>
+  <span class="vr_rtl small">p b c</span>
+  <span class="vr_rtl big">p e</span>
+</div>
+
+</body>
+</html>

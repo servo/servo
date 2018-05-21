@@ -7,8 +7,6 @@ use parsing::parse;
 use style::context::QuirksMode;
 use style::parser::{Parse, ParserContext};
 use style::stylesheets::{CssRuleType, Origin};
-use style::values::Either;
-use style::values::specified::{LengthOrPercentageOrNumber, Number};
 use style::values::specified::length::{AbsoluteLength, Length, NoCalcLength};
 use style_traits::{ParsingMode, ToCss};
 
@@ -48,9 +46,4 @@ fn test_parsing_modes() {
     let result = Length::parse(&context, &mut parser);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), Length::NoCalc(NoCalcLength::Absolute(AbsoluteLength::Px(1.))));
-}
-
-#[test]
-fn test_zero_percentage_length_or_number() {
-    assert_eq!(parse(LengthOrPercentageOrNumber::parse, "0"), Ok(Either::First(Number::new(0.))));
 }

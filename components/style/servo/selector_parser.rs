@@ -6,19 +6,19 @@
 
 //! Servo's selector parser.
 
-use {Atom, Prefix, Namespace, LocalName, CaseSensitivityExt};
+use {Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use attr::{AttrIdentifier, AttrValue};
-use cssparser::{Parser as CssParser, ToCss, serialize_identifier, CowRcStr, SourceLocation};
+use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use dom::{OpaqueNode, TElement, TNode};
 use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
+use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use properties::ComputedValues;
-use properties::PropertyFlags;
+use properties::{CascadeFlags, ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
-use selectors::attr::{AttrSelectorOperation, NamespaceConstraint, CaseSensitivity};
-use selectors::parser::{SelectorMethods, SelectorParseErrorKind};
+use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
+use selectors::parser::{SelectorParseErrorKind, Visit};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use std::mem;
@@ -73,7 +73,10 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
 }
 
 impl ToCss for PseudoElement {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         use self::PseudoElement::*;
         dest.write_str(match *self {
             After => "::after",
@@ -173,10 +176,10 @@ impl PseudoElement {
         self.is_precomputed()
     }
 
-    /// Whether this pseudo-element skips flex/grid container
-    /// display-based fixup.
+    /// Whether this pseudo-element skips flex/grid container display-based
+    /// fixup.
     #[inline]
-    pub fn skip_item_based_display_fixup(&self) -> bool {
+    pub fn skip_item_display_fixup(&self) -> bool {
         !self.is_before_or_after()
     }
 
@@ -194,9 +197,9 @@ impl PseudoElement {
     #[inline]
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
         match *self {
-            PseudoElement::After |
-            PseudoElement::Before |
-            PseudoElement::Selection => PseudoElementCascadeType::Eager,
+            PseudoElement::After | PseudoElement::Before | PseudoElement::Selection => {
+                PseudoElementCascadeType::Eager
+            },
             PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent |
             PseudoElement::ServoText |
@@ -212,6 +215,43 @@ impl PseudoElement {
         }
     }
 
+    /// For most (but not all) anon-boxes, we inherit all values from the
+    /// parent, this is the hook in the style system to allow this.
+    ///
+    /// FIXME(emilio): It's likely that this is broken in a variety of
+    /// situations, and what it really wants is just inherit some reset
+    /// properties...  Also, I guess it just could do all: inherit on the
+    /// stylesheet, though chances are that'd be kinda slow if we don't cache
+    /// them...
+    pub fn cascade_flags(&self) -> CascadeFlags {
+        match *self {
+            PseudoElement::After |
+            PseudoElement::Before |
+            PseudoElement::Selection |
+            PseudoElement::DetailsContent |
+            PseudoElement::DetailsSummary => CascadeFlags::empty(),
+            // Anonymous table flows shouldn't inherit their parents properties in order
+            // to avoid doubling up styles such as transformations.
+            PseudoElement::ServoAnonymousTableCell |
+            PseudoElement::ServoAnonymousTableRow |
+            PseudoElement::ServoText |
+            PseudoElement::ServoInputText => CascadeFlags::empty(),
+
+            // For tables, we do want style to inherit, because TableWrapper is
+            // responsible for handling clipping and scrolling, while Table is
+            // responsible for creating stacking contexts.
+            //
+            // StackingContextCollectionFlags makes sure this is processed
+            // properly.
+            PseudoElement::ServoAnonymousTable |
+            PseudoElement::ServoAnonymousTableWrapper |
+            PseudoElement::ServoTableWrapper |
+            PseudoElement::ServoAnonymousBlock |
+            PseudoElement::ServoInlineBlockWrapper |
+            PseudoElement::ServoInlineAbsolute => CascadeFlags::INHERIT_ALL,
+        }
+    }
+
     /// Covert non-canonical pseudo-element to canonical one, and keep a
     /// canonical one as it is.
     pub fn canonical(&self) -> PseudoElement {
@@ -219,7 +259,9 @@ impl PseudoElement {
     }
 
     /// Stub, only Gecko needs this
-    pub fn pseudo_info(&self) { () }
+    pub fn pseudo_info(&self) {
+        ()
+    }
 
     /// Property flag that properties must have to apply to this pseudo-element.
     #[inline]
@@ -271,21 +313,33 @@ pub enum NonTSPseudoClass {
     Visited,
 }
 
+impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
+    type Impl = SelectorImpl;
+
+    #[inline]
+    fn is_active_or_hover(&self) -> bool {
+        matches!(*self, NonTSPseudoClass::Active | NonTSPseudoClass::Hover)
+    }
+}
+
 impl ToCss for NonTSPseudoClass {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         use self::NonTSPseudoClass::*;
         match *self {
             Lang(ref lang) => {
                 dest.write_str(":lang(")?;
                 serialize_identifier(lang, dest)?;
-                return dest.write_str(")")
-            }
+                return dest.write_str(")");
+            },
             ServoCaseSensitiveTypeAttr(ref value) => {
                 dest.write_str(":-servo-case-sensitive-type-attr(")?;
                 serialize_identifier(value, dest)?;
-                return dest.write_str(")")
-            }
-            _ => {}
+                return dest.write_str(")");
+            },
+            _ => {},
         }
 
         dest.write_str(match *self {
@@ -305,18 +359,17 @@ impl ToCss for NonTSPseudoClass {
             ServoNonZeroBorder => ":-servo-nonzero-border",
             Target => ":target",
             Visited => ":visited",
-            Lang(_) |
-            ServoCaseSensitiveTypeAttr(_) => unreachable!(),
+            Lang(_) | ServoCaseSensitiveTypeAttr(_) => unreachable!(),
         })
     }
 }
 
-impl SelectorMethods for NonTSPseudoClass {
+impl Visit for NonTSPseudoClass {
     type Impl = SelectorImpl;
 
-
     fn visit<V>(&self, _: &mut V) -> bool
-        where V: SelectorVisitor<Impl = Self::Impl>
+    where
+        V: SelectorVisitor<Impl = Self::Impl>,
     {
         true
     }
@@ -377,6 +430,7 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type PseudoElement = PseudoElement;
     type NonTSPseudoClass = NonTSPseudoClass;
 
+    type ExtraMatchingData = InvalidationMatchingData;
     type AttrValue = String;
     type Identifier = Atom;
     type ClassName = Atom;
@@ -385,20 +439,17 @@ impl ::selectors::SelectorImpl for SelectorImpl {
     type NamespaceUrl = Namespace;
     type BorrowedLocalName = LocalName;
     type BorrowedNamespaceUrl = Namespace;
-
-    #[inline]
-    fn is_active_or_hover(pseudo_class: &Self::NonTSPseudoClass) -> bool {
-        matches!(*pseudo_class, NonTSPseudoClass::Active |
-                                NonTSPseudoClass::Hover)
-    }
 }
 
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
 
-    fn parse_non_ts_pseudo_class(&self, location: SourceLocation, name: CowRcStr<'i>)
-                                 -> Result<NonTSPseudoClass, ParseError<'i>> {
+    fn parse_non_ts_pseudo_class(
+        &self,
+        location: SourceLocation,
+        name: CowRcStr<'i>,
+    ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
             "active" => Active,
@@ -430,10 +481,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_non_ts_functional_pseudo_class<'t>(&self,
-                                                name: CowRcStr<'i>,
-                                                parser: &mut CssParser<'i, 't>)
-                                                -> Result<NonTSPseudoClass, ParseError<'i>> {
+    fn parse_non_ts_functional_pseudo_class<'t>(
+        &self,
+        name: CowRcStr<'i>,
+        parser: &mut CssParser<'i, 't>,
+    ) -> Result<NonTSPseudoClass, ParseError<'i>> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case!{ &name,
             "lang" => {
@@ -451,8 +503,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(&self, location: SourceLocation, name: CowRcStr<'i>)
-                             -> Result<PseudoElement, ParseError<'i>> {
+    fn parse_pseudo_element(
+        &self,
+        location: SourceLocation,
+        name: CowRcStr<'i>,
+    ) -> Result<PseudoElement, ParseError<'i>> {
         use self::PseudoElement::*;
         let pseudo_element = match_ignore_ascii_case! { &name,
             "before" => Before,
@@ -538,26 +593,21 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     fn default_namespace(&self) -> Option<Namespace> {
-        self.namespaces.default.as_ref().map(|&(ref ns, _)| ns.clone())
+        self.namespaces.default.as_ref().map(|ns| ns.clone())
     }
 
     fn namespace_for_prefix(&self, prefix: &Prefix) -> Option<Namespace> {
-        self.namespaces.prefixes.get(prefix).map(|&(ref ns, _)| ns.clone())
+        self.namespaces.prefixes.get(prefix).cloned()
     }
 }
 
 impl SelectorImpl {
-    /// Returns the pseudo-element cascade type of the given `pseudo`.
-    #[inline]
-    pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
-        pseudo.cascade_type()
-    }
-
     /// A helper to traverse each eagerly cascaded pseudo-element, executing
     /// `fun` on it.
     #[inline]
     pub fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement),
+    where
+        F: FnMut(PseudoElement),
     {
         for i in 0..EAGER_PSEUDO_COUNT {
             fun(PseudoElement::from_eager_index(i));
@@ -642,16 +692,23 @@ impl ServoElementSnapshot {
     }
 
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
-        self.attrs.as_ref().unwrap().iter()
-            .find(|&&(ref ident, _)| ident.local_name == *name &&
-                                     ident.namespace == *namespace)
+        self.attrs
+            .as_ref()
+            .unwrap()
+            .iter()
+            .find(|&&(ref ident, _)| ident.local_name == *name && ident.namespace == *namespace)
             .map(|&(_, ref v)| v)
     }
 
     fn any_attr_ignore_ns<F>(&self, name: &LocalName, mut f: F) -> bool
-    where F: FnMut(&AttrValue) -> bool {
-        self.attrs.as_ref().unwrap().iter()
-                  .any(|&(ref ident, ref v)| ident.local_name == *name && f(v))
+    where
+        F: FnMut(&AttrValue) -> bool,
+    {
+        self.attrs
+            .as_ref()
+            .unwrap()
+            .iter()
+            .any(|&(ref ident, ref v)| ident.local_name == *name && f(v))
     }
 }
 
@@ -664,17 +721,23 @@ impl ElementSnapshot for ServoElementSnapshot {
         self.attrs.is_some()
     }
 
-    fn id_attr(&self) -> Option<Atom> {
-        self.get_attr(&ns!(), &local_name!("id")).map(|v| v.as_atom().clone())
+    fn id_attr(&self) -> Option<&Atom> {
+        self.get_attr(&ns!(), &local_name!("id"))
+            .map(|v| v.as_atom())
     }
 
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
         self.get_attr(&ns!(), &local_name!("class"))
-            .map_or(false, |v| v.as_tokens().iter().any(|atom| case_sensitivity.eq_atom(atom, name)))
+            .map_or(false, |v| {
+                v.as_tokens()
+                    .iter()
+                    .any(|atom| case_sensitivity.eq_atom(atom, name))
+            })
     }
 
     fn each_class<F>(&self, mut callback: F)
-        where F: FnMut(&Atom),
+    where
+        F: FnMut(&Atom),
     {
         if let Some(v) = self.get_attr(&ns!(), &local_name!("class")) {
             for class in v.as_tokens() {
@@ -692,19 +755,18 @@ impl ElementSnapshot for ServoElementSnapshot {
 
 impl ServoElementSnapshot {
     /// selectors::Element::attr_matches
-    pub fn attr_matches(&self,
-                        ns: &NamespaceConstraint<&Namespace>,
-                        local_name: &LocalName,
-                        operation: &AttrSelectorOperation<&String>)
-                        -> bool {
+    pub fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&Namespace>,
+        local_name: &LocalName,
+        operation: &AttrSelectorOperation<&String>,
+    ) -> bool {
         match *ns {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr(ns, local_name)
-                    .map_or(false, |value| value.eval_selector(operation))
-            }
+            NamespaceConstraint::Specific(ref ns) => self.get_attr(ns, local_name)
+                .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => {
                 self.any_attr_ignore_ns(local_name, |value| value.eval_selector(operation))
-            }
+            },
         }
     }
 }
@@ -720,7 +782,9 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
         // step 2
         // Note: [Level-4 spec](https://drafts.csswg.org/selectors/#lang-pseudo) check for wild card
         if let (Some(range_subtag), Some(tag_subtag)) = (range_subtags.next(), tag_subtags.next()) {
-            if !(range_subtag.eq_ignore_ascii_case(tag_subtag) || range_subtag.eq_ignore_ascii_case("*")) {
+            if !(range_subtag.eq_ignore_ascii_case(tag_subtag) ||
+                range_subtag.eq_ignore_ascii_case("*"))
+            {
                 return false;
             }
         }
@@ -753,7 +817,7 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
                 // step 3b
                 None => {
                     return false;
-                }
+                },
             }
         }
         // step 4

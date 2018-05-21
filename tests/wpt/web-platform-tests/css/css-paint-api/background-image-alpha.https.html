@@ -21,7 +21,7 @@
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<script src="/common/css-paint-tests.js"></script>
+<script src="/common/worklet-reftest.js"></script>
 <body>
 <div id="background">
   <div id="canvas-opaque" class="container"></div>
@@ -49,7 +49,7 @@ registerPaint('nonOpaque', class {
 </script>
 
 <script>
-    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
 </script>
 </body>
 </html>

@@ -25,8 +25,14 @@
         }
     });
 
-    let connection, db;
+    let connection;
     const presentBtn = document.getElementById('presentBtn');
+
+    const dbName = {
+        controller: 'db-presentation-api-controlling-ua',
+        receiver: 'db-presentation-api-receiving-ua'
+    };
+
     const main = () => {
         promise_test(t => {
             presentBtn.disabled = true;
@@ -38,14 +44,14 @@
                 notice.parentNode.removeChild(notice);
                 stash.stop();
 
-                //history.back();
+                // history.back();
                 document.cookie = 'PresentationApiTest=true; Expires=' + new Date().toUTCString();
                 sessionStorage.removeItem('presentation_api_test');
                 localStorage.removeItem('presentation_api_test');
 
-                if (db)
-                    db.close();
-                indexedDB.deleteDatabase(dbName);
+                Object.values(dbName).forEach(name => {
+                    indexedDB.deleteDatabase(name);
+                });
 
                 if (connection) {
                     connection.onconnect = () => { connection.terminate(); };
@@ -75,28 +81,12 @@
             sessionStorage.setItem(storageName, storageValue);
             localStorage.setItem(storageName, storageValue);
 
-            const dbName = 'db-presentation-api';
-            const storeName = 'store-controlling-ua';
-            const storeData = {
-                id: 'controller',
-                data: 'controlling user agent'
-            };
             const openIndexedDB = () => {
                 if ('indexedDB' in window) {
-                    const dbReq = indexedDB.open(dbName, 1);
-                    return new Promise((resolve, reject) => {
-                        dbReq.onupgradeneeded = () => {
-                            db = dbReq.result;
-                            const store = db.createObjectStore(storeName, { keyPath: 'id' });
-                            store.add(storeData);
-                        };
-                        dbReq.onsuccess = () => {
-                            db = dbReq.result;
-                            db.close();
-                            db = null;
-                            resolve();
-                        };
-                        dbReq.onerror = reject;
+                    const req = indexedDB.open(dbName.controller, 1);
+                    const eventWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                    return eventWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
                     });
                 }
                 else
@@ -115,6 +105,8 @@
                             };
                             reg.active.postMessage('', [channel.port2]);
                         }
+                        else
+                            resolve([]);
                     });
                 });
             };
@@ -153,29 +145,19 @@
             // Indexed Database
             const checkIndexedDB = t => {
                 if ('indexedDB' in window) {
-                    const message = 'Indexed Database is not shared with a receiving user agent.';
-                    let req = indexedDB.open(dbName, 1), store;
-                    let eventWatcher = new EventWatcher(t, req, 'success');
-                    return eventWatcher.wait_for('success').then(() => {
-                        db = req.result;
-                        const transaction = db.transaction(storeName, 'readwrite');
-                        store = transaction.objectStore(storeName);
-                        req = store.openCursor();
-                        eventWatcher = new EventWatcher(t, req, 'success');
-                        return eventWatcher.wait_for('success');
-                    }).then(() => {
-                        assert_true(req.result instanceof IDBCursorWithValue, message);
-                        const cursor = req.result;
-                        const item = cursor.value;
-                        assert_equals(item.id, storeData.id, message);
-                        assert_equals(item.data, storeData.data, message);
-                        cursor.continue();
-                        return eventWatcher.wait_for('success');
-                    }).then(() => {
-                        assert_equals(req.result, null, message);
-                        db.close();
-                        db = null;
-                    });
+                    const req = indexedDB.open(dbName.receiver);
+                    const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                    const successWatcher = new EventWatcher(t, req, 'success');
+                    return Promise.race([
+                        upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                            evt.target.result.close();
+                        }),
+                        successWatcher.wait_for('success').then(evt => {
+                            evt.target.result.close();
+                            // This would fail if the database created by the receiving UA is visible to the controlling UA
+                            assert_unreached('Indexed Database is not shared with a receiving user agent.');
+                        })
+                    ]);
                 }
                 else
                     return Promise.resolve();
@@ -231,6 +213,7 @@
             return request.start().then(c => {
                 connection = c;
                 enableTimeout();
+
                 // This Promise.race will be rejected if a receiving side terminates/closes the connection when window.close() is invoked
                 return Promise.race([
                     openIndexedDB()
@@ -249,7 +232,7 @@
                 // Check accessibility to window clients before terminating a presentation
                 return getClientUrls().then(urls => {
                     assert_true(urls.length === clientUrls.length && urls.every((value, index) => { return clientUrls[index] === value}),
-                        'A window client in a receiving user agent is not accessible to a service worker on a controlling user agent.')
+                        'A window client in a receiving user agent is not accessible to a service worker on a controlling user agent.');
                     const eventWatcher = new EventWatcher(t, connection, 'terminate');
                     connection.terminate();
                     return eventWatcher.wait_for('terminate');

@@ -1,10 +1,14 @@
 var TestingUtils = (function() {
 
     function checkGridTemplateColumns(element, value) {
+        if (!Array.isArray(value))
+            value = new Array(value);
         assert_in_array(getComputedStyle(element).gridTemplateColumns, value, "gridTemplateColumns");
     }
 
     function checkGridTemplateRows(element, value) {
+        if (!Array.isArray(value))
+            value = new Array(value);
         assert_in_array(getComputedStyle(element).gridTemplateRows, value, "gridTemplateRows");
     }
 
@@ -19,6 +23,8 @@ var TestingUtils = (function() {
     }
 
     function checkGridTemplateAreas(element, value) {
+        if (!Array.isArray(value))
+            value = new Array(value);
         assert_in_array(getComputedStyle(element).gridTemplateAreas, value, "gridTemplateAreas");
     }
 

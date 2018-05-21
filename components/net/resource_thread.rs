@@ -3,19 +3,22 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
+use compositing::compositor_thread::EmbedderProxy;
 use connector::{create_http_connector, create_ssl_client};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::resources::{self, Resource};
 use fetch::cors_cache::CorsCache;
 use fetch::methods::{CancellationListener, FetchContext, fetch};
-use filemanager_thread::{FileManager, TFDProvider};
+use filemanager_thread::FileManager;
 use hsts::HstsList;
 use http_cache::HttpCache;
 use http_loader::{HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
 use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
@@ -23,16 +26,18 @@ use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
+use profile_traits::mem::{Report, ReportsChan, ReportKind};
+use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use servo_allocator;
 use servo_config::opts;
-use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::prelude::*;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
@@ -42,18 +47,20 @@ use std::thread;
 use storage_thread::StorageThreadFactory;
 use websocket_loader;
 
-const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
-
 /// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: Cow<'static, str>,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            profiler_chan: ProfilerChan,
+                            time_profiler_chan: ProfilerChan,
+                            mem_profiler_chan: MemProfilerChan,
+                            embedder_proxy: EmbedderProxy,
                             config_dir: Option<PathBuf>)
                             -> (ResourceThreads, ResourceThreads) {
     let (public_core, private_core) = new_core_resource_thread(
         user_agent,
         devtools_chan,
-        profiler_chan,
+        time_profiler_chan,
+        mem_profiler_chan,
+        embedder_proxy,
         config_dir.clone());
     let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new(config_dir);
     (ResourceThreads::new(public_core, storage.clone()),
@@ -64,22 +71,35 @@ pub fn new_resource_threads(user_agent: Cow<'static, str>,
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                                profiler_chan: ProfilerChan,
+                                time_profiler_chan: ProfilerChan,
+                                mem_profiler_chan: MemProfilerChan,
+                                embedder_proxy: EmbedderProxy,
                                 config_dir: Option<PathBuf>)
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
+    let (report_chan, report_port) = ipc::channel().unwrap();
+
     thread::Builder::new().name("ResourceManager".to_owned()).spawn(move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, devtools_chan, profiler_chan
+            user_agent, devtools_chan, time_profiler_chan, embedder_proxy
         );
 
         let mut channel_manager = ResourceChannelManager {
             resource_manager: resource_manager,
             config_dir: config_dir,
         };
-        channel_manager.start(public_setup_port,
-                              private_setup_port);
+
+        mem_profiler_chan.run_with_memory_reporting(|| (
+                channel_manager.start(
+                    public_setup_port,
+                    private_setup_port,
+                    report_port)
+            ),
+            String::from("network-cache-reporter"),
+            report_chan,
+            |report_chan| report_chan);
+
     }).expect("Thread spawning failed");
     (public_setup_chan, private_setup_chan)
 }
@@ -100,24 +120,27 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
     }
 
-    let ca_file = match opts::get().certificate_path {
-        Some(ref path) => PathBuf::from(path),
-        None => resources_dir_path()
-            .expect("Need certificate file to make network requests")
-            .join("certs"),
+    let certs = match opts::get().certificate_path {
+        Some(ref path) => {
+            fs::read_to_string(path).expect("Couldn't not find certificate file")
+        }
+        None => {
+            resources::read_string(Resource::SSLCertificates)
+        },
     };
 
-    let ssl_client = create_ssl_client(&ca_file);
+    let ssl_client = create_ssl_client(&certs);
     let http_state = HttpState {
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         http_cache: RwLock::new(http_cache),
         hsts_list: RwLock::new(hsts_list),
+        history_states: RwLock::new(HashMap::new()),
         ssl_client: ssl_client.clone(),
         connector: create_http_connector(ssl_client),
     };
 
-    let private_ssl_client = create_ssl_client(&ca_file);
+    let private_ssl_client = create_ssl_client(&certs);
     let private_http_state = HttpState::new(private_ssl_client);
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -127,31 +150,69 @@ impl ResourceChannelManager {
     #[allow(unsafe_code)]
     fn start(&mut self,
              public_receiver: IpcReceiver<CoreResourceMsg>,
-             private_receiver: IpcReceiver<CoreResourceMsg>) {
+             private_receiver: IpcReceiver<CoreResourceMsg>,
+             memory_reporter: IpcReceiver<ReportsChan>) {
         let (public_http_state, private_http_state) =
             create_http_states(self.config_dir.as_ref().map(Deref::deref));
 
         let mut rx_set = IpcReceiverSet::new().unwrap();
         let private_id = rx_set.add(private_receiver).unwrap();
         let public_id = rx_set.add(public_receiver).unwrap();
+        let reporter_id = rx_set.add(memory_reporter).unwrap();
 
         loop {
-            for (id, data) in rx_set.select().unwrap().into_iter().map(|m| m.unwrap()) {
-                let group = if id == private_id {
-                    &private_http_state
+            for receiver in rx_set.select().unwrap().into_iter() {
+                // Handles case where profiler thread shuts down before resource thread.
+                match receiver {
+                    ipc::IpcSelectionResult::ChannelClosed(..) => continue,
+                    _ => {}
+                }
+                let (id, data) = receiver.unwrap();
+                // If message is memory report, get the size_of of public and private http caches
+                if id == reporter_id {
+                    if let Ok(msg) = data.to() {
+                        self.process_report(msg, &private_http_state, &public_http_state);
+                        continue;
+                    }
                 } else {
-                    assert_eq!(id, public_id);
-                    &public_http_state
-                };
-                if let Ok(msg) = data.to() {
-                    if !self.process_msg(msg, group) {
-                        return;
+                    let group = if id == private_id {
+                        &private_http_state
+                    } else {
+                        assert_eq!(id, public_id);
+                        &public_http_state
+                    };
+                    if let Ok(msg) = data.to() {
+                        if !self.process_msg(msg, group) {
+                            return;
+                        }
                     }
                 }
             }
         }
     }
 
+    fn process_report(&mut self,
+                      msg: ReportsChan,
+                      public_http_state: &Arc<HttpState>,
+                      private_http_state: &Arc<HttpState>) {
+        let mut ops = MallocSizeOfOps::new(servo_allocator::usable_size, None, None);
+        let public_cache = public_http_state.http_cache.read().unwrap();
+        let private_cache = private_http_state.http_cache.read().unwrap();
+
+        let public_report = Report {
+            path: path!["memory-cache", "public"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: public_cache.size_of(&mut ops)
+        };
+
+        let private_report = Report {
+            path: path!["memory-cache", "private"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: private_cache.size_of(&mut ops)
+        };
+
+        msg.send(vec!(public_report, private_report));
+    }
 
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
@@ -187,10 +248,24 @@ impl ResourceChannelManager {
                 let cookies = cookie_jar.cookies_data_for_url(&url, source).map(Serde).collect();
                 consumer.send(cookies).unwrap();
             }
+            CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
+                let history_states = http_state.history_states.read().unwrap();
+                consumer.send(history_states.get(&history_state_id).cloned()).unwrap();
+            }
+            CoreResourceMsg::SetHistoryState(history_state_id, history_state) => {
+                let mut history_states = http_state.history_states.write().unwrap();
+                history_states.insert(history_state_id, history_state);
+            }
+            CoreResourceMsg::RemoveHistoryStates(states_to_remove) => {
+                let mut history_states = http_state.history_states.write().unwrap();
+                for history_state in states_to_remove {
+                    history_states.remove(&history_state);
+                }
+            }
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             }
-            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg, TFD_PROVIDER),
+            CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {
                     match http_state.auth_cache.read() {
@@ -301,12 +376,13 @@ pub struct CoreResourceManager {
 impl CoreResourceManager {
     pub fn new(user_agent: Cow<'static, str>,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
-               _profiler_chan: ProfilerChan) -> CoreResourceManager {
+               _profiler_chan: ProfilerChan,
+               embedder_proxy: EmbedderProxy) -> CoreResourceManager {
         CoreResourceManager {
             user_agent: user_agent,
             devtools_chan: devtools_channel,
             swmanager_chan: None,
-            filemanager: FileManager::new(),
+            filemanager: FileManager::new(embedder_proxy),
         }
     }
 

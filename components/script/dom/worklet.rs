@@ -154,7 +154,7 @@ malloc_size_of_is_0!(WorkletId);
 
 impl WorkletId {
     fn new() -> WorkletId {
-        WorkletId(servo_rand::random())
+        WorkletId(servo_rand::random_uuid())
     }
 }
 

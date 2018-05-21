@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test reference</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+
+<style>
+article {
+  columns: 2 20px;
+  float: left;
+  height: 50px;
+  column-fill: auto;
+}
+article > div {
+  break-before: column;
+  border-top: 20px solid orange;
+}
+</style>
+
+<p>Test passes if there are two orange boxes below.
+<article>
+    <div></div>
+    <div></div>
+</article>

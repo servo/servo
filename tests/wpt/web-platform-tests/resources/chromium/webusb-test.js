@@ -20,12 +20,12 @@ let internal = {
 };
 
 // Converts an ECMAScript String object to an instance of
-// mojo.common.mojom.String16.
+// mojo_base.mojom.String16.
 function mojoString16ToString(string16) {
   return String.fromCharCode.apply(null, string16.data);
 }
 
-// Converts an instance of mojo.common.mojom.String16 to an ECMAScript String.
+// Converts an instance of mojo_base.mojom.String16 to an ECMAScript String.
 function stringToMojoString16(string) {
   let array = new Array(string.length);
   for (var i = 0; i < string.length; ++i) {
@@ -360,15 +360,17 @@ class FakeDeviceManager {
   }
 
   getDevice(guid, request) {
-    let device = this.devicesByGuid_.get(guid);
-    if (device) {
+    let retrievedDevice = this.devicesByGuid_.get(guid);
+    if (retrievedDevice) {
       let binding = new mojo.Binding(
-          window.device.mojom.UsbDevice, new FakeDevice(device.info), request);
+          device.mojom.UsbDevice,
+          new FakeDevice(retrievedDevice.info),
+          request);
       binding.setConnectionErrorHandler(() => {
-        if (device.fakeDevice.onclose)
-          device.fakeDevice.onclose();
+        if (retrievedDevice.fakeDevice.onclose)
+          retrievedDevice.fakeDevice.onclose();
       });
-      device.bindingArray.push(binding);
+      retrievedDevice.bindingArray.push(binding);
     } else {
       request.close();
     }

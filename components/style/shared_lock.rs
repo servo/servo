@@ -5,7 +5,7 @@
 //! Different objects protected by the same lock
 
 #[cfg(feature = "gecko")]
-use atomic_refcell::{AtomicRefCell, AtomicRef, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 #[cfg(feature = "servo")]
 use parking_lot::RwLock;
 use servo_arc::Arc;
@@ -13,6 +13,7 @@ use std::cell::UnsafeCell;
 use std::fmt;
 #[cfg(feature = "gecko")]
 use std::ptr;
+use str::{CssString, CssStringWriter};
 use stylesheets::Origin;
 
 /// A shared read/write lock that can protect multiple objects.
@@ -50,7 +51,7 @@ impl SharedRwLock {
     #[cfg(feature = "servo")]
     pub fn new() -> Self {
         SharedRwLock {
-            arc: Arc::new(RwLock::new(()))
+            arc: Arc::new(RwLock::new(())),
         }
     }
 
@@ -58,7 +59,7 @@ impl SharedRwLock {
     #[cfg(feature = "gecko")]
     pub fn new() -> Self {
         SharedRwLock {
-            cell: Arc::new(AtomicRefCell::new(SomethingZeroSizedButTyped))
+            cell: Arc::new(AtomicRefCell::new(SomethingZeroSizedButTyped)),
         }
     }
 
@@ -108,9 +109,7 @@ impl<'a> Drop for SharedRwLockReadGuard<'a> {
     fn drop(&mut self) {
         // Unsafe: self.lock is private to this module, only ever set after `raw_read()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        unsafe {
-            self.0.arc.raw_unlock_read()
-        }
+        unsafe { self.0.arc.raw_unlock_read() }
     }
 }
 
@@ -125,9 +124,7 @@ impl<'a> Drop for SharedRwLockWriteGuard<'a> {
     fn drop(&mut self) {
         // Unsafe: self.lock is private to this module, only ever set after `raw_write()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        unsafe {
-            self.0.arc.raw_unlock_write()
-        }
+        unsafe { self.0.arc.raw_unlock_write() }
     }
 }
 
@@ -162,8 +159,10 @@ impl<T> Locked<T> {
 
     /// Access the data for reading.
     pub fn read_with<'a>(&'a self, guard: &'a SharedRwLockReadGuard) -> &'a T {
-        assert!(self.same_lock_as(&guard.0),
-                "Locked::read_with called with a guard from an unrelated SharedRwLock");
+        assert!(
+            self.same_lock_as(&guard.0),
+            "Locked::read_with called with a guard from an unrelated SharedRwLock"
+        );
         let ptr = self.data.get();
 
         // Unsafe:
@@ -172,9 +171,7 @@ impl<T> Locked<T> {
         //   and we’ve checked that it’s the correct lock.
         // * The returned reference borrows *both* the data and the guard,
         //   so that it can outlive neither.
-        unsafe {
-            &*ptr
-        }
+        unsafe { &*ptr }
     }
 
     /// Access the data for reading without verifying the lock. Use with caution.
@@ -186,8 +183,10 @@ impl<T> Locked<T> {
 
     /// Access the data for writing.
     pub fn write_with<'a>(&'a self, guard: &'a mut SharedRwLockWriteGuard) -> &'a mut T {
-        assert!(self.same_lock_as(&guard.0),
-                "Locked::write_with called with a guard from an unrelated SharedRwLock");
+        assert!(
+            self.same_lock_as(&guard.0),
+            "Locked::write_with called with a guard from an unrelated SharedRwLock"
+        );
         let ptr = self.data.get();
 
         // Unsafe:
@@ -198,9 +197,7 @@ impl<T> Locked<T> {
         //   so that it can outlive neither.
         // * We require a mutable borrow of the guard,
         //   so that one write guard can only be used once at a time.
-        unsafe {
-            &mut *ptr
-        }
+        unsafe { &mut *ptr }
     }
 }
 
@@ -210,27 +207,27 @@ mod compile_time_assert {
 
     trait Marker1 {}
     impl<T: Clone> Marker1 for T {}
-    impl<'a> Marker1 for SharedRwLockReadGuard<'a> {}  // Assert SharedRwLockReadGuard: !Clone
-    impl<'a> Marker1 for SharedRwLockWriteGuard<'a> {}  // Assert SharedRwLockWriteGuard: !Clone
+    impl<'a> Marker1 for SharedRwLockReadGuard<'a> {} // Assert SharedRwLockReadGuard: !Clone
+    impl<'a> Marker1 for SharedRwLockWriteGuard<'a> {} // Assert SharedRwLockWriteGuard: !Clone
 
     trait Marker2 {}
     impl<T: Copy> Marker2 for T {}
-    impl<'a> Marker2 for SharedRwLockReadGuard<'a> {}  // Assert SharedRwLockReadGuard: !Copy
-    impl<'a> Marker2 for SharedRwLockWriteGuard<'a> {}  // Assert SharedRwLockWriteGuard: !Copy
+    impl<'a> Marker2 for SharedRwLockReadGuard<'a> {} // Assert SharedRwLockReadGuard: !Copy
+    impl<'a> Marker2 for SharedRwLockWriteGuard<'a> {} // Assert SharedRwLockWriteGuard: !Copy
 }
 
-/// Like ToCss, but with a lock guard given by the caller.
+/// Like ToCss, but with a lock guard given by the caller, and with the writer specified
+/// concretely rather than with a parameter.
 pub trait ToCssWithGuard {
     /// Serialize `self` in CSS syntax, writing to `dest`, using the given lock guard.
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-    where W: fmt::Write;
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result;
 
     /// Serialize `self` in CSS syntax using the given lock guard and return a string.
     ///
     /// (This is a convenience wrapper for `to_css` and probably should not be overridden.)
     #[inline]
-    fn to_css_string(&self, guard: &SharedRwLockReadGuard) -> String {
-        let mut s = String::new();
+    fn to_css_string(&self, guard: &SharedRwLockReadGuard) -> CssString {
+        let mut s = CssString::new();
         self.to_css(guard, &mut s).unwrap();
         s
     }
@@ -240,17 +237,16 @@ pub trait ToCssWithGuard {
 #[cfg(feature = "gecko")]
 pub struct DeepCloneParams {
     /// The new sheet we're cloning rules into.
-    pub reference_sheet: *const ::gecko_bindings::structs::ServoStyleSheet,
+    pub reference_sheet: *const ::gecko_bindings::structs::StyleSheet,
 }
 
 /// Parameters needed for deep clones.
 #[cfg(feature = "servo")]
 pub struct DeepCloneParams;
 
-
 /// A trait to do a deep clone of a given CSS type. Gets a lock and a read
 /// guard, in order to be able to read and clone nested structures.
-pub trait DeepCloneWithLock : Sized {
+pub trait DeepCloneWithLock: Sized {
     /// Deep clones this object.
     fn deep_clone_with_lock(
         &self,

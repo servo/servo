@@ -11,8 +11,8 @@
 interface MutationObserver {
     [Throws]
     void observe(Node target, optional MutationObserverInit options);
-    //void disconnect();
-    //sequence<MutationRecord> takeRecords();
+    void disconnect();
+    sequence<MutationRecord> takeRecords();
 };
 
 callback MutationCallback = void (sequence<MutationRecord> mutations, MutationObserver observer);

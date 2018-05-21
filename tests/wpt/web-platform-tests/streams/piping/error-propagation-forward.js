@@ -428,4 +428,147 @@ promise_test(t => {
 
 }, 'Errors must be propagated forward: shutdown must not occur until the final write completes');
 
+promise_test(t => {
+
+  const rs = recordingReadableStream();
+
+  let resolveWriteCalled;
+  const writeCalledPromise = new Promise(resolve => {
+    resolveWriteCalled = resolve;
+  });
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      resolveWriteCalled();
+
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    }
+  });
+
+  let pipeComplete = false;
+  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true })).then(() => {
+    pipeComplete = true;
+  });
+
+  rs.controller.enqueue('a');
+
+  return writeCalledPromise.then(() => {
+    rs.controller.error(error1);
+
+    // Flush async events and verify that no shutdown occurs.
+    return flushAsyncEvents();
+  }).then(() => {
+    assert_array_equals(ws.events, ['write', 'a']); // no 'abort'
+    assert_equals(pipeComplete, false, 'the pipe must not be complete');
+
+    resolveWritePromise();
+    return pipePromise;
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a']); // no 'abort'
+  });
+
+}, 'Errors must be propagated forward: shutdown must not occur until the final write completes; preventAbort = true');
+
+promise_test(t => {
+
+  const rs = recordingReadableStream();
+
+  let resolveWriteCalled;
+  const writeCalledPromise = new Promise(resolve => {
+    resolveWriteCalled = resolve;
+  });
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      resolveWriteCalled();
+
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 2 }));
+
+  let pipeComplete = false;
+  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws)).then(() => {
+    pipeComplete = true;
+  });
+
+  rs.controller.enqueue('a');
+  rs.controller.enqueue('b');
+
+  return writeCalledPromise.then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the first chunk must have been written, but abort must not have happened yet');
+    assert_false(pipeComplete, 'the pipe should not complete while the first write is pending');
+
+    rs.controller.error(error1);
+    resolveWritePromise();
+    return flushAsyncEvents();
+  }).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
+      'the second chunk must have been written, but abort must not have happened yet');
+    assert_false(pipeComplete, 'the pipe should not complete while the second write is pending');
+
+    resolveWritePromise();
+    return pipePromise;
+  }).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b', 'abort', error1],
+      'all chunks must have been written and abort must have happened');
+  });
+
+}, 'Errors must be propagated forward: shutdown must not occur until the final write completes; becomes errored after first write');
+
+promise_test(t => {
+
+  const rs = recordingReadableStream();
+
+  let resolveWriteCalled;
+  const writeCalledPromise = new Promise(resolve => {
+    resolveWriteCalled = resolve;
+  });
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      resolveWriteCalled();
+
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 2 }));
+
+  let pipeComplete = false;
+  const pipePromise = promise_rejects(t, error1, rs.pipeTo(ws, { preventAbort: true })).then(() => {
+    pipeComplete = true;
+  });
+
+  rs.controller.enqueue('a');
+  rs.controller.enqueue('b');
+
+  return writeCalledPromise.then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the first chunk must have been written, but abort must not have happened');
+    assert_false(pipeComplete, 'the pipe should not complete while the first write is pending');
+
+    rs.controller.error(error1);
+    resolveWritePromise();
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
+      'the second chunk must have been written, but abort must not have happened');
+    assert_false(pipeComplete, 'the pipe should not complete while the second write is pending');
+
+    resolveWritePromise();
+    return pipePromise;
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
+      'all chunks must have been written, but abort must not have happened');
+  });
+
+}, 'Errors must be propagated forward: shutdown must not occur until the final write completes; becomes errored after first write; preventAbort = true');
+
 done();

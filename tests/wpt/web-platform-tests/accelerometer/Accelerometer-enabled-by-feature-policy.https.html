@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<body>
+<title>Accelerometer Feature Policy Test: Enabled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script src="/generic-sensor/generic-sensor-feature-policy-test.sub.js"></script>
+<script>
+"use strict";
+
+run_fp_tests_enabled('Accelerometer');
+run_fp_tests_enabled('LinearAccelerationSensor');
+run_fp_tests_enabled('GravitySensor');
+</script>
+</body>

@@ -14,9 +14,15 @@ use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use euclid::{Transform3D, Radians};
+use euclid::{Transform3D, Angle};
+use js::jsapi::{JSObject, JSContext};
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::{Float32Array, Float64Array};
+use js::typedarray::CreateWith;
 use std::cell::{Cell, Ref};
 use std::f64;
+use std::ptr;
+use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct DOMMatrixReadOnly {
@@ -256,19 +262,19 @@ impl DOMMatrixReadOnly {
         }
         if rotZ != 0.0 {
             // Step 5.
-            let rotation = Transform3D::create_rotation(0.0, 0.0, 1.0, Radians::new(rotZ.to_radians()));
+            let rotation = Transform3D::create_rotation(0.0, 0.0, 1.0, Angle::radians(rotZ.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
         if rotY != 0.0 {
             // Step 6.
-            let rotation = Transform3D::create_rotation(0.0, 1.0, 0.0, Radians::new(rotY.to_radians()));
+            let rotation = Transform3D::create_rotation(0.0, 1.0, 0.0, Angle::radians(rotY.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
         if rotX != 0.0 {
             // Step 7.
-            let rotation = Transform3D::create_rotation(1.0, 0.0, 0.0, Radians::new(rotX.to_radians()));
+            let rotation = Transform3D::create_rotation(1.0, 0.0, 0.0, Angle::radians(rotX.to_radians()));
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
         }
@@ -280,7 +286,7 @@ impl DOMMatrixReadOnly {
         // don't do anything when the rotation angle is zero or undefined
         if y != 0.0 || x < 0.0 {
             // Step 1.
-            let rotZ = Radians::new(f64::atan2(y, x));
+            let rotZ = Angle::radians(f64::atan2(y, x));
             let rotation = Transform3D::create_rotation(0.0, 0.0, 1.0, rotZ);
             let mut matrix = self.matrix.borrow_mut();
             *matrix = rotation.post_mul(&matrix);
@@ -292,7 +298,7 @@ impl DOMMatrixReadOnly {
     pub fn rotate_axis_angle_self(&self, x: f64, y: f64, z: f64, angle: f64) {
         // Step 1.
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
-        let rotation = Transform3D::create_rotation(norm_x, norm_y, norm_z, Radians::new(angle.to_radians()));
+        let rotation = Transform3D::create_rotation(norm_x, norm_y, norm_z, Angle::radians(angle.to_radians()));
         let mut matrix = self.matrix.borrow_mut();
         *matrix = rotation.post_mul(&matrix);
         // Step 2.
@@ -305,7 +311,7 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewxself
     pub fn skew_x_self(&self, sx: f64) {
         // Step 1.
-        let skew = Transform3D::create_skew(Radians::new(sx.to_radians()), Radians::new(0.0));
+        let skew = Transform3D::create_skew(Angle::radians(sx.to_radians()), Angle::radians(0.0));
         let mut matrix = self.matrix.borrow_mut();
         *matrix = skew.post_mul(&matrix);
         // Step 2 in DOMMatrix.SkewXSelf
@@ -314,7 +320,7 @@ impl DOMMatrixReadOnly {
     // https://drafts.fxtf.org/geometry-1/#dom-dommatrix-skewyself
     pub fn skew_y_self(&self, sy: f64) {
         // Step 1.
-        let skew = Transform3D::create_skew(Radians::new(0.0), Radians::new(sy.to_radians()));
+        let skew = Transform3D::create_skew(Angle::radians(0.0), Angle::radians(sy.to_radians()));
         let mut matrix = self.matrix.borrow_mut();
         *matrix = skew.post_mul(&matrix);
         // Step 2 in DOMMatrix.SkewYSelf
@@ -333,6 +339,26 @@ impl DOMMatrixReadOnly {
                                 f64::NAN, f64::NAN, f64::NAN, f64::NAN)
         })
         // Step 3 in DOMMatrix.InvertSelf
+    }
+
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat32array
+    #[allow(unsafe_code)]
+    pub fn FromFloat32Array(
+        global: &GlobalScope,
+        array: CustomAutoRooterGuard<Float32Array>,
+    ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
+        let vec: Vec<f64> = array.to_vec().iter().map(|&x| x as f64).collect();
+        DOMMatrixReadOnly::Constructor_(global, vec)
+    }
+
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-fromfloat64array
+    #[allow(unsafe_code)]
+    pub fn FromFloat64Array(
+        global: &GlobalScope,
+        array: CustomAutoRooterGuard<Float64Array>,
+    ) -> Fallible<DomRoot<DOMMatrixReadOnly>> {
+        let vec: Vec<f64> = array.to_vec();
+        DOMMatrixReadOnly::Constructor_(global, vec)
     }
 }
 
@@ -552,6 +578,27 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
         let w = point.x * mat.m14 + point.y * mat.m24 + point.z * mat.m34 + point.w * mat.m44;
 
         DOMPoint::new(&self.global(), x, y, z, w)
+    }
+
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat32array
+    #[allow(unsafe_code)]
+    unsafe fn ToFloat32Array(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+        let vec: Vec<f32> = self.matrix
+            .borrow().to_row_major_array().iter().map(|&x| x as f32).collect();
+        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+        let _ = Float32Array::create(cx, CreateWith::Slice(&vec), array.handle_mut())
+            .unwrap();
+        NonNull::new_unchecked(array.get())
+    }
+
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-tofloat64array
+    #[allow(unsafe_code)]
+    unsafe fn ToFloat64Array(&self, cx: *mut JSContext) -> NonNull<JSObject> {
+        let arr = self.matrix.borrow().to_row_major_array();
+        rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+        let _ = Float64Array::create(cx, CreateWith::Slice(&arr), array.handle_mut())
+            .unwrap();
+        NonNull::new_unchecked(array.get())
     }
 }
 

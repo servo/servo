@@ -1,0 +1,2 @@
+Content-Security-Policy: prefetch-src 'self'
+Link: </content-security-policy/support/pass.png>;rel=prefetch

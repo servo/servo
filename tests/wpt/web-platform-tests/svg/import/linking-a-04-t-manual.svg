@@ -23,7 +23,7 @@
         The initial view of this test contains the three arrows, a colored
         circle, labelling text, and the usual template legend and frame.
       </p>
-    
+
       <p>
         There are several reference images associated with this test case.  The first
         illustrates the correct "start" or initial state of the rendered SVG file.
@@ -43,7 +43,7 @@
         The user should interact with each of the arrows activating each of the links,
         using the UA's back mechanism to restart each link test.
       </p>
-     
+
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>

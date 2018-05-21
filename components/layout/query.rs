@@ -7,18 +7,21 @@
 use app_units::Au;
 use construct::ConstructionResult;
 use context::LayoutContext;
+use display_list::IndexableText;
+use display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use euclid::{Point2D, Vector2D, Rect, Size2D};
-use flow::{self, Flow};
+use flow::{Flow, GetBaseFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use inline::InlineFragmentNodeFlags;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
+use script_layout_interface::{LayoutElementType, LayoutNodeType};
+use script_layout_interface::StyleData;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
-use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
-use script_layout_interface::rpc::{NodeOverflowResponse, NodeScrollRootIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, TextIndexResponse};
+use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
+use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
+use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -28,13 +31,14 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
+use style::computed_values::visibility::T as Visibility;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
-use webrender_api::ClipId;
+use webrender_api::ExternalScrollId;
 use wrapper::LayoutNodeLayoutData;
 
 /// Mutable data belonging to the LayoutThread.
@@ -47,6 +51,8 @@ pub struct LayoutThreadData {
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
 
+    pub indexable_text: IndexableText,
+
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Option<Rect<Au>>,
 
@@ -56,11 +62,8 @@ pub struct LayoutThreadData {
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
 
-    /// A queued response for the scroll root id for a given node.
-    pub scroll_root_id_response: Option<ClipId>,
-
-    /// A pair of overflow property in x and y
-    pub overflow_response: NodeOverflowResponse,
+    /// A queued response for the scroll id for a given node.
+    pub scroll_id_response: Option<ExternalScrollId>,
 
     /// A queued response for the scroll {top, left, width, height} of a node in pixels.
     pub scroll_area_response: Rect<i32>,
@@ -71,8 +74,8 @@ pub struct LayoutThreadData {
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
 
-    /// A queued response for the offset parent/rect of a node.
-    pub margin_style_response: MarginStyleResponse,
+    /// A queued response for the style of a node.
+    pub style_response: StyleResponse,
 
     /// Scroll offsets of scrolling regions.
     pub scroll_offsets: ScrollOffsetMap,
@@ -82,6 +85,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the list of nodes at a given point.
     pub nodes_from_point_response: Vec<UntrustedNodeAddress>,
+
+    /// A queued response for the inner text of a given element.
+    pub element_inner_text_response: String,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -128,20 +134,16 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn node_overflow(&self) -> NodeOverflowResponse {
-        NodeOverflowResponse(self.0.lock().unwrap().overflow_response.0)
-    }
-
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
             client_rect: self.0.lock().unwrap().scroll_area_response
         }
     }
 
-    fn node_scroll_root_id(&self) -> NodeScrollRootIdResponse {
-        NodeScrollRootIdResponse(self.0.lock()
-                                       .unwrap().scroll_root_id_response
-                                       .expect("scroll_root_id is not correctly fetched"))
+    fn node_scroll_id(&self) -> NodeScrollIdResponse {
+        NodeScrollIdResponse(self.0.lock()
+                             .unwrap().scroll_id_response
+                             .expect("scroll id is not correctly fetched"))
     }
 
     /// Retrieves the resolved value for a CSS style property.
@@ -157,16 +159,22 @@ impl LayoutRPC for LayoutRPCImpl {
         rw_data.offset_parent_response.clone()
     }
 
-    fn margin_style(&self) -> MarginStyleResponse {
+    fn style(&self) -> StyleResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
-        rw_data.margin_style_response.clone()
+        rw_data.style_response.clone()
     }
 
     fn text_index(&self) -> TextIndexResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.text_index_response.clone()
+    }
+
+    fn element_inner_text(&self) -> String {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.element_inner_text_response.clone()
     }
 }
 
@@ -618,11 +626,12 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     iterator.client_rect
 }
 
-pub fn process_node_scroll_root_id_request<N: LayoutNode>(id: PipelineId,
-                                                          requested_node: N)
-                                                          -> ClipId {
+pub fn process_node_scroll_id_request<N: LayoutNode>(
+    id: PipelineId,
+    requested_node: N
+) -> ExternalScrollId {
     let layout_node = requested_node.to_threadsafe();
-    layout_node.generate_scroll_root_id(id)
+    layout_node.generate_scroll_id(id)
 }
 
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
@@ -686,7 +695,7 @@ pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
         thread_local: &mut tlc,
     };
 
-    let styles = resolve_style(&mut context, element, RuleInclusion::All, false, pseudo.as_ref());
+    let styles = resolve_style(&mut context, element, RuleInclusion::All, pseudo.as_ref());
     let style = styles.primary();
     let longhand_id = match *property {
         PropertyId::LonghandAlias(id, _) |
@@ -774,7 +783,7 @@ where
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
                 ConstructionResult::Flow(ref flow_ref, _) =>
-                    flow::base(flow_ref.deref()).stacking_relative_position.to_point(),
+                    flow_ref.deref().base().stacking_relative_position.to_point(),
                 // TODO(dzbarsky) search parents until we find node with a flow ref.
                 // https://github.com/servo/servo/issues/8307
                 _ => Point2D::zero()
@@ -863,24 +872,152 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
     }
 }
 
-pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOverflowResponse {
-    let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.as_element().unwrap().resolved_style();
-    let style_box = style.get_box();
+pub fn process_style_query<N: LayoutNode>(requested_node: N)
+        -> StyleResponse {
+    let element = requested_node.as_element().unwrap();
+    let data = element.borrow_data();
 
-    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y))))
+    StyleResponse(data.map(|d| d.styles.primary().clone()))
 }
 
-pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
-        -> MarginStyleResponse {
-    let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.as_element().unwrap().resolved_style();
-    let margin = style.get_margin();
+enum InnerTextItem {
+    Text(String),
+    RequiredLineBreakCount(u32),
+}
 
-    MarginStyleResponse {
-        top: margin.margin_top,
-        right: margin.margin_right,
-        bottom: margin.margin_bottom,
-        left: margin.margin_left,
+// https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute
+pub fn process_element_inner_text_query<N: LayoutNode>(node: N,
+                                                       indexable_text: &IndexableText) -> String {
+    // Step 1.
+    let mut results = Vec::new();
+    // Step 2.
+    inner_text_collection_steps(node, indexable_text, &mut results);
+    let mut max_req_line_break_count = 0;
+    let mut inner_text = Vec::new();
+    for item in results {
+        match item {
+            InnerTextItem::Text(s) => {
+                if max_req_line_break_count > 0 {
+                    // Step 5.
+                    for _ in 0..max_req_line_break_count {
+                        inner_text.push("\u{000A}".to_owned());
+                    }
+                    max_req_line_break_count = 0;
+                }
+                // Step 3.
+                if !s.is_empty() {
+                    inner_text.push(s.to_owned());
+                }
+            },
+            InnerTextItem::RequiredLineBreakCount(count) => {
+                // Step 4.
+                if inner_text.len() == 0 {
+                    // Remove required line break count at the start.
+                    continue;
+                }
+                // Store the count if it's the max of this run,
+                // but it may be ignored if no text item is found afterwards,
+                // which means that these are consecutive line breaks at the end.
+                if count > max_req_line_break_count {
+                    max_req_line_break_count = count;
+                }
+            }
+        }
     }
+    inner_text.into_iter().collect()
+}
+
+// https://html.spec.whatwg.org/multipage/#inner-text-collection-steps
+#[allow(unsafe_code)]
+fn inner_text_collection_steps<N: LayoutNode>(node: N,
+                                              indexable_text: &IndexableText,
+                                              results: &mut Vec<InnerTextItem>) {
+    let mut items = Vec::new();
+    for child in node.traverse_preorder() {
+        let node = match child.type_id() {
+            LayoutNodeType::Text => {
+                child.parent_node().unwrap()
+            },
+            _ => child,
+        };
+
+        let element_data = unsafe {
+            node.get_style_and_layout_data().map(|d| {
+                &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
+            })
+        };
+
+        if element_data.is_none() {
+            continue;
+        }
+
+        let style = match element_data.unwrap().borrow().styles.get_primary() {
+            None => continue,
+            Some(style) => style.clone(),
+        };
+
+        // Step 2.
+        if style.get_inheritedbox().visibility != Visibility::Visible {
+            continue;
+        }
+
+        // Step 3.
+        let display = style.get_box().display;
+        if !child.is_in_document() || display == Display::None {
+            continue;
+        }
+
+        match child.type_id() {
+            LayoutNodeType::Text => {
+                // Step 4.
+                if let Some(text_content) = indexable_text.get(child.opaque()) {
+                    for content in text_content {
+                        items.push(InnerTextItem::Text(content.text_run.text.to_string()));
+                    }
+                }
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLBRElement) => {
+                // Step 5.
+                items.push(InnerTextItem::Text(String::from("\u{000A}" /* line feed */)));
+            },
+            LayoutNodeType::Element(LayoutElementType::HTMLParagraphElement) => {
+                // Step 8.
+                items.insert(0, InnerTextItem::RequiredLineBreakCount(2));
+                items.push(InnerTextItem::RequiredLineBreakCount(2));
+            }
+            _ => {},
+
+        }
+
+        match display {
+            Display::TableCell if !is_last_table_cell() => {
+                // Step 6.
+                items.push(InnerTextItem::Text(String::from("\u{0009}" /* tab */)));
+            },
+            Display::TableRow if !is_last_table_row() => {
+                // Step 7.
+                items.push(InnerTextItem::Text(String::from(
+                    "\u{000A}", /* line feed */
+                )));
+            },
+            Display::Block | Display::Flex | Display::TableCaption | Display::Table => {
+                // Step 9.
+                items.insert(0, InnerTextItem::RequiredLineBreakCount(1));
+                items.push(InnerTextItem::RequiredLineBreakCount(1));
+            },
+            _ => {},
+        }
+    }
+
+    results.append(&mut items);
+}
+
+fn is_last_table_cell() -> bool {
+    // FIXME(ferjm) Implement this.
+    false
+}
+
+fn is_last_table_row() -> bool {
+    // FIXME(ferjm) Implement this.
+    false
 }

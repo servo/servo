@@ -1,0 +1,12 @@
+body {
+  /* to match ua.css, see bug 1020143 */
+  font-variant-numeric: tabular-nums;
+}
+div, p {
+  padding: 0; margin: 0;
+  line-height: 150%;
+  float: left;
+}
+p {
+  padding-right: .5em;
+}

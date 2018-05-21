@@ -20,6 +20,7 @@ use dom::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use metrics::ToMs;
 use std::cell::Cell;
 use std::cmp::Ordering;
 use time;
@@ -183,14 +184,6 @@ impl Performance {
             None => return,
         };
 
-        if self.pending_notification_observers_task.get() {
-            if let Some(o) = observers.iter().nth(index) {
-                DOMPerformanceObserver::new(&self.global(),
-                                            o.observer.callback(),
-                                            o.observer.entries()).notify();
-            }
-        }
-
         observers.remove(index);
     }
 
@@ -260,7 +253,7 @@ impl Performance {
             Some(ref timing) => timing.navigation_start_precise(),
             None => self.navigation_start_precise,
         };
-        (time::precise_time_ns() - nav_start) as f64 / 1000000.
+        (time::precise_time_ns() - nav_start).to_ms()
     }
 }
 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      Test Constructor: AudioBuffer
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/audionodeoptions.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let context;
+
+      let audit = Audit.createTaskRunner();
+
+      audit.define('initialize', (task, should) => {
+        context = initializeContext(should);
+        task.done();
+      });
+
+      audit.define('invalid constructor', (task, should) => {
+        should(() => {
+          new AudioBuffer();
+        }, 'new AudioBuffer()').throw('TypeError');
+        should(() => {
+          new AudioBuffer(1);
+        }, 'new AudioBuffer(1)').throw('TypeError');
+        should(() => {
+          new AudioBuffer(Date, 42);
+        }, 'new AudioBuffer(Date, 42)').throw('TypeError');
+
+        task.done();
+      });
+
+      audit.define('required options', (task, should) => {
+        let buffer;
+
+        // The length and sampleRate attributes are required; all others are
+        // optional.
+        should(() => {
+          new AudioBuffer({});
+        }, 'buffer = new AudioBuffer({})').throw('TypeError');
+
+        should(() => {
+          new AudioBuffer({length: 1});
+        }, 'buffer = new AudioBuffer({length: 1})').throw('TypeError');
+
+        should(() => {
+          new AudioBuffer({sampleRate: 48000});
+        }, 'buffer = new AudioBuffer({sampleRate: 48000})').throw('TypeError');
+
+        should(() => {
+          buffer = new AudioBuffer({numberOfChannels: 1});
+        }, 'buffer = new AudioBuffer({numberOfChannels: 1}').throw('TypeError');
+
+        // Length and sampleRate are required, but others are optional.
+        should(
+            () => {
+              buffer =
+                  new AudioBuffer({length: 21, sampleRate: context.sampleRate});
+            },
+            'buffer0 = new AudioBuffer({length: 21, sampleRate: ' +
+                context.sampleRate + '}')
+            .notThrow();
+        // Verify the buffer has the correct values.
+        should(buffer.numberOfChannels, 'buffer0.numberOfChannels')
+            .beEqualTo(1);
+        should(buffer.length, 'buffer0.length').beEqualTo(21);
+        should(buffer.sampleRate, 'buffer0.sampleRate')
+            .beEqualTo(context.sampleRate);
+
+        should(
+            () => {
+              buffer = new AudioBuffer(
+                  {numberOfChannels: 3, length: 1, sampleRate: 48000});
+            },
+            'buffer1 = new AudioBuffer(' +
+                '{numberOfChannels: 3, length: 1, sampleRate: 48000})')
+            .notThrow();
+        // Verify the buffer has the correct values.
+        should(buffer.numberOfChannels, 'buffer1.numberOfChannels')
+            .beEqualTo(3);
+        should(buffer.length, 'buffer1.length').beEqualTo(1);
+        should(buffer.sampleRate, 'buffer1.sampleRate').beEqualTo(48000);
+
+        task.done();
+      });
+
+      audit.define('invalid option values', (task, should) => {
+        let options = {numberOfChannels: 0, length: 1, sampleRate: 16000};
+        should(
+            () => {
+              let buffer = new AudioBuffer(options);
+            },
+            'new AudioBuffer(' + JSON.stringify(options) + ')')
+            .throw('NotSupportedError');
+
+        options = {numberOfChannels: 99, length: 0, sampleRate: 16000};
+        should(
+            () => {
+              let buffer = new AudioBuffer(options);
+            },
+            'new AudioBuffer(' + JSON.stringify(options) + ')')
+            .throw('NotSupportedError');
+
+        options = {numberOfChannels: 1, length: 0, sampleRate: 16000};
+        should(
+            () => {
+              let buffer = new AudioBuffer(options);
+            },
+            'new AudioBuffer(' + JSON.stringify(options) + ')')
+            .throw('NotSupportedError');
+
+        options = {numberOfChannels: 1, length: 1, sampleRate: 100};
+        should(
+            () => {
+              let buffer = new AudioBuffer(options);
+            },
+            'new AudioBuffer(' + JSON.stringify(options) + ')')
+            .throw('NotSupportedError');
+
+        task.done();
+      });
+
+      audit.define('default constructor', (task, should) => {
+        let buffer;
+
+        let options = {numberOfChannels: 5, length: 17, sampleRate: 16000};
+        should(
+            () => {
+              buffer = new AudioBuffer(options);
+            },
+            'buffer = new AudioBuffer(' + JSON.stringify(options) + ')')
+            .notThrow();
+
+        should(buffer.numberOfChannels, 'buffer.numberOfChannels')
+            .beEqualTo(options.numberOfChannels);
+        should(buffer.length, 'buffer.length').beEqualTo(options.length);
+        should(buffer.sampleRate, 'buffer.sampleRate').beEqualTo(16000);
+
+        task.done();
+      });
+
+      audit.define('valid constructor', (task, should) => {
+        let buffer;
+
+        let options = {numberOfChannels: 3, length: 42, sampleRate: 54321};
+
+        let message = 'new AudioBuffer(' + JSON.stringify(options) + ')';
+        should(() => {
+          buffer = new AudioBuffer(options);
+        }, message).notThrow();
+
+        should(buffer.numberOfChannels, 'buffer.numberOfChannels')
+            .beEqualTo(options.numberOfChannels);
+
+        should(buffer.length, 'buffer.length').beEqualTo(options.length);
+
+        should(buffer.sampleRate, 'buffer.sampleRate')
+            .beEqualTo(options.sampleRate);
+
+        // Verify that we actually got the right number of channels
+        for (let k = 0; k < options.numberOfChannels; ++k) {
+          let data;
+          let message = 'buffer.getChannelData(' + k + ')';
+          should(() => {
+            data = buffer.getChannelData(k);
+          }, message).notThrow();
+
+          should(data.length, message + ' length').beEqualTo(options.length);
+        }
+
+        should(
+            () => {
+              buffer.getChannelData(options.numberOfChannels);
+            },
+            'buffer.getChannelData(' + options.numberOfChannels + ')')
+            .throw('IndexSizeError');
+
+        task.done();
+      });
+
+      audit.define('multiple contexts', (task, should) => {
+        // Test that an AudioBuffer can be used for different contexts.
+        let buffer =
+            new AudioBuffer({length: 128, sampleRate: context.sampleRate});
+
+        // Don't use getChannelData here because we want to be able to use
+        // |data| to compare the final results of playing out this buffer.  (If
+        // we did, |data| gets detached when the sources play.)
+        let data = new Float32Array(buffer.length);
+        for (let k = 0; k < data.length; ++k)
+          data[k] = 1 + k;
+        buffer.copyToChannel(data, 0);
+
+        let c1 = new OfflineAudioContext(1, 128, context.sampleRate);
+        let c2 = new OfflineAudioContext(1, 128, context.sampleRate);
+
+        let s1 = new AudioBufferSourceNode(c1, {buffer: buffer});
+        let s2 = new AudioBufferSourceNode(c2, {buffer: buffer});
+
+        s1.connect(c1.destination);
+        s2.connect(c2.destination);
+
+        s1.start();
+        s2.start();
+
+        Promise
+            .all([
+              c1.startRendering().then(function(resultBuffer) {
+                return should(resultBuffer.getChannelData(0), 'c1 result')
+                    .beEqualToArray(data);
+              }),
+              c2.startRendering().then(function(resultBuffer) {
+                return should(resultBuffer.getChannelData(0), 'c2 result')
+                    .beEqualToArray(data);
+              }),
+            ])
+            .then(returnValues => {
+              should(
+                  returnValues[0] && returnValues[1],
+                  'AudioBuffer shared between two different contexts')
+                  .message('correctly', 'incorrectly');
+              task.done();
+            });
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>

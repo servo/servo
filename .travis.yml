@@ -7,6 +7,7 @@ matrix:
       script:
          - ./mach test-tidy --no-progress --all
          - ./mach test-tidy --no-progress --self-test
+         - python ./etc/memory_reports_over_time.py --test
          - bash etc/ci/check_no_panic.sh
          - bash etc/ci/manifest_changed.sh
       cache: false
@@ -18,43 +19,35 @@ matrix:
         - sudo apt-get update -q
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime -y
         - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
-        - export CC=gcc-5 CXX=g++-5
+        - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
+        - source ~/.profile
       script:
+         # see https://github.com/servo/servo/issues/20664
+         #- ./mach cargo check -p compositing --no-default-features
          - ./mach build -d --verbose
          - ./mach test-unit
          - ./mach clean
-         - ./mach build-geckolib
-         - ./mach test-stylo
          - bash etc/ci/lockfile_changed.sh
       cache:
         directories:
-          - .cargo
           - .servo
+          - $HOME/.cargo
+          - $HOME/.rustup
           - $HOME/.ccache
       before_cache:
         - ./mach clean-nightlies --keep 2 --force
         - ./mach clean-cargo-cache --keep 2 --force
-      env: CCACHE=/usr/bin/ccache
+      env:
+        CCACHE=/usr/bin/ccache
+        RUSTFLAGS=-Dwarnings
+        CARGO_INCREMENTAL=0
       addons:
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'ppa:jonathonf/ffmpeg-3'
           packages:
             - cmake
-            - dbus-x11
-            - freeglut3-dev
-            - gcc-5
-            - g++-5
             - gperf
-            - libavcodec-dev
-            - libavformat-dev
             - libosmesa6-dev
-            - libpulse-dev
             - libgles2-mesa-dev
-            - libswscale-dev
-            - libswresample-dev
-            - pulseaudio
             - python-virtualenv
             - xorg-dev
             - ccache

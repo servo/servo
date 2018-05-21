@@ -1,21 +1,24 @@
 {
   "name": "webidl2",
   "description": "A WebIDL Parser",
-  "version": "2.4.0",
-  "author": "Robin Berjon <robin@berjon.com>",
-  "license": "MIT",
+  "version": "10.2.1",
+  "contributors": [
+    "Robin Berjon <robin@berjon.com> (https://berjon.com)",
+    "Marcos Caceres <marcos@marcosc.com> (https://marcosc.com)",
+    "Kagami Sascha Rosylight <saschaplas@outlook.com>",
+    "Timothy Gu <timothygu99@gmail.com>"
+  ],
+  "license": "W3C",
   "dependencies": {},
   "devDependencies": {
-    "mocha": "3.2.0",
-    "expect": "1.20.2",
-    "underscore": "1.8.3",
-    "jsondiffpatch": "0.2.4",
-    "benchmark": "*",
-    "microtime": "2.1.3"
+    "expect": "22.4.0",
+    "jsondiffpatch": "0.3.5",
+    "mocha": "5.0.4"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "acquire": "node test/util/acquire.js"
   },
-  "repository": "git://github.com/darobin/webidl2.js",
+  "repository": "git://github.com/w3c/webidl2.js",
   "main": "index"
 }

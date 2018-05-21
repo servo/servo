@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Service is removed. Reject with InvalidStateError.';
+const expected = new DOMException('GATT Service no longer exists.',
+    'InvalidStateError');
+let characteristic, fake_peripheral, fake_service;
+
+bluetooth_test(() => getMeasurementIntervalCharacteristic()
+    .then(_ => ({characteristic, fake_peripheral, fake_service} = _))
+    .then(() => fake_service.remove())
+    .then(() => fake_peripheral.simulateGATTServicesChanged())
+    .then(() => assert_promise_rejects_with_message(
+        characteristic.startNotifications(),
+        expected,
+        'Service got removed.')),
+    test_desc);
+</script>

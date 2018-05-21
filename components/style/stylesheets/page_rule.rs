@@ -11,9 +11,10 @@ use cssparser::SourceLocation;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
 use properties::PropertyDeclarationBlock;
 use servo_arc::Arc;
-use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked, SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
-use std::fmt;
-use style_traits::ToCss;
+use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
+use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
+use std::fmt::{self, Write};
+use str::CssStringWriter;
 
 /// A [`@page`][page] rule.
 ///
@@ -44,9 +45,7 @@ impl PageRule {
 impl ToCssWithGuard for PageRule {
     /// Serialization of PageRule is not specced, adapted from steps for
     /// StyleRule.
-    fn to_css<W>(&self, guard: &SharedRwLockReadGuard, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    fn to_css(&self, guard: &SharedRwLockReadGuard, dest: &mut CssStringWriter) -> fmt::Result {
         dest.write_str("@page { ")?;
         let declaration_block = self.block.read_with(guard);
         declaration_block.to_css(dest)?;

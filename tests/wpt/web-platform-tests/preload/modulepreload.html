@@ -53,8 +53,8 @@ promise_test(function(t) {
     link.rel = 'modulepreload';
     link.href = 'resources/module1.js';
     return attachAndWaitForLoad(link).then(() => {
-        // Currently, modulepreload doesn't perform submodules fetch.
         verifyNumberOfDownloads('resources/module1.js', 1);
+        // The load event fires before (optional) submodules fetch.
         verifyNumberOfDownloads('resources/module2.js', 0);
 
         var script = document.createElement('script');
@@ -71,7 +71,7 @@ promise_test(function(t) {
     var link = document.createElement('link');
     link.rel = 'modulepreload';
     link.href = 'resources/syntax-error.js';
-    return attachAndWaitForError(link);
+    return attachAndWaitForLoad(link);
 }, 'link rel=modulepreload for a module with syntax error');
 
 promise_test(function(t) {
@@ -87,6 +87,38 @@ promise_test(function(t) {
     link.href = null;
     return attachAndWaitForError(link);
 }, 'link rel=modulepreload with bad href attribute');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = 'resources/module1.js?as-script';
+    link.as = 'script'
+    return attachAndWaitForLoad(link);
+}, 'link rel=modulepreload as=script');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = 'resources/module1.js?as-image';
+    link.as = 'image'
+    return attachAndWaitForError(link);
+}, 'link rel=modulepreload with invalid as= value');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = 'resources/module1.js?integrity-match';
+    link.integrity = 'sha256-ZPBZ+J9CiHzZXaBBluSeCpjzuTUkT+rSWIdXUV3AtVo='
+    return attachAndWaitForLoad(link);
+}, 'link rel=modulepreload with integrity match');
+
+promise_test(function(t) {
+    var link = document.createElement('link');
+    link.rel = 'modulepreload';
+    link.href = 'resources/module1.js?integrity-doesnotmatch';
+    link.integrity = 'sha384-doesnotmatch'
+    return attachAndWaitForError(link);
+}, 'link rel=modulepreload with integrity mismatch');
 
 </script>
 </body>

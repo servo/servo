@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>border width properties</title>
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-get">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#dom-stylepropertymap-set">
+<link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#property-stle-value-normalization">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../resources/testhelper.js"></script>
+<script src="resources/testsuite.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function assert_is_zero_px(result) {
+  assert_style_value_equals(result, new CSSUnitValue(0, 'px'));
+}
+
+for (const suffix of ['top', 'left', 'right', 'bottom']) {
+  runPropertyTests('border-' + suffix + '-width', [
+    // Computed value is 0 when border-style is 'none'.
+    // FIXME: Add separate test where border-style is not 'none' or 'hidden'.
+    {
+      syntax: 'thin',
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+    {
+      syntax: 'medium',
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+    {
+      syntax: 'thick',
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+    {
+      syntax: '<length>',
+      specified: assert_is_equal_with_range_handling,
+      computed: (_, result) => assert_is_zero_px(result)
+    },
+  ]);
+}
+
+</script>

@@ -4,13 +4,10 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 #![cfg_attr(feature = "unstable", feature(on_unimplemented))]
-#![feature(ascii_ctype)]
-#![feature(conservative_impl_trait)]
 #![feature(const_fn)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(proc_macro)]
-#![feature(splice)]
 #![feature(string_retain)]
 
 #![deny(unsafe_code)]
@@ -21,7 +18,6 @@
 #![plugin(script_plugins)]
 #![cfg_attr(not(feature = "unrooted_must_root_lint"), allow(unknown_lints))]
 
-extern crate angle;
 extern crate app_units;
 extern crate audio_video_metadata;
 extern crate base64;
@@ -31,6 +27,7 @@ extern crate bluetooth_traits;
 extern crate byteorder;
 extern crate canvas_traits;
 extern crate caseless;
+extern crate chrono;
 extern crate cookie as cookie_rs;
 #[macro_use] extern crate cssparser;
 #[macro_use] extern crate deny_public_fields;
@@ -38,12 +35,10 @@ extern crate devtools_traits;
 extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
+extern crate embedder_traits;
 extern crate encoding_rs;
 extern crate euclid;
 extern crate fnv;
-#[allow(unused_extern_crates)]
-#[cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))]
-extern crate gecko_media;
 extern crate gleam;
 extern crate half;
 #[macro_use] extern crate html5ever;
@@ -66,14 +61,13 @@ extern crate metrics;
 extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;
+extern crate mozangle;
 #[macro_use]
 extern crate mozjs as js;
 extern crate msg;
 extern crate net_traits;
-extern crate nonzero;
 extern crate num_traits;
 extern crate offscreen_gl_context;
-extern crate open;
 extern crate parking_lot;
 extern crate phf;
 #[macro_use]
@@ -85,6 +79,7 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde;
+extern crate serde_bytes;
 extern crate servo_allocator;
 extern crate servo_arc;
 #[macro_use] extern crate servo_atoms;
@@ -110,7 +105,6 @@ extern crate xml5ever;
 
 #[macro_use]
 mod task;
-
 mod body;
 pub mod clipboard_provider;
 mod devtools;
@@ -153,7 +147,10 @@ pub mod layout_exports {
 }
 
 use dom::bindings::codegen::RegisterBindings;
+use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::proxyhandler;
+use dom::bindings::utils::is_platform_object;
+use js::jsapi::JSObject;
 use script_traits::SWManagerSenders;
 use serviceworker_manager::ServiceWorkerManager;
 
@@ -204,6 +201,11 @@ pub fn init_service_workers(sw_senders: SWManagerSenders) {
 }
 
 #[allow(unsafe_code)]
+unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
+  !obj.is_null() && (is_platform_object(obj) || is_dom_proxy(obj))
+}
+
+#[allow(unsafe_code)]
 pub fn init() {
     unsafe {
         proxyhandler::init();
@@ -211,6 +213,8 @@ pub fn init() {
         // Create the global vtables used by the (generated) DOM
         // bindings to implement JS proxies.
         RegisterBindings::RegisterProxyHandlers();
+
+        js::glue::InitializeMemoryReporter(Some(is_dom_object));
     }
 
     perform_platform_specific_initialization();

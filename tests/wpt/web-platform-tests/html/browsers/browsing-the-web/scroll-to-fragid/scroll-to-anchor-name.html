@@ -8,6 +8,7 @@
 <a name="anchor1" style="position:absolute; top:200px;"></a>
 <div id="id-equals-anchor" style="position:absolute; top:300px;"></div>
 <a name="id-equals-anchor" style="position:absolute; top:400px;"></a>
+<a name="§1" style="position:absolute; top:400px;"></a>
 <div style="height:200em;"></div>
 <script>
 var steps = [{
@@ -20,6 +21,11 @@ var steps = [{
       handler: function(){
         // id still takes precedence over anchor name
         assert_equals( scrollPosition(), 300 );
+      }
+    },{
+      fragid:'§1',
+      handler: function(){
+        assert_equals( scrollPosition(), 400 );
       }
     }];
 

@@ -14,8 +14,6 @@ import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
 
-from mach.registrar import Registrar
-
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
@@ -24,9 +22,8 @@ from mach.decorators import (
 
 from servo.command_base import (
     CommandBase,
-    call, check_call,
-    is_linux, is_windows, is_macosx, set_osmesa_env,
-    get_browserhtml_path,
+    check_call, check_output, BIN_SUFFIX,
+    is_linux, set_osmesa_env,
 )
 
 
@@ -55,17 +52,19 @@ class PostBuildCommands(CommandBase):
                           'have no effect without this.')
     @CommandArgument('--debugger', default=None, type=str,
                      help='Name of debugger to use.')
-    @CommandArgument('--browserhtml', '-b', action='store_true',
-                     help='Launch with Browser.html')
     @CommandArgument('--headless', '-z', action='store_true',
                      help='Launch in headless mode')
     @CommandArgument('--software', '-s', action='store_true',
                      help='Launch with software rendering')
+    @CommandArgument('--bin', default=None,
+                     help='Launch with specific binary')
+    @CommandArgument('--nightly', '-n', default=None,
+                     help='Specify a YYYY-MM-DD nightly build to run')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False,
-            headless=False, software=False):
+    def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
+            headless=False, software=False, bin=None, nightly=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -98,21 +97,7 @@ class PostBuildCommands(CommandBase):
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
-        args = [self.get_binary_path(release, dev)]
-
-        if browserhtml:
-            browserhtml_path = get_browserhtml_path(args[0])
-            if is_macosx():
-                # Enable borderless on OSX
-                args = args + ['-b']
-            elif is_windows():
-                # Convert to a relative path to avoid mingw -> Windows path conversions
-                browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
-
-            args = args + ['--pref', 'dom.mozbrowser.enabled',
-                           '--pref', 'dom.forcetouch.enabled',
-                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                           path.join(browserhtml_path, 'index.html')]
+        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev)]
 
         if headless:
             set_osmesa_env(args[0], env)
@@ -175,14 +160,19 @@ class PostBuildCommands(CommandBase):
                      help='Use release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Use dev build')
+    @CommandArgument('--bin', default=None,
+                     help='Launch with specific binary')
+    @CommandArgument('--nightly', '-n', default=None,
+                     help='Specify a YYYY-MM-DD nightly build to run')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
-    def rr_record(self, release=False, dev=False, params=[]):
+    def rr_record(self, release=False, dev=False, bin=None, nightly=None, params=[]):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [self.get_binary_path(release, dev)] + params
+        servo_cmd = [bin or self.get_nightly_binary_path(nightly) or
+                     self.get_binary_path(release, dev)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)
@@ -211,10 +201,14 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     def doc(self, params):
+        env = os.environ.copy()
+        env["RUSTUP_TOOLCHAIN"] = self.toolchain()
+        rustc_path = check_output(["rustup" + BIN_SUFFIX, "which", "rustc"], env=env)
+        assert path.basename(path.dirname(rustc_path)) == "bin"
+        toolchain_path = path.dirname(path.dirname(rustc_path))
+        rust_docs = path.join(toolchain_path, "share", "doc", "rust", "html")
+
         self.ensure_bootstrapped()
-        if not path.exists(path.join(self.config["tools"]["rust-root"], "doc")):
-            Registrar.dispatch("bootstrap-rust-docs", context=self.context)
-        rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
         docs = path.join(self.get_target_dir(), "doc")
         if not path.exists(docs):
             os.makedirs(docs)
@@ -234,8 +228,10 @@ class PostBuildCommands(CommandBase):
                     else:
                         copy2(full_name, destination)
 
-        return call(["cargo", "doc"] + params,
-                    env=self.build_env(), cwd=self.servo_crate())
+        return self.call_rustup_run(
+            ["cargo", "doc", "--manifest-path", self.servo_manifest()] + params,
+            env=self.build_env()
+        )
 
     @Command('browse-doc',
              description='Generate documentation and open it in a web browser',

@@ -29,4 +29,7 @@ interface PerformanceTiming {
   readonly attribute unsigned long long domComplete;
   readonly attribute unsigned long long loadEventStart;
   readonly attribute unsigned long long loadEventEnd;
+  /* Servo-onnly attribute for measuring when the top-level document (not iframes) is complete. */
+  [Pref="dom.testperf.enabled"]
+  readonly attribute unsigned long long topLevelDomComplete;
 };

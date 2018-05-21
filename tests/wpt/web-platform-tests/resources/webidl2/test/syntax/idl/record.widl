@@ -6,3 +6,7 @@ interface Foo {
   // Make sure record can still be registered as a type.
   record baz();
 };
+
+interface Bar {
+  record<DOMString, [XAttr] float> bar();
+};

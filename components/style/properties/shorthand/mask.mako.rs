@@ -36,8 +36,10 @@
         }
     }
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         % for name in "image mode position_x position_y size repeat origin clip composite".split():
             // Vec grows from 0 to 4 by default on first push().  So allocate
             // with capacity 1, so in the common case of only one item we don't
@@ -121,7 +123,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             use properties::longhands::mask_origin::single_value::computed_value::T as Origin;
             use properties::longhands::mask_clip::single_value::computed_value::T as Clip;
 
@@ -214,7 +216,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             let len = self.mask_position_x.0.len();
             if len == 0 || self.mask_position_y.0.len() != len {
                 return Ok(());

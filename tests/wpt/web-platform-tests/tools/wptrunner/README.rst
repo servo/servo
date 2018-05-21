@@ -23,7 +23,7 @@ The ``wptrunner`` command  takes multiple options, of which the
 following are most significant:
 
 ``--product`` (defaults to `firefox`)
-  The product to test against: `b2g`, `chrome`, `firefox`, or `servo`.
+  The product to test against: `chrome`, `firefox`, or `servo`.
 
 ``--binary`` (required if product is `firefox` or `servo`)
   The path to a binary file for the product (browser) to test against.
@@ -179,7 +179,7 @@ Simple key-value pairs are of the form::
 
   key: value
 
-Note that unlike ini files, only `:` is a valid seperator; `=` will
+Note that unlike ini files, only `:` is a valid separator; `=` will
 not work as expected. Key-value pairs may also have conditional
 values of the form::
 
@@ -197,7 +197,7 @@ language e.g.::
 
   if debug and (platform == "linux" or platform == "osx"): FAIL
 
-For test expectations the avaliable variables are those in the
+For test expectations the available variables are those in the
 `run_info` which for desktop are `version`, `os`, `bits`, `processor`,
 `debug` and `product`.
 

@@ -24,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX, is_macosx
+from servo.command_base import CommandBase, cd, call, check_call, BIN_SUFFIX
 from servo.util import host_triple
 
 
@@ -167,6 +167,9 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
+    @CommandArgument('--very-verbose', '-vv',
+                     action='store_true',
+                     help='Print very verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandArgument('--with-debug-assertions',
@@ -174,8 +177,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Enable debug assertions in release')
     def build(self, target=None, release=False, dev=False, jobs=None,
-              features=None, android=None, verbose=False, debug_mozjs=False, params=None,
-              with_debug_assertions=False):
+              features=None, android=None, verbose=False, very_verbose=False,
+              debug_mozjs=False, params=None, with_debug_assertions=False):
 
         opts = params or []
         opts += ["--manifest-path", self.servo_manifest()]
@@ -223,11 +226,20 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if very_verbose:
+            opts += ["-vv"]
 
         if android:
             target = self.config["android"]["target"]
 
         if target:
+            if self.config["tools"]["use-rustup"]:
+                # 'rustup target add' fails if the toolchain is not installed at all.
+                self.call_rustup_run(["rustc", "--version"])
+
+                check_call(["rustup" + BIN_SUFFIX, "target", "add",
+                            "--toolchain", self.toolchain(), target])
+
             opts += ["--target", target]
             if not android:
                 android = self.handle_android_target(target)
@@ -335,19 +347,13 @@ class MachCommands(CommandBase):
                 os.makedirs(aar_out_dir)
             env["AAR_OUT_DIR"] = aar_out_dir
 
-        cargo_binary = "cargo" + BIN_SUFFIX
-
-        status = call(
-            [cargo_binary, "build"] + opts, env=env, verbose=verbose)
+        status = self.call_rustup_run(["cargo", "build"] + opts, env=env, verbose=verbose)
         elapsed = time() - build_start
 
         # Do some additional things if the build succeeded
         if status == 0:
             if sys.platform == "win32":
                 servo_exe_dir = path.join(base_path, "debug" if dev else "release")
-                # On windows, copy in our manifest
-                shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
-                            servo_exe_dir)
 
                 msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
                 # on msvc builds, use editbin to change the subsystem to windows, but only
@@ -379,106 +385,6 @@ class MachCommands(CommandBase):
 
         print("Build %s in %s" % ("Completed" if status == 0 else "FAILED", format_duration(elapsed)))
         return status
-
-    @Command('build-cef',
-             description='Build the Chromium Embedding Framework library',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    @CommandArgument('--with-debug-assertions',
-                     default=None,
-                     action='store_true',
-                     help='Enable debug assertions in release')
-    def build_cef(self, jobs=None, verbose=False, release=False,
-                  with_debug_assertions=False):
-        self.ensure_bootstrapped()
-        self.ensure_clobbered()
-
-        ret = None
-        opts = ["-p", "embedding"]
-
-        if jobs is not None:
-            opts += ["-j", jobs]
-        if verbose:
-            opts += ["-v"]
-        if release:
-            opts += ["--release"]
-
-        servo_features = self.servo_features()
-        if servo_features:
-            opts += ["--features", "%s" % ' '.join(servo_features)]
-
-        build_start = time()
-        env = self.build_env(is_build=True)
-
-        if with_debug_assertions:
-            env["RUSTFLAGS"] = "-C debug_assertions"
-
-        if is_macosx():
-            # Unlike RUSTFLAGS, these are only passed in the final rustc invocation
-            # so that `./mach build` followed by `./mach build-cef` both build
-            # common dependencies with the same flags.
-            opts += ["--", "-C", "link-args=-Xlinker -undefined -Xlinker dynamic_lookup"]
-
-        ret = call(["cargo", "rustc"] + opts, env=env, verbose=verbose)
-        elapsed = time() - build_start
-
-        # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(self.config, elapsed)
-
-        print("CEF build completed in %s" % format_duration(elapsed))
-
-        return ret
-
-    @Command('build-geckolib',
-             description='Build a static library of components used by Gecko',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    def build_geckolib(self, jobs=None, verbose=False, release=False):
-        self.set_use_stable_rust()
-        self.ensure_bootstrapped()
-        self.ensure_clobbered()
-
-        env = self.build_env(is_build=True, geckolib=True)
-
-        ret = None
-        opts = ["-p", "geckoservo"]
-        features = []
-
-        if jobs is not None:
-            opts += ["-j", jobs]
-        if verbose:
-            opts += ["-v"]
-        if release:
-            opts += ["--release"]
-        if features:
-            opts += ["--features", ' '.join(features)]
-
-        build_start = time()
-        ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
-        elapsed = time() - build_start
-
-        # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(self.config, elapsed)
-
-        print("GeckoLib build completed in %s" % format_duration(elapsed))
-
-        return ret
 
     @Command('clean',
              description='Clean the build directory.',

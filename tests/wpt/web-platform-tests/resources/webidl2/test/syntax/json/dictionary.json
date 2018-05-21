@@ -9,10 +9,10 @@
                 "name": "fillPattern",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -27,10 +27,10 @@
                 "name": "strokePattern",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": true,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -44,10 +44,10 @@
                 "name": "position",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Point"
                 },
@@ -58,16 +58,16 @@
                 "name": "seq",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": true,
                     "generic": "sequence",
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": {
+                        "type": "dictionary-type",
                         "sequence": false,
                         "generic": null,
                         "nullable": false,
-                        "array": false,
                         "union": false,
                         "idlType": "long"
                     }
@@ -83,10 +83,10 @@
                 "name": "reqSeq",
                 "required": true,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "long"
                 },
@@ -106,10 +106,10 @@
                 "name": "h",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "long"
                 },
@@ -120,10 +120,10 @@
                 "name": "d",
                 "required": false,
                 "idlType": {
+                    "type": "dictionary-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "long"
                 },

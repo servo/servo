@@ -5,10 +5,8 @@
 //! Generic types for CSS values that are related to transformations.
 
 use app_units::Au;
-use euclid::{Radians, Rect, Transform3D};
+use euclid::{self, Rect, Transform3D};
 use num_traits::Zero;
-use std::fmt;
-use style_traits::ToCss;
 use values::{computed, CSSFloat};
 use values::computed::length::Length as ComputedLength;
 use values::computed::length::LengthOrPercentage as ComputedLengthOrPercentage;
@@ -17,25 +15,28 @@ use values::specified::length::LengthOrPercentage as SpecifiedLengthOrPercentage
 
 /// A generic 2D transformation matrix.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 #[css(comma, function)]
-pub struct Matrix<T, U = T> {
+pub struct Matrix<T> {
     pub a: T,
     pub b: T,
     pub c: T,
     pub d: T,
-    pub e: U,
-    pub f: U,
+    pub e: T,
+    pub f: T,
 }
 
 #[allow(missing_docs)]
 #[cfg_attr(rustfmt, rustfmt_skip)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-pub struct Matrix3D<T, U = T, V = T> {
+#[css(comma, function = "matrix3d")]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
+pub struct Matrix3D<T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
     pub m21: T, pub m22: T, pub m23: T, pub m24: T,
     pub m31: T, pub m32: T, pub m33: T, pub m34: T,
-    pub m41: U, pub m42: U, pub m43: V, pub m44: T,
+    pub m41: T, pub m42: T, pub m43: T, pub m44: T,
 }
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
@@ -65,8 +66,8 @@ impl<T: Into<f64>> From<Matrix3D<T>> for Transform3D<f64> {
 }
 
 /// A generic transform origin.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug)]
-#[derive(MallocSizeOf, PartialEq, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
+         PartialEq, SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 pub struct TransformOrigin<H, V, Depth> {
     /// The horizontal origin.
     pub horizontal: H,
@@ -79,12 +80,15 @@ pub struct TransformOrigin<H, V, Depth> {
 /// A generic timing function.
 ///
 /// <https://drafts.csswg.org/css-timing-1/#single-timing-function-production>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
+#[value_info(ty = "TIMING_FUNCTION")]
 pub enum TimingFunction<Integer, Number> {
     /// `linear | ease | ease-in | ease-out | ease-in-out`
     Keyword(TimingKeyword),
     /// `cubic-bezier(<number>, <number>, <number>, <number>)`
     #[allow(missing_docs)]
+    #[css(comma, function)]
     CubicBezier {
         x1: Number,
         y1: Number,
@@ -92,25 +96,38 @@ pub enum TimingFunction<Integer, Number> {
         y2: Number,
     },
     /// `step-start | step-end | steps(<integer>, [ start | end ]?)`
-    Steps(Integer, StepPosition),
+    #[css(comma, function)]
+    #[value_info(other_values = "step-start,step-end")]
+    Steps(Integer, #[css(skip_if = "is_end")] StepPosition),
     /// `frames(<integer>)`
+    #[css(comma, function)]
     Frames(Integer),
 }
 
-define_css_keyword_enum! { TimingKeyword:
-    "linear" => Linear,
-    "ease" => Ease,
-    "ease-in" => EaseIn,
-    "ease-out" => EaseOut,
-    "ease-in-out" => EaseInOut,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
+pub enum TimingKeyword {
+    Linear,
+    Ease,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
 }
-add_impls_for_keyword_enum!(TimingKeyword);
 
-define_css_keyword_enum! { StepPosition:
-    "start" => Start,
-    "end" => End,
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+pub enum StepPosition {
+    Start,
+    End,
 }
-add_impls_for_keyword_enum!(StepPosition);
+
+#[inline]
+fn is_end(position: &StepPosition) -> bool {
+    *position == StepPosition::End
+}
 
 impl<H, V, D> TransformOrigin<H, V, D> {
     /// Returns a new transform origin.
@@ -131,51 +148,6 @@ impl<Integer, Number> TimingFunction<Integer, Number> {
     }
 }
 
-impl<Integer, Number> ToCss for TimingFunction<Integer, Number>
-where
-    Integer: ToCss,
-    Number: ToCss,
-{
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        match *self {
-            TimingFunction::Keyword(keyword) => keyword.to_css(dest),
-            TimingFunction::CubicBezier {
-                ref x1,
-                ref y1,
-                ref x2,
-                ref y2,
-            } => {
-                dest.write_str("cubic-bezier(")?;
-                x1.to_css(dest)?;
-                dest.write_str(", ")?;
-                y1.to_css(dest)?;
-                dest.write_str(", ")?;
-                x2.to_css(dest)?;
-                dest.write_str(", ")?;
-                y2.to_css(dest)?;
-                dest.write_str(")")
-            },
-            TimingFunction::Steps(ref intervals, position) => {
-                dest.write_str("steps(")?;
-                intervals.to_css(dest)?;
-                if position != StepPosition::End {
-                    dest.write_str(", ")?;
-                    position.to_css(dest)?;
-                }
-                dest.write_str(")")
-            },
-            TimingFunction::Frames(ref frames) => {
-                dest.write_str("frames(")?;
-                frames.to_css(dest)?;
-                dest.write_str(")")
-            },
-        }
-    }
-}
-
 impl TimingKeyword {
     /// Returns the keyword as a quadruplet of Bezier point coordinates
     /// `(x1, y1, x2, y2)`.
@@ -191,40 +163,41 @@ impl TimingKeyword {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// A single operation in the list of a `transform` value
-pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage> {
     /// Represents a 2D 2x3 matrix.
     Matrix(Matrix<Number>),
-    /// Represents a 3D 4x4 matrix with percentage and length values.
-    /// For `moz-transform`.
-    PrefixedMatrix(Matrix<Number, LoPoNumber>),
     /// Represents a 3D 4x4 matrix.
-    #[allow(missing_docs)]
     Matrix3D(Matrix3D<Number>),
-    /// Represents a 3D 4x4 matrix with percentage and length values.
-    /// For `moz-transform`.
-    #[allow(missing_docs)]
-    PrefixedMatrix3D(Matrix3D<Number, LoPoNumber, LengthOrNumber>),
     /// A 2D skew.
     ///
     /// If the second angle is not provided it is assumed zero.
     ///
     /// Syntax can be skew(angle) or skew(angle, angle)
+    #[css(comma, function)]
     Skew(Angle, Option<Angle>),
     /// skewX(angle)
+    #[css(function = "skewX")]
     SkewX(Angle),
     /// skewY(angle)
+    #[css(function = "skewY")]
     SkewY(Angle),
     /// translate(x, y) or translate(x)
+    #[css(comma, function)]
     Translate(LengthOrPercentage, Option<LengthOrPercentage>),
     /// translateX(x)
+    #[css(function = "translateX")]
     TranslateX(LengthOrPercentage),
     /// translateY(y)
+    #[css(function = "translateY")]
     TranslateY(LengthOrPercentage),
     /// translateZ(z)
+    #[css(function = "translateZ")]
     TranslateZ(Length),
     /// translate3d(x, y, z)
+    #[css(comma, function = "translate3d")]
     Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
     /// A 2D scaling factor.
     ///
@@ -234,28 +207,38 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     /// Negative values are allowed and flip the element.
     ///
     /// Syntax can be scale(factor) or scale(factor, factor)
+    #[css(comma, function)]
     Scale(Number, Option<Number>),
     /// scaleX(factor)
+    #[css(function = "scaleX")]
     ScaleX(Number),
     /// scaleY(factor)
+    #[css(function = "scaleY")]
     ScaleY(Number),
     /// scaleZ(factor)
+    #[css(function = "scaleZ")]
     ScaleZ(Number),
     /// scale3D(factorX, factorY, factorZ)
+    #[css(comma, function = "scale3d")]
     Scale3D(Number, Number, Number),
     /// Describes a 2D Rotation.
     ///
     /// In a 3D scene `rotate(angle)` is equivalent to `rotateZ(angle)`.
+    #[css(function)]
     Rotate(Angle),
     /// Rotation in 3D space around the x-axis.
+    #[css(function = "rotateX")]
     RotateX(Angle),
     /// Rotation in 3D space around the y-axis.
+    #[css(function = "rotateY")]
     RotateY(Angle),
     /// Rotation in 3D space around the z-axis.
+    #[css(function = "rotateZ")]
     RotateZ(Angle),
     /// Rotation in 3D space.
     ///
     /// Generalization of rotateX, rotateY and rotateZ.
+    #[css(comma, function = "rotate3d")]
     Rotate3D(Number, Number, Number, Angle),
     /// Specifies a perspective projection matrix.
     ///
@@ -263,80 +246,43 @@ pub enum TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, Leng
     /// [§ 13.1. 3D Transform Function](https://drafts.csswg.org/css-transforms-2/#funcdef-perspective).
     ///
     /// The value must be greater than or equal to zero.
+    #[css(function)]
     Perspective(Length),
     /// A intermediate type for interpolation of mismatched transform lists.
     #[allow(missing_docs)]
+    #[css(comma, function = "interpolatematrix")]
     InterpolateMatrix {
-        #[compute(ignore_bound)]
-        from_list: Transform<
-            TransformOperation<
-                Angle,
-                Number,
-                Length,
-                Integer,
-                LengthOrNumber,
-                LengthOrPercentage,
-                LoPoNumber,
-            >,
-        >,
-        #[compute(ignore_bound)]
-        to_list: Transform<
-            TransformOperation<
-                Angle,
-                Number,
-                Length,
-                Integer,
-                LengthOrNumber,
-                LengthOrPercentage,
-                LoPoNumber,
-            >,
-        >,
-        #[compute(clone)]
+        from_list:
+            Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
+        to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
         progress: computed::Percentage,
     },
     /// A intermediate type for accumulation of mismatched transform lists.
     #[allow(missing_docs)]
+    #[css(comma, function = "accumulatematrix")]
     AccumulateMatrix {
-        #[compute(ignore_bound)]
-        from_list: Transform<
-            TransformOperation<
-                Angle,
-                Number,
-                Length,
-                Integer,
-                LengthOrNumber,
-                LengthOrPercentage,
-                LoPoNumber,
-            >,
-        >,
-        #[compute(ignore_bound)]
-        to_list: Transform<
-            TransformOperation<
-                Angle,
-                Number,
-                Length,
-                Integer,
-                LengthOrNumber,
-                LengthOrPercentage,
-                LoPoNumber,
-            >,
-        >,
+        from_list:
+            Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
+        to_list: Transform<TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>>,
         count: Integer,
     },
 }
 
-#[derive(Animate, ToComputedValue)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
 /// A value of the `transform` property
-pub struct Transform<T>(pub Vec<T>);
+pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 
-impl<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber>
-    TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
+impl<Angle, Number, Length, Integer, LengthOrPercentage>
+    TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>
+{
     /// Check if it is any translate function
     pub fn is_translate(&self) -> bool {
         use self::TransformOperation::*;
         match *self {
-            Translate(..) | Translate3D(..) | TranslateX(..) | TranslateY(..) | TranslateZ(..) => true,
+            Translate(..) | Translate3D(..) | TranslateX(..) | TranslateY(..) | TranslateZ(..) => {
+                true
+            },
             _ => false,
         }
     }
@@ -406,7 +352,7 @@ impl ToAbsoluteLength for ComputedLengthOrPercentage {
             // If we don't have reference box, we cannot resolve the used value,
             // so only retrieve the length part. This will be used for computing
             // distance without any layout info.
-            None => Ok(extract_pixel_length(self))
+            None => Ok(extract_pixel_length(self)),
         }
     }
 }
@@ -420,8 +366,8 @@ pub trait ToMatrix {
     fn to_3d_matrix(&self, reference_box: Option<&Rect<Au>>) -> Result<Transform3D<f64>, ()>;
 }
 
-impl<Angle, Number, Length, Integer, LoN, LoP, LoPoNumber> ToMatrix
-    for TransformOperation<Angle, Number, Length, Integer, LoN, LoP, LoPoNumber>
+impl<Angle, Number, Length, Integer, LoP> ToMatrix
+    for TransformOperation<Angle, Number, Length, Integer, LoP>
 where
     Angle: Copy + AsRef<computed::angle::Angle>,
     Number: Copy + Into<f32> + Into<f64>,
@@ -432,10 +378,8 @@ where
     fn is_3d(&self) -> bool {
         use self::TransformOperation::*;
         match *self {
-            Translate3D(..) | TranslateZ(..) |
-            Rotate3D(..) | RotateX(..) | RotateY(..) | RotateZ(..) |
-            Scale3D(..) | ScaleZ(..) |
-            Perspective(..) | Matrix3D(..) | PrefixedMatrix3D(..) => true,
+            Translate3D(..) | TranslateZ(..) | Rotate3D(..) | RotateX(..) | RotateY(..) |
+            RotateZ(..) | Scale3D(..) | ScaleZ(..) | Perspective(..) | Matrix3D(..) => true,
             _ => false,
         }
     }
@@ -457,23 +401,29 @@ where
                 let theta = TWO_PI - theta.as_ref().radians64();
                 let (ax, ay, az, theta) =
                     get_normalized_vector_and_angle(ax.into(), ay.into(), az.into(), theta);
-                Transform3D::create_rotation(ax as f64, ay as f64, az as f64, Radians::new(theta))
+                Transform3D::create_rotation(
+                    ax as f64,
+                    ay as f64,
+                    az as f64,
+                    euclid::Angle::radians(theta),
+                )
             },
             RotateX(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(1., 0., 0., theta)
             },
             RotateY(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(0., 1., 0., theta)
             },
             RotateZ(theta) | Rotate(theta) => {
-                let theta = Radians::new(TWO_PI - theta.as_ref().radians64());
+                let theta = euclid::Angle::radians(TWO_PI - theta.as_ref().radians64());
                 Transform3D::create_rotation(0., 0., 1., theta)
             },
             Perspective(ref d) => {
                 let m = create_perspective_matrix(d.to_pixel_length(None)?);
-                m.cast().expect("Casting from f32 to f64 should be successful")
+                m.cast()
+                    .expect("Casting from f32 to f64 should be successful")
             },
             Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
             Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.unwrap_or(sx).into(), 1.),
@@ -501,30 +451,20 @@ where
             TranslateZ(ref z) => {
                 Transform3D::create_translation(0., 0., z.to_pixel_length(None)? as f64)
             },
-            Skew(theta_x, theta_y) => {
-                Transform3D::create_skew(
-                    Radians::new(theta_x.as_ref().radians64()),
-                    Radians::new(theta_y.map_or(0., |a| a.as_ref().radians64())),
-                )
-            },
-            SkewX(theta) => {
-                Transform3D::create_skew(
-                    Radians::new(theta.as_ref().radians64()),
-                    Radians::new(0.),
-                )
-            },
-            SkewY(theta) => {
-                Transform3D::create_skew(
-                    Radians::new(0.),
-                    Radians::new(theta.as_ref().radians64()),
-                )
-            },
+            Skew(theta_x, theta_y) => Transform3D::create_skew(
+                euclid::Angle::radians(theta_x.as_ref().radians64()),
+                euclid::Angle::radians(theta_y.map_or(0., |a| a.as_ref().radians64())),
+            ),
+            SkewX(theta) => Transform3D::create_skew(
+                euclid::Angle::radians(theta.as_ref().radians64()),
+                euclid::Angle::radians(0.),
+            ),
+            SkewY(theta) => Transform3D::create_skew(
+                euclid::Angle::radians(0.),
+                euclid::Angle::radians(theta.as_ref().radians64()),
+            ),
             Matrix3D(m) => m.into(),
             Matrix(m) => m.into(),
-            PrefixedMatrix3D(_) | PrefixedMatrix(_) => {
-                unreachable!("-moz-transform` is not implemented in Servo yet, and DOMMatrix \
-                              doesn't support this")
-            },
             InterpolateMatrix { .. } | AccumulateMatrix { .. } => {
                 // TODO: Convert InterpolateMatrix/AccumulateMatrix into a valid Transform3D by
                 // the reference box and do interpolation on these two Transform3D matrices.
@@ -536,138 +476,6 @@ where
             },
         };
         Ok(matrix)
-    }
-}
-
-#[cfg_attr(rustfmt, rustfmt_skip)]
-impl<Angle: ToCss + Copy, Number: ToCss + Copy, Length: ToCss,
-     Integer: ToCss + Copy, LengthOrNumber: ToCss, LengthOrPercentage: ToCss, LoPoNumber: ToCss>
-    ToCss for
-    TransformOperation<Angle, Number, Length, Integer, LengthOrNumber, LengthOrPercentage, LoPoNumber> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            TransformOperation::Matrix(ref m) => m.to_css(dest),
-            TransformOperation::PrefixedMatrix(ref m) => m.to_css(dest),
-            TransformOperation::Matrix3D(Matrix3D {
-                m11, m12, m13, m14,
-                m21, m22, m23, m24,
-                m31, m32, m33, m34,
-                m41, m42, m43, m44,
-            }) => {
-                serialize_function!(dest, matrix3d(
-                    m11, m12, m13, m14,
-                    m21, m22, m23, m24,
-                    m31, m32, m33, m34,
-                    m41, m42, m43, m44,
-                ))
-            }
-            TransformOperation::PrefixedMatrix3D(Matrix3D {
-                m11, m12, m13, m14,
-                m21, m22, m23, m24,
-                m31, m32, m33, m34,
-                ref m41, ref m42, ref m43, m44,
-            }) => {
-                serialize_function!(dest, matrix3d(
-                    m11, m12, m13, m14,
-                    m21, m22, m23, m24,
-                    m31, m32, m33, m34,
-                    m41, m42, m43, m44,
-                ))
-            }
-            TransformOperation::Skew(ax, None) => {
-                serialize_function!(dest, skew(ax))
-            }
-            TransformOperation::Skew(ax, Some(ay)) => {
-                serialize_function!(dest, skew(ax, ay))
-            }
-            TransformOperation::SkewX(angle) => {
-                serialize_function!(dest, skewX(angle))
-            }
-            TransformOperation::SkewY(angle) => {
-                serialize_function!(dest, skewY(angle))
-            }
-            TransformOperation::Translate(ref tx, None) => {
-                serialize_function!(dest, translate(tx))
-            }
-            TransformOperation::Translate(ref tx, Some(ref ty)) => {
-                serialize_function!(dest, translate(tx, ty))
-            }
-            TransformOperation::TranslateX(ref tx) => {
-                serialize_function!(dest, translateX(tx))
-            }
-            TransformOperation::TranslateY(ref ty) => {
-                serialize_function!(dest, translateY(ty))
-            }
-            TransformOperation::TranslateZ(ref tz) => {
-                serialize_function!(dest, translateZ(tz))
-            }
-            TransformOperation::Translate3D(ref tx, ref ty, ref tz) => {
-                serialize_function!(dest, translate3d(tx, ty, tz))
-            }
-            TransformOperation::Scale(factor, None) => {
-                serialize_function!(dest, scale(factor))
-            }
-            TransformOperation::Scale(sx, Some(sy)) => {
-                serialize_function!(dest, scale(sx, sy))
-            }
-            TransformOperation::ScaleX(sx) => {
-                serialize_function!(dest, scaleX(sx))
-            }
-            TransformOperation::ScaleY(sy) => {
-                serialize_function!(dest, scaleY(sy))
-            }
-            TransformOperation::ScaleZ(sz) => {
-                serialize_function!(dest, scaleZ(sz))
-            }
-            TransformOperation::Scale3D(sx, sy, sz) => {
-                serialize_function!(dest, scale3d(sx, sy, sz))
-            }
-            TransformOperation::Rotate(theta) => {
-                serialize_function!(dest, rotate(theta))
-            }
-            TransformOperation::RotateX(theta) => {
-                serialize_function!(dest, rotateX(theta))
-            }
-            TransformOperation::RotateY(theta) => {
-                serialize_function!(dest, rotateY(theta))
-            }
-            TransformOperation::RotateZ(theta) => {
-                serialize_function!(dest, rotateZ(theta))
-            }
-            TransformOperation::Rotate3D(x, y, z, theta) => {
-                serialize_function!(dest, rotate3d(x, y, z, theta))
-            }
-            TransformOperation::Perspective(ref length) => {
-                serialize_function!(dest, perspective(length))
-            }
-            TransformOperation::InterpolateMatrix { ref from_list, ref to_list, progress } => {
-                serialize_function!(dest, interpolatematrix(from_list, to_list, progress))
-            }
-            TransformOperation::AccumulateMatrix { ref from_list, ref to_list, count } => {
-                serialize_function!(dest, accumulatematrix(from_list, to_list, count))
-            }
-        }
-    }
-}
-
-impl<T: ToCss> ToCss for Transform<T> {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        if self.0.is_empty() {
-            return dest.write_str("none");
-        }
-
-        let mut first = true;
-        for operation in &self.0 {
-            if !first {
-                dest.write_str(" ")?;
-            }
-            first = false;
-            operation.to_css(dest)?
-        }
-        Ok(())
     }
 }
 
@@ -752,4 +560,61 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
         let vector = vector.normalize();
         (vector.x, vector.y, vector.z, angle)
     }
+}
+
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
+/// A value of the `Rotate` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Rotate<Number, Angle> {
+    /// 'none'
+    None,
+    /// '<angle>'
+    Rotate(Angle),
+    /// '<number>{3} <angle>'
+    Rotate3D(Number, Number, Number, Angle),
+}
+
+#[derive(Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
+/// A value of the `Scale` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Scale<Number> {
+    /// 'none'
+    None,
+    /// '<number>'
+    ScaleX(Number),
+    /// '<number>{2}'
+    Scale(Number, Number),
+    /// '<number>{3}'
+    Scale3D(Number, Number, Number),
+}
+
+#[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
+/// A value of the `Translate` property
+///
+/// <https://drafts.csswg.org/css-transforms-2/#individual-transforms>
+pub enum Translate<LengthOrPercentage, Length> {
+    /// 'none'
+    None,
+    /// '<length-percentage>'
+    TranslateX(LengthOrPercentage),
+    /// '<length-percentage> <length-percentage>'
+    Translate(LengthOrPercentage, LengthOrPercentage),
+    /// '<length-percentage> <length-percentage> <length>'
+    Translate3D(LengthOrPercentage, LengthOrPercentage, Length),
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
+pub enum TransformStyle {
+    #[cfg(feature = "servo")]
+    Auto,
+    Flat,
+    #[css(keyword = "preserve-3d")]
+    Preserve3d,
 }

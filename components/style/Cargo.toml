@@ -16,70 +16,68 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring", "num_cpus",
+gecko = ["num_cpus",
          "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
-         "cssparser/serde", "encoding_rs", "malloc_size_of/servo",
-
-         # FIXME: Uncomment when https://github.com/servo/servo/pull/16953 has landed:
-         #"arrayvec/use_union"
-
-         "servo_url"]
-gecko_debug = ["nsstring/gecko_debug"]
+         "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
+         "servo_url", "string_cache"]
+gecko_debug = []
 
 [dependencies]
-app_units = "0.5.5"
-arrayvec = "0.3.20"
+app_units = "0.6"
+arrayvec = "0.4.6"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
 cssparser = "0.23.0"
+debug_unreachable = "0.1.1"
 encoding_rs = {version = "0.7", optional = true}
-euclid = "0.15"
+euclid = "0.17"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
-html5ever = {version = "0.21", optional = true}
-itertools = "0.5"
-itoa = "0.3"
+html5ever = {version = "0.22", optional = true}
+itertools = "0.7.6"
+itoa = "0.4"
 lazy_static = "1"
-log = "0.3"
+log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
-nsstring = {path = "../../support/gecko/nsstring", optional = true}
 num_cpus = {version = "1.1.0", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
 ordered-float = "0.4"
 owning_ref = "0.3.3"
-parking_lot = "0.4"
+parking_lot = "0.5"
 precomputed-hash = "0.1.1"
-rayon = "0.8.2"
+rayon = "1"
 selectors = { path = "../selectors" }
 serde = {version = "1.0", optional = true, features = ["derive"]}
 servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
-smallbitvec = "1.0.6"
+smallbitvec = "2.1.0"
 smallvec = "0.6"
+string_cache = { version = "0.7", optional = true }
 style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
 time = "0.1"
-uluru = "0.1"
+uluru = "0.2"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
+void = "1.0.2"
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
 
 [build-dependencies]
 lazy_static = "1"
-log = "0.3"
-bindgen = { version = "0.31.2", optional = true }
+log = "0.4"
+bindgen = { version = "0.36", optional = true, default-features = false }
 regex = {version = "0.2", optional = true}
-walkdir = "1.0"
-toml = {version = "0.2.1", optional = true, default-features = false}
+walkdir = "2.1.4"
+toml = {version = "0.4.5", optional = true, default-features = false}

@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationCallback;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverBinding::MutationObserverMethods;
 use dom::bindings::codegen::Bindings::MutationObserverBinding::MutationObserverInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object, DomObject};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::mutationrecord::MutationRecord;
@@ -27,17 +27,19 @@ pub struct MutationObserver {
     #[ignore_malloc_size_of = "can't measure Rc values"]
     callback: Rc<MutationCallback>,
     record_queue: DomRefCell<Vec<DomRoot<MutationRecord>>>,
+    node_list: DomRefCell<Vec<DomRoot<Node>>>,
 }
 
 pub enum Mutation<'a> {
-    Attribute { name: LocalName, namespace: Namespace, old_value: DOMString },
+    Attribute { name: LocalName, namespace: Namespace, old_value: Option<DOMString> },
+    CharacterData { old_value: DOMString },
     ChildList { added: Option<&'a [&'a Node]>, removed: Option<&'a [&'a Node]>,
                 prev: Option<&'a Node>, next: Option<&'a Node> },
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct RegisteredObserver {
-    observer: DomRoot<MutationObserver>,
+    pub observer: DomRoot<MutationObserver>,
     options: ObserverOptions,
 }
 
@@ -63,10 +65,12 @@ impl MutationObserver {
             reflector_: Reflector::new(),
             callback: callback,
             record_queue: DomRefCell::new(vec![]),
+            node_list: DomRefCell::new(vec![]),
         }
     }
 
     pub fn Constructor(global: &Window, callback: Rc<MutationCallback>) -> Fallible<DomRoot<MutationObserver>> {
+        global.set_exists_mut_observer();
         let observer = MutationObserver::new(global, callback);
         ScriptThread::add_mutation_observer(&*observer);
         Ok(observer)
@@ -105,8 +109,12 @@ impl MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#queueing-a-mutation-record>
     pub fn queue_a_mutation_record(target: &Node, attr_type: Mutation) {
+        if !target.global().as_window().get_exists_mut_observer() {
+            return;
+        }
         // Step 1
-        let mut interestedObservers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
+        let mut interested_observers: Vec<(DomRoot<MutationObserver>, Option<DOMString>)> = vec![];
+
         // Step 2 & 3
         for node in target.inclusive_ancestors() {
             for registered in &*node.registered_mutation_observers() {
@@ -131,32 +139,52 @@ impl MutationObserver {
                         }
                         // Step 3.1.2
                         let paired_string = if registered.options.attribute_old_value {
+                            old_value.clone()
+                        } else {
+                            None
+                        };
+                        // Step 3.1.1
+                        let idx = interested_observers.iter().position(|&(ref o, _)|
+                            &**o as *const _ == &*registered.observer as *const _);
+                        if let Some(idx) = idx {
+                            interested_observers[idx].1 = paired_string;
+                        } else {
+                            interested_observers.push((DomRoot::from_ref(&*registered.observer),
+                                paired_string));
+                        }
+                    },
+                    Mutation::CharacterData { ref old_value } => {
+                        if !registered.options.character_data {
+                            continue;
+                        }
+                        // Step 3.1.2
+                        let paired_string = if registered.options.character_data_old_value {
                             Some(old_value.clone())
                         } else {
                             None
                         };
                         // Step 3.1.1
-                        let idx = interestedObservers.iter().position(|&(ref o, _)|
+                        let idx = interested_observers.iter().position(|&(ref o, _)|
                             &**o as *const _ == &*registered.observer as *const _);
                         if let Some(idx) = idx {
-                            interestedObservers[idx].1 = paired_string;
+                            interested_observers[idx].1 = paired_string;
                         } else {
-                            interestedObservers.push((DomRoot::from_ref(&*registered.observer),
-                                                      paired_string));
+                            interested_observers.push((DomRoot::from_ref(&*registered.observer),
+                                paired_string));
                         }
                     },
                     Mutation::ChildList { .. } => {
                         if !registered.options.child_list {
                             continue;
                         }
-                        interestedObservers.push((DomRoot::from_ref(&*registered.observer), None));
+                        interested_observers.push((DomRoot::from_ref(&*registered.observer), None));
                     }
                 }
             }
         }
 
         // Step 4
-        for &(ref observer, ref paired_string) in &interestedObservers {
+        for &(ref observer, ref paired_string) in &interested_observers {
             // Steps 4.1-4.7
             let record = match attr_type {
                 Mutation::Attribute { ref name, ref namespace, .. } => {
@@ -167,6 +195,9 @@ impl MutationObserver {
                     };
                     MutationRecord::attribute_mutated(target, name, namespace, paired_string.clone())
                 },
+                Mutation::CharacterData { .. } => {
+                    MutationRecord::character_data_mutated(target, paired_string.clone())
+                }
                 Mutation::ChildList { ref added, ref removed, ref next, ref prev } => {
                     MutationRecord::child_list_mutated(target, *added, *removed, *next, *prev)
                 }
@@ -257,8 +288,29 @@ impl MutationObserverMethods for MutationObserver {
                     child_list
                 },
             });
+
+            self.node_list.borrow_mut().push(DomRoot::from_ref(target));
         }
 
         Ok(())
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-mutationobserver-takerecords
+    fn TakeRecords(&self) -> Vec<DomRoot<MutationRecord>> {
+        let records: Vec<DomRoot<MutationRecord>> = self.record_queue.borrow().clone();
+        self.record_queue.borrow_mut().clear();
+        records
+    }
+
+    /// https://dom.spec.whatwg.org/#dom-mutationobserver-disconnect
+    fn Disconnect(&self) {
+        // Step 1
+        let mut nodes = self.node_list.borrow_mut();
+        for node in nodes.drain(..) {
+            node.remove_mutation_observer(self);
+        }
+
+        // Step 2
+        self.record_queue.borrow_mut().clear();
     }
 }

@@ -10,10 +10,9 @@
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
 
-  // https://github.com/servo/servo/issues/14453
-  // attribute DOMString name;
+  attribute DOMString name;
 
-  [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
+  [PutForwards=href, Unforgeable] readonly attribute Location location;
   readonly attribute History history;
   [Pref="dom.customelements.enabled"]
   readonly attribute CustomElementRegistry customElements;
@@ -75,28 +74,6 @@ Window implements WindowEventHandlers;
 
 [NoInterfaceObject]
 interface WindowProxy {};
-
-// https://html.spec.whatwg.org/multipage/#timers
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowTimers {
-  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
-  long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
-  void clearTimeout(optional long handle = 0);
-  long setInterval(Function handler, optional long timeout = 0, any... arguments);
-  long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
-  void clearInterval(optional long handle = 0);
-};
-Window implements WindowTimers;
-
-// https://html.spec.whatwg.org/multipage/#atob
-[NoInterfaceObject, Exposed=(Window,Worker)]
-interface WindowBase64 {
-  [Throws]
-  DOMString btoa(DOMString btoa);
-  [Throws]
-  DOMString atob(DOMString atob);
-};
-Window implements WindowBase64;
 
 // https://html.spec.whatwg.org/multipage/#Window-partial
 partial interface Window {
@@ -164,8 +141,6 @@ partial interface Window {
   void debug(DOMString arg);
   void gc();
   void trap();
-  [Func="Window::global_is_mozbrowser", Throws]
-  void openURLInDefaultBrowser(DOMString href);
 };
 
 // WebDriver extensions
@@ -197,9 +172,4 @@ partial interface Window {
    [Pref="dom.bluetooth.testing.enabled", Exposed=Window]
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
-};
-
-// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
-partial interface Window {
-    [SameObject, Pref="dom.worklet.enabled"] readonly attribute Worklet paintWorklet;
 };

@@ -2,6 +2,7 @@
 
 if (self.importScripts) {
   self.importScripts('/resources/testharness.js');
+  self.importScripts('../resources/constructor-ordering.js');
 }
 
 const error1 = new Error('error1');
@@ -119,7 +120,7 @@ test(() => {
 
   assert_throws(new TypeError(), () => new WritableStreamDefaultController({}),
                 'constructor should throw a TypeError exception');
-}, 'WritableStreamDefaultController constructor should throw unless passed a WritableStream');
+}, 'WritableStreamDefaultController constructor should throw');
 
 test(() => {
   let WritableStreamDefaultController;
@@ -149,5 +150,41 @@ test(() => {
   assert_throws(new TypeError(), () => new WritableStreamDefaultWriter(stream),
                 'constructor should throw a TypeError exception');
 }, 'WritableStreamDefaultWriter constructor should throw when stream argument is locked');
+
+const operations = [
+  op('get', 'size'),
+  op('get', 'highWaterMark'),
+  op('get', 'type'),
+  op('validate', 'type'),
+  op('validate', 'size'),
+  op('tonumber', 'highWaterMark'),
+  op('validate', 'highWaterMark'),
+  op('get', 'write'),
+  op('validate', 'write'),
+  op('get', 'close'),
+  op('validate', 'close'),
+  op('get', 'abort'),
+  op('validate', 'abort'),
+  op('get', 'start'),
+  op('validate', 'start')
+];
+
+for (const failureOp of operations) {
+  test(() => {
+    const record = new OpRecorder(failureOp);
+    const underlyingSink = createRecordingObjectWithProperties(record, ['type', 'start', 'write', 'close', 'abort']);
+    const strategy = createRecordingStrategy(record);
+
+    try {
+      new WritableStream(underlyingSink, strategy);
+      assert_unreached('constructor should throw');
+    } catch (e) {
+      assert_equals(typeof e, 'object', 'e should be an object');
+    }
+
+    assert_equals(record.actual(), expectedAsString(operations, failureOp),
+                  'operations should be performed in the right order');
+  }, `WritableStream constructor should stop after ${failureOp} fails`);
+}
 
 done();

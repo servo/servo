@@ -113,9 +113,7 @@ def env_extras(**kwargs):
 
 
 def env_options():
-    return {"host": "web-platform.test",
-            "bind_hostname": "true",
-            "supports_debugger": False}
+    return {"supports_debugger": False}
 
 
 def get_tar(url, dest):
@@ -134,8 +132,23 @@ class SauceConnect():
         self.sauce_connect_binary = kwargs.get("sauce_connect_binary")
         self.sc_process = None
         self.temp_dir = None
+        self.env_config = None
 
-    def __enter__(self, options):
+    def __call__(self, env_options, env_config):
+        self.env_config = env_config
+
+        return self
+
+    def __enter__(self):
+        # Because this class implements the context manager protocol, it is
+        # possible for instances to be provided to the `with` statement
+        # directly. This class implements the callable protocol so that data
+        # which is not available during object initialization can be provided
+        # prior to this moment. Instances must be invoked in preparation for
+        # the context manager protocol, but this additional constraint is not
+        # itself part of the protocol.
+        assert self.env_config is not None, 'The instance has been invoked.'
+
         if not self.sauce_connect_binary:
             self.temp_dir = tempfile.mkdtemp()
             get_tar("https://saucelabs.com/downloads/sc-4.4.9-linux.tar.gz", self.temp_dir)
@@ -153,16 +166,34 @@ class SauceConnect():
             "--metrics-address=0.0.0.0:9876",
             "--readyfile=./sauce_is_ready",
             "--tunnel-domains",
-            "web-platform.test",
-            "*.web-platform.test"
+            ",".join(self.env_config.domains_set)
         ])
-        while not os.path.exists('./sauce_is_ready') and not self.sc_process.poll():
-            time.sleep(5)
 
-        if self.sc_process.returncode is not None and self.sc_process.returncode > 0:
+        # Timeout config vars
+        each_sleep_secs = 1
+        max_wait = 30
+        kill_wait = 5
+
+        tot_wait = 0
+        while not os.path.exists('./sauce_is_ready') and self.sc_process.poll() is None:
+            if tot_wait >= max_wait:
+                self.sc_process.terminate()
+                while self.sc_process.poll() is None:
+                    time.sleep(each_sleep_secs)
+                    tot_wait += each_sleep_secs
+                    if tot_wait >= (max_wait + kill_wait):
+                        self.sc_process.kill()
+                        break
+                raise SauceException("Sauce Connect Proxy was not ready after %d seconds" % tot_wait)
+
+            time.sleep(each_sleep_secs)
+            tot_wait += each_sleep_secs
+
+        if self.sc_process.returncode is not None:
             raise SauceException("Unable to start Sauce Connect Proxy. Process exited with code %s", self.sc_process.returncode)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.env_config = None
         self.sc_process.terminate()
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:

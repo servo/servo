@@ -12,7 +12,6 @@ use context::SharedStyleContext;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::style_structs::Font;
-use std::fmt;
 
 /// Represents the font metrics that style needs from a font to compute the
 /// value of certain CSS units like `ex`.
@@ -35,14 +34,20 @@ pub enum FontMetricsQueryResult {
 }
 
 /// A trait used to represent something capable of providing us font metrics.
-pub trait FontMetricsProvider: fmt::Debug {
+pub trait FontMetricsProvider {
     /// Obtain the metrics for given font family.
     ///
     /// TODO: We could make this take the full list, I guess, and save a few
     /// virtual calls in the case we are repeatedly unable to find font metrics?
     /// That is not too common in practice though.
-    fn query(&self, _font: &Font, _font_size: Au, _wm: WritingMode,
-             _in_media_query: bool, _device: &Device) -> FontMetricsQueryResult {
+    fn query(
+        &self,
+        _font: &Font,
+        _font_size: Au,
+        _wm: WritingMode,
+        _in_media_query: bool,
+        _device: &Device,
+    ) -> FontMetricsQueryResult {
         FontMetricsQueryResult::NotAvailable
     }
 
@@ -50,7 +55,9 @@ pub trait FontMetricsProvider: fmt::Debug {
     fn get_size(&self, font_name: &Atom, font_family: u8) -> Au;
 
     /// Construct from a shared style context
-    fn create_from(context: &SharedStyleContext) -> Self where Self: Sized;
+    fn create_from(context: &SharedStyleContext) -> Self
+    where
+        Self: Sized;
 }
 
 // TODO: Servo's font metrics provider will probably not live in this crate, so this will

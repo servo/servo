@@ -16,6 +16,7 @@ promise_test(t => {
     const scope_for_main = 'resources/' + scope_for_iframe;
     const script = 'resources/empty-worker.js';
     let frame;
+    let resolvedCount = 0;
 
     return service_worker_unregister(t, scope_for_main)
       .then(() => {
@@ -41,9 +42,23 @@ promise_test(t => {
           assert_equals(r.active.state, 'activated');
           assert_equals(r.scope, normalizeURL(scope_for_main));
           r.onupdatefound = () => { /* empty */ };
-          return Promise.all([
-              promise_rejects(t, 'InvalidStateError', r.unregister()),
-              promise_rejects(t, 'InvalidStateError', r.update())]);
+
+          // We want to verify that unregister() and update() do not
+          // resolve on a detached registration.  We can't check for
+          // an explicit rejection, though, because not all browsers
+          // fire rejection callbacks on detached promises.  Instead
+          // we wait for a dummy scope to install, activate, and
+          // unregister before declaring that the promises did not
+          // resolve.
+          r.unregister().then(() => resolvedCount += 1,
+                              () => {});
+          r.update().then(() => resolvedCount += 1,
+                          () => {});
+          return wait_for_activation_on_dummy_scope(t, window);
+        })
+      .then(() => {
+          assert_equals(resolvedCount, 0,
+                        'methods called on a detached registration should not resolve');
         })
   }, 'accessing a ServiceWorkerRegistration from a removed iframe');
 

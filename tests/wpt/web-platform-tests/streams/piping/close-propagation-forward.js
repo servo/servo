@@ -448,14 +448,115 @@ promise_test(() => {
   // Flush async events and verify that no shutdown occurs.
   return flushAsyncEvents().then(() => {
     assert_array_equals(ws.events, ['write', 'a'],
-      'the chunk must have been written, but close must not have happened yet');
+      'the chunk must have been written, but close must not have happened');
     assert_equals(pipeComplete, false, 'the pipe must not be complete');
 
     resolveWritePromise();
 
     return pipePromise;
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the chunk must have been written, but close must not have happened');
   });
 
 }, 'Closing must be propagated forward: shutdown must not occur until the final write completes; preventClose = true');
+
+promise_test(() => {
+
+  const rs = recordingReadableStream();
+
+  let resolveWriteCalled;
+  const writeCalledPromise = new Promise(resolve => {
+    resolveWriteCalled = resolve;
+  });
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      resolveWriteCalled();
+
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 2 }));
+
+  let pipeComplete = false;
+  const pipePromise = rs.pipeTo(ws).then(() => {
+    pipeComplete = true;
+  });
+
+  rs.controller.enqueue('a');
+  rs.controller.enqueue('b');
+
+  return writeCalledPromise.then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the first chunk must have been written, but close must not have happened yet');
+    assert_false(pipeComplete, 'the pipe should not complete while the first write is pending');
+
+    rs.controller.close();
+    resolveWritePromise();
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
+      'the second chunk must have been written, but close must not have happened yet');
+    assert_false(pipeComplete, 'the pipe should not complete while the second write is pending');
+
+    resolveWritePromise();
+    return pipePromise;
+  }).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b', 'close'],
+      'all chunks must have been written and close must have happened');
+  });
+
+}, 'Closing must be propagated forward: shutdown must not occur until the final write completes; becomes closed after first write');
+
+promise_test(() => {
+
+  const rs = recordingReadableStream();
+
+  let resolveWriteCalled;
+  const writeCalledPromise = new Promise(resolve => {
+    resolveWriteCalled = resolve;
+  });
+
+  let resolveWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      resolveWriteCalled();
+
+      return new Promise(resolve => {
+        resolveWritePromise = resolve;
+      });
+    }
+  }, new CountQueuingStrategy({ highWaterMark: 2 }));
+
+  let pipeComplete = false;
+  const pipePromise = rs.pipeTo(ws, { preventClose: true }).then(() => {
+    pipeComplete = true;
+  });
+
+  rs.controller.enqueue('a');
+  rs.controller.enqueue('b');
+
+  return writeCalledPromise.then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a'],
+      'the first chunk must have been written, but close must not have happened');
+    assert_false(pipeComplete, 'the pipe should not complete while the first write is pending');
+
+    rs.controller.close();
+    resolveWritePromise();
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
+      'the second chunk must have been written, but close must not have happened');
+    assert_false(pipeComplete, 'the pipe should not complete while the second write is pending');
+
+    resolveWritePromise();
+    return pipePromise;
+  }).then(() => flushAsyncEvents()).then(() => {
+    assert_array_equals(ws.events, ['write', 'a', 'write', 'b'],
+      'all chunks must have been written, but close must not have happened');
+  });
+
+}, 'Closing must be propagated forward: shutdown must not occur until the final write completes; becomes closed after first write; preventClose = true');
 
 done();

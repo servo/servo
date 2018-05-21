@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 3: parsing image-rendering with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-rendering">
+<meta name="assert" content="image-rendering supports only the grammar 'auto | smooth | high-quality | crisp-edges | pixelated'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("image-rendering", "none");
+test_invalid_value("image-rendering", "high-quality crisp-edges");
+</script>
+</body>
+</html>

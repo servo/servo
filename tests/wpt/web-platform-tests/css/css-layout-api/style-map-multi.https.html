@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#layout-invalidation">
+<link rel="match" href="style-map-multi-ref.html">
+<meta name="assert" content="This test checks that properties are correctly given to the layout function." />
+
+<style>
+.test {
+  background: red;
+  margin: 10px;
+  width: 100px;
+
+  /* Properties under test. */
+  --foo: bar;
+  margin-left: 2px;
+}
+
+@supports (display: layout(test)) {
+  .test {
+    background: green;
+    display: layout(test);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test"></div>
+
+<script id="code" type="text/worklet">
+registerLayout('test', class {
+  static get inputProperties() {
+    return [ '--bar', '--foo', 'empty-cells', 'margin-left'];
+  }
+
+  *intrinsicSizes() {}
+  *layout(children, edges, constraints, styleMap) {
+    const expected = [
+      {property: '--bar', value: '[CSSUnparsedValue=]'},
+      {property: '--foo', value: '[CSSUnparsedValue= bar]'},
+      {property: 'empty-cells', value: '[CSSKeywordValue=show]'},
+      {property: 'margin-left', value: '[CSSUnitValue=2px]'},
+    ];
+
+    const actual = Array.from(styleMap.keys()).sort().map((property) => {
+      const valueObject = styleMap.get(property);
+      const value = '[' + valueObject.constructor.name + '=' + valueObject.toString() + ']';
+      return {property, value};
+    });
+
+    if (expected.length != actual.length)
+      return {autoBlockSize: 0};
+
+    for (let i = 0; i < expected.length; i++) {
+      if (expected[i].property != actual[i].property)
+        return {autoBlockSize: 0};
+
+      if (expected[i].value != actual[i].value)
+        return {autoBlockSize: 0};
+    }
+
+    return {autoBlockSize: 100};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>

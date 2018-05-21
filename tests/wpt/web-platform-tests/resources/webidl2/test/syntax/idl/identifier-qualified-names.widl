@@ -3,18 +3,6 @@
   // Qualified name:    "::framework::number"
   typedef float number;
 
-  // Exception identifier: "FrameworkException"
-  // Qualified name:       "::framework::FrameworkException"
-  exception FrameworkException {
-
-    // Constant identifier: "ERR_NOT_FOUND"
-    // Qualified name:      "::framework::FrameworkException::ERR_NOT_FOUND"
-    const long ERR_NOT_FOUND = 1;
-
-    // Exception field identifier: "code"
-    long code;
-  };
-
   // Interface identifier: "System"
   // Qualified name:       "::framework::System"
   interface System {
@@ -27,7 +15,7 @@
     getter DOMString (DOMString keyName);
   };
 
-    
+
     // Interface identifier: "TextField"
     // Qualified name:       "::framework::gui::TextField"
     interface TextField {

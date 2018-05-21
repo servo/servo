@@ -8,6 +8,8 @@ publish = false
 [lib]
 name = "msg"
 path = "lib.rs"
+test = false
+doctest = false
 
 [features]
 unstable = ["nonzero/unstable"]
@@ -19,3 +21,6 @@ malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 nonzero = {path = "../nonzero"}
 serde = "1.0.14"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+
+[dev-dependencies]
+size_of_test = {path = "../size_of_test"}

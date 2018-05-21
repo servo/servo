@@ -111,23 +111,19 @@ pub struct MarginCollapseInfo {
 }
 
 impl MarginCollapseInfo {
-    /// TODO(#2012, pcwalton): Remove this method once `fragment` is not an `Option`.
-    pub fn new() -> MarginCollapseInfo {
+    pub fn initialize_block_start_margin(
+        fragment: &Fragment,
+        can_collapse_block_start_margin_with_kids: bool,
+    ) -> MarginCollapseInfo {
         MarginCollapseInfo {
-            state: MarginCollapseState::AccumulatingCollapsibleTopMargin,
-            block_start_margin: AdjoiningMargins::new(),
+            state: if can_collapse_block_start_margin_with_kids {
+                MarginCollapseState::AccumulatingCollapsibleTopMargin
+            } else {
+                MarginCollapseState::AccumulatingMarginIn
+            },
+            block_start_margin: AdjoiningMargins::from_margin(fragment.margin.block_start),
             margin_in: AdjoiningMargins::new(),
         }
-    }
-
-    pub fn initialize_block_start_margin(&mut self,
-                                         fragment: &Fragment,
-                                         can_collapse_block_start_margin_with_kids: bool) {
-        if !can_collapse_block_start_margin_with_kids {
-            self.state = MarginCollapseState::AccumulatingMarginIn
-        }
-
-        self.block_start_margin = AdjoiningMargins::from_margin(fragment.margin.block_start)
     }
 
     pub fn finish_and_compute_collapsible_margins(mut self,
@@ -552,7 +548,7 @@ impl SizeConstraint {
         max_size = max_size.map(|x| max(x, min_size));
 
         if let Some(border) = border {
-            min_size = max((min_size - border), Au(0));
+            min_size = max(min_size - border, Au(0));
             max_size = max_size.map(|x| max(x - border, Au(0)));
         }
 

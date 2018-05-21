@@ -22,12 +22,21 @@ impl PrintTree {
         }
     }
 
-    /// Descend one level in the tree with the given title.
-    pub fn new_level(&mut self, title: String) {
+    /// Descend one level in the tree with the given title string.
+    pub fn new_level(&mut self, queued_title: String) {
         self.flush_queued_item("\u{251C}\u{2500}");
 
         self.print_level_prefix();
-        println!("\u{251C}\u{2500} {}", title);
+
+        let items: Vec<&str> = queued_title.split("\n").collect();
+        println!("\u{251C}\u{2500} {}", items[0]);
+        for i in 1..items.len() {
+            self.print_level_child_indentation();
+            print!("{}", items[i]);
+            if i < items.len() {
+                print!("\n");
+            }
+        }
 
         self.level = self.level + 1;
     }
@@ -35,7 +44,7 @@ impl PrintTree {
     /// Ascend one level in the tree.
     pub fn end_level(&mut self) {
         self.flush_queued_item("\u{2514}\u{2500}");
-        self.level = self.level - 1;
+        self.level -= 1;
     }
 
     /// Add an item to the current level in the tree.
@@ -50,10 +59,25 @@ impl PrintTree {
         }
     }
 
+    fn print_level_child_indentation(&self) {
+        for _ in 0..(self.level + 1) {
+            print!("\u{2502}  ");
+        }
+        print!("{}", " ".repeat(7));
+    }
+
     fn flush_queued_item(&mut self, prefix: &str) {
         if let Some(queued_item) = self.queued_item.take() {
             self.print_level_prefix();
-            println!("{} {}", prefix, queued_item);
+            let items: Vec<&str> = queued_item.split("\n").collect();
+            println!("{} {}", prefix, items[0]);
+            for i in 1..items.len() {
+                self.print_level_child_indentation();
+                print!("{}", items[i]);
+                if i < items.len() {
+                    print!("\n");
+                }
+            }
         }
     }
 }

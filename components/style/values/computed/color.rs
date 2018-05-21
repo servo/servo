@@ -6,7 +6,7 @@
 
 use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
-use style_traits::ToCss;
+use style_traits::{CssWriter, ToCss};
 use values::animated::ToAnimatedValue;
 use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
 
@@ -138,7 +138,10 @@ impl From<RGBA> for Color {
 }
 
 impl ToCss for Color {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
         if self.is_numeric() {
             self.color.to_css(dest)
         } else if self.is_currentcolor() {
@@ -185,11 +188,6 @@ impl ToAnimatedValue for RGBA {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         // RGBA::from_floats clamps each component values.
-        RGBA::from_floats(
-            animated.red,
-            animated.green,
-            animated.blue,
-            animated.alpha,
-        )
+        RGBA::from_floats(animated.red, animated.green, animated.blue, animated.alpha)
     }
 }

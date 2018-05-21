@@ -31,7 +31,9 @@ impl Parse for BackgroundSize {
             "cover" => Ok(GenericBackgroundSize::Cover),
             "contain" => Ok(GenericBackgroundSize::Contain),
             _ => Err(()),
-        }).map_err(|()| location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())))
+        }).map_err(|()| {
+            location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
+        })
     }
 }
 
@@ -46,31 +48,35 @@ impl BackgroundSize {
 }
 
 /// One of the keywords for `background-repeat`.
-define_css_keyword_enum! { RepeatKeyword:
-    "repeat" => Repeat,
-    "space" => Space,
-    "round" => Round,
-    "no-repeat" => NoRepeat
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[allow(missing_docs)]
+pub enum BackgroundRepeatKeyword {
+    Repeat,
+    Space,
+    Round,
+    NoRepeat,
 }
 
 /// The specified value for the `background-repeat` property.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToCss)]
 pub enum BackgroundRepeat {
     /// `repeat-x`
     RepeatX,
     /// `repeat-y`
     RepeatY,
     /// `[repeat | space | round | no-repeat]{1,2}`
-    Keywords(RepeatKeyword, Option<RepeatKeyword>),
+    Keywords(BackgroundRepeatKeyword, Option<BackgroundRepeatKeyword>),
 }
 
 impl BackgroundRepeat {
     /// Returns the `repeat` value.
     #[inline]
     pub fn repeat() -> Self {
-        BackgroundRepeat::Keywords(RepeatKeyword::Repeat, None)
+        BackgroundRepeat::Keywords(BackgroundRepeatKeyword::Repeat, None)
     }
 }
 
@@ -87,16 +93,14 @@ impl Parse for BackgroundRepeat {
             _ => {},
         }
 
-        let horizontal = match RepeatKeyword::from_ident(&ident) {
+        let horizontal = match BackgroundRepeatKeyword::from_ident(&ident) {
             Ok(h) => h,
             Err(()) => {
-                return Err(input.new_custom_error(
-                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                ));
-            }
+                return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+            },
         };
 
-        let vertical = input.try(RepeatKeyword::parse).ok();
+        let vertical = input.try(BackgroundRepeatKeyword::parse).ok();
         Ok(BackgroundRepeat::Keywords(horizontal, vertical))
     }
 }

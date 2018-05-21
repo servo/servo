@@ -6,6 +6,10 @@
   // properly ignored cross-origin.
   window.frames = "override";
 
+  // Also add a |then| property to test that it doesn't get exposed.
+  window.then = "something";
+  window.location.then = "something-else";
+
   // If we get a postMessage, we grab references to everything and set
   // document.domain to trim off our topmost subdomain.
   window.onmessage = function(evt) {

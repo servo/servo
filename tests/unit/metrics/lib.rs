@@ -4,16 +4,15 @@
 
 #![cfg(test)]
 
-extern crate euclid;
-extern crate gfx;
 extern crate gfx_traits;
 extern crate ipc_channel;
+extern crate layout;
 extern crate metrics;
 extern crate msg;
-extern crate net_traits;
 extern crate profile_traits;
-extern crate style;
+extern crate servo_url;
 extern crate time;
+extern crate webrender_api;
 
 mod interactive_time;
 mod paint_time;

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+const test_desc = 'Request for characteristic. Should return right ' +
+    'characteristic.';
+let device, service;
+
+bluetooth_test(() => getHealthThermometerDevice()
+    .then(_ => ({device} = _))
+    .then(() => device.gatt.getPrimaryService('health_thermometer'))
+    .then(_ => service = _)
+    .then(() => Promise.all([
+        service.getCharacteristic(measurement_interval.alias),
+        service.getCharacteristic(measurement_interval.name),
+        service.getCharacteristic(measurement_interval.uuid)]))
+    .then(characteristics => characteristics.forEach(characteristic => {
+      assert_equals(
+          characteristic.uuid, measurement_interval.uuid,
+          'Characteristic UUID should be the same as requested UUID.');
+      assert_equals(
+          characteristic.service, service,
+          'Characteristic service should be the same as service.');
+    })), test_desc);
+</script>

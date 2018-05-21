@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>wake lock applicability test</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/#dfn-the-wake-lock-is-applicable">
+<meta name="flags" content="interact">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p>
+  Lock and turn off the screen, then turn on and unlock the screen.
+</p>
+<p>
+  Note: All the actions need to be done in 60 seconds, otherwise it will get TIMEOUT.
+</p>
+<script>
+
+setup({ explicit_timeout: true });
+
+promise_test(async t => {
+  const wakeLock = await navigator.getWakeLock("screen");
+  const request = wakeLock.createRequest();
+  assert_true(wakeLock.active, "the active is true when wake lock is acquired");
+  const eventWatcher = new EventWatcher(t, document, "visibilitychange")
+
+  //lock screen to fire 'visibilitychange'
+  await eventWatcher.wait_for("visibilitychange");
+  assert_true(document.hidden, "document is hidden when screen is locked");
+  assert_false(wakeLock.active, "the screen wake lock is not active when screen is switched off");
+
+  //unlock screen to fire 'visibilitychange'
+  await eventWatcher.wait_for("visibilitychange");
+  assert_false(document.hidden, "document is visiable when screen is unlocked");
+  assert_true(wakeLock.active, "the screen wake lock is active when screen is switched on again");
+  request.cancel();
+}, "The screen wake lock isn't applicable after the screen is manually swiched off"
+  + " by the user until it is switched on again.");
+
+
+promise_test(async t => {
+  const wakeLock = await navigator.getWakeLock("system");
+  const request = wakeLock.createRequest();
+  assert_true(wakeLock.active, "the active is true when wake lock is acquired");
+  const eventWatcher = new EventWatcher(t, document, "visibilitychange")
+
+  //lock screen to fire 'visibilitychange'
+  await eventWatcher.wait_for("visibilitychange");
+  assert_true(document.hidden, "document is hidden when screen is locked");
+  assert_true(wakeLock.active, "the system wake lock is still active when screen is switched off");
+  request.cancel();
+}, "Manually switching off the screen will not affect the applicability of the system wake lock.");
+
+</script>

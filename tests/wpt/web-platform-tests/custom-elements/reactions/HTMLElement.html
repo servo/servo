@@ -22,8 +22,6 @@ testReflectBooleanAttribute('hidden', 'hidden', 'hidden on HTMLElement');
 testReflectAttribute('tabIndex', 'tabindex', '0', '1', 'tabIndex on HTMLElement');
 testReflectAttribute('accessKey', 'accesskey', 'a', 'b', 'accessKey on HTMLElement');
 testReflectAttributeWithContentValues('draggable', 'draggable', true, 'true', false, 'false', 'draggable on HTMLElement');
-testReflectAttribute('dropzone', 'dropzone', 'copy', 'move', 'dropzone on HTMLElement');
-testReflectAttribute('contextMenu', 'contextmenu', 'menu1', 'menu2', 'contextMenu on HTMLElement');
 testReflectAttributeWithContentValues('spellcheck', 'spellcheck', true, 'true', false, 'false', 'spellcheck on HTMLElement');
 
 testNodeDisconnector(function (customElement) {

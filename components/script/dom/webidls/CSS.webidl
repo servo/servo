@@ -17,3 +17,8 @@ partial interface CSS {
   static boolean supports(DOMString property, DOMString value);
   static boolean supports(DOMString conditionText);
 };
+
+// https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet
+partial interface CSS {
+    [SameObject, Pref="dom.worklet.enabled"] static readonly attribute Worklet paintWorklet;
+};

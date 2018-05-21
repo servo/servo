@@ -18,14 +18,14 @@ canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 debugger = {path = "../debugger"}
 devtools_traits = {path = "../devtools_traits"}
-euclid = "0.15"
+euclid = "0.17"
+embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 hyper = "0.10"
-ipc-channel = "0.9"
-itertools = "0.5"
+ipc-channel = "0.10"
 layout_traits = {path = "../layout_traits"}
-log = "0.3.5"
+log = "0.4"
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net = {path = "../net"}
@@ -44,5 +44,5 @@ webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios")))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
 
-[target.'cfg(all(any(target_os = "macos", target_os = "linux"), not(any(target_arch = "arm", target_arch = "aarch64"))))'.dependencies]
-gecko-media = {git = "https://github.com/servo/gecko-media.git"}
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }

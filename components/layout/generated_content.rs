@@ -9,18 +9,18 @@
 //! as possible.
 
 use context::{LayoutContext, with_thread_local_font_context};
-use flow::{self, Flow, FlowFlags, ImmutableFlowUtils};
+use display_list::items::OpaqueNode;
+use flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
-use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::PseudoElementType;
 use smallvec::SmallVec;
 use std::collections::{HashMap, LinkedList};
-use style::computed_values::content::ContentItem;
 use style::computed_values::display::T as Display;
 use style::computed_values::list_style_type::T as ListStyleType;
 use style::properties::ComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::ServoRestyleDamage;
+use style::values::generics::counters::ContentItem;
 use text::TextRunScanner;
 use traversal::InorderFlowTraversal;
 
@@ -132,8 +132,8 @@ impl<'a> InorderFlowTraversal for ResolveGeneratedContent<'a> {
 
     #[inline]
     fn should_process_subtree(&mut self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||
-            flow::base(flow).flags.intersects(FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN)
+        flow.base().restyle_damage.intersects(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT) ||
+            flow.base().flags.intersects(FlowFlags::AFFECTS_COUNTERS | FlowFlags::HAS_COUNTER_AFFECTING_CHILDREN)
     }
 }
 
@@ -188,9 +188,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                                                                        counter_style)) => {
                     let temporary_counter = Counter::new();
                     let counter = self.traversal
-                                      .counters
-                                      .get(&*counter_name)
-                                      .unwrap_or(&temporary_counter);
+                        .counters
+                        .get(&*counter_name.0)
+                        .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.pseudo.clone(),
@@ -203,9 +203,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                                                                         counter_style)) => {
                     let temporary_counter = Counter::new();
                     let counter = self.traversal
-                                      .counters
-                                      .get(&*counter_name)
-                                      .unwrap_or(&temporary_counter);
+                        .counters
+                        .get(&*counter_name.0)
+                        .unwrap_or(&temporary_counter);
                     new_info = counter.render(self.traversal.layout_context,
                                               fragment.node,
                                               fragment.pseudo,
@@ -240,6 +240,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                         self.traversal.quote -= 1
                     }
                 }
+                GeneratedContentInfo::ContentItem(ContentItem::Url(..)) => {
+                    unreachable!("Servo doesn't parse content: url(..) yet")
+                }
             }
         };
 
@@ -272,27 +275,27 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
         }
         self.traversal.list_item.truncate_to_level(self.level);
 
-        for &(ref counter_name, value) in &fragment.style().get_counters().counter_reset.0 {
-            let counter_name = &*counter_name.0;
+        for pair in &*fragment.style().get_counters().counter_reset {
+            let counter_name = &*pair.name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
-                 counter.reset(self.level, value);
+                 counter.reset(self.level, pair.value);
                  continue
             }
 
             let mut counter = Counter::new();
-            counter.reset(self.level, value);
+            counter.reset(self.level, pair.value);
             self.traversal.counters.insert(counter_name.to_owned(), counter);
         }
 
-        for &(ref counter_name, value) in &fragment.style().get_counters().counter_increment.0 {
-            let counter_name = &*counter_name.0;
+        for pair in &*fragment.style().get_counters().counter_increment {
+            let counter_name = &*pair.name.0;
             if let Some(ref mut counter) = self.traversal.counters.get_mut(counter_name) {
-                counter.increment(self.level, value);
+                counter.increment(self.level, pair.value);
                 continue
             }
 
             let mut counter = Counter::new();
-            counter.increment(self.level, value);
+            counter.increment(self.level, pair.value);
             self.traversal.counters.insert(counter_name.to_owned(), counter);
         }
 
@@ -311,9 +314,9 @@ impl<'a, 'b> ResolveGeneratedContentFragmentMutator<'a, 'b> {
                 &quotes.0[self.traversal.quote as usize]
             };
         if close {
-            close_quote.clone()
+            close_quote.to_string()
         } else {
-            open_quote.clone()
+            open_quote.to_string()
         }
     }
 }
@@ -368,7 +371,7 @@ impl Counter {
     fn render(&self,
               layout_context: &LayoutContext,
               node: OpaqueNode,
-              pseudo: PseudoElementType<()>,
+              pseudo: PseudoElementType,
               style: ::ServoArc<ComputedValues>,
               list_style_type: ListStyleType,
               mode: RenderingMode)
@@ -431,13 +434,13 @@ struct CounterValue {
 /// Creates fragment info for a literal string.
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
-               pseudo: PseudoElementType<()>,
+               pseudo: PseudoElementType,
                style: ::ServoArc<ComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
     let info = SpecificFragmentInfo::UnscannedText(
-        Box::new(UnscannedTextFragmentInfo::new(string, None))
+        Box::new(UnscannedTextFragmentInfo::new(string.into_boxed_str(), None))
     );
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              pseudo,

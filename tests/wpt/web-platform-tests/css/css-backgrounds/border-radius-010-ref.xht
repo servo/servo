@@ -3,34 +3,29 @@
     <head>
         <title>CSS Test: Border radius reference</title>
         <link rel="author" title="Nokia" href="http://www.nokia.com/" />
-        <style type="text/css">
-         /* <![CDATA[ */
-            div
-            {
-        		border:2px solid #a1a1a1;
-        		background:#dddddd;
-        		width:200px;
-        		height: 100px;
-			    border-top-left-radius: 20% 25px;
-				border-top-right-radius: 0;
-				border-bottom-right-radius: 20pt 3em;
-				border-bottom-left-radius: 0;
-        	}
-        /* ]]> */
+        <style>
+            div {
+                border: 2px solid #a1a1a1;
+                background: #dddddd;
+                width: 200px;
+                height: 100px;
+                border-top-left-radius: 20% 25px;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 20pt 3em;
+                border-bottom-left-radius: 0;
+            }
         </style>
     </head>
     <body>
-        <p>
-            There should be two identical boxes, each with rounded corners at the top left and bottom right only.
-		</p>
+        <p>There should be two identical boxes, each with rounded corners at the top left and bottom right only.</p>
         <ul>
             <li>PASS if the two boxes below are the same and only top left and bottom right corners are rounded.</li>
             <li>FAIL if the output is not as expected.</li>
         </ul>
 
-    	<div id="test"></div>
-		<p><br/></p>
-    	<div id="reference"></div>
+        <div id="test"></div>
+        <p><br/></p>
+        <div id="reference"></div>
     </body>
 </html>
 

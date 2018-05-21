@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>CSS Test: font-variant descriptor in @font-face rule is overriden by equivalent style rules</title>
+<link rel="author" title="Mike Bremford" href="mike@bfo.com" />
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-prop" />
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-rend-desc" />
+<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#feature-precedence" />
+<link rel="match" href="font-variant-06-ref.xht" />
+<meta name="assert" content="‘font-variant-numeric’ cannot turn OFF features turned ON in @font-face" />
+<style>
+  @font-face {
+    font-family: fwf;
+    src: url(support/fonts/FontWithFancyFeatures.otf);
+    font-variant: oldstyle-nums;
+  }
+  .test, .ref {
+    font-family: fwf;
+    font-size: 2.4em;
+    position: absolute;
+  }
+  .test {
+      color: green;
+  }
+  .ref {
+      color: red;
+  }
+  .t1 { }
+  .t2 { font-variant-numeric: oldstyle-nums; }
+  .t3 { font-variant-numeric: normal; }
+  .t4 { font-variant-numeric: slashed-zero; }
+  .t5 { font-variant-numeric: invalid-value; }
+  .t6 { font-variant: none; }
+  .t7 { font-variant: normal; }
+  .t8 { font-variant: initial; }
+  .t9 { font-variant: invalid-value; }
+  /**
+   * Some notes on this test.
+   *
+   * t1
+   *   the font-variant property from @font-face is applied.
+   * t2
+   *   simply restating the value set in the @font-face rule
+   * t3
+   *   "font-variant-numeric: normal" does not turn off the "on" value
+   *   for oldstyle-nums, which remains on as set in @font-face
+   * t4
+   *   "font-variant-numeric: slashed-zero" is valid, but does not
+   *   change the "on" value for oldstyle-nums as set in @font-face
+   * t6, t7, t8
+       these font-variant values all set font-variant-numeric to normal
+   * t5, r9
+   *   an invalid value means the rule is invalid, and should be ignored.
+   */
+</style>
+</head>
+<body>
+<p>Test passes if there are nine check marks below and no red visible.</p>
+<section class="ref">
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+  <span>A</span>
+</section>
+<section class="test">
+  <span class="t1">Q</span>
+  <span class="t2">Q</span>
+  <span class="t3">Q</span>
+  <span class="t4">Q</span>
+  <span class="t5">Q</span>
+  <span class="t6">Q</span>
+  <span class="t7">Q</span>
+  <span class="t8">Q</span>
+  <span class="t9">Q</span>
+</section>
+</body>
+</html>

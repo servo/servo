@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Test: descriptor negative</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#counter-style-negative">
+<link rel="match" href="descriptor-negative-ref.html">
+<link rel="stylesheet" href="support/test-common.css">
+<style type="text/css">
+  @counter-style a {
+    system: extends decimal;
+    negative: \207B;
+  }
+  @counter-style b {
+    system: extends decimal;
+    negative: '(' ')';
+  }
+</style>
+<ol start="-2" style="list-style-type: a">
+  <li><li><li><li><li>
+</ol>
+<ol start="-2" style="list-style-type: b">
+  <li><li><li><li><li>
+</ol>

@@ -1,0 +1,26 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: text-overflow on tr::before with overflow:hidden</title>
+  <style type="text/css">
+
+    td {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+  </style>
+</head>
+<body>
+PASS if there is an ellipsis at the end of the text below.
+  <table style="table-layout: fixed; width: 130px" cellpadding="0" cellspacing="0">
+    <tr><td>Some long text here that overflows and whatnot.</td></tr>
+  </table>
+
+</body>
+</html>

@@ -120,3 +120,8 @@ function checkJsonEntries(actual, expected, description) {
       checkJsonEntry(actual[i], expected[i]);
   }, description);
 }
+
+function checkIsIntersecting(entries, i, expected) {
+  assert_equals(entries[i].isIntersecting, expected,
+    'entries[' + i + '].target.isIntersecting equals ' + expected);
+}

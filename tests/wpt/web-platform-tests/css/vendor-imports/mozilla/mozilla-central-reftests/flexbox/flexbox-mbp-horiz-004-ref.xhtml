@@ -4,8 +4,7 @@
      http://creativecommons.org/publicdomain/zero/1.0/
 -->
 <!-- Reference case - identical to the testcase, but with with the flex items'
-     vertical margin and padding values set to 0 by default, and then set to
-     specific pixel values for the items that have a 50px percent-basis.
+     margin and padding values set to explicit pixel values.
 -->
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
@@ -21,27 +20,11 @@
       }
       div.height50 { height: 50px; }
 
-      .marginA  { margin:  0  8% 0  4%; }
-      .marginB  { margin:  0 10% 0 14%; }
-      .paddingA { padding: 0  6% 0  2%; }
-      .paddingB { padding: 0  8% 0 12%; }
+      .marginA  { margin:  20px 16px 12px  8px; }
+      .marginB  { margin:  16px 20px 24px 28px; }
+      .paddingA { padding: 16px 12px  8px  4px; }
+      .paddingB { padding: 12px 16px 20px 24px; }
 
-      div.height50 > .marginA {
-        margin-top: 5px;
-        margin-bottom: 3px;
-      }
-      div.height50 > .marginB {
-        margin-top: 4px;
-        margin-bottom: 6px;
-      }
-      div.height50 > .paddingA {
-        padding-top: 4px;
-        padding-bottom: 2px;
-      }
-      div.height50 > .paddingB {
-        padding-top: 3px;
-        padding-bottom: 5px;
-      }
 
       div.child1 {
         flex: none;

@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: font shorthand serialization</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#propdef-font">
+<link rel="help" href="https://drafts.csswg.org/cssom/">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1564">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1436031">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="font: bold medium serif"></div>
+<script>
+test(function() {
+  assert_equals(
+    document.querySelector('div').style.font, "bold medium serif",
+    "Default values of the longhands don't get serialized on the font shorthand"
+  );
+}, "Default values of the longhands don't get serialized on the font shorthand");
+</script>

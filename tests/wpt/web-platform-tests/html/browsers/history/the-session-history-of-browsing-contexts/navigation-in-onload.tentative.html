@@ -14,7 +14,7 @@
   var t = async_test();
 
   function scheduleNextTest() {
-    t.step_timeout(runNextTest, 0);
+    setTimeout(runNextTest, 0);
   }
 
   function runNextTest() {
@@ -28,9 +28,9 @@
   }
 
   function verify(actual, expected, desc) {
-    t.step_timeout(function() {
+    setTimeout(t.step_func(function() {
       assert_equals(actual, expected, desc);
-    }, 0);
+    }), 0);
   }
 
 </script>

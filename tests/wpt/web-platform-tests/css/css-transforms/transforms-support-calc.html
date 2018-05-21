@@ -31,7 +31,7 @@
 
 test(function(){
   target.style = 'translate: calc(30px + 20%) calc(-200px + 100%);';
-  assert_equals(getComputedStyle(target).translate, '90px 0px');
+  assert_equals(getComputedStyle(target).translate, 'calc(30px + 20%) calc(-200px + 100%)');
 }, 'translate supports calc');
 
 test(function(){

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/content-security-policy/support/testharness-helper.js'></script>
+  <script src='/content-security-policy/support/prefetch-helper.js'></script>
+  <script>
+    async_test(t => {
+      var win = window.open('/content-security-policy/support/' +
+                            'file-prefetch-allowed.html');
+      win.addEventListener('load', function () {
+        // Cache control headers are added,since they are needed 
+        // to enable prefetching.
+        let url = '/content-security-policy/support/pass.png' +
+                                  '?pipe=header(Cache-Control, max-age=604800)';
+
+        // Link element is created on the new opened window.
+        let link = win.document.createElement('link');
+        link.rel = 'prefetch';
+        link.href = url;
+        assert_link_prefetches(t, link);
+        win.close();
+      }, false);
+    }, 'Prefetch succeeds when allowed by prefetch-src');
+  </script>
+</head>
+<body>
+</body>
+</html>

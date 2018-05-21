@@ -230,6 +230,9 @@ while (<$io>) {
         $theCode =~ s/ +$//;
         $theCode =~ s/\t/ /g;
         $theCode .= $_;
+        # In MediaWiki, to display & symbol escapes as literal text, one
+        # must use "&amp;&" for the "&" character. We need to undo that.
+        $theCode =~ s/&amp;(\S)/&$1/g;
       }
     }
   } elsif ($state == 3) {
@@ -490,7 +493,6 @@ sub build_test() {
   <head>
     <title>$title</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
-    <link rel="stylesheet" href="/resources/testharness.css">
     <link rel="stylesheet" href="/wai-aria/scripts/manual.css">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>

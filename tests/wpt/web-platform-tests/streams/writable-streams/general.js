@@ -165,8 +165,8 @@ promise_test(() => {
 
 promise_test(t => {
   function functionWithOverloads() {}
-  functionWithOverloads.apply = () => assert_unreached('apply() should not be called');
-  functionWithOverloads.call = () => assert_unreached('call() should not be called');
+  functionWithOverloads.apply = t.unreached_func('apply() should not be called');
+  functionWithOverloads.call = t.unreached_func('call() should not be called');
   const underlyingSink = {
     start: functionWithOverloads,
     write: functionWithOverloads,
@@ -180,9 +180,12 @@ promise_test(t => {
   writer1.close();
 
   // Test abort().
+  const abortError = new Error();
+  abortError.name = 'abort error';
+
   const ws2 = new WritableStream(underlyingSink);
   const writer2 = ws2.getWriter();
-  writer2.abort();
+  writer2.abort(abortError);
 
   // Test abort() with a close underlying sink method present. (Historical; see
   // https://github.com/whatwg/streams/issues/620#issuecomment-263483953 for what used to be
@@ -193,11 +196,11 @@ promise_test(t => {
     close: functionWithOverloads
   });
   const writer3 = ws3.getWriter();
-  writer3.abort();
+  writer3.abort(abortError);
 
   return writer1.closed
-      .then(() => promise_rejects(t, new TypeError(), writer2.closed, 'writer2.closed should be rejected'))
-      .then(() => promise_rejects(t, new TypeError(), writer3.closed, 'writer3.closed should be rejected'));
+      .then(() => promise_rejects(t, abortError, writer2.closed, 'writer2.closed should be rejected'))
+      .then(() => promise_rejects(t, abortError, writer3.closed, 'writer3.closed should be rejected'));
 }, 'methods should not not have .apply() or .call() called');
 
 promise_test(() => {

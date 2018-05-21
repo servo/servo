@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<script>
+  try {
+    location.href = "{{GET[target]}}";
+  } catch(ex) {}
+</script>
+</body>

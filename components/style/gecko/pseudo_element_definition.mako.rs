@@ -114,7 +114,7 @@ impl PseudoElement {
                 % if pseudo.is_tree_pseudo_element():
                     0,
                 % elif pseudo.is_anon_box():
-                    structs::CSS_PSEUDO_ELEMENT_UA_SHEET_ONLY,
+                    structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 % else:
                     structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.original_ident},
                 % endif
@@ -216,27 +216,32 @@ impl PseudoElement {
         None
     }
 
-    /// Constructs an atom from a string of text, and whether we're in a
-    /// user-agent stylesheet.
-    ///
-    /// If we're not in a user-agent stylesheet, we will never parse anonymous
-    /// box pseudo-elements.
+    /// Constructs a pseudo-element from a string of text.
     ///
     /// Returns `None` if the pseudo-element is not recognised.
     #[inline]
-    pub fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
-
+    pub fn from_slice(name: &str) -> Option<Self> {
         // We don't need to support tree pseudos because functional
         // pseudo-elements needs arguments, and thus should be created
         // via other methods.
-        % for pseudo in SIMPLE_PSEUDOS:
-            if in_ua_stylesheet || ${pseudo_element_variant(pseudo)}.exposed_in_non_ua_sheets() {
-                if s.eq_ignore_ascii_case("${pseudo.value[1:]}") {
-                    return Some(${pseudo_element_variant(pseudo)});
+        match_ignore_ascii_case! { name,
+            % for pseudo in SIMPLE_PSEUDOS:
+            "${pseudo.value[1:]}" => {
+                return Some(${pseudo_element_variant(pseudo)})
+            }
+            % endfor
+            // Alias "-moz-selection" to "selection" at parse time.
+            "-moz-selection" => {
+                return Some(PseudoElement::Selection);
+            }
+            _ => {
+                // FIXME: -moz-tree check should probably be
+                // ascii-case-insensitive.
+                if name.starts_with("-moz-tree-") {
+                    return PseudoElement::tree_pseudo_element(name, Box::new([]))
                 }
             }
-        % endfor
+        }
 
         None
     }
@@ -247,7 +252,6 @@ impl PseudoElement {
     /// Returns `None` if the pseudo-element is not recognized.
     #[inline]
     pub fn tree_pseudo_element(name: &str, args: Box<[Atom]>) -> Option<Self> {
-        #[allow(unused_imports)] use std::ascii::AsciiExt;
         debug_assert!(name.starts_with("-moz-tree-"));
         let tree_part = &name[10..];
         % for pseudo in TREE_PSEUDOS:
@@ -272,10 +276,10 @@ impl ToCss for PseudoElement {
                 dest.write_char('(')?;
                 let mut iter = args.iter();
                 if let Some(first) = iter.next() {
-                    serialize_identifier(&first.to_string(), dest)?;
+                    serialize_atom_identifier(&first, dest)?;
                     for item in iter {
                         dest.write_str(", ")?;
-                        serialize_identifier(&item.to_string(), dest)?;
+                        serialize_atom_identifier(item, dest)?;
                     }
                 }
                 dest.write_char(')')?;

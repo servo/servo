@@ -8,6 +8,14 @@
 var url_count = 0;
 var expected_results = {};
 
+function add_promise_to_test(url)
+{
+  var expected = expected_results[url];
+  return new Promise((resolve) => {
+    expected.resolve = resolve;
+  });
+}
+
 function image_test(frame, url, cross_origin, expected_mode,
                     expected_credentials) {
   var actual_url = url + (++url_count);
@@ -17,10 +25,12 @@ function image_test(frame, url, cross_origin, expected_mode,
       credentials: expected_credentials,
       redirect: 'follow',
       integrity: '',
+      destination: 'image',
       message: 'Image load (url:' +
                actual_url + ' cross_origin:' + cross_origin + ')'
     };
-  return frame.contentWindow.load_image(actual_url, cross_origin);
+  frame.contentWindow.load_image(actual_url, cross_origin);
+  return add_promise_to_test(actual_url);
 }
 
 function script_test(frame, url, cross_origin, expected_mode,
@@ -32,10 +42,12 @@ function script_test(frame, url, cross_origin, expected_mode,
       credentials: expected_credentials,
       redirect: 'follow',
       integrity: '',
+      destination: 'script',
       message: 'Script load (url:' +
                actual_url + ' cross_origin:' + cross_origin + ')'
     };
-  return frame.contentWindow.load_script(actual_url, cross_origin);
+  frame.contentWindow.load_script(actual_url, cross_origin);
+  return add_promise_to_test(actual_url);
 }
 
 function css_test(frame, url, cross_origin, expected_mode,
@@ -47,10 +59,12 @@ function css_test(frame, url, cross_origin, expected_mode,
       credentials: expected_credentials,
       redirect: 'follow',
       integrity: '',
+      destination: 'style',
       message: 'CSS load (url:' +
                actual_url + ' cross_origin:' + cross_origin + ')'
     };
-  return frame.contentWindow.load_css(actual_url, cross_origin);
+  frame.contentWindow.load_css(actual_url, cross_origin);
+  return add_promise_to_test(actual_url);
 }
 
 function font_face_test(frame, url, expected_mode, expected_credentials) {
@@ -61,9 +75,11 @@ function font_face_test(frame, url, expected_mode, expected_credentials) {
       credentials: expected_credentials,
       redirect: 'follow',
       integrity: '',
+      destination: 'font',
       message: 'FontFace load (url:' + actual_url + ')'
     };
-  return frame.contentWindow.load_font(actual_url);
+  frame.contentWindow.load_font(actual_url);
+  return add_promise_to_test(actual_url);
 }
 
 function script_integrity_test(frame, url, integrity, expected_integrity) {
@@ -74,9 +90,11 @@ function script_integrity_test(frame, url, integrity, expected_integrity) {
       credentials: 'include',
       redirect: 'follow',
       integrity: expected_integrity,
+      destination: 'script',
       message: 'Script load (url:' + actual_url + ')'
     };
-  return frame.contentWindow.load_script_with_integrity(actual_url, integrity);
+  frame.contentWindow.load_script_with_integrity(actual_url, integrity);
+  return add_promise_to_test(actual_url);
 }
 
 function css_integrity_test(frame, url, integrity, expected_integrity) {
@@ -87,9 +105,11 @@ function css_integrity_test(frame, url, integrity, expected_integrity) {
       credentials: 'include',
       redirect: 'follow',
       integrity: expected_integrity,
+      destination: 'style',
       message: 'CSS load (url:' + actual_url + ')'
     };
-  return frame.contentWindow.load_css_with_integrity(actual_url, integrity);
+  frame.contentWindow.load_css_with_integrity(actual_url, integrity);
+  return add_promise_to_test(actual_url);
 }
 
 function fetch_test(frame, url, mode, credentials,
@@ -100,11 +120,14 @@ function fetch_test(frame, url, mode, credentials,
       credentials: expected_credentials,
       redirect: 'follow',
       integrity: '',
+      destination: '',
       message: 'fetch (url:' + actual_url + ' mode:' + mode + ' credentials:' +
                credentials + ')'
     };
-  return frame.contentWindow.fetch(
-      new Request(actual_url, {mode: mode, credentials: credentials}));
+  frame.contentWindow.fetch(
+      new Request(actual_url, {mode: mode, credentials: credentials})).then(() => {
+      }, () => { });
+  return add_promise_to_test(actual_url);
 }
 
 function audio_test(frame, url, cross_origin,
@@ -115,13 +138,32 @@ function audio_test(frame, url, cross_origin,
       credentials: expected_credentials,
       redirect: 'follow',
       integrity: '',
+      destination: 'audio',
       message: 'Audio load (url:' + actual_url + ' cross_origin:' +
                cross_origin + ')'
     };
-  return frame.contentWindow.load_audio(actual_url, cross_origin);
+  frame.contentWindow.load_audio(actual_url, cross_origin);
+  return add_promise_to_test(actual_url);
 }
 
-async_test(function(t) {
+
+function video_test(frame, url, cross_origin,
+                    expected_mode, expected_credentials) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      mode: expected_mode,
+      credentials: expected_credentials,
+      redirect: 'follow',
+      integrity: '',
+      destination: 'video',
+      message: 'Video load (url:' + actual_url + ' cross_origin:' +
+               cross_origin + ')'
+    };
+  frame.contentWindow.load_video(actual_url, cross_origin);
+  return add_promise_to_test(actual_url);
+}
+
+promise_test(function(t) {
     var SCOPE = 'resources/fetch-request-resources-iframe.https.html';
     var SCRIPT = 'resources/fetch-request-resources-worker.js';
     var host_info = get_host_info();
@@ -131,13 +173,13 @@ async_test(function(t) {
       host_info['HTTPS_REMOTE_ORIGIN'] + base_path() + 'resources/dummy?test';
     var worker;
     var frame;
-    service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+    return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
       .then(function(registration) {
           worker = registration.installing;
           return wait_for_state(t, worker, 'activated');
         })
       .then(function() {
-          return new Promise(function(resolve) {
+          return new Promise(function(resolve, reject) {
               var channel = new MessageChannel();
               channel.port1.onmessage = t.step_func(function(msg) {
                 if (msg.data.ready) {
@@ -149,110 +191,121 @@ async_test(function(t) {
                 if (!expected) {
                   return;
                 }
-                assert_equals(
+                test(() => {
+                  assert_equals(
                     result.mode, expected.mode,
                     'mode of ' + expected.message +  ' must be ' +
                     expected.mode + '.');
-                assert_equals(
+                  assert_equals(
                     result.credentials, expected.credentials,
                     'credentials of ' + expected.message +  ' must be ' +
                     expected.credentials + '.');
-                 assert_equals(
+                   assert_equals(
                     result.redirect, expected.redirect,
                     'redirect mode of ' + expected.message +  ' must be ' +
                     expected.redirect + '.');
-                assert_equals(
+                  assert_equals(
                     result.integrity, expected.integrity,
                     'integrity of ' + expected.message +  ' must be ' +
                     expected.integrity + '.');
-                --url_count;
+                  assert_equals(
+                    result.destination, expected.destination,
+                    'destination of ' + expected.message +  ' must be ' +
+                    expected.destination + '.');
+                }, expected.message);
+                expected.resolve();
                 delete expected_results[result.url];
-                if (url_count == 0) {
-                  frame.remove();
-                  service_worker_unregister_and_done(t, SCOPE);
-                }
               });
               worker.postMessage(
                 {port: channel.port2}, [channel.port2]);
             });
         })
       .then(function() { return with_iframe(SCOPE); })
-      .then(function(f) {
+      .then(async function(f) {
         frame = f;
 
-        image_test(f, LOCAL_URL, '', 'no-cors', 'include');
-        image_test(f, REMOTE_URL, '', 'no-cors', 'include');
-        css_test(f, LOCAL_URL, '', 'no-cors', 'include');
-        css_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await image_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        await image_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await css_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        await css_test(f, REMOTE_URL, '', 'no-cors', 'include');
 
-        image_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
-        image_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
-        image_test(f, REMOTE_URL, '', 'no-cors', 'include');
-        image_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
-        image_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+        await image_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        await image_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        await image_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await image_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        await image_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
 
-        script_test(f, LOCAL_URL, '', 'no-cors', 'include');
-        script_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
-        script_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
-        script_test(f, REMOTE_URL, '', 'no-cors', 'include');
-        script_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
-        script_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+        await script_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        await script_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        await script_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        await script_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await script_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        await script_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
 
-        css_test(f, LOCAL_URL, '', 'no-cors', 'include');
-        css_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
-        css_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
-        css_test(f, REMOTE_URL, '', 'no-cors', 'include');
-        css_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
-        css_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+        await css_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        await css_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        await css_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        await css_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await css_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        await css_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
 
-        font_face_test(f, LOCAL_URL, 'cors', 'same-origin');
-        font_face_test(f, REMOTE_URL, 'cors', 'same-origin');
+        await font_face_test(f, LOCAL_URL, 'cors', 'same-origin');
+        await font_face_test(f, REMOTE_URL, 'cors', 'same-origin');
 
-        script_integrity_test(f, LOCAL_URL, '     ', '     ');
-        script_integrity_test(f, LOCAL_URL,
-                              'This is not a valid integrity because it has no dashes',
-                              'This is not a valid integrity because it has no dashes');
-        script_integrity_test(f, LOCAL_URL, 'sha256-', 'sha256-');
-        script_integrity_test(f, LOCAL_URL, 'sha256-foo?123', 'sha256-foo?123');
-        script_integrity_test(f, LOCAL_URL, 'sha256-foo sha384-abc ', 'sha256-foo sha384-abc ');
-        script_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc', 'sha256-foo sha256-abc');
+        await script_integrity_test(f, LOCAL_URL, '     ', '     ');
+        await script_integrity_test(f, LOCAL_URL,
+                               'This is not a valid integrity because it has no dashes',
+                               'This is not a valid integrity because it has no dashes');
+        await script_integrity_test(f, LOCAL_URL, 'sha256-', 'sha256-');
+        await script_integrity_test(f, LOCAL_URL, 'sha256-foo?123', 'sha256-foo?123');
+        await script_integrity_test(f, LOCAL_URL, 'sha256-foo sha384-abc ', 'sha256-foo sha384-abc ');
+        await script_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc', 'sha256-foo sha256-abc');
 
-        css_integrity_test(f, LOCAL_URL, '     ', '     ');
-        css_integrity_test(f, LOCAL_URL,
-                           'This is not a valid integrity because it has no dashes',
-                           'This is not a valid integrity because it has no dashes');
-        css_integrity_test(f, LOCAL_URL, 'sha256-', 'sha256-');
-        css_integrity_test(f, LOCAL_URL, 'sha256-foo?123', 'sha256-foo?123');
-        css_integrity_test(f, LOCAL_URL, 'sha256-foo sha384-abc ', 'sha256-foo sha384-abc ');
-        css_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc', 'sha256-foo sha256-abc');
+        await css_integrity_test(f, LOCAL_URL, '     ', '     ');
+        await css_integrity_test(f, LOCAL_URL,
+                            'This is not a valid integrity because it has no dashes',
+                            'This is not a valid integrity because it has no dashes');
+        await css_integrity_test(f, LOCAL_URL, 'sha256-', 'sha256-');
+        await css_integrity_test(f, LOCAL_URL, 'sha256-foo?123', 'sha256-foo?123');
+        await css_integrity_test(f, LOCAL_URL, 'sha256-foo sha384-abc ', 'sha256-foo sha384-abc ');
+        await css_integrity_test(f, LOCAL_URL, 'sha256-foo sha256-abc', 'sha256-foo sha256-abc');
 
-        fetch_test(f, LOCAL_URL, 'same-origin', 'omit', 'same-origin', 'omit');
-        fetch_test(f, LOCAL_URL, 'same-origin', 'same-origin',
-                   'same-origin', 'same-origin');
-        fetch_test(f, LOCAL_URL, 'same-origin', 'include',
-                   'same-origin', 'include');
-        fetch_test(f, LOCAL_URL, 'no-cors', 'omit', 'no-cors', 'omit');
-        fetch_test(f, LOCAL_URL, 'no-cors', 'same-origin',
-                   'no-cors', 'same-origin');
-        fetch_test(f, LOCAL_URL, 'no-cors', 'include', 'no-cors', 'include');
-        fetch_test(f, LOCAL_URL, 'cors', 'omit', 'cors', 'omit');
-        fetch_test(f, LOCAL_URL, 'cors', 'same-origin', 'cors', 'same-origin');
-        fetch_test(f, LOCAL_URL, 'cors', 'include', 'cors', 'include');
-        fetch_test(f, REMOTE_URL, 'no-cors', 'omit', 'no-cors', 'omit');
-        fetch_test(f, REMOTE_URL, 'no-cors', 'same-origin',
-                   'no-cors', 'same-origin');
-        fetch_test(f, REMOTE_URL, 'no-cors', 'include', 'no-cors', 'include');
-        fetch_test(f, REMOTE_URL, 'cors', 'omit', 'cors', 'omit');
-        fetch_test(f, REMOTE_URL, 'cors', 'same-origin', 'cors', 'same-origin');
-        fetch_test(f, REMOTE_URL, 'cors', 'include', 'cors', 'include');
+        await fetch_test(f, LOCAL_URL, 'same-origin', 'omit', 'same-origin', 'omit');
+        await fetch_test(f, LOCAL_URL, 'same-origin', 'same-origin',
+                    'same-origin', 'same-origin');
+        await fetch_test(f, LOCAL_URL, 'same-origin', 'include',
+                    'same-origin', 'include');
+        await fetch_test(f, LOCAL_URL, 'no-cors', 'omit', 'no-cors', 'omit');
+        await fetch_test(f, LOCAL_URL, 'no-cors', 'same-origin',
+                    'no-cors', 'same-origin');
+        await fetch_test(f, LOCAL_URL, 'no-cors', 'include', 'no-cors', 'include');
+        await fetch_test(f, LOCAL_URL, 'cors', 'omit', 'cors', 'omit');
+        await fetch_test(f, LOCAL_URL, 'cors', 'same-origin', 'cors', 'same-origin');
+        await fetch_test(f, LOCAL_URL, 'cors', 'include', 'cors', 'include');
+        await fetch_test(f, REMOTE_URL, 'no-cors', 'omit', 'no-cors', 'omit');
+        await fetch_test(f, REMOTE_URL, 'no-cors', 'same-origin',
+                    'no-cors', 'same-origin');
+        await fetch_test(f, REMOTE_URL, 'no-cors', 'include', 'no-cors', 'include');
+        await fetch_test(f, REMOTE_URL, 'cors', 'omit', 'cors', 'omit');
+        await fetch_test(f, REMOTE_URL, 'cors', 'same-origin', 'cors', 'same-origin');
+        await fetch_test(f, REMOTE_URL, 'cors', 'include', 'cors', 'include');
 
-        audio_test(f, LOCAL_URL, '', 'no-cors', 'include');
-        audio_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
-        audio_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
-        audio_test(f, REMOTE_URL, '', 'no-cors', 'include');
-        audio_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
-        audio_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
-      })
-      .catch(unreached_rejection(t));
+        await audio_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        await audio_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        await audio_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        await audio_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await audio_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        await audio_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+
+        await video_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        await video_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        await video_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        await video_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        await video_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        await video_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+
+        frame.remove();
+        service_worker_unregister(t, SCOPE);
+      }).catch(unreached_rejection(t));
   }, 'Verify FetchEvent for resources.');
 </script>

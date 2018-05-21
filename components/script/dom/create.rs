@@ -54,6 +54,7 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlparagraphelement::HTMLParagraphElement;
 use dom::htmlparamelement::HTMLParamElement;
+use dom::htmlpictureelement::HTMLPictureElement;
 use dom::htmlpreelement::HTMLPreElement;
 use dom::htmlprogresselement::HTMLProgressElement;
 use dom::htmlquoteelement::HTMLQuoteElement;
@@ -87,7 +88,7 @@ fn create_svg_element(name: QualName,
                       prefix: Option<Prefix>,
                       document: &Document)
                       -> DomRoot<Element> {
-    assert!(name.ns == ns!(svg));
+    assert_eq!(name.ns, ns!(svg));
 
     macro_rules! make(
         ($ctor:ident) => ({
@@ -119,7 +120,7 @@ fn create_html_element(name: QualName,
                        creator: ElementCreator,
                        mode: CustomElementCreationMode)
                        -> DomRoot<Element> {
-    assert!(name.ns == ns!(html));
+    assert_eq!(name.ns, ns!(html));
 
     // Step 4
     let definition = document.lookup_custom_element_definition(&name.ns, &name.local, is.as_ref());
@@ -309,6 +310,7 @@ pub fn create_native_html_element(
         local_name!("output")     => make!(HTMLOutputElement),
         local_name!("p")          => make!(HTMLParagraphElement),
         local_name!("param")      => make!(HTMLParamElement),
+        local_name!("picture")    => make!(HTMLPictureElement),
         local_name!("plaintext")  => make!(HTMLPreElement),
         local_name!("pre")        => make!(HTMLPreElement),
         local_name!("progress")   => make!(HTMLProgressElement),

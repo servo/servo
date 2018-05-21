@@ -3,7 +3,7 @@
     <head>
         <title>CSSOM Parsing Test: @font-face rules parsed into CSSOM CSSFontFaceRules</title>
         <link rel="author" title="Paul Irish" href="mailto:paul.irish@gmail.com">
-        <link rel="help" href="http://www.w3.org/TR/cssom-1/#css-font-face-rule">
+        <link rel="help" href="https://drafts.csswg.org/css-fonts-4/#om-fontface">
 
         <meta name="flags" content="dom">
 
@@ -44,7 +44,7 @@
 
             test(function(){
 
-                assert_equals(validRules[0].style.src, 'url(http://foo/bar/font.ttf)');
+                assert_equals(validRules[0].style.src, 'url("http://foo/bar/font.ttf")');
                 assert_equals(validRules[1].style.fontFamily, 'STIXGeneral');
 
                 /* unimplemented @font-face properties are not represented in CSSOM */

@@ -14,7 +14,11 @@ class Git(object):
     def get_func(repo_path):
         def git(cmd, *args):
             full_cmd = ["git", cmd] + list(args)
-            return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
+            try:
+                return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
+            except WindowsError:
+                full_cmd[0] = "git.bat"
+                return subprocess.check_output(full_cmd, cwd=repo_path, stderr=subprocess.STDOUT)
         return git
 
     @classmethod

@@ -129,7 +129,7 @@ function test1() {
         let t3 = document.createElement('div');
         resizers.push(t3);
         t2.appendChild(t3);
-        let shadow = t3.createShadowRoot();
+        let shadow = t3.attachShadow({ mode: "open" });
         let t4 = document.createElement('div');
         resizers.push(t4);
         shadow.appendChild(t4);

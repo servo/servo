@@ -14,9 +14,9 @@ import os.path
 import platform
 import shutil
 from socket import error as socket_error
+import stat
 import StringIO
 import sys
-import tarfile
 import zipfile
 import urllib2
 import certifi
@@ -36,9 +36,15 @@ else:
     URLOPEN_KWARGS = {}
 
 
+def remove_readonly(func, path, _):
+    "Clear the readonly bit and reattempt the removal"
+    os.chmod(path, stat.S_IWRITE)
+    func(path)
+
+
 def delete(path):
     if os.path.isdir(path) and not os.path.islink(path):
-        shutil.rmtree(path)
+        shutil.rmtree(path, onerror=remove_readonly)
     else:
         os.remove(path)
 
@@ -148,10 +154,8 @@ def download_file(desc, src, dst):
 
 
 def extract(src, dst, movedir=None):
-    if src.endswith(".zip"):
-        zipfile.ZipFile(src).extractall(dst)
-    else:
-        tarfile.open(src).extractall(dst)
+    assert src.endswith(".zip")
+    zipfile.ZipFile(src).extractall(dst)
 
     if movedir:
         for f in os.listdir(movedir):

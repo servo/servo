@@ -7,18 +7,18 @@
 use app_units::Au;
 use context::QuirksMode;
 use cssparser::{Parser, RGBA};
-use euclid::{ScaleFactor, Size2D, TypedSize2D};
+use euclid::{Size2D, TypedScale, TypedSize2D};
 use media_queries::MediaType;
 use parser::ParserContext;
 use properties::ComputedValues;
 use selectors::parser::SelectorParseErrorKind;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
-use style_traits::{CSSPixel, DevicePixel, ToCss, ParseError};
+use style_traits::{CSSPixel, CssWriter, DevicePixel, ParseError, ToCss};
 use style_traits::viewport::ViewportConstraints;
+use values::{specified, KeyframesName};
 use values::computed::{self, ToComputedValue};
 use values::computed::font::FontSize;
-use values::specified;
 
 /// A device is a structure that represents the current media a given document
 /// is displayed in.
@@ -31,7 +31,7 @@ pub struct Device {
     /// The current viewport size, in CSS pixels.
     viewport_size: TypedSize2D<f32, CSSPixel>,
     /// The current device pixel ratio, from CSS pixels to device pixels.
-    device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+    device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
 
     /// The font size of the root element
     /// This is set when computing the style of the root
@@ -57,7 +57,7 @@ impl Device {
     pub fn new(
         media_type: MediaType,
         viewport_size: TypedSize2D<f32, CSSPixel>,
-        device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>
+        device_pixel_ratio: TypedScale<f32, CSSPixel, DevicePixel>,
     ) -> Device {
         Device {
             media_type,
@@ -86,7 +86,8 @@ impl Device {
 
     /// Set the font size of the root element (for rem)
     pub fn set_root_font_size(&self, size: Au) {
-        self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
+        self.root_font_size
+            .store(size.0 as isize, Ordering::Relaxed)
     }
 
     /// Sets the body text color for the "inherit color from body" quirk.
@@ -94,6 +95,12 @@ impl Device {
     /// <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
     pub fn set_body_text_color(&self, _color: RGBA) {
         // Servo doesn't implement this quirk (yet)
+    }
+
+    /// Whether a given animation name may be referenced from style.
+    pub fn animation_name_may_be_referenced(&self, _: &KeyframesName) -> bool {
+        // Assume it is, since we don't have any good way to prove it's not.
+        true
     }
 
     /// Returns whether we ever looked up the root font size of the Device.
@@ -105,8 +112,10 @@ impl Device {
     /// among other things, to resolve viewport units.
     #[inline]
     pub fn au_viewport_size(&self) -> Size2D<Au> {
-        Size2D::new(Au::from_f32_px(self.viewport_size.width),
-                    Au::from_f32_px(self.viewport_size.height))
+        Size2D::new(
+            Au::from_f32_px(self.viewport_size.width),
+            Au::from_f32_px(self.viewport_size.height),
+        )
     }
 
     /// Like the above, but records that we've used viewport units.
@@ -121,7 +130,7 @@ impl Device {
     }
 
     /// Returns the device pixel ratio.
-    pub fn device_pixel_ratio(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+    pub fn device_pixel_ratio(&self) -> TypedScale<f32, CSSPixel, DevicePixel> {
         self.device_pixel_ratio
     }
 
@@ -178,8 +187,10 @@ impl Expression {
     /// ```
     ///
     /// Only supports width and width ranges for now.
-    pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<Self, ParseError<'i>> {
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
             let name = input.expect_ident_cloned()?;
@@ -208,18 +219,19 @@ impl Expression {
         match self.0 {
             ExpressionKind::Width(ref range) => {
                 match range.to_computed_range(device, quirks_mode) {
-                    Range::Min(ref width) => { value >= *width },
-                    Range::Max(ref width) => { value <= *width },
-                    Range::Eq(ref width) => { value == *width },
+                    Range::Min(ref width) => value >= *width,
+                    Range::Max(ref width) => value <= *width,
+                    Range::Eq(ref width) => value == *width,
                 }
-            }
+            },
         }
     }
 }
 
 impl ToCss for Expression {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
     {
         let (s, l) = match self.0 {
             ExpressionKind::Width(Range::Min(ref l)) => ("(min-width: ", l),
@@ -249,12 +261,10 @@ pub enum Range<T> {
 
 impl Range<specified::Length> {
     fn to_computed_range(&self, device: &Device, quirks_mode: QuirksMode) -> Range<Au> {
-        computed::Context::for_media_query_evaluation(device, quirks_mode, |context| {
-            match *self {
-                Range::Min(ref width) => Range::Min(Au::from(width.to_computed_value(&context))),
-                Range::Max(ref width) => Range::Max(Au::from(width.to_computed_value(&context))),
-                Range::Eq(ref width) => Range::Eq(Au::from(width.to_computed_value(&context)))
-            }
+        computed::Context::for_media_query_evaluation(device, quirks_mode, |context| match *self {
+            Range::Min(ref width) => Range::Min(Au::from(width.to_computed_value(&context))),
+            Range::Max(ref width) => Range::Max(Au::from(width.to_computed_value(&context))),
+            Range::Eq(ref width) => Range::Eq(Au::from(width.to_computed_value(&context))),
         })
     }
 }

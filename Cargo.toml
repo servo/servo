@@ -2,20 +2,12 @@
 members = [
     "ports/servo",
     "tests/unit/*",
-
-    "ports/geckolib",
-    "ports/geckolib/tests",
-
-    "ports/cef",
 ]
 default-members = [
     "ports/servo",
     "tests/unit/*",
 ]
 exclude = [".cargo"]
-
-[profile.dev]
-codegen-units = 4
 
 [profile.release]
 opt-level = 3

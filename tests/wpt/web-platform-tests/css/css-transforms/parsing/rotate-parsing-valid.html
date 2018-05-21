@@ -17,6 +17,16 @@ test_valid_value("rotate", "none");
 test_valid_value("rotate", "0deg");
 
 test_valid_value("rotate", "100 200 300 400grad");
+test_valid_value("rotate", "400grad 100 200 300", "100 200 300 400grad");
+
+test_valid_value("rotate", "x 400grad", "1 0 0 400grad");
+test_valid_value("rotate", "400grad x", "1 0 0 400grad");
+
+test_valid_value("rotate", "y 400grad", "0 1 0 400grad");
+test_valid_value("rotate", "400grad y", "0 1 0 400grad");
+
+test_valid_value("rotate", "z 400grad", "0 0 1 400grad");
+test_valid_value("rotate", "400grad z", "0 0 1 400grad");
 </script>
 </body>
 </html>

@@ -6,6 +6,7 @@ use ipc_channel::ipc;
 use metrics::{InteractiveMetrics, InteractiveFlag};
 use metrics::{ProfilerMetadataFactory, ProgressiveWebMetric};
 use profile_traits::time::{ProfilerChan, TimerMetadata};
+use servo_url::ServoUrl;
 use time;
 
 struct DummyProfilerMetadataFactory {}
@@ -19,7 +20,10 @@ impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
 fn test_interactive() -> InteractiveMetrics {
     let (sender, _) = ipc::channel().unwrap();
     let profiler_chan = ProfilerChan(sender);
-    let mut interactive = InteractiveMetrics::new(profiler_chan);
+    let mut interactive = InteractiveMetrics::new(
+        profiler_chan,
+        ServoUrl::parse("about:blank").unwrap(),
+    );
 
     assert_eq!((&interactive).get_navigation_start(), None);
     assert_eq!(interactive.get_tti(), None);

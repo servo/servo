@@ -6,13 +6,14 @@
 
 use properties::animated_properties::RepeatableListAnimatable;
 use properties::longhands::background_size::computed_value::T as BackgroundSizeList;
-use std::fmt;
-use style_traits::ToCss;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
 use values::computed::{Context, ToComputedValue};
 use values::computed::length::LengthOrPercentageOrAuto;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
-use values::specified::background::{BackgroundRepeat as SpecifiedBackgroundRepeat, RepeatKeyword};
+use values::specified::background::BackgroundRepeat as SpecifiedBackgroundRepeat;
+use values::specified::background::BackgroundRepeatKeyword;
 
 /// A computed value for the `background-size` property.
 pub type BackgroundSize = GenericBackgroundSize<LengthOrPercentageOrAuto>;
@@ -31,7 +32,9 @@ impl RepeatableListAnimatable for BackgroundSize {}
 
 impl ToAnimatedZero for BackgroundSize {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
+    }
 }
 
 impl ToAnimatedValue for BackgroundSize {
@@ -53,17 +56,15 @@ impl ToAnimatedValue for BackgroundSize {
                 LengthOrPercentageOrAuto::Percentage(percent) => {
                     LengthOrPercentageOrAuto::Percentage(Percentage(percent.0.max(0.)))
                 },
-                _ => value
+                _ => value,
             }
         };
         match animated {
-            GenericBackgroundSize::Explicit { width, height } => {
-                GenericBackgroundSize::Explicit {
-                    width: clamp_animated_value(width),
-                    height: clamp_animated_value(height)
-                }
+            GenericBackgroundSize::Explicit { width, height } => GenericBackgroundSize::Explicit {
+                width: clamp_animated_value(width),
+                height: clamp_animated_value(height),
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
@@ -86,23 +87,30 @@ impl ToAnimatedValue for BackgroundSizeList {
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-pub struct BackgroundRepeat(pub RepeatKeyword, pub RepeatKeyword);
+pub struct BackgroundRepeat(pub BackgroundRepeatKeyword, pub BackgroundRepeatKeyword);
 
 impl BackgroundRepeat {
     /// Returns the `repeat repeat` value.
     pub fn repeat() -> Self {
-        BackgroundRepeat(RepeatKeyword::Repeat, RepeatKeyword::Repeat)
+        BackgroundRepeat(
+            BackgroundRepeatKeyword::Repeat,
+            BackgroundRepeatKeyword::Repeat,
+        )
     }
 }
 
 impl ToCss for BackgroundRepeat {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: fmt::Write,
+        W: Write,
     {
         match (self.0, self.1) {
-            (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => dest.write_str("repeat-x"),
-            (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => dest.write_str("repeat-y"),
+            (BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat) => {
+                dest.write_str("repeat-x")
+            },
+            (BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat) => {
+                dest.write_str("repeat-y")
+            },
             (horizontal, vertical) => {
                 horizontal.to_css(dest)?;
                 if horizontal != vertical {
@@ -121,15 +129,17 @@ impl ToComputedValue for SpecifiedBackgroundRepeat {
     #[inline]
     fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
         match *self {
-            SpecifiedBackgroundRepeat::RepeatX => {
-                BackgroundRepeat(RepeatKeyword::Repeat, RepeatKeyword::NoRepeat)
-            }
-            SpecifiedBackgroundRepeat::RepeatY => {
-                BackgroundRepeat(RepeatKeyword::NoRepeat, RepeatKeyword::Repeat)
-            }
+            SpecifiedBackgroundRepeat::RepeatX => BackgroundRepeat(
+                BackgroundRepeatKeyword::Repeat,
+                BackgroundRepeatKeyword::NoRepeat,
+            ),
+            SpecifiedBackgroundRepeat::RepeatY => BackgroundRepeat(
+                BackgroundRepeatKeyword::NoRepeat,
+                BackgroundRepeatKeyword::Repeat,
+            ),
             SpecifiedBackgroundRepeat::Keywords(horizontal, vertical) => {
                 BackgroundRepeat(horizontal, vertical.unwrap_or(horizontal))
-            }
+            },
         }
     }
 
@@ -138,15 +148,15 @@ impl ToComputedValue for SpecifiedBackgroundRepeat {
         // FIXME(emilio): Why can't this just be:
         //   SpecifiedBackgroundRepeat::Keywords(computed.0, computed.1)
         match (computed.0, computed.1) {
-            (RepeatKeyword::Repeat, RepeatKeyword::NoRepeat) => {
+            (BackgroundRepeatKeyword::Repeat, BackgroundRepeatKeyword::NoRepeat) => {
                 SpecifiedBackgroundRepeat::RepeatX
-            }
-            (RepeatKeyword::NoRepeat, RepeatKeyword::Repeat) => {
+            },
+            (BackgroundRepeatKeyword::NoRepeat, BackgroundRepeatKeyword::Repeat) => {
                 SpecifiedBackgroundRepeat::RepeatY
-            }
+            },
             (horizontal, vertical) => {
                 SpecifiedBackgroundRepeat::Keywords(horizontal, Some(vertical))
-            }
+            },
         }
     }
 }

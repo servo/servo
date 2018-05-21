@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+  <head>
+    <title>XMLHttpRequest: responseXML document properties</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+      var timePreXHR = Math.floor(new Date().getTime(new Date().getTime() - 3000) / 1000); // three seconds ago, in case there's clock drift
+      var client = new XMLHttpRequest()
+      client.open("GET", "resources/well-formed.xml", false)
+      client.send(null)
+      var responseURL = new URL('resources/well-formed.xml', location.href).href
+      var expected = {
+        domain:undefined,
+        URL:responseURL,
+        documentURI:responseURL,
+        baseURI:responseURL,
+        referrer:'',
+        title:'',
+        contentType:'application/xml',
+        readyState:'complete',
+        location:null,
+        defaultView:null,
+        body:null,
+        doctype:null,
+        all:undefined,
+        cookie:''
+      }
+
+      for (var name in expected) {
+        runTest(name, expected[name])
+      }
+
+      function runTest(name, value){
+        test(function(){
+          assert_equals(client.responseXML[name], value)
+        }, name)
+      }
+
+      async_test(t => {
+        const client = new XMLHttpRequest();
+        client.open("GET", "resources/redirect.py?location=well-formed.xml");
+        client.send();
+        client.onload = t.step_func_done(() => {
+          assert_equals(client.responseXML.URL, responseURL);
+          assert_equals(client.responseXML.baseURI, responseURL);
+        });
+      }, "Test document URL properties after redirect");
+
+      async_test(t => {
+        const client = new XMLHttpRequest();
+        client.open("GET", "resources/redirect.py?location=base.xml");
+        client.send();
+        client.onload = t.step_func_done(() => {
+          const localResponseURL = new URL('resources/base.xml', location.href).href;
+          assert_equals(client.responseXML.URL, localResponseURL);
+          assert_equals(client.responseXML.baseURI, 'https://example.com/');
+          client.responseXML.documentElement.remove();
+          assert_equals(client.responseXML.baseURI, localResponseURL);
+          const newBase = document.createElement("base"),
+                newBaseURL = "https://elsewhere.example/";
+          newBase.href = "https://elsewhere.example/";
+          client.responseXML.appendChild(newBase);
+          assert_equals(client.responseXML.baseURI, newBaseURL);
+          newBase.remove();
+          document.head.appendChild(newBase);
+          assert_equals(client.responseXML.baseURI, localResponseURL);
+          newBase.remove();
+        });
+      }, "Test document URL properties of document with <base> after redirect");
+
+      test(function() {
+        var lastModified = Math.floor(new Date(client.responseXML.lastModified).getTime() / 1000);
+        var now = Math.floor(new Date().getTime(new Date().getTime() + 3000) / 1000); // three seconds from now, in case there's clock drift
+        assert_greater_than_equal(lastModified, timePreXHR);
+        assert_less_than_equal(lastModified, now);
+      }, 'lastModified set to time of response if no HTTP header provided')
+
+      test(function() {
+        var client2 = new XMLHttpRequest()
+        client2.open("GET", "resources/last-modified.py", false)
+        client2.send(null)
+        assert_equals((new Date(client2.getResponseHeader('Last-Modified'))).getTime(), (new Date(client2.responseXML.lastModified)).getTime())
+      }, 'lastModified set to related HTTP header if provided')
+
+      test(function() {
+        client.responseXML.cookie = "thisshouldbeignored"
+        assert_equals(client.responseXML.cookie, "")
+      }, 'cookie (after setting it)')
+
+      var objectProps = [
+        "styleSheets",
+        "implementation",
+        "images",
+        "forms",
+        "links",
+      ];
+
+      for (let prop of objectProps) {
+        test(function() {
+          assert_equals(typeof(client.responseXML[prop]), "object")
+        }, prop + " should be an object")
+      }
+    </script>
+  </body>
+</html>

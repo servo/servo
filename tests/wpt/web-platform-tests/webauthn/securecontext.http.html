@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebAuthn Secure Context Tests</title>
+<link rel="author" title="Adam Powers" href="mailto:adam@fidoalliance.org">
+<link rel="help" href="https://w3c.github.io/webauthn/#iface-credential">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=helpers.js></script>
+<body></body>
+<script>
+standardSetup(function() {
+    "use strict";
+
+    // See https://www.w3.org/TR/secure-contexts/
+    // Section 1.1 - 1.4 for list of examples referenced below
+
+    // Example 1
+    // http://example.com/ opened in a top-level browsing context is not a secure context, as it was not delivered over an authenticated and encrypted channel.
+    test (() => {
+        assert_false (typeof navigator.credentials === "object" && typeof navigator.credentials.create === "function");
+    }, "no navigator.credentials.create in non-secure context");
+
+    // Example 4: TODO
+    // If a non-secure context opens https://example.com/ in a new window, then things are more complicated. The new window’s status depends on how it was opened. If the non-secure context can obtain a reference to the secure context, or vice-versa, then the new window is not a secure context.
+    //
+    // This means that the following will both produce non-secure contexts:
+    //<a href="https://example.com/" target="_blank">Link!</a>
+    // <script>
+    //     var w = window.open("https://example.com/");
+    // < /script>
+
+    // Example 6: TODO
+    // If https://example.com/ was somehow able to frame http://non-secure.example.com/ (perhaps the user has overridden mixed content checking?), the top-level frame would remain secure, but the framed content is not a secure context.
+
+    // Example 7: TODO
+    // If, on the other hand, https://example.com/ is framed inside of http://non-secure.example.com/, then it is not a secure context, as its ancestor is not delivered over an authenticated and encrypted channel.
+
+    // Example 9: TODO
+    // If http://non-secure.example.com/ in a top-level browsing context frames https://example.com/, which runs https://example.com/worker.js, then neither the framed document nor the worker are secure contexts.
+
+    // Example 12: TODO
+    // https://example.com/ nested in http://non-secure.example.com/ may not connect to the secure worker, as it is not a secure context.
+
+    // Example 13: TODO
+    // Likewise, if https://example.com/ nested in http://non-secure.example.com/ runs https://example.com/worker.js as a Shared Worker, then both the document and the worker are considered non-secure.
+
+});
+</script>

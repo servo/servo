@@ -185,7 +185,7 @@ impl Attr {
         let mutation = Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: old_value.clone(),
+            old_value: Some(old_value.clone()),
         };
 
         MutationObserver::queue_a_mutation_record(owner.upcast::<Node>(), mutation);
@@ -195,7 +195,7 @@ impl Attr {
             ScriptThread::enqueue_callback_reaction(owner, reaction, None);
         }
 
-        assert!(Some(owner) == self.owner().r());
+        assert_eq!(Some(owner), self.owner().r());
         owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
@@ -230,7 +230,7 @@ impl Attr {
                 // Already gone from the list of attributes of old owner.
                 assert!(old.get_attribute(&ns, &self.identifier.local_name).r() != Some(self))
             }
-            (Some(old), Some(new)) => assert!(&*old == new),
+            (Some(old), Some(new)) => assert_eq!(&*old, new),
             _ => {},
         }
         self.owner.set(owner);

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tests that sandboxed iframe has CORS XHR access to a server that accepts null domain</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/get-host-info.sub.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+async_test((test) => {
+  window.addEventListener("message", test.step_func((evt) => {
+    if (evt.data === "ready") {
+      document.getElementById("frame").contentWindow.postMessage(
+          get_host_info().HTTP_ORIGIN +
+          "/xhr/resources/pass.txt?pipe=" +
+          "header(Cache-Control,no-store)|" +
+          "header(Content-Type,text/plain)|" +
+          "header(Access-Control-Allow-Credentials,true)|" +
+          "header(Access-Control-Allow-External,true)|" +
+          "header(Access-Control-Allow-Origin,null)", "*");
+    } else {
+      assert_equals(evt.data.trim(), "PASS");
+      test.done();
+    }
+  }), false);
+});
+    </script>
+    <iframe id="frame" sandbox="allow-scripts" src="/xhr/resources/access-control-sandboxed-iframe.html">
+    </iframe>
+  </body>
+</html>

@@ -1,0 +1,1 @@
+Subclasses of ``auto_attribs=True`` can be empty now.

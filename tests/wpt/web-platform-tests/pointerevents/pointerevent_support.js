@@ -39,7 +39,8 @@ function check_PointerEvent(event, testNamePrefix) {
         "long": function (v) { return typeof v === "number" && Math.round(v) === v; },
         "float": function (v) { return typeof v === "number"; },
         "string": function (v) { return typeof v === "string"; },
-        "boolean": function (v) { return typeof v === "boolean" }
+        "boolean": function (v) { return typeof v === "boolean" },
+        "object": function (v) { return typeof v === "object" }
     };
     [
         ["readonly", "long", "pointerId"],
@@ -50,7 +51,9 @@ function check_PointerEvent(event, testNamePrefix) {
         ["readonly", "long", "tiltY"],
         ["readonly", "string", "pointerType"],
         ["readonly", "boolean", "isPrimary"],
-        ["readonly", "long", "detail", 0]
+        ["readonly", "long", "detail", 0],
+        ["readonly", "object", "fromElement", null],
+        ["readonly", "object", "toElement", null]
     ].forEach(function (attr) {
         var readonly = attr[0];
         var type = attr[1];
@@ -75,7 +78,7 @@ function check_PointerEvent(event, testNamePrefix) {
         }, pointerTestName + "." + name + " IDL type " + type + " (JS type was " + typeof event[name] + ")");
 
         // value check if defined
-        if (value != undefined) {
+        if (value !== undefined) {
             test(function () {
                 assert_equals(event[name], value, name + " attribute value");
             }, pointerTestName + "." + name + " value is " + value + ".");

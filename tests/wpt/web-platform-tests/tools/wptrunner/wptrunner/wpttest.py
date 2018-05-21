@@ -1,4 +1,5 @@
 import os
+import subprocess
 from collections import defaultdict
 
 from wptmanifest.parser import atoms
@@ -36,7 +37,7 @@ class SubtestResult(object):
 
 class TestharnessResult(Result):
     default_expected = "OK"
-    statuses = set(["OK", "ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = set(["OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
 
 
 class TestharnessSubtestResult(SubtestResult):
@@ -46,12 +47,13 @@ class TestharnessSubtestResult(SubtestResult):
 
 class ReftestResult(Result):
     default_expected = "PASS"
-    statuses = set(["PASS", "FAIL", "ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = set(["PASS", "FAIL", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT",
+                    "CRASH"])
 
 
 class WdspecResult(Result):
     default_expected = "OK"
-    statuses = set(["OK", "ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
+    statuses = set(["OK", "ERROR", "INTERNAL-ERROR", "TIMEOUT", "EXTERNAL-TIMEOUT", "CRASH"])
 
 
 class WdspecSubtestResult(SubtestResult):
@@ -64,11 +66,20 @@ def get_run_info(metadata_root, product, **kwargs):
 
 
 class RunInfo(dict):
-    def __init__(self, metadata_root, product, debug, extras=None):
+    def __init__(self, metadata_root, product, debug, browser_version=None, extras=None):
         import mozinfo
-
         self._update_mozinfo(metadata_root)
         self.update(mozinfo.info)
+
+        from update.tree import GitTree
+        try:
+            # GitTree.__init__ throws if we are not in a git tree.
+            rev = GitTree(log_error=False).rev
+        except (OSError, subprocess.CalledProcessError):
+            rev = None
+        if rev:
+            self["revision"] = rev
+
         self["product"] = product
         if debug is not None:
             self["debug"] = debug
@@ -81,6 +92,8 @@ class RunInfo(dict):
             self["stylo"] = True
         if "STYLO_FORCE_DISABLED" in os.environ:
             self["stylo"] = False
+        if browser_version:
+            self["browser_version"] = browser_version
         if extras is not None:
             self.update(extras)
 
@@ -243,17 +256,20 @@ class TestharnessTest(Test):
     test_type = "testharness"
 
     def __init__(self, tests_root, url, inherit_metadata, test_metadata,
-                 timeout=None, path=None, protocol="http", testdriver=False):
+                 timeout=None, path=None, protocol="http", testdriver=False,
+                 jsshell=False):
         Test.__init__(self, tests_root, url, inherit_metadata, test_metadata, timeout,
                       path, protocol)
 
         self.testdriver = testdriver
+        self.jsshell = jsshell
 
     @classmethod
     def from_manifest(cls, manifest_item, inherit_metadata, test_metadata):
         timeout = cls.long_timeout if manifest_item.timeout == "long" else cls.default_timeout
         protocol = "https" if hasattr(manifest_item, "https") and manifest_item.https else "http"
         testdriver = manifest_item.testdriver if hasattr(manifest_item, "testdriver") else False
+        jsshell = manifest_item.jsshell if hasattr(manifest_item, "jsshell") else False
         return cls(manifest_item.source_file.tests_root,
                    manifest_item.url,
                    inherit_metadata,
@@ -261,7 +277,8 @@ class TestharnessTest(Test):
                    timeout=timeout,
                    path=manifest_item.source_file.path,
                    protocol=protocol,
-                   testdriver=testdriver)
+                   testdriver=testdriver,
+                   jsshell=jsshell)
 
     @property
     def id(self):
@@ -356,7 +373,7 @@ class ReftestTest(Test):
         return node
 
     def update_metadata(self, metadata):
-        if not "url_count" in metadata:
+        if "url_count" not in metadata:
             metadata["url_count"] = defaultdict(int)
         for reference, _ in self.references:
             # We assume a naive implementation in which a url with multiple

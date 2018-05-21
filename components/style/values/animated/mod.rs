@@ -11,19 +11,11 @@
 use app_units::Au;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
-use std::cmp::max;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
-#[cfg(feature = "servo")]
-use values::computed::ComputedUrl;
-use values::computed::GreaterThanOrEqualToOneNumber as ComputedGreaterThanOrEqualToOneNumber;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
-use values::computed::NonNegativeLength as ComputedNonNegativeLength;
-use values::computed::NonNegativeLengthOrPercentage as ComputedNonNegativeLengthOrPercentage;
-use values::computed::NonNegativeNumber as ComputedNonNegativeNumber;
-use values::computed::PositiveInteger as ComputedPositiveInteger;
-use values::specified::url::SpecifiedUrl;
+use values::computed::url::ComputedUrl;
 
 pub mod color;
 pub mod effects;
@@ -41,6 +33,9 @@ pub mod effects;
 ///
 /// If the two values are not similar, an error is returned unless a fallback
 /// function has been specified through `#[animate(fallback)]`.
+///
+/// Trait bounds for type parameter `Foo` can be opted out of with
+/// `#[animation(no_bound(Foo))]` on the type definition.
 pub trait Animate: Sized {
     /// Animate a value towards another one, given an animation procedure.
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>;
@@ -48,15 +43,15 @@ pub trait Animate: Sized {
 
 /// An animation procedure.
 ///
-/// <https://w3c.github.io/web-animations/#procedures-for-animating-properties>
+/// <https://drafts.csswg.org/web-animations/#procedures-for-animating-properties>
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Procedure {
-    /// <https://w3c.github.io/web-animations/#animation-interpolation>
+    /// <https://drafts.csswg.org/web-animations/#animation-interpolation>
     Interpolate { progress: f64 },
-    /// <https://w3c.github.io/web-animations/#animation-addition>
+    /// <https://drafts.csswg.org/web-animations/#animation-addition>
     Add,
-    /// <https://w3c.github.io/web-animations/#animation-accumulation>
+    /// <https://drafts.csswg.org/web-animations/#animation-accumulation>
     Accumulate { count: u64 },
 }
 
@@ -76,9 +71,6 @@ pub trait ToAnimatedValue {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self;
 }
 
-/// Marker trait for computed values with the same representation during animations.
-pub trait AnimatedValueAsComputed {}
-
 /// Returns a value similar to `self` that represents zero.
 ///
 /// This trait is derivable with `#[derive(ToAnimatedValue)]`. If a field is
@@ -87,6 +79,9 @@ pub trait AnimatedValueAsComputed {}
 ///
 /// If a variant is annotated with `#[animation(error)]`, the corresponding
 /// `match` arm is not generated.
+///
+/// Trait bounds for type parameter `Foo` can be opted out of with
+/// `#[animation(no_bound(Foo))]` on the type definition.
 pub trait ToAnimatedZero: Sized {
     /// Returns a value that, when added with an underlying value, will produce the underlying
     /// value. This is used for SMIL animation's "by-animation" where SMIL first interpolates from
@@ -168,7 +163,7 @@ impl Animate for Au {
 
 impl<T> Animate for Size2D<T>
 where
-    T: Animate + Copy,
+    T: Animate,
 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -181,7 +176,7 @@ where
 
 impl<T> Animate for Point2D<T>
 where
-    T: Animate + Copy,
+    T: Animate,
 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -243,100 +238,29 @@ where
     }
 }
 
-impl AnimatedValueAsComputed for Au {}
-impl AnimatedValueAsComputed for ComputedAngle {}
-impl AnimatedValueAsComputed for SpecifiedUrl {}
-#[cfg(feature = "servo")]
-impl AnimatedValueAsComputed for ComputedUrl {}
-impl AnimatedValueAsComputed for bool {}
-impl AnimatedValueAsComputed for f32 {}
+macro_rules! trivial_to_animated_value {
+    ($ty:ty) => {
+        impl $crate::values::animated::ToAnimatedValue for $ty {
+            type AnimatedValue = Self;
 
-impl<T> ToAnimatedValue for T
-where
-    T: AnimatedValueAsComputed,
-{
-    type AnimatedValue = Self;
+            #[inline]
+            fn to_animated_value(self) -> Self {
+                self
+            }
 
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated
-    }
+            #[inline]
+            fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+                animated
+            }
+        }
+    };
 }
 
-impl ToAnimatedValue for ComputedNonNegativeNumber {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.max(0.).into()
-    }
-}
-
-impl ToAnimatedValue for ComputedGreaterThanOrEqualToOneNumber {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.max(1.).into()
-    }
-}
-
-impl ToAnimatedValue for ComputedNonNegativeLength {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedNonNegativeLength::new(animated.px().max(0.))
-    }
-}
-
-impl ToAnimatedValue for ComputedPositiveInteger {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        max(animated.0, 1).into()
-    }
-}
-
-impl ToAnimatedValue for ComputedNonNegativeLengthOrPercentage {
-    type AnimatedValue = Self;
-
-    #[inline]
-    fn to_animated_value(self) -> Self {
-        self
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        animated.0.clamp_to_non_negative().into()
-    }
-}
+trivial_to_animated_value!(Au);
+trivial_to_animated_value!(ComputedAngle);
+trivial_to_animated_value!(ComputedUrl);
+trivial_to_animated_value!(bool);
+trivial_to_animated_value!(f32);
 
 impl ToAnimatedValue for ComputedBorderCornerRadius {
     type AnimatedValue = Self;
@@ -348,8 +272,10 @@ impl ToAnimatedValue for ComputedBorderCornerRadius {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        ComputedBorderCornerRadius::new((animated.0).0.width.clamp_to_non_negative(),
-                                        (animated.0).0.height.clamp_to_non_negative())
+        ComputedBorderCornerRadius::new(
+            (animated.0).0.width.clamp_to_non_negative(),
+            (animated.0).0.height.clamp_to_non_negative(),
+        )
     }
 }
 
@@ -372,12 +298,12 @@ impl ToAnimatedValue for ComputedMaxLength {
                     },
                     LengthOrPercentageOrNone::Percentage(percentage) => {
                         LengthOrPercentageOrNone::Percentage(Percentage(percentage.0.max(0.)))
-                    }
-                    _ => lopn
+                    },
+                    _ => lopn,
                 };
                 ComputedMaxLength::LengthOrPercentageOrNone(result)
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
@@ -401,34 +327,42 @@ impl ToAnimatedValue for ComputedMozLength {
                     },
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         LengthOrPercentageOrAuto::Percentage(Percentage(percentage.0.max(0.)))
-                    }
-                    _ => lopa
+                    },
+                    _ => lopa,
                 };
                 ComputedMozLength::LengthOrPercentageOrAuto(result)
             },
-            _ => animated
+            _ => animated,
         }
     }
 }
 
 impl ToAnimatedZero for Au {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(Au(0)) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Au(0))
+    }
 }
 
 impl ToAnimatedZero for f32 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0.)
+    }
 }
 
 impl ToAnimatedZero for f64 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0.) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0.)
+    }
 }
 
 impl ToAnimatedZero for i32 {
     #[inline]
-    fn to_animated_zero(&self) -> Result<Self, ()> { Ok(0) }
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(0)
+    }
 }
 
 impl<T> ToAnimatedZero for Option<T>
@@ -441,5 +375,18 @@ where
             Some(ref value) => Ok(Some(value.to_animated_zero()?)),
             None => Ok(None),
         }
+    }
+}
+
+impl<T> ToAnimatedZero for Size2D<T>
+where
+    T: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Ok(Size2D::new(
+            self.width.to_animated_zero()?,
+            self.height.to_animated_zero()?,
+        ))
     }
 }

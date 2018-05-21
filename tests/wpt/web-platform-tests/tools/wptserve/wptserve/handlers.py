@@ -1,6 +1,7 @@
 import cgi
 import json
 import os
+import sys
 import traceback
 
 from six.moves.urllib.parse import parse_qs, quote, unquote, urljoin
@@ -231,16 +232,24 @@ class PythonScriptHandler(object):
     def __call__(self, request, response):
         path = filesystem_path(self.base_path, request, self.url_base)
 
+        sys_path = sys.path[:]
+        sys_modules = sys.modules.copy()
         try:
             environ = {"__file__": path}
+            sys.path.insert(0, os.path.dirname(path))
             execfile(path, environ, environ)
             if "main" in environ:
                 handler = FunctionHandler(environ["main"])
                 handler(request, response)
+                wrap_pipeline(path, request, response)
             else:
                 raise HTTPException(500, "No main function in script %s" % path)
         except IOError:
             raise HTTPException(404)
+        finally:
+            sys.path = sys_path
+            sys.modules = sys_modules
+
 
 python_script_handler = PythonScriptHandler()
 
@@ -251,6 +260,8 @@ class FunctionHandler(object):
     def __call__(self, request, response):
         try:
             rv = self.func(request, response)
+        except HTTPException:
+            raise
         except Exception:
             msg = traceback.format_exc()
             raise HTTPException(500, message=msg)
@@ -267,6 +278,7 @@ class FunctionHandler(object):
             else:
                 content = rv
             response.content = content
+            wrap_pipeline('', request, response)
 
 
 #The generic name here is so that this can be used as a decorator
@@ -309,6 +321,7 @@ class AsIsHandler(object):
         try:
             with open(path) as f:
                 response.writer.write_content(f.read())
+            wrap_pipeline(path, request, response)
             response.close_connection = True
         except IOError:
             raise HTTPException(404)
@@ -363,7 +376,7 @@ class StringHandler(object):
 
         self.resp_headers = [("Content-Type", content_type)]
         for k, v in headers.iteritems():
-            resp_headers.append((k.replace("_", "-"), v))
+            self.resp_headers.append((k.replace("_", "-"), v))
 
         self.handler = handler(self.handle_request)
 

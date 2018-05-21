@@ -20,11 +20,7 @@ pub struct NthIndexCache {
 
 impl NthIndexCache {
     /// Gets the appropriate cache for the given parameters.
-    pub fn get(
-        &mut self,
-        is_of_type: bool,
-        is_from_end: bool
-    ) -> &mut NthIndexCacheInner {
+    pub fn get(&mut self, is_of_type: bool, is_from_end: bool) -> &mut NthIndexCacheInner {
         match (is_of_type, is_from_end) {
             (false, false) => &mut self.nth,
             (false, true) => &mut self.nth_last,

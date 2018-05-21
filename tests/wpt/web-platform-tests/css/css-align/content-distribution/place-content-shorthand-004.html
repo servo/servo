@@ -5,7 +5,7 @@
 <meta name="assert" content="Check that place-content's invalid values are properly detected at parsing time." />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../resources/alignment-parsing-utils.js"></script>
+<script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
 <div id="log"></div>
 <script>
     function checkInvalidValues(value)
@@ -14,25 +14,37 @@
     }
 
     test(function() {
-        checkInvalidValues("center safe")
-        checkInvalidValues("true center")
-    }, "Verify overflow keywords are invalid");
-
-    test(function() {
         checkInvalidValues("center space-between start")
     }, "Verify fallback values are invalid");
 
     test(function() {
-        checkInvalidValues("10px left")
-        checkInvalidValues("right 10%")
+        checkInvalidValues("left")
+        checkInvalidValues("left start")
+        checkInvalidValues("right center")
+    }, "Verify 'left' and 'right' values are invalid for block/cross axis alignment");
+
+    test(function() {
+        checkInvalidValues("start baseline")
+        checkInvalidValues("end last baseline")
+    }, "Verify <baseline-position> values are invalid for the justify-content property");
+
+    test(function() {
+        checkInvalidValues("10px end")
+        checkInvalidValues("start 10%")
     }, "Verify numeric values are invalid");
 
     test(function() {
         checkInvalidValues("auto")
         checkInvalidValues("auto right")
         checkInvalidValues("auto auto")
-        checkInvalidValues("left auto")
+        checkInvalidValues("start auto")
     }, "Verify 'auto' values are invalid");
+
+    test(function() {
+        checkInvalidValues("self-start")
+        checkInvalidValues("center self-end")
+        checkInvalidValues("self-end start")
+    }, "Verify self-position values are invalid");
 
     test(function() {
         checkInvalidValues("")

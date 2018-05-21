@@ -10,31 +10,33 @@ name = "layout_thread"
 path = "lib.rs"
 
 [features]
-unstable = ["parking_lot/nightly", "nonzero/unstable"]
+unstable = ["parking_lot/nightly"]
 
 [dependencies]
-app_units = "0.5"
+app_units = "0.6"
 atomic_refcell = "0.1"
-euclid = "0.15"
+embedder_traits = {path = "../embedder_traits"}
+euclid = "0.17"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-html5ever = "0.21.0"
-ipc-channel = "0.9"
+histogram = "0.6.8"
+html5ever = "0.22"
+ipc-channel = "0.10"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}
 lazy_static = "1"
 libc = "0.2"
-log = "0.3.5"
+log = "0.4"
+time = "0.1.17"
 malloc_size_of = { path = "../malloc_size_of" }
 metrics = {path = "../metrics"}
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-nonzero = {path = "../nonzero"}
-parking_lot = "0.4"
+parking_lot = "0.5"
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
-rayon = "0.8"
+rayon = "1"
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
@@ -49,3 +51,6 @@ servo_url = {path = "../url"}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+
+[dev-dependencies]
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }

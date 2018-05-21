@@ -8,12 +8,15 @@ publish = false
 [lib]
 name = "servo_config"
 path = "lib.rs"
+test = false
+doctest = false
 
 [dependencies]
-euclid = "0.15"
+euclid = "0.17"
+embedder_traits = { path = "../embedder_traits" }
 getopts = "0.2.11"
 lazy_static = "1"
-log = "0.3.5"
+log = "0.4"
 num_cpus = "1.1.0"
 rustc-serialize = "0.3"
 serde = "1.0"
@@ -22,7 +25,8 @@ servo_url = {path = "../url"}
 url = "1.2"
 
 [dev-dependencies]
-env_logger = "0.4"
+env_logger = "0.5"
+embedder_traits = { path = "../embedder_traits", features = ["tests"] }
 
 [target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
 xdg = "2.0"

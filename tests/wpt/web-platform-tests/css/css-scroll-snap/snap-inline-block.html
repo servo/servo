@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div {
+  position: absolute;
+  margin: 0px;
+}
+#scroller {
+  width: 400px;
+  height: 350px;
+  overflow: scroll;
+  scroll-snap-type: both mandatory;
+}
+#space {
+  width: 1000px;
+  height: 1000px;
+}
+#target {
+  width: 200px;
+  height: 200px;
+  left: 300px;
+  top: 300px;
+  scroll-snap-align: start end;
+}
+</style>
+
+<div id="scroller">
+  <div id="space"></div>
+  <div id="target"></div>
+</div>
+
+<script>
+var scroller = document.getElementById("scroller");
+var width = scroller.clientWidth;
+var height = scroller.clientHeight;
+[
+  ["horizontal-tb", 300, 500 - height],
+  ["vertical-lr", 500 - width, 300],
+  ["vertical-rl", 300, 300]
+].forEach(([writing_mode, left, top]) => {
+  test(() => {
+    scroller.style.writingMode = writing_mode;
+    if (writing_mode == "vertical-rl")
+      document.getElementById("target").style.left = (width - 700) + "px";
+    scroller.scrollTo(0, 0);
+    assert_equals(scroller.scrollLeft, left, "aligns correctly on x");
+    assert_equals(scroller.scrollTop, top, "aligns correctly on y");
+  }, "Snaps correctly for " + writing_mode +
+     " writing mode with 'inline' and 'block' alignments");
+})
+</script>

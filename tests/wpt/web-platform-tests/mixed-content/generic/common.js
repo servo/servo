@@ -82,9 +82,12 @@ function setAttributes(el, attrs) {
  */
 function bindEvents(element, resolveEventName, rejectEventName) {
   element.eventPromise = new Promise(function(resolve, reject) {
-    element.addEventListener(resolveEventName  || "load", resolve);
-    element.addEventListener(rejectEventName || "error",
-                             function(e) { e.preventDefault(); reject(); } );
+    element.addEventListener(resolveEventName  || "load", function (e) {
+      resolve(e);
+    });
+    element.addEventListener(rejectEventName || "error", function(e) {
+      reject(e);
+    });
   });
 }
 
@@ -291,12 +294,34 @@ function requestViaLinkStylesheet(url) {
  * @return {Promise} The promise for success/error events.
  */
 function requestViaLinkPrefetch(url) {
-  // TODO(kristijanburnik): Check if prefetch should support load and error
-  // events. For now we assume it's not specified.
-  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Link_prefetching_FAQ
-  return createRequestViaElement("link",
-                                 {"rel": "prefetch", "href": url},
-                                 document.head);
+  var link = document.createElement('link');
+  if (link.relList && link.relList.supports && link.relList.supports("prefetch")) {
+    return createRequestViaElement("link",
+                                   {"rel": "prefetch", "href": url},
+                                   document.head);
+  } else {
+    return Promise.reject("This browser does not support 'prefetch'.");
+  }
+}
+
+/**
+ * Initiates a new beacon request.
+ * @param {string} url The URL of a resource to prefetch.
+ * @return {Promise} The promise for success/error events.
+ */
+async function requestViaSendBeacon(url) {
+  function wait(ms) {
+    return new Promise(resolve => step_timeout(resolve, ms));
+  }
+  if (!navigator.sendBeacon(url)) {
+    // If mixed-content check fails, it should return false.
+    throw new Error('sendBeacon() fails.');
+  }
+  // We don't have a means to see the result of sendBeacon() request
+  // for sure. Let's wait for a while and let the generic test function
+  // ask the server for the result.
+  await wait(500);
+  return 'allowed';
 }
 
 /**
@@ -313,10 +338,18 @@ function createMediaElement(type, media_attrs, source_attrs) {
   var sourceElement = createElement("source", {});
 
   mediaElement.eventPromise = new Promise(function(resolve, reject) {
-    mediaElement.addEventListener("loadeddata", resolve);
+    mediaElement.addEventListener("loadeddata", function (e) {
+      resolve(e);
+    });
 
-    // Notice that the source element will raise the error.
-    sourceElement.addEventListener("error", reject);
+    // Safari doesn't fire an `error` event when blocking mixed content.
+    mediaElement.addEventListener("stalled", function(e) {
+      reject(e);
+    });
+
+    sourceElement.addEventListener("error", function(e) {
+      reject(e);
+    });
   });
 
   setAttributes(mediaElement, media_attrs);
@@ -337,7 +370,7 @@ function createMediaElement(type, media_attrs, source_attrs) {
 function requestViaVideo(url) {
   return createMediaElement("video",
                             {},
-                            {type: "video/ogg", src: url}).eventPromise;
+                            {"src": url}).eventPromise;
 }
 
 /**
@@ -349,7 +382,7 @@ function requestViaVideo(url) {
 function requestViaAudio(url) {
   return createMediaElement("audio",
                             {},
-                            {type: "audio/wav", src: url}).eventPromise;
+                            {"type": "audio/wav", "src": url}).eventPromise;
 }
 
 /**
@@ -372,7 +405,7 @@ function requestViaPicture(url) {
  * @return {Promise} The promise for success/error events.
  */
 function requestViaObject(url) {
-  return createRequestViaElement("object", {"data": url}, document.body);
+  return createRequestViaElement("object", {"data": url, "type": "text/html"}, document.body);
 }
 
 /**

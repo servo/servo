@@ -120,6 +120,4 @@ function runServiceWorkerInterceptionTests(worklet_type) {
             })
           .then(msg_event => assert_equals(msg_event.data, 'RESOLVED'));
     }, 'Static import should be intercepted by a service worker.');
-
-    // TODO(nhiroki): Add tests for dynamic import.
 }

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>HTMLTrackElement 'src' attribute mutations</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<video>
+    <track src="resources/settings.vtt" default>
+    <script>
+    async_test(function(t) {
+        var cues = null;
+        var testTrack = document.querySelector("track");
+        var stage = 0;
+        function step_onLoad() {
+            switch (stage) {
+                case 0:
+                    cues = testTrack.track.cues;
+                    assert_equals(testTrack.readyState, HTMLTrackElement.LOADED, "readyState after first loading of the track");
+                    assert_equals(cues.length, 4, "Number of cues after first loading of the track");
+                    assert_equals(cues[cues.length-1].text, 'I said Bear is coming now!!!! Tab separators.', "Last cue content check");
+                    ++stage;
+                    testTrack.src = "resources/entities.vtt";
+                    // CuesList will be cleared in a microtask. Spec claims that this should happen immediately,
+                    // but all known implementations are doing this asynchronously.
+                    assert_equals(cues.length, 4, "Number of cues immediately after 'src' mutation with the new URL");
+                    break;
+                case 1:
+                    assert_equals(testTrack.readyState, HTMLTrackElement.LOADED), "readyState after loading of the second track";
+                    assert_equals(cues, testTrack.track.cues, ".cues object are the same after 'src' attr mutation");
+                    assert_equals(cues.length, 7, "Number of cues after loading of the second track");
+                    assert_equals(cues[cues.length-1].text, 'This & is parsed to the same as &amp;.', "Last cue content check");
+                    ++stage;
+                    testTrack.src = "resources/settings.vtt";
+                    break;
+                case 2:
+                    assert_equals(testTrack.readyState, HTMLTrackElement.LOADED, "readyState after after loading of the first track again");
+                    assert_equals(cues[cues.length-1].text, 'I said Bear is coming now!!!! Tab separators.', "Last cue content check");
+                    assert_equals(cues, testTrack.track.cues, ".cues object are the same after 'src' attr mutation");
+                    assert_equals(cues.length, 4, "Number of cues after loading of the first track");
+                    ++stage;
+                    testTrack.src = "resources/settings.vtt";
+                    // This should not raise onLoad or onError event, so we'll wait for it for some time
+                    t.step_timeout(t.step_func_done(function() {
+                        assert_equals(testTrack.readyState, HTMLTrackElement.LOADED, "readyState after changing 'src' to the same value");
+                        assert_equals(cues, testTrack.track.cues, ".cues object are the same after 'src' attr mutation");
+                        assert_equals(cues.length, 4, "Number of cues after changing 'src' to the same value");
+                    }, 100));
+                    break;
+                case 3:
+                    assert_unreached("'load' event should not fire, stage = " + stage);
+                    break;
+            }
+        }
+
+        testTrack.onload = t.step_func(step_onLoad);
+        testTrack.onerror = t.unreached_func("'error' event should not fire");
+    });
+    </script>
+</video>

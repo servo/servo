@@ -21,8 +21,9 @@ use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
+use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
@@ -79,6 +80,7 @@ impl Worker {
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
+        global.track_worker(closing.clone());
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {

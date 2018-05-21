@@ -85,7 +85,7 @@
     </d:operatorScript>
     <d:passCriteria xmlns="http://www.w3.org/1999/xhtml">
       <p>
-        The document is animated such that it alternates between two states, an alternation occurring every second. 
+        The document is animated such that it alternates between two states, an alternation occurring every second.
         For the test to pass each row must show a colored letter A that alternates between the two exact shapes and positions shown
         by the gray silhouettes.
       </p>

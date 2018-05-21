@@ -14,11 +14,6 @@
 <script>
 
 test(function () {
-    assert_true('composedPath' in Event.prototype);
-    assert_true('composedPath' in new Event('my-event'));
-}, 'composedPath() must exist on Event');
-
-test(function () {
     var event = new Event('my-event');
     assert_array_equals(event.composedPath(), []);
 }, 'composedPath() must return an empty array when the event has not been dispatched');
@@ -28,11 +23,6 @@ test(function () {
     document.body.dispatchEvent(event);
     assert_array_equals(event.composedPath(), []);
 }, 'composedPath() must return an empty array when the event is no longer dispatched');
-
-test(function () {
-    assert_true('composed' in Event.prototype);
-    assert_true('composed' in new Event('my-event'));
-}, 'composed must exist on Event');
 
 test(function () {
     var event = new Event('my-event');

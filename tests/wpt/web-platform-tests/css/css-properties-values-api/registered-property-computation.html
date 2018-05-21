@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api/#calculation-of-computed-values" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+#divWithFontSizeSet, #parentDiv {
+    font-size: 10px;
+}
+#divWithFontSizeSet, #divWithFontSizeInherited {
+    --length-1: 12px;
+    --length-2: 13vw;
+    --length-3: 14em;
+    --length-4: 15vmin;
+    --length-5: calc(16px - 7em + 10vh);
+    --length-6: var(--length-3);
+    --length-percentage-1: 17em;
+    --length-percentage-2: 18%;
+    --length-percentage-3: calc(19em - 2%);
+    --list-1: 10px 3em;
+    --list-2: 4em 9px;
+    --list-3: 3% 10vmax 22px;
+    --list-4: calc(50% + 1em) 4px;
+}
+#fontSizeCycle {
+    --font-size: 2em;
+    font-size: var(--font-size);
+}
+</style>
+
+<div id=divWithFontSizeSet></div>
+<div id=parentDiv>
+    <div id=divWithFontSizeInherited></div>
+    <div id=fontSizeCycle></div>
+</div>
+
+<script>
+CSS.registerProperty({name: '--length-1', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-2', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-3', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-4', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-5', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-6', syntax: '<length>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-percentage-1', syntax: '<length-percentage>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-percentage-2', syntax: '<length-percentage>', initialValue: '0px'});
+CSS.registerProperty({name: '--length-percentage-3', syntax: '<length-percentage>', initialValue: '0px'});
+CSS.registerProperty({name: '--list-1', syntax: '<length>+', initialValue: '0px'});
+CSS.registerProperty({name: '--list-2', syntax: '<length>+', initialValue: '0px'});
+CSS.registerProperty({name: '--list-3', syntax: '<length-percentage>+', initialValue: '0px'});
+CSS.registerProperty({name: '--list-4', syntax: '<length-percentage>+', initialValue: '0px'});
+CSS.registerProperty({name: '--font-size', syntax: '<length>', initialValue: '0px'});
+
+for (var element of [divWithFontSizeSet, divWithFontSizeInherited]) {
+    var id = element.id;
+    var computedStyle = getComputedStyle(element);
+
+    test(function() {
+        assert_equals(computedStyle.getPropertyValue('--length-1'), '12px');
+        assert_equals(computedStyle.getPropertyValue('--length-2'), '104px');
+        assert_equals(computedStyle.getPropertyValue('--length-3'), '140px');
+        assert_equals(computedStyle.getPropertyValue('--length-4'), '90px');
+        assert_equals(computedStyle.getPropertyValue('--length-5'), '6px');
+        assert_equals(computedStyle.getPropertyValue('--length-6'), '140px');
+    }, "<length> values are computed correctly for " + id);
+
+    test(function() {
+        assert_equals(computedStyle.getPropertyValue('--length-percentage-1'), '170px');
+        assert_equals(computedStyle.getPropertyValue('--length-percentage-2'), '18%');
+        assert_equals(computedStyle.getPropertyValue('--length-percentage-3'), 'calc(190px + -2%)');
+    }, "<length-percentage> values are computed correctly for " + id);
+
+    test(function() {
+        assert_equals(computedStyle.getPropertyValue('--list-1'), '10px 30px');
+        assert_equals(computedStyle.getPropertyValue('--list-2'), '40px 9px');
+    }, "<length>+ values are computed correctly for " + id);
+
+    test(function() {
+        assert_equals(computedStyle.getPropertyValue('--list-3'), '3% 80px 22px');
+        assert_equals(computedStyle.getPropertyValue('--list-4'), 'calc(10px + 50%) 4px');
+    }, "<length-percentage>+ values are computed correctly for " + id);
+}
+
+test(function() {
+    var computedStyle = getComputedStyle(fontSizeCycle);
+    assert_equals(computedStyle.fontSize, '20px');
+    assert_equals(computedStyle.getPropertyValue('--font-size'), '40px');
+}, "font-size with a var() reference to a registered property using ems works as expected");
+</script>

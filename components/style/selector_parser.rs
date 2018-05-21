@@ -9,8 +9,8 @@
 use cssparser::{Parser as CssParser, ParserInput};
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
-use style_traits::{ParseError, ToCss};
-use stylesheets::{Origin, Namespaces, UrlExtraData};
+use style_traits::{CssWriter, ParseError, ToCss};
+use stylesheets::{Namespaces, Origin, UrlExtraData};
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.
@@ -51,8 +51,9 @@ impl<'a> SelectorParser<'a> {
     /// account namespaces.
     ///
     /// This is used for some DOM APIs like `querySelector`.
-    pub fn parse_author_origin_no_namespace(input: &str)
-                                            -> Result<SelectorList<SelectorImpl>, ParseError> {
+    pub fn parse_author_origin_no_namespace(
+        input: &str,
+    ) -> Result<SelectorList<SelectorImpl>, ParseError> {
         let namespaces = Namespaces::default();
         let parser = SelectorParser {
             stylesheet_origin: Origin::Author,
@@ -71,8 +72,7 @@ impl<'a> SelectorParser<'a> {
     /// Whether we're parsing selectors in a stylesheet that has chrome
     /// privilege.
     pub fn chrome_rules_enabled(&self) -> bool {
-        self.url_data.map_or(false, |d| d.is_chrome()) ||
-            self.stylesheet_origin == Origin::User
+        self.url_data.map_or(false, |d| d.is_chrome()) || self.stylesheet_origin == Origin::User
     }
 }
 
@@ -154,11 +154,7 @@ impl<T> PerPseudoElementMap<T> {
     }
 
     /// Get an entry for `pseudo`, or create it with calling `f`.
-    pub fn get_or_insert_with<F>(
-        &mut self,
-        pseudo: &PseudoElement,
-        f: F,
-    ) -> &mut T
+    pub fn get_or_insert_with<F>(&mut self, pseudo: &PseudoElement, f: F) -> &mut T
     where
         F: FnOnce() -> T,
     {
@@ -183,11 +179,28 @@ pub enum Direction {
     /// right-to-left semantic directionality
     Rtl,
     /// Some other provided directionality value
+    ///
+    /// TODO(emilio): If we atomize we can then unbox in NonTSPseudoClass.
     Other(Box<str>),
 }
 
+impl Direction {
+    /// Parse a direction value.
+    pub fn parse<'i, 't>(parser: &mut CssParser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let ident = parser.expect_ident()?;
+        Ok(match_ignore_ascii_case! { &ident,
+            "rtl" => Direction::Rtl,
+            "ltr" => Direction::Ltr,
+            _ => Direction::Other(Box::from(ident.as_ref())),
+        })
+    }
+}
+
 impl ToCss for Direction {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let dir_str = match *self {
             Direction::Rtl => "rtl",
             Direction::Ltr => "ltr",

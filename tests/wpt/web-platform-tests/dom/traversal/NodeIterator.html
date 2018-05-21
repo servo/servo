@@ -200,20 +200,15 @@ var callbacks = [
   "(function(node) { return node.nodeName[0] == '#' })",
 ];
 
-var tests = [];
 for (var i = 0; i < testNodes.length; i++) {
   for (var j = 0; j < whatToShows.length; j++) {
     for (var k = 0; k < callbacks.length; k++) {
-      tests.push([
-        "document.createNodeIterator(" + testNodes[i]
-          + ", " + whatToShows[j] + ", " + callbacks[k] + ")",
-        eval(testNodes[i]), eval(whatToShows[j]), eval(callbacks[k])
-      ]);
+      test(() => {
+        testIterator(eval(testNodes[i]), eval(whatToShows[j]), eval(callbacks[k]));
+      }, "document.createNodeIterator(" + testNodes[i] + ", " + whatToShows[j] + ", " + callbacks[k] + ")");
     }
   }
 }
-
-generate_tests(testIterator, tests);
 
 testDiv.style.display = "none";
 </script>

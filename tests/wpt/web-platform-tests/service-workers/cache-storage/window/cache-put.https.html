@@ -6,3 +6,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="../resources/test-helpers.js"></script>
 <script src="../script-tests/cache-put.js"></script>
+<script>
+cache_test(async (cache) => {
+    var formData = new FormData();
+    formData.append("name", "value");
+
+    var request = new Request(test_url);
+    var response = new Response(formData);
+    await cache.put(request, response);
+    var cachedResponse = await cache.match(request);
+    var cachedResponseText = await cachedResponse.text();
+    assert_true(cachedResponseText.indexOf("name=\"name\"\r\n\r\nvalue") !== -1);
+  }, 'Cache.put called with simple Request and form data Response');
+</script>

@@ -38,11 +38,14 @@ def setup_logging(*args, **kwargs):
     global logger
     logger = wptlogging.setup(*args, **kwargs)
 
+
 def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, **kwargs):
     if run_info_extras is None:
         run_info_extras = {}
 
-    run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=debug,
+    run_info = wpttest.get_run_info(kwargs["run_info"], product,
+                                    browser_version=kwargs.get("browser_version"),
+                                    debug=debug,
                                     extras=run_info_extras)
 
     test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"],
@@ -67,8 +70,10 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
                                         chunk_type=kwargs["chunk_type"],
                                         total_chunks=kwargs["total_chunks"],
                                         chunk_number=kwargs["this_chunk"],
-                                        include_https=ssl_env.ssl_enabled)
+                                        include_https=ssl_env.ssl_enabled,
+                                        skip_timeout=kwargs["skip_timeout"])
     return run_info, test_loader
+
 
 def list_test_groups(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
@@ -150,7 +155,9 @@ def run_tests(config, test_paths, product, **kwargs):
             ))
 
         if "test_loader" in kwargs:
-            run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=None,
+            run_info = wpttest.get_run_info(kwargs["run_info"], product,
+                                            browser_version=kwargs.get("browser_version"),
+                                            debug=None,
                                             extras=run_info_extras(**kwargs))
             test_loader = kwargs["test_loader"]
         else:
@@ -170,6 +177,7 @@ def run_tests(config, test_paths, product, **kwargs):
 
         logger.info("Using %i client processes" % kwargs["processes"])
 
+        test_total = 0
         unexpected_total = 0
 
         kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
@@ -197,8 +205,9 @@ def run_tests(config, test_paths, product, **kwargs):
                 elif repeat > 1:
                     logger.info("Repetition %i / %i" % (repeat_count, repeat))
 
+                test_count = 0
                 unexpected_count = 0
-                logger.suite_start(test_loader.test_ids, run_info)
+                logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info)
                 for test_type in kwargs["test_types"]:
                     logger.info("Running %s tests" % test_type)
 
@@ -215,12 +224,12 @@ def run_tests(config, test_paths, product, **kwargs):
                     browser_kwargs = get_browser_kwargs(test_type,
                                                         run_info,
                                                         ssl_env=ssl_env,
+                                                        config=test_environment.config,
                                                         **kwargs)
-
 
                     executor_cls = executor_classes.get(test_type)
                     executor_kwargs = get_executor_kwargs(test_type,
-                                                          test_environment.external_config,
+                                                          test_environment.config,
                                                           test_environment.cache_manager,
                                                           run_info,
                                                           **kwargs)
@@ -240,6 +249,12 @@ def run_tests(config, test_paths, product, **kwargs):
                             if test.testdriver and not executor_cls.supports_testdriver:
                                 logger.test_start(test.id)
                                 logger.test_end(test.id, status="SKIP")
+                            elif test.jsshell and not executor_cls.supports_jsshell:
+                                # We expect that tests for JavaScript shells
+                                # will not be run along with tests that run in
+                                # a full web browser, so we silently skip them
+                                # here.
+                                pass
                             else:
                                 run_tests["testharness"].append(test)
                     else:
@@ -264,20 +279,36 @@ def run_tests(config, test_paths, product, **kwargs):
                             logger.critical("Main thread got signal")
                             manager_group.stop()
                             raise
+                    test_count += manager_group.test_count()
                     unexpected_count += manager_group.unexpected_count()
 
+                test_total += test_count
                 unexpected_total += unexpected_count
                 logger.info("Got %i unexpected results" % unexpected_count)
                 if repeat_until_unexpected and unexpected_total > 0:
                     break
                 logger.suite_end()
+
+    if test_total == 0:
+        logger.error("No tests ran")
+        return False
+
+    if unexpected_total and not kwargs["fail_on_unexpected"]:
+        logger.info("Tolerating %s unexpected results" % unexpected_total)
+        return True
+
     return unexpected_total == 0
 
 
 def check_stability(**kwargs):
     import stability
-    return stability.check_stability(logger, **kwargs)
-
+    return stability.check_stability(logger,
+                                     max_time=kwargs['verify_max_time'],
+                                     chaos_mode=kwargs['verify_chaos_mode'],
+                                     repeat_loop=kwargs['verify_repeat_loop'],
+                                     repeat_restart=kwargs['verify_repeat_restart'],
+                                     output_results=kwargs['verify_output_results'],
+                                     **kwargs)
 
 def start(**kwargs):
     if kwargs["list_test_groups"]:
@@ -305,7 +336,8 @@ def main():
         return start(**kwargs)
     except Exception:
         if kwargs["pdb"]:
-            import pdb, traceback
+            import pdb
+            import traceback
             print traceback.format_exc()
             pdb.post_mortem()
         else:

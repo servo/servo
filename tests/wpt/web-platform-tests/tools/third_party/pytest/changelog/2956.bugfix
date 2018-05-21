@@ -1,0 +1,1 @@
+Fix regression with warnings that contained non-strings in their arguments in Python 2.

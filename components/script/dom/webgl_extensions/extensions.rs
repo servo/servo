@@ -7,19 +7,20 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::nonnull::NonNullJSObjectPtr;
 use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::GLenum;
 use js::jsapi::JSContext;
+use js::jsapi::JSObject;
 use js::jsval::JSVal;
 use malloc_size_of::MallocSizeOf;
 use ref_filter_map::ref_filter_map;
 use std::cell::Ref;
 use std::collections::HashMap;
 use std::iter::FromIterator;
+use std::ptr::NonNull;
 use super::{ext, WebGLExtension, WebGLExtensionSpec};
 use super::wrapper::{WebGLExtensionWrapper, TypedWebGLExtensionWrapper};
 
@@ -56,17 +57,20 @@ struct WebGLExtensionFeatures {
     hint_targets: FnvHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
     disabled_get_parameter_names: FnvHashSet<GLenum>,
+    /// WebGL OES_element_index_uint extension.
+    element_index_uint_enabled: bool,
 }
 
 impl WebGLExtensionFeatures {
     fn new(webgl_version: WebGLVersion) -> Self {
-        let (disabled_tex_types, disabled_get_parameter_names) = match webgl_version {
+        let (disabled_tex_types, disabled_get_parameter_names, element_index_uint_enabled) = match webgl_version {
             WebGLVersion::WebGL1 => {
                 (DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
-                 DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect())
+                 DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
+                 false)
             },
             WebGLVersion::WebGL2 => {
-                (Default::default(), Default::default())
+                (Default::default(), Default::default(), true)
             }
         };
         Self {
@@ -77,6 +81,7 @@ impl WebGLExtensionFeatures {
             query_parameter_handlers: Default::default(),
             hint_targets: Default::default(),
             disabled_get_parameter_names,
+            element_index_uint_enabled,
         }
     }
 }
@@ -95,7 +100,7 @@ impl WebGLExtensions {
         Self {
             extensions: DomRefCell::new(HashMap::new()),
             features: DomRefCell::new(WebGLExtensionFeatures::new(webgl_version)),
-            webgl_version
+            webgl_version,
         }
     }
 
@@ -127,7 +132,7 @@ impl WebGLExtensions {
                                 .collect()
     }
 
-    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonNullJSObjectPtr> {
+    pub fn get_or_init_extension(&self, name: &str, ctx: &WebGLRenderingContext) -> Option<NonNull<JSObject>> {
         let name = name.to_uppercase();
         self.extensions.borrow().get(&name).and_then(|extension| {
             if extension.is_supported(self) {
@@ -238,6 +243,14 @@ impl WebGLExtensions {
         self.register::<ext::oestexturehalffloat::OESTextureHalfFloat>();
         self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear>();
         self.register::<ext::oesvertexarrayobject::OESVertexArrayObject>();
+    }
+
+    pub fn enable_element_index_uint(&self) {
+        self.features.borrow_mut().element_index_uint_enabled = true;
+    }
+
+    pub fn is_element_index_uint_enabled(&self) -> bool {
+        self.features.borrow().element_index_uint_enabled
     }
 }
 

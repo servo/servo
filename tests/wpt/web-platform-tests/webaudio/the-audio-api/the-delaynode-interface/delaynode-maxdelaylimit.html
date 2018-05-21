@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      delaynode-maxdelaylimit.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/delay-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      audit.define(
+          {
+            label: 'test',
+            description:
+                'Tests attribute and maximum allowed delay of DelayNode'
+          },
+          function(task, should) {
+
+            // Create offline audio context.
+            let context = new OfflineAudioContext(
+                1, sampleRate * renderLengthSeconds, sampleRate);
+            let toneBuffer = createToneBuffer(
+                context, 20, 20 * toneLengthSeconds, sampleRate);  // 20Hz tone
+
+            let bufferSource = context.createBufferSource();
+            bufferSource.buffer = toneBuffer;
+
+            window.context = context;
+            should(() => context.createDelay(180)).throw();
+            should(() => context.createDelay(0)).throw();
+            should(() => context.createDelay(-1)).throw();
+            should(() => context.createDelay(NaN)).throw();
+            ;
+            let delay = context.createDelay(179);
+            delay.delayTime.value = delayTimeSeconds;
+            window.delay = delay;
+            should(
+                delay.delayTime.value,
+                'delay.delayTime.value = ' + delayTimeSeconds)
+                .beEqualTo(delayTimeSeconds);
+
+            bufferSource.connect(delay);
+            delay.connect(context.destination);
+            bufferSource.start(0);
+
+            context.startRendering()
+                .then(buffer => checkDelayedResult(buffer, toneBuffer, should))
+                .then(() => task.done());
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

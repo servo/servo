@@ -32,24 +32,30 @@
         ignored_when_colors_disabled=True,
     )}
 
-    ${helpers.predefined_type("border-%s-style" % side_name, "BorderStyle",
-                              "specified::BorderStyle::None",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
-                              spec=maybe_logical_spec(side, "style"),
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              animation_value_type="discrete" if not is_logical else "none",
-                              logical=is_logical)}
+    ${helpers.predefined_type(
+        "border-%s-style" % side_name, "BorderStyle",
+        "specified::BorderStyle::None",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
+        spec=maybe_logical_spec(side, "style"),
+        flags="APPLIES_TO_FIRST_LETTER",
+        animation_value_type="discrete" if not is_logical else "none",
+        logical=is_logical,
+        needs_context=False,
+    )}
 
-    ${helpers.predefined_type("border-%s-width" % side_name,
-                              "BorderSideWidth",
-                              "::values::computed::NonNegativeLength::new(3.)",
-                              computed_type="::values::computed::NonNegativeLength",
-                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
-                              spec=maybe_logical_spec(side, "width"),
-                              animation_value_type="NonNegativeLength",
-                              logical=is_logical,
-                              flags="APPLIES_TO_FIRST_LETTER",
-                              allow_quirks=not is_logical)}
+    ${helpers.predefined_type(
+        "border-%s-width" % side_name,
+        "BorderSideWidth",
+        "::values::computed::NonNegativeLength::new(3.)",
+        computed_type="::values::computed::NonNegativeLength",
+        alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width"),
+        spec=maybe_logical_spec(side, "width"),
+        animation_value_type="NonNegativeLength",
+        logical=is_logical,
+        flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
+        allow_quirks=not is_logical,
+        servo_restyle_damage="reflow rebuild_and_reflow_inline"
+    )}
 % endfor
 
 ${helpers.gecko_keyword_conversion(Keyword('border-style',
@@ -65,129 +71,6 @@ ${helpers.gecko_keyword_conversion(Keyword('border-style',
                               boxed=True,
                               flags="APPLIES_TO_FIRST_LETTER",
                               animation_value_type="BorderCornerRadius")}
-% endfor
-
-/// -moz-border-*-colors: color, string, enum, none, inherit/initial
-/// These non-spec properties are just for Gecko (Stylo) internal use.
-% for side in PHYSICAL_SIDES:
-    <%helpers:longhand name="-moz-border-${side}-colors" animation_value_type="discrete"
-                       spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-border-*-colors)"
-                       products="gecko"
-                       flags="APPLIES_TO_FIRST_LETTER"
-                       enabled_in="chrome"
-                       ignored_when_colors_disabled="True">
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::specified::RGBAColor;
-
-        pub mod computed_value {
-            use cssparser::RGBA;
-            #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-            pub struct T(pub Option<Vec<RGBA>>);
-        }
-
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
-        pub enum SpecifiedValue {
-            None,
-            Colors(Vec<RGBAColor>),
-        }
-
-        impl ToCss for computed_value::T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match self.0 {
-                    None => return dest.write_str("none"),
-                    Some(ref vec) => {
-                        let mut first = true;
-                        for ref color in vec {
-                            if !first {
-                                dest.write_str(" ")?;
-                            }
-                            first = false;
-                            color.to_css(dest)?
-                        }
-                        Ok(())
-                    }
-                }
-            }
-        }
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    SpecifiedValue::None => return dest.write_str("none"),
-                    SpecifiedValue::Colors(ref vec) => {
-                        let mut first = true;
-                        for ref color in vec {
-                            if !first {
-                                dest.write_str(" ")?;
-                            }
-                            first = false;
-                            color.to_css(dest)?
-                        }
-                        Ok(())
-                    }
-                }
-            }
-        }
-
-        #[inline] pub fn get_initial_value() -> computed_value::T {
-            computed_value::T(None)
-        }
-
-        #[inline] pub fn get_initial_specified_value() -> SpecifiedValue {
-            SpecifiedValue::None
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                match *self {
-                    SpecifiedValue::Colors(ref vec) => {
-                        computed_value::T(Some(vec.iter()
-                                                  .map(|c| c.to_computed_value(context))
-                                                  .collect()))
-                    },
-                    SpecifiedValue::None => {
-                        computed_value::T(None)
-                    }
-                }
-            }
-            #[inline]
-            fn from_computed_value(computed: &computed_value::T) -> Self {
-                match *computed {
-                    computed_value::T(Some(ref vec)) => {
-                        SpecifiedValue::Colors(vec.iter()
-                                                  .map(ToComputedValue::from_computed_value)
-                                                  .collect())
-                    },
-                    computed_value::T(None) => {
-                        SpecifiedValue::None
-                    }
-                }
-            }
-        }
-
-        #[inline]
-        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                             -> Result<SpecifiedValue, ParseError<'i>> {
-            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                return Ok(SpecifiedValue::None)
-            }
-
-            let mut result = Vec::new();
-            while let Ok(value) = input.try(|i| RGBAColor::parse(context, i)) {
-                result.push(value);
-            }
-
-            if !result.is_empty() {
-                Ok(SpecifiedValue::Colors(result))
-            } else {
-                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-            }
-        }
-    </%helpers:longhand>
 % endfor
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
@@ -210,7 +93,7 @@ ${helpers.predefined_type("border-image-source", "ImageLayer",
     vector=False,
     animation_value_type="discrete",
     flags="APPLIES_TO_FIRST_LETTER",
-    boxed="True")}
+    boxed=True)}
 
 ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     parse_method="parse_non_negative",
@@ -221,57 +104,15 @@ ${helpers.predefined_type("border-image-outset", "LengthOrNumberRect",
     flags="APPLIES_TO_FIRST_LETTER",
     boxed=True)}
 
-<%helpers:longhand name="border-image-repeat" animation_value_type="discrete"
-                   flags="APPLIES_TO_FIRST_LETTER"
-                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
-    pub mod computed_value {
-        pub use super::RepeatKeyword;
-
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-        pub struct T(pub RepeatKeyword, pub RepeatKeyword);
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-    pub struct SpecifiedValue(pub RepeatKeyword,
-                              pub Option<RepeatKeyword>);
-
-    define_css_keyword_enum!(RepeatKeyword:
-                             "stretch" => Stretch,
-                             "repeat" => Repeat,
-                             "round" => Round,
-                             "space" => Space);
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(RepeatKeyword::Stretch, RepeatKeyword::Stretch)
-    }
-
-    #[inline]
-    pub fn get_initial_specified_value() -> SpecifiedValue {
-        SpecifiedValue(RepeatKeyword::Stretch, None)
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-            computed_value::T(self.0, self.1.unwrap_or(self.0))
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(computed.0, Some(computed.1))
-        }
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        let first = RepeatKeyword::parse(input)?;
-        let second = input.try(RepeatKeyword::parse).ok();
-
-        Ok(SpecifiedValue(first, second))
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "border-image-repeat",
+    "BorderImageRepeat",
+    "computed::BorderImageRepeat::stretch()",
+    initial_specified_value="specified::BorderImageRepeat::stretch()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat",
+    flags="APPLIES_TO_FIRST_LETTER",
+)}
 
 ${helpers.predefined_type("border-image-width", "BorderImageWidth",
     initial_value="computed::BorderImageWidth::all(computed::BorderImageSideWidth::one())",

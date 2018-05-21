@@ -1,20 +1,18 @@
 <!DOCTYPE html>
 <meta name=timeout content=long>
 <title>Precedence of scroll restoration mode over fragment scrolling in cross-origin history traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
 <style>
   iframe {
     height: 300px;
     width: 300px;
   }
 </style>
-
-<body>
-  <iframe></iframe>
-</body>
-
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script type="text/javascript">
+<div id="log"></div>
+<iframe></iframe>
+<script>
   'use strict';
 
   // The test does the following navigation steps for iframe
@@ -23,13 +21,16 @@
   // 3. go back to page-with-fragment.html
   async_test(function(t) {
     var iframe = document.querySelector('iframe');
-    var baseURL = location.href.substring(0, location.href.lastIndexOf('/'));
+    var hostInfo = get_host_info();
+    var basePath = location.pathname.substring(0, location.pathname.lastIndexOf('/'));
+    var localURL = hostInfo.HTTP_ORIGIN + basePath + '/resources/page-with-fragment.html#fragment';
+    var remoteURL = hostInfo.HTTP_REMOTE_ORIGIN + basePath + "/resources/blank1.html"
 
     var steps = [
       function() {
         iframe.src = 'resources/page-with-fragment.html#fragment';
       }, function() {
-        assert_equals(iframe.contentWindow.location.href, baseURL + '/resources/page-with-fragment.html#fragment', 'should be on page-with-fragment page');
+        assert_equals(iframe.contentWindow.location.href, localURL, 'should be on page-with-fragment page');
         // wait one animation frame to ensure layout is run and fragment scrolling is complete
         iframe.contentWindow.requestAnimationFrame(function() {
           assert_equals(iframe.contentWindow.scrollY, 800, 'should scroll to fragment');
@@ -40,13 +41,13 @@
         });
       }, function() {
         // navigate to a new page from a different origin
-        iframe.src = iframe.src.replace("http://", "http://www.").replace("page-with-fragment.html#fragment", "blank1.html");
+        iframe.src = remoteURL;
       }, function() {
         // going back causes the iframe to traverse back
         history.back();
       }, function() {
         // coming back from history, scrollRestoration should be set to manual and respected
-        assert_equals(iframe.contentWindow.location.href, baseURL + '/resources/page-with-fragment.html#fragment', 'should be back on page-with-fragment page');
+        assert_equals(iframe.contentWindow.location.href, localURL, 'should be back on page-with-fragment page');
         iframe.contentWindow.requestAnimationFrame(t.step_func_done(function() {
           assert_equals(iframe.contentWindow.history.scrollRestoration, 'manual', 'navigating back should retain scrollRestoration value');
           assert_equals(iframe.contentWindow.scrollX, 0, 'should not scroll to fragment');

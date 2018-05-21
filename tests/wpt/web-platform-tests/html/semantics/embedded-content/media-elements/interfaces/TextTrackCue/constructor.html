@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>TextTrackCue constructor</title>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+        <script>
+            test(function()
+            {
+                assert_not_equals(TextTrackCue, VTTCue);
+            }, "TextTrackCue and VTTCue are separate interfaces");
+            test(function()
+            {
+                assert_throws(new TypeError(), function()
+                {
+                    new TextTrackCue(0, 0, "");
+                });
+            }, "TextTrackCue constructor should not be supported");
+        </script>
+    </body>
+</html>

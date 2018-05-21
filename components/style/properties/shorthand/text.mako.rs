@@ -16,8 +16,10 @@
         use properties::longhands::text_decoration_line;
     % endif
 
-    pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                               -> Result<Longhands, ParseError<'i>> {
+    pub fn parse_value<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Longhands, ParseError<'i>> {
         % if product == "gecko":
             let (mut line, mut style, mut color, mut any) = (None, None, None, false);
         % else:
@@ -62,7 +64,7 @@
     }
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
             self.text_decoration_line.to_css(dest)?;
 
             % if product == "gecko":

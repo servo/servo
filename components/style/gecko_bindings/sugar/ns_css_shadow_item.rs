@@ -5,7 +5,7 @@
 //! Rust helpers for Gecko's `nsCSSShadowItem`.
 
 use app_units::Au;
-use gecko::values::{convert_rgba_to_nscolor, convert_nscolor_to_rgba};
+use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::nsCSSShadowItem;
 use values::computed::RGBAColor;
 use values::computed::effects::{BoxShadow, SimpleShadow};

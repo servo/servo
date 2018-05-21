@@ -71,8 +71,7 @@ bitflags! {
         const IN_OPTIONAL_STATE = 1 << 22;
         /// <https://html.spec.whatwg.org/multipage/#selector-read-write>
         const IN_READ_WRITE_STATE = 1 << 22;
-        /// Non-standard: Older custom-elements spec.
-        const IN_UNRESOLVED_STATE = 1 << 23;
+        /// There is a free bit at 23.
         /// <https://html.spec.whatwg.org/multipage/#selector-visited>
         const IN_VISITED_STATE = 1 << 24;
         /// <https://html.spec.whatwg.org/multipage/#selector-link>

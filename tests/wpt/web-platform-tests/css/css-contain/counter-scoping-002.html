@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang=en>
+  <meta charset=utf-8>
+  <title>CSS-contain test: style containment and counter-set</title>
+  <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+  <meta name=flags content="">
+  <meta name=assert content="counter-set is scoped to the subtree and creates a new counter at the root of the subtree">
+  <link rel="match" href="reference/counter-scoping-001-ref.html">
+  <link rel=help href="https://drafts.csswg.org/css-contain-1/#containment-style">
+  <link rel=help href="https://drafts.csswg.org/css-lists-3/#propdef-counter-set">
+
+<style>
+div {
+  contain: style;
+  counter-set: n;
+}
+div::before, div::after {
+  content: counters(n, '.') " ";
+}
+div::after {
+  counter-set: n 2;
+}
+</style>
+
+<p>Test passes if the text below is "1 1.2" (not including the quotation marks).<p>
+<div></div>
+

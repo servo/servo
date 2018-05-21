@@ -1,4 +1,4 @@
 {
-    "message":  "Invalid operation"
+    "message":  "Got an error during or right after parsing `interface Dictionary`: Invalid operation"
 ,   "line":     6
 }

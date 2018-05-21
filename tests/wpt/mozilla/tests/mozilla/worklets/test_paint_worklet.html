@@ -11,7 +11,7 @@
     <script>
         // This reftest will TIMEOUT if loading the paint worklet fails,
         // It will PASS if the worklet draws a green rectangle.
-        window.paintWorklet
+        CSS.paintWorklet
             .addModule("test_paint_worklet.js")
             .then(function() { document.documentElement.classList.remove("reftest-wait"); });
     </script>

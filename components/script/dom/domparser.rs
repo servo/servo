@@ -54,7 +54,7 @@ impl DOMParserMethods for DOMParser {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<DomRoot<Document>> {
         let url = self.window.get_url();
-        let content_type = DOMString::from(ty.as_str());
+        let content_type = ty.as_str().parse().expect("Supported type is not a MIME type");
         let doc = self.window.Document();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {
@@ -77,7 +77,6 @@ impl DOMParserMethods for DOMParser {
                 Ok(document)
             }
             Text_xml | Application_xml | Application_xhtml_xml => {
-                // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
                                              HasBrowsingContext::No,
                                              Some(url.clone()),
@@ -86,12 +85,13 @@ impl DOMParserMethods for DOMParser {
                                              Some(content_type),
                                              None,
                                              DocumentActivity::Inactive,
-                                             DocumentSource::NotFromParser,
+                                             DocumentSource::FromParser,
                                              loader,
                                              None,
                                              None,
                                              Default::default());
                 ServoParser::parse_xml_document(&document, s, url);
+                document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
         }

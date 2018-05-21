@@ -28,8 +28,6 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
-use script_traits::MozBrowserEvent;
-use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::default::Default;
 use style::attr::AttrValue;
@@ -608,13 +606,8 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, ref
 
     // Step 8: navigate to the URL.
     if let Some(target) = target {
-        if PREFS.is_mozbrowser_enabled() && !is_current_browsing_context(target.Value()) {
-            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowseropenwindow
-            // TODO: referrer and opener
-            // TODO: should we send the normalized url or the non-normalized href?
-            let event = MozBrowserEvent::OpenWindow(url.into_string(), Some(String::from(target.Value())), None);
-            document.trigger_mozbrowser_event(event);
-            return
+        if !is_current_browsing_context(target.Value()) {
+            // https://github.com/servo/servo/issues/13241
         }
     }
 

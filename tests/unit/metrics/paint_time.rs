@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use euclid::Size2D;
-use gfx::display_list::{BaseDisplayItem, WebRenderImageInfo};
-use gfx::display_list::{DisplayItem, DisplayList, ImageDisplayItem};
 use gfx_traits::Epoch;
 use ipc_channel::ipc;
+use layout::display_list::items::{BaseDisplayItem, DisplayItem, DisplayList, ImageDisplayItem};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use net_traits::image::base::PixelFormat;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
-use style::computed_values::image_rendering::T as ImageRendering;
+use servo_url::ServoUrl;
 use time;
+use webrender_api::{ImageKey, ImageRendering, LayoutSize};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
@@ -32,6 +30,7 @@ fn test_paint_metrics_construction() {
         profiler_chan,
         layout_sender,
         script_sender,
+        ServoUrl::parse("about:blank").unwrap(),
     );
     assert_eq!(
         (&paint_time_metrics).get_navigation_start(),
@@ -60,13 +59,14 @@ fn test_common(display_list: &DisplayList, epoch: Epoch) -> PaintTimeMetrics {
         profiler_chan,
         layout_sender,
         script_sender,
+        ServoUrl::parse("about:blank").unwrap(),
     );
     let dummy_profiler_metadata_factory = DummyProfilerMetadataFactory {};
 
     paint_time_metrics.maybe_observe_paint_time(
         &dummy_profiler_metadata_factory,
         epoch,
-        &display_list,
+        &*display_list,
     );
 
     // Should not set any metric until navigation start is set.
@@ -118,15 +118,9 @@ fn test_first_paint_setter() {
 fn test_first_contentful_paint_setter() {
     let image = DisplayItem::Image(Box::new(ImageDisplayItem {
         base: BaseDisplayItem::empty(),
-        webrender_image: WebRenderImageInfo {
-            width: 1,
-            height: 1,
-            format: PixelFormat::RGB8,
-            key: None,
-        },
-        image_data: None,
-        stretch_size: Size2D::zero(),
-        tile_spacing: Size2D::zero(),
+        id: ImageKey::DUMMY,
+        stretch_size: LayoutSize::zero(),
+        tile_spacing: LayoutSize::zero(),
         image_rendering: ImageRendering::Auto,
     }));
     let display_list = DisplayList {

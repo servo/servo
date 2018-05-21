@@ -59,10 +59,6 @@
 * mach
   * A command-line tool to help with developer tasks.
 * ports
-  * cef
-    * Embedding implementation for the Chrome Embedding Framework (CEF) API.
-  * geckolib
-    * A static library to be linked into Gecko for the Stylo project.
   * glutin
     * Embedding implementation for the `glutin` windowing library.
 * python

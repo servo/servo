@@ -33,6 +33,15 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("ignored directory './fake/dir' doesn't exist", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_non_existing_wpt_manifest_checks(self):
+        wrong_path = "/wrong/path.ini"
+        errors = tidy.check_manifest_dirs(wrong_path, print_text=False)
+        self.assertEqual("%s manifest file is required but was not found" % wrong_path, errors.next()[2])
+        self.assertNoMoreErrors(errors)
+        errors = tidy.check_manifest_dirs(os.path.join(base_path, 'manifest-include.ini'), print_text=False)
+        self.assertTrue(errors.next()[2].endswith("never_going_to_exist"))
+        self.assertNoMoreErrors(errors)
+
     def test_directory_checks(self):
         dirs = {
             os.path.join(base_path, "dir_check/webidl_plus"): ['webidl', 'test'],
@@ -210,12 +219,12 @@ class CheckTidiness(unittest.TestCase):
 
     def test_non_list_mapped_buildbot_steps(self):
         errors = tidy.collect_errors_for_files(iterFile('non_list_mapping_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
-        self.assertEqual("Key 'non-list-key' maps to type 'str', but list expected", errors.next()[2])
+        self.assertEqual("expected a list for dictionary value @ data['non-list-key']", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_non_string_list_mapping_buildbot_steps(self):
         errors = tidy.collect_errors_for_files(iterFile('non_string_list_buildbot_steps.yml'), [tidy.check_yaml], [], print_text=False)
-        self.assertEqual("List mapped to 'mapping_key' contains non-string element", errors.next()[2])
+        self.assertEqual("expected str @ data['mapping_key'][0]", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_lock(self):

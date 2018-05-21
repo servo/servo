@@ -1,54 +1,74 @@
 <!DOCTYPE html>
-<title>Test setValueAtTime with startTime in the past</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script>
-function do_test(t, context) {
-  var source = context.createConstantSource();
-  source.start();
+<html>
+  <head>
+    <title>Test setValueAtTime with startTime in the past</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="retrospective-test.js"></script>
+  </head>
+  <body>
+    <script>
+      let audit = Audit.createTaskRunner();
 
-  // Use a ramp of slope 1/sample to measure time.
-  // The end value is the extent of exact precision in single precision float.
-  const rampEnd = Math.pow(2, 24);
-  const rampEndSeconds = rampEnd / context.sampleRate;
-  var test = context.createGain();
-  test.gain.setValueAtTime(0.0, 0.5*context.currentTime);
-  test.gain.linearRampToValueAtTime(rampEnd, rampEndSeconds);
+      audit.define(
+          {
+            label: 'test',
+            description: 'Test setValueAtTime with startTime in the past'
+          },
+          (task, should) => {
+            let {context, source, test, reference} = setupRetrospectiveGraph();
 
-  var reference = context.createGain();
-  reference.gain.setValueAtTime(0.0, context.currentTime);
-  reference.gain.linearRampToValueAtTime(rampEnd, rampEndSeconds);
+            // Suspend the context at this frame so we can synchronously set up
+            // automations.
+            const suspendFrame = 128;
 
-  source.connect(test);
-  source.connect(reference);
+            // Use a ramp of slope 1 per frame to measure time.
+            // The end value is the extent of exact precision in single
+            // precision float.
+            const rampEnd = context.length - suspendFrame;
+            const rampEndSeconds = context.length / context.sampleRate;
 
-  var merger = context.createChannelMerger();
-  test.connect(merger, 0, 0);
-  reference.connect(merger, 0, 1);
+            context.suspend(suspendFrame / context.sampleRate)
+                .then(() => {
+                  // Call setValueAtTime with a time in the past
+                  test.gain.setValueAtTime(0.0, 0.5 * context.currentTime);
+                  test.gain.linearRampToValueAtTime(rampEnd, rampEndSeconds);
 
-  var processor = context.createScriptProcessor(0, 2, 0);
-  merger.connect(processor);
-  processor.onaudioprocess =
-    t.step_func_done((e) => {
-      source.stop();
-      processor.onaudioprocess = null;
+                  reference.gain.setValueAtTime(0.0, context.currentTime);
+                  reference.gain.linearRampToValueAtTime(
+                      rampEnd, rampEndSeconds);
+                })
+                .then(() => context.resume());
 
-      var testValue = e.inputBuffer.getChannelData(0)[0];
-      var referenceValue = e.inputBuffer.getChannelData(1)[0];
+            source.start();
 
-      assert_equals(testValue, referenceValue,
-                        "ramp value matches expected");
-    });
-}
+            context.startRendering()
+                .then(resultBuffer => {
+                  let testValue = resultBuffer.getChannelData(0);
+                  let referenceValue = resultBuffer.getChannelData(1);
 
-async_test(function(t) {
-  var context = new AudioContext;
-  (function waitForTimeAdvance() {
-    if (context.currentTime == 0) {
-      t.step_timeout(waitForTimeAdvance, 0);
-    } else {
-      do_test(t, context);
-    }
-  })();
-});
-</script>
+                  // Until the suspendFrame, both should be exactly equal to 1.
+                  should(
+                      testValue.slice(0, suspendFrame),
+                      `Test[0:${suspendFrame - 1}]`)
+                      .beConstantValueOf(1);
+                  should(
+                      referenceValue.slice(0, suspendFrame),
+                      `Reference[0:${suspendFrame - 1}]`)
+                      .beConstantValueOf(1);
+
+                  // After the suspendFrame, both should be equal (and not
+                  // constant)
+                  should(
+                      testValue.slice(suspendFrame), `Test[${suspendFrame}:]`)
+                      .beEqualToArray(referenceValue.slice(suspendFrame));
+                })
+                .then(() => task.done());
+          });
+
+      audit.run();
+    </script>
+  </body>
+</html>

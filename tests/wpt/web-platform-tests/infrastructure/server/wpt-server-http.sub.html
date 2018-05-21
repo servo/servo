@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+  <head>
+    <title>WPT Server checker</title>
+    <meta charset="utf-8" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+</body>
+<body>
+<script>
+function check(protocol, domain, port, done) {
+  var url = protocol + '://' + domain + ':' + port + '/media/1x1-green.png';
+  var img = document.createElement('img');
+  img.setAttribute('src', url);
+  img.style.display = 'none';
+  img.onerror = function() {
+    done(false);
+  };
+  img.onload = function() {
+    done(true);
+  };
+
+  document.body.appendChild(img);
+}
+
+async_test(function(t) {
+  check('http', '{{browser_host}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, no subdomain, port #1');
+
+async_test(function(t) {
+  check('http', '{{browser_host}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, no subdomain, port #2');
+
+async_test(function(t) {
+  check('http', '{{domains[www]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, www subdomain #1, port #1');
+
+async_test(function(t) {
+  check('http', '{{domains[www]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, www subdomain #1, port #2');
+
+async_test(function(t) {
+  check('http', '{{domains[www1]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, www subdomain #2, port #1');
+
+async_test(function(t) {
+  check('http', '{{domains[www1]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, www subdomain #2, port #2');
+
+async_test(function(t) {
+  check('http', '{{domains[www2]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, www subdomain #3, port #1');
+
+async_test(function(t) {
+  check('http', '{{domains[www2]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, www subdomain #3, port #2');
+
+async_test(function(t) {
+  check('http', '{{domains[élève]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, punycode subdomain #1, port #1');
+
+async_test(function(t) {
+  check('http', '{{domains[élève]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, punycode subdomain #1, port #2');
+
+async_test(function(t) {
+  check('http', '{{domains[天気の良い日]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, punycode subdomain #2, port #1');
+
+async_test(function(t) {
+  check('http', '{{domains[天気の良い日]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, punycode subdomain #2, port #2');
+
+async_test(function(t) {
+  check('http', 'nonexistent.{{domains[]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, non-existent domain, port #1');
+
+async_test(function(t) {
+  check('http', 'nonexistent.{{domains[]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTP protocol, non-existent domain, port #2');
+
+async_test(function(t) {
+  check('https', '{{browser_host}}', {{ports[https][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, no subdomain');
+
+async_test(function(t) {
+  check('https', '{{domains[www]}}', {{ports[https][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, www subdomain #1');
+
+async_test(function(t) {
+  check('https', '{{domains[www1]}}', {{ports[https][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, www subdomain #2');
+
+async_test(function(t) {
+  check('https', '{{domains[www2]}}', {{ports[https][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, www subdomain #3');
+
+async_test(function(t) {
+  check('https', '{{domains[élève]}}', {{ports[https][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, punycode subdomain #1');
+
+async_test(function(t) {
+  check('https', '{{domains[天気の良い日]}}', {{ports[https][0]}}, t.step_func(function(result) {
+    assert_true(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, punycode subdomain #2');
+
+async_test(function(t) {
+  check('https', 'nonexistent.{{domains[]}}', {{ports[http][0]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, non-existent domain, port #1');
+
+async_test(function(t) {
+  check('https', 'nonexistent.{{domains[]}}', {{ports[http][1]}}, t.step_func(function(result) {
+    assert_false(result);
+
+    t.done();
+  }));
+}, 'HTTPS protocol, non-existent domain, port #2');
+</script>
+</body>
+</html>

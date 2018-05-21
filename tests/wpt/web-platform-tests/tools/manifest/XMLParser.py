@@ -70,8 +70,8 @@ class XMLParser(object):
     def _end(self, tag):
         return self._target.end(_fixname(tag))
 
-    def _external(self, context, base, systemId, publicId):
-        if publicId in {
+    def _external(self, context, base, system_id, public_id):
+        if public_id in {
                 "-//W3C//DTD XHTML 1.0 Transitional//EN",
                 "-//W3C//DTD XHTML 1.1//EN",
                 "-//W3C//DTD XHTML 1.0 Strict//EN",

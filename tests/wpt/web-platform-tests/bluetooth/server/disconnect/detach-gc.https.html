@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/bluetooth/resources/bluetooth-helpers.js"></script>
+<body>
+<script>
+'use strict';
+const test_desc = 'Detach frame then garbage collect. We shouldn\'t crash.';
+let iframe = document.createElement('iframe');
+
+bluetooth_test(() => setUpConnectableHealthThermometerDevice()
+    // 1. Load the iframe.
+    .then(() => new Promise(resolve => {
+      iframe.src = '/bluetooth/resources/health-thermometer-iframe.html';
+      document.body.appendChild(iframe);
+      iframe.addEventListener('load', resolve);
+    }))
+    // 2. Connect device, detach the iframe, and run garbage collection.
+    .then(() => new Promise(resolve => {
+      callWithTrustedClick(() => {
+        iframe.contentWindow.postMessage({
+          type: 'RequestAndConnect',
+          options: {filters: [{services: ['health_thermometer']}]}
+        }, '*');
+      });
+
+      window.onmessage = messageEvent => {
+        assert_equals(messageEvent.data, 'Connected');
+        iframe.remove();
+        runGarbageCollection().then(resolve);
+      }
+    })), test_desc)
+</script>
+</body>

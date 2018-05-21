@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Collapse bottom margin from previous sibling through zero height block to next sibling</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/box.html#collapsing-margins" title="8.3.1 Collapsing margins">
+<link rel="match" href="../../reference/ref-filled-green-200px-square.html">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="overflow:hidden; width:200px; height:400px; background:green;">
+  <div style="margin-bottom:200px;"></div>
+  <div style="height:0;"></div>
+  <div style="height:200px; margin-top:100px; background:white;"></div>
+  <div style="height:200px; background:red;"></div>
+</div>

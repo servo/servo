@@ -9,7 +9,7 @@
 <link rel=preload href="{{host}}:{{ports[http][1]}}/preload/resources/dummy.js" as=style>
 <link rel=preload href="resources/dummy.css" as=style>
 <link rel=preload href="resources/square.png" as=image>
-<link rel=preload href="resources/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
 <link rel=preload href="resources/white.mp4" as=video>
 <link rel=preload href="resources/sound_5.oga" as=audio>
 <link rel=preload href="resources/foo.vtt" as=track>
@@ -23,7 +23,7 @@
         verifyNumberOfDownloads("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js", 0);
         verifyNumberOfDownloads("resources/dummy.css", 0);
         verifyNumberOfDownloads("resources/square.png", 0);
-        verifyNumberOfDownloads("resources/CanvasTest.ttf", 0);
+        verifyNumberOfDownloads("/fonts/CanvasTest.ttf", 0);
         verifyNumberOfDownloads("resources/white.mp4", 0);
         verifyNumberOfDownloads("resources/sound_5.oga", 0);
         verifyNumberOfDownloads("resources/foo.vtt", 0);

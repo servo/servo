@@ -13,229 +13,35 @@
 //
 // We allow "display" to apply to placeholders because we need to make the
 // placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
-<%helpers:longhand name="display"
-                   animation_value_type="discrete"
-                   custom_cascade="${product == 'servo'}"
-                   flags="APPLIES_TO_PLACEHOLDER"
-                   spec="https://drafts.csswg.org/css-display/#propdef-display">
-    <%
-        values = """inline block inline-block
-            table inline-table table-row-group table-header-group table-footer-group
-            table-row table-column-group table-column table-cell table-caption
-            list-item none
-        """.split()
-        webkit_prefixed_values = "flex inline-flex".split()
-        values += webkit_prefixed_values
-        if product == "gecko":
-            values += """grid inline-grid ruby ruby-base ruby-base-container
-                ruby-text ruby-text-container contents flow-root -webkit-box
-                -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
-                -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
-                -moz-popup -moz-groupbox""".split()
-    %>
-    use style_traits::ToCss;
+${helpers.predefined_type(
+    "display",
+    "Display",
+    "computed::Display::inline()",
+    initial_specified_value="specified::Display::inline()",
+    animation_value_type="discrete",
+    needs_context=False,
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-display/#propdef-display",
+    servo_restyle_damage="rebuild_and_reflow"
+)}
 
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-        use super::SpecifiedValue as Display;
-
-        impl Display {
-            /// Returns whether this "display" value is the display of a flex or
-            /// grid container.
-            ///
-            /// This is used to implement various style fixups.
-            pub fn is_item_container(&self) -> bool {
-                matches!(*self,
-                         Display::Flex
-                         | Display::InlineFlex
-                         % if product == "gecko":
-                         | Display::Grid
-                         | Display::InlineGrid
-                         % endif
-                )
-            }
-
-            /// Returns whether an element with this display type is a line
-            /// participant, which means it may lay its children on the same
-            /// line as itself.
-            pub fn is_line_participant(&self) -> bool {
-                matches!(*self,
-                         Display::Inline
-                         % if product == "gecko":
-                         | Display::Contents
-                         | Display::Ruby
-                         | Display::RubyBaseContainer
-                         % endif
-                )
-            }
-
-            /// Whether `new_display` should be ignored, given a previous
-            /// `old_display` value.
-            ///
-            /// This is used to ignore `display: -moz-box` declarations after an
-            /// equivalent `display: -webkit-box` declaration, since the former
-            /// has a vastly different meaning. See bug 1107378 and bug 1407701.
-            ///
-            /// FIXME(emilio): This is a pretty decent hack, we should try to
-            /// remove it.
-            pub fn should_ignore_parsed_value(
-                _old_display: Self,
-                _new_display: Self,
-            ) -> bool {
-                #[cfg(feature = "gecko")]
-                {
-                    match (_old_display, _new_display) {
-                        (Display::WebkitBox, Display::MozBox) |
-                        (Display::WebkitInlineBox, Display::MozInlineBox) => {
-                            return true;
-                        }
-                        _ => {},
-                    }
-                }
-
-                return false;
-            }
-
-            /// Returns whether this "display" value is one of the types for
-            /// ruby.
-            #[cfg(feature = "gecko")]
-            pub fn is_ruby_type(&self) -> bool {
-                matches!(*self,
-                         Display::Ruby |
-                         Display::RubyBase |
-                         Display::RubyText |
-                         Display::RubyBaseContainer |
-                         Display::RubyTextContainer)
-            }
-
-            /// Returns whether this "display" value is a ruby level container.
-            #[cfg(feature = "gecko")]
-            pub fn is_ruby_level_container(&self) -> bool {
-                matches!(*self,
-                         Display::RubyBaseContainer |
-                         Display::RubyTextContainer)
-            }
-
-            /// Convert this display into an equivalent block display.
-            ///
-            /// Also used for style adjustments.
-            pub fn equivalent_block_display(&self, _is_root_element: bool) -> Self {
-                match *self {
-                    // Values that have a corresponding block-outside version.
-                    Display::InlineTable => Display::Table,
-                    Display::InlineFlex => Display::Flex,
-
-                    % if product == "gecko":
-                    Display::InlineGrid => Display::Grid,
-                    Display::WebkitInlineBox => Display::WebkitBox,
-                    % endif
-
-                    // Special handling for contents and list-item on the root
-                    // element for Gecko.
-                    % if product == "gecko":
-                    Display::Contents | Display::ListItem if _is_root_element => Display::Block,
-                    % endif
-
-                    // These are not changed by blockification.
-                    Display::None |
-                    Display::Block |
-                    Display::Flex |
-                    Display::ListItem |
-                    Display::Table => *self,
-
-                    % if product == "gecko":
-                    Display::Contents |
-                    Display::FlowRoot |
-                    Display::Grid |
-                    Display::WebkitBox => *self,
-                    % endif
-
-                    // Everything else becomes block.
-                    _ => Display::Block,
-                }
-
-            }
-
-            /// Convert this display into an inline-outside display.
-            ///
-            /// Ideally it should implement spec: https://drafts.csswg.org/css-display/#inlinify
-            /// but the spec isn't stable enough, so we copy what Gecko does for now.
-            #[cfg(feature = "gecko")]
-            pub fn inlinify(&self) -> Self {
-                match *self {
-                    Display::Block |
-                    Display::FlowRoot => Display::InlineBlock,
-                    Display::Table => Display::InlineTable,
-                    Display::Flex => Display::InlineFlex,
-                    Display::Grid => Display::InlineGrid,
-                    Display::MozBox => Display::MozInlineBox,
-                    Display::MozStack => Display::MozInlineStack,
-                    Display::WebkitBox => Display::WebkitInlineBox,
-                    other => other,
-                }
-            }
-        }
-    }
-
-    // FIXME(emilio): Why does this reinvent the wheel, again?
-    #[allow(non_camel_case_types)]
-    #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
-    #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-    pub enum SpecifiedValue {
-        % for value in values:
-            ${to_camel_case(value)},
-        % endfor
-    }
-
-    // TODO(emilio): derive.
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write,
-        {
-            match *self {
-                % for value in values:
-                    SpecifiedValue::${to_camel_case(value)} => dest.write_str("${value}"),
-                % endfor
-            }
-        }
-    }
-
-    /// The initial display value.
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::${to_camel_case(values[0])}
-    }
-
-    /// Parse a display value.
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            % for value in values:
-                "${value}" => {
-                    Ok(computed_value::T::${to_camel_case(value)})
-                },
-            % endfor
-            % for value in webkit_prefixed_values:
-                "-webkit-${value}" => {
-                    Ok(computed_value::T::${to_camel_case(value)})
-                },
-            % endfor
-        }
-    }
-
-    % if product == "servo":
-        fn cascade_property_custom(_declaration: &PropertyDeclaration,
-                                   context: &mut computed::Context) {
-            longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
-            longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-        }
-    % endif
-
-    ${helpers.gecko_keyword_conversion(Keyword('display', ' '.join(values),
-                                               gecko_enum_prefix='StyleDisplay',
-                                               gecko_strip_moz_prefix=False))}
-
-</%helpers:longhand>
+// FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the
+// Rust enum directly, or generate the conversions to `StyleDisplay`.
+${helpers.gecko_keyword_conversion(
+    Keyword('display', """
+        inline block inline-block
+        table inline-table table-row-group table-header-group table-footer-group
+        table-row table-column-group table-column table-cell table-caption
+        list-item none flex inline-flex grid inline-grid ruby ruby-base ruby-base-container
+        ruby-text ruby-text-container contents flow-root -webkit-box
+        -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
+        -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
+        -moz-popup -moz-groupbox
+    """,
+    gecko_enum_prefix='StyleDisplay',
+    gecko_strip_moz_prefix=False),
+    type="::values::specified::Display"
+)}
 
 ${helpers.single_keyword("-moz-top-layer", "none top",
                          gecko_constant_prefix="NS_STYLE_TOP_LAYER",
@@ -247,19 +53,23 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
 ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                          animation_value_type="discrete",
                          flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
-                         spec="https://drafts.csswg.org/css-position/#position-property")}
+                         spec="https://drafts.csswg.org/css-position/#position-property",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
-<%helpers:single_keyword_computed name="float"
-                                  values="none left right"
-                                  // https://drafts.csswg.org/css-logical-props/#float-clear
-                                  extra_specified="inline-start inline-end"
-                                  needs_conversion="True"
-                                  animation_value_type="discrete"
-                                  gecko_enum_prefix="StyleFloat"
-                                  gecko_inexhaustive="True"
-                                  gecko_ffi_name="mFloat"
-                                  flags="APPLIES_TO_FIRST_LETTER"
-                                  spec="https://drafts.csswg.org/css-box/#propdef-float">
+<%helpers:single_keyword
+    name="float"
+    values="none left right"
+    // https://drafts.csswg.org/css-logical-props/#float-clear
+    extra_specified="inline-start inline-end"
+    needs_conversion="True"
+    animation_value_type="discrete"
+    gecko_enum_prefix="StyleFloat"
+    gecko_inexhaustive="True"
+    gecko_ffi_name="mFloat"
+    flags="APPLIES_TO_FIRST_LETTER"
+    spec="https://drafts.csswg.org/css-box/#propdef-float"
+    servo_restyle_damage="rebuild_and_reflow"
+>
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -300,18 +110,21 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
             }
         }
     }
-</%helpers:single_keyword_computed>
+</%helpers:single_keyword>
 
-<%helpers:single_keyword_computed name="clear"
-                                  values="none left right both"
-                                  // https://drafts.csswg.org/css-logical-props/#float-clear
-                                  extra_specified="inline-start inline-end"
-                                  needs_conversion="True"
-                                  gecko_inexhaustive="True"
-                                  animation_value_type="discrete"
-                                  gecko_enum_prefix="StyleClear"
-                                  gecko_ffi_name="mBreakType"
-                                  spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
+<%helpers:single_keyword
+    name="clear"
+    values="none left right both"
+    // https://drafts.csswg.org/css-logical-props/#float-clear
+    extra_specified="inline-start inline-end"
+    needs_conversion="True"
+    gecko_inexhaustive="True"
+    animation_value_type="discrete"
+    gecko_enum_prefix="StyleClear"
+    gecko_ffi_name="mBreakType"
+    spec="https://drafts.csswg.org/css-box/#propdef-clear"
+    servo_restyle_damage="rebuild_and_reflow"
+>
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -352,28 +165,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
             }
         }
     }
-</%helpers:single_keyword_computed>
-
-<%helpers:longhand name="-servo-display-for-hypothetical-box"
-                   animation_value_type="none"
-                   derived_from="display"
-                   products="servo"
-                   spec="Internal (not web-exposed)">
-    pub use super::display::{SpecifiedValue, get_initial_value};
-    pub use super::display::{parse};
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    #[inline]
-    pub fn derive_from_display(context: &mut Context) {
-        let d = context.style().get_box().clone_display();
-        context.builder.set__servo_display_for_hypothetical_box(d);
-    }
-
-</%helpers:longhand>
-
+</%helpers:single_keyword>
 
 ${helpers.predefined_type(
     "vertical-align",
@@ -382,6 +174,7 @@ ${helpers.predefined_type(
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
+    servo_restyle_damage = "reflow"
 )}
 
 // CSS 2.1, Section 11 - Visual effects
@@ -400,7 +193,7 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
         enabled_in="ua",
         needs_context=False,
         flags="APPLIES_TO_PLACEHOLDER",
-        gecko_pref="layout.css.overscroll-behavior.enabled",
+        gecko_pref="layout.css.overflow-clip-box.enabled",
         animation_value_type="discrete",
         spec="Internal, may be standardized in the future: \
               https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box",
@@ -412,20 +205,28 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 %>
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+//
+// We allow it to apply to placeholders for UA sheets, which set it !important.
 ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          animation_value_type="discrete",
                          extra_gecko_values="-moz-hidden-unscrollable",
                          custom_consts=overflow_custom_consts,
                          gecko_constant_prefix="NS_STYLE_OVERFLOW",
                          flags="APPLIES_TO_PLACEHOLDER",
-                         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x")}
+                         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
+                         servo_restyle_damage = "reflow")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
+//
+// We allow it to apply to placeholders for UA sheets, which set it !important.
 <%helpers:longhand name="overflow-y" animation_value_type="discrete"
                    flags="APPLIES_TO_PLACEHOLDER",
-                   spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
+                   spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-y"
+                   servo_restyle_damage = "reflow">
     pub use super::overflow_x::{SpecifiedValue, parse, get_initial_value, computed_value};
 </%helpers:longhand>
+
+<% transition_extra_prefixes = "moz:layout.css.prefixes.transitions webkit" %>
 
 ${helpers.predefined_type("transition-duration",
                           "Time",
@@ -435,7 +236,7 @@ ${helpers.predefined_type("transition-duration",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transition_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 ${helpers.predefined_type("transition-timing-function",
@@ -445,20 +246,20 @@ ${helpers.predefined_type("transition-timing-function",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transition_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function")}
 
 ${helpers.predefined_type(
     "transition-property",
     "TransitionProperty",
-    "computed::TransitionProperty::All",
-    initial_specified_value="specified::TransitionProperty::All",
+    "computed::TransitionProperty::all()",
+    initial_specified_value="specified::TransitionProperty::all()",
     vector=True,
     allow_empty="NotInitial",
     need_index=True,
     needs_context=False,
     animation_value_type="none",
-    extra_prefixes="moz webkit",
+    extra_prefixes=transition_extra_prefixes,
     spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",
 )}
 
@@ -469,9 +270,11 @@ ${helpers.predefined_type("transition-delay",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=transition_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay")}
 
+
+<% animation_extra_prefixes = "moz:layout.css.prefixes.animations webkit" %>
 
 ${helpers.predefined_type(
     "animation-name",
@@ -481,7 +284,7 @@ ${helpers.predefined_type(
     vector=True,
     need_index=True,
     animation_value_type="none",
-    extra_prefixes="moz webkit",
+    extra_prefixes=animation_extra_prefixes,
     allowed_in_keyframe_block=False,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-name",
 )}
@@ -494,7 +297,7 @@ ${helpers.predefined_type("animation-duration",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=animation_extra_prefixes,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
 
 // animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
@@ -506,7 +309,7 @@ ${helpers.predefined_type("animation-timing-function",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=animation_extra_prefixes,
                           allowed_in_keyframe_block=True,
                           spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function")}
 
@@ -518,7 +321,7 @@ ${helpers.predefined_type(
     vector=True,
     need_index=True,
     animation_value_type="none",
-    extra_prefixes="moz webkit",
+    extra_prefixes=animation_extra_prefixes,
     allowed_in_keyframe_block=False,
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
 )}
@@ -531,7 +334,7 @@ ${helpers.single_keyword("animation-direction",
                          vector=True,
                          gecko_enum_prefix="PlaybackDirection",
                          custom_consts=animation_direction_custom_consts,
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=animation_extra_prefixes,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
@@ -540,7 +343,7 @@ ${helpers.single_keyword("animation-play-state",
                          need_index=True,
                          animation_value_type="none",
                          vector=True,
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=animation_extra_prefixes,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
                          allowed_in_keyframe_block=False)}
 
@@ -550,7 +353,7 @@ ${helpers.single_keyword("animation-fill-mode",
                          animation_value_type="none",
                          vector=True,
                          gecko_enum_prefix="FillMode",
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=animation_extra_prefixes,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
@@ -561,7 +364,7 @@ ${helpers.predefined_type("animation-delay",
                           vector=True,
                           need_index=True,
                           animation_value_type="none",
-                          extra_prefixes="moz webkit",
+                          extra_prefixes=animation_extra_prefixes,
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
                           allowed_in_keyframe_block=False)}
 
@@ -582,7 +385,7 @@ ${helpers.predefined_type("scroll-snap-destination",
                           "computed::Position::zero()",
                           products="gecko",
                           gecko_pref="layout.css.scroll-snap.enabled",
-                          boxed="True",
+                          boxed=True,
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
                           animation_value_type="discrete")}
 
@@ -598,13 +401,50 @@ ${helpers.predefined_type(
     allow_empty="NotInitial"
 )}
 
-${helpers.predefined_type("transform", "Transform",
-                          "generics::transform::Transform::none()",
-                          extra_prefixes="webkit",
+<% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
+
+${helpers.predefined_type(
+    "transform",
+    "Transform",
+    "generics::transform::Transform::none()",
+    extra_prefixes=transform_extra_prefixes,
+    animation_value_type="ComputedValue",
+    gecko_ffi_name="mSpecifiedTransform",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB \
+           GETCS_NEEDS_LAYOUT_FLUSH CAN_ANIMATE_ON_COMPOSITOR",
+    spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
+
+${helpers.predefined_type("rotate", "Rotate",
+                          "generics::transform::Rotate::None",
                           animation_value_type="ComputedValue",
-                          gecko_ffi_name="mSpecifiedTransform",
+                          boxed=True,
                           flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          spec="https://drafts.csswg.org/css-transforms/#propdef-transform")}
+                          gecko_pref="layout.css.individual-transform.enabled",
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+                          servo_restyle_damage = "reflow_out_of_flow")}
+
+${helpers.predefined_type("scale", "Scale",
+                          "generics::transform::Scale::None",
+                          animation_value_type="ComputedValue",
+                          boxed=True,
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+                          gecko_pref="layout.css.individual-transform.enabled",
+                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+                          servo_restyle_damage = "reflow_out_of_flow")}
+
+${helpers.predefined_type(
+    "translate",
+    "Translate",
+    "generics::transform::Translate::None",
+    animation_value_type="ComputedValue",
+    boxed=True,
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
+    gecko_pref="layout.css.individual-transform.enabled",
+    spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
@@ -684,29 +524,34 @@ ${helpers.single_keyword("resize",
                          flags="APPLIES_TO_PLACEHOLDER",
                          animation_value_type="discrete")}
 
+${helpers.predefined_type(
+    "perspective",
+    "Perspective",
+    "computed::Perspective::none()",
+    gecko_ffi_name="mChildPerspective",
+    spec="https://drafts.csswg.org/css-transforms/#perspective",
+    extra_prefixes=transform_extra_prefixes,
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    animation_value_type="AnimatedPerspective",
+    servo_restyle_damage = "reflow_out_of_flow",
+)}
 
-${helpers.predefined_type("perspective",
-                          "LengthOrNone",
-                          "Either::Second(None_)",
-                          "parse_non_negative_length",
-                          gecko_ffi_name="mChildPerspective",
-                          spec="https://drafts.csswg.org/css-transforms/#perspective",
-                          extra_prefixes="moz webkit",
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          animation_value_type="ComputedValue")}
-
-${helpers.predefined_type("perspective-origin",
-                          "position::Position",
-                          "computed::position::Position::center()",
-                          boxed="True",
-                          extra_prefixes="moz webkit",
-                          spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
-                          animation_value_type="ComputedValue")}
+${helpers.predefined_type(
+    "perspective-origin",
+    "position::Position",
+    "computed::position::Position::center()",
+    boxed=True,
+    extra_prefixes=transform_extra_prefixes,
+    spec="https://drafts.csswg.org/css-transforms-2/#perspective-origin-property",
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
+    animation_value_type="ComputedValue",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
 ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
                          spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
-                         extra_prefixes="moz webkit",
+                         extra_prefixes=transform_extra_prefixes,
                          animation_value_type="discrete")}
 
 ${helpers.single_keyword("transform-box",
@@ -718,118 +563,39 @@ ${helpers.single_keyword("transform-box",
                          gecko_inexhaustive="True",
                          animation_value_type="discrete")}
 
-// `auto` keyword is not supported in gecko yet.
-${helpers.single_keyword("transform-style",
-                         "auto flat preserve-3d" if product == "servo" else
-                         "flat preserve-3d",
-                         spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
-                         extra_prefixes="moz webkit",
-                         flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                         animation_value_type="discrete")}
+${helpers.predefined_type(
+    "transform-style",
+    "TransformStyle",
+    "computed::TransformStyle::" + ("Auto" if product == "servo" else "Flat"),
+    spec="https://drafts.csswg.org/css-transforms-2/#transform-style-property",
+    needs_context=False,
+    extra_prefixes=transform_extra_prefixes,
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    animation_value_type="discrete",
+    servo_restyle_damage = "reflow_out_of_flow",
+)}
 
-${helpers.predefined_type("transform-origin",
-                          "TransformOrigin",
-                          "computed::TransformOrigin::initial_value()",
-                          animation_value_type="ComputedValue",
-                          extra_prefixes="moz webkit",
-                          gecko_ffi_name="mTransformOrigin",
-                          boxed=True,
-                          spec="https://drafts.csswg.org/css-transforms/#transform-origin-property")}
+${helpers.predefined_type(
+    "transform-origin",
+    "TransformOrigin",
+    "computed::TransformOrigin::initial_value()",
+    animation_value_type="ComputedValue",
+    extra_prefixes=transform_extra_prefixes,
+    gecko_ffi_name="mTransformOrigin",
+    boxed=True,
+    flags="GETCS_NEEDS_LAYOUT_FLUSH",
+    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
+    servo_restyle_damage="reflow_out_of_flow"
+)}
 
-// FIXME: `size` and `content` values are not implemented and `strict` is implemented
-// like `content`(layout style paint) in gecko. We should implement `size` and `content`,
-// also update the glue once they are implemented in gecko.
-<%helpers:longhand name="contain" animation_value_type="discrete" products="gecko"
-                   flags="FIXPOS_CB"
-                   gecko_pref="layout.css.contain.enabled",
-                   spec="https://drafts.csswg.org/css-contain/#contain-property">
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        pub type T = super::SpecifiedValue;
-    }
-
-    bitflags! {
-        #[derive(MallocSizeOf, ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const LAYOUT = 0x01;
-            const STYLE = 0x02;
-            const PAINT = 0x04;
-            const STRICT = 0x8;
-            const STRICT_BITS = SpecifiedValue::LAYOUT.bits | SpecifiedValue::STYLE.bits | SpecifiedValue::PAINT.bits;
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.is_empty() {
-                return dest.write_str("none")
-            }
-            if self.contains(SpecifiedValue::STRICT) {
-                return dest.write_str("strict")
-            }
-
-            let mut has_any = false;
-            macro_rules! maybe_write_value {
-                ($ident:path => $str:expr) => {
-                    if self.contains($ident) {
-                        if has_any {
-                            dest.write_str(" ")?;
-                        }
-                        has_any = true;
-                        dest.write_str($str)?;
-                    }
-                }
-            }
-            maybe_write_value!(SpecifiedValue::LAYOUT => "layout");
-            maybe_write_value!(SpecifiedValue::STYLE => "style");
-            maybe_write_value!(SpecifiedValue::PAINT => "paint");
-
-            debug_assert!(has_any);
-            Ok(())
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::empty()
-    }
-
-    /// none | strict | content | [ size || layout || style || paint ]
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        let mut result = SpecifiedValue::empty();
-
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(result)
-        }
-        if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
-            result.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
-            return Ok(result)
-        }
-
-        while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
-            let flag = match_ignore_ascii_case! { &name,
-                "layout" => Some(SpecifiedValue::LAYOUT),
-                "style" => Some(SpecifiedValue::STYLE),
-                "paint" => Some(SpecifiedValue::PAINT),
-                _ => None
-            };
-            let flag = match flag {
-                Some(flag) if !result.contains(flag) => flag,
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
-            };
-            result.insert(flag);
-        }
-
-        if !result.is_empty() {
-            Ok(result)
-        } else {
-            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type("contain",
+                          "Contain",
+                          "specified::Contain::empty()",
+                          animation_value_type="discrete",
+                          products="gecko",
+                          flags="FIXPOS_CB",
+                          gecko_pref="layout.css.contain.enabled",
+                          spec="https://drafts.csswg.org/css-contain/#contain-property")}
 
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
@@ -866,9 +632,8 @@ ${helpers.single_keyword("-moz-appearance",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
                          animation_value_type="discrete")}
 
-${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
+${helpers.predefined_type("-moz-binding", "url::UrlOrNone", "computed::url::UrlOrNone::none()",
                           products="gecko",
-                          boxed="True" if product == "gecko" else "False",
                           animation_value_type="none",
                           gecko_ffi_name="mBinding",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)")}
@@ -881,69 +646,33 @@ ${helpers.single_keyword("-moz-orient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animation_value_type="discrete")}
 
-<%helpers:longhand name="will-change" products="gecko" animation_value_type="discrete"
-                   spec="https://drafts.csswg.org/css-will-change/#will-change">
-    use std::fmt;
-    use style_traits::ToCss;
-    use values::CustomIdent;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue)]
-    pub enum SpecifiedValue {
-        Auto,
-        AnimateableFeatures(Vec<CustomIdent>),
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::AnimateableFeatures(ref features) => {
-                    let (first, rest) = features.split_first().unwrap();
-                    first.to_css(dest)?;
-                    for feature in rest {
-                        dest.write_str(", ")?;
-                        feature.to_css(dest)?;
-                    }
-                    Ok(())
-                }
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Auto
-    }
-
-    /// auto | <animateable-feature>#
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(computed_value::T::Auto)
-        } else {
-            input.parse_comma_separated(|i| {
-                let location = i.current_source_location();
-                CustomIdent::from_ident(location, i.expect_ident()?, &[
-                    "will-change",
-                    "none",
-                    "all",
-                    "auto",
-                ])
-            }).map(SpecifiedValue::AnimateableFeatures)
-        }
-    }
-</%helpers:longhand>
+${helpers.predefined_type(
+    "will-change",
+    "WillChange",
+    "computed::WillChange::auto()",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-will-change/#will-change"
+)}
 
 ${helpers.predefined_type(
     "shape-image-threshold", "Opacity", "0.0",
     products="gecko",
     gecko_pref="layout.css.shape-outside.enabled",
     animation_value_type="ComputedValue",
+    flags="APPLIES_TO_FIRST_LETTER",
     spec="https://drafts.csswg.org/css-shapes/#shape-image-threshold-property",
+)}
+
+${helpers.predefined_type(
+    "shape-margin",
+    "NonNegativeLengthOrPercentage",
+    "computed::NonNegativeLengthOrPercentage::zero()",
+    products="gecko",
+    gecko_pref="layout.css.shape-outside.enabled",
+    animation_value_type="NonNegativeLengthOrPercentage",
+    flags="APPLIES_TO_FIRST_LETTER",
+    spec="https://drafts.csswg.org/css-shapes/#shape-margin-property",
 )}
 
 ${helpers.predefined_type(
@@ -958,81 +687,12 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-shapes/#shape-outside-property",
 )}
 
-<%helpers:longhand name="touch-action"
-                   products="gecko"
-                   animation_value_type="discrete"
-                   gecko_pref="layout.css.touch_action.enabled"
-                   spec="https://compat.spec.whatwg.org/#touch-action">
-    use gecko_bindings::structs;
-    use std::fmt;
-    use style_traits::ToCss;
-
-    pub mod computed_value {
-        pub use super::SpecifiedValue as T;
-    }
-
-    bitflags! {
-        /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-        #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(ToComputedValue)]
-        pub struct SpecifiedValue: u8 {
-            const TOUCH_ACTION_NONE = structs::NS_STYLE_TOUCH_ACTION_NONE as u8;
-            const TOUCH_ACTION_AUTO = structs::NS_STYLE_TOUCH_ACTION_AUTO as u8;
-            const TOUCH_ACTION_PAN_X = structs::NS_STYLE_TOUCH_ACTION_PAN_X as u8;
-            const TOUCH_ACTION_PAN_Y = structs::NS_STYLE_TOUCH_ACTION_PAN_Y as u8;
-            const TOUCH_ACTION_MANIPULATION = structs::NS_STYLE_TOUCH_ACTION_MANIPULATION as u8;
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self {
-                SpecifiedValue::TOUCH_ACTION_NONE => dest.write_str("none"),
-                SpecifiedValue::TOUCH_ACTION_AUTO => dest.write_str("auto"),
-                SpecifiedValue::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
-                    dest.write_str("pan-x pan-y")
-                },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_X) => {
-                    dest.write_str("pan-x")
-                },
-                _ if self.contains(SpecifiedValue::TOUCH_ACTION_PAN_Y) => {
-                    dest.write_str("pan-y")
-                },
-                _ => panic!("invalid touch-action value"),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        SpecifiedValue::TOUCH_ACTION_AUTO
-    }
-
-    pub fn parse<'i, 't>(_context: &ParserContext, input: &mut Parser<'i, 't>)
-                         -> Result<SpecifiedValue, ParseError<'i>> {
-        // FIXME: remove clone() when lifetimes are non-lexical
-        try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(SpecifiedValue::TOUCH_ACTION_AUTO),
-            "none" => Ok(SpecifiedValue::TOUCH_ACTION_NONE),
-            "manipulation" => Ok(SpecifiedValue::TOUCH_ACTION_MANIPULATION),
-            "pan-x" => {
-                if input.try(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X)
-                }
-            },
-            "pan-y" => {
-                if input.try(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_X | SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                } else {
-                    Ok(SpecifiedValue::TOUCH_ACTION_PAN_Y)
-                }
-            },
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    impl_bitflags_conversions!(SpecifiedValue);
-</%helpers:longhand>
+${helpers.predefined_type(
+    "touch-action",
+    "TouchAction",
+    "computed::TouchAction::auto()",
+    products="gecko",
+    gecko_pref="layout.css.touch_action.enabled",
+    animation_value_type="discrete",
+    spec="https://compat.spec.whatwg.org/#touch-action",
+)}

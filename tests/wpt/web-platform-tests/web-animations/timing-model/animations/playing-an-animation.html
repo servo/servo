@@ -2,7 +2,7 @@
 <meta charset=utf-8>
 <title>Playing an animation</title>
 <link rel="help"
-      href="https://w3c.github.io/web-animations/#playing-an-animation-section">
+      href="https://drafts.csswg.org/web-animations/#playing-an-animation-section">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
@@ -11,32 +11,32 @@
 <script>
 'use strict';
 
-test(function(t) {
-  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.currentTime = 1 * MS_PER_SEC;
-  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 1 * MS_PER_SEC);
   animation.play();
-  assert_times_equal(animation.currentTime, 1 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 1 * MS_PER_SEC);
 }, 'Playing a running animation leaves the current time unchanged');
 
-test(function(t) {
-  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.finish();
-  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
   animation.play();
-  assert_times_equal(animation.currentTime, 0);
+  assert_time_equals_literal(animation.currentTime, 0);
 }, 'Playing a finished animation seeks back to the start');
 
-test(function(t) {
-  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.playbackRate = -1;
   animation.currentTime = 0;
-  assert_times_equal(animation.currentTime, 0);
+  assert_time_equals_literal(animation.currentTime, 0);
   animation.play();
-  assert_times_equal(animation.currentTime, 100 * MS_PER_SEC);
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
 }, 'Playing a finished and reversed animation seeks to end');
 
-test(function(t) {
+test(t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   animation.cancel();
   const promise = animation.ready;
@@ -45,15 +45,31 @@ test(function(t) {
 }, 'The ready promise should be replaced if the animation is not already'
    + ' pending');
 
-promise_test(function(t) {
+promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   const promise = animation.ready;
-  return promise.then(p => {
-    assert_equals(p, animation);
-    assert_equals(animation.ready, promise);
-  });
+  const promiseResult = await promise;
+  assert_equals(promiseResult, animation);
+  assert_equals(animation.ready, promise);
 }, 'A pending ready promise should be resolved and not replaced when the'
    + ' animation enters the running state');
+
+promise_test(async t => {
+  // Seek animation beyond target end
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = -100 * MS_PER_SEC;
+  await animation.ready;
+
+  // Set pending playback rate to the opposite direction
+  animation.updatePlaybackRate(-1);
+  assert_true(animation.pending);
+  assert_equals(animation.playbackRate, 1);
+
+  // When we play, we should seek to the target end, NOT to zero (which
+  // is where we would seek to if we used the playbackRate of 1.
+  animation.play();
+  assert_time_equals_literal(animation.currentTime, 100 * MS_PER_SEC);
+}, 'A pending playback rate is used when determining auto-rewind behavior');
 
 </script>
 </body>

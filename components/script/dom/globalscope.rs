@@ -27,11 +27,13 @@ use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleValue, Evaluate2, JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JSObject, JS_GetContext};
-use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
+use js::jsapi::JS_GetObjectRuntime;
 use js::panic::maybe_resume_unwind;
 use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
+use js::rust::{HandleValue, MutableHandleValue};
+use js::rust::wrappers::Evaluate2;
 use libc;
 use microtask::{Microtask, MicrotaskQueue};
 use msg::constellation_msg::PipelineId;
@@ -47,6 +49,8 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
@@ -54,6 +58,17 @@ use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
+
+#[derive(JSTraceable)]
+pub struct AutoCloseWorker(
+    Arc<AtomicBool>,
+);
+
+impl Drop for AutoCloseWorker {
+    fn drop(&mut self) {
+        self.0.store(true, Ordering::SeqCst);
+    }
+}
 
 #[dom_struct]
 pub struct GlobalScope {
@@ -110,6 +125,10 @@ pub struct GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#microtask-queue>
     #[ignore_malloc_size_of = "Rc<T> is hard"]
     microtask_queue: Rc<MicrotaskQueue>,
+
+    /// Vector storing closing references of all workers
+    #[ignore_malloc_size_of = "Arc"]
+    list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
 }
 
 impl GlobalScope {
@@ -142,7 +161,12 @@ impl GlobalScope {
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             origin,
             microtask_queue,
+            list_auto_close_worker: Default::default(),
         }
+    }
+
+    pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
+       self.list_auto_close_worker.borrow_mut().push(AutoCloseWorker(closing_worker));
     }
 
     /// Returns the global scope of the realm that the given DOM object's reflector
@@ -610,6 +634,6 @@ fn timestamp_in_ms(time: Timespec) -> u64 {
 unsafe fn global_scope_from_global(global: *mut JSObject) -> DomRoot<GlobalScope> {
     assert!(!global.is_null());
     let clasp = get_object_class(global);
-    assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+    assert_ne!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)), 0);
     root_from_object(global).unwrap()
 }

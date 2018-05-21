@@ -1,6 +1,7 @@
 if (self.importScripts) {
     importScripts('/resources/testharness.js');
     importScripts('../resources/test-helpers.js');
+    importScripts('/common/get-host-info.sub.js');
 }
 
 prepopulated_cache_test(simple_entries, function(cache, entries) {
@@ -317,5 +318,23 @@ cache_test(function(cache) {
           assert_equals(text, data.toString(), 'cloned body text can be read correctly');
         });
   }, 'Cache produces large Responses that can be cloned and read correctly.');
+
+cache_test(async (cache) => {
+    const url = get_host_info().HTTPS_REMOTE_ORIGIN +
+      '/service-workers/cache-storage/resources/simple.txt?pipe=' +
+      'header(access-control-allow-origin,*)|' +
+      'header(access-control-expose-headers,*)|' +
+      'header(foo,bar)|' +
+      'header(set-cookie,X)';
+
+    const response = await fetch(url);
+    await cache.put(new Request(url), response);
+    const cached_response = await cache.match(url);
+
+    const headers = cached_response.headers;
+    assert_equals(headers.get('access-control-expose-headers'), '*');
+    assert_equals(headers.get('foo'), 'bar');
+    assert_equals(headers.get('set-cookie'), null);
+  }, 'cors-exposed header should be stored correctly.');
 
 done();

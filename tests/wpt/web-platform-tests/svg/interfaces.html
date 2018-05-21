@@ -13,7 +13,7 @@ interface Document : Node {};
 interface ProcessingInstruction : Node {};
 interface Element : Node {};
 interface HTMLElement : Element {};
-[PrimaryGlobal] interface Window {};
+[Global=Window, Exposed=Window] interface Window {};
 
 // Just need to know that DOMStringMap exists; its details are tested elsewhere.
 interface DOMStringMap { };

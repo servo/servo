@@ -3,10 +3,10 @@
 <head>
 <title>CSS Test: feature value matching for font-variant-alternates</title>
 <link rel="author" title="John Daggett" href="mailto:jdaggett@mozilla.com"/>
-<link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-variant-alternates-prop"/>
-<link rel="help" href="http://www.w3.org/TR/css-fonts-3/#font-feature-values"/>
+<link rel="help" href="http://www.w3.org/TR/css-fonts-4/#font-variant-alternates-prop"/>
+<link rel="help" href="http://www.w3.org/TR/css-fonts-4/#font-feature-values"/>
 <link rel="match" href="alternates-order-ref.html"/>
-<meta name="flags" content=""/>
+
 <meta name="assert" content="Case and order of font family name or feature name should not affect alternate rendered"/>
 <style type="text/css">
 @font-face {
@@ -65,13 +65,13 @@ div { margin: 0 20px; }
 }
 
 #test2 {
-  /* testing case-insensitivity of styleset name */
+  /* testing case-sensitivity of styleset name */
   font-family: fontB;
   font-variant-alternates: styleset(altW);
 }
 
 #test3 {
-  /* testing case-insensitivity of styleset name */
+  /* testing case-sensitivity of styleset name */
   font-family: fontB;
   font-variant-alternates: styleset(ALTW);
 }
@@ -79,7 +79,7 @@ div { margin: 0 20px; }
 #test4 {
   /* testing escapes in styleset name */
   font-family: fontB;
-  font-variant-alternates: styleset(\41 ltW);
+  font-variant-alternates: styleset(\41 lTw);
 }
 
 #test5 {

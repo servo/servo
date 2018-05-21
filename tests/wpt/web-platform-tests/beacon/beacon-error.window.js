@@ -24,16 +24,25 @@ test(function() {
 }, "Verify calling 'navigator.sendBeacon()' with a URL that is not a http(s) scheme throws an exception.");
 
 // We'll validate that we can send one beacon that uses our entire Quota and then fail to send one that is just one char.
-test(function () {
-    var destinationURL = "/fetch/api/resources/trickle.py?count=1&ms=1000";
-
-    var firstSuccess = navigator.sendBeacon(destinationURL, maxPayload);
-    assert_true(firstSuccess, "calling 'navigator.sendBeacon()' with our max payload size should succeed.");
+promise_test(async () => {
+    function wait(ms) {
+        return new Promise(res => step_timeout(res, ms));
+    }
+    const url = '/fetch/api/resources/trickle.py?count=1&ms=0';
+    assert_true(navigator.sendBeacon(url, maxPayload),
+                "calling 'navigator.sendBeacon()' with our max payload size should succeed.");
 
     // Now we'll send just one character.
-    var secondSuccess = navigator.sendBeacon(destinationURL, "1");
-    assert_false(secondSuccess, "calling 'navigator.sendBeacon()' with just one char should fail while our Quota is used up.");
+    assert_false(navigator.sendBeacon(url, '1'),
+                 "calling 'navigator.sendBeacon()' with just one char should fail while our Quota is used up.");
 
-}, "Verify calling 'navigator.sendBeacon()' with a small payload fails while Quota is completely utilized.");
+    for (let i = 0; i < 20; ++i) {
+        await wait(100);
+        if (navigator.sendBeacon(url, maxPayload)) {
+           return;
+        }
+    }
+    assert_unreached('The quota should recover after fetching.');
+}, "Verify the behavior after the quota is exhausted.");
 
 done();

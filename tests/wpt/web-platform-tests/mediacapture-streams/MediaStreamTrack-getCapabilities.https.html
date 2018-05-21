@@ -1,0 +1,21 @@
+<!doctype html>
+<title>MediaStreamTrack GetCapabilities</title>
+<p class="instructions">This test checks for the presence of audio and video properties in
+<code>MediaStreamTrack.getCapabilities()</code> method.</p>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+  promise_test(() => {
+  return navigator.mediaDevices.getUserMedia({audio: true, video: true})
+    .then(stream => {
+      var audioCapabilities = stream.getAudioTracks()[0].getCapabilities();
+      var videoCapabilities = stream.getVideoTracks()[0].getCapabilities();
+      assert_true(undefined !== audioCapabilities.deviceId, "MediaTrackCapabilities's deviceId should exist for an audio track.");
+      assert_true(undefined !== audioCapabilities.echoCancellation, "MediaTrackCapabilities's echoCancellation should exist for an audio track.");
+      assert_true(undefined !== audioCapabilities.autoGainControl, "MediaTrackCapabilities's autoGainControl should exist for an audio track.");
+      assert_true(undefined !== audioCapabilities.noiseSuppression, "MediaTrackCapabilities's noiseSuppression should exist for an audio track.");
+      assert_true(undefined !== videoCapabilities.deviceId, "MediaTrackCapabilities's deviceId should exist for a video track.");
+      assert_true(undefined !== videoCapabilities.groupId, "MediaTrackCapabilities's groupId should exist for a video track.");
+    });
+  });
+</script>

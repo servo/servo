@@ -10,9 +10,8 @@ interface HTMLIFrameElement : HTMLElement {
   // [CEReactions]
   //         attribute DOMString srcdoc;
 
-  // https://github.com/servo/servo/issues/14453
-  // [CEReactions]
-  // attribute DOMString name;
+  [CEReactions]
+  attribute DOMString name;
 
   [SameObject, PutForwards=value]
            readonly attribute DOMTokenList sandbox;
@@ -46,13 +45,3 @@ partial interface HTMLIFrameElement {
   // [CEReactions, TreatNullAs=EmptyString]
   // attribute DOMString marginWidth;
 };
-
-partial interface HTMLIFrameElement {
-    [CEReactions, Func="::dom::window::Window::global_is_mozbrowser"]
-    attribute boolean mozbrowser;
-
-    [CEReactions, Func="::dom::window::Window::global_is_mozbrowser"]
-    attribute boolean mozprivatebrowsing;
-};
-
-HTMLIFrameElement implements BrowserElement;

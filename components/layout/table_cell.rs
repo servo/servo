@@ -9,18 +9,16 @@
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode};
-use display_list_builder::{DisplayListBuildState, StackingContextCollectionFlags};
-use display_list_builder::StackingContextCollectionState;
+use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
+use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use flow::{self, Flow, FlowClass, FlowFlags, OpaqueFlow};
+use flow::{Flow, FlowClass, FlowFlags, GetBaseFlow, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
-use style::computed_values::border_collapse::T as BorderCollapse;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::Color;
@@ -101,8 +99,8 @@ impl TableCellFlow {
         // Note to the reader: this code has been tested with negative margins.
         // We end up with a "end" that's before the "start," but the math still works out.
         let mut extents = None;
-        for kid in flow::base(self).children.iter() {
-            let kid_base = flow::base(kid);
+        for kid in self.base().children.iter() {
+            let kid_base = kid.base();
             if kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 continue
             }
@@ -128,7 +126,7 @@ impl TableCellFlow {
         };
 
         let kids_size = last_end - first_start;
-        let self_size = flow::base(self).position.size.block -
+        let self_size = self.base().position.size.block -
             self.block_flow.fragment.border_padding.block_start_end();
         let kids_self_gap = self_size - kids_size;
 
@@ -143,12 +141,23 @@ impl TableCellFlow {
             return
         }
 
-        for kid in flow::mut_base(self).children.iter_mut() {
-            let kid_base = flow::mut_base(kid);
+        for kid in self.mut_base().children.iter_mut() {
+            let kid_base = kid.mut_base();
             if !kid_base.flags.contains(FlowFlags::IS_ABSOLUTELY_POSITIONED) {
                 kid_base.position.start.b += offset
             }
         }
+    }
+
+    // Total block size of child
+    //
+    // Call after block size calculation
+    pub fn total_block_size(&mut self) -> Au {
+        // TODO: Percentage block-size
+        let specified = MaybeAuto::from_style(self.fragment().style()
+                                                  .content_block_size(),
+                                              Au(0)).specified_or_zero();
+        specified + self.fragment().border_padding.block_start_end()
     }
 }
 
@@ -208,9 +217,7 @@ impl Flow for TableCellFlow {
         // The position was set to the column inline-size by the parent flow, table row flow.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
-        let inline_size_computer = InternalTable {
-            border_collapse: self.block_flow.fragment.style.get_inheritedtable().border_collapse,
-        };
+        let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       shared_context,
                                                       containing_block_inline_size);
@@ -250,21 +257,14 @@ impl Flow for TableCellFlow {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
     }
 
-    fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
-        if !self.visible {
-            return
-        }
+    fn build_display_list(&mut self, _: &mut DisplayListBuildState) {
+        use style::servo::restyle_damage::ServoRestyleDamage;
+        // This is handled by TableCellStyleInfo::build_display_list()
+        // when the containing table builds its display list
 
-        let border_painting_mode = match self.block_flow
-                                             .fragment
-                                             .style
-                                             .get_inheritedtable()
-                                             .border_collapse {
-            BorderCollapse::Separate => BorderPaintingMode::Separate,
-            BorderCollapse::Collapse => BorderPaintingMode::Collapse(&self.collapsed_borders),
-        };
-
-        self.block_flow.build_display_list_for_block(state, border_painting_mode)
+        // we skip setting the damage in TableCellStyleInfo::build_display_list()
+        // because we only have immutable access
+        self.block_flow.fragment.restyle_damage.remove(ServoRestyleDamage::REPAINT);
     }
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {

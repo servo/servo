@@ -59,6 +59,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   var resourceMap = {
     "a-tag": requestViaAnchor,
     "area-tag": requestViaArea,
+    "beacon-request": requestViaSendBeacon,
     "fetch-request": requestViaFetch,
     "form-tag": requestViaForm,
     "iframe-tag": requestViaIframe,
@@ -81,6 +82,7 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
   var contentType = {
     "a-tag": "text/html",
     "area-tag": "text/html",
+    "beacon-request": "text/plain",
     "fetch-request": "application/json",
     "form-tag": "text/html",
     "iframe-tag": "text/html",
@@ -125,25 +127,10 @@ function MixedContentTestCase(scenario, description, sanityChecker) {
         return resourceMap[scenario.subresource](resourceRequestUrl);
       }))
       .then(mixed_content_test.step_func(_ => {
-        mixed_content_test.step(function() {
-          assert_equals("allowed", scenario.expectation,
-                        "The triggered event should match '" +
-                        scenario.expectation + "'.");
-        }, "Check if success event was triggered.");
-
         // Send request to check if the key has been torn down.
         return xhrRequest(assertResourceRequestUrl);
       }))
       .catch(mixed_content_test.step_func(e => {
-        mixed_content_test.step(function() {
-          assert_equals("blocked", scenario.expectation,
-                        "The triggered event should match '" +
-                        scenario.expectation + "'.");
-          // TODO(kristijanburnik): param "error" can be an event or error.
-          // Map assertion by resource.
-          // e.g.: assert_equals(e.type, "error");
-        }, "Check if error event was triggered.");
-
         // When requestResource fails, we also check the key state.
         return xhrRequest(assertResourceRequestUrl);
       }))

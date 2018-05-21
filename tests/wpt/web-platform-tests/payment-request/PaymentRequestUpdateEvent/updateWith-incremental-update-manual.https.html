@@ -1,0 +1,187 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#updatewith-method">
+<title>
+  Incremental updates via updateWith()
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({
+  explicit_done: true,
+  explicit_timeout: true,
+});
+
+const methods = [{
+  supportedMethods: "basic-card",
+}];
+
+const options = {
+  requestShipping: true,
+};
+
+const initialDetails = {
+  total: {
+    label: "Initial total",
+    amount: {
+      currency: "USD",
+      value: "1.0",
+    },
+  },
+  shippingOptions: [
+    {
+      id: "neutral",
+      label: "NEUTRAL SHIPPING OPTION",
+      selected: true,
+      amount: {
+        currency: "USD",
+        value: "0.00",
+      },
+    },
+  ],
+};
+
+function testFireEvent(button, updateDetails) {
+  button.disabled = true;
+  const request = new PaymentRequest(methods, initialDetails, options);
+  const handlerPromise = new Promise(resolve => {
+    request.onshippingaddresschange = event => {
+      event.updateWith(updateDetails);
+      resolve(event);
+    };
+  });
+  promise_test(async t => {
+    const response = await request.show();
+    const event = await handlerPromise;
+    await response.complete("success");
+  }, button.textContent.trim());
+}
+
+</script>
+<h2>
+  Incremental updates
+</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  Unless stated otherwise, each test will update some part of the displayed payment sheet in
+  a manner indicated below. When prompted, please change or enter a new
+  shipping address, look for the tested change, and complete the payment.
+</p>
+<p>
+  If the payment request locks up or otherwise aborts, the test has failed.
+</p>
+<ol>
+  <li>
+    <button onclick="testFireEvent(this, {});">
+      Passing an empty dictionary does not cause the sheet to change.
+      No values in the sheet must change.
+    </button>
+  </li>
+</ol>
+
+<section>
+  <h3>Incremental updates via PaymentDetailsUpdate.total</h3>
+  <ol>
+    <li>
+      <button onclick="
+      const total = {
+        label: 'PASS',
+        amount: {
+          currency: 'XXX',
+          value: '20',
+        },
+      };
+      const updatedDetails = { total };
+      testFireEvent(this, updatedDetails);">
+        After changing shipping address, the total becomes XXX20, with the label "PASS".
+      </button>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h3>Incremental updates via PaymentDetailsBase.displayItems</h3>
+  <ol>
+    <li>
+      <button onclick="
+      const item = {
+        label: 'PASS',
+        amount: { currency: 'ABC', value: '55.00' },
+      };
+      const updatedDetails = {
+        displayItems: [ item ]
+      };
+      testFireEvent(this, updatedDetails);">
+        After changing shipping address, a new display item is shown
+        with a with label PASS, and value of ABC55.00.
+      </button>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h3>Incremental updates via PaymentDetailsBase.shippingOptions</h3>
+  <ol>
+    <li>
+      <button onclick="
+      const shippingOptions = [
+        {
+          id: 'pass',
+          label: 'PASS',
+          amount: { currency: 'USD', value: '1.00' },
+          selected: true,
+        },
+        {
+          id: 'fail',
+          label: 'FAIL IF THIS IS SELECTED',
+          amount: { currency: 'USD', value: '25.00' }
+        },
+      ];
+      const updatedDetails = {
+        shippingOptions
+      };
+      testFireEvent(this, updatedDetails);">
+        After changing shipping address, two new shipping options appear.
+        The shipping option labelled "PASS" with a value of USD1.0 is selected.
+      </button>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h3>Incremental updates via PaymentDetailsBase.modifiers</h3>
+  <ol>
+    <li>
+      <button onclick="
+      const additionalItem = {
+        label: 'PASS-DISPLAY-ITEM',
+        amount: { currency: 'USD', value: '3.00' },
+      };
+      const modifiers = [{
+        additionalDisplayItems: [ additionalItem ],
+        supportedMethods: 'basic-card',
+        total: {
+          label: 'PASS-TOTAL',
+          amount: { currency: 'USD', value: '123.00' },
+        },
+      }];
+      const updatedDetails = { modifiers };
+      testFireEvent(this, updatedDetails);">
+        After changing shipping address, a new display item is shown
+        with a with label PASS-DISPLAY-ITEM, and value of ABC55.00 and the total is
+        labelled PASS-TOTAL with a value of USD123.0
+      </button>
+    </li>
+    <li>
+      <button onclick="done()">DONE - see results</button>
+    </li>
+  </ol>
+</section>
+
+<small>
+  If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+</small>

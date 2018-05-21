@@ -21,6 +21,23 @@ function assert_props(iface, event, defaults) {
   }
 }
 
+// Class declarations don't go on the global by default, so put it there ourselves:
+
+self.SubclassedEvent = class SubclassedEvent extends Event {
+  constructor(name, props) {
+    super(name, props);
+    if (props && typeof(props) == "object" && "customProp" in props) {
+      this.customProp = props.customProp;
+    } else {
+      this.customProp = 5;
+    }
+  }
+
+  get fixedProp() {
+    return 17;
+  }
+}
+
 var EventModifierInit = [
   ["ctrlKey", false, true],
   ["shiftKey", false, true],
@@ -32,6 +49,7 @@ var expected = {
     "properties": [
       ["bubbles", false, true],
       ["cancelable", false, true],
+      ["isTrusted", false, false],
     ],
   },
 
@@ -91,6 +109,14 @@ var expected = {
     "parent": "UIEvent",
     "properties": [
       ["data", "", "string"],
+    ],
+  },
+
+  "SubclassedEvent": {
+    "parent": "Event",
+    "properties": [
+      ["customProp", 5, 8],
+      ["fixedProp", 17, 17],
     ],
   },
 };

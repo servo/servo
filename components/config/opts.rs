@@ -9,7 +9,6 @@ use euclid::TypedSize2D;
 use getopts::Options;
 use num_cpus;
 use prefs::{self, PrefValue, PREFS};
-use resource_files::set_resources_path;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -190,14 +189,14 @@ pub struct Opts {
     /// True to show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
-    /// True to show webrender debug on screen.
-    pub webrender_debug: bool,
-
     /// True if webrender recording should be enabled.
     pub webrender_record: bool,
 
     /// True if webrender is allowed to batch draw calls as instances.
     pub webrender_batch: bool,
+
+    /// Load shaders from disk.
+    pub shaders_dir: Option<PathBuf>,
 
     /// True to compile all webrender shaders at init time. This is mostly
     /// useful when modifying the shaders, to ensure they all compile
@@ -312,9 +311,6 @@ pub struct DebugOptions {
     /// Show webrender profiling stats on screen.
     pub webrender_stats: bool,
 
-    /// Show webrender debug on screen.
-    pub webrender_debug: bool,
-
     /// Enable webrender recording.
     pub webrender_record: bool,
 
@@ -366,7 +362,6 @@ impl DebugOptions {
                 "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
                 "disable-vsync" => self.disable_vsync = true,
                 "wr-stats" => self.webrender_stats = true,
-                "wr-debug" => self.webrender_debug = true,
                 "wr-record" => self.webrender_record = true,
                 "wr-no-batch" => self.webrender_disable_batch = true,
                 "msaa" => self.use_msaa = true,
@@ -549,9 +544,9 @@ pub fn default_opts() -> Opts {
         config_dir: None,
         full_backtraces: false,
         is_printing_version: false,
-        webrender_debug: false,
         webrender_record: false,
         webrender_batch: true,
+        shaders_dir: None,
         precache_shaders: false,
         signpost: false,
         certificate_path: None,
@@ -583,6 +578,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                     "Uses userscripts in resources/user-agent-js, or a specified full path", "");
     opts.optmulti("", "user-stylesheet",
                   "A user stylesheet to be added to every document", "file.css");
+    opts.optopt("", "shaders",
+        "Shaders will be loaded from the specified directory instead of using the builtin ones.", "");
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
     opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
@@ -609,7 +606,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "content-process" , "Run as a content process and connect to the given pipe",
                 "servo-ipc-channel.abcdefg");
     opts.optmulti("", "pref",
-                  "A preference to set to enable", "dom.mozbrowser.enabled");
+                  "A preference to set to enable", "dom.bluetooth.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
@@ -626,8 +623,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         Ok(m) => m,
         Err(f) => args_fail(&f.to_string()),
     };
-
-    set_resources_path(opt_match.opt_str("resources-path"));
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
@@ -850,9 +845,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         config_dir: opt_match.opt_str("config-dir").map(Into::into),
         full_backtraces: debug_options.full_backtraces,
         is_printing_version: is_printing_version,
-        webrender_debug: debug_options.webrender_debug,
         webrender_record: debug_options.webrender_record,
         webrender_batch: !debug_options.webrender_disable_batch,
+        shaders_dir: opt_match.opt_str("shaders").map(Into::into),
         precache_shaders: debug_options.precache_shaders,
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
@@ -911,9 +906,12 @@ lazy_static! {
 }
 
 pub fn set_defaults(opts: Opts) {
+    // Set the static to the new default value.
+    MULTIPROCESS.store(opts.multiprocess, Ordering::SeqCst);
+
     unsafe {
         assert!(DEFAULT_OPTIONS.is_null());
-        assert!(DEFAULT_OPTIONS != INVALID_OPTIONS);
+        assert_ne!(DEFAULT_OPTIONS, INVALID_OPTIONS);
         let box_opts = Box::new(opts);
         DEFAULT_OPTIONS = Box::into_raw(box_opts);
     }

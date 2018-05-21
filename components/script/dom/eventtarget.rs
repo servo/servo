@@ -34,8 +34,9 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHasher;
-use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};
+use js::jsapi::{JS_GetFunctionObject, JSAutoCompartment, JSFunction};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
+use js::rust::wrappers::CompileFunction;
 use libc::{c_char, size_t};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -186,22 +187,21 @@ impl CompiledEventListener {
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
-                            let rv = event.ReturnValue();
-
+                            // Step 5
                             if let Ok(value) = handler.Call_(object,
                                                              event.upcast::<Event>(),
                                                              exception_handle) {
-                                match value {
-                                    Some(value) => {
-                                        if rv.is_empty() {
-                                            event.SetReturnValue(value);
-                                        }
+                                let rv = event.ReturnValue();
+                                if let Some(v) =  value {
+                                    if rv.is_empty() {
+                                        event.SetReturnValue(v);
                                     }
-                                    None => {
-                                        event.upcast::<Event>().PreventDefault();
-                                    }
+                                    event.upcast::<Event>().PreventDefault();
                                 }
                             }
+                        } else {
+                            // Step 5, "Otherwise" clause
+                            let _ = handler.Call_(object, event.upcast::<Event>(), exception_handle);
                         }
                     }
 
@@ -277,6 +277,12 @@ impl EventListeners {
             }
         }).collect()
     }
+
+    fn has_listeners(&self) -> bool {
+        // TODO: add, and take into account, a 'removed' field?
+        // https://dom.spec.whatwg.org/#event-listener-removed
+        self.0.len() > 0
+    }
 }
 
 #[dom_struct]
@@ -301,6 +307,15 @@ impl EventTarget {
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<EventTarget>> {
         Ok(EventTarget::new(global))
+    }
+
+    pub fn has_listeners_for(&self,
+                             type_: &Atom)
+                             -> bool {
+        match self.handlers.borrow().get(type_) {
+            Some(listeners) => listeners.has_listeners(),
+            None => false
+        }
     }
 
     pub fn get_listeners_for(&self,
@@ -443,7 +458,7 @@ impl EventTarget {
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
         let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
-        rooted!(in(cx) let mut handler = ptr::null_mut());
+        rooted!(in(cx) let mut handler = ptr::null_mut::<JSFunction>());
         let rv = unsafe {
             CompileFunction(cx,
                             scopechain.ptr,
@@ -453,7 +468,7 @@ impl EventTarget {
                             args.as_ptr(),
                             body.as_ptr(),
                             body.len() as size_t,
-                            handler.handle_mut())
+                            handler.handle_mut().into())
         };
         if !rv || handler.get().is_null() {
             // Step 1.8.2
@@ -471,50 +486,76 @@ impl EventTarget {
         assert!(!funobj.is_null());
         // Step 1.14
         if is_error {
-            Some(CommonEventHandler::ErrorEventHandler(OnErrorEventHandlerNonNull::new(cx, funobj)))
+            Some(CommonEventHandler::ErrorEventHandler(
+                unsafe { OnErrorEventHandlerNonNull::new(cx, funobj) },
+            ))
         } else {
             if ty == &atom!("beforeunload") {
                 Some(CommonEventHandler::BeforeUnloadEventHandler(
-                        OnBeforeUnloadEventHandlerNonNull::new(cx, funobj)))
+                    unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, funobj) },
+                ))
             } else {
-                Some(CommonEventHandler::EventHandler(EventHandlerNonNull::new(cx, funobj)))
+                Some(CommonEventHandler::EventHandler(
+                    unsafe { EventHandlerNonNull::new(cx, funobj) },
+                ))
             }
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn set_event_handler_common<T: CallbackContainer>(
-        &self, ty: &str, listener: Option<Rc<T>>)
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    )
+    where
+        T: CallbackContainer,
     {
         let cx = self.global().get_cx();
 
-        let event_listener = listener.map(|listener|
-                                          InlineEventListener::Compiled(
-                                              CommonEventHandler::EventHandler(
-                                                  EventHandlerNonNull::new(cx, listener.callback()))));
+        let event_listener = listener.map(|listener| {
+            InlineEventListener::Compiled(CommonEventHandler::EventHandler(
+                unsafe { EventHandlerNonNull::new(cx, listener.callback()) },
+            ))
+        });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
+    #[allow(unsafe_code)]
     pub fn set_error_event_handler<T: CallbackContainer>(
-        &self, ty: &str, listener: Option<Rc<T>>)
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    )
+    where
+        T: CallbackContainer,
     {
         let cx = self.global().get_cx();
 
-        let event_listener = listener.map(|listener|
-                                          InlineEventListener::Compiled(
-                                              CommonEventHandler::ErrorEventHandler(
-                                                  OnErrorEventHandlerNonNull::new(cx, listener.callback()))));
+        let event_listener = listener.map(|listener| {
+            InlineEventListener::Compiled(CommonEventHandler::ErrorEventHandler(
+                unsafe { OnErrorEventHandlerNonNull::new(cx, listener.callback()) }
+            ))
+        });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 
-    pub fn set_beforeunload_event_handler<T: CallbackContainer>(&self, ty: &str,
-                                                                listener: Option<Rc<T>>) {
+    #[allow(unsafe_code)]
+    pub fn set_beforeunload_event_handler<T: CallbackContainer>(
+        &self,
+        ty: &str,
+        listener: Option<Rc<T>>,
+    )
+    where
+        T: CallbackContainer,
+    {
         let cx = self.global().get_cx();
 
-        let event_listener = listener.map(|listener|
-            InlineEventListener::Compiled(
-                CommonEventHandler::BeforeUnloadEventHandler(
-                    OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback())))
-        );
+        let event_listener = listener.map(|listener| {
+            InlineEventListener::Compiled(CommonEventHandler::BeforeUnloadEventHandler(
+                unsafe { OnBeforeUnloadEventHandlerNonNull::new(cx, listener.callback()) }
+            ))
+        });
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 

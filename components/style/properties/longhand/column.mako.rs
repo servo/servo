@@ -12,26 +12,24 @@ ${helpers.predefined_type("column-width",
                           initial_specified_value="Either::Second(Auto)",
                           extra_prefixes="moz",
                           animation_value_type="NonNegativeLengthOrAuto",
-                          servo_pref="layout.column-width.enabled",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
+                          servo_pref="layout.columns.enabled",
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-width",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 
-${helpers.predefined_type("column-count",
-                          "PositiveIntegerOrAuto",
-                          "Either::Second(Auto)",
-                          initial_specified_value="Either::Second(Auto)",
-                          servo_pref="layout.column-count.enabled",
-                          animation_value_type="PositiveIntegerOrAuto",
-                          extra_prefixes="moz",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-count")}
+${helpers.predefined_type(
+    "column-count",
+    "ColumnCount",
+    "computed::ColumnCount::auto()",
+    initial_specified_value="specified::ColumnCount::auto()",
+    servo_pref="layout.columns.enabled",
+    animation_value_type="AnimatedColumnCount",
+    extra_prefixes="moz",
+    spec="https://drafts.csswg.org/css-multicol/#propdef-column-count",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
-${helpers.predefined_type("column-gap",
-                          "length::NonNegativeLengthOrNormal",
-                          "Either::Second(Normal)",
-                          extra_prefixes="moz",
-                          servo_pref="layout.column-gap.enabled",
-                          animation_value_type="NonNegativeLengthOrNormal",
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
+
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animation_value_type="discrete",
@@ -63,7 +61,8 @@ ${helpers.predefined_type(
 ${helpers.single_keyword("column-span", "none all",
                          products="gecko", animation_value_type="discrete",
                          gecko_pref="layout.css.column-span.enabled",
-                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-span")}
+                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-span",
+                         extra_prefixes="moz:layout.css.column-span.enabled")}
 
 ${helpers.single_keyword("column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",

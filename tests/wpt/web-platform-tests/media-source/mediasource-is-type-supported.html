@@ -5,7 +5,6 @@
         <title>MediaSource.isTypeSupported() test cases.</title>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
-        <script src="mediasource-util.js"></script>
     </head>
     <body>
         <div id="log"></div>
@@ -32,6 +31,7 @@
               'video/webm;codecs="',
               'video/webm;codecs=""',
               'video/webm;codecs=","',
+              'unsupported_mediatype',
               '',
               null
           ], false, 'Test invalid MIME format');
@@ -45,15 +45,12 @@
           test_type_support([
               'audio/webm;codecs="vp8"',
               'audio/mp4;codecs="avc1.4d001e"',
-          ], false, 'Test invalid mismatch between major type and codec ID');
-
-          test_type_support([
               'audio/mp4;codecs="vorbis"',
               'audio/webm;codecs="mp4a.40.2"',
               'video/mp4;codecs="vp8"',
-              'video/webm;codecs="mp4a.40.2"',
               'video/mp4;codecs="vorbis"',
-          ], false, 'Test invalid mismatch between minor type and codec ID');
+              'video/webm;codecs="mp4a.40.2"',
+          ], false, 'Test invalid mismatch between MIME type and codec ID');
 
           test_type_support([
               'audio/mp4;codecs="mp4a"',

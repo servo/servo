@@ -3,9 +3,18 @@
         "type": "enum",
         "name": "MealType",
         "values": [
-            "rice",
-            "noodles",
-            "other"
+            {
+                "type": "string",
+                "value": "rice"
+            },
+            {
+                "type": "string",
+                "value": "noodles"
+            },
+            {
+                "type": "string",
+                "value": "other"
+            }
         ],
         "extAttrs": []
     },
@@ -21,10 +30,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "MealType"
                 },
@@ -38,10 +47,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -52,16 +61,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -72,10 +79,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "MealType"
                         },
@@ -86,10 +93,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "float"
                         },
@@ -106,9 +113,18 @@
         "type": "enum",
         "name": "AltMealType",
         "values": [
-            "rice",
-            "noodles",
-            "other"
+            {
+                "type": "string",
+                "value": "rice"
+            },
+            {
+                "type": "string",
+                "value": "noodles"
+            },
+            {
+                "type": "string",
+                "value": "other"
+            }
         ],
         "extAttrs": []
     }

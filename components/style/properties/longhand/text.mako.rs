@@ -18,22 +18,23 @@ ${helpers.predefined_type("text-overflow",
                           animation_value_type="discrete",
                           boxed=True,
                           flags="APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow")}
+                          spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
                          animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi",
+                         servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.predefined_type("text-decoration-line",
                           "TextDecorationLine",
                           "specified::TextDecorationLine::none()",
                           initial_specified_value="specified::TextDecorationLine::none()",
-                          custom_cascade= product == 'servo',
-                          custom_cascade_function="specified::TextDecorationLine::cascade_property_custom",
                           animation_value_type="discrete",
                           flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line")}
+                          spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line",
+                          servo_restyle_damage="rebuild_and_reflow")}
 
 ${helpers.single_keyword("text-decoration-style",
                          "solid double dotted dashed wavy -moz-none",

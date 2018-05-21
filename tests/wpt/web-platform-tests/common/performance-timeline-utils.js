@@ -36,7 +36,9 @@ function test_entries(actualEntries, expectedEntries) {
             return actualEntry[key] !== expectedEntry[key]
           }) === 'undefined'
     })
-    test_true(!!foundEntry)
-    assert_object_equals(foundEntry.toJSON(), expectedEntry)
+    test_true(!!foundEntry, `Entry ${JSON.stringify(expectedEntry)} could not be found.`)
+    if (foundEntry) {
+      assert_object_equals(foundEntry.toJSON(), expectedEntry)
+    }
   })
 }

@@ -14,7 +14,7 @@
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<script src="/common/css-paint-tests.js"></script>
+<script src="/common/worklet-reftest.js"></script>
 <body>
 <div id="canvas-geometry" class="container"></div>
 
@@ -28,7 +28,7 @@ registerPaint('geometry', class {
         ];
     }
     paint(ctx, geom, styleMap) {
-        const properties = styleMap.getProperties().sort();
+        const properties = [...styleMap.keys()].sort();
         var serializedStrings = [];
         for (let i = 0; i < properties.length; i++) {
             const value = styleMap.get(properties[i]);
@@ -44,7 +44,7 @@ registerPaint('geometry', class {
             ctx.strokeStyle = 'red';
         if (serializedStrings[1] != "--length-initial: [CSSUnitValue=20px]")
             ctx.strokeStyle = 'blue';
-        if (serializedStrings[2] != "--number: [CSSStyleValue=10]")
+        if (serializedStrings[2] != "--number: [CSSUnitValue=10]")
             ctx.strokeStyle = 'yellow';
         ctx.lineWidth = 4;
         ctx.strokeRect(0, 0, geom.width, geom.height);
@@ -56,7 +56,7 @@ registerPaint('geometry', class {
     CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px'});
     CSS.registerProperty({name: '--length-initial', syntax: '<length>', initialValue: '20px'});
     CSS.registerProperty({name: '--number', syntax: '<number>', initialValue: '0'});
-    importPaintWorkletAndTerminateTestAfterAsyncPaint(document.getElementById('code').textContent);
+    importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
 </script>
 </body>
 </html>

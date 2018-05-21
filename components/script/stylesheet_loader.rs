@@ -34,7 +34,7 @@ use style::shared_lock::{Locked, SharedRwLock};
 use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, StylesheetContents, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
-use style::values::specified::url::SpecifiedUrl;
+use style::values::CssUrl;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -276,7 +276,7 @@ impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     /// the constructed `@import` rule.
     fn request_stylesheet(
         &self,
-        url: SpecifiedUrl,
+        url: CssUrl,
         source_location: SourceLocation,
         context: &ParserContext,
         lock: &SharedRwLock,

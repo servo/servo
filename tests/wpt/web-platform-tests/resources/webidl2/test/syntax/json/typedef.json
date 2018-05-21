@@ -11,10 +11,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -28,10 +28,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "float"
                 },
@@ -45,16 +45,16 @@
     {
         "type": "typedef",
         "idlType": {
+            "type": "typedef-type",
             "sequence": true,
             "generic": "sequence",
             "nullable": false,
-            "array": false,
             "union": false,
             "idlType": {
+                "type": "typedef-type",
                 "sequence": false,
                 "generic": null,
                 "nullable": false,
-                "array": false,
                 "union": false,
                 "idlType": "Point"
             }
@@ -74,10 +74,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Point"
                 },
@@ -91,10 +91,10 @@
                 "inherit": false,
                 "readonly": false,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Point"
                 },
@@ -117,10 +117,10 @@
                 "inherit": false,
                 "readonly": true,
                 "idlType": {
+                    "type": "attribute-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "Rect"
                 },
@@ -131,16 +131,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "boolean"
                 },
@@ -151,10 +149,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "Point"
                         },
@@ -167,16 +165,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "boolean"
                 },
@@ -187,10 +183,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "PointSequence"
                         },
@@ -206,16 +202,18 @@
     {
         "type": "typedef",
         "idlType": {
+            "type": "typedef-type",
             "sequence": false,
             "generic": null,
             "nullable": false,
-            "array": false,
             "union": false,
             "idlType": "octet",
             "extAttrs": [
                 {
                     "name": "Clamp",
-                    "arguments": null
+                    "arguments": null,
+                    "type": "extended-attribute",
+                    "rhs": null
                 }
             ]
         },

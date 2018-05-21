@@ -29,7 +29,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       return undefined;
     },
     "origin": function() {
-      return document.origin + "/";
+      return self.origin + "/";
     },
     "stripped-referrer": function() {
       return stripUrlForUseAsReferrer(location.toString());

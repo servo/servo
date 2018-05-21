@@ -5,10 +5,28 @@ importScripts('worker-testharness.js');
 importScripts('/resources/WebIDLParser.js');
 importScripts('/resources/idlharness.js');
 
-var idlArray = new IdlArray();
-idlArray.add_untested_idls(idls.untested);
-idlArray.add_idls(idls.tested);
-idlArray.add_objects({
+promise_test(async (t) => {
+  var idlArray = new IdlArray();
+  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  const serviceWorkerIdl = await fetch('/interfaces/ServiceWorker.idl').then(r => r.text());
+
+  idlArray.add_untested_idls(idls.untested);
+  idlArray.add_untested_idls(dom, { only: ['EventTarget'] });
+  idlArray.add_idls(serviceWorkerIdl, { only: [
+    'ServiceWorkerGlobalScope',
+    'Client',
+    'WindowClient',
+    'Clients',
+    'ServiceWorker',
+    'ServiceWorkerState',
+    'ServiceWorkerUpdateViaCache',
+    'ServiceWorkerRegistration',
+    'EventTarget',
+    'NavigationPreloadManager',
+    'Cache',
+    'CacheStorage',
+  ]});
+  idlArray.add_objects({
     ServiceWorkerGlobalScope: ['self'],
     Clients: ['self.clients'],
     ServiceWorkerRegistration: ['self.registration'],
@@ -17,16 +35,14 @@ idlArray.add_objects({
     // Client: ['self.clientInstance'],
     // WindowClient: ['self.windowClientInstance']
   });
+  return create_temporary_cache(t)
+    .then(function(cache) {
+        self.cacheInstance = cache;
 
-promise_test(function(t) {
-    return create_temporary_cache(t)
-      .then(function(cache) {
-          self.cacheInstance = cache;
-
-          idlArray.add_objects({ Cache: ['self.cacheInstance'] });
-          idlArray.test();
-        });
-  }, 'test setup (cache creation)');
+        idlArray.add_objects({ Cache: ['self.cacheInstance'] });
+        idlArray.test();
+      });
+}, 'test setup (cache creation)');
 
 test(function() {
     var req = new Request('http://{{host}}/',
@@ -55,10 +71,7 @@ test(function() {
       false, 'Default FetchEvent.bubbles should be false');
     assert_equals(
       new FetchEvent('FetchEvent', {request: req}).clientId,
-      null, 'Default FetchEvent.clientId should be null');
-    assert_equals(
-      new FetchEvent('FetchEvent', {request: req}).isReload,
-      false, 'Default FetchEvent.isReload should be false');
+      '', 'Default FetchEvent.clientId should be the empty string');
     assert_equals(
       new FetchEvent('FetchEvent', {request: req, cancelable: false}).cancelable,
       false, 'FetchEvent.cancelable should be false');
@@ -66,12 +79,14 @@ test(function() {
       new FetchEvent('FetchEvent', {request: req, clientId : 'test-client-id'}).clientId, 'test-client-id',
       'FetchEvent.clientId with option {clientId : "test-client-id"} should be "test-client-id"');
     assert_equals(
-      new FetchEvent('FetchEvent', {request: req, isReload : true}).isReload, true,
-      'FetchEvent.isReload with option {isReload : true} should be true');
-    assert_equals(
-      new FetchEvent('FetchEvent', {request : req, isReload : true}).request.url,
+      new FetchEvent('FetchEvent', {request : req}).request.url,
       'http://{{host}}/',
       'FetchEvent.request.url should return the value it was initialized to');
+    assert_equals(
+      new FetchEvent('FetchEvent', {request : req}).isReload,
+      undefined,
+      'FetchEvent.isReload should not exist');
+
   }, 'Event constructors');
 
 test(() => {

@@ -5,16 +5,17 @@
 // Make |cargo bench| work.
 #![cfg_attr(feature = "bench", feature(test))]
 
-#[macro_use] extern crate bitflags;
-#[macro_use] extern crate cssparser;
-#[macro_use] extern crate log;
-#[macro_use] extern crate matches;
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate cssparser;
 extern crate fnv;
-extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate matches;
 extern crate phf;
 extern crate precomputed_hash;
-#[cfg(test)] #[macro_use] extern crate size_of_test;
 extern crate servo_arc;
 extern crate smallvec;
 
@@ -25,12 +26,10 @@ pub mod context;
 pub mod matching;
 mod nth_index_cache;
 pub mod parser;
-#[cfg(test)] mod size_of_tests;
-#[cfg(any(test, feature = "gecko_like_types"))] pub mod gecko_like_types;
 pub mod sink;
 mod tree;
 pub mod visitor;
 
 pub use nth_index_cache::NthIndexCache;
-pub use parser::{SelectorImpl, Parser, SelectorList};
+pub use parser::{Parser, SelectorImpl, SelectorList};
 pub use tree::{Element, OpaqueElement};

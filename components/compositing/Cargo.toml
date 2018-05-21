@@ -4,19 +4,23 @@ version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
+build = "build.rs"
 
 [lib]
 name = "compositing"
 path = "lib.rs"
 
+[features]
+default = []
+
 [dependencies]
-euclid = "0.15"
+euclid = "0.17"
 gfx_traits = {path = "../gfx_traits"}
-gleam = "0.4"
-image = "0.17"
-ipc-channel = "0.9"
+gleam = {version = "0.5", optional = true}
+image = "0.18"
+ipc-channel = "0.10"
 libc = "0.2"
-log = "0.3.5"
+log = "0.4"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 nonzero = {path = "../nonzero"}
@@ -27,5 +31,8 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
-webrender = {git = "https://github.com/servo/webrender"}
+webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+
+[build-dependencies]
+toml = "0.4.5"

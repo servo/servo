@@ -4,8 +4,8 @@
 <title>CSS Test:  font-variant-alternates: historical-forms; low level equivalence</title>
 <link rel="author" title="Chris Lilley" href="chris@w3.org">
 <link rel="match" href="font-variant-alternates-02-ref.html">
-<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-variant-alternates-prop">
-<link rel="help" href="https://www.w3.org/TR/css-fonts-3/#font-feature-settings-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-variant-alternates-prop">
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-feature-settings-prop">
 <meta name="assert" content="Enables display of historical forms (OpenType feature: hist)">
 <style>
   @font-face {
@@ -20,7 +20,7 @@
   .high {
 	 font-variant-alternates: historical-forms;
   }
-    .low {
+  .low {
    font-feature-settings: "hist" on, "salt" 00, "ss01" off, "ss02" off, "ss03" off,
     "cv01" off, "cv02" off, "cv03" off,  "swsh" 00, "cswh" 00, "ornm" 00, "nalt" 00;
   }
@@ -29,7 +29,7 @@
 
 <p>Test passes if the three lines below are identical, with one check mark (✓) followed by nineteen crosses (✗). </p>
 <section class="test">
-	<p class="high">Xnophijklmqrstuvwxyz</p>
+  <p class="high">Xnophijklmqrstuvwxyz</p>
   <p class="low">Xnophijklmqrstuvwxyz</p>
   <p class="ref">ABBBBBBBBBBBBBBBBBBB</p>
 </section>

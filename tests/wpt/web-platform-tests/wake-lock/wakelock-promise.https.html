@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>navigator.getWakeLock() for the same Document always return same WakeLock promise</title>
+<link rel="help" href="https://w3c.github.io/wake-lock/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  const wakeLock1 = await navigator.getWakeLock("screen");
+  const wakeLock2 = await navigator.getWakeLock("screen");
+  assert_equals(wakeLock1, wakeLock2);
+}, "navigator.getWakeLock() for the same Document always return same WakeLock promise");
+</script>

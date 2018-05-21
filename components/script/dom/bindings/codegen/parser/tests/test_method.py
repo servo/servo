@@ -41,7 +41,7 @@ def WebIDLTest(parser, harness):
         harness.check(argument.variadic, variadic, "Argument has the right variadic value")
 
     def checkMethod(method, QName, name, signatures,
-                    static=False, getter=False, setter=False, creator=False,
+                    static=False, getter=False, setter=False,
                     deleter=False, legacycaller=False, stringifier=False):
         harness.ok(isinstance(method, WebIDL.IDLMethod),
                    "Should be an IDLMethod")
@@ -53,7 +53,6 @@ def WebIDLTest(parser, harness):
         harness.check(method.isStatic(), static, "Method has the correct static value")
         harness.check(method.isGetter(), getter, "Method has the correct getter value")
         harness.check(method.isSetter(), setter, "Method has the correct setter value")
-        harness.check(method.isCreator(), creator, "Method has the correct creator value")
         harness.check(method.isDeleter(), deleter, "Method has the correct deleter value")
         harness.check(method.isLegacycaller(), legacycaller, "Method has the correct legacycaller value")
         harness.check(method.isStringifier(), stringifier, "Method has the correct stringifier value")

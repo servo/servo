@@ -10,13 +10,13 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::bindings::utils::AsCCharPtrPtr;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, MutableHandleObject};
-use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject, AddRawValueRoot};
+use js::jsapi::{IsCallable, JSContext, JSObject, AddRawValueRoot};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
+use js::jsapi::Heap;
 use js::jsapi::JSAutoCompartment;
-use js::jsapi::JS_GetProperty;
 use js::jsval::{JSVal, UndefinedValue, ObjectValue};
-use js::rust::Runtime;
+use js::rust::{MutableHandleObject, Runtime};
+use js::rust::wrappers::{JS_WrapObject, JS_GetProperty};
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
@@ -206,7 +206,7 @@ impl CallbackInterface {
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
                                            p: &T,
-                                           rval: MutableHandleObject) {
+                                           mut rval: MutableHandleObject) {
     rval.set(p.reflector().get_jsobject().get());
     assert!(!rval.get().is_null());
 

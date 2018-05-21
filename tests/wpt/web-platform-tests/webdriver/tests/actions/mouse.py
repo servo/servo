@@ -1,25 +1,15 @@
 import pytest
 
-from tests.support.inline import inline
+from tests.actions.support.mouse import get_inview_center, get_viewport_rect
 from tests.actions.support.refine import get_events, filter_dict
+from tests.support.asserts import assert_move_to_coordinates
+from tests.support.inline import inline
 from tests.support.wait import wait
 
 
 def link_doc(dest):
     content = "<a href=\"{}\" id=\"link\">destination</a>".format(dest)
     return inline(content)
-
-
-def get_center(rect):
-    return {
-        "x": rect["width"] / 2 + rect["x"],
-        "y": rect["height"] / 2 + rect["y"],
-    }
-
-
-# TODO use pytest.approx once we upgrade to pytest > 3.0
-def approx(n, m, tolerance=1):
-    return abs(n - m) <= tolerance
 
 
 def test_click_at_coordinates(session, test_actions_page, mouse_chain):
@@ -33,17 +23,14 @@ def test_click_at_coordinates(session, test_actions_page, mouse_chain):
         .perform()
     events = get_events(session)
     assert len(events) == 4
+    assert_move_to_coordinates(div_point, "outer", events)
     for e in events:
-        if e["type"] != "mousemove":
-            assert e["pageX"] == div_point["x"]
-            assert e["pageY"] == div_point["y"]
-            assert e["target"] == "outer"
         if e["type"] != "mousedown":
             assert e["buttons"] == 0
         assert e["button"] == 0
     expected = [
         {"type": "mousedown", "buttons": 1},
-        {"type": "mouseup",  "buttons": 0},
+        {"type": "mouseup", "buttons": 0},
         {"type": "click", "buttons": 0},
     ]
     filtered_events = [filter_dict(e, expected[0]) for e in events]
@@ -63,7 +50,7 @@ def test_context_menu_at_coordinates(session, test_actions_page, mouse_chain):
     events = get_events(session)
     expected = [
         {"type": "mousedown", "button": 2},
-        {"type": "contextmenu",  "button": 2},
+        {"type": "contextmenu", "button": 2},
     ]
     assert len(events) == 4
     filtered_events = [filter_dict(e, expected[0]) for e in events]
@@ -76,7 +63,7 @@ def test_context_menu_at_coordinates(session, test_actions_page, mouse_chain):
 
 def test_click_element_center(session, test_actions_page, mouse_chain):
     outer = session.find.css("#outer", all=False)
-    center = get_center(outer.rect)
+    center = get_inview_center(outer.rect, get_viewport_rect(session))
     mouse_chain.click(element=outer).perform()
     events = get_events(session)
     assert len(events) == 4
@@ -84,12 +71,12 @@ def test_click_element_center(session, test_actions_page, mouse_chain):
     assert ["mousemove", "mousedown", "mouseup", "click"] == event_types
     for e in events:
         if e["type"] != "mousemove":
-            assert approx(e["pageX"], center["x"])
-            assert approx(e["pageY"], center["y"])
+            assert pytest.approx(e["pageX"], center["x"])
+            assert pytest.approx(e["pageY"], center["y"])
             assert e["target"] == "outer"
 
 
-def test_click_navigation(session, url):
+def test_click_navigation(session, url, release_actions):
     destination = url("/webdriver/tests/actions/support/test_actions_wdspec.html")
     start = link_doc(destination)
 
@@ -110,12 +97,18 @@ def test_click_navigation(session, url):
 
 
 @pytest.mark.parametrize("drag_duration", [0, 300, 800])
-@pytest.mark.parametrize("dx, dy",
-    [(20, 0), (0, 15), (10, 15), (-20, 0), (10, -15), (-10, -15)])
-def test_drag_and_drop(session, test_actions_page, mouse_chain, dx, dy, drag_duration):
+@pytest.mark.parametrize("dx, dy", [
+    (20, 0), (0, 15), (10, 15), (-20, 0), (10, -15), (-10, -15)
+])
+def test_drag_and_drop(session,
+                       test_actions_page,
+                       mouse_chain,
+                       dx,
+                       dy,
+                       drag_duration):
     drag_target = session.find.css("#dragTarget", all=False)
     initial_rect = drag_target.rect
-    initial_center = get_center(initial_rect)
+    initial_center = get_inview_center(initial_rect, get_viewport_rect(session))
     # Conclude chain with extra move to allow time for last queued
     # coordinate-update of drag_target and to test that drag_target is "dropped".
     mouse_chain \
@@ -128,8 +121,8 @@ def test_drag_and_drop(session, test_actions_page, mouse_chain, dx, dy, drag_dur
     # mouseup that ends the drag is at the expected destination
     e = get_events(session)[1]
     assert e["type"] == "mouseup"
-    assert approx(e["pageX"], initial_center["x"] + dx)
-    assert approx(e["pageY"], initial_center["y"] + dy)
+    assert pytest.approx(e["pageX"], initial_center["x"] + dx)
+    assert pytest.approx(e["pageY"], initial_center["y"] + dy)
     # check resulting location of the dragged element
     final_rect = drag_target.rect
     assert initial_rect["x"] + dx == final_rect["x"]

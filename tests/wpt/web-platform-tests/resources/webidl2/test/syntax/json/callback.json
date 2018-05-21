@@ -3,10 +3,10 @@
         "type": "callback",
         "name": "AsyncOperationCallback",
         "idlType": {
+            "type": "return-type",
             "sequence": false,
             "generic": null,
             "nullable": false,
-            "array": false,
             "union": false,
             "idlType": "void"
         },
@@ -16,10 +16,10 @@
                 "variadic": false,
                 "extAttrs": [],
                 "idlType": {
+                    "type": "argument-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "DOMString"
                 },
@@ -37,16 +37,14 @@
                 "type": "operation",
                 "getter": false,
                 "setter": false,
-                "creator": false,
                 "deleter": false,
-                "legacycaller": false,
                 "static": false,
                 "stringifier": false,
                 "idlType": {
+                    "type": "return-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "void"
                 },
@@ -57,10 +55,10 @@
                         "variadic": false,
                         "extAttrs": [],
                         "idlType": {
+                            "type": "argument-type",
                             "sequence": false,
                             "generic": null,
                             "nullable": false,
-                            "array": false,
                             "union": false,
                             "idlType": "DOMString"
                         },
@@ -77,10 +75,10 @@
         "type": "callback",
         "name": "SortCallback",
         "idlType": {
+            "type": "return-type",
             "sequence": false,
             "generic": null,
             "nullable": false,
-            "array": false,
             "union": false,
             "idlType": "boolean"
         },
@@ -90,10 +88,10 @@
                 "variadic": false,
                 "extAttrs": [],
                 "idlType": {
+                    "type": "argument-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "any"
                 },
@@ -104,10 +102,10 @@
                 "variadic": false,
                 "extAttrs": [],
                 "idlType": {
+                    "type": "argument-type",
                     "sequence": false,
                     "generic": null,
                     "nullable": false,
-                    "array": false,
                     "union": false,
                     "idlType": "any"
                 },

@@ -17,18 +17,33 @@ import re
 import StringIO
 import subprocess
 import sys
+
 import colorama
 import toml
+import voluptuous
 import yaml
-
 from licenseck import MPL, APACHE, COPYRIGHT, licenses_toml, licenses_dep_toml
+topdir = os.path.abspath(os.path.dirname(sys.argv[0]))
+wpt = os.path.join(topdir, "tests", "wpt")
+
+
+def wpt_path(*args):
+    return os.path.join(wpt, *args)
 
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
+WPT_MANIFEST_PATH = wpt_path("include.ini")
+
+# Import wptmanifest only when we do have wpt in tree, i.e. we're not
+# inside a Firefox checkout.
+if os.path.isfile(WPT_MANIFEST_PATH):
+    sys.path.append(wpt_path("web-platform-tests", "tools", "wptrunner", "wptrunner"))
+    from wptmanifest import parser, node
 
 # Default configs
 config = {
     "skip-check-length": False,
     "skip-check-licenses": False,
+    "check-alphabetical-order": True,
     "check-ordered-json-keys": [],
     "lint-scripts": [],
     "blocked-packages": {},
@@ -383,7 +398,8 @@ def check_toml(file_name, lines):
     for idx, line in enumerate(lines):
         if idx == 0 and "[workspace]" in line:
             raise StopIteration
-        if line.find("*") != -1:
+        line_without_comment, _, _ = line.partition("#")
+        if line_without_comment.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
         for license_line in licenses_toml:
             ok_licensed |= (license_line in line)
@@ -438,11 +454,42 @@ def check_shell(file_name, lines):
                     yield(idx + 1, "variable substitutions should use the full \"${VAR}\" form")
 
 
+def rec_parse(current_path, root_node):
+    dirs = []
+    for item in root_node.children:
+        if isinstance(item, node.DataNode):
+            next_depth = os.path.join(current_path, item.data)
+            dirs.append(next_depth)
+            dirs += rec_parse(next_depth, item)
+    return dirs
+
+
+def check_manifest_dirs(config_file, print_text=True):
+    if not os.path.exists(config_file):
+        yield(config_file, 0, "%s manifest file is required but was not found" % config_file)
+        return
+
+    # Load configs from include.ini
+    with open(config_file) as content:
+        conf_file = content.read()
+        lines = conf_file.splitlines(True)
+
+    if print_text:
+        print '\rChecking the wpt manifest file...'
+
+    p = parser.parse(lines)
+    paths = rec_parse(wpt_path("web-platform-tests"), p)
+    for idx, path in enumerate(paths):
+        if path.endswith("_mozilla"):
+            continue
+        if not os.path.isdir(path):
+            yield(config_file, idx + 1, "Path in manifest was not found: {}".format(path))
+
+
 def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \
        file_name.endswith(".mako.rs") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
-       file_name.endswith(os.path.join("geckolib", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
         raise StopIteration
 
@@ -463,6 +510,7 @@ def check_rust(file_name, lines):
     indent = 0
     prev_indent = 0
 
+    check_alphabetical_order = config["check-alphabetical-order"]
     decl_message = "{} is not in alphabetical order"
     decl_expected = "\n\t\033[93mexpected: {}\033[0m"
     decl_found = "\n\t\033[91mfound: {}\033[0m"
@@ -627,7 +675,7 @@ def check_rust(file_name, lines):
             crate_name = line[13:-1]
             if indent not in prev_crate:
                 prev_crate[indent] = ""
-            if prev_crate[indent] > crate_name:
+            if prev_crate[indent] > crate_name and check_alphabetical_order:
                 yield(idx + 1, decl_message.format("extern crate declaration")
                       + decl_expected.format(prev_crate[indent])
                       + decl_found.format(crate_name))
@@ -644,12 +692,12 @@ def check_rust(file_name, lines):
             if match:
                 features = map(lambda w: w.strip(), match.group(1).split(','))
                 sorted_features = sorted(features)
-                if sorted_features != features:
+                if sorted_features != features and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("feature attribute")
                           + decl_expected.format(tuple(sorted_features))
                           + decl_found.format(tuple(features)))
 
-                if prev_feature_name > sorted_features[0]:
+                if prev_feature_name > sorted_features[0] and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("feature attribute")
                           + decl_expected.format(prev_feature_name + " after " + sorted_features[0])
                           + decl_found.format(prev_feature_name + " before " + sorted_features[0]))
@@ -674,7 +722,7 @@ def check_rust(file_name, lines):
             if prev_use:
                 current_use_cut = current_use.replace("{self,", ".").replace("{", ".")
                 prev_use_cut = prev_use.replace("{self,", ".").replace("{", ".")
-                if indent == current_indent and current_use_cut < prev_use_cut:
+                if indent == current_indent and current_use_cut < prev_use_cut and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("use statement")
                           + decl_expected.format(prev_use)
                           + decl_found.format(current_use))
@@ -700,7 +748,7 @@ def check_rust(file_name, lines):
                     prev_mod[indent] = ""
                 if match == -1 and not line.endswith(";"):
                     yield (idx + 1, "mod declaration spans multiple lines")
-                if prev_mod[indent] and mod < prev_mod[indent]:
+                if prev_mod[indent] and mod < prev_mod[indent] and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("mod declaration")
                           + decl_expected.format(prev_mod[indent])
                           + decl_found.format(mod))
@@ -717,7 +765,7 @@ def check_rust(file_name, lines):
                 derives = map(lambda w: w.strip(), match.group(1).split(','))
                 # sort, compare and report
                 sorted_derives = sorted(derives)
-                if sorted_derives != derives:
+                if sorted_derives != derives and check_alphabetical_order:
                     yield(idx + 1, decl_message.format("derivable traits list")
                               + decl_expected.format(", ".join(sorted_derives))
                               + decl_found.format(", ".join(derives)))
@@ -775,15 +823,24 @@ def duplicate_key_yaml_constructor(loader, node, deep=False):
 
 
 def lint_buildbot_steps_yaml(mapping):
-    # Check for well-formedness of contents
-    # A well-formed buildbot_steps.yml should be a map to list of strings
-    for k in mapping.keys():
-        if not isinstance(mapping[k], list):
-            raise ValueError("Key '{}' maps to type '{}', but list expected".format(k, type(mapping[k]).__name__))
+    from voluptuous import Any, Extra, Required, Schema
 
-        # check if value is a list of strings
-        for item in itertools.ifilter(lambda i: not isinstance(i, str), mapping[k]):
-            raise ValueError("List mapped to '{}' contains non-string element".format(k))
+    # Note: dictionary keys are optional by default in voluptuous
+    env = Schema({Extra: str})
+    commands = Schema([str])
+    schema = Schema({
+        'env': env,
+        Extra: Any(
+            commands,
+            {
+                'env': env,
+                Required('commands'): commands,
+            },
+        ),
+    })
+
+    # Signals errors via exception throwing
+    schema(mapping)
 
 
 class SafeYamlLoader(yaml.SafeLoader):
@@ -811,8 +868,8 @@ def check_yaml(file_name, contents):
         yield (line, e)
     except KeyError as e:
         yield (None, "Duplicated Key ({})".format(e.message))
-    except ValueError as e:
-        yield (None, e.message)
+    except voluptuous.MultipleInvalid as e:
+        yield (None, str(e))
 
 
 def check_for_possible_duplicate_json_keys(key_value_pairs):
@@ -1111,6 +1168,11 @@ def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
 def scan(only_changed_files=False, progress=True, stylo=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
+    # check ini directories exist
+    if os.path.isfile(WPT_MANIFEST_PATH):
+        manifest_errors = check_manifest_dirs(WPT_MANIFEST_PATH)
+    else:
+        manifest_errors = ()
     # check directories contain expected files
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
@@ -1124,7 +1186,7 @@ def scan(only_changed_files=False, progress=True, stylo=False):
     # other lint checks
     lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo)
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, lint_errors,
+    errors = itertools.chain(config_errors, manifest_errors, directory_errors, lint_errors,
                              file_errors, dep_license_errors)
 
     error = None

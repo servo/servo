@@ -17,8 +17,8 @@
 interface DOMMatrixReadOnly {
 
     [NewObject, Throws] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other);
-//  [NewObject] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
-//  [NewObject] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
+    [NewObject, Throws] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
+    [NewObject, Throws] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
 
     // These attributes are simple aliases for certain elements of the 4x4 matrix
     readonly attribute unrestricted double a;
@@ -79,8 +79,8 @@ interface DOMMatrixReadOnly {
     DOMMatrix inverse();
 
     DOMPoint            transformPoint(optional DOMPointInit point);
-//  Float32Array        toFloat32Array();
-//  Float64Array        toFloat64Array();
+    Float32Array        toFloat32Array();
+    Float64Array        toFloat64Array();
 //                      stringifier;
 //                      serializer = { attribute };
 

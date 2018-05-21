@@ -5,9 +5,11 @@
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
@@ -23,7 +25,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
-use dom::textcontrol::TextControl;
+use dom::textcontrol::{TextControlElement, TextControlSelection};
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -34,7 +36,7 @@ use std::default::Default;
 use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
-use textinput::{Direction, KeyReaction, Lines, Selection, SelectionDirection, TextInput};
+use textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -43,13 +45,13 @@ pub struct HTMLTextAreaElement {
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
-    value_changed: Cell<bool>,
+    value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> String;
+    unsafe fn value_for_layout(self) -> String;
     #[allow(unsafe_code)]
     unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
     #[allow(unsafe_code)]
@@ -61,13 +63,16 @@ pub trait LayoutHTMLTextAreaElementHelpers {
 impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> String {
+    unsafe fn value_for_layout(self) -> String {
         let text = (*self.unsafe_get()).textinput.borrow_for_layout().get_content();
-        String::from(if text.is_empty() {
-            (*self.unsafe_get()).placeholder.borrow_for_layout().clone()
+        if text.is_empty() {
+            (*self.unsafe_get()).placeholder
+                .borrow_for_layout()
+                .replace("\r\n", "\n")
+                .replace("\r", "\n")
         } else {
-            text
-        })
+            text.into()
+        }
     }
 
     #[allow(unrooted_must_root)]
@@ -77,7 +82,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
             return None;
         }
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
-        Some(textinput.get_absolute_selection_range())
+        Some(textinput.sorted_selection_offsets_range())
     }
 
     #[allow(unsafe_code)]
@@ -118,7 +123,7 @@ impl HTMLTextAreaElement {
             placeholder: DomRefCell::new(DOMString::new()),
             textinput: DomRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
-            value_changed: Cell::new(false),
+            value_dirty: Cell::new(false),
             form_owner: Default::default(),
         }
     }
@@ -137,13 +142,20 @@ impl HTMLTextAreaElement {
         let has_value = !self.textinput.borrow().is_empty();
         let el = self.upcast::<Element>();
         el.set_placeholder_shown_state(has_placeholder && !has_value);
-        el.set_placeholder_shown_state(has_placeholder);
     }
 }
 
-impl TextControl for HTMLTextAreaElement {
-    fn textinput(&self) -> &DomRefCell<TextInput<ScriptToConstellationChan>> {
-        &self.textinput
+impl TextControlElement for HTMLTextAreaElement {
+    fn selection_api_applies(&self) -> bool {
+        true
+    }
+
+    fn has_selectable_text(&self) -> bool {
+        true
+    }
+
+    fn set_dirty_value_flag(&self, value: bool) {
+        self.value_dirty.set(value)
     }
 }
 
@@ -220,7 +232,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
-        if !self.value_changed.get() {
+        if !self.value_dirty.get() {
             self.reset();
         }
     }
@@ -236,19 +248,16 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
         // Step 1
         let old_value = textinput.get_content();
-        let old_selection = textinput.selection_begin;
 
         // Step 2
         textinput.set_content(value);
 
         // Step 3
-        self.value_changed.set(true);
+        self.value_dirty.set(true);
 
         if old_value != textinput.get_content() {
             // Step 4
-            textinput.adjust_horizontal_to_limit(Direction::Forward, Selection::NotSelected);
-        } else {
-            textinput.selection_begin = old_selection;
+            textinput.clear_selection_to_limit(Direction::Forward);
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -259,39 +268,55 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         self.upcast::<HTMLElement>().labels()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn SelectionStart(&self) -> u32 {
-        self.dom_selection_start()
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
+    fn Select(&self) {
+        self.selection().dom_select();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
-    fn SetSelectionStart(&self, start: u32) {
-        self.set_dom_selection_start(start);
+    fn GetSelectionStart(&self) -> Option<u32> {
+        self.selection().dom_start()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
+    fn SetSelectionStart(&self, start: Option<u32>) -> ErrorResult {
+        self.selection().set_dom_start(start)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn SelectionEnd(&self) -> u32 {
-        self.dom_selection_end()
+    fn GetSelectionEnd(&self) -> Option<u32> {
+        self.selection().dom_end()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
-    fn SetSelectionEnd(&self, end: u32) {
-        self.set_dom_selection_end(end);
+    fn SetSelectionEnd(&self, end: Option<u32>) -> ErrorResult {
+        self.selection().set_dom_end(end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn SelectionDirection(&self) -> DOMString {
-        self.dom_selection_direction()
+    fn GetSelectionDirection(&self) -> Option<DOMString> {
+        self.selection().dom_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
-    fn SetSelectionDirection(&self, direction: DOMString) {
-        self.set_dom_selection_direction(direction);
+    fn SetSelectionDirection(&self, direction: Option<DOMString>) -> ErrorResult {
+        self.selection().set_dom_direction(direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
-        self.set_dom_selection_range(start, end, direction);
+    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+        self.selection().set_dom_range(start, end, direction)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
+        self.selection().set_dom_range_text(replacement, None, None, Default::default())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext
+    fn SetRangeText_(&self, replacement: DOMString, start: u32, end: u32,
+                     selection_mode: SelectionMode) -> ErrorResult {
+        self.selection().set_dom_range_text(replacement, Some(start), Some(end), selection_mode)
     }
 }
 
@@ -299,8 +324,14 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 impl HTMLTextAreaElement {
     pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
-        self.SetValue(self.DefaultValue());
-        self.value_changed.set(false);
+        let mut textinput = self.textinput.borrow_mut();
+        textinput.set_content(self.DefaultValue());
+        self.value_dirty.set(false);
+    }
+
+    #[allow(unrooted_must_root)]
+    fn selection(&self) -> TextControlSelection<Self> {
+        TextControlSelection::new(&self, &self.textinput)
     }
 }
 
@@ -393,7 +424,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if !self.value_changed.get() {
+        if !self.value_dirty.get() {
             self.reset();
         }
     }
@@ -416,7 +447,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 match action {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
-                        self.value_changed.set(true);
+                        self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();

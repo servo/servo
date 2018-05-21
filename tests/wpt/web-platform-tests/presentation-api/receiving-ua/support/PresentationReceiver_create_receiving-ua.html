@@ -37,6 +37,11 @@ child.addEventListener('load', () => {
     const notice = document.getElementById('notice');
     const modal = document.getElementById('modal');
 
+    const dbName = {
+        controller: 'db-presentation-api-controlling-ua',
+        receiver: 'db-presentation-api-receiving-ua'
+    };
+
     promise_test(t => {
         t.add_cleanup(() => {
             document.cookie = cookieName + '=False;Expires=' + new Date().toUTCString();
@@ -46,9 +51,10 @@ child.addEventListener('load', () => {
             sessionStorage.removeItem(storageNameChild);
             localStorage.removeItem(storageNameChild);
 
-            if (db)
-                db.close();
-            indexedDB.deleteDatabase(dbName);
+            Object.values(dbName).forEach(name => {
+                indexedDB.deleteDatabase(name);
+            });
+
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(registrations => {
                     return Promise.all(registrations.map(reg => reg.unregister()));
@@ -97,37 +103,27 @@ child.addEventListener('load', () => {
         assert_equals(document.cookie, '', 'A cookie store is set to an empty store.')
 
         // Indexed Database
-        const dbName = 'db-presentation-api';
-        const storeName = 'store-controlling-ua';
-        const storeData = {
-            parent: { id: 'parent', data: 'receiving user agent' },
-            child: { id: 'child', data: 'nested browsing context' }
-        };
-        let db;
         const checkIndexedDB = () => {
             if ('indexedDB' in window) {
-                let req = indexedDB.open(dbName, 1), store;
-                let eventWatcher = new EventWatcher(t, req, ['upgradeneeded', 'success']);
-                return eventWatcher.wait_for('upgradeneeded').then(() => {
-                    db = req.result;
-                    const store = db.createObjectStore(storeName, { keyPath: 'id' });
-                    return eventWatcher.wait_for('success');
-                }).then(() => {
-                    db = req.result;
-                    const transaction = db.transaction(storeName, 'readwrite');
-                    store = transaction.objectStore(storeName);
-                    req = store.openCursor();
-                    eventWatcher = new EventWatcher(t, req, 'success');
-                    return eventWatcher.wait_for('success');
-                }).then(() => {
-                    assert_equals(req.result, null, 'Indexed Database is set to an empty storage.');
-                    req = store.put(storeData.parent);
-                    eventWatcher = new EventWatcher(t, req, 'success');
-                    return eventWatcher.wait_for('success');
-                }).then(() => {
-                    db.close();
-                    db = null;
-                });
+                // The test would fail when the database is already created by the controlling UA
+                const req = indexedDB.open(dbName.controller);
+                const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                const successWatcher = new EventWatcher(t, req, 'success');
+                return Promise.race([
+                    upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
+                        const req = indexedDB.open(dbName.receiver, 2);
+                        const eventWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                        return eventWatcher.wait_for('upgradeneeded');
+                    }).then(evt => {
+                        evt.target.result.close();
+                    }),
+                    successWatcher.wait_for('success').then(evt => {
+                        evt.target.result.close();
+                        // This would fail if the database created by the controlling UA is visible to the receiving UA
+                        assert_unreached('Indexed Database is set to an empty storage.');
+                    })
+                ]);
             }
             else
                 return Promise.resolve();
@@ -253,33 +249,24 @@ child.addEventListener('load', () => {
         // Indexed Database
         const checkUpdatedIndexedDB = () => {
             if ('indexedDB' in window) {
-                let req = indexedDB.open(dbName, 1), store;
-                let eventWatcher = new EventWatcher(t, req, 'success');
                 message = 'Indexed Database is shared by top-level and nested browsing contexts.';
-                const checkItem = event => {
-                    assert_true(event.target.result instanceof IDBCursorWithValue, message);
-                    const cursor = event.target.result;
-                    const item = cursor.value;
-                    assert_equals(storeData[item.id].data, item.data, message);
-                    delete storeData[item.id]
-                    cursor.continue();
-                    return eventWatcher.wait_for('success');
-                };
-                return eventWatcher.wait_for('success').then(() => {
-                    db = req.result;
-                    const transaction = db.transaction(storeName, 'readwrite');
-                    store = transaction.objectStore(storeName);
-                    req = store.openCursor();
-                    eventWatcher = new EventWatcher(t, req, 'success');
-                    return eventWatcher.wait_for('success');
-                }).then(checkItem)
-                .then(checkItem)
-                .then(event => {
-                    assert_equals(event.target.result, null, message);
-                    assert_equals(Object.keys(storeData).length, 0, message);
-                    db.close();
-                    db = null;
-                });
+                const req = indexedDB.open(dbName.receiver);
+                const upgradeneededWatcher = new EventWatcher(t, req, 'upgradeneeded');
+                const successWatcher = new EventWatcher(t, req, 'success');
+                return Promise.race([
+                    upgradeneededWatcher.wait_for('upgradeneeded').then(evt => {
+                        evt.target.result.close();
+                        // Check if the version of the database is upgraded to 3 by the nested browsing context
+                        assert_unreached(message);
+                    }),
+                    successWatcher.wait_for('success').then(evt => {
+                        const db = evt.target.result;
+                        const version = db.version;
+                        db.close();
+                        // Check if the version of the database is upgraded to 3 by the nested browsing context
+                        assert_equals(version, 3, message);
+                    })
+                ]);
             }
             else
                 return Promise.resolve();

@@ -164,10 +164,7 @@ bitflags! {
                  to be reachable with using sequential focus navigation."]
         const SEQUENTIALLY_FOCUSABLE = 1 << 3;
 
-        /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 1 << 4;
-
-        // There's a free bit here.
+        // There are two free bits here.
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
                  this element. Only applicable for form-associatable elements."]
@@ -393,6 +390,13 @@ impl Node {
     /// Return all registered mutation observers for this node.
     pub fn registered_mutation_observers(&self) -> RefMut<Vec<RegisteredObserver>> {
          self.mutation_observers.borrow_mut()
+    }
+
+    /// Removes the mutation observer for a given node.
+    pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
+        self.mutation_observers.borrow_mut().retain(|reg_obs| {
+            &*reg_obs.observer != observer
+        })
     }
 
     /// Dumps the subtree rooted at this node, for debugging.
@@ -1143,7 +1147,7 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
         }
 
         if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
-            return unsafe { area.get_value_for_layout() };
+            return unsafe { area.value_for_layout() };
         }
 
         panic!("not text!")
@@ -1337,7 +1341,7 @@ impl TreeIterator {
             }
             self.depth -= 1;
         }
-        debug_assert!(self.depth == 0);
+        debug_assert_eq!(self.depth, 0);
         self.current = None;
         Some(current)
     }
@@ -2744,6 +2748,8 @@ impl Into<LayoutElementType> for ElementTypeId {
     #[inline(always)]
     fn into(self) -> LayoutElementType {
         match self {
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement) =>
+                LayoutElementType::HTMLBRElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) =>
                 LayoutElementType::HTMLCanvasElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement) =>
@@ -2754,6 +2760,8 @@ impl Into<LayoutElementType> for ElementTypeId {
                 LayoutElementType::HTMLInputElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) =>
                 LayoutElementType::HTMLObjectElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement) =>
+                LayoutElementType::HTMLParagraphElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)) =>
                 LayoutElementType::HTMLTableCellElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement) =>

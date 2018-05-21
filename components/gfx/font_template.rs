@@ -10,28 +10,49 @@ use servo_atoms::Atom;
 use std::fmt::{Debug, Error, Formatter};
 use std::io::Error as IoError;
 use std::sync::{Arc, Weak};
-use std::u32;
-use style::computed_values::{font_stretch, font_weight};
+use style::computed_values::font_stretch::T as FontStretch;
+use style::computed_values::font_style::T as FontStyle;
+use style::properties::style_structs::Font as FontStyleStruct;
+use style::values::computed::font::FontWeight;
 
 /// Describes how to select a font from a given family. This is very basic at the moment and needs
 /// to be expanded or refactored when we support more of the font styling parameters.
 ///
 /// NB: If you change this, you will need to update `style::properties::compute_font_hash()`.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Serialize)]
 pub struct FontTemplateDescriptor {
-    pub weight: font_weight::T,
-    pub stretch: font_stretch::T,
-    pub italic: bool,
+    pub weight: FontWeight,
+    pub stretch: FontStretch,
+    pub style: FontStyle,
 }
+
+
+/// FontTemplateDescriptor contains floats, which are not Eq because of NaN. However,
+/// we know they will never be NaN, so we can manually implement Eq.
+impl Eq for FontTemplateDescriptor {}
+
+fn style_to_number(s: &FontStyle) -> f32 {
+    use style::values::generics::font::FontStyle as GenericFontStyle;
+
+    match *s {
+        GenericFontStyle::Normal => 0.,
+        GenericFontStyle::Italic => FontStyle::default_angle().0.degrees(),
+        GenericFontStyle::Oblique(ref angle) => angle.0.degrees(),
+    }
+}
+
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: font_weight::T, stretch: font_stretch::T, italic: bool)
-               -> FontTemplateDescriptor {
-        FontTemplateDescriptor {
-            weight: weight,
-            stretch: stretch,
-            italic: italic,
+    pub fn new(
+        weight: FontWeight,
+        stretch: FontStretch,
+        style: FontStyle,
+    ) -> Self {
+        Self {
+            weight,
+            stretch,
+            style,
         }
     }
 
@@ -40,19 +61,28 @@ impl FontTemplateDescriptor {
     ///
     /// The smaller the score, the better the fonts match. 0 indicates an exact match. This must
     /// be commutative (distance(A, B) == distance(B, A)).
+    ///
+    /// The policy is to care most about differences in italicness, then weight, then stretch
     #[inline]
-    fn distance_from(&self, other: &FontTemplateDescriptor) -> u32 {
-        if self.stretch != other.stretch || self.italic != other.italic {
-            // A value higher than all weights.
-            return 1000
-        }
-        ((self.weight.0 as i16) - (other.weight.0 as i16)).abs() as u32
+    fn distance_from(&self, other: &FontTemplateDescriptor) -> f32 {
+        // 0 <= style_part <= 180, since font-style obliqueness should be
+        // between -90 and +90deg.
+        let style_part = (style_to_number(&self.style) - style_to_number(&other.style)).abs();
+        // 0 <= weightPart <= 800
+        let weight_part = (self.weight.0 - other.weight.0).abs();
+        // 0 <= stretchPart <= 8
+        let stretch_part = (self.stretch.value() - other.stretch.value()).abs();
+        style_part + weight_part + stretch_part
     }
 }
 
-impl PartialEq for FontTemplateDescriptor {
-    fn eq(&self, other: &FontTemplateDescriptor) -> bool {
-        self.weight == other.weight && self.stretch == other.stretch && self.italic == other.italic
+impl<'a> From<&'a FontStyleStruct> for FontTemplateDescriptor {
+    fn from(style: &'a FontStyleStruct) -> Self {
+        FontTemplateDescriptor {
+            weight: style.font_weight,
+            stretch: style.font_stretch,
+            style: style.font_style,
+        }
     }
 }
 
@@ -107,59 +137,49 @@ impl FontTemplate {
         &self.identifier
     }
 
-    /// Get the data for creating a font if it matches a given descriptor.
-    pub fn data_for_descriptor(&mut self,
-                               fctx: &FontContextHandle,
-                               requested_desc: &FontTemplateDescriptor)
-                               -> Option<Arc<FontTemplateData>> {
+    /// Get the descriptor. Returns `None` when instantiating the data fails.
+    pub fn descriptor(&mut self, font_context: &FontContextHandle) -> Option<FontTemplateDescriptor> {
         // The font template data can be unloaded when nothing is referencing
         // it (via the Weak reference to the Arc above). However, if we have
         // already loaded a font, store the style information about it separately,
         // so that we can do font matching against it again in the future
         // without having to reload the font (unless it is an actual match).
-        match self.descriptor {
-            Some(actual_desc) if *requested_desc == actual_desc => self.data().ok(),
-            Some(_) => None,
-            None => {
-                if self.instantiate(fctx).is_err() {
-                    return None
-                }
 
-                if self.descriptor
-                       .as_ref()
-                       .expect("Instantiation succeeded but no descriptor?") == requested_desc {
-                    self.data().ok()
-                } else {
-                    None
-                }
+        self.descriptor.or_else(|| {
+            if self.instantiate(font_context).is_err() {
+                return None
+            };
+
+            Some(self.descriptor.expect("Instantiation succeeded but no descriptor?"))
+        })
+    }
+
+    /// Get the data for creating a font if it matches a given descriptor.
+    pub fn data_for_descriptor(&mut self,
+                               fctx: &FontContextHandle,
+                               requested_desc: &FontTemplateDescriptor)
+                               -> Option<Arc<FontTemplateData>> {
+        self.descriptor(&fctx).and_then(|descriptor| {
+            if *requested_desc == descriptor {
+                self.data().ok()
+            } else {
+                None
             }
-        }
+        })
     }
 
     /// Returns the font data along with the distance between this font's descriptor and the given
     /// descriptor, if the font can be loaded.
-    pub fn data_for_approximate_descriptor(&mut self,
-                                           font_context: &FontContextHandle,
-                                           requested_descriptor: &FontTemplateDescriptor)
-                                           -> Option<(Arc<FontTemplateData>, u32)> {
-        match self.descriptor {
-            Some(actual_descriptor) => {
-                self.data().ok().map(|data| {
-                    (data, actual_descriptor.distance_from(requested_descriptor))
-                })
-            }
-            None => {
-                if self.instantiate(font_context).is_ok() {
-                    let distance = self.descriptor
-                                       .as_ref()
-                                       .expect("Instantiation successful but no descriptor?")
-                                       .distance_from(requested_descriptor);
-                    self.data().ok().map(|data| (data, distance))
-                } else {
-                    None
-                }
-            }
-        }
+    pub fn data_for_approximate_descriptor(
+        &mut self,
+        font_context: &FontContextHandle,
+        requested_descriptor: &FontTemplateDescriptor,
+    ) -> Option<(Arc<FontTemplateData>, f32)> {
+        self.descriptor(&font_context).and_then(|descriptor| {
+            self.data().ok().map(|data| {
+                (data, descriptor.distance_from(requested_descriptor))
+            })
+        })
     }
 
     fn instantiate(&mut self, font_context: &FontContextHandle) -> Result<(), ()> {
@@ -173,9 +193,11 @@ impl FontTemplate {
                                                                                   None);
         self.is_valid = handle.is_ok();
         let handle = handle?;
-        self.descriptor = Some(FontTemplateDescriptor::new(handle.boldness(),
-                                                           handle.stretchiness(),
-                                                           handle.is_italic()));
+        self.descriptor = Some(FontTemplateDescriptor::new(
+            handle.boldness(),
+            handle.stretchiness(),
+            handle.style(),
+        ));
         Ok(())
     }
 
