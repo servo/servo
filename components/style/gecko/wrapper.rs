@@ -665,7 +665,7 @@ impl<'le> GeckoElement<'le> {
     fn non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
         debug_assert!(!self.is_xul_element());
         self.extended_slots()
-            .map_or(ptr::null_mut(), |slots| slots._base.mBindingParent)
+            .map_or(ptr::null_mut(), |slots| slots._base.mBindingParent.raw::<nsIContent>())
     }
 
     #[inline]
