@@ -11,28 +11,24 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::eventtarget::EventTarget;
-use dom::filereader::FileReaderReadyState;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use hyper::mime::{Attr, Mime};
 use js::jsapi::{JSContext, JSObject};
 use js::typedarray::{ArrayBuffer, CreateWith};
-use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct FileReaderSync {
     eventtarget: EventTarget,
-    ready_state: Cell<FileReaderReadyState>,
 }
 
 impl FileReaderSync {
     pub fn new_inherited() -> FileReaderSync {
         FileReaderSync {
             eventtarget: EventTarget::new_inherited(),
-            ready_state: Cell::new(FileReaderReadyState::Empty),
         }
     }
 
@@ -50,34 +46,24 @@ impl FileReaderSyncMethods for FileReaderSync {
     // https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection
     fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString>{
         // step 1
-        if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(Error::InvalidState);
-        }
-
-        // step 2
         let blob_contents = blob.get_bytes().unwrap_or(vec![]);
         if blob_contents.is_empty() {
             return Err(Error::NotReadable)
         }
 
-        // step 3
+        // step 2
         Ok(DOMString::from(String::from_utf8_lossy(&blob_contents)))
     }
 
     // https://w3c.github.io/FileAPI/#readAsTextSync
     fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
         // step 1
-        if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(Error::InvalidState);
-        }
-
-        // step 2
         let blob_contents = blob.get_bytes().unwrap_or(vec![]);
         if blob_contents.is_empty() {
             return Err(Error::NotReadable)
         }
 
-        // step 3
+        // step 2
         let blob_label = label.map(String::from);
         let blob_type = String::from(blob.Type());
 
@@ -106,17 +92,12 @@ impl FileReaderSyncMethods for FileReaderSync {
     // https://w3c.github.io/FileAPI/#readAsDataURLSync-section
     fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1
-        if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(Error::InvalidState);
-        }
-
-        // step 2
         let blob_contents = blob.get_bytes().unwrap_or(vec![]);
         if blob_contents.is_empty() {
             return Err(Error::NotReadable)
         }
 
-        // step 3
+        // step 2
         let base64 = base64::encode(&blob_contents);
         let blob_type = String::from(blob.Type());
 
@@ -133,17 +114,12 @@ impl FileReaderSyncMethods for FileReaderSync {
      #[allow(unsafe_code)]
     unsafe fn ReadAsArrayBuffer(&self, cx: *mut JSContext, blob: &Blob) -> Fallible<NonNull<JSObject>> {
         // step 1
-        if self.ready_state.get() == FileReaderReadyState::Loading {
-            return Err(Error::InvalidState);
-        }
-
-        // step 2
         let blob_contents = blob.get_bytes().unwrap_or(vec![]);
         if blob_contents.is_empty() {
             return Err(Error::NotReadable)
         }
 
-        // step 3
+        // step 2
         rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
         assert!(ArrayBuffer::create(cx, CreateWith::Slice(&blob_contents), array_buffer.handle_mut()).is_ok());
 
