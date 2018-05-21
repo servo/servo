@@ -21,7 +21,7 @@ use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 use values::CSSFloat;
 use values::animated::{ToAnimatedValue, ToAnimatedZero};
-use values::computed::{Angle, Context, Integer, NonNegative, NonNegativeLength, NonNegativePercentage};
+use values::computed::{Angle, Context, Integer, NonNegativeLength, NonNegativePercentage};
 use values::computed::{Number, Percentage, ToComputedValue};
 use values::generics::font::{self as generics, FeatureTagValue, FontSettings, VariationValue};
 use values::specified::font::{self as specified, MIN_FONT_WEIGHT, MAX_FONT_WEIGHT};
@@ -953,12 +953,12 @@ impl ToAnimatedValue for FontStretch {
 
     #[inline]
     fn to_animated_value(self) -> Self::AnimatedValue {
-        (self.0).0
+        self.0.to_animated_value()
     }
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        FontStretch(NonNegative(animated))
+        FontStretch(NonNegativePercentage::from_animated_value(animated))
     }
 }
 
