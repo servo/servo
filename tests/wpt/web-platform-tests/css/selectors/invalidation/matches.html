@@ -36,6 +36,9 @@
       .a+.c>.e {
         color: black;
       }
+      .c>.a+.e {
+        color: black;
+      }
       .a+:matches(.b+.f, :matches(.c>.e, .g)) {
         color: red;
       }
@@ -74,6 +77,7 @@
       </div>
     </div>
     <div class="c" id="c2">
+      <div id="a2"></div>
       <div class="e" id="e2">
         Red
       </div>
@@ -120,6 +124,8 @@
 
       test(() => {
         a1.className = "a";
+        assert_equals(getComputedStyle(e2).color, black);
+        a2.className = "a";
         assert_equals(getComputedStyle(e2).color, red);
       }, "Invalidate nested :matches().");
 

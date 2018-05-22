@@ -14,15 +14,21 @@ dictionary USBDeviceRequestOptions {
   required sequence<USBDeviceFilter> filters;
 };
 
+[Exposed=(DedicatedWorker, SharedWorker, Window), SecureContext]
 interface USB : EventTarget {
   attribute EventHandler onconnect;
   attribute EventHandler ondisconnect;
   Promise<sequence<USBDevice>> getDevices();
-  Promise<USBDevice> requestDevice(USBDeviceRequestOptions options);
+  [Exposed=Window] Promise<USBDevice> requestDevice(USBDeviceRequestOptions options);
 };
 
-[SecureContext]
+[Exposed=Window, SecureContext]
 partial interface Navigator {
+  [SameObject] readonly attribute USB usb;
+};
+
+[Exposed=(DedicatedWorker, SharedWorker), SecureContext]
+partial interface WorkerNavigator {
   [SameObject] readonly attribute USB usb;
 };
 
@@ -30,11 +36,15 @@ dictionary USBConnectionEventInit : EventInit {
     required USBDevice device;
 };
 
-[Constructor(DOMString type, USBConnectionEventInit eventInitDict)]
+[
+  Constructor(DOMString type, USBConnectionEventInit eventInitDict),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBConnectionEvent : Event {
   [SameObject] readonly attribute USBDevice device;
 };
 
+[Exposed=(DedicatedWorker, SharedWorker, Window)]
 interface USBDevice {
   readonly attribute octet usbVersionMajor;
   readonly attribute octet usbVersionMinor;
@@ -96,49 +106,73 @@ dictionary USBControlTransferParameters {
   required unsigned short index;
 };
 
-[Constructor(USBTransferStatus status, optional DataView? data)]
+[
+  Constructor(USBTransferStatus status, optional DataView? data),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBInTransferResult {
   readonly attribute DataView? data;
   readonly attribute USBTransferStatus status;
 };
 
-[Constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0)]
+[
+  Constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBOutTransferResult {
   readonly attribute unsigned long bytesWritten;
   readonly attribute USBTransferStatus status;
 };
 
-[Constructor(USBTransferStatus status, optional DataView? data)]
+[
+  Constructor(USBTransferStatus status, optional DataView? data),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBIsochronousInTransferPacket {
   readonly attribute DataView? data;
   readonly attribute USBTransferStatus status;
 };
 
-[Constructor(sequence<USBIsochronousInTransferPacket> packets, optional DataView? data)]
+[
+  Constructor(sequence<USBIsochronousInTransferPacket> packets, optional DataView? data),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBIsochronousInTransferResult {
   readonly attribute DataView? data;
   readonly attribute FrozenArray<USBIsochronousInTransferPacket> packets;
 };
 
-[Constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0)]
+[
+  Constructor(USBTransferStatus status, optional unsigned long bytesWritten = 0),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBIsochronousOutTransferPacket {
   readonly attribute unsigned long bytesWritten;
   readonly attribute USBTransferStatus status;
 };
 
-[Constructor(sequence<USBIsochronousOutTransferPacket> packets)]
+[
+  Constructor(sequence<USBIsochronousOutTransferPacket> packets),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBIsochronousOutTransferResult {
   readonly attribute FrozenArray<USBIsochronousOutTransferPacket> packets;
 };
 
-[Constructor(USBDevice device, octet configurationValue)]
+[
+  Constructor(USBDevice device, octet configurationValue),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBConfiguration {
   readonly attribute octet configurationValue;
   readonly attribute DOMString? configurationName;
   readonly attribute FrozenArray<USBInterface> interfaces;
 };
 
-[Constructor(USBConfiguration configuration, octet interfaceNumber)]
+[
+  Constructor(USBConfiguration configuration, octet interfaceNumber),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBInterface {
   readonly attribute octet interfaceNumber;
   readonly attribute USBAlternateInterface alternate;
@@ -146,7 +180,10 @@ interface USBInterface {
   readonly attribute boolean claimed;
 };
 
-[Constructor(USBInterface deviceInterface, octet alternateSetting)]
+[
+  Constructor(USBInterface deviceInterface, octet alternateSetting),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBAlternateInterface {
   readonly attribute octet alternateSetting;
   readonly attribute octet interfaceClass;
@@ -167,7 +204,10 @@ enum USBEndpointType {
   "isochronous"
 };
 
-[Constructor(USBAlternateInterface alternate, octet endpointNumber, USBDirection direction)]
+[
+  Constructor(USBAlternateInterface alternate, octet endpointNumber, USBDirection direction),
+  Exposed=(DedicatedWorker, SharedWorker, Window)
+]
 interface USBEndpoint {
   readonly attribute octet endpointNumber;
   readonly attribute USBDirection direction;
