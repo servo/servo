@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+fetch_tests_from_worker(new Worker(
+    '/webusb/resources/idlharness.dedicatedworker.sharedworker.js'));
+
+</script>

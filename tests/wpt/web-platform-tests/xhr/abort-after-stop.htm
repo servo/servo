@@ -10,7 +10,7 @@
     <div id="log"></div>
     <script>
       var test = async_test();
-      test.step(function() {
+      window.onload = test.step_func(function() {
         var client = new XMLHttpRequest();
         var abortFired = false;
         client.onabort = test.step_func(function (e) {
