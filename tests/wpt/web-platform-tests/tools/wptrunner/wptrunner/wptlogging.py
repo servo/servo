@@ -1,12 +1,12 @@
 import logging
 import sys
 import threading
-from Queue import Empty
 from StringIO import StringIO
 from multiprocessing import Queue
 
-from mozlog import commandline, stdadapter, set_default_logger
-from mozlog.structuredlog import StructuredLogger
+from mozlog import commandline, get_default_logger, stdadapter, set_default_logger
+from mozlog.structuredlog import StructuredLogger, log_levels
+
 
 def setup(args, defaults):
     logger = args.pop('log', None)
@@ -53,32 +53,41 @@ class LogLevelRewriter(object):
 
 
 class LogThread(threading.Thread):
-    def __init__(self, queue, logger, level):
+    def __init__(self, queue, logger):
+        assert logger.component is None
         self.queue = queue
-        self.log_func = getattr(logger, level)
+        self.loggers = {None: logger}
         threading.Thread.__init__(self, name="Thread-Log")
         self.daemon = True
+
+    def get_logger(self, component=None):
+        if component not in self.loggers:
+            name = self.loggers[None].name
+            self.loggers[component] = StructuredLogger(name, component)
+        return self.loggers[component]
 
     def run(self):
         while True:
             try:
-                msg = self.queue.get()
+                command = self.queue.get()
             except (EOFError, IOError):
                 break
-            if msg is None:
+            if command is None:
                 break
             else:
-                self.log_func(msg)
+                component, level, msg = command
+                getattr(self.get_logger(component), level)(msg)
 
 
-class LoggingWrapper(StringIO):
+class FileLogging(StringIO):
     """Wrapper for file like objects to redirect output to logger
     instead"""
 
-    def __init__(self, queue, prefix=None):
+    def __init__(self, queue, prefix=None, level="info"):
         StringIO.__init__(self)
         self.queue = queue
         self.prefix = prefix
+        self.level = level
 
     def write(self, data):
         if isinstance(data, str):
@@ -95,41 +104,69 @@ class LoggingWrapper(StringIO):
             return
         if self.prefix is not None:
             data = "%s: %s" % (self.prefix, data)
-        self.queue.put(data)
+        self.queue.put((None, self.level, data))
 
     def flush(self):
         pass
 
 
 class CaptureIO(object):
-    def __init__(self, logger, do_capture):
-        self.logger = logger
+    def __init__(self, queue, do_capture):
+        self.logging_queue = queue
         self.do_capture = do_capture
-        self.logging_queue = None
-        self.logging_thread = None
         self.original_stdio = None
 
     def __enter__(self):
         if self.do_capture:
             self.original_stdio = (sys.stdout, sys.stderr)
-            self.logging_queue = Queue()
-            self.logging_thread = LogThread(self.logging_queue, self.logger, "info")
-            sys.stdout = LoggingWrapper(self.logging_queue, prefix="STDOUT")
-            sys.stderr = LoggingWrapper(self.logging_queue, prefix="STDERR")
-            self.logging_thread.start()
+            sys.stdout = FileLogging(self.logging_queue, prefix="STDOUT")
+            sys.stderr = FileLogging(self.logging_queue, prefix="STDERR")
 
     def __exit__(self, *args, **kwargs):
         if self.do_capture:
             sys.stdout, sys.stderr = self.original_stdio
-            if self.logging_queue is not None:
-                self.logger.info("Closing logging queue")
-                self.logging_queue.put(None)
-                if self.logging_thread is not None:
-                    self.logging_thread.join(10)
-                while not self.logging_queue.empty():
-                    try:
-                        self.logger.warning("Dropping log message: %r", self.logging_queue.get())
-                    except Exception:
-                        pass
-                self.logging_queue.close()
-                self.logger.info("queue closed")
+
+
+class StdQueueHandler(logging.Handler):
+    def __init__(self, queue, component=None, level=logging.NOTSET):
+        super(StdQueueHandler, self).__init__(level=level)
+        self.component = component
+        self.queue = queue
+
+    def emit(self, record):
+        if record.levelname in log_levels:
+            level = record.levelname.lower()
+        else:
+            level = "debug"
+        msg = record.msg
+        if record.args:
+            msg = msg % record.args
+        self.queue.put((self.component, level, msg))
+
+    def handle(self, record):
+        self.emit(record)
+
+
+class LoggingQueue(object):
+    def __init__(self, logger):
+        self.logger = logger
+        self.queue = Queue()
+        self.thread = None
+
+    def __enter__(self):
+        self.thread = LogThread(self.queue, self.logger)
+        self.thread.start()
+        return self.queue
+
+    def __exit__(self, *args, **kwargs):
+        self.logger.info("Closing logging queue")
+        self.queue.put(None)
+        if self.thread is not None:
+            self.thread.join(10)
+        while not self.queue.empty():
+            try:
+                self.logger.warning("Dropping log message: %r", self.queue.get())
+            except Exception:
+                pass
+        self.queue.close()
+        self.logger.info("queue closed")

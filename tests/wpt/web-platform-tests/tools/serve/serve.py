@@ -22,6 +22,7 @@ from localpaths import repo_root
 from six.moves import reload_module
 
 from manifest.sourcefile import read_script_metadata, js_meta_re, parse_variants
+from wptrunner import wptlogging
 from wptserve import server as wptserve, handlers
 from wptserve import stash
 from wptserve import config
@@ -356,19 +357,19 @@ class ServerProc(object):
         self.stop = Event()
 
     def start(self, init_func, host, port, paths, routes, bind_address, config,
-              ssl_config, **kwargs):
+              ssl_config, logging_queue, **kwargs):
         self.proc = Process(target=self.create_daemon,
                             args=(init_func, host, port, paths, routes, bind_address,
-                                  config, ssl_config),
+                                  config, ssl_config, logging_queue),
                             kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
 
     def create_daemon(self, init_func, host, port, paths, routes, bind_address,
-                      config, ssl_config, **kwargs):
+                      config, ssl_config, logging_queue, **kwargs):
         try:
             self.daemon = init_func(host, port, paths, routes, bind_address, config,
-                                    ssl_config, **kwargs)
+                                    ssl_config, logging_queue, **kwargs)
         except socket.error:
             print("Socket error on port %s" % port, file=sys.stderr)
             raise
@@ -400,7 +401,7 @@ class ServerProc(object):
         return self.proc.is_alive()
 
 
-def check_subdomains(config):
+def check_subdomains(config, logging_queue):
     paths = config.paths
     bind_address = config.bind_address
     ssl_config = config.ssl_config
@@ -412,7 +413,7 @@ def check_subdomains(config):
 
     wrapper = ServerProc()
     wrapper.start(start_http_server, host, port, paths, build_routes(aliases), bind_address,
-                  None, ssl_config)
+                  None, ssl_config, logging_queue)
 
     connected = False
     for i in range(10):
@@ -463,7 +464,7 @@ def make_hosts_file(config, host):
 
 
 def start_servers(host, ports, paths, routes, bind_address, config, ssl_config,
-                  **kwargs):
+                  logging_queue, **kwargs):
     servers = defaultdict(list)
     for scheme, ports in ports.iteritems():
         assert len(ports) == {"http":2}.get(scheme, 1)
@@ -478,14 +479,19 @@ def start_servers(host, ports, paths, routes, bind_address, config, ssl_config,
 
             server_proc = ServerProc()
             server_proc.start(init_func, host, port, paths, routes, bind_address,
-                              config, ssl_config, **kwargs)
+                              config, ssl_config, logging_queue, **kwargs)
             servers[scheme].append((port, server_proc))
 
     return servers
 
 
-def start_http_server(host, port, paths, routes, bind_address, config, ssl_config,
+def start_http_server(host, port, paths, routes, bind_address, config, ssl_config, logging_queue,
                       **kwargs):
+    if logging_queue:
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
+        root_logger.addHandler(wptlogging.StdQueueHandler(logging_queue, component="wptserve:http"))
+
     return wptserve.WebTestHttpd(host=host,
                                  port=port,
                                  doc_root=paths["doc_root"],
@@ -499,8 +505,13 @@ def start_http_server(host, port, paths, routes, bind_address, config, ssl_confi
                                  latency=kwargs.get("latency"))
 
 
-def start_https_server(host, port, paths, routes, bind_address, config, ssl_config,
+def start_https_server(host, port, paths, routes, bind_address, config, ssl_config, logging_queue,
                        **kwargs):
+    if logging_queue:
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
+        root_logger.addHandler(wptlogging.StdQueueHandler(logging_queue, component="wptserve:https"))
+
     return wptserve.WebTestHttpd(host=host,
                                  port=port,
                                  doc_root=paths["doc_root"],
@@ -517,7 +528,7 @@ def start_https_server(host, port, paths, routes, bind_address, config, ssl_conf
 
 class WebSocketDaemon(object):
     def __init__(self, host, port, doc_root, handlers_root, log_level, bind_address,
-                 ssl_config):
+                 ssl_config, logging_queue):
         self.host = host
         cmd_args = ["-p", port,
                     "-d", doc_root,
@@ -546,6 +557,14 @@ class WebSocketDaemon(object):
         opts, args = pywebsocket._parse_args_and_config(cmd_args)
         opts.cgi_directories = []
         opts.is_executable_method = None
+
+        if logging_queue:
+            root_logger = logging.getLogger()
+            root_logger.addHandler(wptlogging.StdQueueHandler(
+                logging_queue,
+                component="pywebsocket:%s" % ("wss" if ssl_config else "ws")))
+            root_logger.setLevel(logging.getLevelName(opts.log_level.upper()))
+
         self.server = pywebsocket.WebSocketServer(opts)
         ports = [item[0].getsockname()[1] for item in self.server._sockets]
         assert all(item == ports[0] for item in ports)
@@ -580,35 +599,39 @@ class WebSocketDaemon(object):
         self.server = None
 
 
-def start_ws_server(host, port, paths, routes, bind_address, config, ssl_config,
+def start_ws_server(host, port, paths, routes, bind_address, config, ssl_config, logging_queue,
                     **kwargs):
     # Ensure that when we start this in a new process we don't inherit the
     # global lock in the logging module
     reload_module(logging)
+    reload_module(wptlogging)
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
                            paths["ws_doc_root"],
                            "debug",
                            bind_address,
-                           ssl_config = None)
+                           ssl_config = None,
+                           logging_queue=logging_queue)
 
 
-def start_wss_server(host, port, paths, routes, bind_address, config, ssl_config,
+def start_wss_server(host, port, paths, routes, bind_address, config, ssl_config, logging_queue,
                      **kwargs):
     # Ensure that when we start this in a new process we don't inherit the
     # global lock in the logging module
     reload_module(logging)
+    reload_module(wptlogging)
     return WebSocketDaemon(host,
                            str(port),
                            repo_root,
                            paths["ws_doc_root"],
                            "debug",
                            bind_address,
-                           ssl_config)
+                           ssl_config,
+                           logging_queue=logging_queue)
 
 
-def start(config, ssl_environment, routes, **kwargs):
+def start(config, ssl_environment, routes, logging_queue, **kwargs):
     host = config["server_host"]
     ports = config.ports
     paths = config.paths
@@ -618,7 +641,7 @@ def start(config, ssl_environment, routes, **kwargs):
     logger.debug("Using ports: %r" % ports)
 
     servers = start_servers(host, ports, paths, routes, bind_address, config,
-                            ssl_config, **kwargs)
+                            ssl_config, logging_queue, **kwargs)
 
     return servers
 
@@ -757,8 +780,9 @@ def run(**kwargs):
 
     bind_address = config["bind_address"]
 
+
     if config["check_subdomains"]:
-        check_subdomains(config)
+        check_subdomains(config, logging_queue=None)
 
     stash_address = None
     if bind_address:
@@ -766,7 +790,8 @@ def run(**kwargs):
         logger.debug("Going to use port %d for stash" % stash_address[1])
 
     with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
-        servers = start(config, config.ssl_env, build_routes(config["aliases"]), **kwargs)
+        servers = start(config, config.ssl_env, build_routes(config["aliases"]), logging_queue=None,
+                        **kwargs)
 
         try:
             while any(item.is_alive() for item in iter_procs(servers)):
