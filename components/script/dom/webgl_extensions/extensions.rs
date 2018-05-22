@@ -237,6 +237,7 @@ impl WebGLExtensions {
     }
 
     fn register_all_extensions(&self) {
+        self.register::<ext::oeselementindexuint::OESElementIndexUint>();
         self.register::<ext::oesstandardderivatives::OESStandardDerivatives>();
         self.register::<ext::oestexturefloat::OESTextureFloat>();
         self.register::<ext::oestexturefloatlinear::OESTextureFloatLinear>();
