@@ -119,6 +119,10 @@
             use values::computed::ComputedVecIter;
 
             /// The generic type defining the value for this property.
+            ///
+            /// Making this type generic allows the compiler to figure out the
+            /// animated value for us, instead of having to implement it
+            /// manually for every type we care about.
             % if separator == "Comma":
             #[css(comma)]
             % endif
