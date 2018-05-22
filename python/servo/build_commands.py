@@ -303,6 +303,7 @@ class MachCommands(CommandBase):
                     verbose=verbose)
                 if status:
                     return status
+            env["ANDROID_TOOLCHAIN_NAME"] = None
             openssl_dir = path.join(openssl_dir, "openssl-{}".format(env["OPENSSL_VERSION"]))
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
