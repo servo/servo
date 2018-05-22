@@ -40,16 +40,17 @@ impl FileReaderSync {
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReaderSync>> {
         Ok(FileReaderSync::new(global))
     }
+
+    fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {
+        blob.get_bytes().map_err(|_| { Error::NotReadable })
+    }
 }
 
 impl FileReaderSyncMethods for FileReaderSync {
     // https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection
     fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString>{
         // step 1
-        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
-        if blob_contents.is_empty() {
-            return Err(Error::NotReadable)
-        }
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
         Ok(DOMString::from(String::from_utf8_lossy(&blob_contents)))
@@ -58,10 +59,7 @@ impl FileReaderSyncMethods for FileReaderSync {
     // https://w3c.github.io/FileAPI/#readAsTextSync
     fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
         // step 1
-        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
-        if blob_contents.is_empty() {
-            return Err(Error::NotReadable)
-        }
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
         let blob_label = label.map(String::from);
@@ -92,10 +90,7 @@ impl FileReaderSyncMethods for FileReaderSync {
     // https://w3c.github.io/FileAPI/#readAsDataURLSync-section
     fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
         // step 1
-        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
-        if blob_contents.is_empty() {
-            return Err(Error::NotReadable)
-        }
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
         let base64 = base64::encode(&blob_contents);
@@ -114,10 +109,7 @@ impl FileReaderSyncMethods for FileReaderSync {
      #[allow(unsafe_code)]
     unsafe fn ReadAsArrayBuffer(&self, cx: *mut JSContext, blob: &Blob) -> Fallible<NonNull<JSObject>> {
         // step 1
-        let blob_contents = blob.get_bytes().unwrap_or(vec![]);
-        if blob_contents.is_empty() {
-            return Err(Error::NotReadable)
-        }
+        let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
         // step 2
         rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
