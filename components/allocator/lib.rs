@@ -18,7 +18,7 @@ mod platform {
     pub use self::jemallocator::Jemalloc as Allocator;
 
     use std::alloc::{GlobalAlloc, Layout, Opaque, System};
-    use std::os::raw::{void};
+    use std::os::raw::c_void;
 
     /// Get the size of a heap block.
     pub unsafe extern "C" fn usable_size(ptr: *const c_void) -> usize {
