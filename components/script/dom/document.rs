@@ -103,7 +103,7 @@ use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
 use mime::{Mime, TopLevel, SubLevel};
 use msg::constellation_msg::{BrowsingContextId, Key, KeyModifiers, KeyState};
-use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
+use net_traits::{FetchResponseMsg, IpcSend, NetworkTiming, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::pub_domains::is_pub_domain;
@@ -387,6 +387,7 @@ pub struct Document {
     salvageable: Cell<bool>,
     /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
+    redirect_count: Cell<u16>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1599,8 +1600,6 @@ impl Document {
         debug!("Document got finish_load: {:?}", load);
         self.loader.borrow_mut().finish_load(&load);
 
-        //TODO avada conclude PerformanceNavigationTiming here?
-
         match load {
             LoadType::Stylesheet(_) => {
                 // A stylesheet finishing to load may unblock any pending
@@ -2460,6 +2459,7 @@ impl Document {
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
             fired_unload: Cell::new(false)
+            redirect_count: Cell::new(0),
         }
     }
 
@@ -2520,6 +2520,15 @@ impl Document {
             node.set_owner_doc(&document);
         }
         document
+    }
+
+    // indicates a completed fetch
+    pub fn handle_network_metadata(&self, net_timing: NetworkTiming) {
+        self.redirect_count.set(net_timing.redirect_count)
+    }
+
+    pub fn get_redirect_count(&self) -> u16 {
+        self.redirect_count.get()
     }
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> DomRoot<NodeList> {

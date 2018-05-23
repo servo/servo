@@ -117,6 +117,8 @@ pub struct Response {
     /// https://fetch.spec.whatwg.org/#concept-response-aborted
     #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
     pub aborted: Arc<AtomicBool>,
+    /// tracks network metrics to send to script
+    pub net_timing: Option<NetworkTiming>,
 }
 
 impl Response {
@@ -139,6 +141,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
+            net_timing: None,
         }
     }
 
@@ -169,6 +172,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
+            net_timing: None,
         }
     }
 
@@ -212,6 +216,10 @@ impl Response {
         } else {
             self
         }
+    }
+
+    pub fn set_net_timing(&mut self, net_timing: &NetworkTiming) {
+        self.net_timing = Some(net_timing.to_owned())
     }
 
     /// Convert to a filtered response, of type `filter_type`.
@@ -310,6 +318,11 @@ impl Response {
 
         let metadata = self.url.as_ref().map(|url| init_metadata(self, url));
 
+        let net_timing = match self.net_timing {
+            Some(ref t) => t.clone(),
+            None => NetworkTiming::default(),
+        };
+
         if let Some(ref response) = self.internal_response {
             match response.url {
                 Some(ref url) => {
@@ -345,7 +358,7 @@ impl Response {
             }
         } else {
             assert_eq!(self.response_type, ResponseType::Default);
-            Ok(FetchMetadata::Unfiltered{m: metadata.unwrap(), net_timing: NetworkTiming::default()})
+            Ok(FetchMetadata::Unfiltered{m: metadata.unwrap(), net_timing: net_timing})
         }
     }
 }

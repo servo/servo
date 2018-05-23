@@ -154,7 +154,7 @@ pub enum FetchResponseMsg {
     ProcessRequestBody,
     ProcessRequestEOF,
     // todo: send more info about the response (or perhaps the entire Response)
-    ProcessResponse(Result<(FetchMetadata), NetworkError>),
+    ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
     ProcessResponseEOF(Result<(), NetworkError>),
 }
@@ -404,10 +404,11 @@ pub struct ResourceCorsData {
     pub origin: ServoUrl,
 }
 
-#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct NetworkTiming {
     /// Number of redirects until final resource (currently limited to 20)
-    pub redirect_count: u32,
+    /// webidl requires a short
+    pub redirect_count: u16,
 }
 
 impl NetworkTiming {
@@ -417,7 +418,7 @@ impl NetworkTiming {
         }
     }
 
-    pub fn set_redirect_count(&mut self, count: u32) {
+    pub fn set_redirect_count(&mut self, count: u16) {
         self.redirect_count = count
     }
 

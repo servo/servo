@@ -2536,14 +2536,32 @@ impl ScriptThread {
     }
 
     fn handle_fetch_metadata(&self, id: PipelineId, fetch_metadata: Result<FetchMetadata, NetworkError>) {
-        match fetch_metadata {
-            Ok(_) => {},
-            Err(ref e) => warn!("Network error: {:?}", e),
+        let net_timing = match fetch_metadata {
+            Ok(ref f) => {
+                match f {
+                    FetchMetadata::Unfiltered { m: _ , net_timing: t } => t.clone(),
+                    FetchMetadata::Filtered { unsafe_: _, filtered: _, net_timing: t } => t.clone(),
+                }},
+            Err(ref e) => {
+                warn!("Network error: {:?}", e);
+                NetworkTiming::default()
+            },
         };
+
+        self.handle_network_metadata(id, net_timing);
+
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
         let parser = incomplete_parser_contexts.iter_mut().find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
             ctxt.process_response(fetch_metadata);
+        }
+    }
+
+    fn handle_network_metadata(&self, pipeline_id: PipelineId, net_timing: NetworkTiming) {
+        // network timing metrics needs to be recorded on the appropriate window's Performance member
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
+            document.handle_network_metadata(net_timing);
         }
     }
 
@@ -2589,6 +2607,7 @@ impl ScriptThread {
             None => vec![]
         };
 
+        // TODO should be no timeline entry for an about:blank load
         context.process_response(Ok(FetchMetadata::Unfiltered{
             m: meta,
             net_timing:NetworkTiming::default()}));

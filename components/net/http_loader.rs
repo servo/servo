@@ -622,6 +622,10 @@ pub fn http_fetch(request: &mut Request,
 
     // set back to default
     response.return_internal = true;
+    response.set_net_timing(&context.net_timing);
+
+    println!("{:?}", response.net_timing);
+
     // Step 6
     response
 }
@@ -659,8 +663,7 @@ pub fn http_redirect_fetch(request: &mut Request,
 
     // Step 6
     request.redirect_count += 1;
-    context.net_timing.redirect_count = request.redirect_count;
-    println!("request redirected {} = {}", request.redirect_count, context.net_timing.redirect_count);
+    context.net_timing.redirect_count = request.redirect_count as u16;
 
     // Step 7
     let same_origin = match request.origin {

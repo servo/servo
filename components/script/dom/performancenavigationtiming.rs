@@ -23,6 +23,7 @@ pub struct PerformanceNavigationTiming {
     navigation_start_precise: u64,
     document: Dom<Document>,
     nav_type: NavigationType,
+    redirect_count: u32,
 }
 
 impl PerformanceNavigationTiming {
@@ -39,7 +40,8 @@ impl PerformanceNavigationTiming {
             navigation_start: nav_start,
             navigation_start_precise: nav_start_precise,
             document: Dom::from_ref(document),
-            nav_type: NavigationType::Navigate
+            nav_type: NavigationType::Navigate,
+            redirect_count: 0,
         }
     }
 
@@ -53,7 +55,6 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
     // https://w3c.github.io/navigation-timing/
     fn UnloadEventStart(&self) -> DOMHighResTimeStamp {
         Finite::wrap(self.document.get_unload_event_start() as f64)
-
     }
 
     // https://w3c.github.io/navigation-timing/
@@ -102,7 +103,9 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
         self.nav_type.clone()
     }
 
-    // TODO redirectCount
+    fn RedirectCount(&self) -> u16 {
+        self.document.get_redirect_count()
+    }
 }
 
 impl PerformanceNavigationTiming {
