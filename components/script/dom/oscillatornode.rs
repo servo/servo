@@ -6,18 +6,20 @@ use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::OscillatorNodeBinding;
-use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
+use dom::bindings::codegen::Bindings::OscillatorNodeBinding::{self, OscillatorOptions, OscillatorType};
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_media::audio::node::AudioNodeType;
+use servo_media::audio::oscillator_node::OscillatorNodeOptions as ServoMediaOscillatorOptions;
+use servo_media::audio::oscillator_node::OscillatorType as ServoMediaOscillatorType;
 
 #[dom_struct]
 pub struct OscillatorNode {
     node: AudioScheduledSourceNode,
-    //    oscillator_type: OscillatorType,
+    oscillator_type: OscillatorType,
     //    frequency: AudioParam,
     //    detune: AudioParam,
 }
@@ -28,18 +30,21 @@ impl OscillatorNode {
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
-    ) -> OscillatorNode {
-        let mut options = unsafe { AudioNodeOptions::empty(window.get_cx()) };
-        options.channelCount = Some(2);
-        options.channelCountMode = Some(ChannelCountMode::Max);
-        options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+        oscillator_options: &OscillatorOptions,
+        ) -> OscillatorNode {
+        let mut node_options = unsafe { AudioNodeOptions::empty(window.get_cx()) };
+        node_options.channelCount = Some(2);
+        node_options.channelCountMode = Some(ChannelCountMode::Max);
+        node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
         OscillatorNode {
             node: AudioScheduledSourceNode::new_inherited(
-                context,
-                &options,
-                0, /* inputs */
-                1, /* outputs */
-            ),
+                      AudioNodeType::OscillatorNode(oscillator_options.into()),
+                      context,
+                      &node_options,
+                      0, /* inputs */
+                      1, /* outputs */
+                      ),
+                      oscillator_type: oscillator_options.type_,
         }
     }
 
@@ -47,9 +52,9 @@ impl OscillatorNode {
     pub fn new(
         window: &Window,
         context: &BaseAudioContext,
-        _options: &OscillatorOptions,
-    ) -> DomRoot<OscillatorNode> {
-        let node = OscillatorNode::new_inherited(window, context);
+        options: &OscillatorOptions,
+        ) -> DomRoot<OscillatorNode> {
+        let node = OscillatorNode::new_inherited(window, context, options);
         reflect_dom_object(Box::new(node), window, OscillatorNodeBinding::Wrap)
     }
 
@@ -57,25 +62,48 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
-    ) -> Fallible<DomRoot<OscillatorNode>> {
+        ) -> Fallible<DomRoot<OscillatorNode>> {
         Ok(OscillatorNode::new(window, context, options))
     }
 }
 
 /*impl OscillatorNodeMethods for OscillatorNode {
-    fn SetPeriodicWave(&self, periodic_wave: PeriodicWave) {
-        // XXX
-    }
+  fn SetPeriodicWave(&self, periodic_wave: PeriodicWave) {
+// XXX
+}
 
-    fn Type(&self) -> OscillatorType {
-        self.oscillator_type
-    }
+fn Type(&self) -> OscillatorType {
+self.oscillator_type
+}
 
-    fn Frequency(&self) -> DomRoot<AudioParam> {
-        DomRoot::from_ref(&self.frequency)
-    }
+fn Frequency(&self) -> DomRoot<AudioParam> {
+DomRoot::from_ref(&self.frequency)
+}
 
-    fn Detune(&self) -> DomRoot<AudioParam> {
-        DomRoot::from_ref(&self.detune)
-    }
+fn Detune(&self) -> DomRoot<AudioParam> {
+DomRoot::from_ref(&self.detune)
+}
 }*/
+
+impl<'a> From<&'a OscillatorOptions> for ServoMediaOscillatorOptions {
+    fn from(options: &'a OscillatorOptions) -> Self {
+        Self {
+            oscillator_type: options.type_.into(),
+            freq: *options.frequency,
+            detune: *options.detune,
+            periodic_wave_options: None, // XXX
+        }
+    }
+}
+
+impl From<OscillatorType> for ServoMediaOscillatorType {
+    fn from(oscillator_type: OscillatorType) -> Self {
+        match oscillator_type {
+            OscillatorType::Sine => ServoMediaOscillatorType::Sine,
+            OscillatorType::Square => ServoMediaOscillatorType::Square,
+            OscillatorType::Sawtooth => ServoMediaOscillatorType::Sawtooth,
+            OscillatorType::Triangle => ServoMediaOscillatorType::Triangle,
+            OscillatorType::Custom => ServoMediaOscillatorType::Custom,
+        }
+    }
+}
