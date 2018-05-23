@@ -85,8 +85,8 @@ impl FileReaderSyncMethods for FileReaderSync {
         Ok(output)
     }
 
-    // https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection
     #[allow(unsafe_code)]
+    // https://w3c.github.io/FileAPI/#readAsArrayBufferSyncSection
     unsafe fn ReadAsArrayBuffer(
         &self,
         cx: *mut JSContext,
