@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
-use dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncBinding,
-                                                          FileReaderSyncMethods};
+use dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncBinding, FileReaderSyncMethods};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
