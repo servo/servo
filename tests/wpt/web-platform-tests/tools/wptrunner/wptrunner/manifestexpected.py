@@ -53,8 +53,6 @@ def prefs(node):
 
     try:
         node_prefs = node.get("prefs")
-        if type(node_prefs) in (str, unicode):
-            prefs = {value(node_prefs)}
         rv = dict(value(item) for item in node_prefs)
     except KeyError:
         rv = {}

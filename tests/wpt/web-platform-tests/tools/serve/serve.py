@@ -434,7 +434,7 @@ def check_subdomains(config):
 
         try:
             urllib2.urlopen("http://%s:%d/" % (domain, port))
-        except Exception as e:
+        except Exception:
             logger.critical("Failed probing domain %s. "
                             "You may need to edit /etc/hosts or similar, see README.md." % domain)
             sys.exit(1)

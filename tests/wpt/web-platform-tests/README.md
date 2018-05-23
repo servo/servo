@@ -35,7 +35,7 @@ To get the tests running, you need to set up the test domains in your
 [`hosts` file](http://en.wikipedia.org/wiki/Hosts_%28file%29%23Location_in_the_file_system).
 
 The necessary content can be generated with `./wpt make-hosts-file`; on
-Windows, you will need to preceed the prior command with `python` or
+Windows, you will need to precede the prior command with `python` or
 the path to the Python binary (`python wpt make-hosts-file`).
 
 For example, on most UNIX-like systems, you can setup the hosts file with:
@@ -62,7 +62,7 @@ The test server can be started using
 ./wpt serve
 ```
 
-**On Windows**: You will need to preceed the prior command with
+**On Windows**: You will need to precede the prior command with
 `python` or the path to the python binary.
 ```bash
 python wpt serve
@@ -104,7 +104,7 @@ line syntax is:
 ./wpt run product [tests]
 ```
 
-**On Windows**: You will need to preceed the prior command with
+**On Windows**: You will need to precede the prior command with
 `python` or the path to the python binary.
 ```bash
 python wpt run product [tests]
@@ -169,7 +169,7 @@ git submodule update --init --recursive
 ```
 
 Prior to commit `39d07eb01fab607ab1ffd092051cded1bdd64d78` submodules
-were requried for basic functionality. If you are working with an
+were required for basic functionality. If you are working with an
 older checkout, the above command is required in all cases.
 
 When moving between a commit prior to `39d07eb` and one after it git
@@ -181,7 +181,7 @@ error: The following untracked working tree files would be overwritten by checko
 […]
 ```
 
-followed by a long list of files. To avoid this error remove
+...followed by a long list of files. To avoid this error, remove
 the `resources` and `tools` directories before switching branches:
 
 ```
@@ -203,7 +203,7 @@ Failed to recurse into submodule path 'resources'
 Failed to recurse into submodule path 'tools'
 ```
 
-then remove the `tools` and `resources` directories, as above.
+...then remove the `tools` and `resources` directories, as above.
 
 <span id="windows-notes">Windows Notes</span>
 =============================================
@@ -227,7 +227,7 @@ line endings, as it will cause lint errors. For git, please set
 Certificates
 ============
 
-By default pregenerated certificates for the web-platform.test domain
+By default pre-generated certificates for the web-platform.test domain
 are provided in [`tools/certs`](tools/certs). If you wish to generate new
 certificates for any reason it's possible to use OpenSSL when starting
 the server, or starting a test run, by providing the

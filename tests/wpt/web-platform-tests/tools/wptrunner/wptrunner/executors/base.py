@@ -243,7 +243,6 @@ class RefTestImplementation(object):
         return self.executor.logger
 
     def get_hash(self, test, viewport_size, dpi):
-        timeout = test.timeout * self.timeout_multiplier
         key = (test.url, viewport_size, dpi)
 
         if key not in self.screenshot_cache:
@@ -391,7 +390,7 @@ class WdspecRun(object):
         executor = threading.Thread(target=self._run)
         executor.start()
 
-        flag = self.result_flag.wait(self.timeout)
+        self.result_flag.wait(self.timeout)
         if self.result[1] is None:
             self.result = False, ("EXTERNAL-TIMEOUT", None)
 
@@ -533,7 +532,7 @@ class CallbackHandler(object):
                 raise ValueError("Unknown action %s" % action)
             try:
                 action_handler(payload)
-            except Exception as e:
+            except Exception:
                 self.logger.warning("Action %s failed" % action)
                 self.logger.warning(traceback.format_exc())
                 self._send_message("complete", "failure")
