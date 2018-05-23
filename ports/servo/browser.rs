@@ -19,6 +19,7 @@ use std::mem;
 use std::rc::Rc;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::thread;
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 
 pub struct Browser {
@@ -346,7 +347,7 @@ fn display_alert_dialog(message: String) {
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn display_alert_dialog(_message: &str) {
+fn display_alert_dialog(_message: String) {
     // tinyfiledialogs not supported on Android
 }
 
