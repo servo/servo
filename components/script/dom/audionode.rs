@@ -3,15 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::baseaudiocontext::BaseAudioContext;
-use dom::bindings::codegen::Bindings::AudioNodeBinding;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{AudioNodeMethods, AudioNodeOptions};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::reflector::Reflector;
 use dom::bindings::root::DomRoot;
 use dom::audioparam::AudioParam;
-use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use servo_media::audio::node::AudioNodeType;
 use std::cell::Cell;
 
 // 32 is the minimum required by the spec for createBuffer() and
@@ -22,6 +21,7 @@ pub static MAX_CHANNEL_COUNT: u32 = 32;
 #[dom_struct]
 pub struct AudioNode {
     reflector_: Reflector,
+    engine_id: usize,
     context: DomRoot<BaseAudioContext>,
     number_of_inputs: u32,
     number_of_outputs: u32,
@@ -31,12 +31,14 @@ pub struct AudioNode {
 }
 
 impl AudioNode {
-    pub fn new_inherited(context: &BaseAudioContext,
+    pub fn new_inherited(node_type: AudioNodeType,
+                         context: &BaseAudioContext,
                          options: &AudioNodeOptions,
                          number_of_inputs: u32,
                          number_of_outputs: u32) -> AudioNode {
         AudioNode {
             reflector_: Reflector::new(),
+            engine_id: context.create_node_engine(node_type),
             context: DomRoot::from_ref(context),
             number_of_inputs,
             number_of_outputs,
@@ -45,29 +47,16 @@ impl AudioNode {
             channel_interpretation: Cell::new(options.channelInterpretation.unwrap_or_default()),
         }
     }
-
-    #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               context: &BaseAudioContext,
-               options: &AudioNodeOptions) -> DomRoot<AudioNode> {
-        let audio_node = AudioNode::new_inherited(context, options, 1, 1);
-        reflect_dom_object(Box::new(audio_node), global, AudioNodeBinding::Wrap)
-    }
 }
 
 impl AudioNodeMethods for AudioNode {
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
     fn Connect(&self,
-               _destinationNode: &AudioNode,
+               destination: &AudioNode,
                _output: u32,
                _input: u32) -> Fallible<DomRoot<AudioNode>> {
         // TODO
-        let options = AudioNodeOptions {
-            channelCount: Some(self.channel_count.get()),
-            channelCountMode: Some(self.channel_count_mode.get()),
-            channelInterpretation: Some(self.channel_interpretation.get()),
-        };
-        Ok(AudioNode::new(&self.global(), &self.context, &options))
+        Ok(DomRoot::from_ref(destination))
     }
 
     fn Connect_(&self,

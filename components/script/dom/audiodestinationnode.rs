@@ -4,13 +4,13 @@
 
 use dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
 use dom::baseaudiocontext::BaseAudioContext;
-use dom::bindings::codegen::Bindings::AudioDestinationNodeBinding;
-use dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::AudioDestinationNodeMethods;
+use dom::bindings::codegen::Bindings::AudioDestinationNodeBinding::{self, AudioDestinationNodeMethods};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use servo_media::audio::node::AudioNodeType;
 
 #[dom_struct]
 pub struct AudioDestinationNode {
@@ -21,7 +21,7 @@ impl AudioDestinationNode {
     fn new_inherited(context: &BaseAudioContext,
                      options: &AudioNodeOptions) -> AudioDestinationNode {
         AudioDestinationNode {
-            node: AudioNode::new_inherited(context, options, 1, 1),
+            node: AudioNode::new_inherited(AudioNodeType::DestinationNode, context, options, 1, 1),
         }
     }
 

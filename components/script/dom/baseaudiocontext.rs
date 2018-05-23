@@ -15,11 +15,16 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::oscillatornode::OscillatorNode;
 use dom_struct::dom_struct;
+use servo_media::ServoMedia;
+use servo_media::audio::graph::AudioGraph;
+use servo_media::audio::node::AudioNodeType;
 use std::rc::Rc;
 
 #[dom_struct]
 pub struct BaseAudioContext {
     reflector_: Reflector,
+    #[ignore_malloc_size_of = "XXX"]
+    audio_graph: AudioGraph,
     destination: Option<DomRoot<AudioDestinationNode>>,
     sample_rate: f32,
     current_time: f64,
@@ -36,6 +41,7 @@ impl BaseAudioContext {
     ) -> BaseAudioContext {
         let mut context = BaseAudioContext {
             reflector_: Reflector::new(),
+            audio_graph: ServoMedia::get().unwrap().create_audio_graph().unwrap(),
             destination: None,
             current_time: 0.,
             sample_rate,
@@ -50,6 +56,10 @@ impl BaseAudioContext {
         context.destination = Some(AudioDestinationNode::new(global, &context, &options));
 
         context
+    }
+
+    pub fn create_node_engine(&self, node_type: AudioNodeType) -> usize {
+        self.audio_graph.create_node(node_type)
     }
 }
 
