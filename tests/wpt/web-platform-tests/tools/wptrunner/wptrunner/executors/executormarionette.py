@@ -445,7 +445,7 @@ class ExecuteAsyncScriptRun(object):
         else:
             wait_timeout = None
 
-        flag = self.result_flag.wait(wait_timeout)
+        self.result_flag.wait(wait_timeout)
 
         if self.result == (None, None):
             self.logger.debug("Timed out waiting for a result")
@@ -675,9 +675,6 @@ class InternalRefTestImplementation(object):
         self.executor.protocol.marionette._send_message("reftest:setup", data)
 
     def run_test(self, test):
-        viewport_size = test.viewport_size
-        dpi = test.dpi
-
         references = self.get_references(test)
         rv = self.executor.protocol.marionette._send_message("reftest:run",
                                                              {"test": self.executor.test_url(test),

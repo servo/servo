@@ -110,8 +110,6 @@ def list_disabled(test_paths, product, **kwargs):
 def list_tests(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
 
-    rv = []
-
     ssl_env = env.ssl_env(logger, **kwargs)
 
     run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)

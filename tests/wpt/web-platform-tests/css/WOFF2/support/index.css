@@ -29,17 +29,6 @@ h1 {
 	padding: 0px 0px 20px 0px;
 }
 
-p.installFontsNote {
-	font-weight: bold;
-	color: white;
-	background-color: red;
-	padding: 5px 10px 5px 10px;
-}
-
-p.installFontsNote a {
-	color: white;
-}
-
 .mainNote {
 	margin: 0px;
 	padding: 15px 0px 15px 0px;
