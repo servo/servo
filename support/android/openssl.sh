@@ -50,7 +50,7 @@ case $RUST_TARGET in
       _OPENSSL_ARCH="arm64"
       _OPENSSL_CONFIG="linux-generic64 -DB_ENDIAN"
       ;;
-    x86*)
+    x86* | i686*)
       _ANDROID_TARGET=$RUST_TARGET
       _ANDROID_ARCH=arch-x86
       _OPENSSL_MACHINE="x86"
@@ -62,7 +62,7 @@ case $RUST_TARGET in
       ;;
 esac
 
-_ANDROID_EABI="$_ANDROID_TARGET-4.9"
+_ANDROID_EABI="$ANDROID_TOOLCHAIN_NAME-4.9"
 
 
 # Set _ANDROID_API to the API you want to use. You should set it

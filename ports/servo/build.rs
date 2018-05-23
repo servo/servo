@@ -48,7 +48,7 @@ fn android_main() {
         "arch-arm"
     } else if target.contains("aarch64") {
         "arch-arm64"
-    } else if target.contains("x86") {
+    } else if target.contains("x86") || target.contains("i686") {
         "arch-x86"
     } else if target.contains("mips") {
         "arch-mips"
@@ -62,10 +62,13 @@ fn android_main() {
         "android-18"
     };
 
-    let toolchain = if target.contains("armv7") {
-        "arm-linux-androideabi".into()
+    let (toolchain, prefix) = if target.contains("armv7") {
+        let toolchain = "arm-linux-androideabi";
+        (toolchain.into(), toolchain.into())
+    } else if target.contains("i686") {
+        ("x86".into(), target)
     } else {
-        target
+        (target.clone(), target)
     };
 
     let toolchain_path = ndk_path.join("toolchains").join(format!("{}-4.9", toolchain)).join("prebuilt").
@@ -77,7 +80,7 @@ fn android_main() {
     let directory = Path::new(&out_dir);
 
     // compiling android_native_app_glue.c
-    if Command::new(toolchain_path.join("bin").join(format!("{}-gcc", toolchain)))
+    if Command::new(toolchain_path.join("bin").join(format!("{}-gcc", prefix)))
         .arg(ndk_path.join("sources").join("android").join("native_app_glue").join("android_native_app_glue.c"))
         .arg("-c")
         .arg("-o").arg(directory.join("android_native_app_glue.o"))
@@ -91,7 +94,7 @@ fn android_main() {
     }
 
     // compiling libandroid_native_app_glue.a
-    if Command::new(toolchain_path.join("bin").join(format!("{}-ar", toolchain)))
+    if Command::new(toolchain_path.join("bin").join(format!("{}-ar", prefix)))
         .arg("rcs")
         .arg(directory.join("libandroid_native_app_glue.a"))
         .arg(directory.join("android_native_app_glue.o"))
