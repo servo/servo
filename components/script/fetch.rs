@@ -196,7 +196,7 @@ impl FetchResponseListener for FetchContext {
             // Step 4.2
             Ok(metadata) => {
                 match metadata {
-                    FetchMetadata::Unfiltered(m) => {
+                    FetchMetadata::Unfiltered{ m, .. } => {
                         fill_headers_with_metadata(self.response_object.root(), m);
                         self.response_object.root().set_type(DOMResponseType::Default);
                     },

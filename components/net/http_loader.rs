@@ -489,7 +489,7 @@ pub fn http_fetch(request: &mut Request,
                   authentication_fetch_flag: bool,
                   target: Target,
                   done_chan: &mut DoneChannel,
-                  context: &FetchContext)
+                  context: &mut FetchContext)
                   -> Response {
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
@@ -569,7 +569,10 @@ pub fn http_fetch(request: &mut Request,
         // TODO maybe set fetch_start (if this is the last resource)
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well
-        // TODO maybe set redirect start if this resource initiates the redirect
+          
+        // TODO maybe set redirect_start if this resource initiates the redirect
+        let resource_start = precise_time_ms();
+
         let mut fetch_result = http_network_or_cache_fetch(
             request, authentication_fetch_flag, cors_flag, done_chan, context);
 
@@ -614,6 +617,7 @@ pub fn http_fetch(request: &mut Request,
             }
         };
     }
+    
     // TODO redirect_end: last byte of response of last redirect
 
     // set back to default
@@ -629,7 +633,7 @@ pub fn http_redirect_fetch(request: &mut Request,
                            cors_flag: bool,
                            target: Target,
                            done_chan: &mut DoneChannel,
-                           context: &FetchContext)
+                           context: &mut FetchContext)
                            -> Response {
     // Step 1
     assert!(response.return_internal);
@@ -655,6 +659,8 @@ pub fn http_redirect_fetch(request: &mut Request,
 
     // Step 6
     request.redirect_count += 1;
+    context.net_timing.redirect_count = request.redirect_count;
+    println!("request redirected {} = {}", request.redirect_count, context.net_timing.redirect_count);
 
     // Step 7
     let same_origin = match request.origin {
@@ -723,7 +729,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
                                authentication_fetch_flag: bool,
                                cors_flag: bool,
                                done_chan: &mut DoneChannel,
-                               context: &FetchContext)
+                               context: &mut FetchContext)
                                -> Response {
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
@@ -1042,7 +1048,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 fn http_network_fetch(request: &Request,
                       credentials_flag: bool,
                       done_chan: &mut DoneChannel,
-                      context: &FetchContext)
+                      context: &mut FetchContext)
                       -> Response {
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
@@ -1102,9 +1108,10 @@ fn http_network_fetch(request: &Request,
     let (done_sender, done_receiver) = channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
     let meta = match response.metadata().expect("Response metadata should exist at this stage") {
-        FetchMetadata::Unfiltered(m) => m,
+        FetchMetadata::Unfiltered{ m, .. } => m,
         FetchMetadata::Filtered { unsafe_, .. } => unsafe_
     };
+
     let devtools_sender = context.devtools_chan.clone();
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
@@ -1229,7 +1236,7 @@ fn http_network_fetch(request: &Request,
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
 fn cors_preflight_fetch(request: &Request,
                         cache: &mut CorsCache,
-                        context: &FetchContext)
+                        context: &mut FetchContext)
                         -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.clone()), request.pipeline_id);

@@ -51,7 +51,6 @@ impl PerformanceResourceTiming {
                      next_hop: Option<DOMString>,
                      fetch_start: f64)
                          -> PerformanceResourceTiming {
-        // TODO Do i know the end time yet?
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),

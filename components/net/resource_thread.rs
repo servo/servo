@@ -21,7 +21,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
-use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
+use net_traits::{FetchResponseMsg, NetworkTiming, ResourceThreads, WebSocketDomAction};
 use net_traits::WebSocketNetworkEvent;
 use net_traits::request::{Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
@@ -35,6 +35,7 @@ use servo_allocator;
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::{self, File};
@@ -416,12 +417,13 @@ impl CoreResourceManager {
             // todo load context / mimesniff in fetch
             // todo referrer policy?
             // todo service worker stuff
-            let context = FetchContext {
+            let mut context = FetchContext {
                 state: http_state,
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                net_timing: NetworkTiming::default()
             };
 
             match res_init_ {
@@ -433,10 +435,10 @@ impl CoreResourceManager {
                                         true,
                                         &mut sender,
                                         &mut None,
-                                        &context);
+                                        &mut context);
                 },
                 None => {
-                    fetch(&mut request, &mut sender, &context);
+                    fetch(&mut request, &mut sender, &mut context);
                 },
             };
         }).expect("Thread spawning failed");

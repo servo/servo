@@ -79,7 +79,7 @@ use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
-use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkTiming};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
@@ -2589,7 +2589,9 @@ impl ScriptThread {
             None => vec![]
         };
 
-        context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(Ok(FetchMetadata::Unfiltered{
+            m: meta,
+            net_timing:NetworkTiming::default()}));
         context.process_response_chunk(chunk);
         context.process_response_eof(Ok(()));
     }

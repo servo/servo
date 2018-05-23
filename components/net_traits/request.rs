@@ -342,6 +342,11 @@ impl Request {
         self.url_list.last_mut().unwrap()
     }
 
+    /// A helper method to determine if this is the resource that initiates the redirect
+    pub fn is_first_redirect(&self) -> bool {
+        self.redirect_mode == RedirectMode::Follow && self.redirect_count == 0
+    }
+
     /// <https://fetch.spec.whatwg.org/#navigation-request>
     pub fn is_navigation_request(&self) -> bool {
         self.destination == Destination::Document

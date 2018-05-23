@@ -4,7 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, NetworkTiming, ReferrerPolicy};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -318,22 +318,26 @@ impl Response {
                     match self.response_type {
                         ResponseType::Basic => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Basic(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
+                            net_timing: NetworkTiming::default(),
                         }),
                         ResponseType::Cors => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Cors(metadata.unwrap()),
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
+                            net_timing: NetworkTiming::default(),
                         }),
                         ResponseType::Default => unreachable!(),
                         ResponseType::Error(ref network_err) =>
                             Err(network_err.clone()),
                         ResponseType::Opaque => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::Opaque,
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
+                            net_timing: NetworkTiming::default(),
                         }),
                         ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
                             filtered: FilteredMetadata::OpaqueRedirect,
-                            unsafe_: unsafe_metadata
+                            unsafe_: unsafe_metadata,
+                            net_timing: NetworkTiming::default(),
                         })
                     }
                 },
@@ -341,7 +345,7 @@ impl Response {
             }
         } else {
             assert_eq!(self.response_type, ResponseType::Default);
-            Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
+            Ok(FetchMetadata::Unfiltered{m: metadata.unwrap(), net_timing: NetworkTiming::default()})
         }
     }
 }

@@ -88,7 +88,7 @@ impl NetworkListener {
             Ok(res_metadata) => {
                 let metadata = match res_metadata {
                     FetchMetadata::Filtered { ref unsafe_, .. } => unsafe_,
-                    FetchMetadata::Unfiltered(ref m) => m,
+                    FetchMetadata::Unfiltered{ ref m, .. } => m,
                 };
 
                 match metadata.headers {

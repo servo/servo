@@ -154,7 +154,7 @@ pub enum FetchResponseMsg {
     ProcessRequestBody,
     ProcessRequestEOF,
     // todo: send more info about the response (or perhaps the entire Response)
-    ProcessResponse(Result<FetchMetadata, NetworkError>),
+    ProcessResponse(Result<(FetchMetadata), NetworkError>),
     ProcessResponseChunk(Vec<u8>),
     ProcessResponseEOF(Result<(), NetworkError>),
 }
@@ -194,10 +194,14 @@ pub enum FilteredMetadata {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FetchMetadata {
-    Unfiltered(Metadata),
+    Unfiltered{
+        m: Metadata,
+        net_timing: NetworkTiming
+    },
     Filtered {
         filtered: FilteredMetadata,
         unsafe_: Metadata,
+        net_timing: NetworkTiming,
     },
 }
 
@@ -400,6 +404,25 @@ pub struct ResourceCorsData {
     pub origin: ServoUrl,
 }
 
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct NetworkTiming {
+    /// Number of redirects until final resource (currently limited to 20)
+    pub redirect_count: u32,
+}
+
+impl NetworkTiming {
+    pub fn default() -> NetworkTiming {
+        NetworkTiming {
+            redirect_count: 0,
+        }
+    }
+
+    pub fn set_redirect_count(&mut self, count: u32) {
+        self.redirect_count = count
+    }
+
+}
+
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct Metadata {
@@ -431,6 +454,7 @@ pub struct Metadata {
 
     /// Referrer Policy of the Request used to obtain Response
     pub referrer_policy: Option<ReferrerPolicy>,
+
 }
 
 impl Metadata {
@@ -494,7 +518,7 @@ pub fn load_whole_resource(request: RequestInit,
             FetchResponseMsg::ProcessRequestEOF => (),
             FetchResponseMsg::ProcessResponse(Ok(m)) => {
                 metadata = Some(match m {
-                    FetchMetadata::Unfiltered(m) => m,
+                    FetchMetadata::Unfiltered{ m, .. } => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 })
             },

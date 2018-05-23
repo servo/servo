@@ -154,7 +154,7 @@ impl FetchResponseListener for ImageContext {
 
         let metadata = metadata.ok().map(|meta| {
             match meta {
-                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Unfiltered{ m, .. } => m,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_
             }
         });
