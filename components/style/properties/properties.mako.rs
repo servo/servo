@@ -2537,13 +2537,6 @@ impl ComputedValues {
         self.visited_style.as_ref().and_then(|s| s.rules.as_ref())
     }
 
-    /// Returns whether we're in a display: none subtree.
-    pub fn is_in_display_none_subtree(&self) -> bool {
-        use properties::computed_value_flags::ComputedValueFlags;
-
-        self.flags.contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE)
-    }
-
     /// Gets a reference to the custom properties map (if one exists).
     pub fn custom_properties(&self) -> Option<<&Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.as_ref()

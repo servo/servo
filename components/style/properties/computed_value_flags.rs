@@ -41,10 +41,6 @@ bitflags! {
         /// A flag used to mark styles which are a pseudo-element or under one.
         const IS_IN_PSEUDO_ELEMENT_SUBTREE = 1 << 4;
 
-        /// A flag used to mark styles which are in a display: none subtree, or
-        /// under one.
-        const IS_IN_DISPLAY_NONE_SUBTREE = 1 << 5;
-
         /// Whether this style inherits the `display` property.
         ///
         /// This is important because it may affect our optimizations to avoid
@@ -77,7 +73,6 @@ impl ComputedValueFlags {
         ComputedValueFlags::IS_STYLE_IF_VISITED |
         ComputedValueFlags::IS_RELEVANT_LINK_VISITED |
         ComputedValueFlags::CAN_BE_FRAGMENTED |
-        ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE |
         ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE |
         ComputedValueFlags::HAS_TEXT_DECORATION_LINES
     }

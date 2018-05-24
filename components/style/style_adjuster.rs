@@ -204,12 +204,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .insert(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);
         }
 
-        if display == Display::None {
-            self.style
-                .flags
-                .insert(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE);
-        }
-
         if self.style.is_pseudo_element() {
             self.style
                 .flags
