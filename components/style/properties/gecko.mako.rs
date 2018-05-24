@@ -41,7 +41,6 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::mozilla::CSSPseudoElementType;
 use gecko_bindings::structs::mozilla::CSSPseudoElementType_InheritingAnonBox;
-use gecko_bindings::structs::root::NS_STYLE_CONTEXT_TYPE_SHIFT;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
 use gecko_bindings::sugar::refptr::RefPtr;
 use gecko::values::convert_nscolor_to_rgba;
@@ -137,12 +136,12 @@ impl ComputedValues {
         PseudoElement::from_atom(&atom)
     }
 
+    #[inline]
     fn get_pseudo_type(&self) -> CSSPseudoElementType {
-        let bits = (self.0).mBits;
-        let our_type = bits >> NS_STYLE_CONTEXT_TYPE_SHIFT;
-        unsafe { transmute(our_type as u8) }
+        self.0.mPseudoType
     }
 
+    #[inline]
     pub fn is_anon_box(&self) -> bool {
         let our_type = self.get_pseudo_type();
         return our_type == CSSPseudoElementType_InheritingAnonBox ||
@@ -2985,7 +2984,6 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator + Clone
     {
         use properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
-        use gecko_bindings::structs;
 
         let v = v.into_iter();
 
