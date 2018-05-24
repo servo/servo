@@ -481,6 +481,7 @@ pub mod webglshader;
 pub mod webglshaderprecisionformat;
 pub mod webgltexture;
 pub mod webgluniformlocation;
+pub mod webglvertexarrayobjectoes;
 pub mod websocket;
 pub mod window;
 pub mod windowproxy;
