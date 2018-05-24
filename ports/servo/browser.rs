@@ -99,7 +99,7 @@ impl Browser {
                         String::from("")
                     };
                     let title = "URL or search query";
-                    if let Some(input) = tinyfiledialogs::input_box(title, title, &url) {
+                    if let Some(input) = get_url_input(title, &url) {
                         if let Some(url) = sanitize_url(&input) {
                             self.event_queue.push(WindowEvent::LoadUrl(id, url));
                         }
@@ -349,6 +349,17 @@ fn display_alert_dialog(message: String) {
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
 fn display_alert_dialog(_message: String) {
     // tinyfiledialogs not supported on Android
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
+fn get_url_input(_title: &str, _url: &str) -> Option<String> {
+    // tinyfiledialogs not supported on Android
+    None
+}
+
+#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+fn get_url_input(title: &str, url: &str) -> Option<String> {
+    tinyfiledialogs::input_box(title, title, url)
 }
 
 #[cfg(target_os = "linux")]
