@@ -39,13 +39,9 @@ num = [
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
-  "itoa",
   "log",
   "num-traits",
-  "quote",
   "rand",
-  "syn",
-  "unicode-xid",
   "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.
