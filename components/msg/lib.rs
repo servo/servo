@@ -8,7 +8,6 @@
 extern crate bitflags;
 #[macro_use] extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
-extern crate nonzero;
 #[macro_use] extern crate serde;
 extern crate webrender_api;
 
