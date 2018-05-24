@@ -154,7 +154,7 @@ promise_test(t => {
     start() {
       return Promise.reject();
     }
-  }, new CountQueuingStrategy({ highWaterMark: 0 }));
+  }, { highWaterMark: 0 });
   const writer = ws.getWriter();
   catchAndRecord(writer.ready, 'ready');
   catchAndRecord(writer.closed, 'closed');

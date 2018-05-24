@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
 <script src="/feature-policy/experimental-features/resources/vertical-scroll.js"></script>
 <style>
 html, body {
@@ -73,7 +74,7 @@ iframe {
   // of disabled frames (does not propagate to main frame).
   promise_test(async() => {
     window.scrollTo(0, 0);
-    iframeElement.allow = "vertical-scroll 'none';";
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
     await loadUrlInIframe(iframeElement, url);
 
     await sendMessageAndGetResponse(

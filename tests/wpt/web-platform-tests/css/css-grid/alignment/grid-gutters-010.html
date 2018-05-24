@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Grid Layout Test: Support for percentage values for grid-gap with no defined height for the grid as alias for gap</title>
+<title>CSS Grid Layout Test: Support for percentage values for grid-gap with indefinite percentage basis</title>
 <link rel="help" href="https://www.w3.org/TR/css-grid-1/#gutters">
 <link rel="help" href="https://www.w3.org/TR/css-align-3/#gap-shorthand">
-<link rel="match" href="../reference/grid-collapsed-row-gutters-ref.html">
+<link rel="match" href="../reference/grid-percentage-gap-ref.html">
 <link rel="author" title="Rachel Andrew" href="mailto:me@rachelandrew.co.uk">
 <style>
     #grid {
@@ -13,6 +13,7 @@
         grid-template-columns: 90px 90px;
         grid-template-rows: 90px 90px;
         background-color: green;
+        margin-bottom: 30px;
     }
 
     #grid > div {
@@ -20,8 +21,14 @@
     }
 </style>
 
-<p>The test passes if it has the same visual effect as reference. Column gap should be percentage of width. Row gap should resolve to auto, and therefore collapse to 0 height.</p>
+<p>The test passes if it has the same visual effect as reference. Column gap should be percentage of width. Row gap should be percentage of height.</p>
 <div id="grid">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+</div>
+<div id="grid" style="display:inline-grid; width:auto; grid-gap:calc(20px + 5%)">
     <div></div>
     <div></div>
     <div></div>

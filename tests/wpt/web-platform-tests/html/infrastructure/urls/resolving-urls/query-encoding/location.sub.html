@@ -9,7 +9,7 @@
 function expected(encoding) {
   return "?" + {
     "UTF-8": "%C3%BF",
-    "windows-1251": "&%23255;",
+    "windows-1251": "%26%23255%3B",
     "windows-1252": "%FF"
   }[encoding];
 }

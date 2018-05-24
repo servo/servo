@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Reference: percentage grid gaps</title>
+<link rel="author" title="Rachel Andrew" href="mailto:me@rachelandrew.co.uk" />
+<style>
+    .grid {
+        width:200px;
+        height: 180px;
+        background-color: green;
+        position: relative;
+        margin-bottom: 30px;
+    }
+
+    .grid > div {
+        background-color: silver;
+        width: 90px;
+        height: 90px;
+        position: absolute;
+    }
+</style>
+
+<p>The test passes if it has the same visual effect as reference. Column gap should be percentage of width. Row gap should be percentage of height.</p>
+<div class="grid">
+    <div style="top:0;     left:0"></div>
+    <div style="top:0;     left:110px"></div>
+    <div style="top:108px; left:0"></div>
+    <div style="top:108px; left:110px"></div>
+</div>
+<div class="grid" style="height:200px">
+    <div style="top:0;     left:0"></div>
+    <div style="top:0;     left:120px"></div>
+    <div style="top:120px; left:0"></div>
+    <div style="top:120px; left:120px"></div>
+</div>

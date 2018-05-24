@@ -111,56 +111,54 @@ promise_test(() => {
   );
 }, 'closed and ready on a released writer');
 
-promise_test(() => {
-  const promises = {};
-  const resolvers = {};
-  for (const methodName of ['start', 'write', 'close', 'abort']) {
-    promises[methodName] = new Promise(resolve => {
-      resolvers[methodName] = resolve;
-    });
-  }
-
+promise_test(t => {
+  let thisObject = null;
   // Calls to Sink methods after the first are implicitly ignored. Only the first value that is passed to the resolver
   // is used.
   class Sink {
     start() {
       // Called twice
-      resolvers.start(this);
+      t.step(() => {
+        assert_equals(this, thisObject, 'start should be called as a method');
+      });
     }
 
     write() {
-      resolvers.write(this);
+      t.step(() => {
+        assert_equals(this, thisObject, 'write should be called as a method');
+      });
     }
 
     close() {
-      resolvers.close(this);
+      t.step(() => {
+        assert_equals(this, thisObject, 'close should be called as a method');
+      });
     }
 
     abort() {
-      resolvers.abort(this);
+      t.step(() => {
+        assert_equals(this, thisObject, 'abort should be called as a method');
+      });
     }
   }
 
   const theSink = new Sink();
+  thisObject = theSink;
   const ws = new WritableStream(theSink);
 
   const writer = ws.getWriter();
 
   writer.write('a');
-  writer.close();
+  const closePromise = writer.close();
 
   const ws2 = new WritableStream(theSink);
   const writer2 = ws2.getWriter();
-  writer2.abort();
+  const abortPromise = writer2.abort();
 
-  return promises.start
-      .then(thisValue => assert_equals(thisValue, theSink, 'start should be called as a method'))
-      .then(() => promises.write)
-      .then(thisValue => assert_equals(thisValue, theSink, 'write should be called as a method'))
-      .then(() => promises.close)
-      .then(thisValue => assert_equals(thisValue, theSink, 'close should be called as a method'))
-      .then(() => promises.abort)
-      .then(thisValue => assert_equals(thisValue, theSink, 'abort should be called as a method'));
+  return Promise.all([
+    closePromise,
+    abortPromise
+  ]);
 }, 'WritableStream should call underlying sink methods as methods');
 
 promise_test(t => {

@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 def main(request, response):
     response.headers.set("Content-Type", "text/plain")

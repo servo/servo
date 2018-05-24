@@ -21,7 +21,7 @@ function encode(input, expected, desc) {
     var a = document.createElement("a"); // <a> uses document encoding for URL's query
     a.href = "https://example.com/?" + input;
     result = a.search.substr(1); // remove leading "?"
-    assert_equals(normalizeStr(result), normalizeStr(expected));
+    assert_equals(result, expected);
   }, desc);
 }
 

@@ -2,9 +2,9 @@ def main(request, response):
     location = "%s://%s%s" % (request.url_parts.scheme,
                               request.url_parts.netloc,
                               request.url_parts.path)
-    page = "alternate";
-    type = 302;
-    mix = 0;
+    page = "alternate"
+    type = 302
+    mix = 0
     if request.GET.first("page", None) == "alternate":
         page = "default"
 

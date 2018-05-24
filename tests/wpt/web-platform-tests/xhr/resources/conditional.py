@@ -19,7 +19,7 @@ def main(request, response):
         response.headers.set("Access-Control-Allow-Origin", "*")
 
     if ((match is not None and match == tag) or
-        (modified is not None and modified == date)):
+            (modified is not None and modified == date)):
         response.status = (304, "SUPERCOOL")
         return ""
     else:
