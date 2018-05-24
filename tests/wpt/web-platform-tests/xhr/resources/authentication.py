@@ -23,5 +23,4 @@ def main(request, response):
         headers = [('XHR-USER', expected_user_name),
                    ('SES-USER', session_user),
                    ("X-challenge", challenge)]
-        return headers, session_user + "\n" + session_pass;
-
+        return headers, session_user + "\n" + session_pass

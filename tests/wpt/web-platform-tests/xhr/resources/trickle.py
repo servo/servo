@@ -9,7 +9,7 @@ def main(request, response):
     time.sleep(delay)
     response.headers.set("Content-type", "text/plain")
     response.write_status_headers()
-    time.sleep(delay);
+    time.sleep(delay)
     for i in xrange(count):
         response.writer.write_content(chunk)
         time.sleep(delay)

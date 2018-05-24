@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<body>
+<script>
+  async_test(t => {
+    let i = document.createElement('iframe');
+    i.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+
+      assert_header_equals(e.data, {
+        "cause": "forced",
+        "destination": "document",
+        "target": "nested",
+        "site": "same-origin"
+      });
+      t.done();
+    }));
+
+    document.body.appendChild(i);
+  }, "Same-origin iframe");
+
+  async_test(t => {
+    let i = document.createElement('iframe');
+    i.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+
+      assert_header_equals(e.data, {
+        "cause": "forced",
+        "destination": "document",
+        "target": "nested",
+        "site": "same-site"
+      });
+      t.done();
+    }));
+
+    document.body.appendChild(i);
+  }, "Same-site iframe");
+
+  async_test(t => {
+    let i = document.createElement('iframe');
+    i.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py";
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != i.contentWindow)
+        return;
+
+      assert_header_equals(e.data, {
+        "cause": "forced",
+        "destination": "document",
+        "target": "nested",
+        "site": "cross-site"
+      });
+      t.done();
+    }));
+
+    document.body.appendChild(i);
+  }, "Cross-site iframe");
+</script>

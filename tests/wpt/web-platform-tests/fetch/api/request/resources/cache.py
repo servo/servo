@@ -49,10 +49,10 @@ def main(request, response):
 
     # The only-if-cached redirect tests wants CORS to be okay, the other tests
     # are all same-origin anyways and don't care.
-    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set("Access-Control-Allow-Origin", "*")
 
     if redirect:
-        response.headers.set("Location", redirect);
+        response.headers.set("Location", redirect)
         response.status = (302, "Redirect")
         return ""
     elif ((inm is not None and inm == tag) or

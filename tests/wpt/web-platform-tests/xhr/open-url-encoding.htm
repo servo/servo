@@ -5,7 +5,6 @@
     <title>XMLHttpRequest: open() - URL encoding</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#the-open()-method" data-tested-assertations="following::ol/li[7] following::ol/li[14]/ul/li[2]" />
   </head>
   <body>
     <div id="log"></div>
@@ -20,7 +19,7 @@
         var client = new XMLHttpRequest()
         client.open("GET", "resources/content.py?\uD83D", false)
         client.send()
-        assert_equals(client.getResponseHeader("x-request-query"), "&%2365533;")
+        assert_equals(client.getResponseHeader("x-request-query"), "%26%2365533%3B");
       }, "lone surrogate");
     </script>
   </body>

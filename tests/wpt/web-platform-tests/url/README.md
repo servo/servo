@@ -1,3 +1,5 @@
+## urltestdata.json
+
 These tests are for browsers, but the data for
 `a-element.html`, `url-constructor.html`, `a-element-xhtml.xhtml`, and `failure.html`
 is in `urltestdata.json` and can be re-used by non-browser implementations.
@@ -24,6 +26,11 @@ In addition to testing that parsing `input` against `base` gives the result, a t
 true, parsing `about:blank` against `base` must give failure. This tests that the logic for
 converting base URLs into strings properly fails the whole parsing algorithm if the base URL cannot
 be parsed.
+
+## URL parser's encoding argument
+
+Tests in `/encoding` and `/html/infrastructure/urls/resolving-urls/query-encoding/` cover the
+encoding argument to the URL parser.
 
 [parsing]: https://url.spec.whatwg.org/#concept-basic-url-parser
 [API]: https://url.spec.whatwg.org/#api
