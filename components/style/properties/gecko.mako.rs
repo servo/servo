@@ -3805,7 +3805,9 @@ fn static_assert() {
                         % endif
                             => Keyword::${to_camel_case(value)},
                         % endfor
+                        % if keyword.gecko_inexhaustive:
                         _ => panic!("Found unexpected value in style struct for ${ident} property"),
+                        % endif
                     }
                 }).collect()
         )

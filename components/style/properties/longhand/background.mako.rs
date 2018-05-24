@@ -60,22 +60,28 @@ ${helpers.single_keyword("background-attachment",
                          animation_value_type="discrete",
                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
 
-${helpers.single_keyword("background-clip",
-                         "border-box padding-box content-box",
-                         extra_gecko_values="text",
-                         vector=True, extra_prefixes="webkit",
-                         gecko_enum_prefix="StyleGeometryBox",
-                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
-                         animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+${helpers.single_keyword(
+    "background-clip",
+    "border-box padding-box content-box",
+    extra_gecko_values="text",
+    vector=True, extra_prefixes="webkit",
+    gecko_enum_prefix="StyleGeometryBox",
+    gecko_inexhaustive=True,
+    spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
+    animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+)}
 
-${helpers.single_keyword("background-origin",
-                         "padding-box border-box content-box",
-                         vector=True, extra_prefixes="webkit",
-                         gecko_enum_prefix="StyleGeometryBox",
-                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
-                         animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+${helpers.single_keyword(
+    "background-origin",
+    "padding-box border-box content-box",
+    vector=True, extra_prefixes="webkit",
+    gecko_enum_prefix="StyleGeometryBox",
+    gecko_inexhaustive=True,
+    spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
+    animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER"
+)}
 
 ${helpers.predefined_type(
     "background-size",

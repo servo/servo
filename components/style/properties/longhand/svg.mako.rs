@@ -108,25 +108,32 @@ ${helpers.predefined_type(
     )}
 % endfor
 
-${helpers.single_keyword("mask-clip",
-                         "border-box content-box padding-box",
-                         extra_gecko_values="fill-box stroke-box view-box no-clip",
-                         vector=True,
-                         products="gecko",
-                         extra_prefixes="webkit",
-                         gecko_enum_prefix="StyleGeometryBox",
-                         animation_value_type="discrete",
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
+${helpers.single_keyword(
+    "mask-clip",
+    "border-box content-box padding-box",
+    extra_gecko_values="fill-box stroke-box view-box no-clip",
+    vector=True,
+    products="gecko",
+    extra_prefixes="webkit",
+    gecko_enum_prefix="StyleGeometryBox",
+    gecko_inexhaustive=True,
+    animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip",
+)}
 
-${helpers.single_keyword("mask-origin",
-                         "border-box content-box padding-box",
-                         extra_gecko_values="fill-box stroke-box view-box",
-                         vector=True,
-                         products="gecko",
-                         extra_prefixes="webkit",
-                         gecko_enum_prefix="StyleGeometryBox",
-                         animation_value_type="discrete",
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
+${helpers.single_keyword(
+    "mask-origin",
+    "border-box content-box padding-box",
+    extra_gecko_values="fill-box stroke-box view-box",
+    vector=True,
+    products="gecko",
+    extra_prefixes="webkit",
+    gecko_enum_prefix="StyleGeometryBox",
+    gecko_inexhaustive=True,
+    animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin",
+)}
+
 ${helpers.predefined_type(
     "mask-size",
     "background::BackgroundSize",
