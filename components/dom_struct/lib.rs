@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(proc_macro)]
+#![feature(proc_macro_non_items)]
 
 extern crate proc_macro;
 

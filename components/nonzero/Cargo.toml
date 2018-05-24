@@ -9,7 +9,7 @@ publish = false
 path = "lib.rs"
 
 [features]
-unstable = ["serde/unstable"]
+unstable = []
 
 [dependencies]
 serde = "1.0.14"
