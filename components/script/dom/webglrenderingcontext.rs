@@ -6,7 +6,7 @@ use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
 use canvas_traits::webgl::{ShaderParameter, VertexAttrib, WebGLCommand};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, WebGLContextLimits};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
 use canvas_traits::webgl::{WebVRCommand, webgl_channel};
@@ -56,7 +56,7 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
-use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use offscreen_gl_context::GLContextAttributes;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
@@ -180,7 +180,7 @@ pub struct WebGLRenderingContext {
     webgl_version: WebGLVersion,
     glsl_version: WebGLSLVersion,
     #[ignore_malloc_size_of = "Defined in offscreen_gl_context"]
-    limits: GLLimits,
+    limits: WebGLContextLimits,
     canvas: Dom<HTMLCanvasElement>,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
     last_error: Cell<Option<WebGLError>>,
@@ -277,7 +277,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    pub fn limits(&self) -> &GLLimits {
+    pub fn limits(&self) -> &WebGLContextLimits {
         &self.limits
     }
 
@@ -1311,6 +1311,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
             }
+
+            constants::MAX_COMBINED_TEXTURE_IMAGE_UNITS => {
+                return Int32Value(self.limits.max_combined_texture_image_units as i32);
+            }
+            constants::MAX_CUBE_MAP_TEXTURE_SIZE => {
+                return Int32Value(self.limits.max_cube_map_tex_size as i32);
+            }
+            constants::MAX_FRAGMENT_UNIFORM_VECTORS => {
+                return Int32Value(self.limits.max_fragment_uniform_vectors as i32);
+            }
+            constants::MAX_TEXTURE_IMAGE_UNITS => {
+                return Int32Value(self.limits.max_texture_image_units as i32);
+            }
+            constants::MAX_TEXTURE_SIZE => {
+                return Int32Value(self.limits.max_tex_size as i32);
+            }
+            constants::MAX_VARYING_VECTORS => {
+                return Int32Value(self.limits.max_varying_vectors as i32);
+            }
+            constants::MAX_VERTEX_ATTRIBS => {
+                return Int32Value(self.limits.max_vertex_attribs as i32);
+            }
+            constants::MAX_VERTEX_TEXTURE_IMAGE_UNITS => {
+                return Int32Value(self.limits.max_vertex_texture_image_units as i32);
+            }
+            constants::MAX_VERTEX_UNIFORM_VECTORS => {
+                return Int32Value(self.limits.max_vertex_uniform_vectors as i32);
+            }
+
             constants::VERSION => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
                 "WebGL 1.0".to_jsval(cx, rval.handle_mut());
@@ -1970,7 +1999,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn CompileShader(&self, shader: &WebGLShader) {
         handle_potential_webgl_error!(
             self,
-            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
+            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager, &self.limits)
         )
     }
 

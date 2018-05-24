@@ -7,7 +7,7 @@ use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
-use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
+use offscreen_gl_context::{GLContext, GLContextAttributes, NativeGLContextMethods};
 use serde_bytes::ByteBuf;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
@@ -17,6 +17,30 @@ use webrender_api;
 /// WebGL Threading API entry point that lives in the constellation.
 /// It allows to get a WebGLThread handle for each script pipeline.
 pub use ::webgl_mode::WebGLThreads;
+
+fn get_context_limits(gl: &gl::Gl) -> WebGLContextLimits {
+    let get_param = |param| {
+        let mut val = [0];
+        // get_integer_v puts some arbitrary number of values into the
+        // array, but all of our GL_MAX_* only produce a single value.
+        unsafe {
+            gl.get_integer_v(param, &mut val);
+        }
+        val[0] as u32
+    };
+
+    WebGLContextLimits {
+        max_vertex_attribs: get_param(gl::MAX_VERTEX_ATTRIBS),
+        max_vertex_uniform_vectors: get_param(gl::MAX_VERTEX_UNIFORM_VECTORS),
+        max_varying_vectors: get_param(gl::MAX_VARYING_VECTORS),
+        max_vertex_texture_image_units: get_param(gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+        max_combined_texture_image_units: get_param(gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS),
+        max_texture_image_units: get_param(gl::MAX_TEXTURE_IMAGE_UNITS),
+        max_fragment_uniform_vectors: get_param(gl::MAX_FRAGMENT_UNIFORM_VECTORS),
+        max_tex_size: get_param(gl::MAX_TEXTURE_SIZE),
+        max_cube_map_tex_size: get_param(gl::MAX_CUBE_MAP_TEXTURE_SIZE),
+    }
+}
 
 /// A WebGLThread manages the life cycle and message multiplexing of
 /// a set of WebGLContexts living in the same thread.
@@ -188,7 +212,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                             version: WebGLVersion,
                             size: Size2D<i32>,
                             attributes: GLContextAttributes)
-                            -> Result<(WebGLContextId, GLLimits, WebGLContextShareMode), String> {
+                            -> Result<(WebGLContextId, WebGLContextLimits, WebGLContextShareMode), String> {
         // First try to create a shared context for the best performance.
         // Fallback to readback mode if the shared context creation fails.
         let result = self.gl_factory.new_shared_context(version, size, attributes)
@@ -205,7 +229,8 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         match result {
             Ok((ctx, share_mode)) => {
                 let id = WebGLContextId(self.next_webgl_id);
-                let (size, texture_id, limits) = ctx.get_info();
+                let (size, texture_id) = ctx.get_info();
+                let limits = get_context_limits(ctx.gl());
                 self.next_webgl_id += 1;
                 self.contexts.insert(id, ctx);
                 self.cached_context_info.insert(id, WebGLContextInfo {
@@ -235,7 +260,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
         let ctx = Self::make_current_if_needed_mut(context_id, &mut self.contexts, &mut self.bound_context_id);
         match ctx.resize(size) {
             Ok(_) => {
-                let (real_size, texture_id, _) = ctx.get_info();
+                let (real_size, texture_id) = ctx.get_info();
                 self.observer.on_context_resize(context_id, texture_id, real_size);
 
                 let info = self.cached_context_info.get_mut(&context_id).unwrap();
