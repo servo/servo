@@ -87,6 +87,29 @@ use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylist::CascadeData;
 
+
+#[inline]
+fn elements_with_id<'a, 'le>(
+    array: *const structs::nsTArray<*mut RawGeckoElement>,
+) -> &'a [GeckoElement<'le>] {
+    unsafe {
+        if array.is_null() {
+            return &[];
+        }
+
+        let elements: &[*mut RawGeckoElement] = &**array;
+
+        // NOTE(emilio): We rely on the in-memory representation of
+        // GeckoElement<'ld> and *mut RawGeckoElement being the same.
+        #[allow(dead_code)]
+        unsafe fn static_assert() {
+            mem::transmute::<*mut RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *mut _);
+        }
+
+        mem::transmute(elements)
+    }
+}
+
 /// A simple wrapper over `nsIDocument`.
 #[derive(Clone, Copy)]
 pub struct GeckoDocument<'ld>(pub &'ld structs::nsIDocument);
@@ -109,24 +132,14 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         self.0.mCompatMode.into()
     }
 
-    fn elements_with_id(&self, id: &Atom) -> Result<&[GeckoElement<'ld>], ()> {
-        unsafe {
-            let array = bindings::Gecko_GetElementsWithId(self.0, id.as_ptr());
-            if array.is_null() {
-                return Ok(&[]);
-            }
-
-            let elements: &[*mut RawGeckoElement] = &**array;
-
-            // NOTE(emilio): We rely on the in-memory representation of
-            // GeckoElement<'ld> and *mut RawGeckoElement being the same.
-            #[allow(dead_code)]
-            unsafe fn static_assert() {
-                mem::transmute::<*mut RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *mut _);
-            }
-
-            Ok(mem::transmute(elements))
-        }
+    #[inline]
+    fn elements_with_id<'a>(&self, id: &Atom) -> Result<&'a [GeckoElement<'ld>], ()>
+    where
+        Self: 'a,
+    {
+        Ok(elements_with_id(unsafe {
+            bindings::Gecko_Document_GetElementsWithId(self.0, id.as_ptr())
+        }))
     }
 }
 
@@ -175,6 +188,16 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
         );
 
         &author_styles.data
+    }
+
+    #[inline]
+    fn elements_with_id<'a>(&self, id: &Atom) -> Result<&'a [GeckoElement<'lr>], ()>
+    where
+        Self: 'a,
+    {
+        Ok(elements_with_id(unsafe {
+            bindings::Gecko_ShadowRoot_GetElementsWithId(self.0, id.as_ptr())
+        }))
     }
 }
 
