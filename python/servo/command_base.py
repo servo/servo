@@ -478,6 +478,7 @@ class CommandBase(object):
                 return path.join(msvc_deps_dir, package, msvc_deps[package])
 
             extra_path += [path.join(package_dir("cmake"), "bin")]
+            extra_path += [path.join(package_dir("llvm"), "bin")]
             extra_path += [path.join(package_dir("ninja"), "bin")]
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(package_dir("openssl"), "include")
