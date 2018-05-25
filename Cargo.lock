@@ -1018,7 +1018,6 @@ dependencies = [
  "servo_arc 0.1.1",
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
- "simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2912,11 +2911,6 @@ version = "0.1.0"
 source = "git+https://github.com/pcwalton/signpost.git#7ed712507f343c38646b9d1fefd049166f9c9a18"
 
 [[package]]
-name = "simd"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "siphasher"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3986,7 +3980,6 @@ dependencies = [
 "checksum shared_library 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "8254bf098ce4d8d7cc7cc6de438c5488adc5297e5b7ffef88816c0a91bd289c1"
 "checksum sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c6649e43c1a1e68d29ed56d0dc3b5b6cf3b901da77cf107c4066b9e3da036df5"
 "checksum signpost 0.1.0 (git+https://github.com/pcwalton/signpost.git)" = "<none>"
-"checksum simd 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a94d14a2ae1f1f110937de5fb69e494372560181c7e1739a097fcc2cee37ba0"
 "checksum siphasher 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0df90a788073e8d0235a67e50441d47db7c8ad9debd91cbf43736a2a92d36537"
 "checksum slab 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "17b4fcaed89ab08ef143da37bc52adbcc04d4a69014f4c1208d6b51f0c47bc23"
 "checksum smallbitvec 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "665fbc8384f961eb55c548daa2a4b1efff1f9d03b7a10f162ac6ad6a781ca966"
