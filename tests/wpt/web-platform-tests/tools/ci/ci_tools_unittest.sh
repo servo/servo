@@ -18,8 +18,10 @@ run_applicable_tox () {
     export TOXENV="$OLD_TOXENV"
 }
 
+RELEVANT_JOBS=$(./wpt test-jobs)
 
-if [[ $(./wpt test-jobs --includes tools_unittest; echo $?) -eq 0 ]]; then
+RELEVANT_CHANGES_TOOLS=$(echo "$RELEVANT_JOBS" | grep "tools_unittest" || true)
+if [[ ! -z $RELEVANT_CHANGES_TOOLS ]]; then
     pip install -U tox codecov
     cd tools
     run_applicable_tox
@@ -28,7 +30,8 @@ else
     echo "Skipping tools unittest"
 fi
 
-if [[ $(./wpt test-jobs --includes wptrunner_unittest; echo $?) -eq 0 ]]; then
+RELEVANT_CHANGES_WPTRUNNER=$(echo "$RELEVANT_JOBS" | grep "wptrunner_unittest" || true)
+if [[ ! -z $RELEVANT_CHANGES_WPTRUNNER ]]; then
     cd tools/wptrunner
     run_applicable_tox
     cd $WPT_ROOT

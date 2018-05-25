@@ -49,55 +49,6 @@ onload = function() {
       test_obj.step_timeout(poll, 200);
   }
 
-  // background attribute, check with getComputedStyle
-  function test_background(tag) {
-    var spec_url = 'https://html.spec.whatwg.org/multipage/rendering.html';
-    spec_url += tag == 'body' ? '#the-page' : '#tables';
-    test(function() {
-      var elm = document.createElement(tag);
-      document.body.appendChild(elm);
-      this.add_cleanup(function() {
-        document.body.removeChild(elm);
-      });
-      elm.setAttribute('background', input_url_png);
-      var got = getComputedStyle(elm).backgroundImage;
-      assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
-    }, 'getComputedStyle <'+tag+' background>',
-    {help:spec_url});
-  }
-
-  'body, table, thead, tbody, tfoot, tr, td, th'.split(', ').forEach(function(str) {
-    test_background(str);
-  });
-
-  // get a reflecting IDL attributes whose content attribute takes a URL or a list of space-separated URLs
-  function test_reflecting(tag, attr, idlAttr, multiple) {
-    idlAttr = idlAttr || attr;
-    var input = input_url_html;
-    if (multiple) {
-      input += ' ' + input;
-    }
-    test(function() {
-      var elm = document.createElement(tag);
-      assert_true(idlAttr in elm, idlAttr + ' is not supported');
-      elm.setAttribute(attr, input);
-      var got = elm[idlAttr];
-      assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
-    }, 'Getting <'+tag+'>.'+idlAttr + (multiple ? ' (multiple URLs)' : ''),
-    {help:'https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes'});
-  }
-
-  ('iframe src, a href, base href, link href, img src, embed src, object data, track src, video src, audio src, input src, form action, ' +
-  'input formaction formAction, button formaction formAction, script src').split(', ').forEach(function(str) {
-    var arr = str.split(' ');
-    test_reflecting(arr[0], arr[1], arr[2]);
-  });
-
-  'a ping'.split(', ').forEach(function(str) {
-    var arr = str.split(' ');
-    test_reflecting(arr[0], arr[1], arr[2], true);
-  });
-
   function setup_navigation(elm, iframe, id, test_obj) {
     iframe.name = id;
     elm.target = id;

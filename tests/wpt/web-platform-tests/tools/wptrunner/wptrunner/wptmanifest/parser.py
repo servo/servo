@@ -17,7 +17,10 @@ from __future__ import unicode_literals
 import types
 from cStringIO import StringIO
 
-from node import *
+from node import (AtomNode, BinaryExpressionNode, BinaryOperatorNode,
+                  ConditionalNode, DataNode, IndexNode, KeyValueNode, ListNode,
+                  NumberNode, StringNode, UnaryExpressionNode,
+                  UnaryOperatorNode, ValueNode, VariableNode)
 
 
 class ParseError(Exception):

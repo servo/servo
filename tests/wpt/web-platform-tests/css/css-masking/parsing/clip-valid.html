@@ -14,7 +14,7 @@
 <script>
 test_valid_value("clip", "auto");
 test_valid_value("clip", "rect(10px, 20px, -30px, 40px)", ["rect(10px, 20px, -30px, 40px)", "rect(10px 20px -30px 40px)"]);
-test_valid_value("clip", "rect(10%, -20%, auto, auto)");
+test_valid_value("clip", "rect(10px, -20px, auto, auto)", ["rect(10px, -20px, auto, auto)", "rect(10px -20px auto auto)"]);
 </script>
 </body>
 </html>

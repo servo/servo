@@ -17,8 +17,13 @@ def pytest_addoption(parser):
     parser.addoption("--binary", action="store", default=None, help="path to browser binary")
 
 def pytest_collect_file(path, parent):
-    if path.ext.lower() == '.html':
-        return HTMLItem(str(path), parent)
+    if path.ext.lower() != '.html':
+        return
+
+    # Tests are organized in directories by type
+    test_type = os.path.relpath(str(path), HERE).split(os.path.sep)[1]
+
+    return HTMLItem(str(path), test_type, parent)
 
 def pytest_configure(config):
     config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
@@ -28,8 +33,13 @@ def pytest_configure(config):
     config.add_cleanup(config.driver.quit)
 
 class HTMLItem(pytest.Item, pytest.Collector):
-    def __init__(self, filename, parent):
+    def __init__(self, filename, test_type, parent):
         self.filename = filename
+        self.type = test_type
+
+        if test_type not in ('functional', 'unit'):
+            raise ValueError('Unrecognized test type: "%s"' % test_type)
+
         with io.open(filename, encoding=ENC) as f:
             markup = f.read()
 
@@ -47,6 +57,10 @@ class HTMLItem(pytest.Item, pytest.Collector):
 
         if not name:
             raise ValueError('No name found in file: %s' % filename)
+        elif self.type == 'functional' and not self.expected:
+            raise ValueError('Functional tests must specify expected report data')
+        elif self.type == 'unit' and self.expected:
+            raise ValueError('Unit tests must not specify expected report data')
 
         super(HTMLItem, self).__init__(name, parent)
 
@@ -58,6 +72,29 @@ class HTMLItem(pytest.Item, pytest.Collector):
         return pytest.Collector.repr_failure(self, excinfo)
 
     def runtest(self):
+        if self.type == 'unit':
+            self._run_unit_test()
+        elif self.type == 'functional':
+            self._run_functional_test()
+        else:
+            raise NotImplementedError
+
+    def _run_unit_test(self):
+        driver = self.session.config.driver
+        server = self.session.config.server
+
+        driver.get(server.url(HARNESS))
+
+        actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % server.url(str(self.filename)))
+
+        summarized = self._summarize(actual)
+
+        assert summarized[u'summarized_status'][u'status_string'] == u'OK', summarized[u'summarized_status'][u'message']
+        for test in summarized[u'summarized_tests']:
+            msg = "%s\n%s" % (test[u'name'], test[u'message'])
+            assert test[u'status_string'] == u'PASS', msg
+
+    def _run_functional_test(self):
         driver = self.session.config.driver
         server = self.session.config.server
 
@@ -70,20 +107,20 @@ class HTMLItem(pytest.Item, pytest.Collector):
         indices = [test_obj.get('index') for test_obj in actual['tests']]
         self._assert_sequence(indices)
 
+        summarized = self._summarize(actual)
+
+        assert summarized == self.expected
+
+    def _summarize(self, actual):
         summarized = {}
+
         summarized[u'summarized_status'] = self._summarize_status(actual['status'])
         summarized[u'summarized_tests'] = [
             self._summarize_test(test) for test in actual['tests']]
         summarized[u'summarized_tests'].sort(key=lambda test_obj: test_obj.get('name'))
         summarized[u'type'] = actual['type']
 
-        if not self.expected:
-            assert summarized[u'summarized_status'][u'status_string'] == u'OK', summarized[u'summarized_status'][u'message']
-            for test in summarized[u'summarized_tests']:
-                msg = "%s\n%s" % (test[u'name'], test[u'message'])
-                assert test[u'status_string'] == u'PASS', msg
-        else:
-            assert summarized == self.expected
+        return summarized
 
     @staticmethod
     def _assert_sequence(nums):

@@ -214,7 +214,7 @@ SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
 
 # generate_tests implementation and sample usage
-GENERATE_TESTS: resources/test/tests/generate-callback.html
+GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
 GENERATE_TESTS: resources/testharness.js
 
 # generate_tests usage (should be got rid of)
@@ -289,9 +289,9 @@ SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-o
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: resources/chromium/*
-SET TIMEOUT: resources/test/tests/add_cleanup.html
-SET TIMEOUT: resources/test/tests/api-tests-1.html
-SET TIMEOUT: resources/test/tests/worker.js
+SET TIMEOUT: resources/test/tests/functional/add_cleanup.html
+SET TIMEOUT: resources/test/tests/functional/api-tests-1.html
+SET TIMEOUT: resources/test/tests/functional/worker.js
 SET TIMEOUT: resources/testharness.js
 
 # setTimeout use in reftests

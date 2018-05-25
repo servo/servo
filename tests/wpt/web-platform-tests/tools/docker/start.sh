@@ -28,7 +28,7 @@ then
     deb_archive=google-chrome-unstable_current_amd64.deb
     wget https://dl.google.com/linux/direct/$deb_archive
 
-    sudo gdebi -n $deb_archive
+    sudo apt-get -qqy update && gdebi -n $deb_archive
 fi
 
 sudo Xvfb $DISPLAY -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH} &

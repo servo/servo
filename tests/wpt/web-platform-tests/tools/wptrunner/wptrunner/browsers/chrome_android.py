@@ -1,6 +1,5 @@
 import subprocess
 
-from ..config import *
 from .base import Browser, ExecutorBrowser, require_arg
 from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
