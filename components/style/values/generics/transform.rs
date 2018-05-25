@@ -276,6 +276,19 @@ pub struct Transform<T>(#[css(if_empty = "none", iterable)] pub Vec<T>);
 impl<Angle, Number, Length, Integer, LengthOrPercentage>
     TransformOperation<Angle, Number, Length, Integer, LengthOrPercentage>
 {
+    /// Check if it is any rotate function.
+    pub fn is_rotate(&self) -> bool {
+        use self::TransformOperation::*;
+        matches!(
+            *self,
+            Rotate(..) |
+            Rotate3D(..) |
+            RotateX(..) |
+            RotateY(..) |
+            RotateZ(..)
+        )
+    }
+
     /// Check if it is any translate function
     pub fn is_translate(&self) -> bool {
         use self::TransformOperation::*;

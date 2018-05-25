@@ -1289,7 +1289,11 @@ impl Animate for ComputedTransformOperation {
             ) => {
                 Ok(TransformOperation::Scale(
                     animate_multiplicative_factor(*fx, *tx, procedure)?,
-                    Some(animate_multiplicative_factor(fy.unwrap_or(*fx), ty.unwrap_or(*tx), procedure)?),
+                    Some(animate_multiplicative_factor(
+                        fy.unwrap_or(*fx),
+                        ty.unwrap_or(*tx),
+                        procedure
+                    )?),
                 ))
             },
             (
@@ -1371,6 +1375,9 @@ impl Animate for ComputedTransformOperation {
             _ if self.is_scale() && other.is_scale() => {
                 self.to_scale_3d().animate(&other.to_scale_3d(), procedure)
             }
+            _ if self.is_rotate() && other.is_rotate() => {
+                self.to_rotate_3d().animate(&other.to_rotate_3d(), procedure)
+            }
             _ => Err(()),
         }
     }
@@ -1403,6 +1410,7 @@ fn is_matched_operation(first: &ComputedTransformOperation, second: &ComputedTra
         // we animate scale and translate operations against each other
         (a, b) if a.is_translate() && b.is_translate() => true,
         (a, b) if a.is_scale() && b.is_scale() => true,
+        (a, b) if a.is_rotate() && b.is_rotate() => true,
         // InterpolateMatrix and AccumulateMatrix are for mismatched transform.
         _ => false
     }
@@ -2733,6 +2741,9 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
             }
             _ if self.is_scale() && other.is_scale() => {
                 self.to_scale_3d().compute_squared_distance(&other.to_scale_3d())
+            }
+            _ if self.is_rotate() && other.is_rotate() => {
+                self.to_rotate_3d().compute_squared_distance(&other.to_rotate_3d())
             }
             _ => Err(()),
         }
