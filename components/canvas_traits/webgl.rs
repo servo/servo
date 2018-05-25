@@ -206,7 +206,6 @@ pub enum WebGLCommand {
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetExtensions(WebGLSender<String>),
-    GetTexParameter(u32, u32, WebGLSender<i32>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
     GetActiveAttrib(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
@@ -259,8 +258,6 @@ pub enum WebGLCommand {
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     SetViewport(i32, i32, i32, i32),
     TexImage2D(u32, i32, i32, i32, i32, u32, u32, ByteBuf),
-    TexParameteri(u32, u32, i32),
-    TexParameterf(u32, u32, f32),
     TexSubImage2D(u32, i32, i32, i32, i32, i32, u32, u32, ByteBuf),
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),
@@ -284,6 +281,10 @@ pub enum WebGLCommand {
     GetVertexAttribBool(u32, VertexAttribBool, WebGLSender<WebGLResult<bool>>),
     GetVertexAttribInt(u32, VertexAttribInt, WebGLSender<WebGLResult<i32>>),
     GetVertexAttribFloat4(u32, VertexAttribFloat4, WebGLSender<WebGLResult<[f32; 4]>>),
+    GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
+    GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
+    TexParameteri(u32, TexParameterInt, i32),
+    TexParameterf(u32, TexParameterFloat, f32),
 }
 
 macro_rules! define_resource_id_struct {
@@ -510,6 +511,7 @@ parameters! {
         Float(ParameterFloat {
             DepthClearValue = gl::DEPTH_CLEAR_VALUE,
             LineWidth = gl::LINE_WIDTH,
+            MaxTextureMaxAnisotropyExt = gl::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
             PolygonOffsetFactor = gl::POLYGON_OFFSET_FACTOR,
             PolygonOffsetUnits = gl::POLYGON_OFFSET_UNITS,
             SampleCoverageValue = gl::SAMPLE_COVERAGE_VALUE,
@@ -549,6 +551,20 @@ parameters! {
         }),
         Int(ShaderParameterInt {
             ShaderType = gl::SHADER_TYPE,
+        }),
+    }
+}
+
+parameters! {
+    TexParameter {
+        Float(TexParameterFloat {
+            TextureMaxAnisotropyExt = gl::TEXTURE_MAX_ANISOTROPY_EXT,
+        }),
+        Int(TexParameterInt {
+            TextureMagFilter = gl::TEXTURE_MAG_FILTER,
+            TextureMinFilter = gl::TEXTURE_MIN_FILTER,
+            TextureWrapS = gl::TEXTURE_WRAP_S,
+            TextureWrapT = gl::TEXTURE_WRAP_T,
         }),
     }
 }

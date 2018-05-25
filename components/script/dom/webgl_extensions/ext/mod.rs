@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use super::{ext_constants, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 pub mod extshadertexturelod;
+pub mod exttexturefilteranisotropic;
 pub mod oeselementindexuint;
 pub mod oesstandardderivatives;
 pub mod oestexturefloat;

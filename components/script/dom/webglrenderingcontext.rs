@@ -5,7 +5,7 @@
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
-use canvas_traits::webgl::{ShaderParameter, VertexAttrib, WebGLCommand};
+use canvas_traits::webgl::{ShaderParameter, TexParameter, VertexAttrib, WebGLCommand};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
@@ -432,27 +432,35 @@ impl WebGLRenderingContext {
             constants::TEXTURE_CUBE_MAP => self.bound_texture(target),
             _ => return self.webgl_error(InvalidEnum),
         };
-        if let Some(texture) = texture {
-            handle_potential_webgl_error!(self, texture.tex_parameter(target, name, value));
 
-            // Validate non filterable TEXTURE_2D data_types
-            if target != constants::TEXTURE_2D {
-                return;
-            }
+        if !self.extension_manager.is_get_tex_parameter_name_enabled(name) {
+            return self.webgl_error(InvalidEnum);
+        }
 
-            let target = TexImageTarget::Texture2D;
-            let info = texture.image_info_for_target(&target, 0);
-            if info.is_initialized() {
-                self.validate_filterable_texture(&texture,
-                                                 target,
-                                                 0,
-                                                 info.internal_format().unwrap_or(TexFormat::RGBA),
-                                                 info.width(),
-                                                 info.height(),
-                                                 info.data_type().unwrap_or(TexDataType::UnsignedByte));
-            }
-        } else {
-            self.webgl_error(InvalidOperation)
+        let param = handle_potential_webgl_error!(self, TexParameter::from_u32(name), return);
+        let texture = match texture {
+            Some(tex) => tex,
+            None => return self.webgl_error(InvalidOperation),
+        };
+        handle_potential_webgl_error!(self, texture.tex_parameter(param, value), return);
+
+        // Validate non filterable TEXTURE_2D data_types
+        if target != constants::TEXTURE_2D {
+            return;
+        }
+
+        let target = TexImageTarget::Texture2D;
+        let info = texture.image_info_for_target(&target, 0);
+        if info.is_initialized() {
+            self.validate_filterable_texture(
+                &texture,
+                target,
+                0,
+                info.internal_format().unwrap_or(TexFormat::RGBA),
+                info.width(),
+                info.height(),
+                info.data_type().unwrap_or(TexDataType::UnsignedByte),
+            );
         }
     }
 
@@ -1437,21 +1445,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     unsafe fn GetTexParameter(&self, _cx: *mut JSContext, target: u32, pname: u32) -> JSVal {
-        let target_matches = match target {
+        match target {
             constants::TEXTURE_2D |
-            constants::TEXTURE_CUBE_MAP => true,
-            _ => false,
+            constants::TEXTURE_CUBE_MAP => {},
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return NullValue();
+            }
         };
 
-        let pname_matches = match pname {
-            constants::TEXTURE_MAG_FILTER |
-            constants::TEXTURE_MIN_FILTER |
-            constants::TEXTURE_WRAP_S |
-            constants::TEXTURE_WRAP_T => true,
-            _ => false,
-        };
-
-        if !target_matches || !pname_matches {
+        if !self.extension_manager.is_get_tex_parameter_name_enabled(pname) {
             self.webgl_error(InvalidEnum);
             return NullValue();
         }
@@ -1461,10 +1464,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return NullValue();
         }
 
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetTexParameter(target, pname, sender));
-
-        Int32Value(receiver.recv().unwrap())
+        match handle_potential_webgl_error!(self, TexParameter::from_u32(pname), return NullValue()) {
+            TexParameter::Float(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetTexParameterFloat(target, param, sender));
+                DoubleValue(receiver.recv().unwrap() as f64)
+            }
+            TexParameter::Int(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetTexParameterInt(target, param, sender));
+                Int32Value(receiver.recv().unwrap())
+            }
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
