@@ -474,7 +474,7 @@ impl SingleFontFamily {
             FontFamilyType::eFamily_cursive => SingleFontFamily::Generic(atom!("cursive")),
             FontFamilyType::eFamily_fantasy => SingleFontFamily::Generic(atom!("fantasy")),
             FontFamilyType::eFamily_moz_fixed => {
-                SingleFontFamily::Generic(Atom::from("-moz-fixed"))
+                SingleFontFamily::Generic(atom!("-moz-fixed"))
             },
             FontFamilyType::eFamily_named => {
                 let name = Atom::from(&*family.mName);
