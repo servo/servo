@@ -36,6 +36,9 @@ Downloads/ as it'll be easier to find). Open Settings -> Security & location ->
 Encryption & credentials -> Install from storage. Find and install `cacert.crt`.
 (The setting entries might be slightly different based your Android version.)
 
+Note that having this CA installed on your device outside of a test
+environment represents a security risk.
+
 
 Finally, we may run wpt with the `chrome_android` product
 

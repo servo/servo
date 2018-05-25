@@ -11,6 +11,7 @@
       var audioCapabilities = stream.getAudioTracks()[0].getCapabilities();
       var videoCapabilities = stream.getVideoTracks()[0].getCapabilities();
       assert_true(undefined !== audioCapabilities.deviceId, "MediaTrackCapabilities's deviceId should exist for an audio track.");
+      assert_true(undefined !== audioCapabilities.groupId, "MediaTrackCapabilities's groupId should exist for an audio track.");
       assert_true(undefined !== audioCapabilities.echoCancellation, "MediaTrackCapabilities's echoCancellation should exist for an audio track.");
       assert_true(undefined !== audioCapabilities.autoGainControl, "MediaTrackCapabilities's autoGainControl should exist for an audio track.");
       assert_true(undefined !== audioCapabilities.noiseSuppression, "MediaTrackCapabilities's noiseSuppression should exist for an audio track.");

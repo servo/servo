@@ -100,7 +100,6 @@ async_test(function(t) {
     assert_equals(placeholder.height, 20);
   });
   var asyncStepsCompleted = 0;
-  ctx.commit();
   createImageBitmap(placeholder).then(image => {
     t.step(function() {
       // Verify that the placeholder was not updated synchronously.
@@ -112,29 +111,33 @@ async_test(function(t) {
       t.done();
     }
   });
-  // Set timeout acts as a sync barrier to allow commit to propagate
-  setTimeout(function(){
-    t.step(function() {
-      // Verify that commit() asynchronously updates the size of its placeholder canvas.
-      assert_equals(placeholder.width, 30);
-      assert_equals(placeholder.height, 40);
-      var computedStyle = window.getComputedStyle(placeholder);
-      assert_equals(computedStyle.getPropertyValue('width'), "30px");
-      assert_equals(computedStyle.getPropertyValue('height'), "40px");
-    });
-    createImageBitmap(placeholder).then(image => {
+  // We wait for up to 3 frames before checking the information has propagated.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
       t.step(function() {
-        // Verify that an image grabbed from the placeholder has the correct dimensions
-        assert_equals(image.width, 30);
-        assert_equals(image.height, 40);
+        // Verify that updates the size of its placeholder canvas.
+        assert_equals(placeholder.width, 30);
+        assert_equals(placeholder.height, 40);
+        var computedStyle = window.getComputedStyle(placeholder);
+        assert_equals(computedStyle.getPropertyValue('width'), "30px");
+        assert_equals(computedStyle.getPropertyValue('height'), "40px");
       });
-      asyncStepsCompleted = asyncStepsCompleted + 1;
-      if (asyncStepsCompleted == 2) {
-        t.done();
-      }
+      createImageBitmap(placeholder).then(image => {
+        t.step(function() {
+          // Verify that an image grabbed from the placeholder has the correct dimensions
+          assert_equals(image.width, 30);
+          assert_equals(image.height, 40);
+        });
+        asyncStepsCompleted = asyncStepsCompleted + 1;
+        if (asyncStepsCompleted == 2) {
+          t.done();
+        }
+      });
     });
-  }, 0);
-}, "Verify that resizing an OffscreenCanvas with a 2d context propagates the new size to its placeholder canvas asynchronously, upon commit.");
+    });
+  });
+}, "Verify that resizing an OffscreenCanvas with a 2d context propagates the new size to its placeholder canvas asynchronously.");
 
 async_test(function(t) {
   var placeholder = document.createElement('canvas');
@@ -159,7 +162,6 @@ async_test(function(t) {
     assert_equals(placeholder.height, 20);
   });
   var asyncStepsCompleted = 0;
-  ctx.commit();
   createImageBitmap(placeholder).then(image => {
     t.step(function() {
       // Verify that the placeholder was not updated synchronously.
@@ -171,29 +173,33 @@ async_test(function(t) {
       t.done();
     }
   });
-  // Set timeout acts as a sync barrier to allow commit to propagate
-  setTimeout(function(){
-    t.step(function() {
-      // Verify that commit() asynchronously updates the size of its placeholder canvas.
-      assert_equals(placeholder.width, 30);
-      assert_equals(placeholder.height, 40);
-      var computedStyle = window.getComputedStyle(placeholder);
-      assert_equals(computedStyle.getPropertyValue('width'), "30px");
-      assert_equals(computedStyle.getPropertyValue('height'), "40px");
-    });
-    createImageBitmap(placeholder).then(image => {
-      t.step(function() {
-        // Verify that an image grabbed from the placeholder has the correct dimensions
-        assert_equals(image.width, 30);
-        assert_equals(image.height, 40);
+  // We wait for up to 3 frames before checking the information has propagated.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        t.step(function() {
+          // Verify that updates the size of its placeholder canvas.
+          assert_equals(placeholder.width, 30);
+          assert_equals(placeholder.height, 40);
+          var computedStyle = window.getComputedStyle(placeholder);
+          assert_equals(computedStyle.getPropertyValue('width'), "30px");
+          assert_equals(computedStyle.getPropertyValue('height'), "40px");
+        });
+        createImageBitmap(placeholder).then(image => {
+          t.step(function() {
+            // Verify that an image grabbed from the placeholder has the correct dimensions
+            assert_equals(image.width, 30);
+            assert_equals(image.height, 40);
+          });
+          asyncStepsCompleted = asyncStepsCompleted + 1;
+          if (asyncStepsCompleted == 2) {
+            t.done();
+          }
+        });
       });
-      asyncStepsCompleted = asyncStepsCompleted + 1;
-      if (asyncStepsCompleted == 2) {
-        t.done();
-      }
     });
-  }, 0);
-}, "Verify that resizing an OffscreenCanvas with a webgl context propagates the new size to its placeholder canvas asynchronously, upon commit.");
+  });
+}, "Verify that resizing an OffscreenCanvas with a webgl context propagates the new size to its placeholder canvas asynchronously.");
 
 async_test(function(t){
   var placeholder = document.createElement('canvas');
@@ -204,24 +210,27 @@ async_test(function(t){
   offscreen.width = offscreen.height = 10;
   ctx.fillStyle = '#0f0';
   ctx.fillRect(0, 0, 10, 10);
-  ctx.commit();
-  // Set timeout acts as a sync barrier to allow commit to propagate
-  setTimeout(function(){
-    var testCanvas = document.createElement('canvas');
-    testCanvas.width = testCanvas.height = 20;
-    testCtx = testCanvas.getContext('2d');
-    testCtx.drawImage(placeholder, 0, 0);
-    var pixel1 = testCtx.getImageData(9, 9, 1, 1).data;
-    var pixel2 = testCtx.getImageData(9, 10, 1, 1).data;
-    var pixel3 = testCtx.getImageData(10, 9, 1, 1).data;
-    t.step(function() {
-      assert_equals(placeholder.width, 10);
-      assert_equals(placeholder.height, 10);
-      assert_array_equals(pixel1, [0, 255, 0, 255]);
-      assert_array_equals(pixel2, [0, 0, 0, 0]);
-      assert_array_equals(pixel3, [0, 0, 0, 0]);
+  // We wait for up to 3 frames before checking the information has propagated.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        var testCanvas = document.createElement('canvas');
+        testCanvas.width = testCanvas.height = 20;
+        testCtx = testCanvas.getContext('2d');
+        testCtx.drawImage(placeholder, 0, 0);
+        var pixel1 = testCtx.getImageData(9, 9, 1, 1).data;
+        var pixel2 = testCtx.getImageData(9, 10, 1, 1).data;
+        var pixel3 = testCtx.getImageData(10, 9, 1, 1).data;
+        t.step(function() {
+          assert_equals(placeholder.width, 10);
+          assert_equals(placeholder.height, 10);
+          assert_array_equals(pixel1, [0, 255, 0, 255]);
+          assert_array_equals(pixel2, [0, 0, 0, 0]);
+          assert_array_equals(pixel3, [0, 0, 0, 0]);
+        });
+        t.done();
+      });
     });
-    t.done();
   });
-}, "Verify that drawImage uses the size of the committed frame as the intinsic size of a placeholder canvas.");
+}, "Verify that drawImage uses the size of the frame as the intinsic size of a placeholder canvas.");
 </script>

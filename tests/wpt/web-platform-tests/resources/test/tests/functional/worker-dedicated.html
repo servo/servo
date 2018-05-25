@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Dedicated Worker Tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>Dedicated Web Worker Tests</h1>
+<p>Demonstrates running <tt>testharness</tt> based tests inside a dedicated web worker.
+<p>The test harness is expected to fail due to an uncaught exception in one worker.</p>
+<div id="log"></div>
+
+<script>
+test(function(t) {
+        assert_true("Worker" in self, "Browser should support Workers");
+    },
+    "Browser supports Workers");
+
+fetch_tests_from_worker(new Worker("worker.js"));
+
+fetch_tests_from_worker(new Worker("worker-error.js"));
+
+test(function(t) {
+        assert_false(false, "False is false");
+    },
+    "Test running on main document.");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "ERROR",
+    "message": "Error: This failure is expected."
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Browser supports Workers",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test running on main document.",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Untitled",
+      "properties": {},
+      "message": "Error: This failure is expected."
+    },
+    {
+      "status_string": "PASS",
+      "name": "Worker async_test that completes successfully",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Worker test that completes successfully",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "NOTRUN",
+      "name": "Worker test that doesn't run ('NOT RUN')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "FAIL",
+      "name": "Worker test that fails ('FAIL')",
+      "properties": {},
+      "message": "assert_true: Failing test expected true got false"
+    },
+    {
+      "status_string": "TIMEOUT",
+      "name": "Worker test that times out ('TIMEOUT')",
+      "properties": {},
+      "message": "Test timed out"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>

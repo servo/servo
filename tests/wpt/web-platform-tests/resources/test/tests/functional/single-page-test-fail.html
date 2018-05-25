@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<title>Example with file_is_test (should fail)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+onload = function() {
+  assert_true(false);
+  done();
+}
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "FAIL",
+      "name": "Example with file_is_test (should fail)",
+      "properties": {},
+      "message": "uncaught exception: Error: assert_true: expected true got false"
+    }
+  ],
+  "type": "complete"
+}
+</script>
