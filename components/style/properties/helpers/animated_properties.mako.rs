@@ -1503,10 +1503,10 @@ impl Animate for MatrixDecomposed2D {
         let matrix = self.matrix.animate(&other.matrix, procedure)?;
 
         Ok(MatrixDecomposed2D {
-            translate: translate,
-            scale: scale,
-            angle: angle,
-            matrix: matrix,
+            translate,
+            scale,
+            angle,
+            matrix,
         })
     }
 }
