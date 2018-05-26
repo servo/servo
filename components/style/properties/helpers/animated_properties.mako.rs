@@ -1300,18 +1300,10 @@ impl Animate for ComputedTransformOperation {
                 &TransformOperation::Rotate3D(fx, fy, fz, fa),
                 &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
-                let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
-                let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
-                if (fx, fy, fz) == (tx, ty, tz) {
-                    let ia = fa.animate(&ta, procedure)?;
-                    Ok(TransformOperation::Rotate3D(fx, fy, fz, ia))
-                } else {
-                    let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
-                    let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
-                    Ok(TransformOperation::Matrix3D(
-                        matrix_f.animate(&matrix_t, procedure)?,
-                    ))
-                }
+                let animated = Rotate::Rotate3D(fx, fy, fz, fa)
+                    .animate(&Rotate::Rotate3D(tx, ty, tz, ta), procedure)?;
+                let (fx, fy, fz, fa) = ComputedRotate::resolve(&animated);
+                Ok(TransformOperation::Rotate3D(fx, fy, fz, fa))
             },
             (
                 &TransformOperation::RotateX(fa),
@@ -1413,35 +1405,6 @@ fn is_matched_operation(first: &ComputedTransformOperation, second: &ComputedTra
         (a, b) if a.is_rotate() && b.is_rotate() => true,
         // InterpolateMatrix and AccumulateMatrix are for mismatched transform.
         _ => false
-    }
-}
-
-/// <https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined>
-fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> Matrix3D {
-    let half_rad = a.radians() / 2.0;
-    let sc = (half_rad).sin() * (half_rad).cos();
-    let sq = (half_rad).sin().powi(2);
-
-    Matrix3D {
-        m11: 1.0 - 2.0 * (y * y + z * z) * sq,
-        m12: 2.0 * (x * y * sq + z * sc),
-        m13: 2.0 * (x * z * sq - y * sc),
-        m14: 0.0,
-
-        m21: 2.0 * (x * y * sq - z * sc),
-        m22: 1.0 - 2.0 * (x * x + z * z) * sq,
-        m23: 2.0 * (y * z * sq + x * sc),
-        m24: 0.0,
-
-        m31: 2.0 * (x * z * sq + y * sc),
-        m32: 2.0 * (y * z * sq - x * sc),
-        m33: 1.0 - 2.0 * (x * x + y * y) * sq,
-        m34: 0.0,
-
-        m41: 0.0,
-        m42: 0.0,
-        m43: 0.0,
-        m44: 1.0
     }
 }
 
