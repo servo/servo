@@ -2161,43 +2161,47 @@ impl From<MatrixDecomposed3D> for Matrix3D {
         % endfor
 
         // Apply rotation
-        let x = decomposed.quaternion.0;
-        let y = decomposed.quaternion.1;
-        let z = decomposed.quaternion.2;
-        let w = decomposed.quaternion.3;
+        {
+            let x = decomposed.quaternion.0;
+            let y = decomposed.quaternion.1;
+            let z = decomposed.quaternion.2;
+            let w = decomposed.quaternion.3;
 
-        // Construct a composite rotation matrix from the quaternion values
-        // rotationMatrix is a identity 4x4 matrix initially
-        let mut rotation_matrix = Matrix3D::identity();
-        rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z) as f32;
-        rotation_matrix.m12 = 2.0 * (x * y + z * w) as f32;
-        rotation_matrix.m13 = 2.0 * (x * z - y * w) as f32;
-        rotation_matrix.m21 = 2.0 * (x * y - z * w) as f32;
-        rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z) as f32;
-        rotation_matrix.m23 = 2.0 * (y * z + x * w) as f32;
-        rotation_matrix.m31 = 2.0 * (x * z + y * w) as f32;
-        rotation_matrix.m32 = 2.0 * (y * z - x * w) as f32;
-        rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y) as f32;
+            // Construct a composite rotation matrix from the quaternion values
+            // rotationMatrix is a identity 4x4 matrix initially
+            let mut rotation_matrix = Matrix3D::identity();
+            rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z) as f32;
+            rotation_matrix.m12 = 2.0 * (x * y + z * w) as f32;
+            rotation_matrix.m13 = 2.0 * (x * z - y * w) as f32;
+            rotation_matrix.m21 = 2.0 * (x * y - z * w) as f32;
+            rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z) as f32;
+            rotation_matrix.m23 = 2.0 * (y * z + x * w) as f32;
+            rotation_matrix.m31 = 2.0 * (x * z + y * w) as f32;
+            rotation_matrix.m32 = 2.0 * (y * z - x * w) as f32;
+            rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y) as f32;
 
-        matrix = multiply(rotation_matrix, matrix);
+            matrix = multiply(rotation_matrix, matrix);
+        }
 
         // Apply skew
-        let mut temp = Matrix3D::identity();
-        if decomposed.skew.2 != 0.0 {
-            temp.m32 = decomposed.skew.2;
-            matrix = multiply(temp, matrix);
-        }
+        {
+            let mut temp = Matrix3D::identity();
+            if decomposed.skew.2 != 0.0 {
+                temp.m32 = decomposed.skew.2;
+                matrix = multiply(temp, matrix);
+                temp.m32 = 0.0;
+            }
 
-        if decomposed.skew.1 != 0.0 {
-            temp.m32 = 0.0;
-            temp.m31 = decomposed.skew.1;
-            matrix = multiply(temp, matrix);
-        }
+            if decomposed.skew.1 != 0.0 {
+                temp.m31 = decomposed.skew.1;
+                matrix = multiply(temp, matrix);
+                temp.m31 = 0.0;
+            }
 
-        if decomposed.skew.0 != 0.0 {
-            temp.m31 = 0.0;
-            temp.m21 = decomposed.skew.0;
-            matrix = multiply(temp, matrix);
+            if decomposed.skew.0 != 0.0 {
+                temp.m21 = decomposed.skew.0;
+                matrix = multiply(temp, matrix);
+            }
         }
 
         // Apply scale
