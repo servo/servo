@@ -628,8 +628,6 @@ impl Node {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
     pub fn scroll_area(&self) -> Rect<i32> {
         // Step 1
         let document = self.owner_doc();
