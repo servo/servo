@@ -2376,16 +2376,15 @@ impl Matrix3D {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-rotate>
 impl ComputedRotate {
-    fn fill_unspecified(rotate: &ComputedRotate) -> Result<(Number, Number, Number, Angle), ()> {
+    fn resolve(rotate: &ComputedRotate) -> (Number, Number, Number, Angle) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // If the axis is unspecified, it defaults to "0 0 1"
         match *rotate {
-            Rotate::None =>
-                Ok((0., 0., 1., Angle::zero())),
-            Rotate::Rotate3D(rx, ry, rz, angle) => Ok((rx, ry, rz, angle)),
-            Rotate::Rotate(angle) => Ok((0., 0., 1., angle)),
+            Rotate::None => (0., 0., 1., Angle::zero()),
+            Rotate::Rotate3D(rx, ry, rz, angle) => (rx, ry, rz, angle),
+            Rotate::Rotate(angle) => (0., 0., 1., angle),
         }
     }
 }
@@ -2397,11 +2396,13 @@ impl Animate for ComputedRotate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedRotate::fill_unspecified(self)?;
-        let to = ComputedRotate::fill_unspecified(other)?;
+        let from = ComputedRotate::resolve(self);
+        let to = ComputedRotate::resolve(other);
 
-        let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
-        let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+        let (fx, fy, fz, fa) =
+            transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
+        let (tx, ty, tz, ta) =
+            transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
         if (fx, fy, fz) == (tx, ty, tz) {
             return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
         }
@@ -2412,11 +2413,12 @@ impl Animate for ComputedRotate {
         let tq = Quaternion::from_direction_and_angle(&tv, ta.radians64());
 
         let rq = Quaternion::animate(&fq, &tq, procedure)?;
-        let (x, y, z, angle) =
-            transform::get_normalized_vector_and_angle(rq.0 as f32,
-                                                       rq.1 as f32,
-                                                       rq.2 as f32,
-                                                       rq.3.acos() as f32 *2.0);
+        let (x, y, z, angle) = transform::get_normalized_vector_and_angle(
+            rq.0 as f32,
+            rq.1 as f32,
+            rq.2 as f32,
+            rq.3.acos() as f32 * 2.0,
+        );
 
         Ok(Rotate::Rotate3D(x, y, z, Angle::from_radians(angle)))
     }
@@ -2424,21 +2426,24 @@ impl Animate for ComputedRotate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
 impl ComputedTranslate {
-    fn fill_unspecified(translate: &ComputedTranslate)
-        -> Result<(LengthOrPercentage, LengthOrPercentage, Length), ()> {
+    fn resolve(
+        translate: &ComputedTranslate,
+    ) -> (LengthOrPercentage, LengthOrPercentage, Length) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified translations default to 0px
         match *translate {
             Translate::None => {
-                Ok((LengthOrPercentage::Length(Length::zero()),
+                (
                     LengthOrPercentage::Length(Length::zero()),
-                    Length::zero()))
+                    LengthOrPercentage::Length(Length::zero()),
+                    Length::zero(),
+                )
             },
-            Translate::Translate3D(tx, ty, tz) => Ok((tx, ty, tz)),
-            Translate::Translate(tx, ty) => Ok((tx, ty, Length::zero())),
-            Translate::TranslateX(tx) => Ok((tx, LengthOrPercentage::Length(Length::zero()), Length::zero())),
+            Translate::Translate3D(tx, ty, tz) => (tx, ty, tz),
+            Translate::Translate(tx, ty) => (tx, ty, Length::zero()),
+            Translate::TranslateX(tx) => (tx, LengthOrPercentage::Length(Length::zero()), Length::zero()),
         }
     }
 }
@@ -2450,8 +2455,8 @@ impl Animate for ComputedTranslate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedTranslate::fill_unspecified(self)?;
-        let to = ComputedTranslate::fill_unspecified(other)?;
+        let from = ComputedTranslate::resolve(self);
+        let to = ComputedTranslate::resolve(other);
 
         Ok(Translate::Translate3D(from.0.animate(&to.0, procedure)?,
                                   from.1.animate(&to.1, procedure)?,
@@ -2461,17 +2466,16 @@ impl Animate for ComputedTranslate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-scale>
 impl ComputedScale {
-    fn fill_unspecified(scale: &ComputedScale)
-        -> Result<(Number, Number, Number), ()> {
+    fn resolve(scale: &ComputedScale) -> (Number, Number, Number) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified scales default to 1
         match *scale {
-            Scale::None => Ok((1.0, 1.0, 1.0)),
-            Scale::Scale3D(sx, sy, sz) => Ok((sx, sy, sz)),
-            Scale::Scale(sx, sy) => Ok((sx, sy, 1.)),
-            Scale::ScaleX(sx) => Ok((sx, 1., 1.)),
+            Scale::None => (1.0, 1.0, 1.0),
+            Scale::Scale3D(sx, sy, sz) => (sx, sy, sz),
+            Scale::Scale(sx, sy) => (sx, sy, 1.),
+            Scale::ScaleX(sx) => (sx, 1., 1.),
         }
     }
 }
@@ -2483,17 +2487,19 @@ impl Animate for ComputedScale {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedScale::fill_unspecified(self)?;
-        let to = ComputedScale::fill_unspecified(other)?;
+        let from = ComputedScale::resolve(self);
+        let to = ComputedScale::resolve(other);
 
         if procedure == Procedure::Add {
             // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
             return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
         }
 
-        Ok(Scale::Scale3D(animate_multiplicative_factor(from.0, to.0, procedure)?,
-                          animate_multiplicative_factor(from.1, to.1, procedure)?,
-                          animate_multiplicative_factor(from.2, to.2, procedure)?))
+        Ok(Scale::Scale3D(
+            animate_multiplicative_factor(from.0, to.0, procedure)?,
+            animate_multiplicative_factor(from.1, to.1, procedure)?,
+            animate_multiplicative_factor(from.2, to.2, procedure)?,
+        ))
     }
 }
 
