@@ -200,6 +200,14 @@ impl WindowProxy {
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
+    
+    pub fn open(&self,
+                _url: DOMString,
+                _target: DOMString,
+                _features: DOMString)
+                -> Option<DomRoot<WindowProxy>> {
+    None  
+    }
 
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
     pub fn choose_browsing_context(&self, name: DOMString, _noopener: bool) -> Option<DomRoot<Window>> {

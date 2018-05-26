@@ -533,6 +533,16 @@ impl WindowMethods for Window {
         self.send_to_embedder(msg);
         receiver.recv().unwrap();
     }
+    
+    // https://html.spec.whatwg.org/multipage/#dom-open
+    fn Open(&self,
+            url: DOMString,
+            target: DOMString,
+            features: DOMString)
+            -> Option<DomRoot<WindowProxy>> {
+        self.window_proxy.get()
+            .and_then(|ref proxy| proxy.open(url, target, features))
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
     fn Closed(&self) -> bool {
