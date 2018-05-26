@@ -149,6 +149,8 @@ pub enum ScriptMsg {
     LogEntry(Option<String>, LogEntry),
     /// Discard the document.
     DiscardDocument,
+    /// Discard the browsing context.
+    DiscardTopLevelBrowsingContext,
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited,
     /// Send messages from postMessage calls from serviceworker
@@ -162,8 +164,6 @@ pub enum ScriptMsg {
     GetScreenSize(IpcSender<(DeviceUintSize)>),
     /// Get the available screen size (pixel)
     GetScreenAvailSize(IpcSender<(DeviceUintSize)>),
-    /// Requests that the compositor shut down.
-    Exit,
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -200,13 +200,13 @@ impl fmt::Debug for ScriptMsg {
             TouchEventProcessed(..) => "TouchEventProcessed",
             LogEntry(..) => "LogEntry",
             DiscardDocument => "DiscardDocument",
+            DiscardTopLevelBrowsingContext => "DiscardTopLevelBrowsingContext",
             PipelineExited => "PipelineExited",
             ForwardDOMMessage(..) => "ForwardDOMMessage",
             RegisterServiceWorker(..) => "RegisterServiceWorker",
             GetClientWindow(..) => "GetClientWindow",
             GetScreenSize(..) => "GetScreenSize",
             GetScreenAvailSize(..) => "GetScreenAvailSize",
-            Exit => "Exit",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

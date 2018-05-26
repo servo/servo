@@ -11,6 +11,7 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
@@ -543,9 +544,27 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
-        self.main_thread_script_chan()
-            .send(MainThreadScriptMsg::ExitWindow(self.upcast::<GlobalScope>().pipeline_id()))
-            .unwrap();
+        // Note: check the length of the "session history", as opposed to the joint session history?
+        // see https://github.com/whatwg/html/issues/3734
+        if let Ok(history_length) = self.History().GetLength() {
+            // TODO: allow auxilliary browsing contexts created by script to be script-closeable,
+            // regardless of history length.
+            // https://html.spec.whatwg.org/multipage/#script-closable
+            let is_script_closable = self.is_top_level() && history_length == 1;
+            if is_script_closable {
+                let doc = self.Document();
+                // https://html.spec.whatwg.org/multipage/#closing-browsing-contexts
+                // Step 1, prompt to unload.
+                if doc.prompt_to_unload(false) {
+                    // Step 2, unload.
+                    doc.unload(false, false);
+                    // Step 3, remove from the user interface
+                    let _ = self.send_to_embedder(EmbedderMsg::CloseBrowser);
+                    // Step 4, discard browsing context.
+                    let _ = self.send_to_constellation(ScriptMsg::DiscardTopLevelBrowsingContext);
+                }
+            }
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
