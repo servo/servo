@@ -2213,16 +2213,17 @@ impl From<MatrixDecomposed3D> for Matrix3D {
 
 // Multiplication of two 4x4 matrices.
 fn multiply(a: Matrix3D, b: Matrix3D) -> Matrix3D {
-    let mut a_clone = a;
+    Matrix3D {
     % for i in range(1, 5):
-        % for j in range(1, 5):
-            a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
-                               (a.m${i}2 * b.m2${j}) +
-                               (a.m${i}3 * b.m3${j}) +
-                               (a.m${i}4 * b.m4${j});
-        % endfor
+    % for j in range(1, 5):
+        m${i}${j}:
+            a.m${i}1 * b.m1${j} +
+            a.m${i}2 * b.m2${j} +
+            a.m${i}3 * b.m3${j} +
+            a.m${i}4 * b.m4${j},
     % endfor
-    a_clone
+    % endfor
+    }
 }
 
 impl Matrix3D {
