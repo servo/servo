@@ -278,6 +278,18 @@ impl Browser {
                         warn!("Failed to send allow_navigation() response: {}", e);
                     };
                 }
+                EmbedderMsg::AllowOpeningBrowser(response_chan) => {
+                    // Note: would be a place to handle pop-ups config.
+                    // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+                    if let Err(e) = response_chan.send(true) {
+                        warn!("Failed to send AllowOpeningBrowser response: {}", e);
+                    };
+                }
+                EmbedderMsg::BrowserCreated(new_browser_id) => {
+                    // TODO: properly handle a new "tab"
+                    self.browser_id = Some(new_browser_id);
+                    self.event_queue.push(WindowEvent::SelectBrowser(new_browser_id));
+                }
                 EmbedderMsg::KeyEvent(ch, key, state, modified) => {
                     self.handle_key_from_servo(browser_id, ch, key, state, modified);
                 }
