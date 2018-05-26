@@ -2154,7 +2154,7 @@ impl From<MatrixDecomposed3D> for Matrix3D {
         % endfor
 
         // Apply translation
-        % for i in range(1, 4):
+        % for i in range(1, 5):
             % for j in range(1, 4):
                 matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
             % endfor
@@ -2206,9 +2206,9 @@ impl From<MatrixDecomposed3D> for Matrix3D {
 
         // Apply scale
         % for i in range(1, 4):
-            % for j in range(1, 4):
-                matrix.m${i}${j} *= decomposed.scale.${i - 1};
-            % endfor
+        % for j in range(1, 5):
+        matrix.m${i}${j} *= decomposed.scale.${i - 1};
+        % endfor
         % endfor
 
         matrix
