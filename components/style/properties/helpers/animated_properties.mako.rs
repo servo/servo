@@ -2478,6 +2478,8 @@ impl Animate for ComputedScale {
         let from = ComputedScale::resolve(self);
         let to = ComputedScale::resolve(other);
 
+        // FIXME(emilio, bug 1464791): why does this do something different than
+        // Scale3D / TransformOperation::Scale3D?
         if procedure == Procedure::Add {
             // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
             return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
