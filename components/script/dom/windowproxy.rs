@@ -14,10 +14,12 @@ use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{WindowProxyHandler, get_array_index_from_id, AsVoidPtr};
 use dom::dissimilaroriginwindow::DissimilarOriginWindow;
+use dom::document::Document;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps};
@@ -43,7 +45,9 @@ use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use script_thread::ScriptThread;
-use script_traits::ScriptMsg;
+use script_traits::{AuxiliaryBrowsingContextLoadInfo, LoadData, NewLayoutInfo, ScriptMsg};
+use servo_config::prefs::PREFS;
+use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::ptr;
 
@@ -201,57 +205,141 @@ impl WindowProxy {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context
+    fn create_auxiliary_browsing_context(&self, name: DOMString, _noopener: bool) -> Option<DomRoot<WindowProxy>> {
+        let (chan, port) = ipc::channel().unwrap();
+        let window = self.currently_active.get()
+                    .and_then(|id| ScriptThread::find_document(id))
+                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+                    .unwrap();
+        let msg = EmbedderMsg::AllowOpeningBrowser(chan);
+        window.send_to_embedder(msg);
+        if port.recv().unwrap() {
+            let new_browsing_context_id = BrowsingContextId::new();
+            let new_top_level_browsing_context_id = TopLevelBrowsingContextId::new();
+            let new_pipeline_id = PipelineId::new();
+            let load_info = AuxiliaryBrowsingContextLoadInfo {
+                opener_pipeline_id: self.currently_active.get().unwrap(),
+                new_browsing_context_id: new_browsing_context_id,
+                new_top_level_browsing_context_id: new_top_level_browsing_context_id,
+                new_pipeline_id: new_pipeline_id,
+            };
+            let document = self.currently_active.get()
+                .and_then(|id| ScriptThread::find_document(id))
+                .unwrap();
+            let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
+            let load_data = LoadData::new(blank_url,
+                                          None,
+                                          document.get_referrer_policy(),
+                                          Some(document.url().clone()));
+            let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
+            let new_layout_info = NewLayoutInfo {
+                parent_info: None,
+                new_pipeline_id: new_pipeline_id,
+                browsing_context_id: new_browsing_context_id,
+                top_level_browsing_context_id: new_top_level_browsing_context_id,
+                load_data: load_data,
+                pipeline_port: pipeline_receiver,
+                content_process_shutdown_chan: None,
+                window_size: None,
+                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+            };
+            let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);
+            window.send_to_constellation(constellation_msg);
+            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+            let msg = EmbedderMsg::BrowserCreated(new_top_level_browsing_context_id);
+            window.send_to_embedder(msg);
+            let auxiliary = ScriptThread::find_document(new_pipeline_id).and_then(|doc| doc.browsing_context());
+            if let Some(proxy) = auxiliary {
+                if name.to_lowercase() != "_blank" {
+                    proxy.set_name(name);
+                }
+                return Some(proxy)
+            }
+            return None
+
+        }
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#window-open-steps
+    pub fn open(&self,
+                url: DOMString,
+                target: DOMString,
+                features: DOMString)
+                -> Option<DomRoot<WindowProxy>> {
+        // Step 3.
+        let non_empty_target = match target.as_ref() {
+            "" => DOMString::from("_blank"),
+            _ => target
+        };
+        // TODO Step 4, properly tokenize features.
+        let noopener = features.contains("noopener");
+        let (chosen, new)  = match self.choose_browsing_context(non_empty_target, noopener) {
+            (Some(window_proxy), new) => (window_proxy, new),
+            (None, _) => return None
+        };
+        let document = chosen.document().unwrap();
+        // Step 9, 10.1
+        let non_empty_url = match url.as_ref() {
+            "" => {
+                if new {
+                    // queue load task
+                }
+                return document.browsing_context()
+            },
+            _ => url
+        };
+        let existing_document = self.currently_active.get()
+                    .and_then(|id| ScriptThread::find_document(id)).unwrap();
+        let url = match existing_document.url().join(&non_empty_url) {
+            Ok(url) => url,
+            Err(_) => return None,
+        };
+        let window = document.window();
+        window.load_url(url, new, false, document.get_referrer_policy());
+        document.browsing_context()
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
-    pub fn choose_browsing_context(&self, name: DOMString, _noopener: bool) -> Option<DomRoot<Window>> {
+    pub fn choose_browsing_context(&self, name: DOMString, noopener: bool) -> (Option<DomRoot<WindowProxy>>, bool) {
         match name.to_lowercase().as_ref() {
             "" | "_self" => {
                 // Step 3.
-                self.currently_active.get()
-                    .and_then(|id| ScriptThread::find_document(id))
-                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+                (Some(DomRoot::from_ref(self)), false)
             },
             "_parent" => {
                 // Step 4
-                self.parent()
-                    .and_then(|proxy| proxy.currently_active.get())
-                    .and_then(|id| ScriptThread::find_document(id))
-                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+                (Some(DomRoot::from_ref(self.parent().unwrap())), false)
             },
             "_top" => {
                 // Step 5
-                self.top().currently_active.get()
-                    .and_then(|id| ScriptThread::find_document(id))
-                    .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+                (Some(DomRoot::from_ref(self.top())), false)
             },
             "_blank" => {
-                // Step 7. Blocked by https://github.com/servo/servo/issues/13241
-                None
+                (self.create_auxiliary_browsing_context(name, noopener), true)
             },
             _ => {
                 // Step 6.
                 // TODO: expand the search to all 'familiar' bc
                 // https://html.spec.whatwg.org/multipage/#familiar-with
-                self.currently_active.get()
+                let found = self.currently_active.get()
                     .and_then(|id| ScriptThread::find_document(id))
                     .and_then(|doc| doc.iter_iframes()
                         .map(|iframe| iframe.GetContentWindow()
                             .and_then(|proxy| {
-                                println!("{:?} {:?}", name, proxy.get_name());
                                 if proxy.get_name() == name {
-                                    println!("found name match");
-                                    return iframe.GetContentDocument()
-                                        .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
+                                    return Some(proxy)
                                 }
                                 return None
                             }))
                         .filter(|item| item.is_some())
-                        .last()
-                        // TODO: Select one in some arbitrary consistent manner,
-                        // such as the most recently opened, most recently focused, or more closely related
-                        .unwrap_or_else(|| {
-                            // Step 7. Blocked by https://github.com/servo/servo/issues/13241
-                            None
-                        }))
+                        .last());
+                if found.is_none() {
+                    return (self.create_auxiliary_browsing_context(name, noopener), true)
+                } else {
+                    return (found.unwrap(), false)
+                }
             }
         }
     }
@@ -274,6 +362,11 @@ impl WindowProxy {
 
     pub fn frame_element(&self) -> Option<&Element> {
         self.frame_element.r()
+    }
+
+    pub fn document(&self) -> Option<DomRoot<Document>> {
+        self.currently_active.get()
+            .and_then(|id| ScriptThread::find_document(id))
     }
 
     pub fn parent(&self) -> Option<&WindowProxy> {

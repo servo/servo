@@ -584,7 +584,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, ref
     let window = document.window();
 
     // Step 3: source browsing context.
-    let source = window.window_proxy();
+    let source = document.browsing_context().unwrap();
 
     // Step 4-5: target attribute.
     let target_attribute_value = subject.get_attribute(&ns!(), &local_name!("target"));
@@ -600,14 +600,16 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, ref
     };
 
     // Step 7.
-    let chosen = match target_attribute_value {
+    let (maybe_chosen, _new) = match target_attribute_value {
           Some(name) => source.choose_browsing_context(name.Value(), noopener),
-          None => Some(DomRoot::from_ref(window))
+          None => (Some(window.window_proxy()), false)
     };
-    let target = match chosen {
-        Some(window) => window,
-        None => return
+    let chosen = match maybe_chosen {
+        Some(proxy) => proxy,
+        None => return,
     };
+    let target_document = chosen.document().unwrap();
+    let target_window = target_document.window();
 
     // Step 9, TODO: disown target's opener if needed.
 
@@ -626,5 +628,5 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>, ref
 
     // Step 13, 14.
     debug!("following hyperlink to {}", url);
-    target.load_url(url, replace, false, referrer_policy);
+    target_window.load_url(url, replace, false, referrer_policy);
 }
