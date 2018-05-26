@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use AnimationState;
+use AuxiliaryBrowsingContextLoadInfo;
 use DocumentState;
 use IFrameLoadInfo;
 use IFrameLoadInfoWithData;
@@ -135,6 +136,8 @@ pub enum ScriptMsg {
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.
     ScriptNewIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
+    /// Script has opened a new auxiliary browsing context.
+    ScriptNewAuxiliary(AuxiliaryBrowsingContextLoadInfo, IpcSender<LayoutControlMsg>),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
@@ -193,6 +196,7 @@ impl fmt::Debug for ScriptMsg {
             VisibilityChangeComplete(..) => "VisibilityChangeComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
+            ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
             SetClipboardContents(..) => "SetClipboardContents",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",

@@ -296,7 +296,6 @@ impl HTMLFormElement {
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
         let doc = document_from_node(self);
-        let window = doc.window();
         let base = doc.base_url();
         // TODO: Handle browsing contexts (Step 2, 3)
         // Step 4
@@ -342,14 +341,19 @@ impl HTMLFormElement {
 
         // Step 16, 17
         let target_attribute_value = submitter.target();
-        let source = window.window_proxy();
-        let chosen = source.choose_browsing_context(target_attribute_value, false);
-        let target = match chosen {
-            Some(window) => window,
+        let source = doc.browsing_context().unwrap();
+        let (maybe_chosen, _new) = source.choose_browsing_context(target_attribute_value, false);
+        let chosen = match maybe_chosen {
+            Some(proxy) => proxy,
             None => return
         };
+        let target_document = chosen.document().unwrap();
+        let target_window = target_document.window();
 
-        let mut load_data = LoadData::new(action_components, None, doc.get_referrer_policy(), Some(doc.url()));
+        let mut load_data = LoadData::new(action_components,
+                                          None,
+                                          target_document.get_referrer_policy(),
+                                          Some(target_document.url()));
 
         // Step 18
         match (&*scheme, method) {
@@ -360,17 +364,17 @@ impl HTMLFormElement {
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
             ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
                 load_data.headers.set(ContentType::form_url_encoded());
-                self.mutate_action_url(&mut form_data, load_data, encoding, &target);
+                self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
             }
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::Post;
-                self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target);
+                self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target_window);
             }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) | ("about", _) | ("data", FormMethod::FormPost) |
             ("ftp", _) | ("javascript", _) => {
-                self.plan_to_navigate(load_data, &target);
+                self.plan_to_navigate(load_data, &target_window);
             }
             ("mailto", FormMethod::FormPost) => {
                 // TODO: Mail as body
