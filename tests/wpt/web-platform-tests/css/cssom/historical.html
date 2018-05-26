@@ -23,6 +23,28 @@
 });
 
 [
+  "Rect",
+  "RGBColor",
+  "CSSValue",
+  "CSSPrimitiveValue",
+  "CSSValueList",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in window);
+  }, "Historical interface: " + name);
+});
+
+[
+  "getPropertyCSSValue",
+  "setPropertyValue",
+  "setPropertyPriority",
+].forEach(function(name) {
+  test(function() {
+    assert_false(name in document.body.style);
+  }, "Historical CSSStyleDeclaration member: " + name);
+});
+
+[
   "cascadedStyle",
   "defaultStyle",
   "rawComputedStyle",

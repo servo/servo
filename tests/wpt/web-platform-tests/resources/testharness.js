@@ -2998,110 +2998,110 @@ policies and contribution forms [3].
     /**
      * Stylesheet
      */
-     var stylesheetContent = `
-html {
-    font-family:DejaVu Sans, Bitstream Vera Sans, Arial, Sans;
-}
-
-#log .warning,
-#log .warning a {
-  color: black;
-  background: yellow;
-}
-
-#log .error,
-#log .error a {
-  color: white;
-  background: red;
-}
-
-section#summary {
-    margin-bottom:1em;
-}
-
-table#results {
-    border-collapse:collapse;
-    table-layout:fixed;
-    width:100%;
-}
-
-table#results th:first-child,
-table#results td:first-child {
-    width:4em;
-}
-
-table#results th:last-child,
-table#results td:last-child {
-    width:50%;
-}
-
-table#results.assertions th:last-child,
-table#results.assertions td:last-child {
-    width:35%;
-}
-
-table#results th {
-    padding:0;
-    padding-bottom:0.5em;
-    border-bottom:medium solid black;
-}
-
-table#results td {
-    padding:1em;
-    padding-bottom:0.5em;
-    border-bottom:thin solid black;
-}
-
-tr.pass > td:first-child {
-    color:green;
-}
-
-tr.fail > td:first-child {
-    color:red;
-}
-
-tr.timeout > td:first-child {
-    color:red;
-}
-
-tr.notrun > td:first-child {
-    color:blue;
-}
-
-.pass > td:first-child, .fail > td:first-child, .timeout > td:first-child, .notrun > td:first-child {
-    font-variant:small-caps;
-}
-
-table#results span {
-    display:block;
-}
-
-table#results span.expected {
-    font-family:DejaVu Sans Mono, Bitstream Vera Sans Mono, Monospace;
-    white-space:pre;
-}
-
-table#results span.actual {
-    font-family:DejaVu Sans Mono, Bitstream Vera Sans Mono, Monospace;
-    white-space:pre;
-}
-
-span.ok {
-    color:green;
-}
-
-tr.error {
-    color:red;
-}
-
-span.timeout {
-    color:red;
-}
-
-span.ok, span.timeout, span.error {
-    font-variant:small-caps;
-}
-`;
+     var stylesheetContent = "\
+html {\
+    font-family:DejaVu Sans, Bitstream Vera Sans, Arial, Sans;\
+}\
+\
+#log .warning,\
+#log .warning a {\
+  color: black;\
+  background: yellow;\
+}\
+\
+#log .error,\
+#log .error a {\
+  color: white;\
+  background: red;\
+}\
+\
+section#summary {\
+    margin-bottom:1em;\
+}\
+\
+table#results {\
+    border-collapse:collapse;\
+    table-layout:fixed;\
+    width:100%;\
+}\
+\
+table#results th:first-child,\
+table#results td:first-child {\
+    width:4em;\
+}\
+\
+table#results th:last-child,\
+table#results td:last-child {\
+    width:50%;\
+}\
+\
+table#results.assertions th:last-child,\
+table#results.assertions td:last-child {\
+    width:35%;\
+}\
+\
+table#results th {\
+    padding:0;\
+    padding-bottom:0.5em;\
+    border-bottom:medium solid black;\
+}\
+\
+table#results td {\
+    padding:1em;\
+    padding-bottom:0.5em;\
+    border-bottom:thin solid black;\
+}\
+\
+tr.pass > td:first-child {\
+    color:green;\
+}\
+\
+tr.fail > td:first-child {\
+    color:red;\
+}\
+\
+tr.timeout > td:first-child {\
+    color:red;\
+}\
+\
+tr.notrun > td:first-child {\
+    color:blue;\
+}\
+\
+.pass > td:first-child, .fail > td:first-child, .timeout > td:first-child, .notrun > td:first-child {\
+    font-variant:small-caps;\
+}\
+\
+table#results span {\
+    display:block;\
+}\
+\
+table#results span.expected {\
+    font-family:DejaVu Sans Mono, Bitstream Vera Sans Mono, Monospace;\
+    white-space:pre;\
+}\
+\
+table#results span.actual {\
+    font-family:DejaVu Sans Mono, Bitstream Vera Sans Mono, Monospace;\
+    white-space:pre;\
+}\
+\
+span.ok {\
+    color:green;\
+}\
+\
+tr.error {\
+    color:red;\
+}\
+\
+span.timeout {\
+    color:red;\
+}\
+\
+span.ok, span.timeout, span.error {\
+    font-variant:small-caps;\
+}\
+";
 
 })(this);
 // vim: set expandtab shiftwidth=4 tabstop=4:
