@@ -1820,12 +1820,16 @@ impl Animate for Quaternion {
         use std::f64;
 
         let (this_weight, other_weight) = procedure.weights();
-        debug_assert!((this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
-                      other_weight == 1.0f64 || other_weight == 0.0f64,
-                      "animate should only be used for interpolating or accumulating transforms");
+        debug_assert!(
+            (this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
+            other_weight == 1.0f64 || other_weight == 0.0f64,
+            "animate should only be used for interpolating or accumulating transforms"
+        );
 
-        // We take a specialized code path for accumulation (where other_weight is 1)
-        if other_weight == 1.0 {
+        // We take a specialized code path for accumulation (where other_weight
+        // is 1).
+        if let Procedure::Accumulate { .. } = procedure {
+            debug_assert_eq!(other_weight, 1.0);
             if this_weight == 0.0 {
                 return Ok(*other);
             }
@@ -1856,32 +1860,39 @@ impl Animate for Quaternion {
             ));
         }
 
-        let mut product = self.0 * other.0 +
-                          self.1 * other.1 +
-                          self.2 * other.2 +
-                          self.3 * other.3;
+        // Straight from gfxQuaternion::Slerp.
+        //
+        // Dot product, clamped between -1 and 1.
+        let dot =
+            (self.0 * other.0 +
+             self.1 * other.1 +
+             self.2 * other.2 +
+             self.3 * other.3)
+            .min(1.0).max(-1.0);
 
-        // Clamp product to -1.0 <= product <= 1.0
-        product = product.min(1.0);
-        product = product.max(-1.0);
-
-        if product == 1.0 {
+        if dot == 1.0 {
             return Ok(*self);
         }
 
-        let theta = product.acos();
-        let w = (other_weight * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+        let theta = dot.acos();
+        let rsintheta = 1.0 / (1.0 - dot * dot).sqrt();
 
-        let mut a = *self;
-        let mut b = *other;
-        let mut result = Quaternion(0., 0., 0., 0.,);
+        let right_weight = (other_weight * theta).sin() * rsintheta;
+        let left_weight = (other_weight * theta).cos() - dot * right_weight;
+
+        let mut left = *self;
+        let mut right = *other;
         % for i in range(4):
-            a.${i} *= (other_weight * theta).cos() - product * w;
-            b.${i} *= w;
-            result.${i} = a.${i} + b.${i};
+            left.${i} *= left_weight;
+            right.${i} *= right_weight;
         % endfor
 
-        Ok(result)
+        Ok(Quaternion(
+            left.0 + right.0,
+            left.1 + right.1,
+            left.2 + right.2,
+            left.3 + right.3,
+        ))
     }
 }
 
