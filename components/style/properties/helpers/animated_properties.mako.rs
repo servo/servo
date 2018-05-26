@@ -1908,7 +1908,8 @@ impl ComputeSquaredDistance for Quaternion {
 }
 
 /// Decompose a 3D matrix.
-/// <https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix>
+/// https://drafts.csswg.org/css-transforms-2/#decomposing-a-3d-matrix
+/// http://www.realtimerendering.com/resources/GraphicsGems/gemsii/unmatrix.c
 fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // Normalize the matrix.
     if matrix.m44 == 0.0 {
@@ -1916,6 +1917,8 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     }
 
     let scaling_factor = matrix.m44;
+
+    // Normalize the matrix.
     % for i in range(1, 5):
         % for j in range(1, 5):
             matrix.m${i}${j} /= scaling_factor;
@@ -1926,9 +1929,9 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // an easy way to test for singularity of the upper 3x3 component.
     let mut perspective_matrix = matrix;
 
-    % for i in range(1, 4):
-        perspective_matrix.m${i}4 = 0.0;
-    % endfor
+    perspective_matrix.m14 = 0.0;
+    perspective_matrix.m24 = 0.0;
+    perspective_matrix.m34 = 0.0;
     perspective_matrix.m44 = 1.0;
 
     if perspective_matrix.determinant() == 0.0 {
@@ -1944,37 +1947,18 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
             matrix.m44
         ];
 
-        perspective_matrix = perspective_matrix.inverse().unwrap();
-
-        // Transpose perspective_matrix
-        perspective_matrix = Matrix3D {
-            % for i in range(1, 5):
-                % for j in range(1, 5):
-                    m${i}${j}: perspective_matrix.m${j}${i},
-                % endfor
-            % endfor
-        };
-
-        // Multiply right_hand_side with perspective_matrix
-        let mut tmp: [f32; 4] = [0.0; 4];
-        % for i in range(1, 5):
-            tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
-                            (right_hand_side[1] * perspective_matrix.m2${i}) +
-                            (right_hand_side[2] * perspective_matrix.m3${i}) +
-                            (right_hand_side[3] * perspective_matrix.m4${i});
-        % endfor
-
-        Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
+        perspective_matrix = perspective_matrix.inverse().unwrap().transpose();
+        let perspective = perspective_matrix.pre_mul_point4(&right_hand_side);
+        // NOTE(emilio): Even though the reference algorithm clears the
+        // fourth column here (matrix.m14..matrix.m44), they're not used below
+        // so it's not really needed.
+        Perspective(perspective[0], perspective[1], perspective[2], perspective[3])
     } else {
         Perspective(0.0, 0.0, 0.0, 1.0)
     };
 
-    // Next take care of translation
-    let translate = Translate3D (
-        matrix.m41,
-        matrix.m42,
-        matrix.m43
-    );
+    // Next take care of translation (easy).
+    let translate = Translate3D(matrix.m41, matrix.m42, matrix.m43);
 
     // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
     let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
@@ -2015,8 +1999,7 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // At this point, the matrix (in rows) is orthonormal.
     // Check for a coordinate system flip.  If the determinant
     // is -1, then negate the matrix and the scaling factors.
-    let pdum3 = cross(row[1], row[2]);
-    if dot(row[0], pdum3) < 0.0 {
+    if dot(row[0], cross(row[1], row[2])) < 0.0 {
         % for i in range(3):
             scale.${i} *= -1.0;
             row[${i}][0] *= -1.0;
@@ -2025,8 +2008,8 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
         % endfor
     }
 
-    // Now, get the rotations out
-    let mut quaternion = Quaternion (
+    // Now, get the rotations out.
+    let mut quaternion = Quaternion(
         0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0) as f64).sqrt(),
         0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0) as f64).sqrt(),
         0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0) as f64).sqrt(),
@@ -2044,11 +2027,11 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     }
 
     Ok(MatrixDecomposed3D {
-        translate: translate,
-        scale: scale,
-        skew: skew,
-        perspective: perspective,
-        quaternion: quaternion
+        translate,
+        scale,
+        skew,
+        perspective,
+        quaternion,
     })
 }
 
@@ -2277,11 +2260,22 @@ impl Matrix3D {
         self.m11 * self.m22 * self.m33 * self.m44
     }
 
-    fn inverse(&self) -> Option<Matrix3D> {
+    /// Transpose a matrix.
+    fn transpose(&self) -> Self {
+        Self {
+            % for i in range(1, 5):
+            % for j in range(1, 5):
+            m${i}${j}: self.m${j}${i},
+            % endfor
+            % endfor
+        }
+    }
+
+    fn inverse(&self) -> Result<Matrix3D, ()> {
         let mut det = self.determinant();
 
         if det == 0.0 {
-            return None;
+            return Err(());
         }
 
         det = 1.0 / det;
@@ -2352,7 +2346,19 @@ impl Matrix3D {
              self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
         };
 
-        Some(x)
+        Ok(x)
+    }
+
+    /// Multiplies `pin * self`.
+    fn pre_mul_point4(&self, pin: &[f32; 4]) -> [f32; 4] {
+        [
+        % for i in range(1, 5):
+            pin[0] * self.m1${i} +
+            pin[1] * self.m2${i} +
+            pin[2] * self.m3${i} +
+            pin[3] * self.m4${i},
+        % endfor
+        ]
     }
 }
 
