@@ -1034,6 +1034,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::DiscardDocument => {
                 self.handle_discard_document(source_top_ctx_id, source_pipeline_id);
             }
+            FromScriptMsg::DiscardTopLevelBrowsingContext => {
+                self.handle_close_top_level_browsing_context(source_top_ctx_id);
+            }
+
             FromScriptMsg::InitiateNavigateRequest(req_init, cancel_chan) => {
                 self.handle_navigate_request(source_pipeline_id, req_init, cancel_chan);
             }
@@ -1141,9 +1145,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::GetScreenAvailSize(send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetScreenAvailSize(send));
-            }
-            FromScriptMsg::Exit => {
-                self.compositor_proxy.send(ToCompositorMsg::Exit);
             }
             FromScriptMsg::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);

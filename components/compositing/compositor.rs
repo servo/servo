@@ -385,10 +385,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return false
             }
 
-            (Msg::Exit, _) => {
-                self.start_shutting_down();
-            }
-
             (Msg::ShutdownComplete, _) => {
                 self.finish_shutting_down();
                 return false;

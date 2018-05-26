@@ -68,14 +68,10 @@ impl CompositorProxy {
 
 /// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
-    /// Requests that the compositor shut down.
-    Exit,
-
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
-
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
@@ -123,7 +119,6 @@ pub enum Msg {
 impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            Msg::Exit => write!(f, "Exit"),
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
