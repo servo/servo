@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <title>
+    &lt;object&gt;'s browsing context is discarded on 'data' attribute change.
+  </title>
+  <link rel="author" title="Ehsan Karamad" href="ekaramad@chromium.org">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    let url1 = "../resources/test_page.html";
+    let url2 = "../resources/should-load.html";
+    function onLoadPromise(el) {
+      return new Promise((resolve) => {
+        function onLoad() {
+          resolve();
+          el.removeEventListener("load", onLoad);
+        }
+        el.addEventListener("load", onLoad);
+      });
+    }
+
+    promise_test(async() => {
+      let old_windows = [];
+
+      let object = document.createElement("object");
+      object.type = "text/html";
+      object.data = url1;
+      let onObjectLoad = onLoadPromise(object);
+      document.body.appendChild(object);
+      await onObjectLoad;
+      old_windows.push(window[0]);
+      assert_equals(
+        window[0].frameElement,
+        object,
+        "<object> is attached and loaded with html content.");
+
+      let iframe = document.createElement("iframe");
+      iframe.src = url1;
+      let onIframeLoad = onLoadPromise(iframe);
+      document.body.appendChild(iframe);
+      await onIframeLoad;
+      old_windows.push(window[1]);
+      assert_equals(
+        window[1].frameElement,
+        iframe,
+        "<iframe> is attached and loaded with html content after <object>.");
+      assert_equals(
+        window[0],
+        old_windows[0],
+        "The first window is that of <object>'s frame.");
+
+      // Now navigate the object element again.
+      onObjectLoad = onLoadPromise(object);
+      object.data = url2;
+      await onObjectLoad;
+      assert_equals(
+        window[0].frameElement,
+        iframe,
+        "<object>'s previous frame must have been destroyed.");
+
+      assert_equals(
+        window[1].frameElement,
+        object,
+        "<object>'s new window should be appended after navigation.");
+
+      assert_not_equals(
+        old_windows[0],
+        window[1],
+        "The old window and new window are different for <object>.");
+
+      assert_equals(
+        old_windows[1],
+        window[0],
+        "The old and new window are the same for <iframe>.");
+
+    }, "Verify that changing 'data' attribute of an <object> element discards" +
+       " the old browsing context and creates a new browsing context.");
+  </script>
+</body>
+</html>

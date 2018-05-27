@@ -91,6 +91,10 @@ function assert_required_csp(t, url, csp, expected) {
       assert_unreached('Child iframes have unexpected csp:"' + e.data['required_csp'] + '"');
 
     expected.splice(expected.indexOf(e.data['required_csp']), 1);
+
+    if (e.data['test_header_injection'] != null)
+      assert_unreached('HTTP header injection was successful');
+
     if (expected.length == 0)
       t.done();
   }));

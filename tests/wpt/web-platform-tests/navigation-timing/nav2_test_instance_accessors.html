@@ -7,12 +7,16 @@
         <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/get-host-info.sub.js"></script>
     </head>
     <body>
         <h1>Description</h1>
         <p>This test validates that nav timing 2 instance can be accessed by three different accessors once available: window.performance.getEntries()/getEntriesByType("navigation")/getEntriesByName("document")</p>
 
         <script>
+        var host_info = get_host_info();
+        var expectedUrl = "http://" + host_info.ORIGINAL_HOST + ":" +
+            host_info.HTTP_PORT + "/navigation-timing/nav2_test_instance_accessors.html";
         var navTiming2Attributes = [
             'connectEnd',
             'connectStart',
@@ -50,10 +54,10 @@
                 t.step_func(function (entryList) {
                     var instance1 = performance.getEntries()[0];
                     var instance2 = performance.getEntriesByType("navigation")[0];
-                    var instance3 = performance.getEntriesByName("http://web-platform.test:8001/navigation-timing/nav2_test_instance_accessors.html")[0];
+                    var instance3 = performance.getEntriesByName(expectedUrl)[0];
 
                     assert_equals(performance.getEntriesByType("navigation").length, 1, "Expected there is only one navigation timing instance.");
-                    assert_equals(performance.getEntriesByName("http://web-platform.test:8001/navigation-timing/nav2_test_instance_accessors.html").length, 1, "Expected there is only one navigation timing instance.");
+                    assert_equals(performance.getEntriesByName(expectedUrl).length, 1, "Expected there is only one navigation timing instance.");
 
                     for (var i = 0; i < navTiming2Attributes.length; i++) {
                         assert_equals(instance1[navTiming2Attributes[i]], instance2[navTiming2Attributes[i]]);

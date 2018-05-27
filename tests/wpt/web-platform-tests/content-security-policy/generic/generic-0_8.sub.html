@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-    <title>test wildcard host name matching (*.web-platform.test is good)</title>
+    <title>test wildcard host name matching (asterisk as a subdomain of the current domain)</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' *.{{host}}:{{ports[http][0]}} 'unsafe-inline';">
     <script src='/resources/testharness.js'></script>
     <script src='/resources/testharnessreport.js'></script>
@@ -22,7 +22,7 @@
     </script>    
 </head>
 <body>
-    <h1>test wildcard host name matching (*.web-platform.test is good)</h1>
+    <h1>test wildcard host name matching (asterisk as a subdomain of the current domain)</h1>
     <div id='log'></div>
 </body>
 </html>
