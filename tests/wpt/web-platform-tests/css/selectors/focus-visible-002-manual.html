@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    :focus-visible { background-color: rgb(128, 196, 128); }
+  </style>
+</head>
+<body>
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li><strong>Click</strong> each form element below to focus it.</li>
+    <li>If the element does not have a green background, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
+  </ol>
+  <br />
+  <div>
+    <input data-tested="false" id="input1" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input2" type="text" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input3" type="email" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input4" type="password" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input5" type="search" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input6" type="telephone" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input7" type="url" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input8" type="number" value="10000"></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input9" type="date"></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input10" type="datetime-local"></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input11" type="month"></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input12" type="time"></input>
+  </div>
+  <div>
+    <input data-tested="false" id="input13" type="week"></input>
+  </div>
+  <div>
+    <textarea data-tested="false" id="input14">Focus me.</textarea>
+  </div>
+  <div>
+    <select data-tested="false" id="input15">
+      <option>Focus me.</option>
+      <option>Focus me.</option>
+    </select>
+  </div>
+  <script>
+    async_test(function(t) {
+        function testNextTarget(e) {
+            let el = e.target;
+            assert_equals(getComputedStyle(el).backgroundColor,
+                          "rgb(128, 196, 128)");
+            el.dataset.tested = true;
+            let nextTarget = document.querySelector("[data-tested=false]");
+            if (nextTarget) {
+                nextTarget.addEventListener("click", testNextTarget);
+                mouseClickInTarget("[data-tested=false]");
+            } else {
+                t.done();
+            }
+        }
+        input1.addEventListener("click", t.step_func(testNextTarget));
+    }, "Mouse focus on elements which would show a virtual keyboard should match :focus-visible");
+  </script>
+</body>
+</html>

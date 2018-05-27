@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <link rel="author" title="Rob Dodson" href="robdodson@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    :focus:not(:focus-visible) { background-color: rgb(128, 196, 128); }
+    label:focus-within:not(:focus-visible) { background-color: rgb(128, 196, 128); }
+    * { -webkit-appearance: none }
+  </style>
+</head>
+<body>
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li>Click each element element below to focus it.</li>
+    <li>If the element does not have a green background, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
+  </ol>
+  <br />
+  <div>
+    <span data-tested="false" id="el-1" tabindex="1">Focus me</span>
+  </div>
+  <div>
+    <span data-tested="false" id="el-2" tabindex="-1">Focus me</span>
+  </div>
+  <div>
+    <span data-tested="false" id="el-3" tabindex="0">Focus me</span>
+  </div>
+  <div>
+    <button data-tested="false" id="el-4">Focus me</span>
+  </div>
+  <div>
+    <input data-tested="false" id="el-5" type="button" value="Focus me"</input>
+  </div>
+  <div>
+    <input data-tested="false" id="el-6" type="image" alt="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="el-7" type="reset" value="Focus me."></input>
+  </div>
+  <div>
+    <input data-tested="false" id="el-8" type="submit" value="Focus me."></input>
+  </div>
+  <div>
+    <label><input data-tested="false" id="el-9" type="checkbox"></input> Focus me.</label>
+  </div>
+  <div>
+    <label><input data-tested="false" id="el-10" type="radio"></input> Focus me.</label>
+  </div>
+  <div>
+    <label><input data-tested="false" id="el-11" type="color"></input> Focus me.</label>
+  </div>
+  <div>
+    <!-- Focusing file input triggers a modal, so only test manually -->
+    <input id="el-12" type="file" value="Focus me."></input>
+  </div>
+  <div>
+    <label><input data-tested="false" id="el-13" type="range"></input> Focus me.</label>
+  </div>
+  <script>
+    async_test(function(t) {
+        document.querySelectorAll("[data-tested]").forEach((el) => {
+            el.addEventListener("click", t.step_func((e) => {
+                let el = e.target;
+                assert_equals(getComputedStyle(el).backgroundColor,
+                              "rgb(128, 196, 128)");
+                el.dataset.tested = true;
+                if (document.querySelector("[data-tested=false]")) {
+                    mouseClickInTarget("[data-tested=false]");
+                } else {
+                    t.done();
+                }
+            }));
+        });
+    }, "Mouse focus on input elements which do not show a virtual keyboard should NOT match :focus-visible - not affected by -webkit-appearance");
+  </script>
+</body>
+</html>
