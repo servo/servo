@@ -1665,7 +1665,9 @@ impl Document {
         );
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
-        self.salvageable.set(!has_listeners);
+        if has_listeners {
+            self.salvageable.set(false);
+        }
         let mut can_unload = true;
         // TODO: Step 8, also check sandboxing modals flag.
         let default_prevented = event.DefaultPrevented();
@@ -1681,9 +1683,11 @@ impl Document {
             for iframe in self.iter_iframes() {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
-                if !document.prompt_to_unload(true) {
-                    self.salvageable.set(document.salvageable());
-                    can_unload = false;
+                can_unload = document.prompt_to_unload(true);
+                if !document.salvageable() {
+                   self.salvageable.set(false);
+                }
+                if !can_unload {
                     break;
                 }
             }
@@ -1734,7 +1738,9 @@ impl Document {
             );
             self.fired_unload.set(true);
             // Step 9
-            self.salvageable.set(!has_listeners);
+            if has_listeners {
+                self.salvageable.set(false);
+            }
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
 
