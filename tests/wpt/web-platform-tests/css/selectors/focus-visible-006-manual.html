@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
+  <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <style>
+    span[contenteditable] {
+        border: 1px solid black;
+        background-color: white;
+        padding: 2px 5px;
+    }
+    span[contenteditable]:focus-visible { background-color: rgb(128, 196, 128); }
+  </style>
+</head>
+<body>
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li><strong>Click</strong> the content editable span below to focus it.</li>
+    <li>If the element does not have a green background, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
+  </ol>
+  <br />
+  <div>
+    <span id="el" contenteditable>Focus me</span>
+  </div>
+  <script>
+    async_test(function(t) {
+      el.addEventListener("focus", t.step_func(function() {
+        assert_equals(getComputedStyle(el).backgroundColor, "rgb(128, 196, 128)");
+        t.done();
+      }));
+    }, "Focus should always match :focus-visible on content editable divs");
+  </script>
+</body>
+</html>

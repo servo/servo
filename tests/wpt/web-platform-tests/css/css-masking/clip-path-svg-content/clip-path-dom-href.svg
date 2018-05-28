@@ -14,12 +14,12 @@
 	<rect width="200" height="200"/>
 </clipPath>
 
-<g clip-path="url(#noclip)">
+<g clip-path="url(#noclip)" id="target">
 	<rect width="400" height="400" fill="red"/>
 	<rect width="200" height="200" fill="green"/>
 </g>
 
 <script>
-document.getElementsByTagName("g")[0].setAttribute("clip-path", "url(#clip1)");
+document.getElementById("target").setAttribute("clip-path", "url(#clip1)");
 </script>
 </svg>
