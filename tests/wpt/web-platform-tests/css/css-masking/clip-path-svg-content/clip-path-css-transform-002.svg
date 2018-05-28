@@ -11,7 +11,7 @@
 	cause masking in some implementations. A green square should be
 	visible.</desc>
 </g>
-<clipPath id="clip1" style="transform: scale(10) translate(2px, 2px);">
+<clipPath id="clip1" style="transform: scale(10) translate(5px, 5px);">
 	<rect width="10" height="10"/>
 	<!-- Second rect may cause masking -->
 	<rect width="5" height="4"/>

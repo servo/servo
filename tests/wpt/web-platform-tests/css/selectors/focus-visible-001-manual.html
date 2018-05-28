@@ -8,21 +8,21 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    :focus-visible { color: rgb(0, 128, 0); }
+    :focus-visible { background-color: rgb(128, 196, 128); }
   </style>
 </head>
 <body>
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Use the TAB key on the keyboard to focus the element below that says "Focus me."</li>
-    <li>If the element does not have green text, then the test result is FAILURE. If the element has green text, then the test result is SUCCESS.</li>
+    <li>If the element does not have a green background, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
   </ol>
   <br />
   <div id="el" tabindex="0">Focus me.</div>
   <script>
     async_test(function(t) {
       el.addEventListener("focus", t.step_func(function() {
-        assert_equals(getComputedStyle(el).color, "rgb(0, 128, 0)");
+          assert_equals(getComputedStyle(el).backgroundColor, "rgb(128, 196, 128)");
         t.done();
       }));
     }, "Keyboard focus should match :focus-visible");

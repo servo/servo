@@ -1,8 +1,13 @@
 import json
 def main(request, response):
-    header = request.headers.get("Sec-Required-CSP");
     message = {}
+
+    header = request.headers.get("Test-Header-Injection");
+    message['test_header_injection'] = header if header else None
+
+    header = request.headers.get("Sec-Required-CSP");
     message['required_csp'] = header if header else None
+
     second_level_iframe_code = ""
     if "include_second_level_iframe" in request.GET:
        if "second_level_iframe_csp" in request.GET and request.GET["second_level_iframe_csp"] <> "":

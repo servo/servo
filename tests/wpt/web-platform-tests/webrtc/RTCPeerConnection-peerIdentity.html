@@ -3,7 +3,7 @@
 <title>RTCPeerConnection.prototype.peerIdentity</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="identity-helper.js"></script>
+<script src="identity-helper.sub.js"></script>
 <script>
   'use strict';
 
@@ -13,7 +13,7 @@
   // The tests here interacts with the mock identity provider located at
   //   /.well-known/idp-proxy/mock-idp.js
 
-  // The following helper functions are called from identity-helper.js
+  // The following helper functions are called from identity-helper.sub.js
   //   parseAssertionResult
   //   getIdpDomains
   //   assert_rtcerror_rejection

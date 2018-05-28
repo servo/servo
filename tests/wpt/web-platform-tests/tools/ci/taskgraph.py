@@ -9,7 +9,7 @@ import yaml
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
-docker_image = "harjgam/web-platform-tests:0.11"
+docker_image = "harjgam/web-platform-tests:0.12"
 
 task_template = {
     "provisionerId": "aws-provisioner-v1",
