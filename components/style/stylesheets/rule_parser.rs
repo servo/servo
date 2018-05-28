@@ -19,7 +19,7 @@ use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLock};
 use str::starts_with_ignore_ascii_case;
 use style_traits::{ParseError, StyleParseErrorKind};
-use stylesheets::{CssRule, CssRuleType, CssRules, Origin, StylesheetLoader};
+use stylesheets::{CssRule, CssRuleType, CssRules, Origin, RulesMutateError, StylesheetLoader};
 use stylesheets::{DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
 use stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
 use stylesheets::document_rule::DocumentCondition;
@@ -30,6 +30,14 @@ use stylesheets::supports_rule::SupportsCondition;
 use stylesheets::viewport_rule;
 use values::{CssUrl, CustomIdent, KeyframesName};
 use values::computed::font::FamilyName;
+
+/// The information we need particularly to do CSSOM insertRule stuff.
+pub struct InsertRuleContext<'a> {
+    /// The rule list we're about to insert into.
+    pub rule_list: &'a [CssRule],
+    /// The index we're about to get inserted at.
+    pub index: usize,
+}
 
 /// The parser for the top-level rules in a stylesheet.
 pub struct TopLevelRuleParser<'a, R: 'a> {
@@ -51,11 +59,13 @@ pub struct TopLevelRuleParser<'a, R: 'a> {
     /// Whether we have tried to parse was invalid due to being in the wrong
     /// place (e.g. an @import rule was found while in the `Body` state). Reset
     /// to `false` when `take_had_hierarchy_error` is called.
-    pub had_hierarchy_error: bool,
+    pub dom_error: Option<RulesMutateError>,
     /// The namespace map we use for parsing. Needs to start as `Some()`, and
     /// will be taken out after parsing namespace rules, and that reference will
     /// be moved to `ParserContext`.
     pub namespaces: &'a mut Namespaces,
+    /// The info we need insert a rule in a list.
+    pub insert_rule_context: Option<InsertRuleContext<'a>>,
 }
 
 impl<'b, R> TopLevelRuleParser<'b, R> {
@@ -74,14 +84,43 @@ impl<'b, R> TopLevelRuleParser<'b, R> {
         self.state
     }
 
-    /// Returns whether we previously tried to parse a rule that was invalid
-    /// due to being in the wrong place (e.g. an @import rule was found after
-    /// a regular style rule).  The state of this flag is reset when this
-    /// function is called.
-    pub fn take_had_hierarchy_error(&mut self) -> bool {
-        let had_hierarchy_error = self.had_hierarchy_error;
-        self.had_hierarchy_error = false;
-        had_hierarchy_error
+    /// Checks whether we can parse a rule that would transition us to
+    /// `new_state`.
+    ///
+    /// This is usually a simple branch, but we may need more bookkeeping if
+    /// doing `insertRule` from CSSOM.
+    fn check_state(&mut self, new_state: State) -> bool {
+        if self.state > new_state {
+            self.dom_error = Some(RulesMutateError::HierarchyRequest);
+            return false;
+        }
+
+        let ctx = match self.insert_rule_context {
+            Some(ref ctx) => ctx,
+            None => return true,
+        };
+
+        let next_rule_state = match ctx.rule_list.get(ctx.index) {
+            None => return true,
+            Some(rule) => rule.rule_state(),
+        };
+
+        if new_state > next_rule_state {
+            self.dom_error = Some(RulesMutateError::HierarchyRequest);
+            return false;
+        }
+
+        // If there's anything that isn't a namespace rule (or import rule, but
+        // we checked that already at the beginning), reject with a
+        // StateError.
+        if new_state == State::Namespaces &&
+            ctx.rule_list[ctx.index..].iter().any(|r| !matches!(*r, CssRule::Namespace(..)))
+        {
+            self.dom_error = Some(RulesMutateError::InvalidState);
+            return false;
+        }
+
+        true
     }
 }
 
@@ -151,9 +190,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
         let location = input.current_source_location();
         match_ignore_ascii_case! { &*name,
             "import" => {
-                if self.state > State::Imports {
-                    // "@import must be before any rule but @charset"
-                    self.had_hierarchy_error = true;
+                if !self.check_state(State::Imports) {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedImportRule))
                 }
 
@@ -168,9 +205,7 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 return Ok(AtRuleType::WithoutBlock(prelude));
             },
             "namespace" => {
-                if self.state > State::Namespaces {
-                    // "@namespace must be before any rule but @charset and @import"
-                    self.had_hierarchy_error = true;
+                if !self.check_state(State::Namespaces) {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedNamespaceRule))
                 }
 
@@ -190,10 +225,14 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
             // @charset is removed by rust-cssparser if it’s the first rule in the stylesheet
             // anything left is invalid.
             "charset" => {
-                self.had_hierarchy_error = true;
+                self.dom_error = Some(RulesMutateError::HierarchyRequest);
                 return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedCharsetRule))
             }
             _ => {}
+        }
+
+        if !self.check_state(State::Body) {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
 
         AtRuleParser::parse_prelude(&mut self.nested(), name, input)
@@ -264,6 +303,10 @@ impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for TopLevelRulePars
         &mut self,
         input: &mut Parser<'i, 't>,
     ) -> Result<QualifiedRuleParserPrelude, ParseError<'i>> {
+        if !self.check_state(State::Body) {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+
         QualifiedRuleParser::parse_prelude(&mut self.nested(), input)
     }
 
