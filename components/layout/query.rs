@@ -393,6 +393,7 @@ impl UnioningFragmentScrollAreaIterator {
             origin_rect: Rect::zero(),
             level: None,
             is_child: false,
+            // FIXME(#20867)
             overflow_direction: OverflowDirection::RightAndDown
         }
     }
@@ -634,6 +635,7 @@ pub fn process_node_scroll_id_request<N: LayoutNode>(
     layout_node.generate_scroll_id(id)
 }
 
+/// https://drafts.csswg.org/cssom-view/#scrolling-area
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
         -> Rect<i32> {
     let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
@@ -646,7 +648,7 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
         },
         OverflowDirection::LeftAndDown => {
             let bottom = max(iterator.union_rect.size.height, iterator.origin_rect.size.height);
-            let left = max(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
+            let left = min(iterator.union_rect.origin.x, iterator.origin_rect.origin.x);
             Rect::new(Point2D::new(left, iterator.origin_rect.origin.y),
                       Size2D::new(iterator.origin_rect.size.width, bottom))
         },
