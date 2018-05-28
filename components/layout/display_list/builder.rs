@@ -916,9 +916,9 @@ impl FragmentDisplayListBuilding for Fragment {
                         get_cyclic(&style.get_background().background_size.0, i).clone();
                     let size = match background_size {
                         BackgroundSize::Explicit { width, height } => Size2D::new(
-                            MaybeAuto::from_style(width, bounding_box_size.width)
+                            MaybeAuto::from_style(width.0, bounding_box_size.width)
                                 .specified_or_default(bounding_box_size.width),
-                            MaybeAuto::from_style(height, bounding_box_size.height)
+                            MaybeAuto::from_style(height.0, bounding_box_size.height)
                                 .specified_or_default(bounding_box_size.height),
                         ),
                         _ => bounding_box_size,

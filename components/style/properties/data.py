@@ -164,7 +164,7 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 vector=False, need_animatable=False, servo_restyle_damage="repaint"):
+                 vector=False, servo_restyle_damage="repaint"):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)

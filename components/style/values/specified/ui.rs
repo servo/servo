@@ -9,25 +9,14 @@ use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::cursor::CursorKind;
+use values::{Auto, Either};
 use values::generics::ui as generics;
 use values::specified::Number;
 use values::specified::color::Color;
 use values::specified::url::SpecifiedImageUrl;
 
-/// A specified value for the `caret-color` property.
-pub type CaretColor = generics::CaretColor<Color>;
-
-impl Parse for CaretColor {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
-            return Ok(generics::CaretColor::Auto);
-        }
-        Ok(generics::CaretColor::Color(Color::parse(context, input)?))
-    }
-}
+/// auto | <color>
+pub type ColorOrAuto = Either<Color, Auto>;
 
 /// A specified value for the `cursor` property.
 pub type Cursor = generics::Cursor<CursorImage>;

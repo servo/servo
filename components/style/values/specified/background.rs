@@ -9,30 +9,25 @@ use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use style_traits::ParseError;
 use values::generics::background::BackgroundSize as GenericBackgroundSize;
-use values::specified::length::LengthOrPercentageOrAuto;
+use values::specified::length::NonNegativeLengthOrPercentageOrAuto;
 
 /// A specified value for the `background-size` property.
-pub type BackgroundSize = GenericBackgroundSize<LengthOrPercentageOrAuto>;
+pub type BackgroundSize = GenericBackgroundSize<NonNegativeLengthOrPercentageOrAuto>;
 
 impl Parse for BackgroundSize {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(width) = input.try(|i| LengthOrPercentageOrAuto::parse_non_negative(context, i)) {
+        if let Ok(width) = input.try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i)) {
             let height = input
-                .try(|i| LengthOrPercentageOrAuto::parse_non_negative(context, i))
-                .unwrap_or(LengthOrPercentageOrAuto::Auto);
+                .try(|i| NonNegativeLengthOrPercentageOrAuto::parse(context, i))
+                .unwrap_or(NonNegativeLengthOrPercentageOrAuto::auto());
             return Ok(GenericBackgroundSize::Explicit { width, height });
         }
-        let location = input.current_source_location();
-        let ident = input.expect_ident()?;
-        (match_ignore_ascii_case! { &ident,
-            "cover" => Ok(GenericBackgroundSize::Cover),
-            "contain" => Ok(GenericBackgroundSize::Contain),
-            _ => Err(()),
-        }).map_err(|()| {
-            location.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
+        Ok(try_match_ident_ignore_ascii_case! { input,
+            "cover" => GenericBackgroundSize::Cover,
+            "contain" => GenericBackgroundSize::Contain,
         })
     }
 }
@@ -41,8 +36,8 @@ impl BackgroundSize {
     /// Returns `auto auto`.
     pub fn auto() -> Self {
         GenericBackgroundSize::Explicit {
-            width: LengthOrPercentageOrAuto::Auto,
-            height: LengthOrPercentageOrAuto::Auto,
+            width: NonNegativeLengthOrPercentageOrAuto::auto(),
+            height: NonNegativeLengthOrPercentageOrAuto::auto(),
         }
     }
 }

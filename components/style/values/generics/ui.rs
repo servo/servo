@@ -8,17 +8,6 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use style_traits::cursor::CursorKind;
 
-/// A generic value for the `caret-color` property.
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
-         PartialEq, SpecifiedValueInfo, ToAnimatedValue, ToAnimatedZero,
-         ToComputedValue, ToCss)]
-pub enum CaretColor<Color> {
-    /// An explicit color.
-    Color(Color),
-    /// The keyword `auto`.
-    Auto,
-}
-
 /// A generic value for the `cursor` property.
 ///
 /// https://drafts.csswg.org/css-ui/#cursor

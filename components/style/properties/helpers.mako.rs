@@ -8,7 +8,8 @@
 %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
-            needs_context=True, vector=False, computed_type=None, initial_specified_value=None,
+            needs_context=True, vector=False,
+            computed_type=None, initial_specified_value=None,
             allow_quirks=False, allow_empty=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
@@ -77,10 +78,12 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, animation_value_type=None, allow_empty=False, separator='Comma',
-                            need_animatable=False, **kwargs)">
+<%def name="vector_longhand(name, animation_value_type=None,
+                            vector_animation_type=None, allow_empty=False,
+                            separator='Comma',
+                            **kwargs)">
     <%call expr="longhand(name, animation_value_type=animation_value_type, vector=True,
-                          need_animatable=need_animatable, **kwargs)">
+                          **kwargs)">
         #[allow(unused_imports)]
         use smallvec::SmallVec;
 
@@ -115,35 +118,71 @@
             % endif
             use values::computed::ComputedVecIter;
 
-            /// The computed value, effectively a list of single values.
+            /// The generic type defining the value for this property.
+            ///
+            /// Making this type generic allows the compiler to figure out the
+            /// animated value for us, instead of having to implement it
+            /// manually for every type we care about.
             % if separator == "Comma":
             #[css(comma)]
             % endif
-            #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
-            % if need_animatable or animation_value_type == "ComputedValue":
-            #[derive(Animate, ComputeSquaredDistance)]
-            % endif
-            pub struct T(
+            #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue,
+                     ToCss)]
+            pub struct List<T>(
                 % if not allow_empty:
                 #[css(iterable)]
                 % else:
                 #[css(if_empty = "none", iterable)]
                 % endif
                 % if allow_empty and allow_empty != "NotInitial":
-                pub Vec<single_value::T>,
+                pub Vec<T>,
                 % else:
-                pub SmallVec<[single_value::T; 1]>,
+                pub SmallVec<[T; 1]>,
                 % endif
             );
 
-            % if need_animatable or animation_value_type == "ComputedValue":
-                use values::animated::{ToAnimatedZero};
 
-                impl ToAnimatedZero for T {
-                    #[inline]
-                    fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
-                }
+            /// The computed value, effectively a list of single values.
+            % if vector_animation_type:
+            % if not animation_value_type:
+                Sorry, this is stupid but needed for now.
             % endif
+
+            use properties::animated_properties::ListAnimation;
+            use values::animated::{Animate, ToAnimatedValue, ToAnimatedZero, Procedure};
+            use values::distance::{SquaredDistance, ComputeSquaredDistance};
+
+            // FIXME(emilio): For some reason rust thinks that this alias is
+            // unused, even though it's clearly used below?
+            #[allow(unused)]
+            type AnimatedList = <List<single_value::T> as ToAnimatedValue>::AnimatedValue;
+
+            impl ToAnimatedZero for AnimatedList {
+                fn to_animated_zero(&self) -> Result<Self, ()> { Err(()) }
+            }
+
+            impl Animate for AnimatedList {
+                fn animate(
+                    &self,
+                    other: &Self,
+                    procedure: Procedure,
+                ) -> Result<Self, ()> {
+                    Ok(List(
+                        self.0.animate_${vector_animation_type}(&other.0, procedure)?
+                    ))
+                }
+            }
+            impl ComputeSquaredDistance for AnimatedList {
+                fn compute_squared_distance(
+                    &self,
+                    other: &Self,
+                ) -> Result<SquaredDistance, ()> {
+                    self.0.squared_distance_${vector_animation_type}(&other.0)
+                }
+            }
+            % endif
+
+            pub type T = List<single_value::T>;
 
             pub type Iter<'a, 'cx, 'cx_a> = ComputedVecIter<'a, 'cx, 'cx_a, super::single_value::SpecifiedValue>;
 
@@ -176,16 +215,18 @@
 
         pub fn get_initial_value() -> computed_value::T {
             % if allow_empty and allow_empty != "NotInitial":
-                computed_value::T(vec![])
+                computed_value::List(vec![])
             % else:
                 let mut v = SmallVec::new();
                 v.push(single_value::get_initial_value());
-                computed_value::T(v)
+                computed_value::List(v)
             % endif
         }
 
-        pub fn parse<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
-                                -> Result<SpecifiedValue, ParseError<'i>> {
+        pub fn parse<'i, 't>(
+            context: &ParserContext,
+            input: &mut Parser<'i, 't>,
+        ) -> Result<SpecifiedValue, ParseError<'i>> {
             use style_traits::Separator;
 
             % if allow_empty:
@@ -202,8 +243,10 @@
         pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
         impl SpecifiedValue {
-            pub fn compute_iter<'a, 'cx, 'cx_a>(&'a self, context: &'cx Context<'cx_a>)
-                -> computed_value::Iter<'a, 'cx, 'cx_a> {
+            pub fn compute_iter<'a, 'cx, 'cx_a>(
+                &'a self,
+                context: &'cx Context<'cx_a>,
+            ) -> computed_value::Iter<'a, 'cx, 'cx_a> {
                 computed_value::Iter::new(context, &self.0)
             }
         }
@@ -213,7 +256,7 @@
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                computed_value::T(self.compute_iter(context).collect())
+                computed_value::List(self.compute_iter(context).collect())
             }
 
             #[inline]

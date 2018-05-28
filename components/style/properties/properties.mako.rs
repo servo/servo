@@ -2216,12 +2216,13 @@ pub mod style_structs {
                         #[allow(non_snake_case)]
                         #[inline]
                         pub fn set_${longhand.ident}<I>(&mut self, v: I)
-                            where I: IntoIterator<Item = longhands::${longhand.ident}
-                                                                  ::computed_value::single_value::T>,
-                                  I::IntoIter: ExactSizeIterator
+                        where
+                            I: IntoIterator<Item = longhands::${longhand.ident}
+                                                              ::computed_value::single_value::T>,
+                            I::IntoIter: ExactSizeIterator
                         {
                             self.${longhand.ident} = longhands::${longhand.ident}::computed_value
-                                                              ::T(v.into_iter().collect());
+                                                              ::List(v.into_iter().collect());
                         }
                     % elif longhand.ident == "display":
                         /// Set `display`.
@@ -2404,7 +2405,7 @@ pub mod style_structs {
                 pub fn clone_${longhand.ident}(
                     &self,
                 ) -> longhands::${longhand.ident}::computed_value::T {
-                    longhands::${longhand.ident}::computed_value::T(
+                    longhands::${longhand.ident}::computed_value::List(
                         self.${longhand.ident}_iter().collect()
                     )
                 }
@@ -2534,13 +2535,6 @@ impl ComputedValues {
     /// Returns the visited rules, if applicable.
     pub fn visited_rules(&self) -> Option<<&StrongRuleNode> {
         self.visited_style.as_ref().and_then(|s| s.rules.as_ref())
-    }
-
-    /// Returns whether we're in a display: none subtree.
-    pub fn is_in_display_none_subtree(&self) -> bool {
-        use properties::computed_value_flags::ComputedValueFlags;
-
-        self.flags.contains(ComputedValueFlags::IS_IN_DISPLAY_NONE_SUBTREE)
     }
 
     /// Gets a reference to the custom properties map (if one exists).
@@ -3198,6 +3192,7 @@ impl<'a> StyleBuilder<'a> {
     % endif
     % endif
     % endfor
+    <% del property %>
 
     /// Inherits style from the parent element, accounting for the default
     /// computed values that need to be provided as well.
@@ -3255,7 +3250,7 @@ impl<'a> StyleBuilder<'a> {
 
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn mutate_${style_struct.name_lower}(&mut self) -> &mut style_structs::${style_struct.name} {
-            % if not property.style_struct.inherited:
+            % if not style_struct.inherited:
             self.modified_reset = true;
             % endif
             self.${style_struct.ident}.mutate()
@@ -3263,7 +3258,7 @@ impl<'a> StyleBuilder<'a> {
 
         /// Gets a mutable view of the current `${style_struct.name}` style.
         pub fn take_${style_struct.name_lower}(&mut self) -> UniqueArc<style_structs::${style_struct.name}> {
-            % if not property.style_struct.inherited:
+            % if not style_struct.inherited:
             self.modified_reset = true;
             % endif
             self.${style_struct.ident}.take()
@@ -3287,6 +3282,7 @@ impl<'a> StyleBuilder<'a> {
                 StyleStructRef::Borrowed(self.reset_style.${style_struct.name_lower}_arc());
         }
     % endfor
+    <% del style_struct %>
 
     /// Returns whether this computed style represents a floated object.
     pub fn floated(&self) -> bool {
