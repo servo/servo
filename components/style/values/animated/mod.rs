@@ -11,11 +11,11 @@
 use app_units::Au;
 use euclid::{Point2D, Size2D};
 use smallvec::SmallVec;
-use values::computed::length::CalcLengthOrPercentage;
 use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
+use values::computed::length::CalcLengthOrPercentage;
 use values::computed::url::ComputedUrl;
 
 pub mod color;
