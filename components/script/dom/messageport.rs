@@ -363,6 +363,10 @@ impl MessagePortMethods for MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-close>
     fn Close(&self) {
+        // Step 1
+        self.detached.set(true);
+
+        // Step 2
         let maybe_port = {
             let internal = self.message_port_internal.lock().unwrap();
             let mut maybe_port = internal.entangled_port.borrow_mut();
