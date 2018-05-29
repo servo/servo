@@ -35,7 +35,6 @@ use servo_allocator;
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::{self, File};

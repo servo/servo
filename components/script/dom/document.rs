@@ -2458,7 +2458,7 @@ impl Document {
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
-            fired_unload: Cell::new(false)
+            fired_unload: Cell::new(false),
             redirect_count: Cell::new(0),
         }
     }

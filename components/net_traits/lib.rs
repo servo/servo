@@ -194,7 +194,7 @@ pub enum FilteredMetadata {
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FetchMetadata {
-    Unfiltered{
+    Unfiltered {
         m: Metadata,
         net_timing: NetworkTiming
     },
@@ -519,7 +519,7 @@ pub fn load_whole_resource(request: RequestInit,
             FetchResponseMsg::ProcessRequestEOF => (),
             FetchResponseMsg::ProcessResponse(Ok(m)) => {
                 metadata = Some(match m {
-                    FetchMetadata::Unfiltered{ m, .. } => m,
+                    FetchMetadata::Unfiltered { m, .. } => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 })
             },

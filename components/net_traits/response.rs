@@ -358,7 +358,7 @@ impl Response {
             }
         } else {
             assert_eq!(self.response_type, ResponseType::Default);
-            Ok(FetchMetadata::Unfiltered{m: metadata.unwrap(), net_timing: net_timing})
+            Ok(FetchMetadata::Unfiltered { m: metadata.unwrap(), net_timing: net_timing })
         }
     }
 }

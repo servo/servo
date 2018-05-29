@@ -100,7 +100,7 @@ impl FetchResponseListener for StylesheetContext {
 
         self.metadata = metadata.ok().map(|m| {
             match m {
-                FetchMetadata::Unfiltered{ m, .. } => m,
+                FetchMetadata::Unfiltered { m, .. } => m,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_
             }
         });

@@ -494,7 +494,7 @@ impl ImageCache for ImageCacheImpl {
                 let metadata = match response {
                     Ok(meta) => {
                         Some(match meta {
-                            FetchMetadata::Unfiltered{ m, .. } => m,
+                            FetchMetadata::Unfiltered { m, .. } => m,
                             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                         })
                     },

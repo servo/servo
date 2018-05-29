@@ -23,7 +23,6 @@ use net_traits::request::{ResponseTainting, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;

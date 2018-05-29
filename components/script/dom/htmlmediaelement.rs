@@ -999,7 +999,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
         self.metadata = metadata.ok().map(|m| {
             match m {
-                FetchMetadata::Unfiltered{ m, .. } => m,
+                FetchMetadata::Unfiltered { m, .. } => m,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_
             }
         });

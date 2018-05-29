@@ -569,9 +569,7 @@ pub fn http_fetch(request: &mut Request,
         // TODO maybe set fetch_start (if this is the last resource)
         // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
         //   attributes to this as well
-          
         // TODO maybe set redirect_start if this resource initiates the redirect
-        let resource_start = precise_time_ms();
 
         let mut fetch_result = http_network_or_cache_fetch(
             request, authentication_fetch_flag, cors_flag, done_chan, context);
@@ -617,9 +615,8 @@ pub fn http_fetch(request: &mut Request,
             }
         };
     }
-    
-    // TODO redirect_end: last byte of response of last redirect
 
+    // TODO redirect_end: last byte of response of last redirect
     // set back to default
     response.return_internal = true;
     response.set_net_timing(&context.net_timing);
@@ -1111,7 +1108,7 @@ fn http_network_fetch(request: &Request,
     let (done_sender, done_receiver) = channel();
     *done_chan = Some((done_sender.clone(), done_receiver));
     let meta = match response.metadata().expect("Response metadata should exist at this stage") {
-        FetchMetadata::Unfiltered{ m, .. } => m,
+        FetchMetadata::Unfiltered { m, .. } => m,
         FetchMetadata::Filtered { unsafe_, .. } => unsafe_
     };
 

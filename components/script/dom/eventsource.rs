@@ -332,7 +332,7 @@ impl FetchResponseListener for EventSourceContext {
         match metadata {
             Ok(fm) => {
                 let meta = match fm {
-                    FetchMetadata::Unfiltered{ m, .. } => m,
+                    FetchMetadata::Unfiltered { m, .. } => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_
                 };
                 match meta.content_type {

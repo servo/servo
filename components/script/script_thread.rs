@@ -2608,9 +2608,9 @@ impl ScriptThread {
         };
 
         // TODO should be no timeline entry for an about:blank load
-        context.process_response(Ok(FetchMetadata::Unfiltered{
+        context.process_response(Ok(FetchMetadata::Unfiltered {
             m: meta,
-            net_timing:NetworkTiming::default()}));
+            net_timing: NetworkTiming::default() }));
         context.process_response_chunk(chunk);
         context.process_response_eof(Ok(()));
     }

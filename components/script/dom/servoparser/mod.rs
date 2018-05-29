@@ -615,7 +615,7 @@ impl FetchResponseListener for ParserContext {
         let metadata = match meta_result {
             Ok(meta) => {
                 Some(match meta {
-                    FetchMetadata::Unfiltered{ m, ..} => m,
+                    FetchMetadata::Unfiltered { m, .. } => m,
                     FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 })
             },

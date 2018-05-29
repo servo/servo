@@ -692,7 +692,7 @@ impl HttpCache {
                filtered: _,
                unsafe_: metadata,
                net_timing: _ }) |
-            Ok(FetchMetadata::Unfiltered{ m: metadata, net_timing: _ }) => metadata,
+            Ok(FetchMetadata::Unfiltered { m: metadata, net_timing: _ }) => metadata,
             _ => return,
         };
         if !response_is_cacheable(&metadata) {
