@@ -2501,107 +2501,83 @@ impl Animate for ComputedScale {
 /// <https://drafts.csswg.org/css-transforms/#interpolation-of-transforms>
 impl Animate for ComputedTransform {
     #[inline]
-    fn animate(
-        &self,
-        other_: &Self,
-        procedure: Procedure,
-    ) -> Result<Self, ()> {
-
-        let animate_equal_lists = |this: &[ComputedTransformOperation],
-                                   other: &[ComputedTransformOperation]|
-                                   -> Result<ComputedTransform, ()> {
-            Ok(Transform(this.iter().zip(other)
-                             .map(|(this, other)| this.animate(other, procedure))
-                             .collect::<Result<Vec<_>, _>>()?))
-            // If we can't animate for a pair of matched transform lists
-            // this means we have at least one undecomposable matrix,
-            // so we should bubble out Err here, and let the caller do
-            // the fallback procedure.
-        };
-        if self.0.is_empty() && other_.0.is_empty() {
-            return Ok(Transform(vec![]));
-        }
-
-
-        let this = &self.0;
-        let other = &other_.0;
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        use std::borrow::Cow;
 
         if procedure == Procedure::Add {
-            let result = this.iter().chain(other).cloned().collect::<Vec<_>>();
+            let result = self.0.iter().chain(&other.0).cloned().collect::<Vec<_>>();
             return Ok(Transform(result));
         }
 
-
-        // For matched transform lists.
-        {
-            if this.len() == other.len() {
-                let is_matched_transforms = this.iter().zip(other).all(|(this, other)| {
-                    is_matched_operation(this, other)
-                });
-
-                if is_matched_transforms {
-                    return animate_equal_lists(this, other);
-                }
-            }
-        }
-
-        // For mismatched transform lists.
-        let mut owned_this = this.clone();
-        let mut owned_other = other.clone();
-
-        if this.is_empty() {
-            let this = other_.to_animated_zero()?.0;
-            if this.iter().zip(other).all(|(this, other)| is_matched_operation(this, other)) {
-                return animate_equal_lists(&this, other)
-            }
-            owned_this = this;
-        }
-        if other.is_empty() {
-            let other = self.to_animated_zero()?.0;
-            if this.iter().zip(&other).all(|(this, other)| is_matched_operation(this, other)) {
-                return animate_equal_lists(this, &other)
-            }
-            owned_other = other;
-        }
-
         // https://drafts.csswg.org/css-transforms-1/#transform-transform-neutral-extend-animation
-        fn match_operations_if_possible(
-            this: &mut Vec<ComputedTransformOperation>,
-            other: &mut Vec<ComputedTransformOperation>,
-        ) -> Result<(), ()> {
+        fn match_operations_if_possible<'a>(
+            this: &mut Cow<'a, Vec<ComputedTransformOperation>>,
+            other: &mut Cow<'a, Vec<ComputedTransformOperation>>,
+        ) -> bool {
             if !this.iter().zip(other.iter()).all(|(this, other)| is_matched_operation(this, other)) {
-                return Err(());
+                return false;
             }
 
             if this.len() == other.len() {
-                return Ok(())
+                return true;
             }
 
-            let (shorter, longer) = if this.len() < other.len() { (this, other) } else { (other, this) };
+            let (shorter, longer) =
+                if this.len() < other.len() {
+                    (this.to_mut(), other)
+                } else {
+                    (other.to_mut(), this)
+                };
+
             shorter.reserve(longer.len());
             for op in longer.iter().skip(shorter.len()) {
-                shorter.push(op.to_animated_zero()?);
+                shorter.push(op.to_animated_zero().unwrap());
             }
-            Ok(())
-        };
 
-        if match_operations_if_possible(&mut owned_this, &mut owned_other).is_ok() {
-            return animate_equal_lists(&owned_this, &owned_other)
+            // The resulting operations won't be matched regardless if the
+            // extended component is already InterpolateMatrix /
+            // AccumulateMatrix.
+            //
+            // Otherwise they should be matching operations all the time.
+            let already_mismatched = matches!(
+                longer[0],
+                TransformOperation::InterpolateMatrix { .. } |
+                TransformOperation::AccumulateMatrix { .. }
+            );
+
+            debug_assert_eq!(
+                !already_mismatched,
+                longer.iter().zip(shorter.iter()).all(|(this, other)| is_matched_operation(this, other)),
+                "ToAnimatedZero should generate matched operations"
+            );
+
+            !already_mismatched
+        }
+
+        let mut this = Cow::Borrowed(&self.0);
+        let mut other = Cow::Borrowed(&other.0);
+
+        if match_operations_if_possible(&mut this, &mut other) {
+            return Ok(Transform(
+                this.iter().zip(other.iter())
+                    .map(|(this, other)| this.animate(other, procedure))
+                    .collect::<Result<Vec<_>, _>>()?
+            ));
         }
 
         match procedure {
             Procedure::Add => Err(()),
             Procedure::Interpolate { progress } => {
                 Ok(Transform(vec![TransformOperation::InterpolateMatrix {
-                    from_list: Transform(owned_this),
-                    to_list: Transform(owned_other),
+                    from_list: Transform(this.into_owned()),
+                    to_list: Transform(other.into_owned()),
                     progress: Percentage(progress as f32),
                 }]))
             },
             Procedure::Accumulate { count } => {
                 Ok(Transform(vec![TransformOperation::AccumulateMatrix {
-                    from_list: Transform(owned_this),
-                    to_list: Transform(owned_other),
+                    from_list: Transform(this.into_owned()),
+                    to_list: Transform(other.into_owned()),
                     count: cmp::min(count, i32::max_value() as u64) as i32,
                 }]))
             },
