@@ -2564,6 +2564,31 @@ impl Animate for ComputedTransform {
             owned_other = other;
         }
 
+        // https://drafts.csswg.org/css-transforms-1/#transform-transform-neutral-extend-animation
+        fn match_operations_if_possible(
+            this: &mut Vec<ComputedTransformOperation>,
+            other: &mut Vec<ComputedTransformOperation>,
+        ) -> Result<(), ()> {
+            if !this.iter().zip(other.iter()).all(|(this, other)| is_matched_operation(this, other)) {
+                return Err(());
+            }
+
+            if this.len() == other.len() {
+                return Ok(())
+            }
+
+            let (shorter, longer) = if this.len() < other.len() { (this, other) } else { (other, this) };
+            shorter.reserve(longer.len());
+            for op in longer.iter().skip(shorter.len()) {
+                shorter.push(op.to_animated_zero()?);
+            }
+            Ok(())
+        };
+
+        if match_operations_if_possible(&mut owned_this, &mut owned_other).is_ok() {
+            return animate_equal_lists(&owned_this, &owned_other)
+        }
+
         match procedure {
             Procedure::Add => Err(()),
             Procedure::Interpolate { progress } => {
