@@ -15,6 +15,6 @@ The Chromium implementation of the `GenericSensorTest` interface is located in
 Other browser vendors should provide their own implementations of
 the `GenericSensorTest` interface.
 
-[Known issue](https://github.com/w3c/web-platform-tests/issues/9686): a
+[Known issue](https://github.com/web-platform-tests/wpt/issues/9686): a
 WebDriver extension is a better approach for the Generic Sensor tests
 automation.

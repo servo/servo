@@ -7,7 +7,7 @@
 # http://philip.html5.org/tests/canvas/suite/tests/
 #
 # It has been adapted for use with the Web Platform Test Suite suite at
-# https://github.com/w3c/web-platform-tests/
+# https://github.com/web-platform-tests/wpt/
 #
 # The original version had a number of now-removed features (multiple versions of
 # each test case of varying verbosity, Mozilla mochitests, semi-automated test

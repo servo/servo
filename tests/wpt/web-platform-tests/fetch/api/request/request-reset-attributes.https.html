@@ -33,4 +33,26 @@ promise_test(async (t) => {
       }
     }
   }, 'Request.isReloadNavigation is reset with non-empty RequestInit');
+
+promise_test(async (t) => {
+    const scope = 'resources/hello.txt?name=mode';
+    let frame;
+    let reg;
+
+    try {
+      reg = await service_worker_unregister_and_register(t, worker, scope);
+      await wait_for_state(t, reg.installing, 'activated');
+      frame = await with_iframe(scope);
+      assert_equals(frame.contentDocument.body.textContent,
+                    'old: navigate, new: same-origin');
+    } finally {
+      if (frame) {
+        frame.remove();
+      }
+      if (reg) {
+        await reg.unregister();
+      }
+    }
+  }, 'Request.mode is reset with non-empty RequestInit when it\'s "navigate"');
+
 </script>

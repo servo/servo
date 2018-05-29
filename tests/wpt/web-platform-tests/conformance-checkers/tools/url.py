@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 ccdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# based on https://github.com/w3c/web-platform-tests/blob/275544eab54a0d0c7f74ccc2baae9711293d8908/url/urltestdata.txt
+# based on https://github.com/web-platform-tests/wpt/blob/275544eab54a0d0c7f74ccc2baae9711293d8908/url/urltestdata.txt
 invalid = {
     "scheme-trailing-space": "a: foo.com",
     "scheme-trailing-tab": "a:\tfoo.com",

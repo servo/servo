@@ -522,5 +522,5 @@ try {
 } catch {
     throw 'Web Bluetooth Test API is not implemented on this ' +
         'environment. See the bluetooth README at ' +
-        'https://github.com/w3c/web-platform-tests/blob/master/bluetooth/README.md#web-bluetooth-testing';
+        'https://github.com/web-platform-tests/wpt/blob/master/bluetooth/README.md#web-bluetooth-testing';
 }

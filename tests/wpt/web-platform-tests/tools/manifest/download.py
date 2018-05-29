@@ -40,7 +40,7 @@ def git_commits(repo_root):
 
 def github_url(commits):
     try:
-        resp = urlopen("https://api.github.com/repos/w3c/web-platform-tests/releases")
+        resp = urlopen("https://api.github.com/repos/web-platform-tests/wpt/releases")
     except Exception:
         return None
 

@@ -454,7 +454,7 @@ def make_hosts_file(config, host):
     # for this context. These systems do not reserve any value for this
     # purpose, so the inavailability of the domains must be taken for granted.
     #
-    # https://github.com/w3c/web-platform-tests/issues/10560
+    # https://github.com/web-platform-tests/wpt/issues/10560
     if platform.uname()[0] == "Windows":
         for not_domain in config.not_domains_set:
             rv.append("0.0.0.0\t%s\n" % not_domain)

@@ -3,7 +3,7 @@
 <title>RTCPeerConnection.prototype.createOffer</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/webrtc/RTCPeerConnection-helper.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
 
@@ -45,6 +45,25 @@ promise_test(async t => {
   assert_true(video_section_found);
 }, 'H.264 and VP8 should be supported in initial offer');
 
+async function negotiateParameters() {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  let [track, streams] = await getTrackFromUserMedia('video');
+  const sender = pc1.addTrack(track);
+  await doSignalingHandshake(pc1, pc2);
+  return sender.getParameters();
+}
+
+function parseFmtp(fmtp) {
+  const params = fmtp.split(';');
+  return params.map(param => param.split('='));
+}
+promise_test(async t => {
+  const params = await negotiateParameters();
+  assert_true(!!params.codecs.find(codec => codec.mimeType === 'video/H264'));
+  assert_true(!!params.codecs.find(codec => codec.mimeType === 'video/VP8'));
+}, 'H.264 and VP8 should be negotiated after handshake');
+
 // TODO: Section 6: Recipients MUST be able to decode 320x240@20 fps
 // TODO: Section 6.1: VP8 MUST support RFC 7741 payload formats
 // TODO: Section 6.1: VP8 MUST respect max-fr/max-fs
@@ -53,7 +72,15 @@ promise_test(async t => {
 // TODO: Section 6.2: MUST support Constrained Baseline level 1.2
 // TODO: Section 6.2: SHOULD support Constrained High level 1.3
 // TODO: Section 6.2: MUST support packetization mode 1.
-// TODO: Section 6.2: MUST include profile-level-id
+promise_test(async t => {
+  const params = await negotiateParameters();
+  const h264 = params.codecs.filter(codec => codec.mimeType === 'video/H264');
+  h264.map(codec => {
+    const codec_params = parseFmtp(codec.sdpFmtpLine);
+    assert_true(!!codec_params.find(x => x[0] === 'profile-level-id'));
+  })
+}, 'All H.264 codecs MUST include profile-level-id');
+
 // TODO: Section 6.2: SHOULD interpret max-mbps, max-smbps, max-fs et al
 // TODO: Section 6.2: MUST NOT include sprop-parameter-sets
 // TODO: Section 6.2: MUST support SEI "filler payload"

@@ -76,7 +76,7 @@ The testsuite has a few types of tests, outlined below:
 
 ## GitHub
 
-[GitHub](https://github.com/w3c/web-platform-tests/) is used both for [issue tracking](https://github.com/w3c/web-platform-tests/issues) and [test submissions](https://github.com/w3c/web-platform-tests/pulls); we
+[GitHub](https://github.com/web-platform-tests/wpt/) is used both for [issue tracking](https://github.com/web-platform-tests/wpt/issues) and [test submissions](https://github.com/web-platform-tests/wpt/pulls); we
 provide [a limited introduction][github-intro] to both git and
 GitHub.
 
@@ -148,7 +148,7 @@ After your `hosts` file is configured, the servers will be locally accessible at
 http://web-platform.test:8000/<br>
 https://web-platform.test:8443/ *
 
-\**See [Trusting Root CA](https://github.com/w3c/web-platform-tests/blob/master/README.md#trusting-root-ca)*
+\**See [Trusting Root CA](https://github.com/web-platform-tests/wpt/blob/master/README.md#trusting-root-ca)*
 
 ## Running tests automatically
 
