@@ -268,8 +268,8 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 self.state = State::Imports;
                 CssRule::Import(import_rule)
             },
-            AtRuleNonBlockPrelude::Namespace(prefix, url, location) => {
-                let opt_prefix = if let Some(prefix) = prefix {
+            AtRuleNonBlockPrelude::Namespace(prefix, url, source_location) => {
+                let prefix = if let Some(prefix) = prefix {
                     self.namespaces.prefixes.insert(prefix.clone(), url.clone());
                     Some(prefix)
                 } else {
@@ -279,9 +279,9 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
 
                 self.state = State::Namespaces;
                 CssRule::Namespace(Arc::new(self.shared_lock.wrap(NamespaceRule {
-                    prefix: opt_prefix,
-                    url: url,
-                    source_location: location,
+                    prefix,
+                    url,
+                    source_location,
                 })))
             },
         }
@@ -506,27 +506,27 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                     ),
                 )))
             },
-            AtRuleBlockPrelude::Media(media_queries, location) => {
+            AtRuleBlockPrelude::Media(media_queries, source_location) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
-                    media_queries: media_queries,
+                    media_queries,
                     rules: self.parse_nested_rules(input, CssRuleType::Media),
-                    source_location: location,
+                    source_location,
                 }))))
             },
-            AtRuleBlockPrelude::Supports(cond, location) => {
+            AtRuleBlockPrelude::Supports(condition, source_location) => {
                 let eval_context = ParserContext::new_with_rule_type(
                     self.context,
                     CssRuleType::Style,
                     self.namespaces,
                 );
 
-                let enabled = cond.eval(&eval_context);
+                let enabled = condition.eval(&eval_context);
                 Ok(CssRule::Supports(Arc::new(self.shared_lock.wrap(
                     SupportsRule {
-                        condition: cond,
+                        condition,
                         rules: self.parse_nested_rules(input, CssRuleType::Supports),
-                        enabled: enabled,
-                        source_location: location,
+                        enabled,
+                        source_location,
                     },
                 ))))
             },
@@ -541,7 +541,7 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                     ViewportRule::parse(&context, self.error_context, input)?,
                 ))))
             },
-            AtRuleBlockPrelude::Keyframes(name, prefix, location) => {
+            AtRuleBlockPrelude::Keyframes(name, vendor_prefix, source_location) => {
                 let context = ParserContext::new_with_rule_type(
                     self.context,
                     CssRuleType::Keyframes,
@@ -550,19 +550,19 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
 
                 Ok(CssRule::Keyframes(Arc::new(self.shared_lock.wrap(
                     KeyframesRule {
-                        name: name,
+                        name,
                         keyframes: parse_keyframe_list(
                             &context,
                             self.error_context,
                             input,
                             self.shared_lock,
                         ),
-                        vendor_prefix: prefix,
-                        source_location: location,
+                        vendor_prefix,
+                        source_location,
                     },
                 ))))
             },
-            AtRuleBlockPrelude::Page(location) => {
+            AtRuleBlockPrelude::Page(source_location) => {
                 let context = ParserContext::new_with_rule_type(
                     self.context,
                     CssRuleType::Page,
@@ -573,21 +573,20 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
                     parse_property_declaration_list(&context, self.error_context, input);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
                     block: Arc::new(self.shared_lock.wrap(declarations)),
-                    source_location: location,
+                    source_location,
                 }))))
             },
-            AtRuleBlockPrelude::Document(cond, location) => {
-                if cfg!(feature = "gecko") {
-                    Ok(CssRule::Document(Arc::new(self.shared_lock.wrap(
-                        DocumentRule {
-                            condition: cond,
-                            rules: self.parse_nested_rules(input, CssRuleType::Document),
-                            source_location: location,
-                        },
-                    ))))
-                } else {
+            AtRuleBlockPrelude::Document(condition, source_location) => {
+                if !cfg!(feature = "gecko") {
                     unreachable!()
                 }
+                Ok(CssRule::Document(Arc::new(self.shared_lock.wrap(
+                    DocumentRule {
+                        condition,
+                        rules: self.parse_nested_rules(input, CssRuleType::Document),
+                        source_location,
+                    },
+                ))))
             },
         }
     }
@@ -608,13 +607,10 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for NestedRulePa
             url_data: Some(self.context.url_data),
         };
 
-        let location = input.current_source_location();
+        let source_location = input.current_source_location();
         let selectors = SelectorList::parse(&selector_parser, input)?;
 
-        Ok(QualifiedRuleParserPrelude {
-            selectors: selectors,
-            source_location: location,
-        })
+        Ok(QualifiedRuleParserPrelude { selectors, source_location, })
     }
 
     fn parse_block<'t>(
