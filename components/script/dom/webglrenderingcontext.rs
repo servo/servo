@@ -1193,7 +1193,7 @@ impl WebGLRenderingContext {
 
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
-        self.webgl_sender.send_remove().unwrap();
+        let _ = self.webgl_sender.send_remove();
     }
 }
 
