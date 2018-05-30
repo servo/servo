@@ -11,17 +11,17 @@
     <script>
       var host_info = get_host_info();
       var HTTP_PORT = host_info.HTTP_PORT;
-      var ORIGINAL_HOST = host_info.ORIGINAL_HOST; // e.g. "web-platform.test"
+      var ORIGINAL_HOST = host_info.ORIGINAL_HOST;
       var SUFFIX_HOST = ORIGINAL_HOST.substring(ORIGINAL_HOST.lastIndexOf('.') + 1); // e.g. "test"
-      var PREFIX_HOST = "www1." + ORIGINAL_HOST; // e.g. "www1.web-platform.test"
+      var REMOTE_HOST = host_info.REMOTE_HOST;
       var iframe = document.getElementById("iframe");
       var iframe_url = new URL("support/document_domain_setter_iframe.html", document.location);
-      iframe_url.hostname = PREFIX_HOST;
+      iframe_url.hostname = REMOTE_HOST;
       iframe.src = iframe_url;
       test(function() {
         assert_throws("SecurityError", function() { document.domain = SUFFIX_HOST; });
         assert_throws("SecurityError", function() { document.domain = "." + SUFFIX_HOST; });
-        assert_throws("SecurityError", function() { document.domain = PREFIX_HOST; });
+        assert_throws("SecurityError", function() { document.domain = REMOTE_HOST; });
         assert_throws("SecurityError", function() { document.domain = "example.com"; });
       }, "failed setting of document.domain");
       async_test(function(t) {

@@ -213,7 +213,7 @@ function rotate3dToMatrix3d(x, y, z, radian) {
 }
 
 // Returns an array of the 4x4 matrix equivalent to 'rotate3d(x, y, z, radian)'.
-// https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined
+// https://drafts.csswg.org/css-transforms-2/#Rotate3dDefined
 function rotate3dToMatrix(x, y, z, radian) {
   const sc = Math.sin(radian / 2) * Math.cos(radian / 2);
   const sq = Math.sin(radian / 2) * Math.sin(radian / 2);

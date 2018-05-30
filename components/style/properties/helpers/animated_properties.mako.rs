@@ -29,11 +29,10 @@ use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
 use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo};
 use super::ComputedValues;
-use values::{CSSFloat, CustomIdent, Either};
+use values::{CSSFloat, CustomIdent};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA as AnimatedRGBA;
 use values::animated::effects::Filter as AnimatedFilter;
-use values::animated::effects::FilterList as AnimatedFilterList;
 use values::computed::{Angle, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context};
 use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -53,13 +52,10 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::font::{FontSettings as GenericFontSettings, FontTag, VariationValue};
 use values::computed::font::FontVariationSettings;
 use values::generics::effects::Filter;
-use values::generics::position as generic_position;
 use values::generics::svg::{SVGLength,  SvgLengthOrPercentageOrNumber, SVGPaint};
 use values::generics::svg::{SVGPaintKind, SVGStrokeDashArray, SVGOpacity};
 use void::{self, Void};
 
-/// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
-pub trait RepeatableListAnimatable: Animate {}
 
 /// Returns true if this nsCSSPropertyID is one of the animatable properties.
 #[cfg(feature = "gecko")]
@@ -755,18 +751,45 @@ impl ToAnimatedZero for AnimationValue {
     }
 }
 
-impl RepeatableListAnimatable for LengthOrPercentage {}
-impl RepeatableListAnimatable for Either<f32, LengthOrPercentage> {}
-impl RepeatableListAnimatable for Either<NonNegativeNumber, NonNegativeLengthOrPercentage> {}
-impl RepeatableListAnimatable for SvgLengthOrPercentageOrNumber<LengthOrPercentage, Number> {}
+/// A trait to abstract away the different kind of animations over a list that
+/// there may be.
+pub trait ListAnimation<T> : Sized {
+    /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
+    fn animate_repeatable_list(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
+    where
+        T: Animate;
 
-macro_rules! repeated_vec_impl {
-    ($($ty:ty),*) => {
-        $(impl<T> Animate for $ty
-        where
-            T: RepeatableListAnimatable,
-        {
-            fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+    /// <https://drafts.csswg.org/css-transitions/#animtype-repeatable-list>
+    fn squared_distance_repeatable_list(&self, other: &Self) -> Result<SquaredDistance, ()>
+    where
+        T: ComputeSquaredDistance;
+
+    /// This is the animation used for some of the types like shadows and
+    /// filters, where the interpolation happens with the zero value if one of
+    /// the sides is not present.
+    fn animate_with_zero(&self, other: &Self, procedure: Procedure) -> Result<Self, ()>
+    where
+        T: Animate + Clone + ToAnimatedZero;
+
+    /// This is the animation used for some of the types like shadows and
+    /// filters, where the interpolation happens with the zero value if one of
+    /// the sides is not present.
+    fn squared_distance_with_zero(&self, other: &Self) -> Result<SquaredDistance, ()>
+    where
+        T: ToAnimatedZero + ComputeSquaredDistance;
+}
+
+macro_rules! animated_list_impl {
+    (<$t:ident> for $ty:ty) => {
+        impl<$t> ListAnimation<$t> for $ty {
+            fn animate_repeatable_list(
+                &self,
+                other: &Self,
+                procedure: Procedure,
+            ) -> Result<Self, ()>
+            where
+                T: Animate,
+            {
                 // If the length of either list is zero, the least common multiple is undefined.
                 if self.is_empty() || other.is_empty() {
                     return Err(());
@@ -777,14 +800,14 @@ macro_rules! repeated_vec_impl {
                     this.animate(other, procedure)
                 }).collect()
             }
-        }
 
-        impl<T> ComputeSquaredDistance for $ty
-        where
-            T: ComputeSquaredDistance + RepeatableListAnimatable,
-        {
-            #[inline]
-            fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+            fn squared_distance_repeatable_list(
+                &self,
+                other: &Self,
+            ) -> Result<SquaredDistance, ()>
+            where
+                T: ComputeSquaredDistance,
+            {
                 if self.is_empty() || other.is_empty() {
                     return Err(());
                 }
@@ -794,11 +817,59 @@ macro_rules! repeated_vec_impl {
                     this.compute_squared_distance(other)
                 }).sum()
             }
-        })*
-    };
+
+            fn animate_with_zero(
+                &self,
+                other: &Self,
+                procedure: Procedure,
+            ) -> Result<Self, ()>
+            where
+                T: Animate + Clone + ToAnimatedZero
+            {
+                if procedure == Procedure::Add {
+                    return Ok(
+                        self.iter().chain(other.iter()).cloned().collect()
+                    );
+                }
+                self.iter().zip_longest(other.iter()).map(|it| {
+                    match it {
+                        EitherOrBoth::Both(this, other) => {
+                            this.animate(other, procedure)
+                        },
+                        EitherOrBoth::Left(this) => {
+                            this.animate(&this.to_animated_zero()?, procedure)
+                        },
+                        EitherOrBoth::Right(other) => {
+                            other.to_animated_zero()?.animate(other, procedure)
+                        }
+                    }
+                }).collect()
+            }
+
+            fn squared_distance_with_zero(
+                &self,
+                other: &Self,
+            ) -> Result<SquaredDistance, ()>
+            where
+                T: ToAnimatedZero + ComputeSquaredDistance
+            {
+                self.iter().zip_longest(other.iter()).map(|it| {
+                    match it {
+                        EitherOrBoth::Both(this, other) => {
+                            this.compute_squared_distance(other)
+                        },
+                        EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
+                            list.to_animated_zero()?.compute_squared_distance(list)
+                        },
+                    }
+                }).sum()
+            }
+        }
+    }
 }
 
-repeated_vec_impl!(SmallVec<[T; 1]>, Vec<T>);
+animated_list_impl!(<T> for SmallVec<[T; 1]>);
+animated_list_impl!(<T> for Vec<T>);
 
 /// <https://drafts.csswg.org/css-transitions/#animtype-visibility>
 impl Animate for Visibility {
@@ -1027,9 +1098,6 @@ impl<'a> Iterator for FontSettingTagIter<'a> {
     }
 }
 
-impl<H, V> RepeatableListAnimatable for generic_position::Position<H, V>
-    where H: RepeatableListAnimatable, V: RepeatableListAnimatable {}
-
 /// <https://drafts.csswg.org/css-transitions/#animtype-rect>
 impl Animate for ClipRect {
     #[inline]
@@ -1221,25 +1289,21 @@ impl Animate for ComputedTransformOperation {
             ) => {
                 Ok(TransformOperation::Scale(
                     animate_multiplicative_factor(*fx, *tx, procedure)?,
-                    Some(animate_multiplicative_factor(fy.unwrap_or(*fx), ty.unwrap_or(*tx), procedure)?),
+                    Some(animate_multiplicative_factor(
+                        fy.unwrap_or(*fx),
+                        ty.unwrap_or(*tx),
+                        procedure
+                    )?),
                 ))
             },
             (
                 &TransformOperation::Rotate3D(fx, fy, fz, fa),
                 &TransformOperation::Rotate3D(tx, ty, tz, ta),
             ) => {
-                let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(fx, fy, fz, fa);
-                let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(tx, ty, tz, ta);
-                if (fx, fy, fz) == (tx, ty, tz) {
-                    let ia = fa.animate(&ta, procedure)?;
-                    Ok(TransformOperation::Rotate3D(fx, fy, fz, ia))
-                } else {
-                    let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
-                    let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
-                    Ok(TransformOperation::Matrix3D(
-                        matrix_f.animate(&matrix_t, procedure)?,
-                    ))
-                }
+                let animated = Rotate::Rotate3D(fx, fy, fz, fa)
+                    .animate(&Rotate::Rotate3D(tx, ty, tz, ta), procedure)?;
+                let (fx, fy, fz, fa) = ComputedRotate::resolve(&animated);
+                Ok(TransformOperation::Rotate3D(fx, fy, fz, fa))
             },
             (
                 &TransformOperation::RotateX(fa),
@@ -1303,6 +1367,9 @@ impl Animate for ComputedTransformOperation {
             _ if self.is_scale() && other.is_scale() => {
                 self.to_scale_3d().animate(&other.to_scale_3d(), procedure)
             }
+            _ if self.is_rotate() && other.is_rotate() => {
+                self.to_rotate_3d().animate(&other.to_rotate_3d(), procedure)
+            }
             _ => Err(()),
         }
     }
@@ -1335,37 +1402,9 @@ fn is_matched_operation(first: &ComputedTransformOperation, second: &ComputedTra
         // we animate scale and translate operations against each other
         (a, b) if a.is_translate() && b.is_translate() => true,
         (a, b) if a.is_scale() && b.is_scale() => true,
+        (a, b) if a.is_rotate() && b.is_rotate() => true,
         // InterpolateMatrix and AccumulateMatrix are for mismatched transform.
         _ => false
-    }
-}
-
-/// <https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined>
-fn rotate_to_matrix(x: f32, y: f32, z: f32, a: Angle) -> Matrix3D {
-    let half_rad = a.radians() / 2.0;
-    let sc = (half_rad).sin() * (half_rad).cos();
-    let sq = (half_rad).sin().powi(2);
-
-    Matrix3D {
-        m11: 1.0 - 2.0 * (y * y + z * z) * sq,
-        m12: 2.0 * (x * y * sq + z * sc),
-        m13: 2.0 * (x * z * sq - y * sc),
-        m14: 0.0,
-
-        m21: 2.0 * (x * y * sq - z * sc),
-        m22: 1.0 - 2.0 * (x * x + z * z) * sq,
-        m23: 2.0 * (y * z * sq + x * sc),
-        m24: 0.0,
-
-        m31: 2.0 * (x * z * sq + y * sc),
-        m32: 2.0 * (y * z * sq - x * sc),
-        m33: 1.0 - 2.0 * (x * x + y * y) * sq,
-        m34: 0.0,
-
-        m41: 0.0,
-        m42: 0.0,
-        m43: 0.0,
-        m44: 1.0
     }
 }
 
@@ -1464,10 +1503,10 @@ impl Animate for MatrixDecomposed2D {
         let matrix = self.matrix.animate(&other.matrix, procedure)?;
 
         Ok(MatrixDecomposed2D {
-            translate: translate,
-            scale: scale,
-            angle: angle,
-            matrix: matrix,
+            translate,
+            scale,
+            angle,
+            matrix,
         })
     }
 }
@@ -1781,12 +1820,16 @@ impl Animate for Quaternion {
         use std::f64;
 
         let (this_weight, other_weight) = procedure.weights();
-        debug_assert!((this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
-                      other_weight == 1.0f64 || other_weight == 0.0f64,
-                      "animate should only be used for interpolating or accumulating transforms");
+        debug_assert!(
+            (this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
+            other_weight == 1.0f64 || other_weight == 0.0f64,
+            "animate should only be used for interpolating or accumulating transforms"
+        );
 
-        // We take a specialized code path for accumulation (where other_weight is 1)
-        if other_weight == 1.0 {
+        // We take a specialized code path for accumulation (where other_weight
+        // is 1).
+        if let Procedure::Accumulate { .. } = procedure {
+            debug_assert_eq!(other_weight, 1.0);
             if this_weight == 0.0 {
                 return Ok(*other);
             }
@@ -1817,32 +1860,39 @@ impl Animate for Quaternion {
             ));
         }
 
-        let mut product = self.0 * other.0 +
-                          self.1 * other.1 +
-                          self.2 * other.2 +
-                          self.3 * other.3;
+        // Straight from gfxQuaternion::Slerp.
+        //
+        // Dot product, clamped between -1 and 1.
+        let dot =
+            (self.0 * other.0 +
+             self.1 * other.1 +
+             self.2 * other.2 +
+             self.3 * other.3)
+            .min(1.0).max(-1.0);
 
-        // Clamp product to -1.0 <= product <= 1.0
-        product = product.min(1.0);
-        product = product.max(-1.0);
-
-        if product == 1.0 {
+        if dot == 1.0 {
             return Ok(*self);
         }
 
-        let theta = product.acos();
-        let w = (other_weight * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+        let theta = dot.acos();
+        let rsintheta = 1.0 / (1.0 - dot * dot).sqrt();
 
-        let mut a = *self;
-        let mut b = *other;
-        let mut result = Quaternion(0., 0., 0., 0.,);
+        let right_weight = (other_weight * theta).sin() * rsintheta;
+        let left_weight = (other_weight * theta).cos() - dot * right_weight;
+
+        let mut left = *self;
+        let mut right = *other;
         % for i in range(4):
-            a.${i} *= (other_weight * theta).cos() - product * w;
-            b.${i} *= w;
-            result.${i} = a.${i} + b.${i};
+            left.${i} *= left_weight;
+            right.${i} *= right_weight;
         % endfor
 
-        Ok(result)
+        Ok(Quaternion(
+            left.0 + right.0,
+            left.1 + right.1,
+            left.2 + right.2,
+            left.3 + right.3,
+        ))
     }
 }
 
@@ -1858,7 +1908,8 @@ impl ComputeSquaredDistance for Quaternion {
 }
 
 /// Decompose a 3D matrix.
-/// <https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix>
+/// https://drafts.csswg.org/css-transforms-2/#decomposing-a-3d-matrix
+/// http://www.realtimerendering.com/resources/GraphicsGems/gemsii/unmatrix.c
 fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // Normalize the matrix.
     if matrix.m44 == 0.0 {
@@ -1866,6 +1917,8 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     }
 
     let scaling_factor = matrix.m44;
+
+    // Normalize the matrix.
     % for i in range(1, 5):
         % for j in range(1, 5):
             matrix.m${i}${j} /= scaling_factor;
@@ -1876,9 +1929,9 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // an easy way to test for singularity of the upper 3x3 component.
     let mut perspective_matrix = matrix;
 
-    % for i in range(1, 4):
-        perspective_matrix.m${i}4 = 0.0;
-    % endfor
+    perspective_matrix.m14 = 0.0;
+    perspective_matrix.m24 = 0.0;
+    perspective_matrix.m34 = 0.0;
     perspective_matrix.m44 = 1.0;
 
     if perspective_matrix.determinant() == 0.0 {
@@ -1894,37 +1947,18 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
             matrix.m44
         ];
 
-        perspective_matrix = perspective_matrix.inverse().unwrap();
-
-        // Transpose perspective_matrix
-        perspective_matrix = Matrix3D {
-            % for i in range(1, 5):
-                % for j in range(1, 5):
-                    m${i}${j}: perspective_matrix.m${j}${i},
-                % endfor
-            % endfor
-        };
-
-        // Multiply right_hand_side with perspective_matrix
-        let mut tmp: [f32; 4] = [0.0; 4];
-        % for i in range(1, 5):
-            tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
-                            (right_hand_side[1] * perspective_matrix.m2${i}) +
-                            (right_hand_side[2] * perspective_matrix.m3${i}) +
-                            (right_hand_side[3] * perspective_matrix.m4${i});
-        % endfor
-
-        Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
+        perspective_matrix = perspective_matrix.inverse().unwrap().transpose();
+        let perspective = perspective_matrix.pre_mul_point4(&right_hand_side);
+        // NOTE(emilio): Even though the reference algorithm clears the
+        // fourth column here (matrix.m14..matrix.m44), they're not used below
+        // so it's not really needed.
+        Perspective(perspective[0], perspective[1], perspective[2], perspective[3])
     } else {
         Perspective(0.0, 0.0, 0.0, 1.0)
     };
 
-    // Next take care of translation
-    let translate = Translate3D (
-        matrix.m41,
-        matrix.m42,
-        matrix.m43
-    );
+    // Next take care of translation (easy).
+    let translate = Translate3D(matrix.m41, matrix.m42, matrix.m43);
 
     // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
     let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
@@ -1965,8 +1999,7 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     // At this point, the matrix (in rows) is orthonormal.
     // Check for a coordinate system flip.  If the determinant
     // is -1, then negate the matrix and the scaling factors.
-    let pdum3 = cross(row[1], row[2]);
-    if dot(row[0], pdum3) < 0.0 {
+    if dot(row[0], cross(row[1], row[2])) < 0.0 {
         % for i in range(3):
             scale.${i} *= -1.0;
             row[${i}][0] *= -1.0;
@@ -1975,8 +2008,8 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
         % endfor
     }
 
-    // Now, get the rotations out
-    let mut quaternion = Quaternion (
+    // Now, get the rotations out.
+    let mut quaternion = Quaternion(
         0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0) as f64).sqrt(),
         0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0) as f64).sqrt(),
         0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0) as f64).sqrt(),
@@ -1994,11 +2027,11 @@ fn decompose_3d_matrix(mut matrix: Matrix3D) -> Result<MatrixDecomposed3D, ()> {
     }
 
     Ok(MatrixDecomposed3D {
-        translate: translate,
-        scale: scale,
-        skew: skew,
-        perspective: perspective,
-        quaternion: quaternion
+        translate,
+        scale,
+        skew,
+        perspective,
+        quaternion,
     })
 }
 
@@ -2121,57 +2154,61 @@ impl From<MatrixDecomposed3D> for Matrix3D {
         % endfor
 
         // Apply translation
-        % for i in range(1, 4):
+        % for i in range(1, 5):
             % for j in range(1, 4):
                 matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
             % endfor
         % endfor
 
         // Apply rotation
-        let x = decomposed.quaternion.0;
-        let y = decomposed.quaternion.1;
-        let z = decomposed.quaternion.2;
-        let w = decomposed.quaternion.3;
+        {
+            let x = decomposed.quaternion.0;
+            let y = decomposed.quaternion.1;
+            let z = decomposed.quaternion.2;
+            let w = decomposed.quaternion.3;
 
-        // Construct a composite rotation matrix from the quaternion values
-        // rotationMatrix is a identity 4x4 matrix initially
-        let mut rotation_matrix = Matrix3D::identity();
-        rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z) as f32;
-        rotation_matrix.m12 = 2.0 * (x * y + z * w) as f32;
-        rotation_matrix.m13 = 2.0 * (x * z - y * w) as f32;
-        rotation_matrix.m21 = 2.0 * (x * y - z * w) as f32;
-        rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z) as f32;
-        rotation_matrix.m23 = 2.0 * (y * z + x * w) as f32;
-        rotation_matrix.m31 = 2.0 * (x * z + y * w) as f32;
-        rotation_matrix.m32 = 2.0 * (y * z - x * w) as f32;
-        rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y) as f32;
+            // Construct a composite rotation matrix from the quaternion values
+            // rotationMatrix is a identity 4x4 matrix initially
+            let mut rotation_matrix = Matrix3D::identity();
+            rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z) as f32;
+            rotation_matrix.m12 = 2.0 * (x * y + z * w) as f32;
+            rotation_matrix.m13 = 2.0 * (x * z - y * w) as f32;
+            rotation_matrix.m21 = 2.0 * (x * y - z * w) as f32;
+            rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z) as f32;
+            rotation_matrix.m23 = 2.0 * (y * z + x * w) as f32;
+            rotation_matrix.m31 = 2.0 * (x * z + y * w) as f32;
+            rotation_matrix.m32 = 2.0 * (y * z - x * w) as f32;
+            rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y) as f32;
 
-        matrix = multiply(rotation_matrix, matrix);
+            matrix = multiply(rotation_matrix, matrix);
+        }
 
         // Apply skew
-        let mut temp = Matrix3D::identity();
-        if decomposed.skew.2 != 0.0 {
-            temp.m32 = decomposed.skew.2;
-            matrix = multiply(temp, matrix);
-        }
+        {
+            let mut temp = Matrix3D::identity();
+            if decomposed.skew.2 != 0.0 {
+                temp.m32 = decomposed.skew.2;
+                matrix = multiply(temp, matrix);
+                temp.m32 = 0.0;
+            }
 
-        if decomposed.skew.1 != 0.0 {
-            temp.m32 = 0.0;
-            temp.m31 = decomposed.skew.1;
-            matrix = multiply(temp, matrix);
-        }
+            if decomposed.skew.1 != 0.0 {
+                temp.m31 = decomposed.skew.1;
+                matrix = multiply(temp, matrix);
+                temp.m31 = 0.0;
+            }
 
-        if decomposed.skew.0 != 0.0 {
-            temp.m31 = 0.0;
-            temp.m21 = decomposed.skew.0;
-            matrix = multiply(temp, matrix);
+            if decomposed.skew.0 != 0.0 {
+                temp.m21 = decomposed.skew.0;
+                matrix = multiply(temp, matrix);
+            }
         }
 
         // Apply scale
         % for i in range(1, 4):
-            % for j in range(1, 4):
-                matrix.m${i}${j} *= decomposed.scale.${i - 1};
-            % endfor
+        % for j in range(1, 5):
+        matrix.m${i}${j} *= decomposed.scale.${i - 1};
+        % endfor
         % endfor
 
         matrix
@@ -2180,16 +2217,17 @@ impl From<MatrixDecomposed3D> for Matrix3D {
 
 // Multiplication of two 4x4 matrices.
 fn multiply(a: Matrix3D, b: Matrix3D) -> Matrix3D {
-    let mut a_clone = a;
+    Matrix3D {
     % for i in range(1, 5):
-        % for j in range(1, 5):
-            a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
-                               (a.m${i}2 * b.m2${j}) +
-                               (a.m${i}3 * b.m3${j}) +
-                               (a.m${i}4 * b.m4${j});
-        % endfor
+    % for j in range(1, 5):
+        m${i}${j}:
+            a.m${i}1 * b.m1${j} +
+            a.m${i}2 * b.m2${j} +
+            a.m${i}3 * b.m3${j} +
+            a.m${i}4 * b.m4${j},
     % endfor
-    a_clone
+    % endfor
+    }
 }
 
 impl Matrix3D {
@@ -2227,11 +2265,22 @@ impl Matrix3D {
         self.m11 * self.m22 * self.m33 * self.m44
     }
 
-    fn inverse(&self) -> Option<Matrix3D> {
+    /// Transpose a matrix.
+    fn transpose(&self) -> Self {
+        Self {
+            % for i in range(1, 5):
+            % for j in range(1, 5):
+            m${i}${j}: self.m${j}${i},
+            % endfor
+            % endfor
+        }
+    }
+
+    fn inverse(&self) -> Result<Matrix3D, ()> {
         let mut det = self.determinant();
 
         if det == 0.0 {
-            return None;
+            return Err(());
         }
 
         det = 1.0 / det;
@@ -2302,22 +2351,33 @@ impl Matrix3D {
              self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
         };
 
-        Some(x)
+        Ok(x)
+    }
+
+    /// Multiplies `pin * self`.
+    fn pre_mul_point4(&self, pin: &[f32; 4]) -> [f32; 4] {
+        [
+        % for i in range(1, 5):
+            pin[0] * self.m1${i} +
+            pin[1] * self.m2${i} +
+            pin[2] * self.m3${i} +
+            pin[3] * self.m4${i},
+        % endfor
+        ]
     }
 }
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-rotate>
 impl ComputedRotate {
-    fn fill_unspecified(rotate: &ComputedRotate) -> Result<(Number, Number, Number, Angle), ()> {
+    fn resolve(rotate: &ComputedRotate) -> (Number, Number, Number, Angle) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // If the axis is unspecified, it defaults to "0 0 1"
         match *rotate {
-            Rotate::None =>
-                Ok((0., 0., 1., Angle::zero())),
-            Rotate::Rotate3D(rx, ry, rz, angle) => Ok((rx, ry, rz, angle)),
-            Rotate::Rotate(angle) => Ok((0., 0., 1., angle)),
+            Rotate::None => (0., 0., 1., Angle::zero()),
+            Rotate::Rotate3D(rx, ry, rz, angle) => (rx, ry, rz, angle),
+            Rotate::Rotate(angle) => (0., 0., 1., angle),
         }
     }
 }
@@ -2329,11 +2389,13 @@ impl Animate for ComputedRotate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedRotate::fill_unspecified(self)?;
-        let to = ComputedRotate::fill_unspecified(other)?;
+        let from = ComputedRotate::resolve(self);
+        let to = ComputedRotate::resolve(other);
 
-        let (fx, fy, fz, fa) = transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
-        let (tx, ty, tz, ta) = transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
+        let (fx, fy, fz, fa) =
+            transform::get_normalized_vector_and_angle(from.0, from.1, from.2, from.3);
+        let (tx, ty, tz, ta) =
+            transform::get_normalized_vector_and_angle(to.0, to.1, to.2, to.3);
         if (fx, fy, fz) == (tx, ty, tz) {
             return Ok(Rotate::Rotate3D(fx, fy, fz, fa.animate(&ta, procedure)?));
         }
@@ -2344,11 +2406,12 @@ impl Animate for ComputedRotate {
         let tq = Quaternion::from_direction_and_angle(&tv, ta.radians64());
 
         let rq = Quaternion::animate(&fq, &tq, procedure)?;
-        let (x, y, z, angle) =
-            transform::get_normalized_vector_and_angle(rq.0 as f32,
-                                                       rq.1 as f32,
-                                                       rq.2 as f32,
-                                                       rq.3.acos() as f32 *2.0);
+        let (x, y, z, angle) = transform::get_normalized_vector_and_angle(
+            rq.0 as f32,
+            rq.1 as f32,
+            rq.2 as f32,
+            rq.3.acos() as f32 * 2.0,
+        );
 
         Ok(Rotate::Rotate3D(x, y, z, Angle::from_radians(angle)))
     }
@@ -2356,21 +2419,24 @@ impl Animate for ComputedRotate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-translate>
 impl ComputedTranslate {
-    fn fill_unspecified(translate: &ComputedTranslate)
-        -> Result<(LengthOrPercentage, LengthOrPercentage, Length), ()> {
+    fn resolve(
+        translate: &ComputedTranslate,
+    ) -> (LengthOrPercentage, LengthOrPercentage, Length) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified translations default to 0px
         match *translate {
             Translate::None => {
-                Ok((LengthOrPercentage::Length(Length::zero()),
+                (
                     LengthOrPercentage::Length(Length::zero()),
-                    Length::zero()))
+                    LengthOrPercentage::Length(Length::zero()),
+                    Length::zero(),
+                )
             },
-            Translate::Translate3D(tx, ty, tz) => Ok((tx, ty, tz)),
-            Translate::Translate(tx, ty) => Ok((tx, ty, Length::zero())),
-            Translate::TranslateX(tx) => Ok((tx, LengthOrPercentage::Length(Length::zero()), Length::zero())),
+            Translate::Translate3D(tx, ty, tz) => (tx, ty, tz),
+            Translate::Translate(tx, ty) => (tx, ty, Length::zero()),
+            Translate::TranslateX(tx) => (tx, LengthOrPercentage::Length(Length::zero()), Length::zero()),
         }
     }
 }
@@ -2382,8 +2448,8 @@ impl Animate for ComputedTranslate {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedTranslate::fill_unspecified(self)?;
-        let to = ComputedTranslate::fill_unspecified(other)?;
+        let from = ComputedTranslate::resolve(self);
+        let to = ComputedTranslate::resolve(other);
 
         Ok(Translate::Translate3D(from.0.animate(&to.0, procedure)?,
                                   from.1.animate(&to.1, procedure)?,
@@ -2393,17 +2459,16 @@ impl Animate for ComputedTranslate {
 
 /// <https://drafts.csswg.org/css-transforms-2/#propdef-scale>
 impl ComputedScale {
-    fn fill_unspecified(scale: &ComputedScale)
-        -> Result<(Number, Number, Number), ()> {
+    fn resolve(scale: &ComputedScale) -> (Number, Number, Number) {
         // According to the spec:
         // https://drafts.csswg.org/css-transforms-2/#individual-transforms
         //
         // Unspecified scales default to 1
         match *scale {
-            Scale::None => Ok((1.0, 1.0, 1.0)),
-            Scale::Scale3D(sx, sy, sz) => Ok((sx, sy, sz)),
-            Scale::Scale(sx, sy) => Ok((sx, sy, 1.)),
-            Scale::ScaleX(sx) => Ok((sx, 1., 1.)),
+            Scale::None => (1.0, 1.0, 1.0),
+            Scale::Scale3D(sx, sy, sz) => (sx, sy, sz),
+            Scale::Scale(sx, sy) => (sx, sy, 1.),
+            Scale::ScaleX(sx) => (sx, 1., 1.),
         }
     }
 }
@@ -2415,17 +2480,21 @@ impl Animate for ComputedScale {
         other: &Self,
         procedure: Procedure,
     ) -> Result<Self, ()> {
-        let from = ComputedScale::fill_unspecified(self)?;
-        let to = ComputedScale::fill_unspecified(other)?;
+        let from = ComputedScale::resolve(self);
+        let to = ComputedScale::resolve(other);
 
+        // FIXME(emilio, bug 1464791): why does this do something different than
+        // Scale3D / TransformOperation::Scale3D?
         if procedure == Procedure::Add {
             // scale(x1,y1,z1)*scale(x2,y2,z2) = scale(x1*x2, y1*y2, z1*z2)
             return Ok(Scale::Scale3D(from.0 * to.0, from.1 * to.1, from.2 * to.2));
         }
 
-        Ok(Scale::Scale3D(animate_multiplicative_factor(from.0, to.0, procedure)?,
-                          animate_multiplicative_factor(from.1, to.1, procedure)?,
-                          animate_multiplicative_factor(from.2, to.2, procedure)?))
+        Ok(Scale::Scale3D(
+            animate_multiplicative_factor(from.0, to.0, procedure)?,
+            animate_multiplicative_factor(from.1, to.1, procedure)?,
+            animate_multiplicative_factor(from.2, to.2, procedure)?,
+        ))
     }
 }
 
@@ -2660,6 +2729,9 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
             _ if self.is_scale() && other.is_scale() => {
                 self.to_scale_3d().compute_squared_distance(&other.to_scale_3d())
             }
+            _ if self.is_rotate() && other.is_rotate() => {
+                self.to_rotate_3d().compute_squared_distance(&other.to_rotate_3d())
+            }
             _ => Err(()),
         }
     }
@@ -2668,27 +2740,16 @@ impl ComputeSquaredDistance for ComputedTransformOperation {
 impl ComputeSquaredDistance for ComputedTransform {
     #[inline]
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        let list1 = &self.0;
-        let list2 = &other.0;
+        let squared_dist = self.0.squared_distance_with_zero(&other.0);
 
-        let squared_dist: Result<SquaredDistance, _> = list1.iter().zip_longest(list2).map(|it| {
-            match it {
-                EitherOrBoth::Both(this, other) => {
-                    this.compute_squared_distance(other)
-                },
-                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
-                    list.to_animated_zero()?.compute_squared_distance(list)
-                },
-            }
-        }).sum();
-
-        // Roll back to matrix interpolation if there is any Err(()) in the transform lists, such
-        // as mismatched transform functions.
-        if let Err(_) = squared_dist {
+        // Roll back to matrix interpolation if there is any Err(()) in the
+        // transform lists, such as mismatched transform functions.
+        if squared_dist.is_err() {
             let matrix1: Matrix3D = self.to_transform_3d_matrix(None)?.0.into();
             let matrix2: Matrix3D = other.to_transform_3d_matrix(None)?.0.into();
             return matrix1.compute_squared_distance(&matrix2);
         }
+
         squared_dist
     }
 }
@@ -2828,7 +2889,7 @@ where
 /// <https://www.w3.org/TR/SVG11/painting.html#StrokeDasharrayProperty>
 impl<L> Animate for SVGStrokeDashArray<L>
 where
-    L: Clone + RepeatableListAnimatable,
+    L: Clone + Animate,
 {
     #[inline]
     fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
@@ -2838,7 +2899,22 @@ where
         }
         match (self, other) {
             (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
-                Ok(SVGStrokeDashArray::Values(this.animate(other, procedure)?))
+                Ok(SVGStrokeDashArray::Values(this.animate_repeatable_list(other, procedure)?))
+            },
+            _ => Err(()),
+        }
+    }
+}
+
+impl<L> ComputeSquaredDistance for SVGStrokeDashArray<L>
+where
+    L: ComputeSquaredDistance,
+{
+    #[inline]
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        match (self, other) {
+            (&SVGStrokeDashArray::Values(ref this), &SVGStrokeDashArray::Values(ref other)) => {
+                this.squared_distance_repeatable_list(other)
             },
             _ => Err(()),
         }
@@ -2926,50 +3002,6 @@ impl ToAnimatedZero for AnimatedFilter {
             % endif
             _ => Err(()),
         }
-    }
-}
-
-impl Animate for AnimatedFilterList {
-    #[inline]
-    fn animate(
-        &self,
-        other: &Self,
-        procedure: Procedure,
-    ) -> Result<Self, ()> {
-        if procedure == Procedure::Add {
-            return Ok(AnimatedFilterList(
-                self.0.iter().chain(other.0.iter()).cloned().collect(),
-            ));
-        }
-        Ok(AnimatedFilterList(self.0.iter().zip_longest(other.0.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(this, other) => {
-                    this.animate(other, procedure)
-                },
-                EitherOrBoth::Left(this) => {
-                    this.animate(&this.to_animated_zero()?, procedure)
-                },
-                EitherOrBoth::Right(other) => {
-                    other.to_animated_zero()?.animate(other, procedure)
-                },
-            }
-        }).collect::<Result<Vec<_>, _>>()?))
-    }
-}
-
-impl ComputeSquaredDistance for AnimatedFilterList {
-    #[inline]
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        self.0.iter().zip_longest(other.0.iter()).map(|it| {
-            match it {
-                EitherOrBoth::Both(this, other) => {
-                    this.compute_squared_distance(other)
-                },
-                EitherOrBoth::Left(list) | EitherOrBoth::Right(list) => {
-                    list.to_animated_zero()?.compute_squared_distance(list)
-                },
-            }
-        }).sum()
     }
 }
 

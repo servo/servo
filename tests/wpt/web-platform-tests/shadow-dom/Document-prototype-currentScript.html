@@ -40,9 +40,10 @@ var testedScriptElement = null;
 function executeNextTest()
 {
     var testCase = asyncScriptTests.shift();
-    var mode = testCase.mode;
     if (!testCase)
         return;
+
+    var mode = testCase.mode;
 
     testCase.test.step(function () {
         testedScriptElement = document.createElement('script');
@@ -75,7 +76,7 @@ var asyncScriptTests = [
         test: async_test('document.currentScript must be set to a script element that loads an external script in a document tree'),
         mode: null, remove: false, expected: function () { return testedScriptElement; }},
     {
-        test: async_test('document.currentScript must be set to a script element that loads an external script in a document tree'),
+        test: async_test('document.currentScript must be set to a script element that loads an external script in a document tree (2)'),
         mode: null, remove: true, expected: function () { return testedScriptElement; }},
     {
         test: async_test('document.currentScript must not be set to a script element that loads an external script in an open shadow tree'),

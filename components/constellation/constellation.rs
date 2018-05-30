@@ -98,10 +98,11 @@ use canvas_traits::canvas::CanvasId;
 use canvas_traits::canvas::CanvasMsg;
 use clipboard::{ClipboardContext, ClipboardProvider};
 use compositing::SendableFrameTree;
-use compositing::compositor_thread::{CompositorProxy, EmbedderMsg, EmbedderProxy};
+use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
 use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use euclid::{Size2D, TypedSize2D, TypedScale};
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
@@ -969,6 +970,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromCompositorMsg::CloseBrowser(top_level_browsing_context_id) => {
                 self.handle_close_top_level_browsing_context(top_level_browsing_context_id);
             }
+            // Panic a top level browsing context.
+            FromCompositorMsg::SendError(top_level_browsing_context_id, error) => {
+                debug!("constellation got SendError message");
+                if let Some(id) = top_level_browsing_context_id {
+                    self.handle_panic(id, error, None);
+                } else {
+                    warn!("constellation got a SendError message without top level id");
+                }
+            }
             // Send frame tree to WebRender. Make it visible.
             FromCompositorMsg::SelectBrowser(top_level_browsing_context_id) => {
                 self.send_frame_tree(top_level_browsing_context_id);
@@ -1014,12 +1024,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(ctx) => ctx,
         };
 
-        let source_is_top_level_pipeline = self.browsing_contexts
-            .get(&BrowsingContextId::from(source_top_ctx_id))
-            .map(|ctx| ctx.pipeline_id == source_pipeline_id)
-            .unwrap_or(false);
-
         match content {
+            FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
+                self.embedder_proxy.send((Some(source_top_ctx_id), embedder_msg));
+            }
             FromScriptMsg::PipelineExited => {
                 self.handle_pipeline_exited(source_pipeline_id);
             }
@@ -1119,33 +1127,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("Error replying to remove iframe ({})", e);
                 }
             }
-            FromScriptMsg::NewFavicon(url) => {
-                if source_is_top_level_pipeline {
-                    self.embedder_proxy.send(EmbedderMsg::NewFavicon(source_top_ctx_id, url));
-                }
-            }
-            FromScriptMsg::HeadParsed => {
-                if source_is_top_level_pipeline {
-                    self.embedder_proxy.send(EmbedderMsg::HeadParsed(source_top_ctx_id));
-                }
-            }
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
                 self.handle_create_canvas_paint_thread_msg(&size, sender)
             }
-            FromScriptMsg::NodeStatus(message) => {
-                self.embedder_proxy.send(EmbedderMsg::Status(source_top_ctx_id, message));
-            }
             FromScriptMsg::SetDocumentState(state) => {
                 self.document_states.insert(source_pipeline_id, state);
-            }
-            FromScriptMsg::Alert(message, sender) => {
-                self.handle_alert(source_top_ctx_id, message, sender);
-            }
-            FromScriptMsg::MoveTo(point) => {
-                self.embedder_proxy.send(EmbedderMsg::MoveTo(source_top_ctx_id, point));
-            }
-            FromScriptMsg::ResizeTo(size) => {
-                self.embedder_proxy.send(EmbedderMsg::ResizeTo(source_top_ctx_id, size));
             }
             FromScriptMsg::GetClientWindow(send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
@@ -1161,15 +1147,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::LogEntry(thread_name, entry) => {
                 self.handle_log_entry(Some(source_top_ctx_id), thread_name, entry);
-            }
-            FromScriptMsg::SetTitle(title) => {
-                if source_is_top_level_pipeline {
-                    self.embedder_proxy.send(EmbedderMsg::ChangePageTitle(source_top_ctx_id, title))
-                }
-            }
-            FromScriptMsg::SendKeyEvent(ch, key, key_state, key_modifiers) => {
-                let event = EmbedderMsg::KeyEvent(Some(source_top_ctx_id), ch, key, key_state, key_modifiers);
-                self.embedder_proxy.send(event);
             }
             FromScriptMsg::TouchEventProcessed(result) => {
                 self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
@@ -1207,15 +1184,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::BroadcastStorageEvent(storage, url, key, old_value, new_value) => {
                 self.handle_broadcast_storage_event(source_pipeline_id, storage, url, key, old_value, new_value);
-            }
-            FromScriptMsg::SetFullscreenState(state) => {
-                self.embedder_proxy.send(EmbedderMsg::SetFullscreenState(source_top_ctx_id, state));
-            }
-            FromScriptMsg::ShowIME(kind) => {
-                self.embedder_proxy.send(EmbedderMsg::ShowIME(source_top_ctx_id, kind));
-            }
-            FromScriptMsg::HideIME => {
-                self.embedder_proxy.send(EmbedderMsg::HideIME(source_top_ctx_id));
             }
         }
     }
@@ -1413,7 +1381,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
 
-        self.embedder_proxy.send(EmbedderMsg::Panic(top_level_browsing_context_id, reason, backtrace));
+        self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::Panic(reason, backtrace)));
 
         let (window_size, pipeline_id) = {
             let browsing_context = self.browsing_contexts.get(&browsing_context_id);
@@ -1695,7 +1663,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: CursorKind) {
-        self.embedder_proxy.send(EmbedderMsg::SetCursor(cursor))
+        self.embedder_proxy.send((None, EmbedderMsg::SetCursor(cursor)))
     }
 
     fn handle_change_running_animations_state(&mut self,
@@ -1727,23 +1695,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_alert(&mut self,
-                    top_level_browsing_context_id: TopLevelBrowsingContextId,
-                    _message: String,
-                    sender: IpcSender<bool>) {
-        // FIXME: forward alert event to embedder
-        // https://github.com/servo/servo/issues/19992
-        let result = sender.send(true);
-        if let Err(e) = result {
-            let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
-            let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
-                Some(ctx) => ctx.pipeline_id,
-                None => return warn!("Alert sent for unknown browsing context."),
-            };
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
     fn handle_load_url_msg(&mut self, top_level_browsing_context_id: TopLevelBrowsingContextId, source_id: PipelineId,
                            load_data: LoadData, replace: bool) {
         self.load_url(top_level_browsing_context_id, source_id, load_data, replace);
@@ -1753,7 +1704,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 load_data: LoadData, replace: bool) -> Option<PipelineId> {
         // Allow the embedder to handle the url itself
         let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = EmbedderMsg::AllowNavigation(top_level_browsing_context_id, load_data.url.clone(), chan);
+        let msg = (Some(top_level_browsing_context_id), EmbedderMsg::AllowNavigation(load_data.url.clone(), chan));
         self.embedder_proxy.send(msg);
         if let Ok(false) = port.recv() {
             return None;
@@ -1861,7 +1812,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                              pipeline_id: PipelineId) {
         if self.pipelines.get(&pipeline_id).and_then(|p| p.parent_info).is_none() {
             // Notify embedder top level document started loading.
-            self.embedder_proxy.send(EmbedderMsg::LoadStart(top_level_browsing_context_id));
+            self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::LoadStart));
         }
     }
 
@@ -1895,7 +1846,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if !current_top_level_pipeline_will_be_replaced {
                 // Notify embedder and compositor top level document finished loading.
                 self.compositor_proxy.send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
-                self.embedder_proxy.send(EmbedderMsg::LoadComplete(top_level_browsing_context_id));
+                self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::LoadComplete));
             }
         }
         self.handle_subframe_loaded(pipeline_id);
@@ -2148,7 +2099,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             None => {
-                let event = EmbedderMsg::KeyEvent(None, ch, key, state, mods);
+                let event = (None, EmbedderMsg::KeyEvent(ch, key, state, mods));
                 self.embedder_proxy.clone().send(event);
             }
         }
@@ -2321,7 +2272,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             WebDriverCommandMsg::SetWindowSize(top_level_browsing_context_id, size, reply) => {
                 self.webdriver.resize_channel = Some(reply);
-                self.embedder_proxy.send(EmbedderMsg::ResizeTo(top_level_browsing_context_id, size));
+                self.embedder_proxy.send((Some(top_level_browsing_context_id), EmbedderMsg::ResizeTo(size)));
             },
             WebDriverCommandMsg::LoadUrl(top_level_browsing_context_id, load_data, reply) => {
                 self.load_url_for_webdriver(top_level_browsing_context_id, load_data, reply, false);
@@ -2451,8 +2402,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         entries.extend(session_history.future.iter().rev()
             .scan(current_load_data.clone(), &resolve_load_data_future));
-
-        let msg = EmbedderMsg::HistoryChanged(top_level_browsing_context_id, entries, current_index);
+        let urls = entries.iter().map(|entry| entry.url.clone()).collect();
+        let msg = (Some(top_level_browsing_context_id), EmbedderMsg::HistoryChanged(urls, current_index));
         self.embedder_proxy.send(msg);
     }
 

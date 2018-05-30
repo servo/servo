@@ -12,4 +12,3 @@ def main(request, response):
     return ((401, "Unauthorized"),
             [("WWW-Authenticate", 'Basic realm="' + realm + '"')],
             "Please login with credentials 'user' and 'password'")
-

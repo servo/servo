@@ -7,10 +7,11 @@
 		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
 		<link rel="help" href="http://www.w3.org/TR/WOFF/#conform-metadata-noeffect" />
 		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
-<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
-		<meta name="flags" content="font" />
+		<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<link rel="match" href="metadatadisplay-schema-extension-021-ref.xht" />
 		<meta name="assert" content="The item element in the extension element matches the schema." />
 		<style type="text/css"><![CDATA[
+			@import url("support/test-fonts.css");
 			@font-face {
 				font-family: "WOFF Test";
 				src: url("support/metadatadisplay-schema-extension-021.woff2") format("woff2");
@@ -29,7 +30,6 @@
 		]]></style>
 	</head>
 	<body>
-		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
 		<p>Test passes if the word PASS appears below.</p>
 		<p>The Extended Metadata Block is valid and may be displayed to the user upon request.</p>
 		<div class="test">P</div>

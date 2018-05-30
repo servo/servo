@@ -12,9 +12,6 @@ def products_enabled(config):
         return names
 
 def product_module(config, product):
-    here = os.path.join(os.path.split(__file__)[0])
-    product_dir = os.path.join(here, "browsers")
-
     if product not in products_enabled(config):
         raise ValueError("Unknown product %s" % product)
 

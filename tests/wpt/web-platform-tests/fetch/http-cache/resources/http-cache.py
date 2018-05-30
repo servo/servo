@@ -30,7 +30,7 @@ def main(request, response):
             noted_headers[header[0].lower()] = header[1]
 
     if "access-control-allow-origin" not in noted_headers:
-        response.headers.set("Access-Control-Allow-Origin", "*");
+        response.headers.set("Access-Control-Allow-Origin", "*")
     if "content-type" not in noted_headers:
         response.headers.set("Content-Type", "text/plain")
     response.headers.set("Server-Request-Count", len(server_state))

@@ -31791,12 +31791,6 @@
      {}
     ]
    ],
-   "css/cssom-view/dom-element-scroll.html": [
-    [
-     "/_mozilla/css/cssom-view/dom-element-scroll.html",
-     {}
-    ]
-   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -61181,10 +61175,6 @@
   "css/css/ahem.css": [
    "16a4dd68da41156fbdd139b4a56547f94ad4dbe7",
    "support"
-  ],
-  "css/cssom-view/dom-element-scroll.html": [
-   "247b85d5988878a7b27bc9f0f7b817085725c038",
-   "testharness"
   ],
   "css/data_img_a.html": [
    "323bf50369f98ed02acccdd3a5824e38d3f353bf",

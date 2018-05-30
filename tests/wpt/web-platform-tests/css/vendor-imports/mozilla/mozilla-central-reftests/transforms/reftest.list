@@ -4,6 +4,7 @@
 == perspective-containing-block-dynamic-1b.html containing-block-dynamic-1-ref.html
 == perspective-zero.html reference/green.html
 == perspective-zero-2.html perspective-zero-2-ref.html
+== perspective-untransformable-no-stacking-context.html perspective-untransformable-no-stacking-context-ref.html
 
 == individual-transform-1.html individual-transform-1-ref.html
 == individual-transform-2a.html individual-transform-2-ref.html

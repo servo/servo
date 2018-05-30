@@ -35,7 +35,6 @@ class ServoWebDriverProtocol(Protocol):
 
     def connect(self):
         """Connect to browser via WebDriver."""
-        url = "http://%s:%d" % (self.host, self.port)
         self.session = webdriver.Session(self.host, self.port,
                                          extension=webdriver.servo.ServoCommandExtensions)
         self.session.start()

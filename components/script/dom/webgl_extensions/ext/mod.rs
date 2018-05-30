@@ -12,4 +12,3 @@ pub mod oestexturefloatlinear;
 pub mod oestexturehalffloat;
 pub mod oestexturehalffloatlinear;
 pub mod oesvertexarrayobject;
-pub mod webglvertexarrayobjectoes;

@@ -1,0 +1,209 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Promise Tests</title>
+</head>
+<body>
+<h1>Promise Tests</h1>
+<p>This test demonstrates the use of <tt>promise_test</tt>. Assumes ECMAScript 6
+Promise support. Some failures are expected.</p>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(
+    function() {
+        var p = new Promise(function(resolve, reject){});
+        assert_true("then" in p);
+        assert_equals(typeof Promise.resolve, "function");
+        assert_equals(typeof Promise.reject, "function");
+    },
+    "Promises are supported in your browser");
+
+promise_test(
+    function() {
+        return Promise.resolve("x")
+            .then(
+                function(value) {
+                    assert_equals(value,
+                                  "x",
+                                  "Fulfilled promise should pass result to " +
+                                  "fulfill reaction.");
+                });
+    },
+    "Promise fulfillment with result");
+
+promise_test(
+    function(t) {
+        return Promise.reject(new Error("fail"))
+            .then(t.unreached_func("Promise should reject"),
+                function(reason) {
+                    assert_true(
+                        reason instanceof Error,
+                        "Rejected promise should pass reason to fulfill reaction.");
+                    assert_equals(
+                        reason.message,
+                        "fail",
+                        "Rejected promise should pass reason to reject reaction.");
+                });
+    },
+    "Promise rejection with result");
+
+promise_test(
+    function() {
+        var resolutions = [];
+        return Promise.resolve("a")
+            .then(
+                function(value) {
+                    resolutions.push(value);
+                    return "b";
+                })
+            .then(
+                function(value) {
+                    resolutions.push(value);
+                    return "c";
+                })
+            .then(
+                function(value) {
+                    resolutions.push(value);
+                    assert_array_equals(resolutions, ["a", "b", "c"]);
+                });
+    },
+    "Chain of promise resolutions");
+
+promise_test(
+    function(t) {
+        var resolutions = [];
+        return Promise.resolve("x")
+            .then(
+                function(value) {
+                    assert_true(false, "Expected failure.");
+                })
+            .then(t.unreached_func("UNEXPECTED FAILURE: Promise should not have resolved."));
+    },
+    "Assertion failure in a fulfill reaction (should FAIL with an expected failure)");
+
+promise_test(
+    function(t) {
+        return new Promise(
+                function(resolve, reject) {
+                    reject(123);
+                })
+            .then(t.unreached_func("UNEXPECTED FAILURE: Fulfill reaction reached after rejection."),
+                  t.unreached_func("Expected failure."));
+    },
+    "unreached_func as reactor (should FAIL with an expected failure)");
+
+promise_test(
+    function() {
+        return true;
+    },
+    "promise_test with function that doesn't return a Promise");
+
+promise_test(function(){},
+             "promise_test with function that doesn't return anything");
+
+promise_test(
+    function() {
+        return Promise.reject("Expected rejection");
+    },
+    "promise_test with unhandled rejection (should FAIL)");
+
+promise_test(
+    function() {
+        return Promise.resolve(10)
+            .then(
+                function(value) {
+                    throw Error("Expected exception.");
+                });
+    },
+    "promise_test with unhandled exception in fulfill reaction (should FAIL)");
+
+promise_test(
+    function(t) {
+        return Promise.reject(10)
+            .then(
+                t.unreached_func("UNEXPECTED FAILURE: Fulfill reaction reached after rejection."),
+                function(value) {
+                    throw Error("Expected exception.");
+                });
+    },
+    "promise_test with unhandled exception in reject reaction (should FAIL)");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "FAIL",
+      "name": "Assertion failure in a fulfill reaction (should FAIL with an expected failure)",
+      "message": "assert_true: Expected failure. expected true got false",
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Chain of promise resolutions",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Promise fulfillment with result",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Promise rejection with result",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "Promises are supported in your browser",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "promise_test with function that doesn't return a Promise",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "promise_test with function that doesn't return anything",
+      "message": "assert_not_equals: got disallowed value undefined",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "promise_test with unhandled exception in fulfill reaction (should FAIL)",
+      "message": "promise_test: Unhandled rejection with value: object \"Error: Expected exception.\"",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "promise_test with unhandled exception in reject reaction (should FAIL)",
+      "message": "promise_test: Unhandled rejection with value: object \"Error: Expected exception.\"",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "promise_test with unhandled rejection (should FAIL)",
+      "message": "promise_test: Unhandled rejection with value: \"Expected rejection\"",
+      "properties": {}
+    },
+    {
+      "status_string": "FAIL",
+      "name": "unreached_func as reactor (should FAIL with an expected failure)",
+      "message": "assert_unreached: Expected failure. Reached unreachable code",
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>

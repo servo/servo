@@ -267,7 +267,7 @@ var TestUtils = (function() {
         throw "Unsupported scheme: " + page_scheme;
       if (resource_scheme != "https" && resource_scheme != "http")
         throw "Unsupported scheme: " + resource_scheme;
-      return page_scheme + "://web-platform.test:" +
+      return page_scheme + "://{{domains[]}}:" +
           (page_scheme == "https" ? {{ports[https][0]}} : {{ports[http][0]}}) +
           "/clear-site-data/support/page_with_resource.sub.html?scheme=" +
           resource_scheme;

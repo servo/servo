@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// For SIMD
-#![cfg_attr(feature = "unstable", feature(cfg_target_feature))]
-
+#![cfg_attr(feature = "unstable", feature(stdsimd))]
 #![deny(unsafe_code)]
 
 extern crate app_units;
@@ -50,9 +48,6 @@ extern crate range;
 extern crate servo_arc;
 #[macro_use] extern crate servo_atoms;
 extern crate servo_url;
-#[cfg(feature = "unstable")]
-#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
-extern crate simd;
 extern crate smallvec;
 extern crate style;
 extern crate time;

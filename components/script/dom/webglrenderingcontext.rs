@@ -1193,7 +1193,7 @@ impl WebGLRenderingContext {
 
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
-        self.webgl_sender.send_remove().unwrap();
+        let _ = self.webgl_sender.send_remove();
     }
 }
 
@@ -1361,6 +1361,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 self.send_command(WebGLCommand::GetParameterBool(param, sender));
                 BooleanValue(receiver.recv().unwrap())
             }
+            Parameter::Bool4(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterBool4(param, sender));
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
             Parameter::Int(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt(param, sender));
@@ -1382,6 +1389,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Parameter::Float2(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
+                // FIXME(nox): https://github.com/servo/servo/issues/20655
+                rooted!(in(cx) let mut rval = UndefinedValue());
+                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
+            Parameter::Float4(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterFloat4(param, sender));
                 // FIXME(nox): https://github.com/servo/servo/issues/20655
                 rooted!(in(cx) let mut rval = UndefinedValue());
                 receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());

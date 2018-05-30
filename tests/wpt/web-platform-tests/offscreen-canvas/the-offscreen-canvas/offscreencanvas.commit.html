@@ -21,7 +21,6 @@ test(function() {
     var ctx = offscreenCanvas.getContext('2d');
     ctx.fillStyle = "#0f0";
     ctx.fillRect(0, 0, 10, 10);
-    ctx.commit();
     // commit() propagation is taken care of by an async task, which means the
     // place holder contents should still be transparent black at this moment.
     verifyPlaceholder(placeholder, 0,0,0,0, "0,0,0,0");
@@ -36,8 +35,7 @@ test(function() {
     var ctx = offscreenCanvas.getContext('2d');
     ctx.fillStyle = "#0f0";
     ctx.fillRect(0, 0, 10, 10);
-    assert_throws("InvalidStateError", function() { ctx.commit(); });
-}, "Test that calling commit on an OffscreenCanvas that is not transferred from a HTMLCanvasElement throws an exception.");
+    ctx.commit();
+}, "Test that calling commit on an OffscreenCanvas that is not transferred from a HTMLCanvasElement is a noop.");
 
 </script>
-

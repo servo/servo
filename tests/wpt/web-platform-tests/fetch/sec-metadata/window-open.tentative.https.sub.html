@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<body>
+<script>
+  // Forced navigations:
+  async_test(t => {
+    let w = window.open("https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+    t.add_cleanup(_ => w.close());
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != w)
+        return;
+
+      assert_header_equals(e.data, {
+        "cause": "forced",
+        "destination": "document",
+        "target": "top-level",
+        "site": "same-origin"
+      });
+      t.done();
+    }));
+  }, "Same-origin window, forced");
+
+  async_test(t => {
+    let w = window.open("https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+    t.add_cleanup(_ => w.close());
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != w)
+        return;
+
+      assert_header_equals(e.data, {
+        "cause": "forced",
+        "destination": "document",
+        "target": "top-level",
+        "site": "same-site"
+      });
+      t.done();
+    }));
+  }, "Same-site window, forced");
+
+  async_test(t => {
+    let w = window.open("https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+    t.add_cleanup(_ => w.close());
+    window.addEventListener('message', t.step_func(e => {
+      if (e.source != w)
+        return;
+
+      assert_header_equals(e.data, {
+        "cause": "forced",
+        "destination": "document",
+        "target": "top-level",
+        "site": "cross-site"
+      });
+      t.done();
+    }));
+  }, "Cross-site window, forced");
+
+  // User-activated navigations:
+  async_test(t => {
+    let b = document.createElement('button');
+    b.onclick = t.step_func(_ => {
+      let w = window.open("https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+      t.add_cleanup(_ => w.close());
+      window.addEventListener('message', t.step_func(e => {
+        if (e.source != w)
+          return;
+
+        assert_header_equals(e.data, {
+          "cause": "user-activated",
+          "destination": "document",
+          "target": "top-level",
+          "site": "same-origin"
+        });
+        t.done();
+      }));
+    });
+    document.body.appendChild(b);
+    test_driver.click(b);
+  }, "Same-origin window, user-activated");
+
+  async_test(t => {
+    let b = document.createElement('button');
+    b.onclick = t.step_func(_ => {
+      let w = window.open("https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+      t.add_cleanup(_ => w.close());
+      window.addEventListener('message', t.step_func(e => {
+        if (e.source != w)
+          return;
+
+        assert_header_equals(e.data, {
+          "cause": "user-activated",
+          "destination": "document",
+          "target": "top-level",
+          "site": "same-site"
+        });
+        t.done();
+      }));
+    });
+    document.body.appendChild(b);
+    test_driver.click(b);
+  }, "Same-site window, user-activated");
+
+  async_test(t => {
+    let b = document.createElement('button');
+    b.onclick = t.step_func(_ => {
+      let w = window.open("https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/post-to-owner.py");
+      t.add_cleanup(_ => w.close());
+      window.addEventListener('message', t.step_func(e => {
+        if (e.source != w)
+          return;
+
+        assert_header_equals(e.data, {
+          "cause": "user-activated",
+          "destination": "document",
+          "target": "top-level",
+          "site": "cross-site"
+        });
+        t.done();
+      }));
+    });
+    document.body.appendChild(b);
+    test_driver.click(b);
+  }, "Cross-site window, user-activated");
+</script>

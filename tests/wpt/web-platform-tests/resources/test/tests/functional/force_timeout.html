@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test#force_timeout</title>
+</head>
+<body>
+<h1>Test#force_timeout</h1>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({ explicit_timeout: true });
+
+test(function(t) {
+    t.force_timeout();
+  }, 'test (synchronous)');
+
+async_test(function(t) {
+    t.step_timeout(function() {
+        t.force_timeout();
+      }, 0);
+  }, 'async_test');
+
+promise_test(function(t) {
+    t.force_timeout();
+
+    return new Promise(function() {});
+  }, 'promise_test');
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "TIMEOUT",
+      "name": "async_test",
+      "message": "Test timed out",
+      "properties": {}
+    },
+    {
+      "status_string": "TIMEOUT",
+      "name": "promise_test",
+      "message": "Test timed out",
+      "properties": {}
+    },
+    {
+      "status_string": "TIMEOUT",
+      "name": "test (synchronous)",
+      "message": "Test timed out",
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

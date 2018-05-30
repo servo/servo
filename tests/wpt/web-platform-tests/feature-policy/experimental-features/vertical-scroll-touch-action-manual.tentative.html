@@ -2,6 +2,7 @@
 <title>vertical-scroll test for touch-action</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
 <script src="/feature-policy/experimental-features/resources/vertical-scroll.js"></script>
 <style>
 html, body {
@@ -81,7 +82,7 @@ iframe {
     window.scrollTo(0, 0);
 
     // Disallow vertical scroll and reload the <iframe>.
-    iframeElement.setAttribute("allow", "vertical-scroll 'none';");
+    setFeatureState(iframeElement, "vertical-scroll", "'none'");
     await loadUrlInIframe(iframeElement, url);
 
     // Apply the scroll gesture. Main frame should scroll vertically.

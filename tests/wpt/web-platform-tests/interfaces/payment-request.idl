@@ -27,8 +27,6 @@ dictionary PaymentMethodData {
 dictionary PaymentCurrencyAmount {
   required DOMString currency;
   required DOMString value;
-  // Note: currencySystem is "at risk" of being removed!
-  DOMString currencySystem = "urn:iso:std:iso:4217";
 };
 
 dictionary PaymentDetailsBase {

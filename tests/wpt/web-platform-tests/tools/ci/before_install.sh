@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-if [[ -z ${RUN_JOB+x} && $(./wpt test-jobs --includes $JOB; echo $?) -eq 0 ]] || [[ $RUN_JOB -eq 1 ]]; then
+RELEVANT_JOBS=$(./wpt test-jobs)
+RELEVANT_CHANGES=$(echo "$RELEVANT_JOBS" | grep $JOB || true)
+if [[ -z ${RUN_JOB+x} && ! -z $RELEVANT_CHANGES ]] || [[ $RUN_JOB -eq 1 ]]; then
     export RUN_JOB=1
     git submodule update --init --recursive 1>&2
     export DISPLAY=:99.0

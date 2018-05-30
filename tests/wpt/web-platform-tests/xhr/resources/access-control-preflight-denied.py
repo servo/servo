@@ -47,4 +47,3 @@ def main(request, response):
     else:
         resetState(token)
         fail("Unknown Error.")
-

@@ -5,10 +5,10 @@
 use app_units::Au;
 use euclid::Point2D;
 use range::{self, EachIndex, Range, RangeIndex};
-#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
-use simd::u32x4;
 use std::{fmt, mem, u16};
 use std::cmp::{Ordering, PartialOrd};
+#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
+use std::simd::u32x4;
 use std::vec::Vec;
 
 pub use gfx_traits::ByteIndex;
@@ -606,7 +606,8 @@ impl<'a> GlyphStore {
         let buf = self.transmute_entry_buffer_to_u32_buffer();
 
         for i in 0..num_simd_iterations {
-            let v = u32x4::load(buf, begin + i * 4);
+            let offset = begin + i * 4;
+            let v = u32x4::load_unaligned(&buf[offset..]);
             let advance = (v & advance_mask) >> GLYPH_ADVANCE_SHIFT;
             let spaces = (v & space_flag_mask) >> FLAG_CHAR_IS_SPACE_SHIFT;
             simd_advance = simd_advance + advance;
@@ -647,7 +648,10 @@ impl<'a> GlyphStore {
     #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     #[allow(unsafe_code)]
     fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
-        unsafe { mem::transmute(self.entry_buffer.as_slice()) }
+        // Statically assert identical sizes
+        let _ = mem::transmute::<GlyphEntry, u32>;
+
+        unsafe { mem::transmute::<&[GlyphEntry], &[u32]>(self.entry_buffer.as_slice()) }
     }
 
     pub fn char_is_space(&self, i: ByteIndex) -> bool {

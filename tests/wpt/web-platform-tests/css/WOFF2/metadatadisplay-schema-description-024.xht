@@ -7,10 +7,11 @@
 		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#Metadata" />
 		<link rel="help" href="http://www.w3.org/TR/WOFF/#conform-metadata-noeffect" />
 		<link rel="help" href="http://www.w3.org/TR/WOFF/#conform-invalid-mustignore" />
-<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
-		<meta name="flags" content="font" />
+		<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<link rel="match" href="metadatadisplay-schema-description-024-ref.xht" />
 		<meta name="assert" content="The description element contains a text element that contains a div element with INVALID as the value for the dir attribute." />
 		<style type="text/css"><![CDATA[
+			@import url("support/test-fonts.css");
 			@font-face {
 				font-family: "WOFF Test";
 				src: url("support/metadatadisplay-schema-description-024.woff2") format("woff2");
@@ -29,7 +30,6 @@
 		]]></style>
 	</head>
 	<body>
-		<p><a href="support/FontsToInstall">Test fonts</a> must be installed for this test. The WOFF being tested will be loaded over the network so please wait until the download is complete before determing the success of this test.</p>
 		<p>If the UA does not display WOFF metadata, the test passes if the word PASS appears below.</p>
 		<p>The Extended Metadata Block is not valid and must not be displayed. If the UA does display it, the test fails.</p>
 		<div class="test">P</div>

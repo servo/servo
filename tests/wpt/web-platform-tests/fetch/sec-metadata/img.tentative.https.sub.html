@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/referrer-policy/generic/common.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<body>
+<script>
+  // These tests reuse the `referrer-policy` infrastructure to load images that
+  // encode their request headers in their pixels. Fun stuff!
+  async_test(t => {
+    loadImageInWindow(
+      "https://{{host}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
+      t.step_func_done(img => {
+        assert_header_equals(decodeImageData(extractImageData(img)).headers["sec-metadata"], {
+          "cause": "forced",
+          "destination": "image",
+          "target": "subresource",
+          "site": "same-origin"
+        });
+      }),
+      [],
+      window);
+  }, "Same-origin image");
+
+  async_test(t => {
+    loadImageInWindow(
+      "https://{{hosts[][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
+      t.step_func_done(img => {
+        assert_header_equals(decodeImageData(extractImageData(img)).headers["sec-metadata"], {
+          "cause": "forced",
+          "destination": "image",
+          "target": "subresource",
+          "site": "same-site"
+        });
+      }),
+      [],
+      window);
+  }, "Same-site image");
+
+  async_test(t => {
+    loadImageInWindow(
+      "https://{{hosts[alt][www]}}:{{ports[https][0]}}/referrer-policy/generic/subresource/image.py",
+      t.step_func_done(img => {
+        assert_header_equals(decodeImageData(extractImageData(img)).headers["sec-metadata"], {
+          "cause": "forced",
+          "destination": "image",
+          "target": "subresource",
+          "site": "cross-site"
+        });
+      }),
+      [],
+      window);
+  }, "Cross-site image");
+</script>

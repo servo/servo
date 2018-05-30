@@ -607,6 +607,7 @@ class CommandBase(object):
         if target == "arm-linux-androideabi":
             self.config["android"]["platform"] = "android-18"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "arm"
             self.config["android"]["lib"] = "armeabi"
             self.config["android"]["toolchain_name"] = target + "-4.9"
@@ -614,6 +615,7 @@ class CommandBase(object):
         elif target == "armv7-linux-androideabi":
             self.config["android"]["platform"] = "android-18"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = "arm-linux-androideabi"
             self.config["android"]["arch"] = "arm"
             self.config["android"]["lib"] = "armeabi-v7a"
             self.config["android"]["toolchain_name"] = "arm-linux-androideabi-4.9"
@@ -621,9 +623,18 @@ class CommandBase(object):
         elif target == "aarch64-linux-android":
             self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "arm64"
             self.config["android"]["lib"] = "arm64-v8a"
             self.config["android"]["toolchain_name"] = target + "-4.9"
+            return True
+        elif target == "i686-linux-android":
+            self.config["android"]["platform"] = "android-18"
+            self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = "x86"
+            self.config["android"]["arch"] = "x86"
+            self.config["android"]["lib"] = "x86"
+            self.config["android"]["toolchain_name"] = "x86-4.9"
             return True
         return False
 

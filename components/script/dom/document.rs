@@ -10,8 +10,10 @@ use dom::attr::Attr;
 use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState, ElementCreationOptions};
+use dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
@@ -88,13 +90,14 @@ use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use dom::windowproxy::WindowProxy;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
@@ -107,7 +110,7 @@ use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
-use profile_traits::ipc;
+use profile_traits::ipc as profile_ipc;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType};
 use ref_slice::ref_slice;
 use script_layout_interface::message::{Msg, NodesFromPointQueryType, QueryMsg, ReflowGoal};
@@ -855,7 +858,7 @@ impl Document {
 
             // Notify the embedder to hide the input method.
             if elem.input_method_type().is_some() {
-                self.send_to_constellation(ScriptMsg::HideIME);
+                self.send_to_embedder(EmbedderMsg::HideIME);
             }
         }
 
@@ -869,12 +872,12 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                self.send_to_constellation(ScriptMsg::Focus);
+                self.window().send_to_constellation(ScriptMsg::Focus);
             }
 
             // Notify the embedder to display an input method.
             if let Some(kind) = elem.input_method_type() {
-                self.send_to_constellation(ScriptMsg::ShowIME(kind));
+                self.send_to_embedder(EmbedderMsg::ShowIME(kind));
             }
         }
     }
@@ -882,14 +885,22 @@ impl Document {
     /// Handles any updates when the document's title has changed.
     pub fn title_changed(&self) {
         if self.browsing_context().is_some() {
-            self.send_title_to_constellation();
+            self.send_title_to_embedder();
         }
     }
 
     /// Sends this document's title to the constellation.
-    pub fn send_title_to_constellation(&self) {
-        let title = Some(String::from(self.Title()));
-        self.send_to_constellation(ScriptMsg::SetTitle(title));
+    pub fn send_title_to_embedder(&self) {
+        let window = self.window();
+        if window.is_top_level() {
+            let title = Some(String::from(self.Title()));
+            self.send_to_embedder(EmbedderMsg::ChangePageTitle(title));
+        }
+    }
+
+    fn send_to_embedder(&self, msg: EmbedderMsg) {
+        let window = self.window();
+        window.send_to_embedder(msg);
     }
 
     pub fn dirty_all_nodes(&self) {
@@ -1352,8 +1363,8 @@ impl Document {
         }
 
         if cancel_state == EventDefault::Allowed {
-            let msg = ScriptMsg::SendKeyEvent(ch, key, state, modifiers);
-            self.send_to_constellation(msg);
+            let msg = EmbedderMsg::KeyEvent(ch, key, state, modifiers);
+            self.send_to_embedder(msg);
 
             // This behavior is unspecced
             // We are supposed to dispatch synthetic click activation for Space and/or Return,
@@ -1488,7 +1499,7 @@ impl Document {
             // repeated rAF.
 
             let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::AnimationCallbacksPresent);
-            self.send_to_constellation(event);
+            self.window().send_to_constellation(event);
         }
 
         ident
@@ -1559,7 +1570,7 @@ impl Document {
                 );
             }
             let event = ScriptMsg::ChangeRunningAnimationsState(AnimationState::NoAnimationCallbacksPresent);
-            self.send_to_constellation(event);
+            self.window().send_to_constellation(event);
         }
 
         // Update the counter of spurious animation frames.
@@ -1654,17 +1665,29 @@ impl Document {
         );
         // TODO: Step 6, decrease the event loop's termination nesting level by 1.
         // Step 7
-        self.salvageable.set(!has_listeners);
+        if has_listeners {
+            self.salvageable.set(false);
+        }
         let mut can_unload = true;
-        // TODO: Step 8 send a message to embedder to prompt user.
+        // TODO: Step 8, also check sandboxing modals flag.
+        let default_prevented = event.DefaultPrevented();
+        let return_value_not_empty = !event.downcast::<BeforeUnloadEvent>().unwrap().ReturnValue().is_empty();
+        if default_prevented || return_value_not_empty {
+            let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
+            let msg = EmbedderMsg::AllowUnload(chan);
+            self.send_to_embedder(msg);
+            can_unload = port.recv().unwrap();
+        }
         // Step 9
         if !recursive_flag {
             for iframe in self.iter_iframes() {
                 // TODO: handle the case of cross origin iframes.
                 let document = document_from_node(&*iframe);
-                if !document.prompt_to_unload(true) {
-                    self.salvageable.set(document.salvageable());
-                    can_unload = false;
+                can_unload = document.prompt_to_unload(true);
+                if !document.salvageable() {
+                   self.salvageable.set(false);
+                }
+                if !can_unload {
                     break;
                 }
             }
@@ -1715,7 +1738,9 @@ impl Document {
             );
             self.fired_unload.set(true);
             // Step 9
-            self.salvageable.set(!has_listeners);
+            if has_listeners {
+                self.salvageable.set(false);
+            }
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
 
@@ -2009,7 +2034,7 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        self.send_to_constellation(ScriptMsg::LoadComplete);
+        self.window().send_to_constellation(ScriptMsg::LoadComplete);
     }
 
     pub fn set_current_parser(&self, script: Option<&ServoParser>) {
@@ -2165,11 +2190,6 @@ impl Document {
         let registry = self.window.CustomElements();
 
         registry.lookup_definition(local_name, is)
-    }
-
-    fn send_to_constellation(&self, msg: ScriptMsg) {
-        let global_scope = self.window.upcast::<GlobalScope>();
-        global_scope.script_to_constellation_chan().send(msg).unwrap();
     }
 
     pub fn increment_throw_on_dynamic_markup_insertion_counter(&self) {
@@ -2787,8 +2807,8 @@ impl Document {
         let window = self.window();
         // Step 6
         if !error {
-            let event = ScriptMsg::SetFullscreenState(true);
-            self.send_to_constellation(event);
+            let event = EmbedderMsg::SetFullscreenState(true);
+            self.send_to_embedder(event);
         }
 
         let pipeline_id = self.window().pipeline_id();
@@ -2822,8 +2842,8 @@ impl Document {
 
         let window = self.window();
         // Step 8
-        let event = ScriptMsg::SetFullscreenState(false);
-        self.send_to_constellation(event);
+        let event = EmbedderMsg::SetFullscreenState(true);
+        self.send_to_embedder(event);
 
         // Step 9
         let trusted_element = Trusted::new(element.r());
@@ -3634,7 +3654,7 @@ impl DocumentMethods for Document {
         }
 
         let url = self.url();
-        let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (tx, rx) = profile_ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
         let _ = self.window
             .upcast::<GlobalScope>()
             .resource_threads()

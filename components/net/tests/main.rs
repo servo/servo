@@ -4,7 +4,6 @@
 
 #![cfg(test)]
 
-extern crate compositing;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate embedder_traits;
@@ -35,8 +34,8 @@ mod mime_classifier;
 mod resource_thread;
 mod subresource_integrity;
 
-use compositing::compositor_thread::{EmbedderProxy, EventLoopWaker};
 use devtools_traits::DevtoolsControlMsg;
+use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use embedder_traits::resources::{self, Resource};
 use hyper::server::{Handler, Listening, Server};
 use net::connector::create_ssl_client;

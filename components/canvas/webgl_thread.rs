@@ -893,6 +893,19 @@ impl WebGLImpl {
                 }
                 sender.send(value[0] != 0).unwrap()
             }
+            WebGLCommand::GetParameterBool4(param, sender) => {
+                let mut value = [0; 4];
+                unsafe {
+                    ctx.gl().get_boolean_v(param as u32, &mut value);
+                }
+                let value = [
+                    value[0] != 0,
+                    value[1] != 0,
+                    value[2] != 0,
+                    value[3] != 0,
+                ];
+                sender.send(value).unwrap()
+            }
             WebGLCommand::GetParameterInt(param, sender) => {
                 let mut value = [0];
                 unsafe {
@@ -916,6 +929,13 @@ impl WebGLImpl {
             }
             WebGLCommand::GetParameterFloat2(param, sender) => {
                 let mut value = [0.; 2];
+                unsafe {
+                    ctx.gl().get_float_v(param as u32, &mut value);
+                }
+                sender.send(value).unwrap()
+            }
+            WebGLCommand::GetParameterFloat4(param, sender) => {
+                let mut value = [0.; 4];
                 unsafe {
                     ctx.gl().get_float_v(param as u32, &mut value);
                 }

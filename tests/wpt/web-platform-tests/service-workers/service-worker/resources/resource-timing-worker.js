@@ -6,4 +6,7 @@ self.addEventListener('fetch', function(event) {
       setTimeout(_ => resolve(new Response('// Empty javascript')), 50);
     }));
   }
+  else if (event.request.url.indexOf('missing.jpg?SWRespondsWithFetch') != -1) {
+    event.respondWith(fetch('dummy.txt?SWFetched'));
+  }
 });

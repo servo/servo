@@ -214,7 +214,7 @@ SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
 
 # generate_tests implementation and sample usage
-GENERATE_TESTS: resources/test/tests/generate-callback.html
+GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
 GENERATE_TESTS: resources/testharness.js
 
 # generate_tests usage (should be got rid of)
@@ -289,9 +289,9 @@ SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-o
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: resources/chromium/*
-SET TIMEOUT: resources/test/tests/add_cleanup.html
-SET TIMEOUT: resources/test/tests/api-tests-1.html
-SET TIMEOUT: resources/test/tests/worker.js
+SET TIMEOUT: resources/test/tests/functional/add_cleanup.html
+SET TIMEOUT: resources/test/tests/functional/api-tests-1.html
+SET TIMEOUT: resources/test/tests/functional/worker.js
 SET TIMEOUT: resources/testharness.js
 
 # setTimeout use in reftests
@@ -772,19 +772,3 @@ MISSING-LINK: css/filter-effects/*.any.js
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: css/css-regions/interactivity/*
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
-
-# Existing use of WEB-PLATFORM.TEST
-WEB-PLATFORM.TEST: clear-site-data/support/test_utils.sub.js
-WEB-PLATFORM.TEST: content-security-policy/base-uri/report-uri-does-not-respect-base-uri.sub.html
-WEB-PLATFORM.TEST: content-security-policy/generic/generic-0_8.sub.html
-WEB-PLATFORM.TEST: content-security-policy/generic/generic-0_8_1.sub.html
-WEB-PLATFORM.TEST: content-security-policy/nonce-hiding/script-nonces-hidden-meta.tentative.html
-WEB-PLATFORM.TEST: content-security-policy/nonce-hiding/svgscript-nonces-hidden-meta.tentative.html
-WEB-PLATFORM.TEST: fetch/api/request/request-structure.html
-WEB-PLATFORM.TEST: html/browsers/origin/relaxing-the-same-origin-restriction/document_domain_setter.html
-WEB-PLATFORM.TEST: html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html
-WEB-PLATFORM.TEST: html/semantics/forms/the-label-element/label-attributes.html
-WEB-PLATFORM.TEST: navigation-timing/nav2_test_attributes_values.html
-WEB-PLATFORM.TEST: navigation-timing/nav2_test_instance_accessors.html
-WEB-PLATFORM.TEST: webrtc/RTCPeerConnection-getIdentityAssertion.html
-WEB-PLATFORM.TEST: webrtc/identity-helper.js

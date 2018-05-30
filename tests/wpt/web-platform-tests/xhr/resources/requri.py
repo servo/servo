@@ -3,4 +3,3 @@ def main(request, response):
         return request.url
     else:
         return request.request_path
-

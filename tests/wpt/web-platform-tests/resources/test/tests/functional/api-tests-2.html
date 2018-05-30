@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Sample HTML5 API Tests</title>
+</head>
+<body>
+<h1>Sample HTML5 API Tests</h1>
+<p>There should be two results</p>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({explicit_done:true})
+test(function() {assert_true(true)}, "Test defined before onload");
+
+onload = function() {test(function (){assert_true(true)}, "Test defined after onload");
+done();
+}
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "Test defined after onload",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Test defined before onload",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

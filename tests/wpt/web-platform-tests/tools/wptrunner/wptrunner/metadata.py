@@ -119,8 +119,6 @@ def unexpected_changes(manifests, change_data, files_changed):
     else:
         return []
 
-    rv = []
-
     return [fn for _, fn, _ in root_manifest if fn in files_changed and change_data.get(fn) != "M"]
 
 # For each testrun

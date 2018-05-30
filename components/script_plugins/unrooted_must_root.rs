@@ -143,14 +143,14 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             let def_id = cx.tcx.hir.local_def_id(id);
             let sig = cx.tcx.type_of(def_id).fn_sig(cx.tcx);
 
-            for (arg, ty) in decl.inputs.iter().zip(sig.inputs().0.iter()) {
+            for (arg, ty) in decl.inputs.iter().zip(sig.inputs().skip_binder().iter()) {
                 if is_unrooted_ty(cx, ty, false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, arg.span, "Type must be rooted")
                 }
             }
 
             if !in_new_function {
-                if is_unrooted_ty(cx, sig.output().0, false) {
+                if is_unrooted_ty(cx, sig.output().skip_binder(), false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, decl.output.span(), "Type must be rooted")
                 }
             }

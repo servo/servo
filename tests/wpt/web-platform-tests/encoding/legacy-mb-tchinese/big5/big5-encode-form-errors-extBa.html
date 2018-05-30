@@ -136,10 +136,7 @@ function runNext(id) {
         for (var j = 0; j < cplist[i].length; j++) {
             var t = tests[i][j];
             t.step(function() {
-                assert_equals(
-                    normalizeStr(results[j]),
-                    normalizeStr(cplist[i][j].expected)
-                );
+                assert_equals(results[j], cplist[i][j].expected);
             });
             t.done();
         }

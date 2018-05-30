@@ -43,7 +43,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs["timeout_multiplier"] = get_timeout_multiplier(test_type,
                                                                    run_info_data,
                                                                    **kwargs)
-    executor_kwargs["capabilities"] = dict(DesiredCapabilities.EDGE.items())
+    executor_kwargs["capabilities"] = {}
     return executor_kwargs
 
 def env_extras(**kwargs):

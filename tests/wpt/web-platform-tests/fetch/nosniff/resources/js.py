@@ -11,7 +11,7 @@ def main(request, response):
     response.writer.write_header("x-content-type-options", "nosniff")
     response.writer.write_header("content-length", len(content))
     if(type != "Content-Type missing"):
-      response.writer.write_header("content-type", type)
+        response.writer.write_header("content-type", type)
     response.writer.end_headers()
 
     response.writer.write(content)

@@ -1,3 +1,16 @@
+# This script is embedded in the docker image, and so the image must be updated when changes
+# to the script are made. To do this, assuming you have docker installed:
+# In tools/docker/ :
+#   docker build .
+#   docker ps # and look for the id of the image you just built
+#   docker tag <image> <tag>
+#   docker push <tag>
+# Edit tools/ci/taskgraph.py and update the docker_image = "<tag>" line
+# In the project root:
+#   ./wpt make-tasks
+# Commit the changes with .taskcluster.yml changes in a separate commit for easier review
+
+
 #!/bin/bash
 set -ex
 
@@ -28,7 +41,7 @@ then
     deb_archive=google-chrome-unstable_current_amd64.deb
     wget https://dl.google.com/linux/direct/$deb_archive
 
-    sudo gdebi -n $deb_archive
+    sudo apt-get -qqy update && gdebi -n $deb_archive
 fi
 
 sudo Xvfb $DISPLAY -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH} &
