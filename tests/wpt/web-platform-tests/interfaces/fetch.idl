@@ -39,6 +39,7 @@ interface Request {
   readonly attribute DOMString integrity;
   readonly attribute boolean keepalive;
   readonly attribute boolean isReloadNavigation;
+  readonly attribute boolean isHistoryNavigation;
   readonly attribute AbortSignal signal;
 
   [NewObject] Request clone();

@@ -1,2 +1,5 @@
-import('./dynamic-import-worker.js')
-  .then(module => postMessage('LOADED'));
+import('./export-on-dynamic-import-script.js')
+  .then(async module => {
+    await module.ready;
+    postMessage(module.importedModules);
+  });

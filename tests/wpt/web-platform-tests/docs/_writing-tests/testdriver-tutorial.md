@@ -313,5 +313,5 @@ run instead of testdriver-extra.js in browser specific test environments. For ex
 
 ### What if I need to return a value from my testdriver API?
 
-We currently don't have this capability, but it is coming soon and will be documented. The bug is [here](https://github.com/w3c/web-platform-tests/issues/10716)
+We currently don't have this capability, but it is coming soon and will be documented. The bug is [here](https://github.com/web-platform-tests/wpt/issues/10716)
 

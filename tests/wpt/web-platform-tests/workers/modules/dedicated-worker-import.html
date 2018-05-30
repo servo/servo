@@ -4,73 +4,44 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 
-// Start a dedicated worker for |scriptURL| and wait until MessageEvents from
-// imported modules up to |expectedNumberOfImportedModules|.
-function RunImportTest(scriptURL, expectedNumberOfImportedModules) {
-  return new Promise(resolve => {
-    let numberOfImportedModules = 0;
+// Starts a dedicated worker for |scriptURL| and waits until the list of
+// imported modules is sent from the worker. Passes if the list is equal to
+// |expectedImportedModules|.
+function import_test(scriptURL, expectedImportedModules, description) {
+  promise_test(async () => {
     const worker = new Worker(scriptURL, { type: 'module' });
-    worker.onmessage = e => {
-      if (e.data === 'LOADED')
-        ++numberOfImportedModules;
-      if (numberOfImportedModules === expectedNumberOfImportedModules)
-        resolve();
-    };
-  });
+    const msg_event = await new Promise(resolve => worker.onmessage = resolve);
+    assert_array_equals(msg_event.data, expectedImportedModules);
+  }, description);
 }
 
-promise_test(() => {
-  return RunImportTest('resources/static-import-worker.js', 2);
-}, 'Test static import on DedicatedWorkerGlobalScope.');
+import_test('resources/static-import-worker.js',
+            ['export-on-load-script.js'],
+            'Static import.');
 
-promise_test(() => {
-  return RunImportTest('resources/nested-static-import-worker.js', 3);
-}, 'Test nested static import on DedicatedWorkerGlobalScope.');
+import_test('resources/nested-static-import-worker.js',
+            ['export-on-static-import-script.js', 'export-on-load-script.js'],
+            'Nested static import.');
 
-promise_test(() => {
-  return RunImportTest(
-      'resources/static-import-and-then-dynamic-import-worker.js', 3);
-}, 'Test static import and then dynamic import on DedicatedWorkerGlobalScope.');
 
-promise_test(() => {
-  return RunImportTest('resources/dynamic-import-worker.js', 2);
-}, 'Test dynamic import on DedicatedWorkerGlobalScope.');
+import_test('resources/static-import-and-then-dynamic-import-worker.js',
+            ['export-on-dynamic-import-script.js', 'export-on-load-script.js'],
+            'Static import and then dynamic import.');
 
-promise_test(() => {
-  return RunImportTest('resources/nested-dynamic-import-worker.js', 3);
-}, 'Test nested dynamic import on DedicatedWorkerGlobalScope.');
+import_test('resources/dynamic-import-worker.js',
+            ['export-on-load-script.js'],
+            'Dynamic import.');
 
-promise_test(() => {
-  return RunImportTest(
-      'resources/dynamic-import-and-then-static-import-worker.js', 3);
-}, 'Test dynamic import and then static import on DedicatedWorkerGlobalScope.');
+import_test('resources/nested-dynamic-import-worker.js',
+            ['export-on-dynamic-import-script.js', 'export-on-load-script.js'],
+            'Nested dynamic import.');
 
-promise_test(() => {
-  const scriptURL = 'resources/import-scripts-worker.js';
-  const worker = new Worker(scriptURL, { type: 'module' });
-  return (new Promise(resolve => worker.onmessage = resolve))
-      .then(e => assert_equals(e.data, 'TypeError'));
-}, 'importScripts() on module worker should throw an exception.');
+import_test('resources/dynamic-import-and-then-static-import-worker.js',
+            ['export-on-static-import-script.js', 'export-on-load-script.js'],
+            'Dynamic import and then static import.');
 
-promise_test(() => {
-  const scriptURL = 'resources/non-existent-worker.js';
-  const worker = new Worker(scriptURL, { type: 'module' });
-  return new Promise(resolve => worker.onerror = resolve);
-}, 'Worker construction for non-existent script should throw an exception.');
-
-promise_test(() => {
-  const scriptURL = 'resources/static-import-non-existent-script-worker.js';
-  const worker = new Worker(scriptURL, { type: 'module' });
-  return new Promise(resolve => worker.onerror = resolve);
-}, 'Static import for non-existent script should throw an exception.');
-
-promise_test(() => {
-  const script_url = './non-existent-worker.js';
-  const worker = new Worker('resources/dynamic-import-given-url-worker.js',
-                            { type: 'module' });
-  worker.postMessage(script_url);
-  return new Promise(resolve => worker.onmessage = resolve)
-      .then(msg_event => assert_equals(msg_event.data, 'ERROR'));
-}, 'Dynamic import for non-existent script should throw an exception.');
+import_test('resources/eval-dynamic-import-worker.js',
+            ['export-on-load-script.js'],
+            'eval(import()).');
 
 </script>

@@ -15,7 +15,7 @@ A wrapper for these JSON MIME type tests needs to take care that not all `input`
 function isByteCompatible(str) {
   for(let i = 0; i < str.length; i++) {
     const charCode = str.charCodeAt(i);
-    // See https://github.com/w3c/web-platform-tests/issues/8372 for 0x0B and 0x0C
+    // See https://github.com/web-platform-tests/wpt/issues/8372 for 0x0B and 0x0C
     // See https://fetch.spec.whatwg.org/#concept-header-value for the remainder
     if(charCode > 0xFF) {
       return "incompatible";

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>DedicatedWorker: import failure</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(async () => {
+  const scriptURL = 'resources/import-scripts-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  const msg_event = await new Promise(resolve => worker.onmessage = resolve);
+  assert_equals(msg_event.data, 'TypeError');
+}, 'importScripts() on module worker should throw an exception.');
+
+promise_test(async () => {
+  const scriptURL = 'resources/static-import-worker.js';
+  const worker = new Worker(scriptURL, { type: 'classic' });
+  await new Promise(resolve => worker.onerror = resolve);
+}, 'Static import on classic worker should throw an exception.');
+
+promise_test(() => {
+  const scriptURL = 'resources/non-existent-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Worker construction for non-existent script should dispatch an ' +
+   'ErrorEvent.');
+
+promise_test(() => {
+  const scriptURL = 'resources/static-import-non-existent-script-worker.js';
+  const worker = new Worker(scriptURL, { type: 'module' });
+  return new Promise(resolve => worker.onerror = resolve);
+}, 'Static import for non-existent script should dispatch an ErrorEvent.');
+
+promise_test(async () => {
+  const script_url = './non-existent-worker.js';
+  const worker = new Worker('resources/dynamic-import-given-url-worker.js',
+                            { type: 'module' });
+  worker.postMessage(script_url);
+  const msg_event = await new Promise(resolve => worker.onmessage = resolve);
+  assert_equals(msg_event.data, 'TypeError');
+}, 'Dynamic import for non-existent script should throw an exception.');
+
+</script>

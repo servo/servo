@@ -43,7 +43,7 @@ promise_test(async function() {
   return Promise.all(
     [
       "/interfaces/html.idl",
-      "/interfaces/remoteplayback.idl",
+      "/interfaces/remote-playback.idl",
     ].map(url => fetch(url).then(r => r.text())))
       .then(doTest);
 }, "Test driver");

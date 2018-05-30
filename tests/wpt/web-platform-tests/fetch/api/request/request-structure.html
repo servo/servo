@@ -30,6 +30,8 @@
                         "cache",
                         "redirect",
                         "integrity",
+                        "isReloadNavigation",
+                        "isHistoryNavigation",
                         //Request implements Body
                         "bodyUsed"
                        ];
@@ -100,6 +102,11 @@
             break;
 
           case "isReloadNavigation":
+            defaultValue = false;
+            newValue = true;
+            break;
+
+          case "isHistoryNavigation":
             defaultValue = false;
             newValue = true;
             break;

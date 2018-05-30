@@ -9,7 +9,7 @@ implementation compliance to the specification in mind,
 so that different remote end drivers
 can determine whether they meet the recognised standard.
 The client is used for the WebDriver specification tests
-in the [Web Platform Tests](https://github.com/w3c/web-platform-tests).
+in the [Web Platform Tests](https://github.com/web-platform-tests/wpt).
 
 ## Installation
 
@@ -31,7 +31,7 @@ which is useful if you want to contribute patches back:
     >>> 
 
 If you are writing WebDriver specification tests for
-[WPT](https://github.com/w3c/web-platform-tests),
+[WPT](https://github.com/web-platform-tests/wpt),
 there is no need to install the client manually
 as it is included in the `tools/webdriver` directory.
 

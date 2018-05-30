@@ -79,7 +79,7 @@ AHEM COPY: fonts/Ahem.ttf
 # None of these are actually Ahem
 AHEM COPY: fonts/ahem-extra/AHEM_*.TTF
 
-# https://github.com/w3c/web-platform-tests/issues/7437
+# https://github.com/web-platform-tests/wpt/issues/7437
 AHEM COPY: css/vendor-imports/mozilla/mozilla-central-reftests/*/Ahem.ttf
 
 ## Test exclusions ##
@@ -765,7 +765,7 @@ MISSING-LINK: css/cssom-view/scrollIntoView-shadow.html
 MISSING-LINK: css/cssom-view/scrollIntoView-smooth.html
 MISSING-LINK: css/cssom-view/scrollTop-display-change.html
 
-# TODO https://github.com/w3c/web-platform-tests/issues/5770
+# TODO https://github.com/web-platform-tests/wpt/issues/5770
 MISSING-LINK: css/geometry/*.worker.js
 MISSING-LINK: css/filter-effects/*.any.js
 

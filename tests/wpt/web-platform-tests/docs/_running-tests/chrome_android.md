@@ -24,7 +24,7 @@ Until we find a better way, we need to root the Android device and update the
 ## CA certificate
 
 In order to run HTTPS tests, we need to add
-[WPT's CA](https://github.com/w3c/web-platform-tests/blob/master/tools/certs/cacert.pem)
+[WPT's CA](https://github.com/web-platform-tests/wpt/blob/master/tools/certs/cacert.pem)
 to the phone. First, convert the certificate from PEM to CRT:
 
 ```

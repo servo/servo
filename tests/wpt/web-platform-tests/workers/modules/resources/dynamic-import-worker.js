@@ -1,2 +1,2 @@
-import('./post-message-on-load-worker.js')
-  .then(module => postMessage('LOADED'));
+import('./export-on-load-script.js')
+  .then(module => postMessage(module.importedModules));

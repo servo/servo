@@ -233,4 +233,4 @@ The web-platform-test harness knows about several keys:
 `refurl`
   The reference url for reftests.
 
-.. _`web-platform-tests testsuite`: https://github.com/w3c/web-platform-tests
+.. _`web-platform-tests testsuite`: https://github.com/web-platform-tests/wpt

@@ -46,9 +46,14 @@ function unreached_rejection(test, prefix) {
     });
 }
 
-// Adds an iframe to the document and returns a promise that resolves to the
-// iframe when it finishes loading. The caller is responsible for removing the
-// iframe later if needed.
+/**
+ * Adds an iframe to the document and returns a promise that resolves to the
+ * iframe when it finishes loading. The caller is responsible for removing the
+ * iframe later if needed.
+ *
+ * @param {string} url
+ * @returns {HTMLIFrameElement}
+ */
 function with_iframe(url) {
   return new Promise(function(resolve) {
       var frame = document.createElement('iframe');

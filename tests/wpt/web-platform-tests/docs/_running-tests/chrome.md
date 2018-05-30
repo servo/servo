@@ -31,7 +31,7 @@ To bypass device selection and use mock media for tests using `getUserMedia`:
 ./wpt run --binary-arg=--use-fake-ui-for-media-stream --binary-arg=--use-fake-device-for-media-stream chrome mediacapture-streams/
 ```
 
-Note: there's an [open issue for doing this using WebDriver](https://github.com/w3c/web-platform-tests/issues/7424).
+Note: there's an [open issue for doing this using WebDriver](https://github.com/web-platform-tests/wpt/issues/7424).
 
 Some of the above are most useful in combination, e.g., to run all tests in
 Chrome Dev with experimental web platform features enabled:

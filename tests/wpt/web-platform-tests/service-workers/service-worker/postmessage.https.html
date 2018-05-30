@@ -16,7 +16,7 @@ promise_test(t => {
           // TODO: return the Promise created by `r.unregister`once
           // `testharness.js` has been updated to honor thenables returned by
           // cleanup functions.
-          // See https://github.com/w3c/web-platform-tests/pull/8748
+          // See https://github.com/web-platform-tests/wpt/pull/8748
           t.add_cleanup(() => { r.unregister(); });
           registration = r;
           worker = registration.installing;
@@ -69,7 +69,7 @@ promise_test(t => {
           // TODO: return the Promise created by `r.unregister`once
           // `testharness.js` has been updated to honor thenables returned by
           // cleanup functions.
-          // See https://github.com/w3c/web-platform-tests/pull/8748
+          // See https://github.com/web-platform-tests/wpt/pull/8748
           t.add_cleanup(() => { r.unregister(); });
 
           var ab = text_encoder.encode(message);
@@ -113,7 +113,7 @@ promise_test(t => {
           // TODO: return the Promise created by `r.unregister`once
           // `testharness.js` has been updated to honor thenables returned by
           // cleanup functions.
-          // See https://github.com/w3c/web-platform-tests/pull/8748
+          // See https://github.com/web-platform-tests/wpt/pull/8748
           t.add_cleanup(() => { r.unregister(); });
 
           var channel = new MessageChannel;
