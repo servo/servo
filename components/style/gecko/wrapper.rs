@@ -1215,15 +1215,8 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe {
             let slots = self.extended_slots()?;
 
-            let base_declaration: &structs::DeclarationBlock =
+            let declaration: &structs::DeclarationBlock =
                 slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref()?;
-
-            let declaration: &structs::ServoDeclarationBlock = mem::transmute(base_declaration);
-
-            debug_assert_eq!(
-                &declaration._base as *const structs::DeclarationBlock,
-                base_declaration as *const structs::DeclarationBlock
-            );
 
             let raw: &structs::RawServoDeclarationBlock = declaration.mRaw.mRawPtr.as_ref()?;
 
