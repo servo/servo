@@ -51,7 +51,7 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use js::jsapi::{JSContext, JSObject, Type};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal, NullValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBufferView;
 use net_traits::image::base::PixelFormat;
@@ -1335,6 +1335,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return BooleanValue(unpack.contains(TextureUnpacking::PREMULTIPLY_ALPHA));
             }
             _ => {}
+        }
+
+        // Handle any MAX_ parameters by retrieving the limits that were stored
+        // when this context was created.
+        let limit = match parameter {
+            constants::MAX_VERTEX_ATTRIBS =>
+                Some(self.limits.max_vertex_attribs),
+            constants::MAX_TEXTURE_SIZE =>
+                Some(self.limits.max_tex_size),
+            constants::MAX_CUBE_MAP_TEXTURE_SIZE =>
+                Some(self.limits.max_cube_map_tex_size),
+            constants::MAX_COMBINED_TEXTURE_IMAGE_UNITS =>
+                Some(self.limits.max_combined_texture_image_units),
+            constants::MAX_FRAGMENT_UNIFORM_VECTORS =>
+                Some(self.limits.max_fragment_uniform_vectors),
+            constants::MAX_RENDERBUFFER_SIZE =>
+                Some(self.limits.max_renderbuffer_size),
+            constants::MAX_TEXTURE_IMAGE_UNITS =>
+                Some(self.limits.max_texture_image_units),
+            constants::MAX_VARYING_VECTORS =>
+                Some(self.limits.max_varying_vectors),
+            constants::MAX_VERTEX_TEXTURE_IMAGE_UNITS =>
+                Some(self.limits.max_vertex_texture_image_units),
+            constants::MAX_VERTEX_UNIFORM_VECTORS =>
+                Some(self.limits.max_vertex_uniform_vectors),
+            _ => None,
+        };
+        if let Some(limit) = limit {
+            return UInt32Value(limit);
         }
 
         if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
