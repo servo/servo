@@ -44,6 +44,7 @@ use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::test::HttpState;
 use net_traits::FetchTaskTarget;
+use net_traits::NetworkTiming;
 use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_url::ServoUrl;
@@ -91,6 +92,7 @@ fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>, fc: Option<Embedder
         devtools_chan: dc,
         filemanager: FileManager::new(sender),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        net_timing: NetworkTiming::default(),
     }
 }
 impl FetchTaskTarget for FetchResponseCollector {
@@ -105,16 +107,16 @@ impl FetchTaskTarget for FetchResponseCollector {
 }
 
 fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &new_fetch_context(dc, None))
+    fetch_with_context(request, &mut new_fetch_context(dc, None))
 }
 
-fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
+fn fetch_with_context(request: &mut Request, mut context: &mut FetchContext) -> Response {
     let (sender, receiver) = channel();
     let mut target = FetchResponseCollector {
         sender: sender,
     };
 
-    methods::fetch(request, &mut target, context);
+    methods::fetch(request, &mut target, &mut context);
 
     receiver.recv().unwrap()
 }
@@ -125,7 +127,7 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
         sender: sender,
     };
 
-    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None, None));
+    methods::fetch_with_cors_cache(request, cache, &mut target, &mut new_fetch_context(None, None));
 
     receiver.recv().unwrap()
 }

@@ -30,6 +30,7 @@ use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
 use net_traits::IncludeSubdomains;
+use net_traits::{FetchMetadata, NetworkTiming};
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
@@ -118,7 +119,7 @@ fn test_fetch_blob() {
     use ipc_channel::ipc;
     use net_traits::blob_url_store::BlobBuf;
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     let bytes = b"content";
     let blob_buf = BlobBuf {
@@ -137,7 +138,7 @@ fn test_fetch_blob() {
 
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
-    let fetch_response = fetch_with_context(&mut request, &context);
+    let fetch_response = fetch_with_context(&mut request, &mut context);
 
     assert!(!fetch_response.is_network_error());
 
@@ -535,12 +536,13 @@ fn test_fetch_with_hsts() {
     File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
     let ssl_client = create_ssl_client(&ca_content);
 
-    let context = FetchContext {
+    let mut context = FetchContext {
         state: Arc::new(HttpState::new(ssl_client)),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: None,
         filemanager: FileManager::new(create_embedder_proxy()),
         cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        net_timing: NetworkTiming::default(),
     };
 
     {
@@ -555,7 +557,7 @@ fn test_fetch_with_hsts() {
     request.referrer = Referrer::NoReferrer;
     // Set the flag.
     request.local_urls_only = false;
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
     let _ = server.close();
     assert_eq!(response.internal_response.unwrap().url().unwrap().scheme(),
                "https");
@@ -692,6 +694,37 @@ fn test_fetch_redirect_count_ceiling() {
 
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
+
+    match *fetch_response.body.lock().unwrap() {
+        ResponseBody::Done(ref body) => {
+            assert_eq!(&**body, MESSAGE);
+        },
+        _ => panic!()
+    };
+}
+
+#[test]
+fn test_fetch_metadata() {
+    static MESSAGE: &'static [u8] = b"such timing!";
+    // how many redirects to cause
+    let redirects = 3;
+
+    let fetch_response = setup_server_and_fetch(MESSAGE, redirects);
+
+    assert!(!fetch_response.is_network_error());
+    assert_eq!(fetch_response.response_type, ResponseType::Basic);
+
+    let net_meta = match fetch_response.metadata() {
+        Err(_) => panic!(),
+        Ok(meta) => match meta {
+            FetchMetadata::Unfiltered { m: _, net_timing: net_meta } => net_meta,
+            FetchMetadata::Filtered { filtered: _, unsafe_: _, net_timing: net_meta } => net_meta, 
+        }
+    };
+
+    println!("{:?}", net_meta);
+    assert_eq!(net_meta.redirect_count, redirects as u16);
+
 
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => {

@@ -504,8 +504,8 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         pipeline_id: Some(TEST_PIPELINE_ID),
         .. RequestInit::default()
     });
-    let context = new_fetch_context(None, None);
-    let response = fetch_with_context(&mut request, &context);
+    let mut context = new_fetch_context(None, None);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -521,7 +521,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     };
     let (mut server, url) = make_server(handler);
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
@@ -535,7 +535,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -553,7 +553,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     };
     let (mut server, url) = make_server(handler);
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
@@ -575,7 +575,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -591,7 +591,7 @@ fn test_load_sends_cookie_if_nonhttp() {
     };
     let (mut server, url) = make_server(handler);
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
@@ -613,7 +613,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -629,7 +629,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
     };
     let (mut server, url) = make_server(handler);
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
@@ -643,7 +643,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -663,7 +663,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     };
     let (mut server, url) = make_server(handler);
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 
@@ -677,7 +677,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -981,7 +981,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let url_y = ServoUrl::parse(&format!("http://mozilla.org:{}/org/", port)).unwrap();
     *shared_url_y_clone.lock().unwrap() = Some(url_y.clone());
 
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
     {
         let mut cookie_jar = context.state.cookie_jar.write().unwrap();
         let cookie_x = Cookie::new_wrapped(
@@ -1009,7 +1009,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
@@ -1085,7 +1085,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let context = new_fetch_context(None, None);
+    let mut context = new_fetch_context(None, None);
 
     let auth_entry = AuthCacheEntry {
         user_name: "username".to_owned(),
@@ -1094,7 +1094,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     context.state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
 
-    let response = fetch_with_context(&mut request, &context);
+    let response = fetch_with_context(&mut request, &mut context);
 
     let _ = server.close();
 
