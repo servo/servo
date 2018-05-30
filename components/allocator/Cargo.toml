@@ -15,7 +15,7 @@ unstable = ["kernel32-sys", "jemallocator"]
 libc = "0.2"  # Only used when 'unstable' is disabled, but looks like Cargo cannot express that.
 
 [target.'cfg(not(windows))'.dependencies]
-jemallocator = { version = "0.1.8", optional = true }
+jemallocator = { version = "0.1.8", default-features = false, optional = true }
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = { version = "0.2.1", optional = true }
