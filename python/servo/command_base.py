@@ -478,6 +478,7 @@ class CommandBase(object):
                 return path.join(msvc_deps_dir, package, msvc_deps[package])
 
             extra_path += [path.join(package_dir("cmake"), "bin")]
+            extra_path += [path.join(package_dir("llvm"), "bin")]
             extra_path += [path.join(package_dir("ninja"), "bin")]
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(package_dir("openssl"), "include")
@@ -485,6 +486,8 @@ class CommandBase(object):
             env["OPENSSL_LIBS"] = "libsslMD:libcryptoMD"
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(package_dir("moztools"), "bin")
+            # Link LLVM
+            env["LIBCLANG_PATH"] = path.join(package_dir("llvm"), "lib")
 
         if is_windows():
             if not os.environ.get("NATIVE_WIN32_PYTHON"):

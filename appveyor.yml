@@ -25,7 +25,6 @@ environment:
     C:\\Program Files (x86)\\MSBuild\\14.0\\Bin;\
     C:\\Program Files\\Amazon\\AWSCLI\\;\
     C:\\Program Files\\Microsoft Windows Performance Toolkit\\;\
-    C:\\Program Files\\LLVM\\bin;\
     C:\\Program Files\\Git LFS;\
     C:\\Program Files\\Git\\cmd;\
     C:\\Program Files\\Git\\usr\\bin;\
