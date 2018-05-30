@@ -90,7 +90,7 @@ If you using a version prior to **Ubuntu 17.04** or **Debian Sid**, replace `lib
 
 If you are using **Ubuntu 16.04** run `export HARFBUZZ_SYS_NO_PKG_CONFIG=1` before building to avoid an error with harfbuzz.
 
-If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
+If you are on **Ubuntu 14.04**, you can follow [this comment](https://github.com/servo/servo/issues/12356#issuecomment-232713719) to set up the environment. If you encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 
 If `virtualenv` does not exist, try `python-virtualenv`.
 
