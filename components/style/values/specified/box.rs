@@ -525,19 +525,25 @@ pub fn assert_touch_action_matches() {
 
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
-    #[value_info(other_values = "none,strict,layout,style,paint")]
+    #[value_info(other_values = "none,strict,content,size,layout,style,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
+        /// 'size' variant, turns on size containment
+        const SIZE = 0x01;
         /// `layout` variant, turns on layout containment
-        const LAYOUT = 0x01;
+        const LAYOUT = 0x02;
         /// `style` variant, turns on style containment
-        const STYLE = 0x02;
+        const STYLE = 0x04;
         /// `paint` variant, turns on paint containment
-        const PAINT = 0x04;
+        const PAINT = 0x08;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 0x8;
+        const STRICT = 0x10;
+        /// 'content' variant, turns on style, layout, and paint containment
+        const CONTENT = 0x20;
         /// variant with all the bits that contain: strict turns on
-        const STRICT_BITS = Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits;
+        const STRICT_BITS = Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+        /// variant with all the bits that contain: content turns on
+        const CONTENT_BITS = Contain::STYLE.bits | Contain::LAYOUT.bits | Contain::PAINT.bits;
     }
 }
 
@@ -552,6 +558,9 @@ impl ToCss for Contain {
         if self.contains(Contain::STRICT) {
             return dest.write_str("strict");
         }
+        if self.contains(Contain::CONTENT) {
+            return dest.write_str("content");
+        }
 
         let mut has_any = false;
         macro_rules! maybe_write_value {
@@ -565,6 +574,7 @@ impl ToCss for Contain {
                 }
             };
         }
+        maybe_write_value!(Contain::SIZE => "size");
         maybe_write_value!(Contain::LAYOUT => "layout");
         maybe_write_value!(Contain::STYLE => "style");
         maybe_write_value!(Contain::PAINT => "paint");
@@ -583,10 +593,12 @@ impl Parse for Contain {
         let mut result = Contain::empty();
         while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
+                "size" => Some(Contain::SIZE),
                 "layout" => Some(Contain::LAYOUT),
                 "style" => Some(Contain::STYLE),
                 "paint" => Some(Contain::PAINT),
                 "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
+                "content" if result.is_empty() => return Ok(Contain::CONTENT | Contain::CONTENT_BITS),
                 "none" if result.is_empty() => return Ok(result),
                 _ => None
             };

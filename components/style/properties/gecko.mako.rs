@@ -3626,10 +3626,13 @@ fn static_assert() {
     pub fn set_contain(&mut self, v: longhands::contain::computed_value::T) {
         use gecko_bindings::structs::NS_STYLE_CONTAIN_NONE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
         use properties::longhands::contain::SpecifiedValue;
 
         if v.is_empty() {
@@ -3639,6 +3642,10 @@ fn static_assert() {
 
         if v.contains(SpecifiedValue::STRICT) {
             self.gecko.mContain = (NS_STYLE_CONTAIN_STRICT | NS_STYLE_CONTAIN_ALL_BITS) as u8;
+            return;
+        }
+        if v.contains(SpecifiedValue::CONTENT) {
+            self.gecko.mContain = (NS_STYLE_CONTAIN_CONTENT | NS_STYLE_CONTAIN_CONTENT_BITS) as u8;
             return;
         }
 
@@ -3652,35 +3659,56 @@ fn static_assert() {
         if v.contains(SpecifiedValue::PAINT) {
             bitfield |= NS_STYLE_CONTAIN_PAINT;
         }
+        if v.contains(SpecifiedValue::SIZE) {
+            bitfield |= NS_STYLE_CONTAIN_SIZE;
+        }
 
         self.gecko.mContain = bitfield as u8;
     }
 
     pub fn clone_contain(&self) -> longhands::contain::computed_value::T {
         use gecko_bindings::structs::NS_STYLE_CONTAIN_STRICT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_SIZE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_LAYOUT;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_STYLE;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_PAINT;
         use gecko_bindings::structs::NS_STYLE_CONTAIN_ALL_BITS;
+        use gecko_bindings::structs::NS_STYLE_CONTAIN_CONTENT_BITS;
         use properties::longhands::contain::{self, SpecifiedValue};
 
         let mut servo_flags = contain::computed_value::T::empty();
         let gecko_flags = self.gecko.mContain;
 
-        if gecko_flags & (NS_STYLE_CONTAIN_STRICT as u8) != 0 &&
-           gecko_flags & (NS_STYLE_CONTAIN_ALL_BITS as u8) != 0 {
+        if gecko_flags & (NS_STYLE_CONTAIN_STRICT as u8) != 0 {
+            debug_assert_eq!(
+                gecko_flags & (NS_STYLE_CONTAIN_ALL_BITS as u8),
+                NS_STYLE_CONTAIN_ALL_BITS as u8,
+                "When strict is specified, ALL_BITS should be specified as well"
+            );
             servo_flags.insert(SpecifiedValue::STRICT | SpecifiedValue::STRICT_BITS);
             return servo_flags;
         }
-
+        if gecko_flags & (NS_STYLE_CONTAIN_CONTENT as u8) != 0 {
+            debug_assert_eq!(
+                gecko_flags & (NS_STYLE_CONTAIN_CONTENT_BITS as u8),
+                NS_STYLE_CONTAIN_CONTENT_BITS as u8,
+                "When content is specified, CONTENT_BITS should be specified as well"
+            );
+            servo_flags.insert(SpecifiedValue::CONTENT | SpecifiedValue::CONTENT_BITS);
+            return servo_flags;
+        }
         if gecko_flags & (NS_STYLE_CONTAIN_LAYOUT as u8) != 0 {
             servo_flags.insert(SpecifiedValue::LAYOUT);
         }
-        if gecko_flags & (NS_STYLE_CONTAIN_STYLE as u8) != 0{
+        if gecko_flags & (NS_STYLE_CONTAIN_STYLE as u8) != 0 {
             servo_flags.insert(SpecifiedValue::STYLE);
         }
         if gecko_flags & (NS_STYLE_CONTAIN_PAINT as u8) != 0 {
             servo_flags.insert(SpecifiedValue::PAINT);
+        }
+        if gecko_flags & (NS_STYLE_CONTAIN_SIZE as u8) != 0 {
+            servo_flags.insert(SpecifiedValue::SIZE);
         }
 
         return servo_flags;
