@@ -309,8 +309,8 @@ class CommandBase(object):
                     return 1
                 raise
             version = tuple(map(int, re.match("rustup (\d+)\.(\d+)\.(\d+)", version_line).groups()))
-            if version < (1, 8, 0):
-                print "rustup is at version %s.%s.%s, Servo requires 1.8.0 or more recent." % version
+            if version < (1, 11, 0):
+                print "rustup is at version %s.%s.%s, Servo requires 1.11.0 or more recent." % version
                 print "Try running 'rustup self update'."
                 return 1
             toolchain = self.toolchain()
