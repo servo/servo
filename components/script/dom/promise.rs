@@ -258,8 +258,10 @@ unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut
 
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
     match v.to_int32() {
-        v if v == NativeHandlerTask::Resolve as i32 => handler.resolved_callback(cx, args.get(0)),
-        v if v == NativeHandlerTask::Reject as i32 => handler.rejected_callback(cx, args.get(0)),
+        v if v == NativeHandlerTask::Resolve as i32 =>
+            handler.resolved_callback(cx, HandleValue::from_raw(args.get(0))),
+        v if v == NativeHandlerTask::Reject as i32 =>
+            handler.rejected_callback(cx, HandleValue::from_raw(args.get(0))),
         _ => panic!("unexpected native handler task value"),
     };
 
