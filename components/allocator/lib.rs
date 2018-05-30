@@ -17,7 +17,6 @@ mod platform {
     extern crate jemallocator;
     pub use self::jemallocator::Jemalloc as Allocator;
 
-    use std::alloc::{GlobalAlloc, Layout, Opaque, System};
     use std::os::raw::c_void;
 
     /// Get the size of a heap block.
