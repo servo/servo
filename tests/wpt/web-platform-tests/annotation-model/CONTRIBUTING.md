@@ -52,7 +52,7 @@ Context](JSONtest-v1.jsonld).  That context defines the following terms:
 |name           | string          | The name of this test for display purposes
 |description    | string          | A long self-describing paragraph that explains the purpose of the test and the expected input
 |ref            | URI             | An optional reference to the portion of the specification to which the test relates
-|testType       | `automated`, `manual`, `ref` | The type of test - this informs [WPT](https://github.com/w3c/web-platform-tests) how the test should be controlled and presented
+|testType       | `automated`, `manual`, `ref` | The type of test - this informs [WPT](https://github.com/web-platform-tests/wpt) how the test should be controlled and presented
 |skipFailures   | list of strings | An optional list of assertionType values that, if present, should have their test skipped if the result would be "unexpected".  Defaults to the empty list.
 |assertions     | list of URI, List @@@ATRISK@@@, or AssertionObject | The ordered collection of tests the input should be run against. See [JSON Schema Usage](#jsonSchema) for the structure of the objects.  URI is relative to the top level folder of the test collection if it has a slash; relative to the current directory if it does not. @@@@ATRISK@@@@ Lists can be nested to define groups of sub-tests.  Assertions / groups can be conditionally skipped.  See [Assertion Lists](#assertionLists) for more details.
 |content        | URI or object   | An object containing content to be checked against the referenced assertions, or a URI from which to retrieve that content

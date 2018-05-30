@@ -48,7 +48,7 @@ If you are a first-time GitHub user, read on for more details of the workflow.
 The test repository that you contribute to will depend on the specification
 that you are testing.
 
-**Main W3C test repository**: [github.com/w3c/web-platform-tests][main-repo]
+**Main W3C test repository**: [github.com/web-platform-tests/wpt][main-repo]
 
 ## Fork
 
@@ -111,7 +111,7 @@ repository.
 3.  Next, add the remote of the repository your forked.  This assigns the
     original repository to a remote called "upstream":
 
-        $ git remote add upstream https://github.com/w3c/web-platform-tests.git
+        $ git remote add upstream https://github.com/web-platform-tests/wpt.git
 
 4.  To pull in changes in the original repository that are not present in your
     local repository first fetch them:
@@ -219,7 +219,7 @@ GitHub UI.  Below is one method and others can be found on
     of the UI, then click the ![new pull request][pullrequestbtn] button.
 
     2.  On the left, you should see the base repo is the
-        w3c/web-platform-tests. On the right, you should see your fork of that
+        web-platform-tests/wpt. On the right, you should see your fork of that
         repo. In the branch menu of your forked repo, switch to `topic`
 
         **Note:** If you see _'There isn't anything to compare'_, click
@@ -323,8 +323,8 @@ If it is possible to review the tests without a local copy,
 but the reviewer still wants to make some simple tweaks to the tests before merging,
 it is possible to do so via the Github web UI.
 
-1. Open the pull request. E.g. https://github.com/w3c/web-platform-tests/pull/1234
-2. Go to the ![Files changed][files-changed] view (e.g. https://github.com/w3c/web-platform-tests/pull/1234/files)
+1. Open the pull request. E.g. https://github.com/web-platform-tests/wpt/pull/1234
+2. Go to the ![Files changed][files-changed] view (e.g. https://github.com/web-platform-tests/wpt/pull/1234/files)
 3. Locate the files you wish to change, and click the ![pencil][pencil-icon] icon in the upper right corner
 4. Make the desired change
 5. Write a commit message (including a good title) at the bottom
@@ -393,7 +393,7 @@ you may also discard your connection to their repo:
 [github-fork-docs]: https://help.github.com/articles/fork-a-repo
 [github-createpr]: https://help.github.com/articles/creating-a-pull-request
 [help]: https://help.github.com/
-[main-repo]: https://github.com/w3c/web-platform-tests
+[main-repo]: https://github.com/web-platform-tests/wpt
 [password-caching]: https://help.github.com/articles/caching-your-github-password-in-git
 [pullrequestlink]: {{ site.baseurl }}{% link /assets/pullrequestlink.png %}
 [pullrequestbtn]: {{ site.baseurl }}{% link /assets/pullrequestbtn.png %}

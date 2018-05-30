@@ -21,7 +21,7 @@ const videoURL = getVideoURI("/images/pattern"),
       assert_equals(frame.contentDocument.contentType, val[1]);
 
       // Make sure a load event is fired across browsers
-      // https://github.com/w3c/web-platform-tests/pull/10239
+      // https://github.com/web-platform-tests/wpt/pull/10239
       frame.contentDocument.close();
     });
   }, "document.write(): " + val[2] + " document");

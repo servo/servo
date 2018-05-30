@@ -170,7 +170,7 @@ enum CSSMathOperator {
 };
 
 // FIXME: Uncomment this when IDLHarness supports CSS namespaces:
-// https://github.com/w3c/web-platform-tests/issues/7583
+// https://github.com/web-platform-tests/wpt/issues/7583
 /*
 partial namespace CSS {
     CSSUnitValue number(double value);

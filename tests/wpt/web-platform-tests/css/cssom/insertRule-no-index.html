@@ -22,7 +22,7 @@
         sheet.insertRule("p { color: green; }");
         assert_equals(sheet.cssRules.length, 2);
         assert_equals(sheet.cssRules.item(0).cssText, "p { color: green; }");
-    }, "inserRule with omitted index argument");
+    }, "insertRule with omitted index argument");
 
     test(function() {
         assert_equals(sheet.cssRules.length, 2);

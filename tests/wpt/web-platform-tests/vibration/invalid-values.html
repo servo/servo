@@ -2,16 +2,10 @@
 <meta charset='utf-8'>
 <title>Vibration API: vibrate(invalid)</title>
 <link rel='author' title='Intel' href='http://www.intel.com'>
-<link rel='help' href='http://dev.w3.org/2009/dap/vibration/#vibration-interface'>
-
-<h1>Description</h1>
-<p>
-  This test checks the <code>vibrate()</code> method with invalid parameter,
-  taking vendor prefixes into account.
-</p>
-<div id='log'></div>
+<link rel='help' href='https://w3c.github.io/vibration/#vibration-interface'>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
+<div id='log'></div>
 <script>
   test(function() {
     assert_throws(new TypeError(), function() {
@@ -20,58 +14,30 @@
   }, 'Missing pattern argument');
 
   test(function() {
-    try {
-      navigator.vibrate(undefined);
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate(undefined);
   }, 'pattern of undefined resolves to []');
 
   test(function() {
-    try {
-      navigator.vibrate(null);
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate(null);
   }, 'pattern of null resolves to []');
 
   test(function() {
-    try {
-      navigator.vibrate('one');
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate('one');
   }, 'pattern of empty string resolves to [""]');
 
   test(function() {
-    try {
-      navigator.vibrate('one');
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate('one');
   }, 'pattern of string resolves to ["one"]');
 
   test(function() {
-    try {
-      navigator.vibrate(new String('one'));
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate(new String('one'));
   }, 'pattern of String instance resolves to ["one"]');
 
   test(function() {
-    try {
-      navigator.vibrate(NaN);
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate(NaN);
   }, 'pattern of NaN resolves to [NaN]');
 
   test(function() {
-    try {
-      navigator.vibrate({});
-    } catch(e) {
-      assert_unreached('error message: ' + e.message);
-    }
+    navigator.vibrate({});
   }, 'pattern of {} resolves to [{}]');
 </script>

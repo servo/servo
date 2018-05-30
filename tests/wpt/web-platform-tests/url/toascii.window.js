@@ -1,12 +1,4 @@
-async_test(t => {
-  const request = new XMLHttpRequest()
-  request.open("GET", "toascii.json")
-  request.send()
-  request.responseType = "json"
-  request.onload = t.step_func_done(() => {
-    runTests(request.response)
-  })
-}, "Loading data…")
+promise_test(() => fetch("resources/toascii.json").then(res => res.json()).then(runTests), "Loading data…");
 
 function makeURL(type, input) {
   input = "https://" + input + "/x"

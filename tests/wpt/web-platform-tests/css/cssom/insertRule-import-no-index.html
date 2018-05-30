@@ -20,7 +20,7 @@
         assert_equals(sheet.cssRules.length, 1);
         assert_throws("HierarchyRequestError", function() { sheet.insertRule("p { color: green; }"); });
         assert_equals(sheet.cssRules.length, 1);
-    }, "inserRule with import and omitted index argument");
+    }, "insertRule with import and omitted index argument");
 
     test(function() {
         assert_equals(sheet.cssRules.length, 1);

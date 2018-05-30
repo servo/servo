@@ -1,14 +1,4 @@
-var setup = async_test("Loading data…")
-setup.step(function() {
-  var request = new XMLHttpRequest()
-  request.open("GET", "urltestdata.json")
-  request.send()
-  request.responseType = "json"
-  request.onload = setup.step_func(function() {
-    runURLTests(request.response)
-    setup.done()
-  })
-})
+promise_test(() => fetch("resources/urltestdata.json").then(res => res.json()).then(runURLTests), "Loading data…");
 
 function setBase(base) {
   document.getElementById("base").href = base

@@ -9,7 +9,7 @@
 'use strict';
 
 // Workaround because add_cleanup doesn't support async functions yet.
-// See https://github.com/w3c/web-platform-tests/issues/6075
+// See https://github.com/web-platform-tests/wpt/issues/6075
 async function async_cleanup(cleanup_function) {
   try {
     await cleanup_function();
