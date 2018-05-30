@@ -1,5 +1,5 @@
 // NOTE: this file needs to be split up rather than expanded. See ../location.sub.html for some
-// extracted tests. Tracked by https://github.com/w3c/web-platform-tests/issues/4934.
+// extracted tests. Tracked by https://github.com/web-platform-tests/wpt/issues/4934.
 
 setup({explicit_done:true});
 onload = function() {

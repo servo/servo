@@ -6,6 +6,6 @@ async_test(function() {
     worker1.onmessage = this.step_func_done(function(evt) {
         assert_equals(evt.data, "Pass");
         worker1.terminate();
-        done();
     });
 }, "Nested worker");
+done();

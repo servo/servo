@@ -15,7 +15,7 @@ editors and implementors.
 Setting Up the Repo
 ===================
 
-Clone or otherwise get https://github.com/w3c/web-platform-tests.
+Clone or otherwise get https://github.com/web-platform-tests/wpt.
 
 Note: because of the frequent creation and deletion of branches in this
 repo, it is recommended to "prune" stale branches when fetching updates,
@@ -356,7 +356,7 @@ Issues with web-platform-tests
 
 If you spot an issue with a test and are not comfortable providing a
 pull request per above to fix it, please
-[file a new issue](https://github.com/w3c/web-platform-tests/issues/new).
+[file a new issue](https://github.com/web-platform-tests/wpt/issues/new).
 Thank you!
 
 Lint tool
@@ -432,11 +432,11 @@ upstream review.
 
 Search filters to find things to review:
 
-* [Open PRs (excluding vendor exports)](https://github.com/w3c/web-platform-tests/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22)
-* [Reviewed but still open PRs (excluding vendor exports)](https://github.com/w3c/web-platform-tests/pulls?q=is%3Apr+is%3Aopen+-label%3Amozilla%3Agecko-sync+-label%3Achromium-export+-label%3Awebkit-export+-label%3Aservo-export+review%3Aapproved) (Merge? Something left to fix? Ping other reviewer?)
-* [Open PRs without owners](https://github.com/w3c/web-platform-tests/pulls?q=is%3Apr+is%3Aopen+label%3Astatus%3Aneeds-owners)
-* [Open PRs with label `infra` (excluding vendor exports)](https://github.com/w3c/web-platform-tests/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+label%3Ainfra+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22)
-* [Open PRs with label `docs` (excluding vendor exports)](https://github.com/w3c/web-platform-tests/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+label%3Adocs+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22)
+* [Open PRs (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22)
+* [Reviewed but still open PRs (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?q=is%3Apr+is%3Aopen+-label%3Amozilla%3Agecko-sync+-label%3Achromium-export+-label%3Awebkit-export+-label%3Aservo-export+review%3Aapproved) (Merge? Something left to fix? Ping other reviewer?)
+* [Open PRs without owners](https://github.com/web-platform-tests/wpt/pulls?q=is%3Apr+is%3Aopen+label%3Astatus%3Aneeds-owners)
+* [Open PRs with label `infra` (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+label%3Ainfra+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22)
+* [Open PRs with label `docs` (excluding vendor exports)](https://github.com/web-platform-tests/wpt/pulls?utf8=%E2%9C%93&q=is%3Apr+is%3Aopen+label%3Adocs+-label%3A%22mozilla%3Agecko-sync%22+-label%3A%22chromium-export%22+-label%3A%22webkit-export%22+-label%3A%22servo-export%22)
 
 Getting Involved
 ================
@@ -449,7 +449,7 @@ The mailing list is [archived][mailarchive].
 Join us on irc #testing ([irc.w3.org][ircw3org], port 6665). The channel
 is [archived][ircarchive].
 
-[contributing]: https://github.com/w3c/web-platform-tests/blob/master/CONTRIBUTING.md
+[contributing]: https://github.com/web-platform-tests/wpt/blob/master/CONTRIBUTING.md
 [ircw3org]: https://www.w3.org/wiki/IRC
 [ircarchive]: https://w3.logbot.info/testing
 [mailarchive]: https://lists.w3.org/Archives/Public/public-test-infra/

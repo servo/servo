@@ -355,7 +355,7 @@ function runGenericSensorTests(sensorName) {
 
     await sensorWatcher.wait_for("reading");
     //TODO use mock data to verify sensor readings, blocked by issue:
-    // https://github.com/w3c/web-platform-tests/issues/9686
+    // https://github.com/web-platform-tests/wpt/issues/9686
     assert_reading_not_null(sensor);
 
     sensor.stop();

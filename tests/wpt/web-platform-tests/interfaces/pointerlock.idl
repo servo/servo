@@ -1,0 +1,27 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the Pointer Lock spec.
+// See https://w3c.github.io/pointerlock/
+
+partial interface Element {
+  void requestPointerLock();
+};
+
+partial interface Document {
+  attribute EventHandler onpointerlockchange;
+  attribute EventHandler onpointerlockerror;
+  void exitPointerLock();
+};
+
+partial interface DocumentOrShadowRoot {
+  readonly attribute Element ? pointerLockElement;
+};
+
+partial interface MouseEvent {
+  readonly attribute long movementX;
+  readonly attribute long movementY;
+};
+
+partial dictionary MouseEventInit {
+  long movementX = 0;
+  long movementY = 0;
+};

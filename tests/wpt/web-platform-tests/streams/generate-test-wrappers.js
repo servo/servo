@@ -8,7 +8,7 @@
 //
 // It will turn any importScripts inside the .js file into <script>s in the browser context wrapper.
 //
-// This could become obsolete if https://github.com/w3c/web-platform-tests/issues/4210 gets fixed,
+// This could become obsolete if https://github.com/web-platform-tests/wpt/issues/4210 gets fixed,
 // allowing .any.js to work with all four contexts.
 
 const fs = require("fs");

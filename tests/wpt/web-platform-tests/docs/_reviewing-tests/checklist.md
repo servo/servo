@@ -7,7 +7,7 @@ order: 2
 The following checklist is provided as a guideline to assist in reviewing
 tests; in case of any contradiction with requirements stated elsewhere in the
 documentation it should be ignored
-(please [file a bug](https://github.com/w3c/web-platform-tests/issues/new)!).
+(please [file a bug](https://github.com/web-platform-tests/wpt/issues/new)!).
 
 As noted on the [reviewing tests][review index] page, nits need not block PRs
 from landing.

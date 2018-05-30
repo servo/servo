@@ -14,7 +14,7 @@
 #!/bin/bash
 set -ex
 
-REMOTE=${1:-https://github.com/w3c/web-platform-tests}
+REMOTE=${1:-https://github.com/web-platform-tests/wpt}
 BRANCH=${2:-master}
 REV=${3:-FETCH_HEAD}
 BROWSER=${4:-all}
@@ -41,7 +41,7 @@ then
     deb_archive=google-chrome-unstable_current_amd64.deb
     wget https://dl.google.com/linux/direct/$deb_archive
 
-    sudo apt-get -qqy update && gdebi -n $deb_archive
+    sudo apt-get -qqy update && sudo gdebi -n $deb_archive
 fi
 
 sudo Xvfb $DISPLAY -screen 0 ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH} &

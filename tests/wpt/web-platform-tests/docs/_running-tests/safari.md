@@ -14,7 +14,7 @@ To run Safari on macOS, some manual setup is required:
 
   * Set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` in your environment. This is a
     workaround for a known
-    [macOS High Sierra issue](https://github.com/w3c/web-platform-tests/issues/9007).
+    [macOS High Sierra issue](https://github.com/web-platform-tests/wpt/issues/9007).
 
 Now, run the tests using the `safari` product:
 ```
