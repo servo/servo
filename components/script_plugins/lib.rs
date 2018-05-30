@@ -16,6 +16,7 @@
 
 
 #![deny(unsafe_code)]
+#![feature(macro_at_most_once_rep)]
 #![feature(macro_vis_matcher)]
 #![feature(plugin)]
 #![feature(plugin_registrar)]

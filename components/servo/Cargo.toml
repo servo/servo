@@ -21,7 +21,6 @@ webrender_debugger = ["webrender/debugger"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [
     "euclid/unstable",
-    "gfx/unstable",
     "msg/unstable",
     "profile/unstable",
     "script/unstable",
