@@ -18,7 +18,7 @@ async_test(t => {
     const secondPromise = document.exitFullscreen();
     assert_equals(document.fullscreenElement, div, "fullscreenElement after second exitFullscreen()");
 
-    document.onfullscreenchange = t.step_func(() => {
+    document.onfullscreenchange = t.step_func(event => {
       assert_equals(document.fullscreenElement, null);
       // Ensure that there's only one fullscreenchange event.
       document.onfullscreenchange = t.unreached_func("second fullscreenchange event");
