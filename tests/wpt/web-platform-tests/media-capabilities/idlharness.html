@@ -11,81 +11,26 @@
 </head>
 <body>
 <h1>Media Session IDL tests</h1>
-<pre id='untested_idl' style='display:none'>
-[Global=Window, Exposed=Window]
-interface Window {
-};
-interface Worker {
-};
-interface Navigator {
-};
-interface WorkerNavigator {
-};
-</pre>
-<pre id='idl'>
-dictionary MediaConfiguration {
-  VideoConfiguration video;
-  AudioConfiguration audio;
-};
-
-dictionary MediaDecodingConfiguration : MediaConfiguration {
-  required MediaDecodingType type;
-};
-
-dictionary MediaEncodingConfiguration : MediaConfiguration {
-  required MediaEncodingType type;
-};
-
-enum MediaDecodingType {
-  "file",
-  "media-source",
-};
-
-dictionary VideoConfiguration {
-  required DOMString contentType;
-  required unsigned long width;
-  required unsigned long height;
-  required unsigned long bitrate;
-  required double framerate;
-};
-
-dictionary AudioConfiguration {
-  required DOMString contentType;
-  DOMString channels;
-  unsigned long bitrate;
-  unsigned long samplerate;
-};
-
-interface MediaCapabilitiesInfo {
-  readonly attribute boolean supported;
-  readonly attribute boolean smooth;
-  readonly attribute boolean powerEfficient;
-};
-
-[Exposed=(Window)]
-partial interface Navigator {
-  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
-};
-
-[Exposed=(Worker)]
-partial interface WorkerNavigator {
-  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
-};
-
-[Exposed=(Window, Worker)]
-interface MediaCapabilities {
-  Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
-  Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
-};
-</pre>
 <script>
-var idl_array = new IdlArray();
-idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
-idl_array.add_idls(document.getElementById("idl").textContent);
-idl_array.add_objects({
-  Navigator: ["navigator"]
-});
-idl_array.test();
+"use strict";
+function doTest([media_capabilities]) {
+    var idl_array = new IdlArray();
+    idl_array.add_untested_idls('interface Navigator {};');
+    idl_array.add_untested_idls('interface WorkerNavigator {};');
+    idl_array.add_untested_idls('interface Screen {};');
+    idl_array.add_idls(media_capabilities);
+    idl_array.add_objects({
+      Navigator: ["navigator"]
+    });
+    idl_array.test();
+}
+function fetchText(url) {
+    return fetch(url).then((response) => response.text());
+}
+promise_test(() => {
+    return Promise.all(["/interfaces/media-capabilities.idl"].map(fetchText))
+                  .then(doTest);
+}, "Test IDL implementation of Media Capabilities");
 </script>
 <div id="log"></div>
 </body>

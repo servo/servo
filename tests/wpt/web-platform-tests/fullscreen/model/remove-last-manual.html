@@ -10,6 +10,7 @@
 <script>
 async_test(function(t)
 {
+    t.add_cleanup(() => document.exitFullscreen());
     var first = document.getElementById("first");
     trusted_request(t, first);
     document.onfullscreenchange = t.step_func(function(event)
@@ -23,9 +24,14 @@ async_test(function(t)
             assert_equals(document.fullscreenElement, last);
             assert_equals(event.target, last);
             last.remove();
+            // Because /last/ was removed from the top layer, we exit
+            // fullscreen element synchronously.
+            assert_equals(document.fullscreenElement, first);
             document.onfullscreenchange = t.step_func_done(function(event)
             {
-                assert_equals(document.fullscreenElement, first);
+                // fullscreen change element should be queued against the
+                // document target.
+                assert_equals(document.fullscreenElement, null);
                 assert_equals(event.target, document);
             });
         });

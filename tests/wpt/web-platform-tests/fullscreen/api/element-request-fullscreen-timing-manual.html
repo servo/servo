@@ -28,11 +28,19 @@ async_test(t => {
 }, 'Timing of fullscreenchange and resize events');
 
 async_test(t => {
-  document.createElement('a').requestFullscreen();
+  var promise = document.createElement('a').requestFullscreen();
+  var promise_executed = false;
+  if (promise) {
+    promise.catch(()=>{promise_executed = true; });
+  } else {
+    // if promises aren't supported treat it as executed.
+    promise_executed = true;
+  }
 
   // If fullscreenerror is an animation frame event, then animation frame
   // callbacks should be run after it is fired, before the timer callback.
   document.onfullscreenerror = t.step_func(() => {
+    assert_true(promise_executed, "promise executed");
     step_timeout(t.unreached_func('timer callback'));
     requestAnimationFrame(t.step_func_done());
   });

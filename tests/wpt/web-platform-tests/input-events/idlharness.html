@@ -4,35 +4,26 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-
-<pre id="untested_idl">
-interface InputEvent {
-};
-</pre>
-
-<pre id='idl'>
-partial interface InputEvent {
-    readonly attribute DOMString     inputType;
-    readonly attribute DataTransfer? dataTransfer;
-    sequence<StaticRange> getTargetRanges();
-};
-
-partial dictionary InputEventInit {
-    DOMString             inputType = "";
-    DataTransfer?         dataTransfer = null;
-    sequence<StaticRange> targetRanges = [];
-};
-</pre>
-
 <script>
-(function(){
-    "use strict";
+"use strict";
+
+function doTest([input_events]) {
     const idl_array = new IdlArray();
-    idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
-    idl_array.add_idls(document.getElementById("idl").textContent);
+    idl_array.add_untested_idls('interface InputEvent {};');
+    idl_array.add_untested_idls('dictionary InputEventInit {};');
+    idl_array.add_idls(input_events);
     idl_array.add_objects({
-      InputEvent: ['new InputEvent("foo")'],
+        InputEvent: ['new InputEvent("foo")'],
     });
     idl_array.test();
-})();
+}
+
+function fetchText(url) {
+    return fetch(url).then((response) => response.text());
+}
+
+promise_test(() => {
+    return Promise.all(["/interfaces/input-events.idl"].map(fetchText))
+                  .then(doTest);
+}, "Test IDL implementation of Input Events");
 </script>

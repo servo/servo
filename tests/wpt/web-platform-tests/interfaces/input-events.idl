@@ -1,0 +1,11 @@
+partial interface InputEvent {
+  readonly attribute DOMString inputType;
+  readonly attribute DataTransfer? dataTransfer;
+  sequence<StaticRange> getTargetRanges();
+};
+
+partial dictionary InputEventInit {
+  DOMString inputType = "";
+  DataTransfer? dataTransfer = null;
+  sequence<StaticRange> targetRanges = [];
+};

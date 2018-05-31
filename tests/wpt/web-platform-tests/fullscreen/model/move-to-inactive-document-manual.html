@@ -6,6 +6,7 @@
 <div></div>
 <script>
 async_test(t => {
+  t.add_cleanup(() => document.exitFullscreen());
   const div = document.querySelector("div");
   document.onfullscreenchange = t.step_func(event => {
     const inactiveDocument = document.implementation.createDocument(null, "");

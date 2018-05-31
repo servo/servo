@@ -10,12 +10,15 @@
 <script>
 async_test(function(t)
 {
+    t.add_cleanup(() => document.exitFullscreen());
     var parent = document.getElementById("parent");
     trusted_request(t, parent);
     document.onfullscreenchange = t.step_func(function()
     {
         assert_equals(document.fullscreenElement, parent);
         parent.textContent = ""; // removes all children
+        // The fullscreen element should not be affected.
+        assert_equals(document.fullscreenElement, parent);
         document.onfullscreenchange = t.unreached_func("fullscreenchange event");
         // A fullscreenchange event would be fired after an async section
         // and an animation frame task, so wait until after that.

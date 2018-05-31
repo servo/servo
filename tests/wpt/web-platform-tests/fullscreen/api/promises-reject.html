@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Promises#reject</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+async_test(function(t)
+{
+    var e = document.createElement('span');
+    e.requestFullscreen().catch(t.step_func_done());
+});
+async_test(function(t)
+{
+    var e = document.createElement('span');
+    document.exitFullscreen().catch(t.step_func_done());
+});
+</script>

@@ -1,0 +1,78 @@
+dictionary MediaConfiguration {
+  VideoConfiguration video;
+  AudioConfiguration audio;
+};
+
+dictionary MediaDecodingConfiguration : MediaConfiguration {
+  required MediaDecodingType type;
+};
+
+dictionary MediaEncodingConfiguration : MediaConfiguration {
+  required MediaEncodingType type;
+};
+
+enum MediaDecodingType {
+  "file",
+  "media-source",
+};
+
+enum MediaEncodingType {
+  "record",
+  "transmission"
+};
+
+dictionary VideoConfiguration {
+  required DOMString contentType;
+  required unsigned long width;
+  required unsigned long height;
+  required unsigned long long bitrate;
+  required DOMString framerate;
+};
+
+dictionary AudioConfiguration {
+  required DOMString contentType;
+  DOMString channels;
+  unsigned long long bitrate;
+  unsigned long samplerate;
+};
+
+interface MediaCapabilitiesInfo {
+  readonly attribute boolean supported;
+  readonly attribute boolean smooth;
+  readonly attribute boolean powerEfficient;
+};
+
+[Exposed=(Window)]
+partial interface Navigator {
+  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
+};
+
+[Exposed=(Worker)]
+partial interface WorkerNavigator {
+  [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
+};
+
+[Exposed=(Window, Worker)]
+interface MediaCapabilities {
+  Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
+};
+
+interface ScreenLuminance {
+  readonly attribute double min;
+  readonly attribute double max;
+  readonly attribute double maxAverage;
+};
+
+enum ScreenColorGamut {
+  "srgb",
+  "p3",
+  "rec2020",
+};
+
+partial interface Screen {
+  readonly attribute ScreenColorGamut colorGamut;
+  readonly attribute ScreenLuminance? luminance;
+
+  attribute EventHandler onchange;
+};

@@ -258,11 +258,14 @@ IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
     });
     this.partials.map(p => p.name).forEach(v => all_deps.add(v));
     // Add the attribute idlTypes of all the nested members of all tested idls.
-    Object.values(this.members).filter(m => !m.untested && m.members).forEach(parsed => {
-        Object.values(parsed.members).filter(m => m.type === 'attribute').forEach(m => {
-            all_deps.add(m.idlType.idlType);
-        });
-    });
+    for (const obj of [this.members, this.partials]) {
+        const tested = Object.values(obj).filter(m => !m.untested && m.members);
+        for (const parsed of tested) {
+            for (const attr of Object.values(parsed.members).filter(m => !m.untested && m.type === 'attribute')) {
+                all_deps.add(attr.idlType.idlType);
+            }
+        }
+    }
 
     if (options && options.except && options.only) {
         throw new IdlHarnessError("The only and except options can't be used together.");

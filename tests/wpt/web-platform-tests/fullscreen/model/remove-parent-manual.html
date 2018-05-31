@@ -10,6 +10,7 @@
 <script>
 async_test(function(t)
 {
+    t.add_cleanup(() => document.exitFullscreen());
     var child = document.getElementById("child");
     trusted_request(t, child);
     document.onfullscreenchange = t.step_func(function(event)
@@ -17,6 +18,9 @@ async_test(function(t)
         assert_equals(document.fullscreenElement, child);
         assert_equals(event.target, child);
         child.parentNode.remove();
+        // Because /child/ was removed from the top layer, the fullscreen
+        // element becomes null synchronously.
+        assert_equals(document.fullscreenElement, null);
         document.onfullscreenchange = t.step_func_done(function(event)
         {
             assert_equals(document.fullscreenElement, null);

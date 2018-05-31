@@ -7,12 +7,23 @@
 async_test(function(t)
 {
     var sync = true;
+    var promise_executed = false;
     assert_equals(document.onfullscreenerror, null, "initial onfullscreenerror");
     document.onfullscreenerror = t.step_func_done(function(event) {
+        assert_true(promise_executed);
         assert_false(sync);
     });
     var e = document.createElement('span');
-    e.requestFullscreen();
+    var promise = e.requestFullscreen();
+    if (promise) {
+        promise.catch(()=> {
+            assert_false(sync);
+            promise_executed = true;
+        });
+    } else {
+        // If promises aren't supported just treat it as already done.
+        promise_executed = true;
+    }
     sync = false;
 });
 </script>
