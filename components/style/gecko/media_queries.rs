@@ -23,7 +23,7 @@ use properties::ComputedValues;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
-use str::starts_with_ignore_ascii_case;
+use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use string_cache::Atom;
 use style_traits::{CSSPixel, CssWriter, DevicePixel};
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
@@ -596,7 +596,7 @@ impl Expression {
                         Range::Equal
                     };
 
-                    let atom = Atom::from(feature_name);
+                    let atom = Atom::from(string_as_ascii_lowercase(feature_name));
                     match find_feature(|f| atom.as_ptr() == unsafe { *f.mName as *mut _ }) {
                         Some(f) => Ok((f, range)),
                         None => Err(()),
