@@ -1165,7 +1165,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, sender) => {
                 // We increment here because the 0th element is the parent browsing context itself
-                let result = self.all_descendant_browsing_contexts_iter(browsing_context_id)
+                let result = self.fully_active_descendant_browsing_contexts_iter(browsing_context_id)
                     .nth(index + 1)
                     .map(|bc| bc.id);
                 if let Err(e) = sender.send(result) {

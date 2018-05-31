@@ -95,7 +95,7 @@ impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {
                     continue;
                 },
             };
-            self.stack.extend(pipeline.children.iter());
+            self.stack.extend(pipeline.children.iter().rev());
             return Some(browsing_context)
         }
     }
