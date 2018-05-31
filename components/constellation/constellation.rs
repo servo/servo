@@ -1164,10 +1164,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             }
             FromScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, sender) => {
-                // We increment here because the 0th element is the parent browsing context itself
-                let result = self.all_descendant_browsing_contexts_iter(browsing_context_id)
-                    .nth(index + 1)
-                    .map(|bc| bc.id);
+                let result = self.browsing_contexts.get(&browsing_context_id)
+                    .and_then(|bc| self.pipelines.get(&bc.pipeline_id))
+                    .and_then(|pipeline| pipeline.children.get(index))
+                    .map(|maybe_bcid| *maybe_bcid);
                 if let Err(e) = sender.send(result) {
                     warn!("Sending reply to get child browsing context ID failed ({:?}).", e);
                 }
