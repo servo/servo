@@ -163,6 +163,7 @@ impl FetchResponseListener for ScriptContext {
 
     fn process_response(&mut self,
                         metadata: Result<FetchMetadata, NetworkError>) {
+        println!("script process response");
         self.metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered { m, .. } => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_

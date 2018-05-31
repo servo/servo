@@ -100,10 +100,15 @@ impl FetchResponseListener for StylesheetContext {
 
         self.metadata = metadata.ok().map(|m| {
             match m {
-                FetchMetadata::Unfiltered { m, .. } => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                FetchMetadata::Unfiltered { m, net_timing } => {
+                    self.document.root().handle_network_metadata(net_timing);
+                    m },
+                FetchMetadata::Filtered { unsafe_, net_timing, .. } => {
+                    self.document.root().handle_network_metadata(net_timing);
+                    unsafe_ },
             }
         });
+
     }
 
     fn process_response_chunk(&mut self, mut payload: Vec<u8>) {

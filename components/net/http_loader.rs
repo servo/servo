@@ -491,6 +491,7 @@ pub fn http_fetch(request: &mut Request,
                   done_chan: &mut DoneChannel,
                   context: &mut FetchContext)
                   -> Response {
+    println!("http fetch: {:?}", request.url());
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
     // Step 1
@@ -621,7 +622,7 @@ pub fn http_fetch(request: &mut Request,
     response.return_internal = true;
     response.set_net_timing(&context.net_timing);
 
-    println!("{:?}", response.net_timing);
+    println!("response timing {:?}", response.net_timing);
 
     // Step 6
     response

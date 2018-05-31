@@ -29,8 +29,7 @@ use net::fetch::methods::{CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::hsts::HstsEntry;
 use net::test::HttpState;
-use net_traits::IncludeSubdomains;
-use net_traits::{FetchMetadata, NetworkTiming};
+use net_traits::{FetchMetadata, IncludeSubdomains, NetworkTiming};
 use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Destination, Origin, RedirectMode, Referrer, Request, RequestMode};
@@ -675,6 +674,7 @@ fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response
     };
 
     let (mut server, url) = make_server(handler);
+    println!("url: {}", url);
 
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -694,37 +694,6 @@ fn test_fetch_redirect_count_ceiling() {
 
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
-
-    match *fetch_response.body.lock().unwrap() {
-        ResponseBody::Done(ref body) => {
-            assert_eq!(&**body, MESSAGE);
-        },
-        _ => panic!()
-    };
-}
-
-#[test]
-fn test_fetch_metadata() {
-    static MESSAGE: &'static [u8] = b"such timing!";
-    // how many redirects to cause
-    let redirects = 3;
-
-    let fetch_response = setup_server_and_fetch(MESSAGE, redirects);
-
-    assert!(!fetch_response.is_network_error());
-    assert_eq!(fetch_response.response_type, ResponseType::Basic);
-
-    let net_meta = match fetch_response.metadata() {
-        Err(_) => panic!(),
-        Ok(meta) => match meta {
-            FetchMetadata::Unfiltered { m: _, net_timing: net_meta } => net_meta,
-            FetchMetadata::Filtered { filtered: _, unsafe_: _, net_timing: net_meta } => net_meta, 
-        }
-    };
-
-    println!("{:?}", net_meta);
-    assert_eq!(net_meta.redirect_count, redirects as u16);
-
 
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => {

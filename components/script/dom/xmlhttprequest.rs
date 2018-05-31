@@ -244,6 +244,8 @@ impl XMLHttpRequest {
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
+
+                // TODO process network metadata
             }
 
             fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {

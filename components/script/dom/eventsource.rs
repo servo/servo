@@ -329,6 +329,7 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        println!("eventsource process response");
         match metadata {
             Ok(fm) => {
                 let meta = match fm {

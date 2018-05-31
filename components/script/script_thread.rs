@@ -1067,6 +1067,7 @@ impl ScriptThread {
             let pipeline_id = self.message_to_pipeline(&msg);
 
             let result = self.profile_event(category, pipeline_id, move || {
+                println!("{:?}", msg);
                 match msg {
                     FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
                         self.handle_exit_script_thread_msg();
@@ -1266,8 +1267,10 @@ impl ScriptThread {
     }
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
+        println!("{:?}", msg);
         match msg {
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
+                println!("nav resp");
                 match fetch_data {
                     FetchResponseMsg::ProcessResponse(metadata) => self.handle_fetch_metadata(id, metadata),
                     FetchResponseMsg::ProcessResponseChunk(chunk) => self.handle_fetch_chunk(id, chunk),
@@ -2548,6 +2551,7 @@ impl ScriptThread {
             },
         };
 
+        println!("handle fetch metadata");
         self.handle_network_metadata(id, net_timing);
 
         let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
@@ -2559,6 +2563,7 @@ impl ScriptThread {
 
     fn handle_network_metadata(&self, pipeline_id: PipelineId, net_timing: NetworkTiming) {
         // network timing metrics needs to be recorded on the appropriate window's Performance member
+        println!("handle network metadata: {:?}", net_timing);
         let document = self.documents.borrow().find_document(pipeline_id);
         if let Some(document) = document {
             document.handle_network_metadata(net_timing);

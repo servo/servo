@@ -152,10 +152,16 @@ impl FetchResponseListener for ImageContext {
             self.id,
             FetchResponseMsg::ProcessResponse(metadata.clone()));
 
-        let metadata = metadata.ok().map(|meta| {
-            match meta {
-                FetchMetadata::Unfiltered { m, .. } => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+        // TODO how to get to document?
+        // is this the right spot to process the network timing metadata
+        let metadata = metadata.ok().map(|m| {
+            match m {
+                FetchMetadata::Unfiltered { m, net_timing: _ } => {
+                    // self.document.root().handle_network_metadata(net_timing);
+                    m },
+                FetchMetadata::Filtered { unsafe_, net_timing: _, .. } => {
+                    // self.document.root().handle_network_metadata(net_timing);
+                    unsafe_ },
             }
         });
 
