@@ -41,7 +41,7 @@ impl BaseAudioContext {
     ) -> BaseAudioContext {
         let mut context = BaseAudioContext {
             reflector_: Reflector::new(),
-            audio_graph: ServoMedia::get().unwrap().create_audio_graph().unwrap(),
+            audio_graph: ServoMedia::get().unwrap().create_audio_graph(),
             destination: None,
             current_time: 0.,
             sample_rate,

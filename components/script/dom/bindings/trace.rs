@@ -78,7 +78,7 @@ use offscreen_gl_context::GLLimits;
 use parking_lot::RwLock;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use servo_media::AudioGraph;
+use servo_media::audio::graph::AudioGraph;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
