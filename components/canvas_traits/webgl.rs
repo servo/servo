@@ -7,7 +7,6 @@ use gleam::gl;
 use nonzero::NonZeroU32;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
-use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
 /// Sender type used in WebGLCommands.
@@ -155,7 +154,7 @@ impl WebGLMsgSender {
 }
 
 /// WebGL Commands for a specific WebGLContext
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGLCommand {
     GetContextAttributes(WebGLSender<GLContextAttributes>),
     ActiveTexture(u32),
@@ -378,7 +377,7 @@ pub enum WebGLError {
     ContextLost,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum WebGLFramebufferBindingRequest {
     Explicit(WebGLFramebufferId),
     Default,
@@ -418,157 +417,19 @@ pub enum DOMToTextureCommand {
     Lock(PipelineId, usize, WebGLSender<Option<(u32, Size2D<i32>)>>),
 }
 
-impl fmt::Debug for WebGLCommand {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::WebGLCommand::*;
-        let name = match *self {
-            GetContextAttributes(..) => "GetContextAttributes",
-            ActiveTexture(..) => "ActiveTexture",
-            BlendColor(..) => "BlendColor",
-            BlendEquation(..) => "BlendEquation",
-            BlendEquationSeparate(..) => "BlendEquationSeparate",
-            BlendFunc(..) => "BlendFunc",
-            BlendFuncSeparate(..) => "BlendFuncSeparate",
-            AttachShader(..) => "AttachShader",
-            DetachShader(..) => "DetachShader",
-            BindAttribLocation(..) => "BindAttribLocation",
-            BufferData(..) => "BufferData",
-            BufferSubData(..) => "BufferSubData",
-            Clear(..) => "Clear",
-            ClearColor(..) => "ClearColor",
-            ClearDepth(..) => "ClearDepth",
-            ClearStencil(..) => "ClearStencil",
-            ColorMask(..) => "ColorMask",
-            CopyTexImage2D(..) => "CopyTexImage2D",
-            CopyTexSubImage2D(..) => "CopyTexSubImage2D",
-            CullFace(..) => "CullFace",
-            FrontFace(..) => "FrontFace",
-            DepthFunc(..) => "DepthFunc",
-            DepthMask(..) => "DepthMask",
-            DepthRange(..) => "DepthRange",
-            Enable(..) => "Enable",
-            Disable(..) => "Disable",
-            CompileShader(..) => "CompileShader",
-            CreateBuffer(..) => "CreateBuffer",
-            CreateFramebuffer(..) => "CreateFramebuffer",
-            CreateRenderbuffer(..) => "CreateRenderbuffer",
-            CreateTexture(..) => "CreateTexture",
-            CreateProgram(..) => "CreateProgram",
-            CreateShader(..) => "CreateShader",
-            DeleteBuffer(..) => "DeleteBuffer",
-            DeleteFramebuffer(..) => "DeleteFramebuffer",
-            DeleteRenderbuffer(..) => "DeleteRenderBuffer",
-            DeleteTexture(..) => "DeleteTexture",
-            DeleteProgram(..) => "DeleteProgram",
-            DeleteShader(..) => "DeleteShader",
-            BindBuffer(..) => "BindBuffer",
-            BindFramebuffer(..) => "BindFramebuffer",
-            BindRenderbuffer(..) => "BindRenderbuffer",
-            BindTexture(..) => "BindTexture",
-            DisableVertexAttribArray(..) => "DisableVertexAttribArray",
-            DrawArrays(..) => "DrawArrays",
-            DrawElements(..) => "DrawElements",
-            EnableVertexAttribArray(..) => "EnableVertexAttribArray",
-            FramebufferRenderbuffer(..) => "FramebufferRenderbuffer",
-            FramebufferTexture2D(..) => "FramebufferTexture2D",
-            GetExtensions(..) => "GetExtensions",
-            GetTexParameter(..) => "GetTexParameter",
-            GetShaderPrecisionFormat(..) => "GetShaderPrecisionFormat",
-            GetActiveAttrib(..) => "GetActiveAttrib",
-            GetActiveUniform(..) => "GetActiveUniform",
-            GetAttribLocation(..) => "GetAttribLocation",
-            GetUniformLocation(..) => "GetUniformLocation",
-            GetShaderInfoLog(..) => "GetShaderInfoLog",
-            GetProgramInfoLog(..) => "GetProgramInfoLog",
-            GetVertexAttribOffset(..) => "GetVertexAttribOffset",
-            GetFramebufferAttachmentParameter(..) => "GetFramebufferAttachmentParameter",
-            GetRenderbufferParameter(..) => "GetRenderbufferParameter",
-            PolygonOffset(..) => "PolygonOffset",
-            ReadPixels(..) => "ReadPixels",
-            RenderbufferStorage(..) => "RenderbufferStorage",
-            SampleCoverage(..) => "SampleCoverage",
-            Scissor(..) => "Scissor",
-            StencilFunc(..) => "StencilFunc",
-            StencilFuncSeparate(..) => "StencilFuncSeparate",
-            StencilMask(..) => "StencilMask",
-            StencilMaskSeparate(..) => "StencilMaskSeparate",
-            StencilOp(..) => "StencilOp",
-            StencilOpSeparate(..) => "StencilOpSeparate",
-            Hint(..) => "Hint",
-            IsEnabled(..) => "IsEnabled",
-            LineWidth(..) => "LineWidth",
-            PixelStorei(..) => "PixelStorei",
-            LinkProgram(..) => "LinkProgram",
-            Uniform1f(..) => "Uniform1f",
-            Uniform1fv(..) => "Uniform1fv",
-            Uniform1i(..) => "Uniform1i",
-            Uniform1iv(..) => "Uniform1iv",
-            Uniform2f(..) => "Uniform2f",
-            Uniform2fv(..) => "Uniform2fv",
-            Uniform2i(..) => "Uniform2i",
-            Uniform2iv(..) => "Uniform2iv",
-            Uniform3f(..) => "Uniform3f",
-            Uniform3fv(..) => "Uniform3fv",
-            Uniform3i(..) => "Uniform3i",
-            Uniform3iv(..) => "Uniform3iv",
-            Uniform4f(..) => "Uniform4f",
-            Uniform4fv(..) => "Uniform4fv",
-            Uniform4i(..) => "Uniform4i",
-            Uniform4iv(..) => "Uniform4iv",
-            UniformMatrix2fv(..) => "UniformMatrix2fv",
-            UniformMatrix3fv(..) => "UniformMatrix3fv",
-            UniformMatrix4fv(..) => "UniformMatrix4fv",
-            UseProgram(..) => "UseProgram",
-            ValidateProgram(..) => "ValidateProgram",
-            VertexAttrib(..) => "VertexAttrib",
-            VertexAttribPointer2f(..) => "VertexAttribPointer2f",
-            VertexAttribPointer(..) => "VertexAttribPointer",
-            SetViewport(..) => "SetViewport",
-            TexImage2D(..) => "TexImage2D",
-            TexParameteri(..) => "TexParameteri",
-            TexParameterf(..) => "TexParameterf",
-            TexSubImage2D(..) => "TexSubImage2D",
-            DrawingBufferWidth(..) => "DrawingBufferWidth",
-            DrawingBufferHeight(..) => "DrawingBufferHeight",
-            Finish(..) => "Finish",
-            Flush => "Flush",
-            GenerateMipmap(..) => "GenerateMipmap",
-            CreateVertexArray(..) => "CreateVertexArray",
-            DeleteVertexArray(..) => "DeleteVertexArray",
-            BindVertexArray(..) => "BindVertexArray",
-            GetParameterBool(..) => "GetParameterBool",
-            GetParameterBool4(..) => "GetParameterBool4",
-            GetParameterInt(..) => "GetParameterInt",
-            GetParameterInt4(..) => "GetParameterInt4",
-            GetParameterFloat(..) => "GetParameterFloat",
-            GetParameterFloat2(..) => "GetParameterFloat2",
-            GetParameterFloat4(..) => "GetParameterFloat4",
-            GetProgramParameterBool(..) => "GetProgramParameterBool",
-            GetProgramParameterInt(..) => "GetProgramParameterInt",
-            GetShaderParameterBool(..) => "GetShaderParameterBool",
-            GetShaderParameterInt(..) => "GetShaderParameterInt",
-            GetVertexAttribBool(..) => "GetVertexAttribBool",
-            GetVertexAttribInt(..) => "GetVertexAttribInt",
-            GetVertexAttribFloat4(..) => "GetVertexAttribFloat4",
-        };
-
-        write!(f, "CanvasWebGLMsg::{}(..)", name)
-    }
-}
-
 macro_rules! parameters {
     ($name:ident { $(
         $variant:ident($kind:ident { $(
             $param:ident = gl::$value:ident,
         )+ }),
     )+ }) => {
-        #[derive(Clone, Deserialize, Serialize)]
+        #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
         pub enum $name { $(
             $variant($kind),
         )+}
 
         $(
-            #[derive(Clone, Deserialize, Serialize)]
+            #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
             #[repr(u32)]
             pub enum $kind { $(
                 $param = gl::$value,

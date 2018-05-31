@@ -10,6 +10,7 @@ mod mpsc;
 use ::webgl::WebGLMsg;
 use serde::{Deserialize, Serialize};
 use servo_config::opts;
+use std::fmt;
 
 lazy_static! {
     static ref IS_MULTIPROCESS: bool = {
@@ -21,6 +22,12 @@ lazy_static! {
 pub enum WebGLSender<T: Serialize> {
     Ipc(ipc::WebGLSender<T>),
     Mpsc(mpsc::WebGLSender<T>),
+}
+
+impl<T: Serialize> fmt::Debug for WebGLSender<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "WebGLSender(..)")
+    }
 }
 
 impl<T: Serialize> WebGLSender<T> {
