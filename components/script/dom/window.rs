@@ -60,8 +60,9 @@ use euclid::{Point2D, Vector2D, Rect, Size2D, TypedPoint2D, TypedScale, TypedSiz
 use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSAutoCompartment, JSContext};
-use js::jsapi::{JS_GC, JS_GetRuntime};
+use js::jsapi::JSAutoCompartment;
+use js::jsapi::JSContext;
+use js::jsapi::JS_GC;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use layout_image::fetch_image_for_layout;
@@ -843,7 +844,7 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     fn Gc(&self) {
         unsafe {
-            JS_GC(JS_GetRuntime(self.get_cx()));
+            JS_GC(self.get_cx());
         }
     }
 

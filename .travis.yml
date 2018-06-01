@@ -44,13 +44,19 @@ matrix:
         - ./mach clean-nightlies --keep 2 --force
         - ./mach clean-cargo-cache --keep 2 --force
       env:
+        CC=gcc-6
+        CXX=g++-6
         CCACHE=/usr/bin/ccache
         RUSTFLAGS=-Dwarnings
         CARGO_INCREMENTAL=0
       addons:
         apt:
+          sources:
+            - ubuntu-toolchain-r-test
           packages:
+            - autoconf2.13
             - cmake
+            - g++-6
             - gperf
             - libosmesa6-dev
             - libgles2-mesa-dev

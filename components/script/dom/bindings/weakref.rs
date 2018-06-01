@@ -15,8 +15,10 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
-use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
+use js::glue::JS_GetReservedSlot;
+use js::jsapi::{JSTracer, JS_SetReservedSlot};
 use js::jsval::PrivateValue;
+use js::jsval::UndefinedValue;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::cell::{Cell, UnsafeCell};
@@ -53,16 +55,17 @@ pub trait WeakReferenceable: DomObject + Sized {
     fn downgrade(&self) -> WeakRef<Self> {
         unsafe {
             let object = self.reflector().get_jsobject().get();
-            let mut ptr = JS_GetReservedSlot(object,
-                                             DOM_WEAK_SLOT)
-                              .to_private() as *mut WeakBox<Self>;
+            let ref mut slot = UndefinedValue();
+            JS_GetReservedSlot(object, DOM_WEAK_SLOT, slot);
+            let mut ptr = slot.to_private() as *mut WeakBox<Self>;
             if ptr.is_null() {
                 trace!("Creating new WeakBox holder for {:p}.", self);
                 ptr = Box::into_raw(Box::new(WeakBox {
                     count: Cell::new(1),
                     value: Cell::new(Some(ptr::NonNull::from(self))),
                 }));
-                JS_SetReservedSlot(object, DOM_WEAK_SLOT, PrivateValue(ptr as *const c_void));
+                let val = PrivateValue(ptr as *const c_void);
+                JS_SetReservedSlot(object, DOM_WEAK_SLOT, &val);
             }
             let box_ = &*ptr;
             assert!(box_.value.get().is_some());
