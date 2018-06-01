@@ -7,6 +7,7 @@
 use Atom;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use properties::{LonghandId, PropertyId, PropertyFlags, PropertyDeclarationId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -382,7 +383,15 @@ pub enum WillChange {
     Auto,
     /// <custom-ident>
     #[css(comma)]
-    AnimateableFeatures(#[css(iterable)] Box<[CustomIdent]>),
+    AnimateableFeatures {
+        /// The features that are supposed to change.
+        #[css(iterable)]
+        features: Box<[CustomIdent]>,
+        /// A bitfield with the kind of change that the value will create, based
+        /// on the above field.
+        #[css(skip)]
+        bits: WillChangeBits,
+    },
 }
 
 impl WillChange {
@@ -393,10 +402,72 @@ impl WillChange {
     }
 }
 
+bitflags! {
+    /// The change bits that we care about.
+    ///
+    /// These need to be in sync with NS_STYLE_WILL_CHANGE_*.
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    pub struct WillChangeBits: u8 {
+        /// Whether the stacking context will change.
+        const STACKING_CONTEXT = 1 << 0;
+        /// Whether `transform` will change.
+        const TRANSFORM = 1 << 1;
+        /// Whether `scroll-position` will change.
+        const SCROLL = 1 << 2;
+        /// Whether `opacity` will change.
+        const OPACITY = 1 << 3;
+        /// Fixed pos containing block.
+        const FIXPOS_CB = 1 << 4;
+        /// Abs pos containing block.
+        const ABSPOS_CB = 1 << 5;
+    }
+}
+
+fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
+    let mut flags = match longhand {
+        LonghandId::Opacity => WillChangeBits::OPACITY,
+        LonghandId::Transform => WillChangeBits::TRANSFORM,
+        _ => WillChangeBits::empty(),
+    };
+
+    let property_flags = longhand.flags();
+    if property_flags.contains(PropertyFlags::CREATES_STACKING_CONTEXT) {
+        flags |= WillChangeBits::STACKING_CONTEXT;
+    }
+    if property_flags.contains(PropertyFlags::FIXPOS_CB) {
+        flags |= WillChangeBits::FIXPOS_CB;
+    }
+    if property_flags.contains(PropertyFlags::ABSPOS_CB) {
+        flags |= WillChangeBits::ABSPOS_CB;
+    }
+    flags
+}
+
+fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {
+    let id = match PropertyId::parse(ident) {
+        Ok(id) => id,
+        Err(..) => return WillChangeBits::empty(),
+    };
+
+    if !id.allowed_in(context) {
+        return WillChangeBits::empty();
+    }
+
+    match id.as_shorthand() {
+        Ok(shorthand) => {
+            shorthand.longhands().fold(WillChangeBits::empty(), |flags, p| {
+                flags | change_bits_for_longhand(p)
+            })
+        }
+        Err(PropertyDeclarationId::Longhand(longhand)) => change_bits_for_longhand(longhand),
+        Err(PropertyDeclarationId::Custom(..)) => WillChangeBits::empty(),
+    }
+}
+
 impl Parse for WillChange {
     /// auto | <animateable-feature>#
     fn parse<'i, 't>(
-        _context: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<WillChange, ParseError<'i>> {
         if input
@@ -406,18 +477,28 @@ impl Parse for WillChange {
             return Ok(WillChange::Auto);
         }
 
+        let mut bits = WillChangeBits::empty();
         let custom_idents = input.parse_comma_separated(|i| {
             let location = i.current_source_location();
-            CustomIdent::from_ident(
+            let parser_ident = i.expect_ident()?;
+            let ident = CustomIdent::from_ident(
                 location,
-                i.expect_ident()?,
+                parser_ident,
                 &["will-change", "none", "all", "auto"],
-            )
+            )?;
+
+            if ident.0 == atom!("scroll-position") {
+                bits |= WillChangeBits::SCROLL;
+            } else {
+                bits |= change_bits_for_maybe_property(&parser_ident, context);
+            }
+            Ok(ident)
         })?;
 
-        Ok(WillChange::AnimateableFeatures(
-            custom_idents.into_boxed_slice(),
-        ))
+        Ok(WillChange::AnimateableFeatures {
+            features: custom_idents.into_boxed_slice(),
+            bits,
+        })
     }
 }
 

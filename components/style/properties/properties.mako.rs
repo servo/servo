@@ -1715,7 +1715,8 @@ impl PropertyId {
         }
     }
 
-    fn non_custom_id(&self) -> Option<NonCustomPropertyId> {
+    /// Returns the non-custom property id for this property.
+    pub fn non_custom_id(&self) -> Option<NonCustomPropertyId> {
         Some(match *self {
             PropertyId::Custom(_) => return None,
             PropertyId::Shorthand(shorthand_id) => shorthand_id.into(),
@@ -1750,7 +1751,8 @@ impl PropertyId {
         id.enabled_for_all_content()
     }
 
-    fn allowed_in(&self, context: &ParserContext) -> bool {
+    /// Returns whether the property is allowed in a given context.
+    pub fn allowed_in(&self, context: &ParserContext) -> bool {
         let id = match self.non_custom_id() {
             // Custom properties are allowed everywhere
             None => return true,

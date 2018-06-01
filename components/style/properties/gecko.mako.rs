@@ -3515,77 +3515,27 @@ fn static_assert() {
 
     pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_AppendWillChange, Gecko_ClearWillChange};
-        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_OPACITY;
-        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_SCROLL;
-        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_TRANSFORM;
-        use properties::PropertyId;
         use properties::longhands::will_change::computed_value::T;
 
-        fn will_change_bitfield_from_prop_flags(prop: LonghandId) -> u8 {
-            use properties::PropertyFlags;
-            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_ABSPOS_CB;
-            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_FIXPOS_CB;
-            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
-            let servo_flags = prop.flags();
-            let mut bitfield = 0;
-
-            if servo_flags.contains(PropertyFlags::CREATES_STACKING_CONTEXT) {
-                bitfield |= NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
-            }
-            if servo_flags.contains(PropertyFlags::FIXPOS_CB) {
-                bitfield |= NS_STYLE_WILL_CHANGE_FIXPOS_CB;
-            }
-            if servo_flags.contains(PropertyFlags::ABSPOS_CB) {
-                bitfield |= NS_STYLE_WILL_CHANGE_ABSPOS_CB;
-            }
-
-            bitfield as u8
-        }
-
-        self.gecko.mWillChangeBitField = 0;
-
         match v {
-            T::AnimateableFeatures(features) => {
+            T::AnimateableFeatures { features, bits } => {
                 unsafe {
                     Gecko_ClearWillChange(&mut self.gecko, features.len());
                 }
 
                 for feature in features.iter() {
-                    if feature.0 == atom!("scroll-position") {
-                        self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_SCROLL as u8;
-                    } else if feature.0 == atom!("opacity") {
-                        self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_OPACITY as u8;
-                    } else if feature.0 == atom!("transform") {
-                        self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_TRANSFORM as u8;
-                    }
-
                     unsafe {
-                        Gecko_AppendWillChange(&mut self.gecko, feature.0.as_ptr());
-                    }
-
-                    if let Ok(prop_id) = PropertyId::parse(&feature.0.to_string()) {
-                        match prop_id.as_shorthand() {
-                            Ok(shorthand) => {
-                                for longhand in shorthand.longhands() {
-                                    self.gecko.mWillChangeBitField |=
-                                        will_change_bitfield_from_prop_flags(longhand);
-                                }
-                            },
-                            Err(longhand_or_custom) => {
-                                if let PropertyDeclarationId::Longhand(longhand)
-                                    = longhand_or_custom {
-                                    self.gecko.mWillChangeBitField |=
-                                        will_change_bitfield_from_prop_flags(longhand);
-                                }
-                            },
-                        }
+                        Gecko_AppendWillChange(&mut self.gecko, feature.0.as_ptr())
                     }
                 }
+
+                self.gecko.mWillChangeBitField = bits.bits();
             },
             T::Auto => {
                 unsafe {
                     Gecko_ClearWillChange(&mut self.gecko, 0);
                 }
+                self.gecko.mWillChangeBitField = 0;
             },
         };
     }
@@ -3607,6 +3557,7 @@ fn static_assert() {
         use properties::longhands::will_change::computed_value::T;
         use gecko_bindings::structs::nsAtom;
         use values::CustomIdent;
+        use values::specified::box_::WillChangeBits;
 
         if self.gecko.mWillChange.len() == 0 {
             return T::Auto
@@ -3618,7 +3569,10 @@ fn static_assert() {
             }
         }).collect();
 
-        T::AnimateableFeatures(custom_idents.into_boxed_slice())
+        T::AnimateableFeatures {
+            features: custom_idents.into_boxed_slice(),
+            bits: WillChangeBits::from_bits_truncate(self.gecko.mWillChangeBitField),
+        }
     }
 
     <% impl_shape_source("shape_outside", "mShapeOutside") %>
