@@ -7,9 +7,8 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use display_list::items::{BorderDetails, ClipScrollNode};
-use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
-use display_list::items::{DisplayList, StackingContextType};
+use display_list::items::{BorderDetails, ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
+use display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
 
@@ -213,7 +212,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.pop_all_shadows();
             },
             DisplayItem::Iframe(ref item) => {
-                builder.push_iframe(&self.prim_info(), item.iframe.to_webrender());
+                builder.push_iframe(&self.prim_info(), item.iframe.to_webrender(), true);
             },
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
@@ -222,7 +221,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let reference_frame_clip_id = builder.push_stacking_context(
                     &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
                     None,
-                    stacking_context.scroll_policy,
                     stacking_context.transform.map(Into::into),
                     stacking_context.transform_style,
                     stacking_context.perspective,
