@@ -21,12 +21,11 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{AddRawValueRoot, CallArgs, GetFunctionNativeReserved};
 use js::jsapi::{Heap, JS_ClearPendingException};
-use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetContext, JS_GetFunctionObject};
-use js::jsapi::{JS_GetObjectRuntime, JS_NewFunction};
-use js::jsapi::{NewFunctionWithReserved, PromiseState};
+use js::jsapi::{JSAutoCompartment, JSContext, JSObject, JS_GetFunctionObject};
+use js::jsapi::{JS_NewFunction, NewFunctionWithReserved, PromiseState};
 use js::jsapi::{RemoveRawValueRoot, SetFunctionNativeReserved};
 use js::jsval::{JSVal, UndefinedValue, ObjectValue, Int32Value};
-use js::rust::{HandleObject, HandleValue, MutableHandleObject};
+use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use js::rust::wrappers::{AddPromiseReactions, CallOriginalPromiseResolve, CallOriginalPromiseReject};
 use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
 use js::rust::wrappers::{NewPromiseObject, ResolvePromise, RejectPromise};
@@ -67,9 +66,7 @@ impl Drop for Promise {
         unsafe {
             let object = self.permanent_js_root.get().to_object();
             assert!(!object.is_null());
-            let runtime = JS_GetObjectRuntime(object);
-            assert!(!runtime.is_null());
-            let cx = JS_GetContext(runtime);
+            let cx = Runtime::get();
             assert!(!cx.is_null());
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }

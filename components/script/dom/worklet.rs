@@ -517,14 +517,14 @@ impl WorkletThread {
     /// The current memory usage of the thread
     #[allow(unsafe_code)]
     fn current_memory_usage(&self) -> u32 {
-        unsafe { JS_GetGCParameter(self.runtime.rt(), JSGCParamKey::JSGC_BYTES) }
+        unsafe { JS_GetGCParameter(self.runtime.cx(), JSGCParamKey::JSGC_BYTES) }
     }
 
     /// Perform a GC.
     #[allow(unsafe_code)]
     fn gc(&mut self) {
         debug!("BEGIN GC (usage = {}, threshold = {}).", self.current_memory_usage(), self.gc_threshold);
-        unsafe { JS_GC(self.runtime.rt()) };
+        unsafe { JS_GC(self.runtime.cx()) };
         self.gc_threshold = max(MIN_GC_THRESHOLD, self.current_memory_usage() * 2);
         debug!("END GC (usage = {}, threshold = {}).", self.current_memory_usage(), self.gc_threshold);
     }

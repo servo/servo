@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
-use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler};
+use dom::abstractworker::SimpleWorkerErrorHandler;
 use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -21,12 +21,12 @@ use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::prepare_workerscope_init;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
-use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use script_traits::WorkerScriptLoadOrigin;
 use std::cell::Cell;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use task::TaskOnce;
@@ -43,8 +43,6 @@ pub struct Worker {
     sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
     #[ignore_malloc_size_of = "Arc"]
     closing: Arc<AtomicBool>,
-    #[ignore_malloc_size_of = "Defined in rust-mozjs"]
-    runtime: Arc<Mutex<Option<SharedRt>>>,
     terminated: Cell<bool>,
 }
 
@@ -55,7 +53,6 @@ impl Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
             closing: closing,
-            runtime: Arc::new(Mutex::new(None)),
             terminated: Cell::new(false),
         }
     }
@@ -106,7 +103,7 @@ impl Worker {
         let init = prepare_workerscope_init(global, Some(devtools_sender));
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, devtools_receiver, worker.runtime.clone(), worker_ref,
+            init, worker_url, devtools_receiver, worker_ref,
             global.script_chan(), sender, receiver, worker_load_origin, closing);
 
         Ok(worker)
@@ -155,6 +152,7 @@ impl WorkerMethods for Worker {
         Ok(())
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#terminate-a-worker
     fn Terminate(&self) {
         // Step 1
@@ -166,9 +164,8 @@ impl WorkerMethods for Worker {
         self.terminated.set(true);
 
         // Step 3
-        if let Some(runtime) = *self.runtime.lock().unwrap() {
-            runtime.request_interrupt();
-        }
+        let cx = self.global().get_cx();
+        unsafe { JS_RequestInterruptCallback(cx) };
     }
 
     // https://html.spec.whatwg.org/multipage/#handler-worker-onmessage

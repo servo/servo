@@ -1775,7 +1775,7 @@ class AttrDefiner(PropertyDefiner):
         if len(array) == 0:
             return ""
 
-        flags = "JSPROP_ENUMERATE | JSPROP_SHARED"
+        flags = "JSPROP_ENUMERATE"
         if self.unforgeable:
             flags += " | JSPROP_PERMANENT"
 
@@ -1822,15 +1822,18 @@ class AttrDefiner(PropertyDefiner):
             '    JSPropertySpec {\n'
             '        name: %s as *const u8 as *const libc::c_char,\n'
             '        flags: (%s) as u8,\n'
-            '        getter: %s,\n'
-            '        setter: %s\n'
+            '        __bindgen_anon_1: JSPropertySpec__bindgen_ty_1 {\n'
+            '            accessors: JSPropertySpec__bindgen_ty_1__bindgen_ty_1 {\n'
+            '                getter: JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1 {\n'
+            '                    native: %s,\n'
+            '                },\n'
+            '                setter: JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2 {\n'
+            '                    native: %s,\n'
+            '                }\n'
+            '            }\n'
+            '        }\n'
             '    }',
-            '    JSPropertySpec {\n'
-            '        name: 0 as *const libc::c_char,\n'
-            '        flags: 0,\n'
-            '        getter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo },\n'
-            '        setter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }\n'
-            '    }',
+            '    JSPropertySpec::ZERO',
             'JSPropertySpec',
             PropertyDefiner.getControllingCondition, specData)
 
@@ -2124,7 +2127,7 @@ class CGDOMJSClass(CGThing):
             "domClass": DOMClass(self.descriptor),
             "enumerateHook": "None",
             "finalizeHook": FINALIZE_HOOK_NAME,
-            "flags": "0",
+            "flags": "JSCLASS_FOREGROUND_FINALIZE",
             "name": str_to_const_array(self.descriptor.interface.identifier.name),
             "resolveHook": "None",
             "slots": "1",
@@ -2133,7 +2136,7 @@ class CGDOMJSClass(CGThing):
         if self.descriptor.isGlobal():
             assert not self.descriptor.weakReferenceable
             args["enumerateHook"] = "Some(enumerate_global)"
-            args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
+            args["flags"] = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL | JSCLASS_FOREGROUND_FINALIZE"
             args["slots"] = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
             args["resolveHook"] = "Some(resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
@@ -2143,9 +2146,8 @@ class CGDOMJSClass(CGThing):
 static CLASS_OPS: js::jsapi::JSClassOps = js::jsapi::JSClassOps {
     addProperty: None,
     delProperty: None,
-    getProperty: None,
-    setProperty: None,
     enumerate: %(enumerateHook)s,
+    newEnumerate: None,
     resolve: %(resolveHook)s,
     mayResolve: None,
     finalize: Some(%(finalizeHook)s),
@@ -2583,10 +2585,11 @@ def CreateBindingJSObject(descriptor, parent=None):
 let handler = RegisterBindings::PROXY_HANDLERS[PrototypeList::Proxies::%s as usize];
 rooted!(in(cx) let private = PrivateValue(raw as *const libc::c_void));
 let obj = NewProxyObject(cx, handler,
-                         private.handle(),
+                         Handle::from_raw(UndefinedHandleValue),
                          proto.get(), %s.get(),
                          ptr::null_mut(), ptr::null_mut());
 assert!(!obj.is_null());
+SetProxyReservedSlot(obj, 0, &private.get());
 rooted!(in(cx) let obj = obj);\
 """ % (descriptor.name, parent)
     else:
@@ -2594,11 +2597,13 @@ rooted!(in(cx) let obj = obj);\
                    "    cx, &Class.base as *const JSClass, proto.handle()));\n"
                    "assert!(!obj.is_null());\n"
                    "\n"
-                   "JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT,\n"
-                   "                   PrivateValue(raw as *const libc::c_void));")
+                   "let val = PrivateValue(raw as *const libc::c_void);\n"
+                   "\n"
+                   "JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT, &val);")
     if descriptor.weakReferenceable:
         create += """
-JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, PrivateValue(ptr::null()));"""
+let val = PrivateValue(ptr::null());
+JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, &val);"""
     return create
 
 
@@ -2652,9 +2657,10 @@ ensure_expando_object(cx, obj.handle().into(), expando.handle_mut());
     else:
         copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += """\
+let ref mut slot = UndefinedValue();
+JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, slot);
 rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
-unforgeable_holder.handle_mut().set(
-    JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT).to_object());
+unforgeable_holder.handle_mut().set(slot.to_object());
 assert!(%(copyFunc)s(cx, %(obj)s.handle(), unforgeable_holder.handle()));
 """ % {'copyFunc': copyFunc, 'obj': obj}
 
@@ -3013,7 +3019,7 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     CGGeneric(fill(
                         """
                         assert!(${defineFn}(cx, prototype.handle(), ${prop}, aliasedVal.handle(),
-                                            JSPROP_ENUMERATE, None, None));
+                                            JSPROP_ENUMERATE as u32));
                         """,
                         defineFn=defineFn,
                         prop=prop))
@@ -3078,8 +3084,8 @@ assert!(!unforgeable_holder.is_null());
 """ % {'holderClass': holderClass, 'holderProto': holderProto}))
             code.append(InitUnforgeablePropertiesOnHolder(self.descriptor, self.properties))
             code.append(CGGeneric("""\
-JS_SetReservedSlot(prototype.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT,
-                   ObjectValue(unforgeable_holder.get()))"""))
+let val = ObjectValue(unforgeable_holder.get());
+JS_SetReservedSlot(prototype.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &val)"""))
 
         return CGList(code, "\n")
 
@@ -3533,11 +3539,13 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
         self.exposureSet = descriptor.interface.exposureSet
 
     def definition_body(self):
-        preamble = "let global = GlobalScope::from_object(JS_CALLEE(cx, vp).to_object());\n"
+        preamble = """\
+let args = CallArgs::from_vp(vp, argc);
+let global = GlobalScope::from_object(args.callee());
+"""
         if len(self.exposureSet) == 1:
-            preamble += """
-let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
-""" % list(self.exposureSet)[0]
+            preamble += ("let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();\n" %
+                         list(self.exposureSet)[0])
         return CGList([CGGeneric(preamble), self.generate_code()])
 
     def generate_code(self):
@@ -3741,7 +3749,7 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in name)
         return CGGeneric("""\
 JS_DefineProperty(cx, obj, %s as *const u8 as *const libc::c_char,
-                  HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE, None, None)""" % name)
+                  HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE as u32)""" % name)
 
 
 class CGMemberJITInfo(CGThing):
@@ -4959,7 +4967,9 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
 }*/
 //MOZ_ASSERT(IsProxy(obj));
-let box_ = GetProxyPrivate(obj.get()).to_private() as *const %s;
+        let ref mut slot = UndefinedValue();
+        GetProxyReservedSlot(obj.get(), 0, slot);
+        let box_ = slot.to_private() as *const %s;
 return box_;""" % self.descriptor.concreteType)
 
 
@@ -4985,7 +4995,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs += " | JSPROP_READONLY"
             # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
             fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), %s);\n"
+                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5011,7 +5021,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = "0"
             # FIXME(#11868) Should assign to desc.value, desc.get() is a copy.
             fillDescriptor = ("desc.get().value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), %s);\n"
+                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
                               "return true;" % attrs)
             templateValues = {
                 'jsvalRef': 'result_root.handle_mut()',
@@ -5425,7 +5435,9 @@ finalize_global(obj);
 """
     elif descriptor.weakReferenceable:
         release += """\
-let weak_box_ptr = JS_GetReservedSlot(obj, DOM_WEAK_SLOT).to_private() as *mut WeakBox<%s>;
+let ref mut slot = UndefinedValue();
+JS_GetReservedSlot(obj, DOM_WEAK_SLOT, slot);
+let weak_box_ptr = slot.to_private() as *mut WeakBox<%s>;
 if !weak_box_ptr.is_null() {
     let count = {
         let weak_box = &*weak_box_ptr;
@@ -5736,6 +5748,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::INTERNED_STRING_TO_JSID',
         'js::jsapi::IsCallable',
         'js::jsapi::JSAutoCompartment',
+        'js::jsapi::JSCLASS_FOREGROUND_FINALIZE',
         'js::jsapi::JSCLASS_RESERVED_SLOTS_SHIFT',
         'js::jsapi::JSClass',
         'js::jsapi::JSContext',
@@ -5757,8 +5770,11 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JSPROP_ENUMERATE',
         'js::jsapi::JSPROP_PERMANENT',
         'js::jsapi::JSPROP_READONLY',
-        'js::jsapi::JSPROP_SHARED',
         'js::jsapi::JSPropertySpec',
+        'js::jsapi::JSPropertySpec__bindgen_ty_1',
+        'js::jsapi::JSPropertySpec__bindgen_ty_1__bindgen_ty_1',
+        'js::jsapi::JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_1',
+        'js::jsapi::JSPropertySpec__bindgen_ty_1__bindgen_ty_1__bindgen_ty_2',
         'js::jsapi::JSString',
         'js::jsapi::JSTracer',
         'js::jsapi::JSType',
@@ -5778,7 +5794,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::wrappers::JS_GetProperty',
         'js::jsapi::JS_GetPropertyById',
         'js::jsapi::JS_GetPropertyDescriptorById',
-        'js::jsapi::JS_GetReservedSlot',
+        'js::glue::JS_GetReservedSlot',
         'js::jsapi::JS_HasProperty',
         'js::jsapi::JS_HasPropertyById',
         'js::rust::wrappers::JS_InitializePropertiesFromCompatibleNativeObject',
@@ -5813,12 +5829,14 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsval::ObjectOrNullValue',
         'js::jsval::PrivateValue',
         'js::jsval::UndefinedValue',
+        'js::jsapi::UndefinedHandleValue',
         'js::glue::AppendToAutoIdVector',
         'js::glue::CallJitGetterOp',
         'js::glue::CallJitMethodOp',
         'js::glue::CallJitSetterOp',
         'js::glue::CreateProxyHandler',
-        'js::glue::GetProxyPrivate',
+        'js::glue::GetProxyReservedSlot',
+        'js::glue::SetProxyReservedSlot',
         'js::rust::wrappers::NewProxyObject',
         'js::glue::ProxyTraps',
         'js::glue::RUST_JSID_IS_INT',

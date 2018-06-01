@@ -31,8 +31,7 @@ use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSAutoCompartment, JSContext};
-use js::jsapi::{JSObject, JS_GetContext};
-use js::jsapi::JS_GetObjectRuntime;
+use js::jsapi::JSObject;
 use js::panic::maybe_resume_unwind;
 use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use js::rust::{HandleValue, MutableHandleValue};
@@ -229,16 +228,8 @@ impl GlobalScope {
         GlobalScope::from_object(obj)
     }
 
-    #[allow(unsafe_code)]
     pub fn get_cx(&self) -> *mut JSContext {
-        unsafe {
-            let runtime = JS_GetObjectRuntime(
-                self.reflector().get_jsobject().get());
-            assert!(!runtime.is_null());
-            let context = JS_GetContext(runtime);
-            assert!(!context.is_null());
-            context
-        }
+        Runtime::get()
     }
 
     pub fn crypto(&self) -> DomRoot<Crypto> {
