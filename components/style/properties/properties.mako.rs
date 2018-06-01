@@ -1422,10 +1422,12 @@ impl UnparsedValue {
         .and_then(|css| {
             // As of this writing, only the base URL is used for property
             // values.
+            //
+            // FIXME(emilio): These bits are slightly fishy.
             let context = ParserContext::new(
                 Origin::Author,
                 &self.url_data,
-                None,
+                Some(CssRuleType::Style),
                 ParsingMode::DEFAULT,
                 quirks_mode,
             );
