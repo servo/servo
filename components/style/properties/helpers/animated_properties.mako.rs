@@ -9,16 +9,13 @@
     from itertools import groupby
 %>
 
-use Atom;
-use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 use itertools::{EitherOrBoth, Itertools};
 use num_traits::Zero;
-use parser::ParserContext;
-use properties::{CSSWideKeyword, PropertyDeclaration, PropertyDeclarationId};
+use properties::{CSSWideKeyword, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::visibility::computed_value::T as Visibility;
@@ -27,19 +24,17 @@ use properties::{LonghandId, ShorthandId};
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::{cmp, ptr};
-use std::fmt::{self, Write};
 use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo, ToCss, CssWriter};
 use super::ComputedValues;
-use values::{CSSFloat, CustomIdent};
+use values::CSSFloat;
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA as AnimatedRGBA;
 use values::animated::effects::Filter as AnimatedFilter;
 use values::computed::{Angle, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context};
 use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::{LengthOrPercentageOrNone, MaxLength};
+use values::computed::{LengthOrPercentageOrNone, MaxLength, TransitionProperty};
 use values::computed::{NonNegativeNumber, Number, NumberOrPercentage, Percentage};
 use values::computed::length::NonNegativeLengthOrPercentage;
 use values::computed::ToComputedValue;
@@ -73,91 +68,6 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
     }
 }
 
-/// A given transition property, that is either `All`, a transitionable longhand property,
-/// a shorthand with at least one transitionable longhand component, or an unsupported property.
-// NB: This needs to be here because it needs all the longhands generated
-// beforehand.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
-pub enum TransitionProperty {
-    /// A shorthand.
-    Shorthand(ShorthandId),
-    /// A longhand transitionable property.
-    Longhand(LonghandId),
-    /// A custom property.
-    Custom(Atom),
-    /// Unrecognized property which could be any non-transitionable, custom property, or
-    /// unknown property.
-    Unsupported(CustomIdent),
-}
-
-impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        use values::serialize_atom_identifier;
-        match *self {
-            TransitionProperty::Shorthand(ref s) => s.to_css(dest),
-            TransitionProperty::Longhand(ref l) => l.to_css(dest),
-            TransitionProperty::Custom(ref name) => {
-                dest.write_str("--")?;
-                serialize_atom_identifier(name, dest)
-            }
-            TransitionProperty::Unsupported(ref i) => i.to_css(dest),
-        }
-    }
-}
-
-impl TransitionProperty {
-    /// Returns `all`.
-    #[inline]
-    pub fn all() -> Self {
-        TransitionProperty::Shorthand(ShorthandId::All)
-    }
-
-    /// Parse a transition-property value.
-    pub fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        let location = input.current_source_location();
-        let ident = input.expect_ident()?;
-
-        let id = match PropertyId::parse(&ident, context) {
-            Ok(id) => id,
-            Err(..) => return Ok(TransitionProperty::Unsupported(
-                CustomIdent::from_ident(location, ident, &["none"])?,
-            )),
-        };
-
-        Ok(match id.as_shorthand() {
-            Ok(s) => TransitionProperty::Shorthand(s),
-            Err(longhand_or_custom) => {
-                match longhand_or_custom {
-                    PropertyDeclarationId::Longhand(id) => TransitionProperty::Longhand(id),
-                    PropertyDeclarationId::Custom(custom) => {
-                        TransitionProperty::Custom(custom.clone())
-                    }
-                }
-            }
-        })
-    }
-
-    /// Convert TransitionProperty to nsCSSPropertyID.
-    #[cfg(feature = "gecko")]
-    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
-        Ok(match *self {
-            TransitionProperty::Shorthand(ShorthandId::All) => {
-                nsCSSPropertyID::eCSSPropertyExtra_all_properties
-            }
-            TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Custom(..) |
-            TransitionProperty::Unsupported(..) => return Err(()),
-        })
-    }
-}
-
 /// Convert nsCSSPropertyID to TransitionProperty
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
@@ -181,15 +91,6 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                 panic!("non-convertible nsCSSPropertyID")
             }
         }
-    }
-}
-
-impl SpecifiedValueInfo for TransitionProperty {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        // `transition-property` can actually accept all properties and
-        // arbitrary identifiers, but `all` is a special one we'd like
-        // to list.
-        f(&["all"]);
     }
 }
 

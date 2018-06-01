@@ -123,9 +123,11 @@ macro_rules! try_parse_one {
                                     transition-timing-function
                                     transition-delay"
                     spec="https://drafts.csswg.org/css-transitions/#propdef-transition">
+    use parser::Parse;
     % for prop in "delay duration property timing_function".split():
     use properties::longhands::transition_${prop};
     % endfor
+    use values::specified::TransitionProperty;
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -137,7 +139,7 @@ macro_rules! try_parse_one {
             % endfor
             // Unlike other properties, transition-property uses an Option<> to
             // represent 'none' as `None`.
-            transition_property: Option<transition_property::SingleSpecifiedValue>,
+            transition_property: Option<TransitionProperty>,
         }
 
         fn parse_one_transition<'i, 't>(
@@ -158,7 +160,7 @@ macro_rules! try_parse_one {
                 // Must check 'transition-property' after 'transition-timing-function' since
                 // 'transition-property' accepts any keyword.
                 if property.is_none() {
-                    if let Ok(value) = input.try(|i| transition_property::SingleSpecifiedValue::parse(context, i)) {
+                    if let Ok(value) = input.try(|i| TransitionProperty::parse(context, i)) {
                         property = Some(Some(value));
                         continue;
                     }
