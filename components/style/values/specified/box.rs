@@ -444,14 +444,10 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
 }
 
 fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {
-    let id = match PropertyId::parse(ident) {
+    let id = match PropertyId::parse(ident, context) {
         Ok(id) => id,
         Err(..) => return WillChangeBits::empty(),
     };
-
-    if !id.allowed_in(context) {
-        return WillChangeBits::empty();
-    }
 
     match id.as_shorthand() {
         Ok(shorthand) => {

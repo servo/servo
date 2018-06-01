@@ -1158,7 +1158,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
     ) -> Result<Importance, ParseError<'i>> {
-        let id = match PropertyId::parse(&name) {
+        let id = match PropertyId::parse(&name, self.context) {
             Ok(id) => id,
             Err(..) => {
                 return Err(input.new_custom_error(if is_non_mozilla_vendor_identifier(&name) {

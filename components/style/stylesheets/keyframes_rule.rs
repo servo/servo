@@ -620,9 +620,12 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
         name: CowRcStr<'i>,
         input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i>> {
-        let id = PropertyId::parse(&name).map_err(|()| {
-            input.new_custom_error(StyleParseErrorKind::UnknownProperty(name.clone()))
-        })?;
+        let id = match PropertyId::parse(&name, self.context) {
+            Ok(id) => id,
+            Err(()) => return Err(input.new_custom_error(
+                StyleParseErrorKind::UnknownProperty(name.clone())
+            )),
+        };
 
         // TODO(emilio): Shouldn't this use parse_entirely?
         PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input)?;
