@@ -5,8 +5,6 @@
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::structuredclone::StructuredCloneData;
-use js::jsapi::{JSRuntime, JS_RequestInterruptCallback};
-use js::rust::Runtime;
 use script_runtime::CommonScriptMsg;
 
 /// Messages used to control the worker event loops
@@ -28,25 +26,3 @@ impl<T: DomObject> SimpleWorkerErrorHandler<T> {
         }
     }
 }
-
-#[derive(Clone, Copy)]
-pub struct SharedRt {
-    rt: *mut JSRuntime
-}
-
-impl SharedRt {
-    pub fn new(rt: &Runtime) -> SharedRt {
-        SharedRt {
-            rt: rt.rt()
-        }
-    }
-
-    #[allow(unsafe_code)]
-    pub fn request_interrupt(&self) {
-        unsafe {
-            JS_RequestInterruptCallback(self.rt);
-        }
-    }
-}
-#[allow(unsafe_code)]
-unsafe impl Send for SharedRt {}

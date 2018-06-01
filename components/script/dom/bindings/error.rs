@@ -157,7 +157,7 @@ impl ErrorInfo {
         }
 
         let filename = {
-            let filename = (*report).filename as *const u8;
+            let filename = (*report)._base.filename as *const u8;
             if !filename.is_null() {
                 let length = (0..).find(|idx| *filename.offset(*idx) == 0).unwrap();
                 let filename = from_raw_parts(filename, length as usize);
@@ -167,14 +167,14 @@ impl ErrorInfo {
             }
         };
 
-        let lineno = (*report).lineno;
-        let column = (*report).column;
+        let lineno = (*report)._base.lineno;
+        let column = (*report)._base.column;
 
         let message = {
-            let message = (*report).ucmessage;
+            let message = (*report)._base.message_.data_ as *const u8;
             let length = (0..).find(|idx| *message.offset(*idx) == 0).unwrap();
             let message = from_raw_parts(message, length as usize);
-            String::from_utf16_lossy(message)
+            String::from_utf8_lossy(message).into_owned()
         };
 
         Some(ErrorInfo {

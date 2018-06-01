@@ -97,6 +97,8 @@ linux-dev:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -116,6 +118,8 @@ linux-rel-wpt:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -130,6 +134,8 @@ linux-rel-css:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -141,6 +147,10 @@ linux-rel-css:
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-nightly:
+ env:
+  CC: gcc-5
+  CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh

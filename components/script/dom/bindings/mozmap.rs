@@ -100,9 +100,7 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
                                          key.as_ptr(),
                                          key.len(),
                                          js_value.handle(),
-                                         JSPROP_ENUMERATE,
-                                         None,
-                                         None));
+                                         JSPROP_ENUMERATE as u32));
         }
 
         rval.set(ObjectValue(js_object.handle().get()));

@@ -61,8 +61,6 @@ pub unsafe fn define_constants(
                                   obj,
                                   spec.name.as_ptr() as *const libc::c_char,
                                   value.handle(),
-                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
-                                  None,
-                                  None));
+                                  (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32));
     }
 }
