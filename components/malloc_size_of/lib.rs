@@ -807,8 +807,6 @@ malloc_size_of_is_0!(webrender_api::NormalBorder);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::RepeatMode);
 #[cfg(feature = "webrender_api")]
-malloc_size_of_is_0!(webrender_api::ScrollPolicy);
-#[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::ScrollSensitivity);
 #[cfg(feature = "webrender_api")]
 malloc_size_of_is_0!(webrender_api::StickyOffsetBounds);

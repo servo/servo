@@ -71,8 +71,7 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
         }
     };
     let descriptor = webrender_api::ImageDescriptor {
-        width: image.width,
-        height: image.height,
+        size: webrender_api::DeviceUintSize::new(image.width, image.height),
         stride: None,
         format: webrender_api::ImageFormat::BGRA8,
         offset: 0,
@@ -81,9 +80,9 @@ fn set_webrender_image_key(webrender_api: &webrender_api::RenderApi, image: &mut
     };
     let data = webrender_api::ImageData::new(bytes);
     let image_key = webrender_api.generate_image_key();
-    let mut updates = webrender_api::ResourceUpdates::new();
-    updates.add_image(image_key, descriptor, data, None);
-    webrender_api.update_resources(updates);
+    let mut txn = webrender_api::Transaction::new();
+    txn.add_image(image_key, descriptor, data, None);
+    webrender_api.update_resources(txn.resource_updates);
     image.id = Some(image_key);
 }
 

@@ -73,8 +73,8 @@ use style_traits::cursor::CursorKind;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{self, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ExternalScrollId};
 use webrender_api::{FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize};
-use webrender_api::{LayoutTransform, LayoutVector2D, LineStyle, NormalBorder, ScrollPolicy};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::{LayoutTransform, LayoutVector2D, LineStyle, NormalBorder, ScrollSensitivity};
+use webrender_api::StickyOffsetBounds;
 
 fn establishes_containing_block_for_absolute(
     flags: StackingContextCollectionFlags,
@@ -760,7 +760,6 @@ pub trait FragmentDisplayListBuilding {
         &self,
         id: StackingContextId,
         base_flow: &BaseFlow,
-        scroll_policy: ScrollPolicy,
         context_type: StackingContextType,
         established_reference_frame: Option<ClipScrollNodeIndex>,
         parent_clipping_and_scrolling: ClippingAndScrolling,
@@ -1883,7 +1882,6 @@ impl FragmentDisplayListBuilding for Fragment {
         &self,
         id: StackingContextId,
         base_flow: &BaseFlow,
-        scroll_policy: ScrollPolicy,
         context_type: StackingContextType,
         established_reference_frame: Option<ClipScrollNodeIndex>,
         parent_clipping_and_scrolling: ClippingAndScrolling,
@@ -1927,7 +1925,6 @@ impl FragmentDisplayListBuilding for Fragment {
             self.transform_matrix(&border_box),
             self.style().get_used_transform_style().to_layout(),
             self.perspective_matrix(&border_box),
-            scroll_policy,
             parent_clipping_and_scrolling,
             established_reference_frame,
         )
@@ -2709,7 +2706,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let new_context = self.fragment.create_stacking_context(
             self.base.stacking_context_id,
             &self.base,
-            ScrollPolicy::Scrollable,
             stacking_context_type,
             None,
             parent_clipping_and_scrolling,
@@ -2743,7 +2739,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let stacking_context = self.fragment.create_stacking_context(
             self.base.stacking_context_id,
             &self.base,
-            ScrollPolicy::Scrollable,
             StackingContextType::Real,
             established_reference_frame,
             parent_clipping_and_scrolling,
@@ -2881,7 +2876,6 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                     let stacking_context = fragment.create_stacking_context(
                         fragment.stacking_context_id,
                         &self.base,
-                        ScrollPolicy::Scrollable,
                         StackingContextType::Real,
                         None,
                         state.current_clipping_and_scrolling,

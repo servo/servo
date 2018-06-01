@@ -177,14 +177,14 @@ impl FontCache {
                                             .entry((font_key, size))
                                             .or_insert_with(|| {
                                                 let key = webrender_api.generate_font_instance_key();
-                                                let mut updates = webrender_api::ResourceUpdates::new();
-                                                updates.add_font_instance(key,
+                                                let mut txn = webrender_api::Transaction::new();
+                                                txn.add_font_instance(key,
                                                                           font_key,
                                                                           size,
                                                                           None,
                                                                           None,
                                                                           Vec::new());
-                                                webrender_api.update_resources(updates);
+                                                webrender_api.update_resources(txn.resource_updates);
                                                 key
                                             });
 
@@ -373,13 +373,13 @@ impl FontCache {
 
         let font_key = *webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
             let font_key = webrender_api.generate_font_key();
-            let mut updates = webrender_api::ResourceUpdates::new();
+            let mut txn = webrender_api::Transaction::new();
             match (template.bytes_if_in_memory(), template.native_font()) {
-                (Some(bytes), _) => updates.add_raw_font(font_key, bytes, 0),
-                (None, Some(native_font)) => updates.add_native_font(font_key, native_font),
-                (None, None) => updates.add_raw_font(font_key, template.bytes().clone(), 0),
+                (Some(bytes), _) => txn.add_raw_font(font_key, bytes, 0),
+                (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
+                (None, None) => txn.add_raw_font(font_key, template.bytes().clone(), 0),
             }
-            webrender_api.update_resources(updates);
+            webrender_api.update_resources(txn.resource_updates);
             font_key
         });
 
