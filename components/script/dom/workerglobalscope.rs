@@ -26,7 +26,7 @@ use dom::workernavigator::WorkerNavigator;
 use dom_struct::dom_struct;
 use fetch;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{JSAutoCompartment, JSContext, JSRuntime};
+use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::HandleValue;
@@ -137,10 +137,6 @@ impl WorkerGlobalScope {
 
     pub fn from_devtools_receiver(&self) -> &Receiver<DevtoolScriptControlMsg> {
         &self.from_devtools_receiver
-    }
-
-    pub fn runtime(&self) -> *mut JSRuntime {
-        self.runtime.rt()
     }
 
     pub fn get_cx(&self) -> *mut JSContext {
