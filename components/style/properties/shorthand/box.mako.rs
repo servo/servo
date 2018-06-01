@@ -158,10 +158,12 @@ macro_rules! try_parse_one {
                 // Must check 'transition-property' after 'transition-timing-function' since
                 // 'transition-property' accepts any keyword.
                 if property.is_none() {
-                    if let Ok(value) = input.try(|i| transition_property::SingleSpecifiedValue::parse(i)) {
+                    if let Ok(value) = input.try(|i| transition_property::SingleSpecifiedValue::parse(context, i)) {
                         property = Some(Some(value));
                         continue;
-                    } else if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+                    }
+
+                    if input.try(|i| i.expect_ident_matching("none")).is_ok() {
                         // 'none' is not a valid value for <single-transition-property>,
                         // so it's not acceptable in the function above.
                         property = Some(None);

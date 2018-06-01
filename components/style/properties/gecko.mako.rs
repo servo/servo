@@ -28,7 +28,6 @@ use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImageValue;
-use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
 use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
@@ -3267,6 +3266,8 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator
     {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
 
         let v = v.into_iter();
 
@@ -3274,10 +3275,20 @@ fn static_assert() {
             self.gecko.mTransitions.ensure_len(v.len());
             self.gecko.mTransitionPropertyCount = v.len() as u32;
             for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
+                if !gecko.mUnknownProperty.mRawPtr.is_null() {
+                    unsafe { Atom::from_addrefed(gecko.mUnknownProperty.mRawPtr) };
+                    gecko.mUnknownProperty.mRawPtr = ptr::null_mut();
+                }
+
                 match servo {
-                    TransitionProperty::Unsupported(ref ident) => unsafe {
-                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, ident.0.as_ptr())
+                    TransitionProperty::Unsupported(ident) => {
+                        gecko.mProperty = eCSSProperty_UNKNOWN;
+                        gecko.mUnknownProperty.mRawPtr = ident.0.into_addrefed();
                     },
+                    TransitionProperty::Custom(name) => {
+                        gecko.mProperty = eCSSPropertyExtra_variable;
+                        gecko.mUnknownProperty.mRawPtr = name.into_addrefed();
+                    }
                     _ => gecko.mProperty = servo.to_nscsspropertyid().unwrap(),
                 }
             }
@@ -3307,15 +3318,24 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
 
         let property = self.gecko.mTransitions[index].mProperty;
-        if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
+        if property == eCSSProperty_UNKNOWN {
             let atom = self.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
             debug_assert!(!atom.is_null());
             TransitionProperty::Unsupported(CustomIdent(unsafe{
                 Atom::from_raw(atom)
             }))
+        } else if property == eCSSPropertyExtra_variable {
+            let atom = self.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
+            debug_assert!(!atom.is_null());
+            TransitionProperty::Custom(unsafe{
+                Atom::from_raw(atom)
+            })
         } else if property == eCSSPropertyExtra_no_properties {
-            // Actually, we don't expect TransitionProperty::Unsupported also represents "none",
-            // but if the caller wants to convert it, it is fine. Please use it carefully.
+            // Actually, we don't expect TransitionProperty::Unsupported also
+            // represents "none", but if the caller wants to convert it, it is
+            // fine. Please use it carefully.
+            //
+            // FIXME(emilio): This is a hack, is this reachable?
             TransitionProperty::Unsupported(CustomIdent(atom!("none")))
         } else {
             property.into()
@@ -3336,11 +3356,15 @@ fn static_assert() {
 
         for (index, transition) in self.gecko.mTransitions.iter_mut().enumerate().take(count as usize) {
             transition.mProperty = other.gecko.mTransitions[index].mProperty;
+            if !transition.mUnknownProperty.mRawPtr.is_null() {
+                unsafe { Atom::from_addrefed(transition.mUnknownProperty.mRawPtr) };
+                transition.mUnknownProperty.mRawPtr = ptr::null_mut();
+            }
             if transition.mProperty == eCSSProperty_UNKNOWN ||
                transition.mProperty == eCSSPropertyExtra_variable {
                 let atom = other.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
                 debug_assert!(!atom.is_null());
-                unsafe { Gecko_StyleTransition_SetUnsupportedProperty(transition, atom) };
+                transition.mUnknownProperty.mRawPtr = unsafe { Atom::from_raw(atom) }.into_addrefed();
             }
         }
     }

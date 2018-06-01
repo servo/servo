@@ -257,7 +257,6 @@ ${helpers.predefined_type(
     vector=True,
     allow_empty="NotInitial",
     need_index=True,
-    needs_context=False,
     animation_value_type="none",
     extra_prefixes=transition_extra_prefixes,
     spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",

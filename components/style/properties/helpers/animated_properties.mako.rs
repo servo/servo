@@ -9,6 +9,7 @@
     from itertools import groupby
 %>
 
+use Atom;
 use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
@@ -16,7 +17,8 @@ use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::sugar::ownership::{HasFFI, HasSimpleFFI};
 use itertools::{EitherOrBoth, Itertools};
 use num_traits::Zero;
-use properties::{CSSWideKeyword, PropertyDeclaration};
+use parser::ParserContext;
+use properties::{CSSWideKeyword, PropertyDeclaration, PropertyDeclarationId};
 use properties::longhands;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::visibility::computed_value::T as Visibility;
@@ -25,9 +27,10 @@ use properties::{LonghandId, ShorthandId};
 use servo_arc::Arc;
 use smallvec::SmallVec;
 use std::{cmp, ptr};
+use std::fmt::{self, Write};
 use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo};
+use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo, ToCss, CssWriter};
 use super::ComputedValues;
 use values::{CSSFloat, CustomIdent};
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
@@ -74,15 +77,35 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
 /// a shorthand with at least one transitionable longhand component, or an unsupported property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
 pub enum TransitionProperty {
     /// A shorthand.
     Shorthand(ShorthandId),
     /// A longhand transitionable property.
     Longhand(LonghandId),
+    /// A custom property.
+    Custom(Atom),
     /// Unrecognized property which could be any non-transitionable, custom property, or
     /// unknown property.
     Unsupported(CustomIdent),
+}
+
+impl ToCss for TransitionProperty {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use values::serialize_atom_identifier;
+        match *self {
+            TransitionProperty::Shorthand(ref s) => s.to_css(dest),
+            TransitionProperty::Longhand(ref l) => l.to_css(dest),
+            TransitionProperty::Custom(ref name) => {
+                dest.write_str("--")?;
+                serialize_atom_identifier(name, dest)
+            }
+            TransitionProperty::Unsupported(ref i) => i.to_css(dest),
+        }
+    }
 }
 
 impl TransitionProperty {
@@ -93,38 +116,30 @@ impl TransitionProperty {
     }
 
     /// Parse a transition-property value.
-    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
-        // enum and use PropertyId when stable Rust allows destructors in
-        // statics.
-        //
-        // FIXME: This should handle aliases too.
-        pub enum StaticId {
-            Longhand(LonghandId),
-            Shorthand(ShorthandId),
-        }
-        ascii_case_insensitive_phf_map! {
-            static_id -> StaticId = {
-                % for prop in data.shorthands:
-                "${prop.name}" => StaticId::Shorthand(ShorthandId::${prop.camel_case}),
-                % endfor
-                % for prop in data.longhands:
-                "${prop.name}" => StaticId::Longhand(LonghandId::${prop.camel_case}),
-                % endfor
-            }
-        }
-
+    pub fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
 
-        Ok(match static_id(&ident) {
-            Some(&StaticId::Longhand(id)) => TransitionProperty::Longhand(id),
-            Some(&StaticId::Shorthand(id)) => TransitionProperty::Shorthand(id),
-            None => {
-                TransitionProperty::Unsupported(
-                    CustomIdent::from_ident(location, ident, &["none"])?,
-                )
-            },
+        let id = match PropertyId::parse(&ident, context) {
+            Ok(id) => id,
+            Err(..) => return Ok(TransitionProperty::Unsupported(
+                CustomIdent::from_ident(location, ident, &["none"])?,
+            )),
+        };
+
+        Ok(match id.as_shorthand() {
+            Ok(s) => TransitionProperty::Shorthand(s),
+            Err(longhand_or_custom) => {
+                match longhand_or_custom {
+                    PropertyDeclarationId::Longhand(id) => TransitionProperty::Longhand(id),
+                    PropertyDeclarationId::Custom(custom) => {
+                        TransitionProperty::Custom(custom.clone())
+                    }
+                }
+            }
         })
     }
 
@@ -137,6 +152,7 @@ impl TransitionProperty {
             }
             TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
             TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
+            TransitionProperty::Custom(..) |
             TransitionProperty::Unsupported(..) => return Err(()),
         })
     }

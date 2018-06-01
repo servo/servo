@@ -303,7 +303,8 @@ impl PropertyAnimation {
         let duration = box_style.transition_duration_mod(transition_index);
 
         match transition_property {
-            TransitionProperty::Unsupported(_) => result,
+            TransitionProperty::Custom(..) |
+            TransitionProperty::Unsupported(..) => result,
             TransitionProperty::Shorthand(ref shorthand_id) => shorthand_id
                 .longhands()
                 .filter_map(|longhand| {

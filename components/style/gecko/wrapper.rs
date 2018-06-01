@@ -1629,6 +1629,7 @@ impl<'le> TElement for GeckoElement<'le> {
             };
 
             match transition_property {
+                TransitionProperty::Custom(..) |
                 TransitionProperty::Unsupported(..) => {},
                 TransitionProperty::Shorthand(ref shorthand) => {
                     if shorthand.longhands().any(property_check_helper) {
