@@ -20,7 +20,7 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -197,7 +197,7 @@ impl ServiceWorkerGlobalScope {
 
             unsafe {
                 // Handle interrupt requests
-                JS_SetInterruptCallback(scope.runtime(), Some(interrupt_callback));
+                JS_AddInterruptCallback(scope.get_cx(), Some(interrupt_callback));
             }
 
             scope.execute_script(DOMString::from(source));

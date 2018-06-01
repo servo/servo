@@ -29,7 +29,7 @@ euclid = "0.19"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.10", optional = true }
 hyper_serde = { version = "0.8", optional = true }
-mozjs = { version = "0.7.1", features = ["promises"], optional = true }
+mozjs = { version = "0.8.0", optional = true }
 selectors = { path = "../selectors" }
 serde = { version = "1.0.27", optional = true }
 serde_bytes = { version = "0.10", optional = true }

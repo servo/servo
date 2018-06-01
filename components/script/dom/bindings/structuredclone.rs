@@ -11,14 +11,21 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
+use js::glue::CopyJSStructuredCloneData;
+use js::glue::DeleteJSAutoStructuredCloneBuffer;
+use js::glue::GetLengthOfJSStructuredCloneData;
+use js::glue::NewJSAutoStructuredCloneBuffer;
+use js::glue::WriteBytesToJSStructuredCloneData;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
 use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
+use js::jsapi::CloneDataPolicy;
 use js::jsapi::HandleObject as RawHandleObject;
 use js::jsapi::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
+use js::jsapi::StructuredCloneScope;
 use js::jsapi::TransferableOwnership;
 use js::rust::{Handle, HandleValue, MutableHandleValue};
 use js::rust::wrappers::{JS_WriteStructuredClone, JS_ReadStructuredClone};
@@ -209,24 +216,36 @@ pub enum StructuredCloneData {
 impl StructuredCloneData {
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
     pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
-        let mut data = ptr::null_mut();
-        let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx,
-                                    message,
-                                    &mut data,
-                                    &mut nbytes,
-                                    &STRUCTURED_CLONE_CALLBACKS,
-                                    ptr::null_mut(),
-                                    HandleValue::undefined())
-        };
-        if !result {
-            unsafe {
+        unsafe {
+            let scbuf = NewJSAutoStructuredCloneBuffer(StructuredCloneScope::DifferentProcess,
+                                                       &STRUCTURED_CLONE_CALLBACKS);
+            let scdata = &mut ((*scbuf).data_);
+            let policy = CloneDataPolicy {
+                // TODO: SAB?
+                sharedArrayBuffer_: false,
+            };
+            let result = JS_WriteStructuredClone(cx,
+                                                 message,
+                                                 scdata,
+                                                 StructuredCloneScope::DifferentProcess,
+                                                 policy,
+                                                 &STRUCTURED_CLONE_CALLBACKS,
+                                                 ptr::null_mut(),
+                                                 HandleValue::undefined());
+            if !result {
                 JS_ClearPendingException(cx);
+                return Err(Error::DataClone);
             }
-            return Err(Error::DataClone);
+
+            let nbytes = GetLengthOfJSStructuredCloneData(scdata);
+            let mut data = Vec::with_capacity(nbytes);
+            CopyJSStructuredCloneData(scdata, data.as_mut_ptr());
+            data.set_len(nbytes);
+
+            DeleteJSAutoStructuredCloneBuffer(scbuf);
+
+            Ok(StructuredCloneData::Vector(data))
         }
-        Ok(StructuredCloneData::Struct(data, nbytes))
     }
 
     /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
@@ -254,13 +273,21 @@ impl StructuredCloneData {
         let mut sc_holder = StructuredCloneHolder { blob: None };
         let sc_holder_ptr = &mut sc_holder as *mut _;
         unsafe {
+            let scbuf = NewJSAutoStructuredCloneBuffer(StructuredCloneScope::DifferentProcess,
+                                                       &STRUCTURED_CLONE_CALLBACKS);
+            let scdata = &mut ((*scbuf).data_);
+
+            WriteBytesToJSStructuredCloneData(data as *const u8, nbytes, scdata);
+
             assert!(JS_ReadStructuredClone(cx,
-                                           data,
-                                           nbytes,
+                                           scdata,
                                            JS_STRUCTURED_CLONE_VERSION,
+                                           StructuredCloneScope::DifferentProcess,
                                            rval,
                                            &STRUCTURED_CLONE_CALLBACKS,
                                            sc_holder_ptr as *mut raw::c_void));
+
+            DeleteJSAutoStructuredCloneBuffer(scbuf);
         }
     }
 

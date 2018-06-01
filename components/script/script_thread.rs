@@ -836,11 +836,11 @@ impl ScriptThread {
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
         let runtime = unsafe { new_rt_and_cx() };
+        let cx = runtime.cx();
 
         unsafe {
-            JS_SetWrapObjectCallbacks(runtime.rt(),
-                                      &WRAP_CALLBACKS);
-            SetWindowProxyClass(runtime.rt(), GetWindowProxyClass());
+            JS_SetWrapObjectCallbacks(cx, &WRAP_CALLBACKS);
+            SetWindowProxyClass(cx, GetWindowProxyClass());
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.

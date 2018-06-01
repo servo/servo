@@ -15,7 +15,7 @@ linker = "./support/android/fakeld/fake-ld-x86.sh"
 ar = "i686-linux-android-ar"
 
 [target.arm-unknown-linux-gnueabihf]
-linker = "arm-linux-gnueabihf-gcc"
+linker = "./support/arm32/fake-ld.sh"
 ar = "arm-linux-gnueabihf-ar"
 
 [target.aarch64-unknown-linux-gnu]

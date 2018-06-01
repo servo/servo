@@ -4,7 +4,7 @@
 
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
-use dom::abstractworker::{SharedRt, SimpleWorkerErrorHandler, WorkerScriptMsg};
+use dom::abstractworker::{SimpleWorkerErrorHandler, WorkerScriptMsg};
 use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
@@ -25,7 +25,8 @@ use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JS_SetInterruptCallback, JSAutoCompartment, JSContext};
+use js::jsapi::{JSAutoCompartment, JSContext};
+use js::jsapi::JS_AddInterruptCallback;
 use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use msg::constellation_msg::TopLevelBrowsingContextId;
@@ -37,7 +38,7 @@ use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScript
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::mem::replace;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
@@ -153,7 +154,6 @@ impl DedicatedWorkerGlobalScope {
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
                             worker_url: ServoUrl,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-                            worker_rt_for_mainthread: Arc<Mutex<Option<SharedRt>>>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -206,7 +206,6 @@ impl DedicatedWorkerGlobalScope {
             let source = String::from_utf8_lossy(&bytes);
 
             let runtime = unsafe { new_rt_and_cx() };
-            *worker_rt_for_mainthread.lock().unwrap() = Some(SharedRt::new(&runtime));
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
@@ -229,7 +228,7 @@ impl DedicatedWorkerGlobalScope {
 
             unsafe {
                 // Handle interrupt requests
-                JS_SetInterruptCallback(scope.runtime(), Some(interrupt_callback));
+                JS_AddInterruptCallback(scope.get_cx(), Some(interrupt_callback));
             }
 
             if scope.is_closing() {

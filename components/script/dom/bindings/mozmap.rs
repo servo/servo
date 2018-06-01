@@ -5,10 +5,13 @@
 //! The `MozMap` (open-ended dictionary) type.
 
 use dom::bindings::conversions::jsid_to_string;
+use dom::bindings::error::report_pending_exception;
 use dom::bindings::str::DOMString;
 use js::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use js::jsapi::JSContext;
+use js::jsapi::JSITER_HIDDEN;
 use js::jsapi::JSITER_OWNONLY;
+use js::jsapi::JSITER_SYMBOLS;
 use js::jsapi::JSPROP_ENUMERATE;
 use js::jsapi::JS_NewPlainObject;
 use js::jsval::ObjectValue;
@@ -58,7 +61,12 @@ impl<T, C> FromJSValConvertible for MozMap<T>
 
         rooted!(in(cx) let object = value.to_object());
         let ids = IdVector::new(cx);
-        assert!(GetPropertyKeys(cx, object.handle(), JSITER_OWNONLY, ids.get()));
+        if !GetPropertyKeys(cx, object.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, ids.get()) {
+            // TODO: can GetPropertyKeys fail?
+            // (it does so if the object has duplicate keys)
+            report_pending_exception(cx, false);
+            return Ok(ConversionResult::Failure("Getting MozMap value property keys failed".into()));
+        }
 
         let mut map = HashMap::new();
         for id in &*ids {
@@ -74,8 +82,10 @@ impl<T, C> FromJSValConvertible for MozMap<T>
                 ConversionResult::Failure(message) => return Ok(ConversionResult::Failure(message)),
             };
 
-            let key = jsid_to_string(cx, id.handle()).unwrap();
-            map.insert(key, property);
+            // TODO: Is this guaranteed to succeed?
+            if let Some(key) = jsid_to_string(cx, id.handle()) {
+                map.insert(key, property);
+            }
         }
 
         Ok(ConversionResult::Success(MozMap {
@@ -100,9 +110,7 @@ impl<T: ToJSValConvertible> ToJSValConvertible for MozMap<T> {
                                          key.as_ptr(),
                                          key.len(),
                                          js_value.handle(),
-                                         JSPROP_ENUMERATE,
-                                         None,
-                                         None));
+                                         JSPROP_ENUMERATE as u32));
         }
 
         rval.set(ObjectValue(js_object.handle().get()));

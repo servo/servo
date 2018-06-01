@@ -80,6 +80,10 @@ linux-rel-intermittent:
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-rel-nogate:
+ env:
+   CC: gcc-5
+   CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -97,6 +101,8 @@ linux-dev:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -116,6 +122,8 @@ linux-rel-wpt:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -130,6 +138,8 @@ linux-rel-css:
   env:
     CCACHE: sccache
     RUSTC_WRAPPER: sccache
+    CC: gcc-5
+    CXX: g++-5
   commands:
     - ./mach clean-nightlies --keep 3 --force
     - ./mach clean-cargo-cache --keep 3 --force
@@ -141,6 +151,10 @@ linux-rel-css:
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-nightly:
+ env:
+  CC: gcc-5
+  CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -153,6 +167,10 @@ linux-nightly:
   - rm -rf ./python/_virtualenv
 
 android:
+ env:
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -164,6 +182,10 @@ android:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-x86:
+ env:
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -176,6 +198,10 @@ android-x86:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-nightly:
+ env:
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -186,10 +212,32 @@ android-nightly:
   - ./etc/ci/clean_build_artifacts.sh
 
 arm32:
+ env:
+  AR: /usr/bin/arm-linux-gnueabihf-ar
+  AS: /usr/bin/arm-linux-gnueabihf-as
+  CC: /usr/bin/clang-4.0
+  CFLAGS: --target=arm-unknown-linux-gnueabihf -march=armv7a -I/usr/arm-linux-gnueabihf/include/ -fuse-ld=/home/servo/servo/support/arm32/fake-ld.sh -Wno-error=unused-command-line-argument
+  CPP: /usr/bin/clang-4.0 -E
+  CPPFLAGS: -I/usr/arm-linux-gnueabihf/include
+  CXX: /usr/bin/clang++-4.0
+  CXXFLAGS: --target=arm-unknown-linux-gnueabihf -march=armv7a -I/usr/arm-linux-gnueabihf/include/ -I/usr/arm-linux-gnueabihf/include/c++/4.8.4/arm-linux-gnueabihf -fuse-ld=/home/servo/servo/support/arm32/fake-ld.sh -Wno-error=unused-command-line-argument
+  HOST_CC: gcc-5
+  # test-tidy doesn't like empty strings
+  HOST_CFLAGS: --target=x86_64-unknown-linux-gnu
+  HOST_CXX: g++-5
+  # test-tidy doesn't like empty strings
+  HOST_CXXFLAGS: --target=x86_64-unknown-linux-gnu
+  LD: /usr/bin/arm-linux-gnueabihf-ld
+  OBJCOPY: /usr/bin/arm-linux-gnueabihf-objcopy
+  OBJDUMP: /usr/bin/arm-linux-gnueabihf-objdump
+  RANLIB: /usr/bin/arm-linux-gnueabihf-ranlib
+  STRIP: /usr/bin/arm-linux-gnueabihf-strip
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - ./mach clean
+  - env --unset CC_arm-unknown-linux-gnueabihf --unset CXX_arm-unknown-linux-gnueabihf ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 

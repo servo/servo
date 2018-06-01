@@ -21,7 +21,6 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Int8Array",
       "InternalError",
       "Intl",
-      "Iterator",
       "JSON",
       "Map",
       "Math",
@@ -34,15 +33,12 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "ReferenceError",
       "Reflect",
       "RegExp",
-      "SIMD",
       "Set",
       "SharedArrayBuffer",
-      "StopIteration",
       "String",
       "Symbol",
       "SyntaxError",
       "TypeError",
-      "TypedObject",
       "URIError",
       "Uint16Array",
       "Uint32Array",
@@ -51,6 +47,7 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Uint8ClampedArray",
       "WeakMap",
       "WeakSet",
+      "WebAssembly",
     ];
 
     var sources = [
