@@ -499,6 +499,11 @@ impl NonCustomPropertyId {
             _ => {}
         }
 
+        self.allowed_in_ignoring_rule_type(context)
+    }
+
+
+    fn allowed_in_ignoring_rule_type(self, context: &ParserContext) -> bool {
         // The semantics of these are kinda hard to reason about, what follows
         // is a description of the different combinations that can happen with
         // these three sets.
@@ -1423,11 +1428,17 @@ impl UnparsedValue {
             // As of this writing, only the base URL is used for property
             // values.
             //
-            // FIXME(emilio): These bits are slightly fishy.
+            // NOTE(emilio): we intentionally pase `None` as the rule type here.
+            // If something starts depending on it, it's probably a bug, since
+            // it'd change how values are parsed depending on whether we're in a
+            // @keyframes rule or not, for example... So think twice about
+            // whether you want to do this!
+            //
+            // FIXME(emilio): ParsingMode is slightly fishy...
             let context = ParserContext::new(
                 Origin::Author,
                 &self.url_data,
-                Some(CssRuleType::Style),
+                None,
                 ParsingMode::DEFAULT,
                 quirks_mode,
             );
@@ -1674,6 +1685,24 @@ impl PropertyId {
         Ok(id)
     }
 
+    /// Parses a property name, and returns an error if it's unknown or isn't
+    /// allowed in this context, ignoring the rule_type checks.
+    ///
+    /// This is useful for parsing stuff from CSS values, for example.
+    #[inline]
+    pub fn parse_ignoring_rule_type(
+        name: &str,
+        context: &ParserContext,
+    ) -> Result<Self, ()> {
+        let id = Self::parse_unchecked(name)?;
+
+        if !id.allowed_in_ignoring_rule_type(context) {
+            return Err(());
+        }
+
+        Ok(id)
+    }
+
     /// Returns a property id from Gecko's nsCSSPropertyID.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
@@ -1785,6 +1814,16 @@ impl PropertyId {
             Some(id) => id,
         };
         id.allowed_in(context)
+    }
+
+    #[inline]
+    fn allowed_in_ignoring_rule_type(&self, context: &ParserContext) -> bool {
+        let id = match self.non_custom_id() {
+            // Custom properties are allowed everywhere
+            None => return true,
+            Some(id) => id,
+        };
+        id.allowed_in_ignoring_rule_type(context)
     }
 
     /// Whether the property supports the given CSS type.

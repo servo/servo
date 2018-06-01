@@ -465,7 +465,7 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
 }
 
 fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {
-    let id = match PropertyId::parse(ident, context) {
+    let id = match PropertyId::parse_ignoring_rule_type(ident, context) {
         Ok(id) => id,
         Err(..) => return WillChangeBits::empty(),
     };
@@ -777,7 +777,7 @@ impl Parse for TransitionProperty {
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
 
-        let id = match PropertyId::parse(&ident, context) {
+        let id = match PropertyId::parse_ignoring_rule_type(&ident, context) {
             Ok(id) => id,
             Err(..) => return Ok(TransitionProperty::Unsupported(
                 CustomIdent::from_ident(location, ident, &["none"])?,
