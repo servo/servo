@@ -43,14 +43,10 @@
 == shape-outside-circle-036.html shape-outside-circle-036-ref.html
 == shape-outside-circle-037.html shape-outside-circle-036-ref.html
 == shape-outside-circle-038.html shape-outside-circle-036-ref.html
-== shape-outside-circle-039.html shape-outside-circle-039-ref.html
-== shape-outside-circle-040.html shape-outside-circle-039-ref.html
 == shape-outside-circle-041.html shape-outside-circle-041-ref.html
 == shape-outside-circle-042.html shape-outside-circle-042-ref.html
 == shape-outside-circle-043.html shape-outside-circle-042-ref.html
 == shape-outside-circle-044.html shape-outside-circle-042-ref.html
-== shape-outside-circle-045.html shape-outside-circle-045-ref.html
-== shape-outside-circle-046.html shape-outside-circle-045-ref.html
 == shape-outside-circle-047.html shape-outside-circle-047-ref.html
 == shape-outside-circle-048.html shape-outside-circle-048-ref.html
 == shape-outside-circle-049.html shape-outside-circle-049-ref.html
@@ -88,8 +84,6 @@
 # Basic shape: inset()
 == shape-outside-inset-016.html shape-outside-inset-016-ref.html
 == shape-outside-inset-017.html shape-outside-inset-017-ref.html
-== shape-outside-inset-018.html shape-outside-inset-018-ref.html
-== shape-outside-inset-019.html shape-outside-inset-019-ref.html
 == shape-outside-inset-020.html shape-outside-inset-020-ref.html
 == shape-outside-inset-021.html shape-outside-inset-021-ref.html
 == shape-outside-inset-022.html shape-outside-inset-022-ref.html
@@ -108,10 +102,4 @@
 == shape-outside-polygon-023.html shape-outside-polygon-023-ref.html
 == shape-outside-polygon-024.html shape-outside-polygon-024-ref.html
 == shape-outside-polygon-025.html shape-outside-polygon-025-ref.html
-== shape-outside-polygon-026.html shape-outside-polygon-026-ref.html
-== shape-outside-polygon-027.html shape-outside-polygon-027-ref.html
-== shape-outside-polygon-028.html shape-outside-polygon-026-ref.html
-== shape-outside-polygon-029.html shape-outside-polygon-027-ref.html
-== shape-outside-polygon-030.html shape-outside-polygon-030-ref.html
-== shape-outside-polygon-031.html shape-outside-polygon-031-ref.html
 == shape-outside-polygon-032.html shape-outside-polygon-032-ref.html

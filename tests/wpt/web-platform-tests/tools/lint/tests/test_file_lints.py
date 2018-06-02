@@ -521,6 +521,7 @@ def test_css_missing_file_manual():
     "foo.any.js",
 ])
 @pytest.mark.parametrize("input,error", [
+    (b"""//META: title=foo\n""", None),
     (b"""//META: timeout=long\n""", None),
     (b"""// META: timeout=long\n""", None),
     (b"""//  META: timeout=long\n""", None),

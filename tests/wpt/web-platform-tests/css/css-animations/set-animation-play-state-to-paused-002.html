@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8">
+    <title>Dynamically set animation-play-state to paused</title>
+    <link rel="author" title="Igalia S.L." href="https://www.igalia.com/">
+    <link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-play-state">
+    <meta name="assert" content="Visually check that complex animations stop
+                                 when animation-play-state is set to paused">
+    <link rel="match" href="set-animation-play-state-to-paused-002-ref.html">
+    <style>
+      #container {
+        position: absolute;
+        left: 0;
+        top: 3em;
+      }
+      #lineLinear, #lineSteps  {
+        position: absolute;
+        background: red;
+        width: 10px;
+        height: 50px;
+        left: 95px;
+        transform-origin: 50% 0%;
+      }
+      #coveringRectLinear, #coveringRectSteps {
+        position: absolute;
+        background: lightgreen;
+        width: 40px;
+        height: 70px;
+        left: 80px;
+        transform-origin: 50% 10%;
+        transform: translate(36px, 0) rotate(144deg);
+      }
+      #coveringRectLinear, #lineLinear {
+        top: 50px;
+      }
+      #coveringRectSteps, #lineSteps {
+        top: 150px;
+      }
+      #lineLinear {
+        animation: rotate 2s linear;
+      }
+      #lineSteps {
+        animation: rotate 2s steps(360, end);
+      }
+      .pause {
+        opacity: 0.6;
+        animation-play-state: paused !important;
+      }
+      @keyframes rotate
+      {
+        100% {
+          transform: translate(90px, 0) rotate(360deg);
+        }
+      }
+    </style>
+    <script>
+      var start = null;
+      var animationDuration = 2000;
+      var coveringRectAngle = 144;
+      var rectFinalAngle = 360;
+      function step(timestamp) {
+        if (!start) start = timestamp;
+        var progress = timestamp - start;
+
+        // Pause the animations when the squares pass under the covering rect.
+        var targetProgress = animationDuration * coveringRectAngle / rectFinalAngle;
+        if (progress >= targetProgress) {
+          document.getElementById("lineLinear").classList.add("pause");
+          document.getElementById("lineSteps").classList.add("pause");
+        }
+
+        // Wait a bit so that the squares pass the covering rect if the
+        // animation fails to be paused.
+        var delta = 200;
+        if (progress < targetProgress + delta)
+          window.requestAnimationFrame(step)
+        else
+          document.documentElement.classList.remove("reftest-wait");
+      }
+      function runTest() {
+        window.requestAnimationFrame(step);
+      }
+    </script>
+  </head>
+  <body onload="runTest()">
+    <p>This test passes if you see two rotated green rectangles and no red.</p>
+    <div id="container">
+      <div id="lineLinear"></div>
+      <div id="coveringRectLinear"></div>
+      <div id="lineSteps"></div>
+      <div id="coveringRectSteps"></div>
+    </div>
+  </body>
+</html>
