@@ -347,42 +347,43 @@ impl HTMLFormElement {
             Some(proxy) => proxy,
             None => return
         };
-        let target_document = chosen.document().unwrap();
-        let target_window = target_document.window();
+        if let Some(target_document) = chosen.document() {
+            let target_window = target_document.window();
+            let mut load_data = LoadData::new(action_components,
+                                              None,
+                                              target_document.get_referrer_policy(),
+                                              Some(target_document.url()));
 
-        let mut load_data = LoadData::new(action_components,
-                                          None,
-                                          target_document.get_referrer_policy(),
-                                          Some(target_document.url()));
-
-        // Step 18
-        match (&*scheme, method) {
-            (_, FormMethod::FormDialog) => {
-                // TODO: Submit dialog
-                // https://html.spec.whatwg.org/multipage/#submit-dialog
-            }
-            // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-            ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
-                load_data.headers.set(ContentType::form_url_encoded());
-                self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
-            }
-            // https://html.spec.whatwg.org/multipage/#submit-body
-            ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
-                load_data.method = Method::Post;
-                self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target_window);
-            }
-            // https://html.spec.whatwg.org/multipage/#submit-get-action
-            ("file", _) | ("about", _) | ("data", FormMethod::FormPost) |
-            ("ftp", _) | ("javascript", _) => {
-                self.plan_to_navigate(load_data, &target_window);
-            }
-            ("mailto", FormMethod::FormPost) => {
-                // TODO: Mail as body
-                // https://html.spec.whatwg.org/multipage/#submit-mailto-body
-            }
-            ("mailto", FormMethod::FormGet) => {
-                // TODO: Mail with headers
-                // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
+            // Step 18
+            match (&*scheme, method) {
+                (_, FormMethod::FormDialog) => {
+                    // TODO: Submit dialog
+                    // https://html.spec.whatwg.org/multipage/#submit-dialog
+                }
+                // https://html.spec.whatwg.org/multipage/#submit-mutate-action
+                ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
+                    load_data.headers.set(ContentType::form_url_encoded());
+                    self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
+                }
+                // https://html.spec.whatwg.org/multipage/#submit-body
+                ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
+                    load_data.method = Method::Post;
+                    self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target_window);
+                }
+                // https://html.spec.whatwg.org/multipage/#submit-get-action
+                ("file", _) | ("about", _) | ("data", FormMethod::FormPost) |
+                ("ftp", _) | ("javascript", _) => {
+                    self.plan_to_navigate(load_data, &target_window);
+                }
+                ("mailto", FormMethod::FormPost) => {
+                    // TODO: Mail as body
+                    // https://html.spec.whatwg.org/multipage/#submit-mailto-body
+                }
+                ("mailto", FormMethod::FormGet) => {
+                    // TODO: Mail with headers
+                    // https://html.spec.whatwg.org/multipage/#submit-mailto-headers
+                }
+                _ => return,
             }
         };
     }
