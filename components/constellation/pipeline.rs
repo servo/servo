@@ -62,6 +62,8 @@ pub struct Pipeline {
     /// TODO: move this field to `BrowsingContext`.
     pub parent_info: Option<PipelineId>,
 
+    pub opener: Option<BrowsingContextId>,
+
     /// The event loop handling this pipeline.
     pub event_loop: Rc<EventLoop>,
 
@@ -118,6 +120,8 @@ pub struct InitialPipelineState {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
     pub parent_info: Option<PipelineId>,
+
+    pub opener: Option<BrowsingContextId>,
 
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
@@ -218,6 +222,7 @@ impl Pipeline {
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
+                    opener: state.opener,
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
@@ -257,6 +262,7 @@ impl Pipeline {
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     parent_info: state.parent_info,
+                    opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
                     scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
@@ -302,6 +308,7 @@ impl Pipeline {
                          state.browsing_context_id,
                          state.top_level_browsing_context_id,
                          state.parent_info,
+                         state.opener,
                          script_chan,
                          pipeline_chan,
                          state.compositor_proxy,
@@ -317,6 +324,7 @@ impl Pipeline {
                browsing_context_id: BrowsingContextId,
                top_level_browsing_context_id: TopLevelBrowsingContextId,
                parent_info: Option<PipelineId>,
+               opener: Option<BrowsingContextId>,
                event_loop: Rc<EventLoop>,
                layout_chan: IpcSender<LayoutControlMsg>,
                compositor_proxy: CompositorProxy,
@@ -330,6 +338,7 @@ impl Pipeline {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
+            opener: opener,
             event_loop: event_loop,
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
@@ -447,6 +456,7 @@ pub struct UnprivilegedPipelineContent {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
     parent_info: Option<PipelineId>,
+    opener: Option<BrowsingContextId>,
     script_to_constellation_chan: ScriptToConstellationChan,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
@@ -491,6 +501,7 @@ impl UnprivilegedPipelineContent {
             browsing_context_id: self.browsing_context_id,
             top_level_browsing_context_id: self.top_level_browsing_context_id,
             parent_info: self.parent_info,
+            opener: self.opener,
             control_chan: self.script_chan.clone(),
             control_port: self.script_port,
             script_to_constellation_chan: self.script_to_constellation_chan.clone(),
