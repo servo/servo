@@ -312,22 +312,18 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unkwown property
-            return DOMString::new()
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return DOMString::new(),
         };
         self.get_property_value(id)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unkwown property
-            return DOMString::new()
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return DOMString::new(),
         };
 
         self.owner.with_block(|pdb| {
@@ -347,11 +343,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                    priority: DOMString)
                    -> ErrorResult {
         // Step 3
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unknown property
-            return Ok(())
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return Ok(()),
         };
         self.set_property(id, value, priority)
     }
@@ -364,7 +358,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 2 & 3
-        let id = match PropertyId::parse(&property) {
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
             Ok(id) => id,
             Err(..) => return Ok(()), // Unkwown property
         };
@@ -396,11 +390,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unkwown property, cannot be there to remove.
-            return Ok(DOMString::new())
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return Ok(DOMString::new()),
         };
 
         let mut string = String::new();
