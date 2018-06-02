@@ -19,6 +19,17 @@ use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
+#[cfg(feature = "gecko")]
+fn moz_display_values_enabled(context: &ParserContext) -> bool {
+    use gecko_bindings::structs;
+    use stylesheets::Origin;
+    context.stylesheet_origin == Origin::UserAgent ||
+    context.chrome_rules_enabled() ||
+    unsafe {
+        structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
          SpecifiedValueInfo, ToComputedValue, ToCss)]
@@ -69,26 +80,37 @@ pub enum Display {
     #[cfg(feature = "gecko")]
     WebkitInlineBox,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozBox,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozInlineBox,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozGrid,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozInlineGrid,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozGridGroup,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozGridLine,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozStack,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozInlineStack,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozDeck,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozPopup,
     #[cfg(feature = "gecko")]
+    #[css(parse_condition = "moz_display_values_enabled")]
     MozGroupbox,
 }
 

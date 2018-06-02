@@ -9,8 +9,6 @@
                          inherited=False,
                          gecko_name="Display") %>
 
-// TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-//
 // We allow "display" to apply to placeholders because we need to make the
 // placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
 ${helpers.predefined_type(
@@ -19,7 +17,6 @@ ${helpers.predefined_type(
     "computed::Display::inline()",
     initial_specified_value="specified::Display::inline()",
     animation_value_type="discrete",
-    needs_context=False,
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
     servo_restyle_damage="rebuild_and_reflow"
