@@ -690,6 +690,7 @@ where
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         parent_info: Option<PipelineId>,
+        opener: Option<BrowsingContextId>,
         initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
         // TODO: we have to provide ownership of the LoadData
         // here, because it will be send on an ipc channel,
@@ -764,6 +765,7 @@ where
             browsing_context_id,
             top_level_browsing_context_id,
             parent_info,
+            opener,
             script_to_constellation_chan: ScriptToConstellationChan {
                 sender: self.script_sender.clone(),
                 pipeline_id: pipeline_id,
@@ -1256,6 +1258,13 @@ where
                     warn!("Sending reply to get parent info failed ({:?}).", e);
                 }
             },
+            FromScriptMsg::GetTopForBrowsingContext(browsing_context_id, sender) => {
+                let result = self.browsing_contexts.get(&browsing_context_id)
+                    .and_then(|bc| Some(bc.top_level_id));
+                if let Err(e) = sender.send(result) {
+                    warn!("Sending reply to get top for browsing context info failed ({:?}).", e);
+                }
+            },
             FromScriptMsg::GetChildBrowsingContextId(browsing_context_id, index, sender) => {
                 let result = self
                     .browsing_contexts
@@ -1547,11 +1556,12 @@ where
             (window_size, pipeline_id)
         };
 
-        let (pipeline_url, parent_info) = {
+        let (pipeline_url, parent_info, opener) = {
             let pipeline = pipeline_id.and_then(|id| self.pipelines.get(&id));
             let pipeline_url = pipeline.map(|pipeline| pipeline.url.clone());
             let parent_info = pipeline.and_then(|pipeline| pipeline.parent_info);
-            (pipeline_url, parent_info)
+            let opener = pipeline.and_then(|pipeline| pipeline.opener);
+            (pipeline_url, parent_info, opener)
         };
 
         self.close_browsing_context_children(
@@ -1578,6 +1588,7 @@ where
             browsing_context_id,
             top_level_browsing_context_id,
             parent_info,
+            opener,
             window_size,
             load_data.clone(),
             sandbox,
@@ -1671,6 +1682,7 @@ where
             pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
+            None,
             None,
             Some(window_size),
             load_data.clone(),
@@ -1805,6 +1817,7 @@ where
             load_info.info.browsing_context_id,
             load_info.info.top_level_browsing_context_id,
             Some(load_info.info.parent_pipeline_id),
+            None,
             window_size,
             load_data.clone(),
             load_info.sandbox,
@@ -1850,6 +1863,7 @@ where
                 browsing_context_id,
                 top_level_browsing_context_id,
                 Some(parent_pipeline_id),
+                None,
                 script_sender,
                 layout_sender,
                 self.compositor_proxy.clone(),
@@ -1887,8 +1901,8 @@ where
         let load_data = LoadData::new(url.clone(), None, None, None);
 
         let pipeline = {
-            let opener_pipeline = match self.pipelines.get(&opener_pipeline_id) {
-                Some(parent_pipeline) => parent_pipeline,
+            let (opener_pipeline, opener_id) = match self.pipelines.get(&opener_pipeline_id) {
+                Some(opener_pipeline) => (opener_pipeline, opener_pipeline.browsing_context_id),
                 None => return warn!("Auxiliary loaded url in closed pipeline {}.", opener_pipeline_id),
             };
             let opener_host = match reg_host(&opener_pipeline.url) {
@@ -1907,6 +1921,7 @@ where
                           new_browsing_context_id,
                           new_top_level_browsing_context_id,
                           None,
+                          Some(opener_id),
                           script_sender,
                           layout_sender,
                           self.compositor_proxy.clone(),
@@ -2010,8 +2025,8 @@ where
         // requested change so it can update its internal state.
         //
         // If replace is true, the current entry is replaced instead of a new entry being added.
-        let (browsing_context_id, parent_info) = match self.pipelines.get(&source_id) {
-            Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info),
+        let (browsing_context_id, parent_info, opener) = match self.pipelines.get(&source_id) {
+            Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info, pipeline.opener),
             None => {
                 warn!("Pipeline {} loaded after closure.", source_id);
                 return None;
@@ -2088,6 +2103,7 @@ where
                     browsing_context_id,
                     top_level_id,
                     None,
+                    opener,
                     window_size,
                     load_data.clone(),
                     sandbox,
@@ -2372,18 +2388,20 @@ where
                 // TODO: Save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let new_pipeline_id = PipelineId::new();
-                let (top_level_id, parent_info, window_size, is_private) =
+                let (top_level_id, parent_info, opener, window_size, is_private) =
                     match self.browsing_contexts.get(&browsing_context_id) {
                         Some(browsing_context) => {
                             match self.pipelines.get(&browsing_context.pipeline_id) {
                                 Some(pipeline) => (
                                     browsing_context.top_level_id,
                                     pipeline.parent_info,
+                                    pipeline.opener,
                                     browsing_context.size,
                                     pipeline.is_private,
                                 ),
                                 None => (
                                     browsing_context.top_level_id,
+                                    None,
                                     None,
                                     browsing_context.size,
                                     false,
@@ -2397,6 +2415,7 @@ where
                     browsing_context_id,
                     top_level_id,
                     parent_info,
+                    opener,
                     window_size,
                     load_data.clone(),
                     sandbox,

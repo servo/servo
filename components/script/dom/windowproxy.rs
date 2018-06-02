@@ -36,7 +36,7 @@ use js::jsapi::HandleValue as RawHandleValue;
 use js::jsapi::MutableHandle as RawMutableHandle;
 use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::MutableHandleValue as RawMutableHandleValue;
-use js::jsval::{UndefinedValue, PrivateValue};
+use js::jsval::{JSVal, NullValue, UndefinedValue, PrivateValue};
 use js::rust::{Handle, MutableHandle};
 use js::rust::get_object_class;
 use js::rust::wrappers::{NewWindowProxy, SetWindowProxy, JS_TransplantObject};
@@ -67,6 +67,9 @@ pub struct WindowProxy {
     /// of the container.
     browsing_context_id: BrowsingContextId,
 
+    // https://html.spec.whatwg.org/multipage/#opener-browsing-context
+    opener: Option<BrowsingContextId>,
+
     /// The frame id of the top-level ancestor browsing context.
     /// In the case that this is a top-level window, this is our id.
     top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -83,6 +86,9 @@ pub struct WindowProxy {
     /// Has the browsing context been discarded?
     discarded: Cell<bool>,
 
+    /// Has the browsing context been disowned?
+    disowned: Cell<bool>,
+
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<Dom<Element>>,
 
@@ -95,7 +101,8 @@ impl WindowProxy {
                          top_level_browsing_context_id: TopLevelBrowsingContextId,
                          currently_active: Option<PipelineId>,
                          frame_element: Option<&Element>,
-                         parent: Option<&WindowProxy>)
+                         parent: Option<&WindowProxy>,
+                         opener: Option<BrowsingContextId>)
                          -> WindowProxy
     {
         let name = frame_element.map_or(DOMString::new(), |e| e.get_string_attribute(&local_name!("name")));
@@ -106,8 +113,10 @@ impl WindowProxy {
             name: DomRefCell::new(name),
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
+            disowned: Cell::new(false),
             frame_element: frame_element.map(Dom::from_ref),
             parent: parent.map(Dom::from_ref),
+            opener: opener
         }
     }
 
@@ -116,7 +125,8 @@ impl WindowProxy {
                browsing_context_id: BrowsingContextId,
                top_level_browsing_context_id: TopLevelBrowsingContextId,
                frame_element: Option<&Element>,
-               parent: Option<&WindowProxy>)
+               parent: Option<&WindowProxy>,
+               opener: Option<BrowsingContextId>)
                -> DomRoot<WindowProxy>
     {
         unsafe {
@@ -140,7 +150,8 @@ impl WindowProxy {
                 top_level_browsing_context_id,
                 current,
                 frame_element,
-                parent
+                parent,
+                opener
             ));
 
             // The window proxy owns the browsing context.
@@ -161,7 +172,8 @@ impl WindowProxy {
     pub fn new_dissimilar_origin(global_to_clone_from: &GlobalScope,
                                  browsing_context_id: BrowsingContextId,
                                  top_level_browsing_context_id: TopLevelBrowsingContextId,
-                                 parent: Option<&WindowProxy>)
+                                 parent: Option<&WindowProxy>,
+                                 opener: Option<BrowsingContextId>)
                                  -> DomRoot<WindowProxy>
     {
         unsafe {
@@ -176,7 +188,8 @@ impl WindowProxy {
                 top_level_browsing_context_id,
                 None,
                 None,
-                parent
+                parent,
+                opener
             ));
 
             // Create a new dissimilar-origin window.
@@ -205,7 +218,7 @@ impl WindowProxy {
     }
 
     // https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context
-    fn create_auxiliary_browsing_context(&self, name: DOMString, _noopener: bool) -> Option<DomRoot<WindowProxy>> {
+    fn create_auxiliary_browsing_context(&self, name: DOMString, noopener: bool) -> Option<DomRoot<WindowProxy>> {
         let (chan, port) = ipc::channel().unwrap();
         let window = self.currently_active.get()
                     .and_then(|id| ScriptThread::find_document(id))
@@ -237,6 +250,7 @@ impl WindowProxy {
                 new_pipeline_id: new_pipeline_id,
                 browsing_context_id: new_browsing_context_id,
                 top_level_browsing_context_id: new_top_level_browsing_context_id,
+                opener: Some(self.browsing_context_id),
                 load_data: load_data,
                 pipeline_port: pipeline_receiver,
                 content_process_shutdown_chan: None,
@@ -248,15 +262,67 @@ impl WindowProxy {
             ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
             let msg = EmbedderMsg::BrowserCreated(new_top_level_browsing_context_id);
             window.send_to_embedder(msg);
+            // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
+            // See step 15 of https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
             let auxiliary = ScriptThread::find_document(new_pipeline_id).and_then(|doc| doc.browsing_context());
             if let Some(proxy) = auxiliary {
                 if name.to_lowercase() != "_blank" {
                     proxy.set_name(name);
                 }
+                if noopener {
+                    proxy.disown();
+                }
                 return Some(proxy)
             }
         }
         None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#disowned-its-opener
+    pub fn disown(&self) {
+        self.disowned.set(true);
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    pub fn opener(&self, cx: *mut JSContext) -> JSVal {
+        if self.disowned.get() {
+            return NullValue()
+        }
+        let opener_id = match self.opener {
+            Some(opener_browsing_context_id) => opener_browsing_context_id,
+            None => return NullValue()
+        };
+        let opener_proxy = match ScriptThread::find_window_proxy(opener_id) {
+            Some(window_proxy) => window_proxy,
+            None => {
+                let sender_pipeline_id = self.currently_active().unwrap();
+                match ScriptThread::get_top_level_for_browsing_context(sender_pipeline_id, opener_id) {
+                    Some(opener_top_id) => {
+                        let global_to_clone_from = unsafe {
+                            GlobalScope::from_context(cx)
+                        };
+                        WindowProxy::new_dissimilar_origin(
+                            &*global_to_clone_from,
+                            opener_id,
+                            opener_top_id,
+                            None,
+                            None
+                        )
+                    },
+                    None => return NullValue()
+                }
+            }
+        };
+        if opener_proxy.is_browsing_context_discarded() {
+            return NullValue()
+        } else {
+            unsafe {
+                rooted!(in(cx) let mut val = UndefinedValue());
+                opener_proxy.to_jsval(cx, val.handle_mut());
+                return val.get()
+            }
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
@@ -310,7 +376,11 @@ impl WindowProxy {
             },
             "_parent" => {
                 // Step 4
-                (Some(DomRoot::from_ref(self.parent().unwrap())), false)
+                if let Some(parent) = self.parent() {
+                    return (Some(DomRoot::from_ref(parent)), false)
+                }
+                return (None, false)
+
             },
             "_top" => {
                 // Step 5
@@ -330,6 +400,10 @@ impl WindowProxy {
                 }
             }
         }
+    }
+
+    pub fn is_auxiliary(&self) -> bool {
+        self.opener.is_some()
     }
 
     pub fn discard_browsing_context(&self) {
