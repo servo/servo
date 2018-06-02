@@ -80,10 +80,8 @@ pub enum Display {
     #[cfg(feature = "gecko")]
     WebkitInlineBox,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
     MozBox,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
     MozInlineBox,
     #[cfg(feature = "gecko")]
     #[css(parse_condition = "moz_display_values_enabled")]
