@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<p>This window should set the window.opener attribute</p>
+<script src="/common/PrefixedLocalStorage.js"></script>
+<script>
+var prefixedLocalStorage = new PrefixedLocalStorageResource({
+  close_on_cleanup: true
+});
+function checkOpener () {
+  if (window.name == 'iShouldSetOpenerToNull') {
+    window.opener = null;
+    return prefixedLocalStorage.setItem('openerIsNull', window.opener === null);
+  }
+  if (window.name == 'iShouldSetOpenerToTest') {
+    window.opener = 'test';
+    return prefixedLocalStorage.setItem('openerIsTest', window.opener === "test");
+  }
+}
+</script>
+<body onload="checkOpener()">
+</body>
+</html>
