@@ -56,7 +56,7 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
@@ -542,6 +542,20 @@ impl WindowMethods for Window {
             features: DOMString)
             -> Option<DomRoot<WindowProxy>> {
         self.window_proxy().open(url, target, features)
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    unsafe fn Opener(&self, cx: *mut JSContext) -> JSVal {
+        self.window_proxy().opener(cx)
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    unsafe fn SetOpener(&self, _cx: *mut JSContext, _value: HandleValue) {
+        // TODO: Step 2.
+        // NOTE: for now assuming value is null, and disowning.
+        self.window_proxy().disown();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
