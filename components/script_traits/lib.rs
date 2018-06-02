@@ -193,6 +193,8 @@ pub struct NewLayoutInfo {
     pub browsing_context_id: BrowsingContextId,
     /// Id of the top-level browsing context associated with this pipeline.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    /// Id of the opener, if any
+    pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
@@ -521,6 +523,8 @@ pub struct InitialScriptState {
     pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level browsing context this script is part of.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    /// The ID of the opener, if any.
+    pub opener: Option<BrowsingContextId>,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
