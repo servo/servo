@@ -35,7 +35,7 @@
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
   [Unforgeable] readonly attribute WindowProxy? top;
-  //         attribute any opener;
+  attribute any opener;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
   [Replaceable] readonly attribute WindowProxy? parent;

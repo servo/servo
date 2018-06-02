@@ -62,8 +62,9 @@ use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
-use js::jsval::UndefinedValue;
+use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
+use js::rust::wrappers::JS_SetProperty;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
@@ -572,6 +573,24 @@ impl WindowMethods for Window {
             features: DOMString)
             -> Option<DomRoot<WindowProxy>> {
         self.window_proxy().open(url, target, features)
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    unsafe fn Opener(&self, cx: *mut JSContext) -> JSVal {
+        self.window_proxy().opener(cx)
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    unsafe fn SetOpener(&self, cx: *mut JSContext, value: HandleValue) {
+        // Step 1.
+        if value.is_null() {
+            return self.window_proxy().disown();
+        }
+        // Step 2.
+        let obj = self.reflector().get_jsobject();
+        assert!(JS_SetProperty(cx, obj, "opener".as_ptr() as *const i8, value));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
