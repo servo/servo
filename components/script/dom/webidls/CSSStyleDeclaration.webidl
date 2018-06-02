@@ -20,12 +20,6 @@ interface CSSStyleDeclaration {
   void setProperty(DOMString property, [TreatNullAs=EmptyString] DOMString value,
                                        [TreatNullAs=EmptyString] optional DOMString priority = "");
   [CEReactions, Throws]
-  void setPropertyValue(DOMString property, [TreatNullAs=EmptyString] DOMString value);
-
-  [CEReactions, Throws]
-  void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
-
-  [CEReactions, Throws]
   DOMString removeProperty(DOMString property);
   // readonly attribute CSSRule? parentRule;
   [CEReactions, SetterThrows]
