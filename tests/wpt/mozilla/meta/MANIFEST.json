@@ -5501,18 +5501,6 @@
      {}
     ]
    ],
-   "css/setpropertypriority.html": [
-    [
-     "/_mozilla/css/setpropertypriority.html",
-     [
-      [
-       "/_mozilla/css/setpropertypriority_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
    "css/simple_inline_absolute_containing_block_a.html": [
     [
      "/_mozilla/css/simple_inline_absolute_containing_block_a.html",
@@ -9647,11 +9635,6 @@
     ]
    ],
    "css/setattribute_id_restyle_b.html": [
-    [
-     {}
-    ]
-   ],
-   "css/setpropertypriority_ref.html": [
     [
      {}
     ]
@@ -63754,14 +63737,6 @@
   ],
   "css/setattribute_id_restyle_b.html": [
    "3de96c5c95089cb3c931f0158613ed585438f9ec",
-   "support"
-  ],
-  "css/setpropertypriority.html": [
-   "67d08c6e155403d6452a48ea57680fc242264d15",
-   "reftest"
-  ],
-  "css/setpropertypriority_ref.html": [
-   "c869671f731182ae1e07b9e6e6fc9b76c20a6d31",
    "support"
   ],
   "css/simple_inline_absolute_containing_block_a.html": [

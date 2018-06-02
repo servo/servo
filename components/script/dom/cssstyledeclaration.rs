@@ -350,39 +350,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         self.set_property(id, value, priority)
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
-    fn SetPropertyPriority(&self, property: DOMString, priority: DOMString) -> ErrorResult {
-        // Step 1
-        if self.readonly {
-            return Err(Error::NoModificationAllowed);
-        }
-
-        // Step 2 & 3
-        let id = match PropertyId::parse_enabled_for_all_content(&property) {
-            Ok(id) => id,
-            Err(..) => return Ok(()), // Unkwown property
-        };
-
-        // Step 4
-        let importance = match &*priority {
-            "" => Importance::Normal,
-            p if p.eq_ignore_ascii_case("important") => Importance::Important,
-            _ => return Ok(()),
-        };
-
-        self.owner.mutate_associated_block(|pdb, changed| {
-            // Step 5 & 6
-            *changed = pdb.set_importance(&id, importance);
-        });
-
-        Ok(())
-    }
-
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
-    fn SetPropertyValue(&self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, DOMString::new())
-    }
-
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
     fn RemoveProperty(&self, property: DOMString) -> Fallible<DOMString> {
         // Step 1
@@ -407,12 +374,16 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(&self) -> DOMString {
-        self.GetPropertyValue(DOMString::from("float"))
+        self.get_property_value(PropertyId::Longhand(LonghandId::Float))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue(DOMString::from("float"), value)
+        self.set_property(
+            PropertyId::Longhand(LonghandId::Float),
+            value,
+            DOMString::new(),
+        )
     }
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
