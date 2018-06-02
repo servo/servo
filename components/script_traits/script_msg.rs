@@ -17,7 +17,8 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
@@ -105,6 +106,8 @@ pub enum ScriptMsg {
     GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the parent info for a given pipeline.
     GetParentInfo(PipelineId, IpcSender<Option<PipelineId>>),
+    /// Get the top-level browsing context info for a given browsing context.
+    GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<TopLevelBrowsingContextId>>),
     /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
     GetChildBrowsingContextId(BrowsingContextId, usize, IpcSender<Option<BrowsingContextId>>),
     /// All pending loads are complete, and the `load` event for this pipeline
@@ -182,6 +185,7 @@ impl fmt::Debug for ScriptMsg {
             GetClipboardContents(..) => "GetClipboardContents",
             GetBrowsingContextId(..) => "GetBrowsingContextId",
             GetParentInfo(..) => "GetParentInfo",
+            GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
             LoadComplete => "LoadComplete",
             LoadUrl(..) => "LoadUrl",
