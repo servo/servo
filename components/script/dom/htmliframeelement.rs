@@ -177,6 +177,7 @@ impl HTMLIFrameElement {
                     new_pipeline_id: new_pipeline_id,
                     browsing_context_id: browsing_context_id,
                     top_level_browsing_context_id: top_level_browsing_context_id,
+                    opener: None,
                     load_data: load_data.unwrap(),
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
