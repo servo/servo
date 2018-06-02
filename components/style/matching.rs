@@ -678,7 +678,7 @@ pub trait MatchMethods: TElement {
         let new_primary_style = data.styles.primary.as_ref().unwrap();
 
         let mut cascade_requirement = ChildCascadeRequirement::CanSkipCascade;
-        if self.is_root() && !self.is_native_anonymous() {
+        if self.is_root() && !self.is_in_native_anonymous_subtree() {
             let device = context.shared.stylist.device();
             let new_font_size = new_primary_style.get_font().clone_font_size();
 

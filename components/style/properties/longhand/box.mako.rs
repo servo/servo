@@ -593,7 +593,7 @@ ${helpers.predefined_type("contain",
                           "specified::Contain::empty()",
                           animation_value_type="discrete",
                           products="gecko",
-                          flags="FIXPOS_CB",
+                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
                           gecko_pref="layout.css.contain.enabled",
                           spec="https://drafts.csswg.org/css-contain/#contain-property")}
 

@@ -1422,10 +1422,12 @@ impl UnparsedValue {
         .and_then(|css| {
             // As of this writing, only the base URL is used for property
             // values.
+            //
+            // FIXME(emilio): These bits are slightly fishy.
             let context = ParserContext::new(
                 Origin::Author,
                 &self.url_data,
-                None,
+                Some(CssRuleType::Style),
                 ParsingMode::DEFAULT,
                 quirks_mode,
             );
@@ -1595,7 +1597,7 @@ impl PropertyId {
     /// Returns a given property from the string `s`.
     ///
     /// Returns Err(()) for unknown non-custom properties.
-    pub fn parse(property_name: &str) -> Result<Self, ()> {
+    fn parse_unchecked(property_name: &str) -> Result<Self, ()> {
         // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
         // enum and use PropertyId when stable Rust allows destructors in
         // statics.
@@ -1639,11 +1641,37 @@ impl PropertyId {
                 PropertyId::ShorthandAlias(id, alias)
             },
             None => {
-                return ::custom_properties::parse_name(property_name).map(|name| {
-                    PropertyId::Custom(::custom_properties::Name::from(name))
-                })
+                let name = ::custom_properties::parse_name(property_name)?;
+                PropertyId::Custom(::custom_properties::Name::from(name))
             },
         })
+    }
+
+    /// Parses a property name, and returns an error if it's unknown or isn't
+    /// enabled for all content.
+    #[inline]
+    pub fn parse_enabled_for_all_content(name: &str) -> Result<Self, ()> {
+        let id = Self::parse_unchecked(name)?;
+
+        if !id.enabled_for_all_content() {
+            return Err(());
+        }
+
+        Ok(id)
+    }
+
+
+    /// Parses a property name, and returns an error if it's unknown or isn't
+    /// allowed in this context.
+    #[inline]
+    pub fn parse(name: &str, context: &ParserContext) -> Result<Self, ()> {
+        let id = Self::parse_unchecked(name)?;
+
+        if !id.allowed_in(context) {
+            return Err(());
+        }
+
+        Ok(id)
     }
 
     /// Returns a property id from Gecko's nsCSSPropertyID.
@@ -1972,12 +2000,7 @@ impl PropertyDeclaration {
         input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i>> {
         assert!(declarations.is_empty());
-
-        if !id.allowed_in(context) {
-            return Err(input.new_custom_error(
-                StyleParseErrorKind::UnknownProperty(name)
-            ));
-        }
+        debug_assert!(id.allowed_in(context), "{:?}", id);
 
         let start = input.state();
         match id {

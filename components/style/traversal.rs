@@ -433,9 +433,10 @@ pub fn recalc_style_at<E, D, F>(
     if compute_self {
         child_cascade_requirement = compute_style(traversal_data, context, element, data);
 
-        if element.is_native_anonymous() {
-            // We must always cascade native anonymous subtrees, since they inherit
-            // styles from their first non-NAC ancestor.
+        if element.is_in_native_anonymous_subtree() {
+            // We must always cascade native anonymous subtrees, since they
+            // may have pseudo-elements underneath that would inherit from the
+            // closest non-NAC ancestor instead of us.
             child_cascade_requirement = cmp::max(
                 child_cascade_requirement,
                 ChildCascadeRequirement::MustCascadeChildren,

@@ -7,6 +7,7 @@
 use Atom;
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
+use properties::{LonghandId, PropertyId, PropertyFlags, PropertyDeclarationId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
@@ -382,7 +383,15 @@ pub enum WillChange {
     Auto,
     /// <custom-ident>
     #[css(comma)]
-    AnimateableFeatures(#[css(iterable)] Box<[CustomIdent]>),
+    AnimateableFeatures {
+        /// The features that are supposed to change.
+        #[css(iterable)]
+        features: Box<[CustomIdent]>,
+        /// A bitfield with the kind of change that the value will create, based
+        /// on the above field.
+        #[css(skip)]
+        bits: WillChangeBits,
+    },
 }
 
 impl WillChange {
@@ -393,10 +402,68 @@ impl WillChange {
     }
 }
 
+bitflags! {
+    /// The change bits that we care about.
+    ///
+    /// These need to be in sync with NS_STYLE_WILL_CHANGE_*.
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
+    pub struct WillChangeBits: u8 {
+        /// Whether the stacking context will change.
+        const STACKING_CONTEXT = 1 << 0;
+        /// Whether `transform` will change.
+        const TRANSFORM = 1 << 1;
+        /// Whether `scroll-position` will change.
+        const SCROLL = 1 << 2;
+        /// Whether `opacity` will change.
+        const OPACITY = 1 << 3;
+        /// Fixed pos containing block.
+        const FIXPOS_CB = 1 << 4;
+        /// Abs pos containing block.
+        const ABSPOS_CB = 1 << 5;
+    }
+}
+
+fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
+    let mut flags = match longhand {
+        LonghandId::Opacity => WillChangeBits::OPACITY,
+        LonghandId::Transform => WillChangeBits::TRANSFORM,
+        _ => WillChangeBits::empty(),
+    };
+
+    let property_flags = longhand.flags();
+    if property_flags.contains(PropertyFlags::CREATES_STACKING_CONTEXT) {
+        flags |= WillChangeBits::STACKING_CONTEXT;
+    }
+    if property_flags.contains(PropertyFlags::FIXPOS_CB) {
+        flags |= WillChangeBits::FIXPOS_CB;
+    }
+    if property_flags.contains(PropertyFlags::ABSPOS_CB) {
+        flags |= WillChangeBits::ABSPOS_CB;
+    }
+    flags
+}
+
+fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {
+    let id = match PropertyId::parse(ident, context) {
+        Ok(id) => id,
+        Err(..) => return WillChangeBits::empty(),
+    };
+
+    match id.as_shorthand() {
+        Ok(shorthand) => {
+            shorthand.longhands().fold(WillChangeBits::empty(), |flags, p| {
+                flags | change_bits_for_longhand(p)
+            })
+        }
+        Err(PropertyDeclarationId::Longhand(longhand)) => change_bits_for_longhand(longhand),
+        Err(PropertyDeclarationId::Custom(..)) => WillChangeBits::empty(),
+    }
+}
+
 impl Parse for WillChange {
     /// auto | <animateable-feature>#
     fn parse<'i, 't>(
-        _context: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<WillChange, ParseError<'i>> {
         if input
@@ -406,18 +473,28 @@ impl Parse for WillChange {
             return Ok(WillChange::Auto);
         }
 
+        let mut bits = WillChangeBits::empty();
         let custom_idents = input.parse_comma_separated(|i| {
             let location = i.current_source_location();
-            CustomIdent::from_ident(
+            let parser_ident = i.expect_ident()?;
+            let ident = CustomIdent::from_ident(
                 location,
-                i.expect_ident()?,
+                parser_ident,
                 &["will-change", "none", "all", "auto"],
-            )
+            )?;
+
+            if ident.0 == atom!("scroll-position") {
+                bits |= WillChangeBits::SCROLL;
+            } else {
+                bits |= change_bits_for_maybe_property(&parser_ident, context);
+            }
+            Ok(ident)
         })?;
 
-        Ok(WillChange::AnimateableFeatures(
-            custom_idents.into_boxed_slice(),
-        ))
+        Ok(WillChange::AnimateableFeatures {
+            features: custom_idents.into_boxed_slice(),
+            bits,
+        })
     }
 }
 
@@ -525,19 +602,25 @@ pub fn assert_touch_action_matches() {
 
 bitflags! {
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue)]
-    #[value_info(other_values = "none,strict,layout,style,paint")]
+    #[value_info(other_values = "none,strict,content,size,layout,style,paint")]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
     pub struct Contain: u8 {
+        /// 'size' variant, turns on size containment
+        const SIZE = 0x01;
         /// `layout` variant, turns on layout containment
-        const LAYOUT = 0x01;
+        const LAYOUT = 0x02;
         /// `style` variant, turns on style containment
-        const STYLE = 0x02;
+        const STYLE = 0x04;
         /// `paint` variant, turns on paint containment
-        const PAINT = 0x04;
+        const PAINT = 0x08;
         /// `strict` variant, turns on all types of containment
-        const STRICT = 0x8;
+        const STRICT = 0x10;
+        /// 'content' variant, turns on style, layout, and paint containment
+        const CONTENT = 0x20;
         /// variant with all the bits that contain: strict turns on
-        const STRICT_BITS = Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits;
+        const STRICT_BITS = Contain::LAYOUT.bits | Contain::STYLE.bits | Contain::PAINT.bits | Contain::SIZE.bits;
+        /// variant with all the bits that contain: content turns on
+        const CONTENT_BITS = Contain::STYLE.bits | Contain::LAYOUT.bits | Contain::PAINT.bits;
     }
 }
 
@@ -552,6 +635,9 @@ impl ToCss for Contain {
         if self.contains(Contain::STRICT) {
             return dest.write_str("strict");
         }
+        if self.contains(Contain::CONTENT) {
+            return dest.write_str("content");
+        }
 
         let mut has_any = false;
         macro_rules! maybe_write_value {
@@ -565,6 +651,7 @@ impl ToCss for Contain {
                 }
             };
         }
+        maybe_write_value!(Contain::SIZE => "size");
         maybe_write_value!(Contain::LAYOUT => "layout");
         maybe_write_value!(Contain::STYLE => "style");
         maybe_write_value!(Contain::PAINT => "paint");
@@ -583,10 +670,12 @@ impl Parse for Contain {
         let mut result = Contain::empty();
         while let Ok(name) = input.try(|i| i.expect_ident_cloned()) {
             let flag = match_ignore_ascii_case! { &name,
+                "size" => Some(Contain::SIZE),
                 "layout" => Some(Contain::LAYOUT),
                 "style" => Some(Contain::STYLE),
                 "paint" => Some(Contain::PAINT),
                 "strict" if result.is_empty() => return Ok(Contain::STRICT | Contain::STRICT_BITS),
+                "content" if result.is_empty() => return Ok(Contain::CONTENT | Contain::CONTENT_BITS),
                 "none" if result.is_empty() => return Ok(result),
                 _ => None
             };
