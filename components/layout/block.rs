@@ -1330,18 +1330,16 @@ impl BlockFlow {
     /// `#[inline(always)]` because this is called only from block or table inline-size assignment
     /// and the code for block layout is significantly simpler.
     #[inline(always)]
-    pub fn propagate_assigned_inline_size_to_children<F>(&mut self,
-                                                         shared_context: &SharedStyleContext,
-                                                         inline_start_content_edge: Au,
-                                                         inline_end_content_edge: Au,
-                                                         content_inline_size: Au,
-                                                         mut callback: F)
-                                                         where F: FnMut(&mut Flow,
-                                                                        usize,
-                                                                        Au,
-                                                                        WritingMode,
-                                                                        &mut Au,
-                                                                        &mut Au) {
+    pub fn propagate_assigned_inline_size_to_children<F>(
+        &mut self,
+        shared_context: &SharedStyleContext,
+        inline_start_content_edge: Au,
+        inline_end_content_edge: Au,
+        content_inline_size: Au,
+        mut callback: F
+    ) where
+        F: FnMut(&mut Flow, usize, Au, WritingMode, &mut Au, &mut Au)
+    {
         let flags = self.base.flags.clone();
 
         let opaque_self = OpaqueFlow::from_flow(self);
@@ -1407,12 +1405,14 @@ impl BlockFlow {
 
             // Call the callback to propagate extra inline size information down to the child. This
             // is currently used for tables.
-            callback(kid,
-                     i,
-                     content_inline_size,
-                     containing_block_mode,
-                     &mut inline_start_margin_edge,
-                     &mut inline_end_margin_edge);
+            callback(
+                kid,
+                i,
+                content_inline_size,
+                containing_block_mode,
+                &mut inline_start_margin_edge,
+                &mut inline_end_margin_edge
+            );
 
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //

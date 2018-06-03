@@ -24,8 +24,8 @@ use style::properties::ComputedValues;
 use style::values::computed::Color;
 use style::values::generics::box_::VerticalAlign;
 use style::values::specified::BorderStyle;
-use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use table_rowgroup::InternalTable;
 
 #[allow(unsafe_code)]
 unsafe impl ::flow::HasBaseFlow for TableCellFlow {}

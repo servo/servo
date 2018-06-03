@@ -28,8 +28,9 @@ use style::computed_values::border_top_style::T as BorderStyle;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::values::computed::{Color, LengthOrPercentageOrAuto};
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
+use table_rowgroup::InternalTable;
 
 #[allow(unsafe_code)]
 unsafe impl ::flow::HasBaseFlow for TableRowFlow {}
