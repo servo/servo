@@ -687,9 +687,29 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     match reg_host(&load_data.url) {
                         None => (None, None),
                         Some(host) => {
-                            let event_loop = self.event_loops.get(&top_level_browsing_context_id)
-                                .and_then(|map| map.get(&host))
-                                .and_then(|weak| weak.upgrade());
+                            let current_entry = self.event_loops.get(&top_level_browsing_context_id)
+                                                .and_then(|map| map.get(&host))
+                                                .and_then(|weak| weak.upgrade());
+                            // Check the opener for a matching event-loop
+                            // so that it can be shared.
+                            // https://html.spec.whatwg.org/multipage/
+                            // #unit-of-related-similar-origin-browsing-contexts
+                            let event_loop = if let Some(opener) = opener {
+                                self.browsing_contexts.get(&opener)
+                                    .and_then(|bc| Some(bc.top_level_id))
+                                    .and_then(|top| {
+                                        let matching_host_loop = self.event_loops.get(&top)
+                                            .and_then(|map| map.get(&host))
+                                            .and_then(|weak| weak.upgrade());
+                                        if matching_host_loop.is_some() {
+                                            return matching_host_loop
+                                        } else {
+                                            return current_entry
+                                        }
+                                    })
+                            } else {
+                                current_entry
+                            };
                             match event_loop {
                                 None => (None, Some(host)),
                                 Some(event_loop) => (Some(event_loop.clone()), None),
