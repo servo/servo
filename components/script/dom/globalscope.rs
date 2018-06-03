@@ -300,9 +300,9 @@ impl GlobalScope {
             // https://html.spec.whatwg.org/multipage/#script-settings-for-workers:api-base-url
             return worker.get_url().clone();
         }
-        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
+        if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             // https://drafts.css-houdini.org/worklets/#script-settings-for-worklets
-            return worker.base_url();
+            return worklet.base_url();
         }
         unreachable!();
     }
@@ -315,9 +315,9 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.get_url().clone();
         }
-        if let Some(worker) = self.downcast::<WorkletGlobalScope>() {
+        if let Some(worklet) = self.downcast::<WorkletGlobalScope>() {
             // TODO: is this the right URL to return?
-            return worker.base_url();
+            return worklet.base_url();
         }
         unreachable!();
     }
