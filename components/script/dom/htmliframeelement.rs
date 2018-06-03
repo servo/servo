@@ -76,6 +76,7 @@ pub struct HTMLIFrameElement {
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
+    name: DomRefCell<DOMString>,
 }
 
 impl HTMLIFrameElement {
@@ -223,6 +224,12 @@ impl HTMLIFrameElement {
             return;
         }
 
+        if mode == ProcessingMode::FirstTime {
+            if let Some(window) = self.GetContentWindow() {
+                window.set_name(self.name.borrow().clone())
+            }
+        }
+
         let url = self.get_url();
 
         // TODO: check ancestor browsing contexts for same URL
@@ -299,6 +306,7 @@ impl HTMLIFrameElement {
             sandbox_allowance: Cell::new(None),
             load_blocker: DomRefCell::new(None),
             visibility: Cell::new(true),
+            name: DomRefCell::new(DOMString::new())
         }
     }
 
@@ -471,6 +479,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-name
     fn SetName(&self, name: DOMString) {
+        *self.name.borrow_mut() = name.clone();
         if let Some(window) = self.GetContentWindow() {
             window.set_name(name)
         }
@@ -481,7 +490,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         if let Some(window) = self.GetContentWindow() {
             window.get_name()
         } else {
-            DOMString::new()
+            self.name.borrow().clone()
         }
     }
 }
