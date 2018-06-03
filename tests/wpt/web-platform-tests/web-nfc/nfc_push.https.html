@@ -137,21 +137,25 @@ promise_test(t => {
 promise_test(() => {
   return new Promise((resolve,reject) => {
     let iframe = document.createElement('iframe');
-    iframe.srcdoc = '<script>' +
-                    '  window.onmessage = message => {' +
-                    '    if (message.data === "Ready") {' +
-                    '      let onSuccess = () => { parent.postMessage("Failure", "*"); };' +
-                    '      let onError = error => {' +
-                    '        if (error.name == "SecurityError") {' +
-                    '          parent.postMessage("Success", "*");' +
-                    '        } else {' +
-                    '          parent.postMessage("Failure", "*");' +
-                    '        }' +
-                    '      };' +
-                    '      navigator.nfc.push("Test").then(onSuccess, onError);' +
-                    '    }' +
-                    '  };' +
-                    '<\/script>';
+    iframe.srcdoc = `<script>
+                      window.onmessage = message => {
+                        if (message.data === "Ready") {
+                          let onSuccess = () => { parent.postMessage("Failure", "*"); };
+                          let onError = error => {
+                            if (error.name == "SecurityError") {
+                              parent.postMessage("Success", "*");
+                            } else {
+                              parent.postMessage("Failure", "*");
+                            }
+                          };
+                          try {
+                            navigator.nfc.push("Test").then(onSuccess, onError);
+                          } catch(e) {
+                            parent.postMessage("Failure", "*");
+                          }
+                        }
+                      };
+                    <\/script>`;
     iframe.onload = () => iframe.contentWindow.postMessage('Ready', '*');
     document.body.appendChild(iframe);
     window.onmessage = message => {

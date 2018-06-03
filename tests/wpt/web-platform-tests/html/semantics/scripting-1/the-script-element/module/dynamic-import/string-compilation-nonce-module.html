@@ -95,6 +95,7 @@ promise_test(t => {
     "onclick",
     `import('../imports-a.js?label=inline event handlers triggered via UA code').then(window.continueTest, window.errorTest)`
   );
+  assert_equals(typeof dummyDiv.onclick, 'function', "the browser must be able to parse a string containing the import() syntax into a function");
   dummyDiv.click(); // different from **on**click()
 
   return promise.then(assertSuccessful);

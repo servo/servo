@@ -19,11 +19,8 @@ element.setAttribute("bar", "baz");
 var idlArray = new IdlArray();
 
 function doTest([html, dom]) {
-  // HTML is needed for EventHandler. Provide a dummy interface for
-  // LinkStyle which HTML depends on but we're not testing.
-  idlArray.add_untested_idls('interface LinkStyle {};');
-  idlArray.add_untested_idls(html);
   idlArray.add_idls(dom);
+  idlArray.add_dependency_idls(html);
   idlArray.add_objects({
     EventTarget: ['new EventTarget()'],
     Event: ['document.createEvent("Event")', 'new Event("foo")'],

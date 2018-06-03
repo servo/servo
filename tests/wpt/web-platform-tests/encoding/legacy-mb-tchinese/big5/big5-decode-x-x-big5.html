@@ -15,49 +15,14 @@
 </style>
 <script src="big5_index.js"></script>
 <script src="big5-decoder.js"></script>
+<script src="../../resources/decode-common.js"></script>
 </head>
 
-<body onload="showNodes();">
+<body onload="showNodes(big5Decoder);">
 
 <iframe src="big5_chars-x-x-big5.html" name="scriptWindow" id="scrwin"></iframe>
 
-
 <div id="log"></div>
-
-<script>
-var tests = [];
-
-function iframeRef(frameRef) {
-  return frameRef.contentWindow
-    ? frameRef.contentWindow.document
-    : frameRef.contentDocument;
-}
-
-function showNodes() {
-  var iframe = iframeRef(document.getElementById("scrwin"));
-  nodes = iframe.querySelectorAll("span");
-
-  for (var i = 0; i < nodes.length; i++) {
-    tests[i] = async_test(
-      "U+" +
-        nodes[i].dataset.cp +
-        " " +
-        String.fromCodePoint(parseInt(nodes[i].dataset.cp, 16)) +
-        " " +
-        big5Decoder(nodes[i].dataset.bytes) +
-        " " +
-        nodes[i].dataset.bytes
-    );
-  }
-
-  for (var i = 0; i < nodes.length; i++) {
-    tests[i].step(function() {
-      assert_equals(nodes[i].textContent, big5Decoder(nodes[i].dataset.bytes));
-    });
-    tests[i].done();
-  }
-}
-</script>
 
 </body>
 </html>

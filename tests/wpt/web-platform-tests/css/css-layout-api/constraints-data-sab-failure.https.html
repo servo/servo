@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraints-data">
+<link rel="match" href="green-square-ref.html">
+<meta name="assert" content="This test checks that a SharedArrayBuffer can't be passed to a child layout." />
+<style>
+.test {
+  background: red;
+  width: 100px;
+}
+
+@supports (display: layout(parent)) {
+  .test {
+    display: layout(parent);
+    background: green;
+  }
+
+  .child {
+    display: layout(child);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+registerLayout('parent', class {
+  *intrinsicSizes() {}
+  *layout() {}
+  *layout([child], edges, constraints, styleMap) {
+    let childFragment = null;
+
+    try {
+      // We need SABs to be enabled to properly run this test.
+      if (typeof SharedArrayBuffer !== 'undefined') {
+        childFragment = yield child.layoutNextFragment({
+          data: { sab: new SharedArrayBuffer(4) }
+        });
+      } else {
+        throw Error();
+      }
+    } catch(e) {
+      // Success! The structured cloning algorithm should have thrown an error.
+      childFragment = yield child.layoutNextFragment({});
+      return {autoBlockSize: 100, childFragments: [childFragment]};
+    }
+
+    return {autoBlockSize: 0, childFragments: [childFragment]};
+  }
+});
+
+registerLayout('child', class {
+  *intrinsicSizes() {}
+  *layout() {}
+  *layout() {
+    return {autoBlockSize: 0};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>
