@@ -264,18 +264,13 @@ pub struct Constellation<Message, LTF, STF> {
     /// WebRender thread.
     webrender_api_sender: webrender_api::RenderApiSender,
 
-    /// The set of all event loops in the browser. We generate a new
-    /// event loop for each registered domain name (aka eTLD+1) in
-    /// each top-level browsing context. We store the event loops in a map
-    /// indexed by top-level browsing context id
-    /// (as a `TopLevelBrowsingContextId`) and registered
-    /// domain name (as a `Host`) to event loops. This double
-    /// indirection ensures that separate tabs do not share event
-    /// loops, even if the same domain is loaded in each.
+    /// The set of all event loops in the browser.
+    /// We store the event loops in a map
+    /// indexed by registered domain name (as a `Host`) to event loops.
     /// It is important that scripts with the same eTLD+1
     /// share an event loop, since they can use `document.domain`
     /// to become same-origin, at which point they can share DOM objects.
-    event_loops: HashMap<TopLevelBrowsingContextId, HashMap<Host, Weak<EventLoop>>>,
+    event_loops: HashMap<Host, Weak<EventLoop>>,
 
     joint_session_histories: HashMap<TopLevelBrowsingContextId, JointSessionHistory>,
 
@@ -718,9 +713,7 @@ where
                         None => (None, None),
                         Some(host) => {
                             let event_loop = self
-                                .event_loops
-                                .get(&top_level_browsing_context_id)
-                                .and_then(|map| map.get(&host))
+                                .event_loops.get(&host)
                                 .and_then(|weak| weak.upgrade());
                             match event_loop {
                                 None => (None, Some(host)),
@@ -806,9 +799,8 @@ where
                 "Adding new host entry {} for top-level browsing context {}.",
                 host, top_level_browsing_context_id
             );
-            self.event_loops
-                .entry(top_level_browsing_context_id)
-                .or_insert_with(HashMap::new)
+            let _ = self
+                .event_loops
                 .insert(host, Rc::downgrade(&pipeline.event_loop));
         }
 
@@ -1905,18 +1897,7 @@ where
                 Some(opener_pipeline) => (opener_pipeline, opener_pipeline.browsing_context_id),
                 None => return warn!("Auxiliary loaded url in closed pipeline {}.", opener_pipeline_id),
             };
-            let opener_host = match reg_host(&opener_pipeline.url) {
-                Some(host) => host,
-                None => return warn!("Auxiliary loaded pipeline with no url {}.", opener_pipeline_id),
-            };
             let script_sender = opener_pipeline.event_loop.clone();
-            // https://html.spec.whatwg.org/multipage/#unit-of-related-similar-origin-browsing-contexts
-            // If the auxiliary shares the host/scheme with the creator, they share an event-loop.
-            // So the first entry for the auxiliary, itself currently "about:blank",
-            // is the event-loop for the current host of the creator.
-            self.event_loops.entry(new_top_level_browsing_context_id)
-                .or_insert_with(HashMap::new)
-                .insert(opener_host, Rc::downgrade(&script_sender));
             Pipeline::new(new_pipeline_id,
                           new_browsing_context_id,
                           new_top_level_browsing_context_id,
@@ -3563,10 +3544,6 @@ where
         {
             let session_history = self.get_joint_session_history(browsing_context.top_level_id);
             session_history.remove_entries_for_browsing_context(browsing_context_id);
-        }
-
-        if BrowsingContextId::from(browsing_context.top_level_id) == browsing_context_id {
-            self.event_loops.remove(&browsing_context.top_level_id);
         }
 
         let parent_info = self
