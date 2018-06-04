@@ -157,12 +157,12 @@ impl<'a> ParserContext<'a> {
 ///
 /// The derive code understands the following attributes on each of the variants:
 ///
-///  * `#[css(aliases = "foo,bar")]` can be used to alias a value with another
+///  * `#[parse(aliases = "foo,bar")]` can be used to alias a value with another
 ///    at parse-time.
 ///
-///  * `#[css(parse_condition = "function")]` can be used to make the parsing of
-///    the value conditional on `function`, which will be invoked with a
-///    `&ParserContext` reference.
+///  * `#[parse(condition = "function")]` can be used to make the parsing of the
+///    value conditional on `function`, which needs to fulfill
+///    `fn(&ParserContext) -> bool`.
 pub trait Parse: Sized {
     /// Parse a value of this type.
     ///

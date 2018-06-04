@@ -6,6 +6,7 @@ use cg;
 use quote::Tokens;
 use syn::{Data, DeriveInput, Fields, Ident, Type};
 use to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
+use parse::ParseVariantAttrs;
 
 pub fn derive(mut input: DeriveInput) -> Tokens {
     let css_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
@@ -33,10 +34,11 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                 for v in e.variants.iter() {
                     let css_attrs = cg::parse_variant_attrs::<CssVariantAttrs>(&v);
                     let info_attrs = cg::parse_variant_attrs::<ValueInfoVariantAttrs>(&v);
+                    let parse_attrs = cg::parse_variant_attrs::<ParseVariantAttrs>(&v);
                     if css_attrs.skip {
                         continue;
                     }
-                    if let Some(aliases) = css_attrs.aliases {
+                    if let Some(aliases) = parse_attrs.aliases {
                         for alias in aliases.split(",") {
                             values.push(alias.to_string());
                         }

@@ -40,7 +40,7 @@ pub fn derive_to_animated_value(stream: TokenStream) -> TokenStream {
     to_animated_value::derive(input).into()
 }
 
-#[proc_macro_derive(Parse, attributes(css))]
+#[proc_macro_derive(Parse, attributes(css, parse))]
 pub fn derive_parse(stream: TokenStream) -> TokenStream {
     let input = syn::parse(stream).unwrap();
     parse::derive(input).into()
@@ -64,7 +64,7 @@ pub fn derive_to_css(stream: TokenStream) -> TokenStream {
     to_css::derive(input).into()
 }
 
-#[proc_macro_derive(SpecifiedValueInfo, attributes(css, value_info))]
+#[proc_macro_derive(SpecifiedValueInfo, attributes(css, parse, value_info))]
 pub fn derive_specified_value_info(stream: TokenStream) -> TokenStream {
     let input = syn::parse(stream).unwrap();
     specified_value_info::derive(input).into()

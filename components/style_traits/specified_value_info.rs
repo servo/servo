@@ -43,7 +43,7 @@ pub type KeywordsCollectFn<'a> = &'a mut FnMut(&[&'static str]);
 ///   name is listed in `collect_completion_keywords`.
 /// * If `#[css(skip)]` is found, the content inside the variant or
 ///   field is ignored.
-/// * Values listed in `#[css(if_empty)]`, `#[css(aliases)]`, and
+/// * Values listed in `#[css(if_empty)]`, `#[parse(aliases)]`, and
 ///   `#[css(keyword)]` are added into `collect_completion_keywords`.
 ///
 /// In addition to `css` attributes, it also has `value_info` helper

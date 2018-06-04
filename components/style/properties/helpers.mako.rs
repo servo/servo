@@ -594,7 +594,7 @@
                         aliases.append(alias)
             %>
             % if aliases:
-            #[css(aliases = "${','.join(aliases)}")]
+            #[parse(aliases = "${','.join(aliases)}")]
             % endif
             % endif
             ${to_camel_case(variant)},

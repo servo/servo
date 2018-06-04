@@ -53,9 +53,9 @@ pub enum Display {
     TableCaption,
     ListItem,
     None,
-    #[css(aliases = "-webkit-flex")]
+    #[parse(aliases = "-webkit-flex")]
     Flex,
-    #[css(aliases = "-webkit-inline-flex")]
+    #[parse(aliases = "-webkit-inline-flex")]
     InlineFlex,
     #[cfg(feature = "gecko")]
     Grid,
@@ -84,31 +84,31 @@ pub enum Display {
     #[cfg(feature = "gecko")]
     MozInlineBox,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGrid,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozInlineGrid,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGridGroup,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGridLine,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozStack,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozInlineStack,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozDeck,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozPopup,
     #[cfg(feature = "gecko")]
-    #[css(parse_condition = "moz_display_values_enabled")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGroupbox,
 }
 

@@ -4,9 +4,16 @@
 
 use cg;
 use quote::Tokens;
-use syn::DeriveInput;
+use syn::{DeriveInput, Path};
 use synstructure;
 use to_css::CssVariantAttrs;
+
+#[darling(attributes(parse), default)]
+#[derive(Default, FromVariant)]
+pub struct ParseVariantAttrs {
+    pub aliases: Option<String>,
+    pub condition: Option<Path>,
+}
 
 pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
@@ -20,18 +27,21 @@ pub fn derive(input: DeriveInput) -> Tokens {
             "Parse is only supported for single-variant enums for now"
         );
 
-        let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
-        if variant_attrs.skip {
+        let css_variant_attrs =
+            cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
+        let parse_attrs =
+            cg::parse_variant_attrs_from_ast::<ParseVariantAttrs>(&variant.ast());
+        if css_variant_attrs.skip {
             return match_body;
         }
 
         let identifier = cg::to_css_identifier(
-            &variant_attrs.keyword.unwrap_or(variant.ast().ident.as_ref().into()),
+            &css_variant_attrs.keyword.unwrap_or(variant.ast().ident.as_ref().into()),
         );
         let ident = &variant.ast().ident;
 
-        saw_condition |= variant_attrs.parse_condition.is_some();
-        let condition = match variant_attrs.parse_condition {
+        saw_condition |= parse_attrs.condition.is_some();
+        let condition = match parse_attrs.condition {
             Some(ref p) => quote! { if #p(context) },
             None => quote! { },
         };
@@ -41,7 +51,7 @@ pub fn derive(input: DeriveInput) -> Tokens {
             #identifier #condition => Ok(#name::#ident),
         };
 
-        let aliases = match variant_attrs.aliases {
+        let aliases = match parse_attrs.aliases {
             Some(aliases) => aliases,
             None => return body,
         };
