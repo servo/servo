@@ -7,7 +7,7 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use block::{BlockFlow, ISizeAndMarginsComputer};
+use block::{BlockFlow, ISizeAndMarginsComputer, ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use display_list::{BlockFlowDisplayListBuilding, DisplayListBuildState};
 use display_list::{StackingContextCollectionFlags, StackingContextCollectionState};
@@ -17,12 +17,13 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use serde::{Serialize, Serializer};
-use std::fmt;
+use std::{cmp, fmt};
 use std::iter::{IntoIterator, Iterator, Peekable};
 use style::computed_values::{border_collapse, border_spacing};
+use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ComputedValues;
-use table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
+use table::{ColumnIntrinsicInlineSize, TableLikeFlow};
 
 #[allow(unsafe_code)]
 unsafe impl ::flow::HasBaseFlow for TableRowGroupFlow {}
@@ -228,5 +229,40 @@ impl Flow for TableRowGroupFlow {
 impl fmt::Debug for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TableRowGroupFlow: {:?}", self.block_flow)
+    }
+}
+
+/// TableRowGroup, TableRow, TableCell types.
+/// Their inline-sizes are calculated in the same way and do not have margins.
+pub struct InternalTable;
+
+impl ISizeAndMarginsComputer for InternalTable {
+    /// Compute the used value of inline-size, taking care of min-inline-size and max-inline-size.
+    ///
+    /// CSS Section 10.4: Minimum and Maximum inline-sizes
+    fn compute_used_inline_size(
+        &self,
+        block: &mut BlockFlow,
+        shared_context: &SharedStyleContext,
+        parent_flow_inline_size: Au
+    ) {
+        let mut input = self.compute_inline_size_constraint_inputs(block,
+                                                                   parent_flow_inline_size,
+                                                                   shared_context);
+
+        // Tables are always at least as wide as their minimum inline size.
+        let minimum_inline_size =
+            block.base.intrinsic_inline_sizes.minimum_inline_size -
+            block.fragment.border_padding.inline_start_end();
+        input.available_inline_size = cmp::max(input.available_inline_size, minimum_inline_size);
+
+        let solution = self.solve_inline_size_constraints(block, &input);
+        self.set_inline_size_constraint_solutions(block, solution);
+    }
+
+    /// Solve the inline-size and margins constraints for this block flow.
+    fn solve_inline_size_constraints(&self, _: &mut BlockFlow, input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution {
+        ISizeConstraintSolution::new(input.available_inline_size, Au(0), Au(0))
     }
 }

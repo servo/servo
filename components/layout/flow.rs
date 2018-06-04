@@ -200,6 +200,11 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         panic!("called as_table_row() on a non-tablerow flow")
     }
 
+    /// If this is a table caption flow, returns the underlying object. Fails otherwise.
+    fn as_table_caption(&self) -> &TableCaptionFlow {
+        panic!("called as_table_caption() on a non-tablecaption flow")
+    }
+
     /// If this is a table cell flow, returns the underlying object, borrowed mutably. Fails
     /// otherwise.
     fn as_mut_table_caption(&mut self) -> &mut TableCaptionFlow {
