@@ -1,0 +1,30 @@
+[package]
+name = "libsimpleservo"
+version = "0.0.1"
+build = "build.rs"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "simpleservo"
+crate-type = ["cdylib"]
+
+[dependencies]
+libservo = { path = "../../components/servo" }
+log = "0.4"
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_injected_glue = "0.2"
+android_logger = "0.5"
+jni = "0.10.2"
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+libc = "0.2"
+
+[build-dependencies]
+gl_generator = "0.9"
+
+[features]
+googlevr = ["libservo/googlevr"]
+oculusvr = ["libservo/oculusvr"]
