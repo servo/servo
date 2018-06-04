@@ -335,10 +335,12 @@ class CommandBase(object):
         # handle quitting, or printing. It should return the path, or an error.
         base_path = self.get_target_dir()
 
+        binary_name = "servo" + BIN_SUFFIX
+
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
+            binary_name = "libsimpleservo.so"
 
-        binary_name = "servo" + BIN_SUFFIX
         release_path = path.join(base_path, "release", binary_name)
         dev_path = path.join(base_path, "debug", binary_name)
 
@@ -584,11 +586,14 @@ class CommandBase(object):
 
         return env
 
-    def servo_crate(self):
-        return path.join(self.context.topdir, "ports", "servo")
+    def servo_crate(self, android=False):
+        if android:
+            return path.join(self.context.topdir, "ports", "libsimpleservo")
+        else:
+            return path.join(self.context.topdir, "ports", "servo")
 
-    def servo_manifest(self):
-        return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
+    def servo_manifest(self, android=False):
+        return path.join(self.servo_crate(android), "Cargo.toml")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""

@@ -181,7 +181,15 @@ class MachCommands(CommandBase):
               debug_mozjs=False, params=None, with_debug_assertions=False):
 
         opts = params or []
-        opts += ["--manifest-path", self.servo_manifest()]
+
+        if target and android:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+
+        if target:
+            android = self.handle_android_target(target)
+
+        opts += ["--manifest-path", self.servo_manifest(android)]
 
         if android is None:
             android = self.config["build"]["android"]
@@ -212,10 +220,6 @@ class MachCommands(CommandBase):
             print("Please specify either --dev or --release.")
             sys.exit(1)
 
-        if target and android:
-            print("Please specify either --target or --android.")
-            sys.exit(1)
-
         if release:
             opts += ["--release"]
             servo_path = release_path
@@ -231,6 +235,7 @@ class MachCommands(CommandBase):
 
         if android:
             target = self.config["android"]["target"]
+            opts += ["-p", "libsimpleservo"]
 
         if target:
             if self.config["tools"]["use-rustup"]:
@@ -241,8 +246,6 @@ class MachCommands(CommandBase):
                             "--toolchain", self.toolchain(), target])
 
             opts += ["--target", target]
-            if not android:
-                android = self.handle_android_target(target)
 
         self.ensure_bootstrapped(target=target)
         self.ensure_clobbered()
@@ -402,7 +405,11 @@ class MachCommands(CommandBase):
                      help='Print verbose output')
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
-    def clean(self, manifest_path=None, params=[], verbose=False):
+    @CommandArgument('--android',
+                     default=None,
+                     action='store_true',
+                     help='Clean Android package')
+    def clean(self, manifest_path=None, params=[], verbose=False, android=False):
         self.ensure_bootstrapped()
 
         opts = []
@@ -412,4 +419,4 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         opts += params
         return check_call(["cargo", "clean"] + opts,
-                          env=self.build_env(), cwd=self.servo_crate(), verbose=verbose)
+                          env=self.build_env(), cwd=self.servo_crate(android), verbose=verbose)
