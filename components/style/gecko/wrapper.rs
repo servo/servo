@@ -1118,7 +1118,23 @@ impl<'le> TElement for GeckoElement<'le> {
             assert_eq!(base as *const _, self.0 as *const _, "Bad cast");
         }
 
-        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] = &*slot.mAssignedNodes;
+        // FIXME(emilio): Workaround a bindgen bug on Android that causes
+        // mAssignedNodes to be at the wrong offset. See bug 1466406.
+        //
+        // Bug 1466580 tracks running the Android layout tests on automation.
+        //
+        // The actual bindgen bug still needs reduction.
+        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] =
+            if !cfg!(target_os = "android") {
+                debug_assert_eq!(
+                    unsafe { bindings::Gecko_GetAssignedNodes(self.0) },
+                    &slot.mAssignedNodes as *const _,
+                );
+
+                &*slot.mAssignedNodes
+            } else {
+                unsafe { &**bindings::Gecko_GetAssignedNodes(self.0) }
+            };
 
         debug_assert_eq!(
             mem::size_of::<structs::RefPtr<structs::nsINode>>(),
