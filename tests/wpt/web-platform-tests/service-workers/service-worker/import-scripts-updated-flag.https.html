@@ -75,7 +75,7 @@ promise_test(t => {
           return post_and_wait_for_reply(worker, 'message');
         })
       .then(result => {
-          assert_equals(result.error, 'TypeError');
+          assert_equals(result.error, 'NetworkError');
           assert_equals(result.value, null);
         });
   }, 'import script not previously imported');

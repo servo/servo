@@ -35,9 +35,9 @@ promise_test(async t => {
   idl_array.add_idls(cookie_store);
 
   idl_array.add_objects({
-    CookieStore: [self.cookieStore],
+    CookieStore: ["self.cookieStore"],
     ExtendableCookieChangeEvent: [
-        new ExtendableCookieChangeEvent('cookiechange')],
+        "new ExtendableCookieChangeEvent('cookiechange')"],
   });
   idl_array.test();
 }, 'Interface test');

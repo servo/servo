@@ -9,18 +9,18 @@
 <style>
 @keyframes outline-anim {
   from {
-    outline: solid 1px rgb(1,0,0);
+    outline: solid 1px rgba(1, 0, 0, 0.5);
     outline-offset: 1px;
   }
   to {
-    outline: solid 3px rgb(3,0,0);
+    outline: solid 3px rgba(3, 0, 0, 0.5);
     outline-offset: 3px;
   }
 }
 
 #test {
   animation: outline-anim 3s -1.5s paused linear;
-  outline: solid 1px rgb(1,0,0);
+  outline: solid 1px rgba(1, 0, 0, 0.5);
   outline-offset: 1px;
 }
 </style>
@@ -29,20 +29,27 @@
   <div id=log></div>
 
   <script>
-    test(
-      function(){
-        var test = document.getElementById("test");
-        assert_equals(getComputedStyle(test).outlineColor, 'rgb(2, 0, 0)');
-      }, "outline-color is animated as a color");
-    test(
-      function(){
-        var test = document.getElementById("test");
-        assert_equals(getComputedStyle(test).outlineWidth, '2px');
-      }, "outline-width is animated as a length");
-    test(
-      function(){
-        var test = document.getElementById("test");
-        assert_equals(getComputedStyle(test).outlineOffset, '2px');
-      }, "outline-offset is animated as a length");
+    // outline being a render-only property, its animation can be done off the main thread
+    // checking the values after the first paint is safer, hence requestAnimationFrame
+    setup({explicit_done:true});
+    requestAnimationFrame(function() {
+        // synchronous tests being run during the page's first paint
+        test(
+          function(){
+            var test = document.getElementById("test");
+            assert_equals(getComputedStyle(test).outlineColor, 'rgba(2, 0, 0, 0.5)');
+          }, "outline-color is animated as a color");
+        test(
+          function(){
+            var test = document.getElementById("test");
+            assert_equals(getComputedStyle(test).outlineWidth, '2px');
+          }, "outline-width is animated as a length");
+        test(
+          function(){
+            var test = document.getElementById("test");
+            assert_equals(getComputedStyle(test).outlineOffset, '2px');
+          }, "outline-offset is animated as a length");
+        done();
+    });
 </script>
 </body>

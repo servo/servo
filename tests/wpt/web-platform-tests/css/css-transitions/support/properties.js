@@ -221,8 +221,6 @@ var properties = {
     'outline-width': ['length'],
 
     'clip': ['rectangle'],
-    // Note: doesn't seem implemented anywhere
-    'crop': ['rectangle'],
 
     'vertical-align': ['length', 'percentage'],
     'opacity': ['number[0,1]'],

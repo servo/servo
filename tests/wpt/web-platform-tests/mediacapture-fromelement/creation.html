@@ -14,15 +14,20 @@ var makeAsyncTest = function(filename, numTracks) {
     var video = document.createElement('video');
     video.src = "/media/" + filename;
     video.onerror = this.unreached_func("<video> error");
-    video.play();
 
     assert_true('captureStream' in video);
 
     var stream = video.captureStream();
     assert_not_equals(stream, null, "error generating stream");
 
-    // onactive event is marked for deprecation (https://crbug.com/649328)
-    stream.onactive = this.step_func_done(function() {
+    stream.onaddtrack = this.step_func_done(function() {
+      var tracks = stream.getTracks();
+      var idx;
+
+      for (idx = 0; idx < tracks.length; idx += 1) {
+        assert_equals(tracks[idx].readyState, 'live')
+      }
+
       // The stream got a (number of) MediaStreamTracks added.
       assert_equals(stream.getVideoTracks().length, numTracks['vid'], 'video');
       assert_equals(stream.getAudioTracks().length, numTracks['aud'], 'audio');

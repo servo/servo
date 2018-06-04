@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutfragment-data">
+<link rel="match" href="green-square-ref.html">
+<meta name="assert" content="This test checks that passing data to a parent layout works correctly." />
+<style>
+.test {
+  background: red;
+  width: 100px;
+}
+
+@supports (display: layout(parent)) {
+  .test {
+    display: layout(parent);
+    background: green;
+  }
+
+  .child {
+    display: layout(child);
+  }
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+
+<div class="test">
+  <div class="child"></div>
+</div>
+
+<script id="code" type="text/worklet">
+const DATA = {
+  str: 'hello',
+  num: 42,
+  obj: {str2: 'world'},
+};
+
+registerLayout('parent', class {
+  *intrinsicSizes() {}
+  *layout() {}
+  *layout([child], edges, constraints, styleMap) {
+
+    const childFragment = yield child.layoutNextFragment();
+
+    // Use JSON.stringify to make sure the structured cloning worked.
+    if (childFragment.data !== DATA &&
+        JSON.stringify(childFragment.data) === JSON.stringify(DATA)) {
+      return {autoBlockSize: 100, childFragments: [childFragment]};
+    }
+
+    return {autoBlockSize: 0, childFragments: [childFragment]};
+  }
+});
+
+registerLayout('child', class {
+  *intrinsicSizes() {}
+  *layout() {}
+  *layout(children, edges, constraints, styleMap) {
+    return {autoBlockSize: 10, data: DATA};
+  }
+});
+</script>
+
+<script>
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, document.getElementById('code').textContent);
+</script>
+</html>
