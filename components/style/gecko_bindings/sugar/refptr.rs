@@ -4,6 +4,7 @@
 
 //! A rust helper to ease the use of Gecko's refcounted types.
 
+use Atom;
 use gecko_bindings::{structs, bindings};
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use servo_arc::Arc;
@@ -319,4 +320,18 @@ impl_threadsafe_refcount!(
     structs::SheetLoadDataHolder,
     bindings::Gecko_AddRefSheetLoadDataHolderArbitraryThread,
     bindings::Gecko_ReleaseSheetLoadDataHolderArbitraryThread
+);
+
+#[inline]
+unsafe fn addref_atom(atom: *mut structs::nsAtom) {
+    mem::forget(Atom::from_raw(atom));
+}
+#[inline]
+unsafe fn release_atom(atom: *mut structs::nsAtom) {
+    let _ = Atom::from_addrefed(atom);
+}
+impl_threadsafe_refcount!(
+    structs::nsAtom,
+    addref_atom,
+    release_atom
 );

@@ -3274,10 +3274,7 @@ fn static_assert() {
             self.gecko.mTransitions.ensure_len(v.len());
             self.gecko.mTransitionPropertyCount = v.len() as u32;
             for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
-                if !gecko.mUnknownProperty.mRawPtr.is_null() {
-                    unsafe { Atom::from_addrefed(gecko.mUnknownProperty.mRawPtr) };
-                    gecko.mUnknownProperty.mRawPtr = ptr::null_mut();
-                }
+                unsafe { gecko.mUnknownProperty.clear() };
 
                 match servo {
                     TransitionProperty::Unsupported(ident) => {
@@ -3355,10 +3352,7 @@ fn static_assert() {
 
         for (index, transition) in self.gecko.mTransitions.iter_mut().enumerate().take(count as usize) {
             transition.mProperty = other.gecko.mTransitions[index].mProperty;
-            if !transition.mUnknownProperty.mRawPtr.is_null() {
-                unsafe { Atom::from_addrefed(transition.mUnknownProperty.mRawPtr) };
-                transition.mUnknownProperty.mRawPtr = ptr::null_mut();
-            }
+            unsafe { transition.mUnknownProperty.clear() };
             if transition.mProperty == eCSSProperty_UNKNOWN ||
                transition.mProperty == eCSSPropertyExtra_variable {
                 let atom = other.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
