@@ -428,6 +428,17 @@ impl NonCustomPropertyId {
         MAP[self.0]
     }
 
+    /// Get the property name.
+    #[inline]
+    fn name(self) -> &'static str {
+        static MAP: [&'static str; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
+            % for property in data.longhands + data.shorthands + data.all_aliases():
+                "${property.name}",
+            % endfor
+        ];
+        MAP[self.0]
+    }
+
     #[inline]
     fn enabled_for_all_content(self) -> bool {
         ${static_non_custom_property_id_set(
@@ -860,12 +871,9 @@ impl fmt::Debug for LonghandId {
 
 impl LonghandId {
     /// Get the name of this longhand property.
+    #[inline]
     pub fn name(&self) -> &'static str {
-        match *self {
-            % for property in data.longhands:
-                LonghandId::${property.camel_case} => "${property.name}",
-            % endfor
-        }
+        NonCustomPropertyId::from(*self).name()
     }
 
     /// Returns whether the longhand property is inherited by default.
@@ -1203,12 +1211,9 @@ impl ToCss for ShorthandId {
 
 impl ShorthandId {
     /// Get the name for this shorthand property.
+    #[inline]
     pub fn name(&self) -> &'static str {
-        match *self {
-            % for property in data.shorthands:
-                ShorthandId::${property.camel_case} => "${property.name}",
-            % endfor
-        }
+        NonCustomPropertyId::from(*self).name()
     }
 
     /// Converts from a ShorthandId to an adequate nsCSSPropertyID.
