@@ -1356,6 +1356,7 @@ impl<'le> TElement for GeckoElement<'le> {
         !self.is_in_native_anonymous_subtree()
     }
 
+    #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
         if !self.is_in_native_anonymous_subtree() {
             return None;
@@ -1369,6 +1370,7 @@ impl<'le> TElement for GeckoElement<'le> {
         PseudoElement::from_pseudo_type(pseudo_type)
     }
 
+    #[inline]
     fn store_children_to_process(&self, _: isize) {
         // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
     }
