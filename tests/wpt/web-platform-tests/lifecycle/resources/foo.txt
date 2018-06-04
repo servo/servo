@@ -1,0 +1,1 @@
+Sample test file for fetch inside onfreeze.

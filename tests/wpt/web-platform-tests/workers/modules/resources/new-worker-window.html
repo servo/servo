@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>DedicatedWorker: new Worker()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+let worker;
+
+// Creates a new dedicated worker for a given script url.
+window.onmessage = e => {
+  worker = new Worker(e.data, { type: 'module' });
+  worker.onmessage = msg => window.opener.postMessage(msg.data, '*');
+  worker.onerror = err => window.opener.postMessage(['ERROR'], '*');
+};
+window.opener.postMessage('LOADED', '*');
+</script>

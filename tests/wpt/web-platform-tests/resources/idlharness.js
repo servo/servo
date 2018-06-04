@@ -887,7 +887,7 @@ IdlArray.prototype.assert_type_is = function(value, type)
         return;
     }
 
-    if (type.sequence)
+    if (type.generic === "sequence")
     {
         assert_true(Array.isArray(value), "should be an Array");
         if (!value.length)

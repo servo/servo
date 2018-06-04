@@ -4,6 +4,7 @@ let echo_output = null;
 
 // Tests importing a script that sets |echo_output| to the query string.
 function test_import(str) {
+  echo_output = null;
   importScripts('import-scripts-echo.py?msg=' + str);
   assert_equals(echo_output, str);
 }
@@ -18,6 +19,7 @@ self.addEventListener('install', () => {
 
 self.addEventListener('message', e => {
     var error = null;
+    echo_output = null;
 
     try {
       importScripts('import-scripts-echo.py?msg=' + e.data);

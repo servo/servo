@@ -23,7 +23,7 @@ The keys for each test case are:
 
 In addition to testing that parsing `input` against `base` gives the result, a test harness for the
 `URL` constructor (or similar APIs) should additionally test the following pattern: if `failure` is
-true, parsing `about:blank` against `base` must give failure. This tests that the logic for
+true, parsing `about:blank` against `input` must give failure. This tests that the logic for
 converting base URLs into strings properly fails the whole parsing algorithm if the base URL cannot
 be parsed.
 

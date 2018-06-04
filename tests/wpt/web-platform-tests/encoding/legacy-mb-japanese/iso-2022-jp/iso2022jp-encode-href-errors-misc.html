@@ -4,104 +4,32 @@
 <meta charset="iso-2022-jp"> <!-- test breaks if the server overrides this -->
 <title>ISO 2022-JP encoding errors (href, misc)</title>
 <meta name="timeout" content="long">
+<meta name="variant" content="?1-1000">
+<meta name="variant" content="?1001-2000">
+<meta name="variant" content="?2001-3000">
+<meta name="variant" content="?3001-last">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/subset-tests.js"></script>
 <script src="jis0208_index.js"></script>
 <script src="iso2022jp-encoder.js"></script>
 <link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
 <link rel="help" href="https://encoding.spec.whatwg.org/#iso-2022-jp">
 <meta name="assert" content="The browser produces percent-escaped character references when writing characters to an href value and encoding miscellaneous characters that are not in the iso-2022-jp encoding.">
+<script src="../../resources/ranges.js"></script>
 <script>
-function encode(input, expected, desc) {
-    // tests whether a Unicode character is converted to an equivalent byte sequence by href
-    // input: a Unicode character
-    // expected: expected byte sequence
-    // desc: what's being tested
-    test(function() {
-        var a = document.createElement("a"); // <a> uses document encoding for URL's query
-        a.href = "https://example.com/?" + input;
-        result = a.search.substr(1); // remove leading "?"
-        assert_equals(result, expected);
-    }, desc);
+var errors = true;
+var encoder = iso2022jpEncoder;
+var ranges = rangesMisc;
+function expect(result, codepoint) {
+  return "%26%23" + codepoint + "%3B";
 }
-
-// set up a simple array of unicode codepoints that are not encoded
-var codepoints = [];
-
-for (var i = 0x80; i < 0x4ff; i++) {
-    result = iso2022jpEncoder(String.fromCodePoint(i));
-    if (!result) {
-        var item = {};
-        codepoints.push(item);
-        item.cp = i;
-        item.expected = "%26%23" + item.cp + "%3B";
-        item.desc = "latin, greek, cyrillic, etc ";
-    }
+// Overwrite normalizeStr
+function normalizeStr(str) {
+  return str;
 }
-
-for (i = 0x2000; i < 0x23ff; i++) {
-    result = iso2022jpEncoder(String.fromCodePoint(i));
-    if (!result) {
-        var item = {};
-        codepoints.push(item);
-        item.cp = i;
-        item.expected = "%26%23" + item.cp + "%3B";
-        item.desc = "punctuation, currency, symbols ";
-    }
-}
-
-for (i = 0x2460; i < 0x26ff; i++) {
-    result = iso2022jpEncoder(String.fromCodePoint(i));
-    if (!result) {
-        var item = {};
-        codepoints.push(item);
-        item.cp = i;
-        item.expected = "%26%23" + item.cp + "%3B";
-        item.desc = "enclosed chars and boxes ";
-    }
-}
-
-for (i = 0x3000; i < 0x33ff; i++) {
-    result = iso2022jpEncoder(String.fromCodePoint(i));
-    if (!result) {
-        var item = {};
-        codepoints.push(item);
-        item.cp = i;
-        item.expected = "%26%23" + item.cp + "%3B";
-        item.desc = "various asian ";
-    }
-}
-
-for (i = 0xff00; i < 0xffef; i++) {
-    result = iso2022jpEncoder(String.fromCodePoint(i));
-    if (!result) {
-        var item = {};
-        codepoints.push(item);
-        item.cp = i;
-        item.expected = "%26%23" + item.cp + "%3B";
-        item.desc = "half/full width ";
-    }
-}
-
-// run the tests
-for (var x = 0; x < codepoints.length; x++) {
-    encode(
-        String.fromCodePoint(codepoints[x].cp),
-        codepoints[x].expected,
-        codepoints[x].desc +
-            " U+" +
-            codepoints[x].cp.toString(16).toUpperCase() +
-            " " +
-            String.fromCodePoint(codepoints[x].cp) +
-            " " +
-            codepoints[x].expected
-    );
-}
-
-// NOTES
-// this test relies on support for String.fromCodePoint, which appears to be supported by major desktop browsers
-// the test excludes ASCII characters
 </script>
+<script src="../../resources/encode-href-common.js"></script>
 </head>
 <body>
 <div id="log"></div>

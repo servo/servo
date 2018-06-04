@@ -119,6 +119,21 @@
             }
 
             return window.test_driver_internal.send_keys(element, keys);
+        },
+
+        /**
+         * Freeze the current page
+         *
+         * The freeze function transitions the page from the HIDDEN state to
+         * the FROZEN state as described in {@link
+         * https://github.com/WICG/page-lifecycle/blob/master/README.md|Lifecycle API
+         * for Web Pages}
+         *
+         * @returns {Promise} fullfilled after the freeze request is sent, or rejected
+         *                    in case the WebDriver command errors
+         */
+        freeze: function() {
+            return window.test_driver_internal.freeze();
         }
     };
 
@@ -142,6 +157,16 @@
          * @returns {Promise} fulfilled after keys are sent or rejected if click fails
          */
         send_keys: function(element, keys) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        /**
+         * Freeze the current page
+         *
+         * @returns {Promise} fullfilled after freeze request is sent, otherwise
+         * it gets rejected
+         */
+        freeze: function() {
             return Promise.reject(new Error("unimplemented"));
         }
     };
