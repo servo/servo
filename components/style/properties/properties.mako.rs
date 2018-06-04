@@ -593,18 +593,21 @@ impl NonCustomPropertyId {
 }
 
 impl From<LonghandId> for NonCustomPropertyId {
+    #[inline]
     fn from(id: LonghandId) -> Self {
         NonCustomPropertyId(id as usize)
     }
 }
 
 impl From<ShorthandId> for NonCustomPropertyId {
+    #[inline]
     fn from(id: ShorthandId) -> Self {
         NonCustomPropertyId((id as usize) + ${len(data.longhands)})
     }
 }
 
 impl From<AliasId> for NonCustomPropertyId {
+    #[inline]
     fn from(id: AliasId) -> Self {
         NonCustomPropertyId(id as usize + ${len(data.longhands) + len(data.shorthands)})
     }
