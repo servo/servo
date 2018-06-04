@@ -302,6 +302,12 @@ impl Browser {
                 EmbedderMsg::LoadComplete => {
                     self.loading_state = Some(LoadingState::Loaded);
                 }
+                EmbedderMsg::CloseBrowser => {
+                    self.browser_id = None;
+                    // Nothing left to do for now,
+                    // but could hide a tab, and show another one, instead of quitting.
+                    self.event_queue.push(WindowEvent::Quit);
+                },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },

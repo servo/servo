@@ -220,9 +220,6 @@ enum MixedMessage {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Notifies the script that a window associated with a particular pipeline
-    /// should be closed (only dispatched to ScriptThread).
-    ExitWindow(PipelineId),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
     /// the current entry will be replaced instead of a new entry being added.
@@ -1193,7 +1190,6 @@ impl ScriptThread {
                     MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id)) =>
                         pipeline_id,
                     MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
-                    MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
@@ -1343,9 +1339,6 @@ impl ScriptThread {
         match msg {
             MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace)
-            },
-            MainThreadScriptMsg::ExitWindow(id) => {
-                self.handle_exit_window_msg(id)
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _)) => {
                 task.run_box()
@@ -1713,20 +1706,6 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(id)
             .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
         window.set_window_size(new_size);
-    }
-
-    /// We have gotten a window.close from script, which we pass on to the compositor.
-    /// We do not shut down the script thread now, because the compositor will ask the
-    /// constellation to shut down the pipeline, which will clean everything up
-    /// normally. If we do exit, we will tear down the DOM nodes, possibly at a point
-    /// where layout is still accessing them.
-    fn handle_exit_window_msg(&self, id: PipelineId) {
-        debug!("script thread handling exit window msg");
-
-        // TODO(tkuehn): currently there is only one window,
-        // so this can afford to be naive and just shut down the
-        // constellation. In the future it'll need to be smarter.
-        self.script_sender.send((id, ScriptMsg::Exit)).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
