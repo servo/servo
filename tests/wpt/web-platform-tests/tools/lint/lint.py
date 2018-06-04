@@ -664,6 +664,8 @@ def check_script_metadata(repo_root, path, f):
             elif key == b"timeout":
                 if value != b"long":
                     errors.append(("UNKNOWN-TIMEOUT-METADATA", "Unexpected value for timeout metadata", path, idx + 1))
+            elif key == b"title":
+                pass
             elif key == b"script":
                 pass
             elif key == b"variant":

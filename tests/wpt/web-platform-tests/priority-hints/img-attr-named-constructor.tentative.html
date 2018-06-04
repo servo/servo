@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Priority Hints - Image element</title>
+<meta name="author" title="Dominic Farolino" href="mailto:domfarolino@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img id=img1 src=/images/green.png importance=high>
+<img id=img2 src=/images/green.png importance=low>
+<img id=img3 src=/images/green.png importance=auto>
+<img id=img4 src=/images/green.png importance=xyz>
+<img id=img5 src=/images/green.png>
+
+<script>
+  test(() => {
+    assert_equals(img1.importance, "high", "high importance is a valid IDL value on the image element");
+    assert_equals(img2.importance, "low", "high importance is a valid IDL value on the image element");
+    assert_equals(img3.importance, "auto", "auto importance is a valid IDL value on the image element");
+    assert_equals(img4.importance, "auto", "invalid importance reflects as 'auto' IDL attribute on the image element");
+    assert_equals(img5.importance, "auto", "missing importance reflects as 'auto' IDL attribute on the image element");
+  }, "importance attribute on <img> elements should reflect valid IDL values");
+
+  const img = new Image();
+  assert_equals(img.importance, "auto");
+</script>

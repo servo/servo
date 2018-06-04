@@ -1,0 +1,19 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <iframe sandbox="allow-scripts"></iframe>
+    <script>
+      // We're the popup (i.e. a top frame).  Load into the iframe the page
+      // trying to modifying the top frame and transmit the result to our
+      // opener.
+      onmessage = function(e) {
+        opener.postMessage(e.data, "*")
+      }
+      document.querySelector("iframe").src = "iframe-that-performs-top-navigation-on-popup.html";
+    </script>
+  </body>
+</html>

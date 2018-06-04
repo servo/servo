@@ -1,0 +1,11 @@
+<!doctype html>
+<title>CSS Test: ::placeholder applies to input type="number"</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="mismatch" href="placeholder-input-number-notref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#placeholder-pseudo">
+<style>
+#number::placeholder {
+  color: green;
+}
+</style>
+<input id="number" type="number" placeholder="Placeholder">
