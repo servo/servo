@@ -335,10 +335,12 @@ class CommandBase(object):
         # handle quitting, or printing. It should return the path, or an error.
         base_path = self.get_target_dir()
 
+        binary_name = "servo" + BIN_SUFFIX
+
         if android:
             base_path = path.join(base_path, self.config["android"]["target"])
+            binary_name = "libsimpleservo.so"
 
-        binary_name = "servo" + BIN_SUFFIX
         release_path = path.join(base_path, "release", binary_name)
         dev_path = path.join(base_path, "debug", binary_name)
 

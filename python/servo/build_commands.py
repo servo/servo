@@ -231,6 +231,7 @@ class MachCommands(CommandBase):
 
         if android:
             target = self.config["android"]["target"]
+            opts += ["-p", "libsimpleservo"]
 
         if target:
             if self.config["tools"]["use-rustup"]:
