@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "ports/servo",
+    "ports/libsimpleservo/",
     "tests/unit/*",
 ]
 default-members = [

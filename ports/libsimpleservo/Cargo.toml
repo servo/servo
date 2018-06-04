@@ -1,0 +1,21 @@
+[package]
+name = "libsimpleservo"
+version = "0.0.1"
+build = "build.rs"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "simpleservo"
+crate-type = ["cdylib"]
+
+[dependencies]
+libservo = { path = "../../components/servo" }
+libc = "0.2"
+log = "0.4"
+jni = "0.10"
+android_logger = "0.5"
+
+[build-dependencies]
+gl_generator = "0.9"
