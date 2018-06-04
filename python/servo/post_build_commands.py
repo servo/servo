@@ -82,15 +82,14 @@ class PostBuildCommands(CommandBase):
                 return
             script = [
                 "am force-stop com.mozilla.servo",
-                "echo servo >/sdcard/Android/data/com.mozilla.servo/files/android_params"
             ]
-            for param in params:
-                script += [
-                    "echo '%s' >>/sdcard/Android/data/com.mozilla.servo/files/android_params"
-                    % param.replace("'", "\\'")
-                ]
+            extra = ""
+            # FIXME: see params comment above. This is supposed to be parsed by servo's `from_cmdline_args`.
+            # For now, we just use " -d XXX" to pass the url to load.
+            if params:
+                extra += " -d " + params[0]
             script += [
-                "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
+                "am start com.mozilla.servo/com.mozilla.servo.MainActivity " + extra,
                 "exit"
             ]
             shell = subprocess.Popen(["adb", "shell"], stdin=subprocess.PIPE)

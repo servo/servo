@@ -414,7 +414,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if android:
-            pkg_path = binary_path + ".apk"
+            pkg_path = self.get_apk_path(release)
             exec_command = ["adb", "install", "-r", pkg_path]
         elif is_windows():
             pkg_path = path.join(path.dirname(binary_path), 'msi', 'Servo.msi')
