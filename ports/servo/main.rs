@@ -17,21 +17,18 @@
 
 #![cfg_attr(feature = "unstable", feature(core_intrinsics))]
 
-#[cfg(target_os = "android")]
-extern crate android_injected_glue;
 extern crate backtrace;
 #[macro_use] extern crate bitflags;
 extern crate euclid;
 #[cfg(target_os = "windows")] extern crate gdi32;
 extern crate gleam;
 extern crate glutin;
-#[cfg(not(target_os = "android"))]
 #[macro_use] extern crate lazy_static;
 // The window backed by glutin
 #[macro_use] extern crate log;
 #[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
 extern crate servo;
-#[cfg(all(feature = "unstable", not(target_os = "android")))]
+#[cfg(feature = "unstable")]
 #[macro_use]
 extern crate sig;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
@@ -46,8 +43,6 @@ mod resources;
 use backtrace::Backtrace;
 use servo::Servo;
 use servo::compositing::windowing::WindowEvent;
-#[cfg(target_os = "android")]
-use servo::config;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;
 use servo::ipc_channel::ipc;
@@ -71,7 +66,7 @@ pub mod platform {
     pub fn deinit() {}
 }
 
-#[cfg(all(feature = "unstable", not(target_os = "android")))]
+#[cfg(feature = "unstable")]
 fn install_crash_handler() {
     use backtrace::Backtrace;
     use sig::ffi::Sig;
@@ -97,16 +92,14 @@ fn install_crash_handler() {
     signal!(Sig::BUS, handler); // handle invalid memory access
 }
 
-#[cfg(any(not(feature = "unstable"), target_os = "android"))]
-fn install_crash_handler() {}
-
 fn main() {
     install_crash_handler();
 
     resources::init();
 
     // Parse the command line options and store them globally
-    let opts_result = opts::from_cmdline_args(&*args());
+    let args: Vec<String> = env::args().collect();
+    let opts_result = opts::from_cmdline_args(&args);
 
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
@@ -148,8 +141,6 @@ fn main() {
 
         error!("{}", msg);
     }));
-
-    setup_logging();
 
     if let Some(token) = content_process_token {
         return servo::run_content_process(token);
@@ -218,67 +209,6 @@ fn main() {
     servo.deinit();
 
     platform::deinit()
-}
-
-#[cfg(target_os = "android")]
-fn setup_logging() {
-    // Piping logs from stdout/stderr to logcat happens in android_injected_glue.
-    env::set_var("RUST_LOG", "error");
-
-    unsafe { android_injected_glue::ffi::app_dummy() };
-}
-
-#[cfg(not(target_os = "android"))]
-fn setup_logging() {}
-
-#[cfg(target_os = "android")]
-/// Attempt to read parameters from a file since they are not passed to us in Android environments.
-/// The first line should be the "servo" argument and the last should be the URL to load.
-/// Blank lines and those beginning with a '#' are ignored.
-/// Each line should be a separate parameter as would be parsed by the shell.
-/// For example, "servo -p 10 http://en.wikipedia.org/wiki/Rust" would take 4 lines.
-fn args() -> Vec<String> {
-    use std::error::Error;
-    use std::fs::File;
-    use std::io::{BufRead, BufReader};
-
-    let mut params_file = config::basedir::default_config_dir();
-    params_file.push("android_params");
-    match File::open(params_file.to_str().unwrap()) {
-        Ok(f) => {
-            let mut vec = Vec::new();
-            let file = BufReader::new(&f);
-            for line in file.lines() {
-                let l = line.unwrap().trim().to_owned();
-                // ignore blank lines and those that start with a '#'
-                match l.is_empty() || l.as_bytes()[0] == b'#' {
-                    true => (),
-                    false => vec.push(l),
-                }
-            }
-            vec
-        },
-        Err(e) => {
-            debug!("Failed to open params file '{}': {}",
-                   params_file.to_str().unwrap(),
-                   Error::description(&e));
-            vec!["servo".to_owned(), "http://en.wikipedia.org/wiki/Rust".to_owned()]
-        },
-    }
-}
-
-#[cfg(not(target_os = "android"))]
-fn args() -> Vec<String> {
-    env::args().collect()
-}
-
-
-#[cfg(target_os = "android")]
-#[no_mangle]
-#[inline(never)]
-#[allow(non_snake_case)]
-pub extern "C" fn android_main(app: *mut ()) {
-    android_injected_glue::android_main2(app as *mut _, move |_, _| main());
 }
 
 // These functions aren't actually called. They are here as a link

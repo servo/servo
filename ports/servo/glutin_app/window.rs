@@ -630,7 +630,6 @@ impl Window {
         TypedScale::new(ppi as f32 / 96.0)
     }
 
-    /// Has no effect on Android.
     pub fn set_cursor(&self, cursor: CursorKind) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {
