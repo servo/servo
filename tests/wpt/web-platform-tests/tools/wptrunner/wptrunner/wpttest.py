@@ -86,12 +86,6 @@ class RunInfo(dict):
         elif "debug" not in self:
             # Default to release
             self["debug"] = False
-        if product == "firefox" and "stylo" not in self:
-            self["stylo"] = False
-        if "STYLO_FORCE_ENABLED" in os.environ:
-            self["stylo"] = True
-        if "STYLO_FORCE_DISABLED" in os.environ:
-            self["stylo"] = False
         if browser_version:
             self["browser_version"] = browser_version
         if extras is not None:

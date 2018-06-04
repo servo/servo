@@ -81,10 +81,10 @@
 
     let eventCount = 0;
     const states = [
-      'stable', 'have-local-offer', 'stable', 'have-remote-offer', 'closed'
+      'stable', 'have-local-offer', 'stable', 'have-remote-offer',
     ];
-    pc.onsignalingstatechange = () =>
-        assert_equals(pc.signalingState, states[++eventCount]);
+    pc.onsignalingstatechange = t.step_func(() =>
+        assert_equals(pc.signalingState, states[++eventCount]));
 
     const assert_state = state => {
       assert_equals(state, pc.signalingState);
@@ -101,8 +101,6 @@
     assert_state('stable');
     await pc.setRemoteDescription(await pc2.createOffer());
     assert_state('have-remote-offer');
-    pc.close();
-    assert_state('closed');
   }, 'Negotiation should fire signalingsstate events');
 
   /* Operations after returning to stable state */

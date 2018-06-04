@@ -26,7 +26,8 @@ test(function() {
   assert_false("identifiedTouch" in TouchList.prototype,
                "Should not be supported on the prototype");
 
-  var touchList = document.createTouchList();
+  var touchevent = new TouchEvent("touchstart", {});
+  var touchList = touchevent.touches;
   assert_false("identifiedTouch" in touchList,
                "Should not be supported on the instance");
 }, "TouchList::identifiedTouch");
@@ -47,4 +48,12 @@ test(function() {
   assert_false("createTouch" in document,
                "Should not be supported on the instance");
 }, "Document::createTouch");
+
+test(function() {
+  assert_false("createTouchList" in Document.prototype,
+               "Should not be supported on the prototype");
+
+  assert_false("createTouchList" in document,
+               "Should not be supported on the instance");
+}, "Document::createTouchList");
 </script>

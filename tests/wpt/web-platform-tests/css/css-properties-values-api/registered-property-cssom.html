@@ -37,8 +37,10 @@ test(function() {
   assert_equals(computedStyle.getPropertyValue('--color'), 'hello');
 }, "CSSOM setters function as expected for unregistered properties");
 
-CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--color', syntax: '<color>', initialValue: 'white', inherits: true});
+test(function() {
+  CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px'});
+  CSS.registerProperty({name: '--color', syntax: '<color>', initialValue: 'white', inherits: true});
+}, "CSS.registerProperty");
 
 test(function() {
   assert_equals(inlineStyle.getPropertyValue('--length'), '5');

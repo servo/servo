@@ -17,41 +17,43 @@ html {
 <script>
 'use strict';
 
-for (const property in gCSSProperties) {
-  if (!isSupported(property)) {
-    continue;
-  }
-
-  const setupFunction = gCSSProperties[property].setup;
-  for (const animationType of gCSSProperties[property].types) {
-    let typeObject;
-    let animationTypeString;
-    if (typeof animationType === 'string') {
-      typeObject = types[animationType];
-      animationTypeString = animationType;
-    } else if (typeof animationType === 'object' &&
-               animationType.type && typeof animationType.type === 'string') {
-      typeObject = types[animationType.type];
-      animationTypeString = animationType.type;
+test(function() {
+  for (const property in gCSSProperties) {
+    if (!isSupported(property)) {
+      continue;
     }
 
-    // First, test that the animation type object has 'testAccumulation'.
-    // We use test() function here so that we can continue the remainder tests
-    // even if this test fails.
-    test(t => {
-      assert_own_property(typeObject, 'testAccumulation', animationTypeString +
-                          ' should have testAccumulation property');
-      assert_equals(typeof typeObject.testAccumulation, 'function',
-                    'testAccumulation method should be a function');
-    }, `${property} (type: ${animationTypeString}) has testAccumulation`
-       + ' function');
+    const setupFunction = gCSSProperties[property].setup;
+    for (const animationType of gCSSProperties[property].types) {
+      let typeObject;
+      let animationTypeString;
+      if (typeof animationType === 'string') {
+        typeObject = types[animationType];
+        animationTypeString = animationType;
+      } else if (typeof animationType === 'object' &&
+                 animationType.type && typeof animationType.type === 'string') {
+        typeObject = types[animationType.type];
+        animationTypeString = animationType.type;
+      }
 
-    if (typeObject.testAccumulation &&
-        typeof typeObject.testAccumulation === 'function') {
-      typeObject.testAccumulation(property,
-                              setupFunction,
-                              animationType.options);
+      // First, test that the animation type object has 'testAccumulation'.
+      // We use test() function here so that we can continue the remainder tests
+      // even if this test fails.
+      test(t => {
+        assert_own_property(typeObject, 'testAccumulation', animationTypeString +
+                            ' should have testAccumulation property');
+        assert_equals(typeof typeObject.testAccumulation, 'function',
+                      'testAccumulation method should be a function');
+      }, `${property} (type: ${animationTypeString}) has testAccumulation`
+         + ' function');
+
+      if (typeObject.testAccumulation &&
+          typeof typeObject.testAccumulation === 'function') {
+        typeObject.testAccumulation(property,
+                                setupFunction,
+                                animationType.options);
+      }
     }
   }
-}
+}, 'Setup');
 </script>

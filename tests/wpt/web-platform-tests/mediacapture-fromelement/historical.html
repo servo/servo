@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Historical features</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+  // https://lists.w3.org/Archives/Public/public-media-capture/2015Nov/0012.html
+  test(function() {
+    assert_false(MediaStream.prototype.hasOwnProperty('onactive'));
+  }, 'the deprecated MediaStream `onactive` event handler property is not available');
+  </script>
+</body>
+</html>
