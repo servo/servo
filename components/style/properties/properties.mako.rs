@@ -23,7 +23,7 @@ use std::fmt::{self, Write};
 use std::mem::{self, ManuallyDrop};
 
 #[cfg(feature = "servo")] use cssparser::RGBA;
-use cssparser::{CowRcStr, Parser, TokenSerializationType, serialize_identifier};
+use cssparser::{Parser, TokenSerializationType};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use context::QuirksMode;
@@ -1765,21 +1765,6 @@ impl PropertyId {
         }
     }
 
-    /// Returns the name of the property without CSS escaping.
-    pub fn name(&self) -> Cow<'static, str> {
-        match *self {
-            PropertyId::ShorthandAlias(id, _) |
-            PropertyId::Shorthand(id) => id.name().into(),
-            PropertyId::LonghandAlias(id, _) |
-            PropertyId::Longhand(id) => id.name().into(),
-            PropertyId::Custom(ref name) => {
-                let mut s = String::new();
-                write!(&mut s, "--{}", name).unwrap();
-                s.into()
-            }
-        }
-    }
-
     fn non_custom_id(&self) -> Option<NonCustomPropertyId> {
         Some(match *self {
             PropertyId::Custom(_) => return None,
@@ -2042,13 +2027,13 @@ impl PropertyDeclaration {
     pub fn parse_into<'i, 't>(
         declarations: &mut SourcePropertyDeclaration,
         id: PropertyId,
-        name: CowRcStr<'i>,
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<(), ParseError<'i>> {
         assert!(declarations.is_empty());
         debug_assert!(id.allowed_in(context), "{:?}", id);
 
+        let non_custom_id = id.non_custom_id();
         let start = input.state();
         match id {
             PropertyId::Custom(property_name) => {
@@ -2059,7 +2044,10 @@ impl PropertyDeclaration {
                     Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(input) {
                         Ok(value) => DeclaredValueOwned::Value(value),
-                        Err(e) => return Err(StyleParseErrorKind::new_invalid(name, e)),
+                        Err(e) => return Err(StyleParseErrorKind::new_invalid(
+                            format!("--{}", property_name),
+                            e,
+                        )),
                     }
                 };
                 declarations.push(PropertyDeclaration::Custom(CustomDeclaration {
@@ -2084,7 +2072,10 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    StyleParseErrorKind::new_invalid(name, e)
+                                    StyleParseErrorKind::new_invalid(
+                                        non_custom_id.unwrap().name(),
+                                        e,
+                                    )
                                 })?;
                             Ok(PropertyDeclaration::WithVariables(VariableDeclaration {
                                 id,
@@ -2096,7 +2087,10 @@ impl PropertyDeclaration {
                                 }),
                             }))
                         } else {
-                            Err(StyleParseErrorKind::new_invalid(name, err))
+                            Err(StyleParseErrorKind::new_invalid(
+                                non_custom_id.unwrap().name(),
+                                err,
+                            ))
                         }
                     })
                 }).map(|declaration| {
@@ -2130,7 +2124,10 @@ impl PropertyDeclaration {
                             input.reset(&start);
                             let (first_token_type, css) =
                                 ::custom_properties::parse_non_custom_with_var(input).map_err(|e| {
-                                    StyleParseErrorKind::new_invalid(name, e)
+                                    StyleParseErrorKind::new_invalid(
+                                        non_custom_id.unwrap().name(),
+                                        e,
+                                    )
                                 })?;
                             let unparsed = Arc::new(UnparsedValue {
                                 css: css.into_owned(),
@@ -2152,7 +2149,10 @@ impl PropertyDeclaration {
                             }
                             Ok(())
                         } else {
-                            Err(StyleParseErrorKind::new_invalid(name, err))
+                            Err(StyleParseErrorKind::new_invalid(
+                                non_custom_id.unwrap().name(),
+                                err,
+                            ))
                         }
                     })
                 }
