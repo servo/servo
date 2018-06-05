@@ -49,6 +49,7 @@ use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use values::generics::text::LineHeight;
 use values::computed;
 use values::computed::NonNegativeLength;
+use values::serialize_atom_name;
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use self::computed_value_flags::*;
 use str::{CssString, CssStringBorrow, CssStringWriter};
@@ -1506,8 +1507,9 @@ impl<'a> ToCss for PropertyDeclarationId<'a> {
     {
         match *self {
             PropertyDeclarationId::Longhand(id) => dest.write_str(id.name()),
-            PropertyDeclarationId::Custom(_) => {
-                serialize_identifier(&self.name(), dest)
+            PropertyDeclarationId::Custom(ref name) => {
+                dest.write_str("--")?;
+                serialize_atom_name(name, dest)
             }
         }
     }
@@ -1587,8 +1589,9 @@ impl ToCss for PropertyId {
             PropertyId::Shorthand(id) => dest.write_str(id.name()),
             PropertyId::LonghandAlias(id, _) => dest.write_str(id.name()),
             PropertyId::ShorthandAlias(id, _) => dest.write_str(id.name()),
-            PropertyId::Custom(_) => {
-                serialize_identifier(&self.name(), dest)
+            PropertyId::Custom(ref name) => {
+                dest.write_str("--")?;
+                serialize_atom_name(name, dest)
             }
         }
     }

@@ -756,13 +756,13 @@ impl ToCss for TransitionProperty {
     where
         W: Write,
     {
-        use values::serialize_atom_identifier;
+        use values::serialize_atom_name;
         match *self {
             TransitionProperty::Shorthand(ref s) => s.to_css(dest),
             TransitionProperty::Longhand(ref l) => l.to_css(dest),
             TransitionProperty::Custom(ref name) => {
                 dest.write_str("--")?;
-                serialize_atom_identifier(name, dest)
+                serialize_atom_name(name, dest)
             }
             TransitionProperty::Unsupported(ref i) => i.to_css(dest),
         }
