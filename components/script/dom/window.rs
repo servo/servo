@@ -609,13 +609,13 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
     fn Close(&self) {
+        let window_proxy = self.window_proxy();
         // Note: check the length of the "session history", as opposed to the joint session history?
         // see https://github.com/whatwg/html/issues/3734
         if let Ok(history_length) = self.History().GetLength() {
-            // TODO: allow auxilliary browsing contexts created by script to be script-closeable,
-            // regardless of history length.
+            let is_auxiliary = window_proxy.is_auxiliary();
             // https://html.spec.whatwg.org/multipage/#script-closable
-            let is_script_closable = self.is_top_level() && history_length == 1;
+            let is_script_closable = (self.is_top_level() && history_length == 1) || is_auxiliary;
             if is_script_closable {
                 let doc = self.Document();
                 // https://html.spec.whatwg.org/multipage/#closing-browsing-contexts
