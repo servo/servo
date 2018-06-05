@@ -567,7 +567,14 @@ impl PropertyDeclarationBlock {
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
     /// Returns whether any declaration was actually removed.
-    pub fn remove_property(&mut self, property: &PropertyId) -> bool {
+    pub fn remove_property<C>(
+        &mut self,
+        property: &PropertyId,
+        mut before_change_callback: C,
+    ) -> bool
+    where
+        C: FnMut(&Self),
+    {
         let longhand_id = property.longhand_id();
         if let Some(id) = longhand_id {
             if !self.longhands.contains(id) {
@@ -575,23 +582,28 @@ impl PropertyDeclarationBlock {
             }
         }
         let mut removed_at_least_one = false;
-        let longhands = &mut self.longhands;
-        let declarations_importance = &mut self.declarations_importance;
         let mut i = 0;
-        self.declarations.retain(|declaration| {
-            let id = declaration.id();
-            let remove = id.is_or_is_longhand_of(property);
-            if remove {
+        let mut len = self.len();
+        while i < len {
+            {
+                let id = self.declarations[i].id();
+                if !id.is_or_is_longhand_of(property) {
+                    i += 1;
+                    continue;
+                }
+
+                if !removed_at_least_one {
+                    before_change_callback(&*self);
+                }
                 removed_at_least_one = true;
                 if let PropertyDeclarationId::Longhand(id) = id {
-                    longhands.remove(id);
+                    self.longhands.remove(id);
                 }
-                declarations_importance.remove(i);
-            } else {
-                i += 1;
+                self.declarations_importance.remove(i);
             }
-            !remove
-        });
+            self.declarations.remove(i);
+            len -= 1;
+        }
 
         if longhand_id.is_some() {
             debug_assert!(removed_at_least_one);
