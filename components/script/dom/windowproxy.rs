@@ -313,10 +313,14 @@ impl WindowProxy {
                     }
                 }
             };
-            unsafe {
-                rooted!(in(cx) let mut val = UndefinedValue());
-                rooted_opener_proxy.to_jsval(cx, val.handle_mut());
-                return val.get()
+            if rooted_opener_proxy.is_browsing_context_discarded() {
+                return NullValue()
+            } else {
+                unsafe {
+                    rooted!(in(cx) let mut val = UndefinedValue());
+                    rooted_opener_proxy.to_jsval(cx, val.handle_mut());
+                    return val.get()
+                }
             }
         }
         NullValue()
@@ -407,6 +411,10 @@ impl WindowProxy {
                 }
             }
         }
+    }
+
+    pub fn is_auxiliary(&self) -> bool {
+        self.opener.is_some()
     }
 
     pub fn discard_browsing_context(&self) {
