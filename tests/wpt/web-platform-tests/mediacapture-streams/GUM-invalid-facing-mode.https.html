@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+<title>Invalid facingMode in getUserMedia</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#def-constraint-facingMode">
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that trying to set an empty facingMode
+  value in getUserMedia results in an OverconstrainedError.
+</p>
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+var t = async_test(
+  "Tests that setting an invalid facingMode constraint in getUserMedia fails");
+t.step(function() {
+  navigator.mediaDevices.getUserMedia({video: {facingMode: {exact: ''}}})
+    .then(t.step_func(function (stream) {
+      assert_unreached("The empty string is not a valid facingMode");
+      t.done();
+    }), t.step_func(function(error) {
+      assert_equals(error.name, "OverconstrainedError");
+      assert_equals(error.constraint, "facingMode");
+      t.done();
+    }));
+});
+</script>
+</body>
+</html>

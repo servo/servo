@@ -22,17 +22,19 @@
     });
 
     x = document.getElementById('x');
-    x.location = "";
+    x.onload = function() {
+      x.location = "";
 
-    // While document.write is deprecated I did not find another way to reproduce
-    // the original exploit.
-    x.contentDocument.write(
-      '<script>window.addEventListener("securitypolicyviolation", function(e) {' +
-      '  window.top.postMessage(e.violatedDirective, "*");' +
-      '});</scr' + 'ipt>' +
-      '<iframe src="../support/fail.html"></iframe>'
-    );
-    x.contentDocument.close();
+      // While document.write is deprecated I did not find another way to reproduce
+      // the original exploit.
+      x.contentDocument.write(
+        '<script>window.addEventListener("securitypolicyviolation", function(e) {' +
+        '  window.top.postMessage(e.violatedDirective, "*");' +
+        '});</scr' + 'ipt>' +
+        '<iframe src="../support/fail.html"></iframe>'
+      );
+      x.contentDocument.close();
+    }
   </script>
   <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-src%20%27none%27''></script>
 </body>

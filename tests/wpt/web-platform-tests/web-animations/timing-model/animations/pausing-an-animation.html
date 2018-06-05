@@ -13,6 +13,35 @@
 
 promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  const startTimeBeforePausing = animation.startTime;
+
+  animation.pause();
+  assert_equals(animation.startTime, startTimeBeforePausing,
+                'The start time does not change when pausing-pending');
+
+  await animation.ready;
+
+  assert_equals(animation.startTime, null,
+                'The start time is unresolved when paused');
+}, 'Pausing clears the start time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  animation.pause();
+  assert_not_equals(animation.startTime, null,
+                    'The start time is resolved when pause-pending');
+
+  animation.play();
+  assert_not_equals(animation.startTime, null,
+                    'The start time is preserved when a pause is aborted');
+}, 'Aborting a pause preserves the start time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   const promise = animation.ready;
   animation.pause();
 
@@ -41,6 +70,24 @@ promise_test(async t => {
   assert_greater_than(animation.currentTime, 50 * MS_PER_SEC);
 }, 'A pause-pending animation maintains the current time when applying a'
    + ' pending playback rate');
+
+promise_test(async t => {
+  // This test does not cover a specific step in the algorithm but serves as a
+  // high-level sanity check that pausing does, in fact, freeze the current
+  // time.
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  await animation.ready;
+
+  animation.pause();
+  await animation.ready;
+
+  const currentTimeAfterPausing = animation.currentTime;
+
+  await waitForNextFrame();
+
+  assert_equals(animation.currentTime, currentTimeAfterPausing,
+    'Animation.currentTime is unchanged after pausing');
+}, 'The animation\'s current time remains fixed after pausing');
 
 </script>
 </body>

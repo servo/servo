@@ -2,13 +2,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 	<head>
 		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
-		<title>WOFF Test: Transformed Hmtx Table With Bad Flags 1</title>
+		<title>WOFF Test: Transformed Hmtx Table With All Flags Set</title>
 		<link rel="author" title="Khaled Hosny" href="http://khaledhosny.org" />
 		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#DataTables" />
 		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-mustCheckLSBFlags" />
-		<link  rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
 		<link rel="match" href="tabledata-transform-hmtx-003-ref.xht" />
-		<meta name="assert" content="Invalid TTF flavored WOFF with transformed hmtx table with non-zero reserved bits of the flags field." />
+		<meta name="assert" content="Invalid TTF flavored WOFF with transformed hmtx table that has all flags bits (including reserved bits) set." />
 		<style type="text/css"><![CDATA[
 			@import url("support/test-fonts.css");
 			@font-face {

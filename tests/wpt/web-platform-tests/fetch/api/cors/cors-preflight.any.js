@@ -19,8 +19,8 @@ function corsPreflight(desc, corsUrl, method, allowed, headers, safeHeaders) {
   return promise_test(function(test) {
     var uuid_token = token();
     return fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token).then(function(response) {
-      var url = corsUrl;
-      var urlParameters = "?token=" + uuid_token + "&max_age=0";
+      var url = corsUrl + (corsUrl.indexOf("?") === -1 ? "?" : "&");
+      var urlParameters = "token=" + uuid_token + "&max_age=0";
       var requestInit = {"mode": "cors", "method": method};
       var requestHeaders = [];
       if (headers)
@@ -66,6 +66,7 @@ var corsUrl = get_host_info().HTTP_REMOTE_ORIGIN + dirname(location.pathname) + 
 corsPreflight("CORS [DELETE], server allows", corsUrl, "DELETE", true);
 corsPreflight("CORS [DELETE], server refuses", corsUrl, "DELETE", false);
 corsPreflight("CORS [PUT], server allows", corsUrl, "PUT", true);
+corsPreflight("CORS [PUT], server allows, check preflight has user agent", corsUrl + "?checkUserAgentHeaderInPreflight", "PUT", true);
 corsPreflight("CORS [PUT], server refuses", corsUrl, "PUT", false);
 corsPreflight("CORS [PATCH], server allows", corsUrl, "PATCH", true);
 corsPreflight("CORS [PATCH], server refuses", corsUrl, "PATCH", false);

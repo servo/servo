@@ -216,6 +216,18 @@ promise_test(async t => {
 test(t => {
   const div = createDiv(t);
   const animation =
+    new Animation(new KeyframeEffect(div, null, 100 * MS_PER_SEC));
+  assert_equals(animation.currentTime, null);
+
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 100 * MS_PER_SEC,
+    'animation.currentTime should be at its effect end');
+}, 'Reversing an idle animation from starts playing the animation');
+
+test(t => {
+  const div = createDiv(t);
+  const animation =
     new Animation(new KeyframeEffect(div, null, 100 * MS_PER_SEC), null);
 
   assert_throws('InvalidStateError', () => { animation.reverse(); });

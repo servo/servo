@@ -44,6 +44,7 @@ def main(request, response):
 
         stashed_data['preflight'] = "1"
         stashed_data['preflight_referrer'] = request.headers.get("Referer", "")
+        stashed_data['preflight_user_agent'] = request.headers.get("User-Agent", "")
         if token:
             request.server.stash.put(token, stashed_data)
 
@@ -54,6 +55,9 @@ def main(request, response):
         data = request.server.stash.take(token)
         if data:
             stashed_data = data
+
+    if "checkUserAgentHeaderInPreflight" in request.GET and request.headers.get("User-Agent") != stashed_data['preflight_user_agent']:
+        return 400, headers, "ERROR: No user-agent header in preflight"
 
     #use x-* headers for returning value to bodyless responses
     headers.append(("Access-Control-Expose-Headers", "x-did-preflight, x-control-request-headers, x-referrer, x-preflight-referrer, x-origin"))

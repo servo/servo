@@ -20,6 +20,13 @@ class ManifestVersionMismatch(ManifestError):
     pass
 
 
+def iterfilter(filters, iter):
+    for f in filters:
+        iter = f(iter)
+    for item in iter:
+        yield item
+
+
 class Manifest(object):
     def __init__(self, url_base="/"):
         assert url_base is not None
@@ -170,7 +177,7 @@ class Manifest(object):
         return rv
 
     @classmethod
-    def from_json(cls, tests_root, obj):
+    def from_json(cls, tests_root, obj, types=None, meta_filters=None):
         version = obj.get("version")
         if version != CURRENT_VERSION:
             raise ManifestVersionMismatch
@@ -191,16 +198,22 @@ class Manifest(object):
                         "visual": VisualTest,
                         "support": SupportFile}
 
+        meta_filters = meta_filters or []
+
         source_files = {}
 
         for test_type, type_paths in iteritems(obj["items"]):
             if test_type not in item_classes:
                 raise ManifestError
+
+            if types and test_type not in types:
+                continue
+
             test_cls = item_classes[test_type]
             tests = defaultdict(set)
             for path, manifest_tests in iteritems(type_paths):
                 path = to_os_path(path)
-                for test in manifest_tests:
+                for test in iterfilter(meta_filters, manifest_tests):
                     manifest_item = test_cls.from_json(self,
                                                        tests_root,
                                                        path,
@@ -212,7 +225,7 @@ class Manifest(object):
         return self
 
 
-def load(tests_root, manifest):
+def load(tests_root, manifest, types=None, meta_filters=None):
     logger = get_logger()
 
     # "manifest" is a path or file-like object.
@@ -223,7 +236,7 @@ def load(tests_root, manifest):
             logger.debug("Creating new manifest at %s" % manifest)
         try:
             with open(manifest) as f:
-                rv = Manifest.from_json(tests_root, json.load(f))
+                rv = Manifest.from_json(tests_root, json.load(f), types=types, meta_filters=meta_filters)
         except IOError:
             return None
         except ValueError:
@@ -231,7 +244,7 @@ def load(tests_root, manifest):
             return None
         return rv
 
-    return Manifest.from_json(tests_root, json.load(manifest))
+    return Manifest.from_json(tests_root, json.load(manifest), types=types, meta_filters=meta_filters)
 
 
 def write(manifest, manifest_path):

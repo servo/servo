@@ -1,0 +1,132 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSAnimation.effect</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#cssanimation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes anim {
+  from {
+    margin-left: 0px;
+  }
+  to {
+    margin-left: 100px;
+  }
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+
+  const watcher = new EventWatcher(t, div, [ 'animationend',
+                                             'animationcancel' ]);
+  const animation = div.getAnimations()[0];
+  await animation.ready;
+
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.effect = null;
+  assert_equals(animation.playState, 'finished');
+  assert_equals(getComputedStyle(div).marginLeft, '0px');
+  await watcher.wait_for('animationend');
+}, 'Setting a null effect on a running animation fires an animationend event');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+
+  const animation = div.getAnimations()[0];
+  await animation.ready;
+
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.effect = new KeyframeEffect(div,
+                                        { left: [ '0px' , '100px'] },
+                                        100 * MS_PER_SEC);
+  assert_equals(getComputedStyle(div).marginLeft, '0px');
+  assert_equals(getComputedStyle(div).left, '50px');
+}, 'Replacing an animation\'s effect with an effect that targets a different ' +
+   'property should update both properties');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+
+  const animation = div.getAnimations()[0];
+  await animation.ready;
+
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.effect = new KeyframeEffect(div,
+                                        { left: [ '0px' , '100px'] },
+                                        20 * MS_PER_SEC);
+  assert_equals(animation.playState, 'finished');
+}, 'Replacing an animation\'s effect with a shorter one that should have ' +
+   'already finished, the animation finishes immediately');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.animation = 'anim 100s';
+
+  const animation = div.getAnimations()[0];
+  assert_true(animation.pending);
+
+  animation.effect = new KeyframeEffect(div,
+                                        { left: [ '0px' , '100px'] },
+                                        100 * MS_PER_SEC);
+  assert_true(animation.pending);
+
+  await animation.ready;
+
+  assert_false(animation.pending);
+}, 'A play-pending animation\'s effect whose effect is replaced still exits ' +
+   'the pending state');
+
+promise_test(async t => {
+  const div1 = addDiv(t);
+  const div2 = addDiv(t);
+
+  const watcher1 = new EventWatcher(t, div1, 'animationstart');
+  // Watch |div2| as well to ensure it does *not* get events.
+  const watcher2 = new EventWatcher(t, div2, 'animationstart');
+
+  div1.style.animation = 'anim 100s';
+
+  const animation = div1.getAnimations()[0];
+  animation.effect = new KeyframeEffect(div2,
+                                        { left: [ '0px', '100px' ] },
+                                        100 * MS_PER_SEC);
+
+  await watcher1.wait_for('animationstart');
+
+  assert_equals(animation.effect.target, div2);
+
+  // Then wait a couple of frames and check that no event was dispatched.
+  await waitForAnimationFrames(2);
+}, 'CSS animation events are dispatched at the original element even after'
+   + ' setting an effect with a different target element');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  const watcher = new EventWatcher(t, div, [ 'animationstart',
+                                             'animationend',
+                                             'animationcancel' ]);
+  div.style.animation = 'anim 100s';
+  const animation = div.getAnimations()[0];
+  animation.finish();
+
+  await watcher.wait_for([ 'animationstart', 'animationend' ]);
+  // Set a longer effect
+  animation.effect = new KeyframeEffect(div,
+                                        { left: [ '0px', '100px' ] },
+                                        200 * MS_PER_SEC);
+  await watcher.wait_for('animationstart');
+}, 'After replacing a finished animation\'s effect with a longer one ' +
+   'it fires an animationstart event');
+
+</script>
+</body>
