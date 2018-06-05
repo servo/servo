@@ -9,12 +9,12 @@
 #![allow(non_snake_case, missing_docs)]
 
 use gecko_bindings::bindings::RawServoCounterStyleRule;
-use gecko_bindings::bindings::RawServoDocumentRule;
 use gecko_bindings::bindings::RawServoFontFeatureValuesRule;
 use gecko_bindings::bindings::RawServoImportRule;
 use gecko_bindings::bindings::RawServoKeyframe;
 use gecko_bindings::bindings::RawServoKeyframesRule;
 use gecko_bindings::bindings::RawServoMediaRule;
+use gecko_bindings::bindings::RawServoMozDocumentRule;
 use gecko_bindings::bindings::RawServoNamespaceRule;
 use gecko_bindings::bindings::RawServoPageRule;
 use gecko_bindings::bindings::RawServoRuleNode;
@@ -98,7 +98,7 @@ impl_arc_ffi!(Locked<PageRule> => RawServoPageRule
 impl_arc_ffi!(Locked<SupportsRule> => RawServoSupportsRule
               [Servo_SupportsRule_AddRef, Servo_SupportsRule_Release]);
 
-impl_arc_ffi!(Locked<DocumentRule> => RawServoDocumentRule
+impl_arc_ffi!(Locked<DocumentRule> => RawServoMozDocumentRule
               [Servo_DocumentRule_AddRef, Servo_DocumentRule_Release]);
 
 impl_arc_ffi!(Locked<FontFeatureValuesRule> => RawServoFontFeatureValuesRule
