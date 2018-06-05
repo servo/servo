@@ -492,9 +492,9 @@ impl PropertyDeclarationBlock {
     ///     declaration with more importance, and will ensure that, if inserted,
     ///     it's inserted at the end of the declaration block.
     ///
-    ///   * For `DeclarationSource::CssOm`, this will override importance and
-    ///     will preserve the original position on the block.
+    ///   * For `DeclarationSource::CssOm`, this will override importance.
     ///
+    /// Returns whether the declaration has changed.
     pub fn push(
         &mut self,
         declaration: PropertyDeclaration,
@@ -522,7 +522,7 @@ impl PropertyDeclarationBlock {
                 // shouldn't override existing important one.
                 if important && !importance.important() &&
                     matches!(source, DeclarationSource::Parsing) {
-                    return true;
+                    return false;
                 }
 
                 if matches!(source, DeclarationSource::Parsing) {
