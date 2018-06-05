@@ -517,15 +517,15 @@ impl PropertyDeclarationBlock {
                     continue;
                 }
 
-                let important = self.declarations_importance[i];
-                // For declarations from parsing, non-important declarations
-                // shouldn't override existing important one.
-                if important && !importance.important() &&
-                    matches!(source, DeclarationSource::Parsing) {
-                    return false;
-                }
-
                 if matches!(source, DeclarationSource::Parsing) {
+                    let important = self.declarations_importance[i];
+
+                    // For declarations from parsing, non-important declarations
+                    // shouldn't override existing important one.
+                    if important && !importance.important() {
+                        return false;
+                    }
+
                     // As a compatibility hack, specially on Android,
                     // don't allow to override a prefixed webkit display
                     // value with an unprefixed version from parsing
