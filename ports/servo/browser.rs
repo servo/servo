@@ -28,6 +28,12 @@ pub struct Browser {
     /// are not supported yet. None until created.
     browser_id: Option<BrowserId>,
 
+    // A rudimentary stack of "tabs".
+    // EmbedderMsg::BrowserCreated will push onto it.
+    // EmbedderMsg::CloseBrowser will pop from it,
+    // and exit if it is empty afterwards.
+    browsers: Vec<BrowserId>,
+
     title: Option<String>,
     status: Option<String>,
     favicon: Option<ServoUrl>,
@@ -49,6 +55,7 @@ impl Browser {
             title: None,
             current_url: None,
             browser_id: None,
+            browsers: Vec::new(),
             status: None,
             favicon: None,
             loading_state: None,
@@ -64,6 +71,7 @@ impl Browser {
 
     pub fn set_browser_id(&mut self, browser_id: BrowserId) {
         self.browser_id = Some(browser_id);
+        self.browsers.push(browser_id);
     }
 
     pub fn handle_window_events(&mut self, events: Vec<WindowEvent>) {
@@ -287,7 +295,7 @@ impl Browser {
                 }
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
                     // TODO: properly handle a new "tab"
-                    self.browser_id = Some(new_browser_id);
+                    self.browsers.push(new_browser_id);
                     self.event_queue.push(WindowEvent::SelectBrowser(new_browser_id));
                 }
                 EmbedderMsg::KeyEvent(ch, key, state, modified) => {
@@ -315,10 +323,13 @@ impl Browser {
                     self.loading_state = Some(LoadingState::Loaded);
                 }
                 EmbedderMsg::CloseBrowser => {
-                    self.browser_id = None;
-                    // Nothing left to do for now,
-                    // but could hide a tab, and show another one, instead of quitting.
-                    self.event_queue.push(WindowEvent::Quit);
+                    // TODO: close the appropriate "tab".
+                    let _ = self.browsers.pop();
+                    if let Some(prev_browser_id) = self.browsers.last() {
+                        self.event_queue.push(WindowEvent::SelectBrowser(*prev_browser_id));
+                    } else {
+                        self.event_queue.push(WindowEvent::Quit);
+                    }
                 },
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
