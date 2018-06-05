@@ -8,39 +8,8 @@ use cssparser::{Color as CSSParserColor, RGBA};
 use std::fmt;
 use style_traits::{CssWriter, ToCss};
 use values::animated::ToAnimatedValue;
-use values::animated::color::{Color as AnimatedColor, RGBA as AnimatedRGBA};
-
-/// Ratios representing the contribution of color and currentcolor to
-/// the final color value.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
-pub struct ComplexColorRatios {
-    /// Numeric color contribution.
-    pub bg: f32,
-    /// Foreground color, aka currentcolor, contribution.
-    pub fg: f32,
-}
-
-impl ComplexColorRatios {
-    /// Ratios representing pure numeric color.
-    pub const NUMERIC: ComplexColorRatios = ComplexColorRatios { bg: 1., fg: 0. };
-    /// Ratios representing pure foreground color.
-    pub const FOREGROUND: ComplexColorRatios = ComplexColorRatios { bg: 0., fg: 1. };
-}
-
-/// This enum represents a combined color from a numeric color and
-/// the current foreground color (currentColor keyword).
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
-pub enum Color {
-    ///  Numeric RGBA color.
-    Numeric(RGBA),
-
-    /// The current foreground color.
-    Foreground,
-
-    /// A linear combination of numeric color and currentColor.
-    /// The formula is: `color * bg_ratio + currentColor * fg_ratio`.
-    Complex(RGBA, ComplexColorRatios),
-}
+use values::animated::color::RGBA as AnimatedRGBA;
+use values::generics::color::Color as GenericColor;
 
 /// Computed value type for the specified RGBAColor.
 pub type RGBAColor = RGBA;
@@ -48,30 +17,13 @@ pub type RGBAColor = RGBA;
 /// The computed value of the `color` property.
 pub type ColorPropertyValue = RGBA;
 
-impl Color {
-    /// Returns a numeric color representing the given RGBA value.
-    pub fn rgba(color: RGBA) -> Color {
-        Color::Numeric(color)
-    }
+/// A computed value for `<color>`.
+pub type Color = GenericColor<RGBAColor>;
 
+impl Color {
     /// Returns a complex color value representing transparent.
     pub fn transparent() -> Color {
         Color::rgba(RGBA::transparent())
-    }
-
-    /// Returns a complex color value representing currentcolor.
-    pub fn currentcolor() -> Color {
-        Color::Foreground
-    }
-
-    /// Whether it is a numeric color (no currentcolor component).
-    pub fn is_numeric(&self) -> bool {
-        matches!(*self, Color::Numeric { .. })
-    }
-
-    /// Whether it is a currentcolor value (no numeric color component).
-    pub fn is_currentcolor(&self) -> bool {
-        matches!(*self, Color::Foreground)
     }
 
     /// Combine this complex color with the given foreground color into
@@ -80,9 +32,9 @@ impl Color {
         let (color, ratios) = match *self {
             // Common cases that the complex color is either pure numeric
             // color or pure currentcolor.
-            Color::Numeric(color) => return color,
-            Color::Foreground => return fg_color,
-            Color::Complex(color, ratios) => (color, ratios),
+            GenericColor::Numeric(color) => return color,
+            GenericColor::Foreground => return fg_color,
+            GenericColor::Complex(color, ratios) => (color, ratios),
         };
 
         // For the more complicated case that the alpha value differs,
@@ -117,47 +69,15 @@ impl Color {
     }
 }
 
-impl From<RGBA> for Color {
-    fn from(color: RGBA) -> Color {
-        Color::Numeric(color)
-    }
-}
-
 impl ToCss for Color {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
     {
         match *self {
-            Color::Numeric(color) => color.to_css(dest),
-            Color::Foreground => CSSParserColor::CurrentColor.to_css(dest),
+            GenericColor::Numeric(color) => color.to_css(dest),
+            GenericColor::Foreground => CSSParserColor::CurrentColor.to_css(dest),
             _ => Ok(()),
-        }
-    }
-}
-
-impl ToAnimatedValue for Color {
-    type AnimatedValue = AnimatedColor;
-
-    #[inline]
-    fn to_animated_value(self) -> Self::AnimatedValue {
-        match self {
-            Color::Numeric(color) => AnimatedColor::Numeric(color.to_animated_value()),
-            Color::Foreground => AnimatedColor::Foreground,
-            Color::Complex(color, ratios) => {
-                AnimatedColor::Complex(color.to_animated_value(), ratios)
-            }
-        }
-    }
-
-    #[inline]
-    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        match animated {
-            AnimatedColor::Numeric(color) => Color::Numeric(RGBA::from_animated_value(color)),
-            AnimatedColor::Foreground => Color::Foreground,
-            AnimatedColor::Complex(color, ratios) => {
-                Color::Complex(RGBA::from_animated_value(color), ratios)
-            }
         }
     }
 }

@@ -9,8 +9,8 @@ use gecko_bindings::structs::StyleComplexColor;
 use gecko_bindings::structs::StyleComplexColor_Tag as Tag;
 use values::{Auto, Either};
 use values::computed::{Color as ComputedColor, RGBAColor as ComputedRGBA};
-use values::computed::ComplexColorRatios;
 use values::computed::ui::ColorOrAuto;
+use values::generics::color::{Color as GenericColor, ComplexColorRatios};
 
 impl StyleComplexColor {
     /// Create a `StyleComplexColor` value that represents `currentColor`.
@@ -48,9 +48,9 @@ impl From<ComputedRGBA> for StyleComplexColor {
 impl From<ComputedColor> for StyleComplexColor {
     fn from(other: ComputedColor) -> Self {
         match other {
-            ComputedColor::Numeric(color) => color.into(),
-            ComputedColor::Foreground => Self::current_color(),
-            ComputedColor::Complex(color, ratios) => {
+            GenericColor::Numeric(color) => color.into(),
+            GenericColor::Foreground => Self::current_color(),
+            GenericColor::Complex(color, ratios) => {
                 debug_assert!(ratios != ComplexColorRatios::NUMERIC);
                 debug_assert!(ratios != ComplexColorRatios::FOREGROUND);
                 StyleComplexColor {
@@ -69,16 +69,16 @@ impl From<StyleComplexColor> for ComputedColor {
         match other.mTag {
             Tag::eNumeric => {
                 debug_assert!(other.mBgRatio == 1. && other.mFgRatio == 0.);
-                ComputedColor::Numeric(convert_nscolor_to_rgba(other.mColor))
+                GenericColor::Numeric(convert_nscolor_to_rgba(other.mColor))
             }
             Tag::eForeground => {
                 debug_assert!(other.mBgRatio == 0. && other.mFgRatio == 1.);
-                ComputedColor::Foreground
+                GenericColor::Foreground
             }
             Tag::eComplex => {
                 debug_assert!(other.mBgRatio != 1. || other.mFgRatio != 0.);
                 debug_assert!(other.mBgRatio != 0. || other.mFgRatio != 1.);
-                ComputedColor::Complex(
+                GenericColor::Complex(
                     convert_nscolor_to_rgba(other.mColor),
                     ComplexColorRatios {
                         bg: other.mBgRatio,

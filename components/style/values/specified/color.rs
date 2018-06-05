@@ -18,6 +18,7 @@ use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParse
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
+use values::generics::color::Color as GenericColor;
 use values::specified::calc::CalcNode;
 
 /// Specified color value
@@ -384,9 +385,9 @@ impl ToComputedValue for Color {
 
     fn from_computed_value(computed: &ComputedColor) -> Self {
         match *computed {
-            ComputedColor::Numeric(color) => Color::rgba(color),
-            ComputedColor::Foreground => Color::currentcolor(),
-            ComputedColor::Complex(..) => Color::Complex(*computed),
+            GenericColor::Numeric(color) => Color::rgba(color),
+            GenericColor::Foreground => Color::currentcolor(),
+            GenericColor::Complex(..) => Color::Complex(*computed),
         }
     }
 }
