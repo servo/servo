@@ -2,6 +2,9 @@
 if (location.hash == '#1') {
   onconnect = function(e) {
     var port = e.ports[0];
+    onerror = e => {
+      port.postMessage(String(e))
+    }
     var w2 = new Worker('#2');
     w2.onmessage = function(e) {
       port.postMessage('1'+e.data);
@@ -28,6 +31,7 @@ async_test(function() {
     assert_equals(e.data, '123');
     this.done();
   });
+  w1.onerror = this.unreached_func("error");
 });
 </script>
 <!--

@@ -294,6 +294,35 @@ def test_iterpath():
     assert set(m.iterpath("missing")) == set()
 
 
+def test_filter():
+    m = manifest.Manifest()
+
+    sources = [SourceFileWithTest("test1", "0"*40, item.RefTest, [("/test1-ref", "==")]),
+               SourceFileWithTest("test2", "0"*40, item.RefTest, [("/test2-ref", "==")]),
+               SourceFileWithTests("test2", "0"*40, item.TestharnessTest, [("/test2-1.html",),
+                                                                           ("/test2-2.html",)]),
+               SourceFileWithTest("test3", "0"*40, item.TestharnessTest)]
+    m.update(sources)
+
+    json = m.to_json()
+
+    def filter(it):
+        for test in it:
+            if test[0] in ["/test2-2.html", "/test3"]:
+                yield test
+
+    filtered_manifest = manifest.Manifest.from_json("/", json, types=["testharness"], meta_filters=[filter])
+
+    actual = [
+        (ty, path, [test.id for test in tests])
+        for (ty, path, tests) in filtered_manifest
+    ]
+    assert actual == [
+        ("testharness", "test2", ["/test2-2.html"]),
+        ("testharness", "test3", ["/test3"]),
+    ]
+
+
 def test_reftest_node_by_url():
     m = manifest.Manifest()
 

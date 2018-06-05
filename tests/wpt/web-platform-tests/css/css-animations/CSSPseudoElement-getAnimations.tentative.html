@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSPseudoElement.getAnimations() for CSS animations</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes anim1 { }
+@keyframes anim2 { }
+.before::before {
+  animation: anim1 10s;
+  content: '';
+}
+.after-with-mix-anims-trans::after {
+  content: '';
+  animation: anim1 10s, anim2 10s;
+  width: 0px;
+  height: 0px;
+  transition: all 100s;
+}
+.after-change::after {
+  width: 100px;
+  height: 100px;
+  content: '';
+}
+</style>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t, { class: 'before' });
+  const pseudoTarget = document.getAnimations()[0].effect.target;
+  assert_equals(pseudoTarget.getAnimations().length, 1,
+                'Expected number of animations are returned');
+  assert_equals(pseudoTarget.getAnimations()[0].animationName, 'anim1',
+                'CSS animation name matches');
+}, 'getAnimations returns CSSAnimation objects');
+
+test(t => {
+  const div = addDiv(t, { class: 'after-with-mix-anims-trans' });
+  // Trigger transitions
+  flushComputedStyle(div);
+  div.classList.add('after-change');
+
+  // Create additional animation on the pseudo-element from script
+  const pseudoTarget = document.getAnimations()[0].effect.target;
+  const effect = new KeyframeEffect(pseudoTarget,
+                                    { background: ["blue", "red"] },
+                                    3 * MS_PER_SEC);
+  const newAnimation = new Animation(effect, document.timeline);
+  newAnimation.id = 'scripted-anim';
+  newAnimation.play();
+
+  // Check order - the script-generated animation should appear later
+  const anims = pseudoTarget.getAnimations();
+  assert_equals(anims.length, 5,
+                'Got expected number of animations/trnasitions running on ' +
+                '::after pseudo element');
+  assert_equals(anims[0].transitionProperty, 'height',
+                '1st animation is the 1st transition sorted by name');
+  assert_equals(anims[1].transitionProperty, 'width',
+                '2nd animation is the 2nd transition sorted by name ');
+  assert_equals(anims[2].animationName, 'anim1',
+                '3rd animation is the 1st animation in animation-name list');
+  assert_equals(anims[3].animationName, 'anim2',
+                '4rd animation is the 2nd animation in animation-name list');
+  assert_equals(anims[4].id, 'scripted-anim',
+                'Animation added by script appears last');
+}, 'getAnimations returns CSS transitions/animations, and script-generated ' +
+   'animations in the expected order');
+
+</script>
+</body>

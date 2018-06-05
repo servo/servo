@@ -32,6 +32,7 @@ async_test(function() {
     assert_equals(e.data, '123');
     this.done();
   });
+  w1.onerror = this.unreached_func("error");
 });
 </script>
 <!--

@@ -35,20 +35,22 @@
 </div>
 
 <script>
-CSS.registerProperty({name: '--length-1', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-2', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-3', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-4', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-5', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-6', syntax: '<length>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-percentage-1', syntax: '<length-percentage>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-percentage-2', syntax: '<length-percentage>', initialValue: '0px'});
-CSS.registerProperty({name: '--length-percentage-3', syntax: '<length-percentage>', initialValue: '0px'});
-CSS.registerProperty({name: '--list-1', syntax: '<length>+', initialValue: '0px'});
-CSS.registerProperty({name: '--list-2', syntax: '<length>+', initialValue: '0px'});
-CSS.registerProperty({name: '--list-3', syntax: '<length-percentage>+', initialValue: '0px'});
-CSS.registerProperty({name: '--list-4', syntax: '<length-percentage>+', initialValue: '0px'});
-CSS.registerProperty({name: '--font-size', syntax: '<length>', initialValue: '0px'});
+test(() => {
+    CSS.registerProperty({name: '--length-1', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-2', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-3', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-4', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-5', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-6', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-percentage-1', syntax: '<length-percentage>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-percentage-2', syntax: '<length-percentage>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-percentage-3', syntax: '<length-percentage>', initialValue: '0px'});
+    CSS.registerProperty({name: '--list-1', syntax: '<length>+', initialValue: '0px'});
+    CSS.registerProperty({name: '--list-2', syntax: '<length>+', initialValue: '0px'});
+    CSS.registerProperty({name: '--list-3', syntax: '<length-percentage>+', initialValue: '0px'});
+    CSS.registerProperty({name: '--list-4', syntax: '<length-percentage>+', initialValue: '0px'});
+    CSS.registerProperty({name: '--font-size', syntax: '<length>', initialValue: '0px'});
+}, "CSS.registerProperty");
 
 for (var element of [divWithFontSizeSet, divWithFontSizeInherited]) {
     var id = element.id;

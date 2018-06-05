@@ -11,14 +11,14 @@
 </style>
 <div id=target></div>
 <script>
-CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: 'calc(10px + 15px)'});
-CSS.registerProperty({name: '--length-percentage', syntax: '<length-percentage>', initialValue: 'calc(1in + 10% + 4px)'});
-CSS.registerProperty({name: '--inherited-color', syntax: '<color>', initialValue: 'pink', inherits: true});
-CSS.registerProperty({name: '--non-inherited-color', syntax: '<color>', initialValue: 'purple'});
-CSS.registerProperty({name: '--single-transform-list', syntax: '<transform-list>', initialValue: 'scale(calc(2 + 2))'});
-CSS.registerProperty({name: '--multiple-transform-list', syntax: '<transform-list>', initialValue: 'scale(calc(2 + 1)) translateX(calc(3px + 1px))'});
-
 test(function() {
+    CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: 'calc(10px + 15px)'});
+    CSS.registerProperty({name: '--length-percentage', syntax: '<length-percentage>', initialValue: 'calc(1in + 10% + 4px)'});
+    CSS.registerProperty({name: '--inherited-color', syntax: '<color>', initialValue: 'pink', inherits: true});
+    CSS.registerProperty({name: '--non-inherited-color', syntax: '<color>', initialValue: 'purple'});
+    CSS.registerProperty({name: '--single-transform-list', syntax: '<transform-list>', initialValue: 'scale(calc(2 + 2))'});
+    CSS.registerProperty({name: '--multiple-transform-list', syntax: '<transform-list>', initialValue: 'scale(calc(2 + 1)) translateX(calc(3px + 1px))'});
+
     computedStyle = getComputedStyle(target);
     assert_equals(computedStyle.getPropertyValue('--length'), '25px');
     assert_equals(computedStyle.getPropertyValue('--length-percentage'), 'calc(100px + 10%)');
