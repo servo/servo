@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=UTF-8"/>
+		<title>WOFF Test: Font access</title>
+		<link rel="author" title="Khaled Hosny" href="http://khaledhosny.org" />
+		<link rel="reviewer" title="Chris Lilley" href="mailto:chris@w3.org" />
+		<link rel="help" href="http://dev.w3.org/webfonts/WOFF2/spec/#conform-mustLoadFontCollection" />
+		<meta name="assert" content="Fonts must be loaded from font collections." />
+		<style type="text/css"><![CDATA[
+			body {
+				font-size: 20px;
+			}
+			pre {
+				font-size: 12px;
+			}
+			iframe {
+				width: 24em;
+				height: 300px;
+				border: thin solid green
+			}
+		]]></style>
+	</head>
+	<body>
+		<p>Test passes if the word PASS appears <em>twice</em> below, and the second one is condensed.</p>
+		<iframe src="support/available-002a.xht" />
+		<iframe src="support/available-002b.xht" />
+
+	</body>
+</html>

@@ -12,7 +12,7 @@ add_completion_callback(function(tests)
         if(tests[i].db)
         {
             tests[i].db.close();
-            window.indexedDB.deleteDatabase(tests[i].db.name);
+            self.indexedDB.deleteDatabase(tests[i].db.name);
         }
     }
 });
@@ -43,9 +43,9 @@ function createdb_for_multiple_tests(dbname, version) {
         dbname = (dbname ? dbname : "testdb-" + new Date().getTime() + Math.random() );
 
     if (version)
-        rq_open = window.indexedDB.open(dbname, version);
+        rq_open = self.indexedDB.open(dbname, version);
     else
-        rq_open = window.indexedDB.open(dbname);
+        rq_open = self.indexedDB.open(dbname);
 
     function auto_fail(evt, current_test) {
         /* Fail handlers, if we haven't set on/whatever/, don't
@@ -107,7 +107,7 @@ function assert_key_equals(actual, expected, description) {
 function indexeddb_test(upgrade_func, open_func, description, options) {
   async_test(function(t) {
     options = Object.assign({upgrade_will_abort: false}, options);
-    var dbname = document.location + '-' + t.name;
+    var dbname = location + '-' + t.name;
     var del = indexedDB.deleteDatabase(dbname);
     del.onerror = t.unreached_func('deleteDatabase should succeed');
     var open = indexedDB.open(dbname, 1);

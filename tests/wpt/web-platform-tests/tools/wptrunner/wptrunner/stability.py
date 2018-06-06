@@ -181,8 +181,8 @@ def run_step(logger, iterations, restart_after_iteration, kwargs_extras, **kwarg
     kwargs.update(kwargs_extras)
 
     def wrap_handler(x):
-        x = LogLevelFilter(x, "WARNING")
         if not kwargs["verify_log_full"]:
+            x = LogLevelFilter(x, "WARNING")
             x = LogActionFilter(x, ["log", "process_output"])
         return x
 

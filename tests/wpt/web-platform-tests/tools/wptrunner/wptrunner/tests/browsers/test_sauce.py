@@ -65,6 +65,32 @@ def test_sauceconnect_failure_exit(readyfile, returncode):
         # Given we appear to exit immediately with these mocks, sleep shouldn't be called
         sleep.assert_not_called()
 
+def test_sauceconnect_cleanup():
+    """Ensure that execution pauses when the process is closed while exiting
+    the context manager. This allow Sauce Connect to close any active
+    tunnels."""
+    with mock.patch.object(sauce.SauceConnect, "upload_prerun_exec"),\
+            mock.patch.object(sauce.subprocess, "Popen") as Popen,\
+            mock.patch.object(sauce.os.path, "exists") as exists,\
+            mock.patch.object(sauce.time, "sleep") as sleep:
+        Popen.return_value.poll.return_value = True
+        Popen.return_value.returncode = None
+        exists.return_value = True
+
+        sauce_connect = sauce.SauceConnect(
+            sauce_user="aaa",
+            sauce_key="bbb",
+            sauce_tunnel_id="ccc",
+            sauce_connect_binary="ddd")
+
+        env_config = Config(browser_host="example.net")
+        sauce_connect(None, env_config)
+        with sauce_connect:
+            Popen.return_value.poll.return_value = None
+            sleep.assert_not_called()
+
+        sleep.assert_called()
+
 
 def test_sauceconnect_failure_never_ready():
     with mock.patch.object(sauce.SauceConnect, "upload_prerun_exec"),\
