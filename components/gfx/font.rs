@@ -6,7 +6,7 @@ use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
 use font_context::{FontContext, FontSource};
 use font_template::FontTemplateDescriptor;
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use platform::font::{FontHandle, FontTable};
 use platform::font_context::FontContextHandle;
 pub use platform::font_list::fallback_font_families;
@@ -195,7 +195,7 @@ pub struct ShapingOptions {
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     pub letter_spacing: Option<Au>,
     /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
-    pub word_spacing: (Au, NotNaN<f32>),
+    pub word_spacing: (Au, NotNan<f32>),
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// Various flags.

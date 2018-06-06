@@ -16,7 +16,7 @@ use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
 use inline::{InlineFragmentNodeFlags, InlineFragments};
 use linked_list::split_off_head;
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use range::Range;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
@@ -183,7 +183,7 @@ impl TextRunScanner {
                 letter_spacing = inherited_text_style.letter_spacing;
                 word_spacing = inherited_text_style.word_spacing.value()
                                .map(|lop| lop.to_hash_key())
-                               .unwrap_or((Au(0), NotNaN::new(0.0).unwrap()));
+                               .unwrap_or((Au(0), NotNan::new(0.0).unwrap()));
                 text_rendering = inherited_text_style.text_rendering;
                 word_break = inherited_text_style.word_break;
             }

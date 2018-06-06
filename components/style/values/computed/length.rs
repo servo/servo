@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use logical_geometry::WritingMode;
-use ordered_float::NotNaN;
+use ordered_float::NotNan;
 use properties::LonghandId;
 use std::fmt::{self, Write};
 use std::ops::{Add, Neg};
@@ -391,14 +391,14 @@ impl LengthOrPercentage {
     // CSSFloat doesn't implement Hash, so does CSSPixelLength. Therefore, we still use Au as the
     // hash key.
     #[allow(missing_docs)]
-    pub fn to_hash_key(&self) -> (Au, NotNaN<f32>) {
+    pub fn to_hash_key(&self) -> (Au, NotNan<f32>) {
         use self::LengthOrPercentage::*;
         match *self {
-            Length(l) => (Au::from(l), NotNaN::new(0.0).unwrap()),
-            Percentage(p) => (Au(0), NotNaN::new(p.0).unwrap()),
+            Length(l) => (Au::from(l), NotNan::new(0.0).unwrap()),
+            Percentage(p) => (Au(0), NotNan::new(p.0).unwrap()),
             Calc(c) => (
                 Au::from(c.unclamped_length()),
-                NotNaN::new(c.percentage()).unwrap(),
+                NotNan::new(c.percentage()).unwrap(),
             ),
         }
     }
