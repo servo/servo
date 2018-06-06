@@ -23,15 +23,16 @@ const expectedDisplay = {
   'tbody': 'table-row-group',
   'tfoot': 'table-footer-group',
   'tr': 'table-row',
-  'td': 'table-cell',
-  'th': 'table-cell',
+  'td': 'none',
+  'th': 'none',
 };
 for (const el of document.querySelectorAll("[hidden]")) {
   test(function() {
     const style = getComputedStyle(el);
     assert_equals(style.display, expectedDisplay[el.localName]);
     if (el instanceof HTMLTableElement ||
-        el instanceof HTMLTableCaptionElement) {
+        el instanceof HTMLTableCaptionElement ||
+        el instanceof HTMLTableCellElement) {
       assert_equals(style.visibility, 'visible');
     } else {
       assert_equals(style.visibility, 'collapse');

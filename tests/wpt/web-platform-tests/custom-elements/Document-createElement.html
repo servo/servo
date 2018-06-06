@@ -376,6 +376,19 @@ test(() => {
   document.body.appendChild(div);
   assert_true(div instanceof MyElement, 'Undefined element is upgraded on connecting to a document');
 }, 'document.createElement with unknown "is" value should create "undefined" state element');
+
+test(() => {
+  class MyElement extends HTMLElement {
+      constructor() {
+          super();
+          this.foo = true;
+      }
+  }
+  customElements.define("my-element", MyElement);
+
+  const instance = document.createElement('my-element', undefined);
+  assert_true(instance.foo);
+}, 'document.createElement with undefined options value should be upgraded.');
 </script>
 </body>
 </html>

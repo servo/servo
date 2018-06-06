@@ -19,6 +19,9 @@ from ..executors.executorselenium import (SeleniumTestharnessExecutor,
                                           SeleniumRefTestExecutor)
 
 here = os.path.split(__file__)[0]
+# Number of seconds to wait between polling operations when detecting status of
+# Sauce Connect sub-process.
+sc_poll_period = 1
 
 
 __wptrunner__ = {"product": "sauce",
@@ -170,31 +173,24 @@ class SauceConnect():
         ])
 
         # Timeout config vars
-        each_sleep_secs = 1
         max_wait = 30
-        kill_wait = 5
 
         tot_wait = 0
         while not os.path.exists('./sauce_is_ready') and self.sc_process.poll() is None:
             if tot_wait >= max_wait:
-                self.sc_process.terminate()
-                while self.sc_process.poll() is None:
-                    time.sleep(each_sleep_secs)
-                    tot_wait += each_sleep_secs
-                    if tot_wait >= (max_wait + kill_wait):
-                        self.sc_process.kill()
-                        break
+                self.quit()
+
                 raise SauceException("Sauce Connect Proxy was not ready after %d seconds" % tot_wait)
 
-            time.sleep(each_sleep_secs)
-            tot_wait += each_sleep_secs
+            time.sleep(sc_poll_period)
+            tot_wait += sc_poll_period
 
         if self.sc_process.returncode is not None:
             raise SauceException("Unable to start Sauce Connect Proxy. Process exited with code %s", self.sc_process.returncode)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.env_config = None
-        self.sc_process.terminate()
+        self.quit()
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:
                 shutil.rmtree(self.temp_dir)
@@ -207,6 +203,23 @@ class SauceConnect():
 
         with open(os.path.join(here, 'sauce_setup', file_name), 'rb') as f:
             requests.post(url, data=f, auth=auth)
+
+    def quit(self):
+        """The Sauce Connect process may be managing an active "tunnel" to the
+        Sauce Labs service. Issue a request to the process to close any tunnels
+        and exit. If this does not occur within 5 seconds, force the process to
+        close."""
+        kill_wait = 5
+        tot_wait = 0
+        self.sc_process.terminate()
+
+        while self.sc_process.poll() is None:
+            time.sleep(sc_poll_period)
+            tot_wait += sc_poll_period
+
+            if tot_wait >= kill_wait:
+                self.sc_process.kill()
+                break
 
 
 class SauceException(Exception):

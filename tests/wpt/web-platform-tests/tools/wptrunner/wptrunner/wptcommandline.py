@@ -81,9 +81,13 @@ scheme host and port.""")
     mode_group.add_argument("--list-tests", action="store_true",
                             default=False,
                             help="List all tests that will run")
-    mode_group.add_argument("--verify", action="store_true",
-                            default=False,
-                            help="Run a stability check on the selected tests")
+    stability_group = mode_group.add_mutually_exclusive_group()
+    stability_group.add_argument("--verify", action="store_true",
+                                 default=False,
+                                 help="Run a stability check on the selected tests")
+    stability_group.add_argument("--stability", action="store_true",
+                                 default=False,
+                                 help=argparse.SUPPRESS)
     mode_group.add_argument("--verify-log-full", action="store_true",
                             default=False,
                             help="Output per-iteration test results when running verify")
