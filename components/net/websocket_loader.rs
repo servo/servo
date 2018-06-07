@@ -40,6 +40,7 @@ pub fn init(
     http_state: Arc<HttpState>
 ) {
     thread::Builder::new().name(format!("WebSocket connection to {}", req_init.url)).spawn(move || {
+        let url = req_init.url.clone();
         let channel = establish_a_websocket_connection(req_init, &http_state);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
@@ -48,7 +49,7 @@ pub fn init(
                 (sender, receiver)
             },
             Err(e) => {
-                debug!("Failed to establish a WebSocket connection: {:?}", e);
+                debug!("Failed to establish a WebSocket connection to {}: {:?}", url, e);
                 let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
                 return;
             }
