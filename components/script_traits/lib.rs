@@ -717,7 +717,7 @@ pub enum ConstellationMsg {
     /// Dispatch WebVR events to the subscribed script threads.
     WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
     /// Create a new top level browsing context.
-    NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    NewBrowser(ServoUrl),
     /// Close a top level browsing context.
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.

@@ -326,8 +326,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 self.compositor.capture_webrender();
             }
 
-            WindowEvent::NewBrowser(url, response_chan) => {
-                let msg = ConstellationMsg::NewBrowser(url, response_chan);
+            WindowEvent::NewBrowser(url) => {
+                let msg = ConstellationMsg::NewBrowser(url);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending NewBrowser message to constellation failed ({}).", e);
                 }

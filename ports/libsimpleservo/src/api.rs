@@ -8,7 +8,6 @@ use servo::compositing::windowing::{AnimationState, EmbedderCoordinates, MouseWi
 use servo::embedder_traits::EmbedderMsg;
 use servo::embedder_traits::resources::{self, Resource};
 use servo::euclid::{Length, TypedPoint2D, TypedScale, TypedSize2D, TypedVector2D};
-use servo::ipc_channel::ipc;
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{MouseButton, TouchEventType};
 use servo::servo_config::opts;
@@ -72,7 +71,14 @@ pub struct ServoGlue {
     servo: Servo<ServoCallbacks>,
     batch_mode: bool,
     callbacks: Rc<ServoCallbacks>,
-    browser_id: BrowserId,
+    /// id of the top level browsing context. It is unique as tabs
+    /// are not supported yet. None until created.
+    browser_id: Option<BrowserId>,
+    // A rudimentary stack of "tabs".
+    // EmbedderMsg::BrowserCreated will push onto it.
+    // EmbedderMsg::CloseBrowser will pop from it,
+    // and exit if it is empty afterwards.
+    browsers: Vec<BrowserId>,
     events: Vec<WindowEvent>,
     current_url: Option<ServoUrl>,
 }
@@ -130,28 +136,33 @@ pub fn init(
         waker,
     });
 
-    let mut servo = Servo::new(callbacks.clone());
-
-    let (sender, receiver) = ipc::channel().map_err(|_| "Can't create ipc::channel")?;
-    servo.handle_events(vec![WindowEvent::NewBrowser(url.clone(), sender)]);
-    let browser_id = receiver.recv().map_err(|_| "Can't receive browser_id")?;
-    servo.handle_events(vec![WindowEvent::SelectBrowser(browser_id)]);
+    let servo = Servo::new(callbacks.clone());
 
     SERVO.with(|s| {
-        *s.borrow_mut() = Some(ServoGlue {
+        let mut servo_glue = ServoGlue {
             servo,
             batch_mode: false,
             callbacks,
-            browser_id,
+            browser_id: None,
+            browsers: vec![],
             events: vec![],
-            current_url: Some(url),
-        });
+            current_url: Some(url.clone()),
+        };
+        let _ = servo_glue.process_event(WindowEvent::NewBrowser(url));
+        *s.borrow_mut() = Some(servo_glue);
     });
 
     Ok(())
 }
 
 impl ServoGlue {
+    fn get_browser_id(&self) -> Result<BrowserId, &'static str> {
+        let browser_id = match self.browser_id {
+            Some(id) => id,
+            None => return Err("No BrowserId set yet.")
+        };
+        Ok(browser_id)
+    }
     /// This is the Servo heartbeat. This needs to be called
     /// everytime wakeup is called or when embedder wants Servo
     /// to act on its pending events.
@@ -179,7 +190,8 @@ impl ServoGlue {
         ServoUrl::parse(url)
             .map_err(|_| "Can't parse URL")
             .and_then(|url| {
-                let event = WindowEvent::LoadUrl(self.browser_id, url);
+                let browser_id = self.get_browser_id()?;
+                let event = WindowEvent::LoadUrl(browser_id, url);
                 self.process_event(event)
             })
     }
@@ -187,21 +199,24 @@ impl ServoGlue {
     /// Reload the page.
     pub fn reload(&mut self) -> Result<(), &'static str> {
         debug!("reload");
-        let event = WindowEvent::Reload(self.browser_id);
+        let browser_id = self.get_browser_id()?;
+        let event = WindowEvent::Reload(browser_id);
         self.process_event(event)
     }
 
     /// Go back in history.
     pub fn go_back(&mut self) -> Result<(), &'static str> {
         debug!("go_back");
-        let event = WindowEvent::Navigation(self.browser_id, TraversalDirection::Back(1));
+        let browser_id = self.get_browser_id()?;
+        let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
         self.process_event(event)
     }
 
     /// Go forward in history.
     pub fn go_forward(&mut self) -> Result<(), &'static str> {
         debug!("go_forward");
-        let event = WindowEvent::Navigation(self.browser_id, TraversalDirection::Forward(1));
+        let browser_id = self.get_browser_id()?;
+        let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
         self.process_event(event)
     }
 
@@ -320,7 +335,29 @@ impl ServoGlue {
                     info!("Alert: {}", message);
                     let _ = sender.send(());
                 },
-                EmbedderMsg::CloseBrowser |
+                EmbedderMsg::AllowOpeningBrowser(response_chan) => {
+                    // Note: would be a place to handle pop-ups config.
+                    // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+                    if let Err(e) = response_chan.send(true) {
+                        warn!("Failed to send AllowOpeningBrowser response: {}", e);
+                    };
+                },
+                EmbedderMsg::BrowserCreated(new_browser_id) => {
+                    // TODO: properly handle a new "tab"
+                    self.browsers.push(new_browser_id);
+                    self.browser_id = Some(new_browser_id);
+                    self.events.push(WindowEvent::SelectBrowser(new_browser_id));
+                },
+                EmbedderMsg::CloseBrowser => {
+                    // TODO: close the appropriate "tab".
+                    let _ = self.browsers.pop();
+                    if let Some(prev_browser_id) = self.browsers.last() {
+                        self.browser_id = Some(*prev_browser_id);
+                        self.events.push(WindowEvent::SelectBrowser(*prev_browser_id));
+                    } else {
+                        self.events.push(WindowEvent::Quit);
+                    }
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |

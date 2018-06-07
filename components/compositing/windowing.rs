@@ -8,7 +8,6 @@ use embedder_traits::EventLoopWaker;
 use euclid::TypedScale;
 #[cfg(feature = "gleam")]
 use gleam::gl;
-use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, TopLevelBrowsingContextId, TraversalDirection};
 use script_traits::{MouseButton, TouchEventType, TouchId};
 use servo_geometry::{DeviceIndependentPixel, DeviceUintLength};
@@ -75,7 +74,7 @@ pub enum WindowEvent {
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
-    NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    NewBrowser(ServoUrl),
     /// Close a top level browsing context
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.
