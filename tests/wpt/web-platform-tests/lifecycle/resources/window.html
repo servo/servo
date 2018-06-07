@@ -56,7 +56,6 @@ window.document.addEventListener("freeze", () => {
 });
 
 onload = function() {
-  window.opener.focus();
   window.opener.add_step(freezingStepName);
   test_driver.freeze();
 };

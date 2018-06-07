@@ -21,22 +21,25 @@ listElementsMap = {
 
 
 class Node(object):
+    """Represents an item in the tree"""
     def __init__(self, name):
-        """Node representing an item in the tree.
-        name - The tag name associated with the node
-        parent - The parent of the current node (or None for the document node)
-        value - The value of the current node (applies to text nodes and
-        comments
-        attributes - a dict holding name, value pairs for attributes of the node
-        childNodes - a list of child nodes of the current node. This must
-        include all elements but not necessarily other node types
-        _flags - A list of miscellaneous flags that can be set on the node
+        """Creates a Node
+
+        :arg name: The tag name associated with the node
+
         """
+        # The tag name assocaited with the node
         self.name = name
+        # The parent of the current node (or None for the document node)
         self.parent = None
+        # The value of the current node (applies to text nodes and comments)
         self.value = None
+        # A dict holding name -> value pairs for attributes of the node
         self.attributes = {}
+        # A list of child nodes of the current node. This must include all
+        # elements but not necessarily other node types.
         self.childNodes = []
+        # A list of miscellaneous flags that can be set on the node.
         self._flags = []
 
     def __str__(self):
@@ -53,23 +56,41 @@ class Node(object):
 
     def appendChild(self, node):
         """Insert node as a child of the current node
+
+        :arg node: the node to insert
+
         """
         raise NotImplementedError
 
     def insertText(self, data, insertBefore=None):
         """Insert data as text in the current node, positioned before the
         start of node insertBefore or to the end of the node's text.
+
+        :arg data: the data to insert
+
+        :arg insertBefore: True if you want to insert the text before the node
+            and False if you want to insert it after the node
+
         """
         raise NotImplementedError
 
     def insertBefore(self, node, refNode):
         """Insert node as a child of the current node, before refNode in the
         list of child nodes. Raises ValueError if refNode is not a child of
-        the current node"""
+        the current node
+
+        :arg node: the node to insert
+
+        :arg refNode: the child node to insert the node before
+
+        """
         raise NotImplementedError
 
     def removeChild(self, node):
         """Remove node from the children of the current node
+
+        :arg node: the child node to remove
+
         """
         raise NotImplementedError
 
@@ -77,6 +98,9 @@ class Node(object):
         """Move all the children of the current node to newParent.
         This is needed so that trees that don't store text as nodes move the
         text in the correct way
+
+        :arg newParent: the node to move all this node's children to
+
         """
         # XXX - should this method be made more general?
         for child in self.childNodes:
@@ -121,11 +145,14 @@ class ActiveFormattingElements(list):
 
 class TreeBuilder(object):
     """Base treebuilder implementation
-    documentClass - the class to use for the bottommost node of a document
-    elementClass - the class to use for HTML Elements
-    commentClass - the class to use for comments
-    doctypeClass - the class to use for doctypes
+
+    * documentClass - the class to use for the bottommost node of a document
+    * elementClass - the class to use for HTML Elements
+    * commentClass - the class to use for comments
+    * doctypeClass - the class to use for doctypes
+
     """
+    # pylint:disable=not-callable
 
     # Document class
     documentClass = None
@@ -143,6 +170,11 @@ class TreeBuilder(object):
     fragmentClass = None
 
     def __init__(self, namespaceHTMLElements):
+        """Create a TreeBuilder
+
+        :arg namespaceHTMLElements: whether or not to namespace HTML elements
+
+        """
         if namespaceHTMLElements:
             self.defaultNamespace = "http://www.w3.org/1999/xhtml"
         else:
@@ -166,12 +198,17 @@ class TreeBuilder(object):
         # If we pass a node in we match that. if we pass a string
         # match any node with that name
         exactNode = hasattr(target, "nameTuple")
+        if not exactNode:
+            if isinstance(target, text_type):
+                target = (namespaces["html"], target)
+            assert isinstance(target, tuple)
 
         listElements, invert = listElementsMap[variant]
 
         for node in reversed(self.openElements):
-            if (node.name == target and not exactNode or
-                    node == target and exactNode):
+            if exactNode and node == target:
+                return True
+            elif not exactNode and node.nameTuple == target:
                 return True
             elif (invert ^ (node.nameTuple in listElements)):
                 return False
@@ -353,19 +390,19 @@ class TreeBuilder(object):
     def generateImpliedEndTags(self, exclude=None):
         name = self.openElements[-1].name
         # XXX td, th and tr are not actually needed
-        if (name in frozenset(("dd", "dt", "li", "option", "optgroup", "p", "rp", "rt"))
-                and name != exclude):
+        if (name in frozenset(("dd", "dt", "li", "option", "optgroup", "p", "rp", "rt")) and
+                name != exclude):
             self.openElements.pop()
             # XXX This is not entirely what the specification says. We should
             # investigate it more closely.
             self.generateImpliedEndTags(exclude)
 
     def getDocument(self):
-        "Return the final tree"
+        """Return the final tree"""
         return self.document
 
     def getFragment(self):
-        "Return the final fragment"
+        """Return the final fragment"""
         # assert self.innerHTML
         fragment = self.fragmentClass()
         self.openElements[0].reparentChildren(fragment)
@@ -373,5 +410,8 @@ class TreeBuilder(object):
 
     def testSerializer(self, node):
         """Serialize the subtree of node in the format required by unit tests
-        node - the node from which to start serializing"""
+
+        :arg node: the node from which to start serializing
+
+        """
         raise NotImplementedError

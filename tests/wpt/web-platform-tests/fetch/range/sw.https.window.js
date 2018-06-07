@@ -4,28 +4,21 @@
 // META: script=resources/utils.js
 
 const { REMOTE_HOST } = get_host_info();
-const SCOPE = 'resources/basic.html' + Math.random();
-
-function appendAudio(document, url) {
-  const audio = document.createElement('audio');
-  audio.muted = true;
-  audio.src = url;
-  audio.preload = true;
-  document.body.appendChild(audio);
-}
+const BASE_SCOPE = 'resources/basic.html?';
 
 async function cleanup() {
   for (const iframe of document.querySelectorAll('.test-iframe')) {
     iframe.parentNode.removeChild(iframe);
   }
 
-  const reg = await navigator.serviceWorker.getRegistration(SCOPE);
-  if (reg) await reg.unregister();
+  for (const reg of await navigator.serviceWorker.getRegistrations()) {
+    await reg.unregister();
+  }
 }
 
-async function setupRegistration(t) {
+async function setupRegistration(t, scope) {
   await cleanup();
-  const reg = await navigator.serviceWorker.register('resources/range-sw.js', { scope: SCOPE });
+  const reg = await navigator.serviceWorker.register('resources/range-sw.js', { scope });
   await wait_for_state(t, reg.installing, 'activated');
   return reg;
 }
@@ -35,14 +28,15 @@ function awaitMessage(obj, id) {
     obj.addEventListener('message', function listener(event) {
       if (event.data.id !== id) return;
       obj.removeEventListener('message', listener);
-      resolve();
+      resolve(event.data);
     });
   });
 }
 
 promise_test(async t => {
-  const reg = await setupRegistration(t);
-  const iframe = await with_iframe(SCOPE);
+  const scope = BASE_SCOPE + Math.random();
+  const reg = await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
   const w = iframe.contentWindow;
 
   // Trigger a cross-origin range request using media
@@ -55,8 +49,9 @@ promise_test(async t => {
 }, `Defer range header filter tests to service worker`);
 
 promise_test(async t => {
-  const reg = await setupRegistration(t);
-  const iframe = await with_iframe(SCOPE);
+  const scope = BASE_SCOPE + Math.random();
+  const reg = await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
   const w = iframe.contentWindow;
 
   // Trigger a cross-origin range request using media
@@ -71,8 +66,9 @@ promise_test(async t => {
 }, `Defer range header passthrough tests to service worker`);
 
 promise_test(async t => {
-  await setupRegistration(t);
-  const iframe = await with_iframe(SCOPE);
+  const scope = BASE_SCOPE + Math.random();
+  await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
   const w = iframe.contentWindow;
   const id = Math.random() + '';
   const storedRangeResponse = awaitMessage(w.navigator.serviceWorker, id);
@@ -102,8 +98,9 @@ promise_test(async t => {
 }, `Ranged response not allowed following no-cors ranged request`);
 
 promise_test(async t => {
-  await setupRegistration(t);
-  const iframe = await with_iframe(SCOPE);
+  const scope = BASE_SCOPE + Math.random();
+  await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
   const w = iframe.contentWindow;
   const id = Math.random() + '';
   const storedRangeResponse = awaitMessage(w.navigator.serviceWorker, id);
@@ -126,3 +123,29 @@ promise_test(async t => {
 
   assert_true(w.scriptExecuted, `Partial response should be executed`);
 }, `Non-opaque ranged response executed`);
+
+promise_test(async t => {
+  const scope = BASE_SCOPE + Math.random();
+  await setupRegistration(t, scope);
+  const iframe = await with_iframe(scope);
+  const w = iframe.contentWindow;
+  const fetchId = Math.random() + '';
+  const fetchBroadcast = awaitMessage(w.navigator.serviceWorker, fetchId);
+  const audioId = Math.random() + '';
+  const audioBroadcast = awaitMessage(w.navigator.serviceWorker, audioId);
+
+  const url = new URL('long-wav.py', w.location);
+  url.searchParams.set('action', 'broadcast-accept-encoding');
+  url.searchParams.set('id', fetchId);
+
+  await w.fetch(url, {
+    headers: { Range: 'bytes=0-10' }
+  });
+
+  assert_equals((await fetchBroadcast).acceptEncoding, null, "Accept-Encoding should not be set for fetch");
+
+  url.searchParams.set('id', audioId);
+  appendAudio(w.document, url);
+
+  assert_equals((await audioBroadcast).acceptEncoding, null, "Accept-Encoding should not be set for media");
+}, `Accept-Encoding should not appear in a service worker`);

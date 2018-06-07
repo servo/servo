@@ -1,54 +1,62 @@
 from __future__ import absolute_import, division, unicode_literals
 
 
+from collections import MutableMapping
 from xml.dom import minidom, Node
 import weakref
 
-from . import _base
+from . import base
 from .. import constants
 from ..constants import namespaces
-from ..utils import moduleFactoryFactory
+from .._utils import moduleFactoryFactory
 
 
 def getDomBuilder(DomImplementation):
     Dom = DomImplementation
 
-    class AttrList(object):
+    class AttrList(MutableMapping):
         def __init__(self, element):
             self.element = element
 
         def __iter__(self):
-            return list(self.element.attributes.items()).__iter__()
+            return iter(self.element.attributes.keys())
 
         def __setitem__(self, name, value):
-            self.element.setAttribute(name, value)
-
-        def __len__(self):
-            return len(list(self.element.attributes.items()))
-
-        def items(self):
-            return [(item[0], item[1]) for item in
-                    list(self.element.attributes.items())]
-
-        def keys(self):
-            return list(self.element.attributes.keys())
-
-        def __getitem__(self, name):
-            return self.element.getAttribute(name)
-
-        def __contains__(self, name):
             if isinstance(name, tuple):
                 raise NotImplementedError
             else:
-                return self.element.hasAttribute(name)
+                attr = self.element.ownerDocument.createAttribute(name)
+                attr.value = value
+                self.element.attributes[name] = attr
 
-    class NodeBuilder(_base.Node):
+        def __len__(self):
+            return len(self.element.attributes)
+
+        def items(self):
+            return list(self.element.attributes.items())
+
+        def values(self):
+            return list(self.element.attributes.values())
+
+        def __getitem__(self, name):
+            if isinstance(name, tuple):
+                raise NotImplementedError
+            else:
+                return self.element.attributes[name].value
+
+        def __delitem__(self, name):
+            if isinstance(name, tuple):
+                raise NotImplementedError
+            else:
+                del self.element.attributes[name]
+
+    class NodeBuilder(base.Node):
         def __init__(self, element):
-            _base.Node.__init__(self, element.nodeName)
+            base.Node.__init__(self, element.nodeName)
             self.element = element
 
-        namespace = property(lambda self: hasattr(self.element, "namespaceURI")
-                             and self.element.namespaceURI or None)
+        namespace = property(lambda self: hasattr(self.element, "namespaceURI") and
+                             self.element.namespaceURI or None)
 
         def appendChild(self, node):
             node.parent = self
@@ -109,7 +117,7 @@ def getDomBuilder(DomImplementation):
 
         nameTuple = property(getNameTuple)
 
-    class TreeBuilder(_base.TreeBuilder):
+    class TreeBuilder(base.TreeBuilder):  # pylint:disable=unused-variable
         def documentClass(self):
             self.dom = Dom.getDOMImplementation().createDocument(None, None, None)
             return weakref.proxy(self)
@@ -149,15 +157,16 @@ def getDomBuilder(DomImplementation):
             return self.dom
 
         def getFragment(self):
-            return _base.TreeBuilder.getFragment(self).element
+            return base.TreeBuilder.getFragment(self).element
 
         def insertText(self, data, parent=None):
             data = data
             if parent != self:
-                _base.TreeBuilder.insertText(self, data, parent)
+                base.TreeBuilder.insertText(self, data, parent)
             else:
                 # HACK: allow text nodes as children of the document node
                 if hasattr(self.dom, '_child_node_types'):
+                    # pylint:disable=protected-access
                     if Node.TEXT_NODE not in self.dom._child_node_types:
                         self.dom._child_node_types = list(self.dom._child_node_types)
                         self.dom._child_node_types.append(Node.TEXT_NODE)

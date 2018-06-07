@@ -1,13 +1,15 @@
 from __future__ import absolute_import, division, unicode_literals
+# pylint:disable=protected-access
+
 from six import text_type
 
 import re
 
-from . import _base
-from .. import ihatexml
+from . import base
+from .. import _ihatexml
 from .. import constants
 from ..constants import namespaces
-from ..utils import moduleFactoryFactory
+from .._utils import moduleFactoryFactory
 
 tag_regexp = re.compile("{([^}]*)}(.*)")
 
@@ -16,7 +18,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
     ElementTree = ElementTreeImplementation
     ElementTreeCommentType = ElementTree.Comment("asd").tag
 
-    class Element(_base.Node):
+    class Element(base.Node):
         def __init__(self, name, namespace=None):
             self._name = name
             self._namespace = namespace
@@ -98,6 +100,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
             node.parent = self
 
         def removeChild(self, node):
+            self._childNodes.remove(node)
             self._element.remove(node._element)
             node.parent = None
 
@@ -139,7 +142,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
                 if self._element.text is not None:
                     newParent._element.text += self._element.text
             self._element.text = ""
-            _base.Node.reparentChildren(self, newParent)
+            base.Node.reparentChildren(self, newParent)
 
     class Comment(Element):
         def __init__(self, data):
@@ -253,10 +256,10 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
 
         return "\n".join(rv)
 
-    def tostring(element):
+    def tostring(element):  # pylint:disable=unused-variable
         """Serialize an element and its child nodes to a string"""
         rv = []
-        filter = ihatexml.InfosetFilter()
+        filter = _ihatexml.InfosetFilter()
 
         def serializeElement(element):
             if isinstance(element, ElementTree.ElementTree):
@@ -307,7 +310,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
 
         return "".join(rv)
 
-    class TreeBuilder(_base.TreeBuilder):
+    class TreeBuilder(base.TreeBuilder):  # pylint:disable=unused-variable
         documentClass = Document
         doctypeClass = DocumentType
         elementClass = Element
@@ -329,7 +332,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
                     return self.document._element.find("html")
 
         def getFragment(self):
-            return _base.TreeBuilder.getFragment(self)._element
+            return base.TreeBuilder.getFragment(self)._element
 
     return locals()
 

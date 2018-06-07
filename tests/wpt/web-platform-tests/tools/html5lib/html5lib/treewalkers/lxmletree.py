@@ -4,12 +4,9 @@ from six import text_type
 from lxml import etree
 from ..treebuilders.etree import tag_regexp
 
-from gettext import gettext
-_ = gettext
+from . import base
 
-from . import _base
-
-from .. import ihatexml
+from .. import _ihatexml
 
 
 def ensure_str(s):
@@ -18,20 +15,27 @@ def ensure_str(s):
     elif isinstance(s, text_type):
         return s
     else:
-        return s.decode("utf-8", "strict")
+        return s.decode("ascii", "strict")
 
 
 class Root(object):
     def __init__(self, et):
         self.elementtree = et
         self.children = []
-        if et.docinfo.internalDTD:
-            self.children.append(Doctype(self,
-                                         ensure_str(et.docinfo.root_name),
-                                         ensure_str(et.docinfo.public_id),
-                                         ensure_str(et.docinfo.system_url)))
-        root = et.getroot()
-        node = root
+
+        try:
+            if et.docinfo.internalDTD:
+                self.children.append(Doctype(self,
+                                             ensure_str(et.docinfo.root_name),
+                                             ensure_str(et.docinfo.public_id),
+                                             ensure_str(et.docinfo.system_url)))
+        except AttributeError:
+            pass
+
+        try:
+            node = et.getroot()
+        except AttributeError:
+            node = et
 
         while node.getprevious() is not None:
             node = node.getprevious()
@@ -118,35 +122,38 @@ class FragmentWrapper(object):
         return len(self.obj)
 
 
-class TreeWalker(_base.NonRecursiveTreeWalker):
+class TreeWalker(base.NonRecursiveTreeWalker):
     def __init__(self, tree):
-        if hasattr(tree, "getroot"):
-            tree = Root(tree)
-        elif isinstance(tree, list):
+        # pylint:disable=redefined-variable-type
+        if isinstance(tree, list):
+            self.fragmentChildren = set(tree)
             tree = FragmentRoot(tree)
-        _base.NonRecursiveTreeWalker.__init__(self, tree)
-        self.filter = ihatexml.InfosetFilter()
+        else:
+            self.fragmentChildren = set()
+            tree = Root(tree)
+        base.NonRecursiveTreeWalker.__init__(self, tree)
+        self.filter = _ihatexml.InfosetFilter()
 
     def getNodeDetails(self, node):
         if isinstance(node, tuple):  # Text node
             node, key = node
-            assert key in ("text", "tail"), _("Text nodes are text or tail, found %s") % key
-            return _base.TEXT, ensure_str(getattr(node, key))
+            assert key in ("text", "tail"), "Text nodes are text or tail, found %s" % key
+            return base.TEXT, ensure_str(getattr(node, key))
 
         elif isinstance(node, Root):
-            return (_base.DOCUMENT,)
+            return (base.DOCUMENT,)
 
         elif isinstance(node, Doctype):
-            return _base.DOCTYPE, node.name, node.public_id, node.system_id
+            return base.DOCTYPE, node.name, node.public_id, node.system_id
 
         elif isinstance(node, FragmentWrapper) and not hasattr(node, "tag"):
-            return _base.TEXT, node.obj
+            return base.TEXT, ensure_str(node.obj)
 
         elif node.tag == etree.Comment:
-            return _base.COMMENT, ensure_str(node.text)
+            return base.COMMENT, ensure_str(node.text)
 
         elif node.tag == etree.Entity:
-            return _base.ENTITY, ensure_str(node.text)[1:-1]  # strip &;
+            return base.ENTITY, ensure_str(node.text)[1:-1]  # strip &;
 
         else:
             # This is assumed to be an ordinary element
@@ -165,11 +172,11 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
                     attrs[(match.group(1), match.group(2))] = value
                 else:
                     attrs[(None, name)] = value
-            return (_base.ELEMENT, namespace, self.filter.fromXmlName(tag),
+            return (base.ELEMENT, namespace, self.filter.fromXmlName(tag),
                     attrs, len(node) > 0 or node.text)
 
     def getFirstChild(self, node):
-        assert not isinstance(node, tuple), _("Text nodes have no children")
+        assert not isinstance(node, tuple), "Text nodes have no children"
 
         assert len(node) or node.text, "Node has no children"
         if node.text:
@@ -180,7 +187,7 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
     def getNextSibling(self, node):
         if isinstance(node, tuple):  # Text node
             node, key = node
-            assert key in ("text", "tail"), _("Text nodes are text or tail, found %s") % key
+            assert key in ("text", "tail"), "Text nodes are text or tail, found %s" % key
             if key == "text":
                 # XXX: we cannot use a "bool(node) and node[0] or None" construct here
                 # because node[0] might evaluate to False if it has no child element
@@ -196,9 +203,11 @@ class TreeWalker(_base.NonRecursiveTreeWalker):
     def getParentNode(self, node):
         if isinstance(node, tuple):  # Text node
             node, key = node
-            assert key in ("text", "tail"), _("Text nodes are text or tail, found %s") % key
+            assert key in ("text", "tail"), "Text nodes are text or tail, found %s" % key
             if key == "text":
                 return node
             # else: fallback to "normal" processing
+        elif node in self.fragmentChildren:
+            return None
 
         return node.getparent()

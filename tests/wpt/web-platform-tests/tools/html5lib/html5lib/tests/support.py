@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
+# pylint:disable=wrong-import-position
+
 import os
 import sys
 import codecs
@@ -13,44 +15,66 @@ sys.path.insert(0, os.path.abspath(os.path.join(base_path,
                                                 os.path.pardir,
                                                 os.path.pardir)))
 
-from html5lib import treebuilders
+from html5lib import treebuilders, treewalkers, treeadapters  # noqa
 del base_path
 
-# Build a dict of avaliable trees
-treeTypes = {"DOM": treebuilders.getTreeBuilder("dom")}
+# Build a dict of available trees
+treeTypes = {}
 
-# Try whatever etree implementations are avaliable from a list that are
-#"supposed" to work
-try:
-    import xml.etree.ElementTree as ElementTree
-    treeTypes['ElementTree'] = treebuilders.getTreeBuilder("etree", ElementTree, fullTree=True)
-except ImportError:
-    try:
-        import elementtree.ElementTree as ElementTree
-        treeTypes['ElementTree'] = treebuilders.getTreeBuilder("etree", ElementTree, fullTree=True)
-    except ImportError:
-        pass
+# DOM impls
+treeTypes["DOM"] = {
+    "builder": treebuilders.getTreeBuilder("dom"),
+    "walker": treewalkers.getTreeWalker("dom")
+}
 
-try:
-    import xml.etree.cElementTree as cElementTree
-    treeTypes['cElementTree'] = treebuilders.getTreeBuilder("etree", cElementTree, fullTree=True)
-except ImportError:
-    try:
-        import cElementTree
-        treeTypes['cElementTree'] = treebuilders.getTreeBuilder("etree", cElementTree, fullTree=True)
-    except ImportError:
-        pass
+# ElementTree impls
+import xml.etree.ElementTree as ElementTree  # noqa
+treeTypes['ElementTree'] = {
+    "builder": treebuilders.getTreeBuilder("etree", ElementTree, fullTree=True),
+    "walker": treewalkers.getTreeWalker("etree", ElementTree)
+}
 
 try:
-    import lxml.etree as lxml  # flake8: noqa
+    import xml.etree.cElementTree as cElementTree  # noqa
 except ImportError:
-    pass
+    treeTypes['cElementTree'] = None
 else:
-    treeTypes['lxml'] = treebuilders.getTreeBuilder("lxml")
+    # On Python 3.3 and above cElementTree is an alias, don't run them twice.
+    if cElementTree.Element is ElementTree.Element:
+        treeTypes['cElementTree'] = None
+    else:
+        treeTypes['cElementTree'] = {
+            "builder": treebuilders.getTreeBuilder("etree", cElementTree, fullTree=True),
+            "walker": treewalkers.getTreeWalker("etree", cElementTree)
+        }
+
+try:
+    import lxml.etree as lxml  # noqa
+except ImportError:
+    treeTypes['lxml'] = None
+else:
+    treeTypes['lxml'] = {
+        "builder": treebuilders.getTreeBuilder("lxml"),
+        "walker": treewalkers.getTreeWalker("lxml")
+    }
+
+# Genshi impls
+try:
+    import genshi  # noqa
+except ImportError:
+    treeTypes["genshi"] = None
+else:
+    treeTypes["genshi"] = {
+        "builder": treebuilders.getTreeBuilder("dom"),
+        "adapter": lambda tree: treeadapters.genshi.to_genshi(treewalkers.getTreeWalker("dom")(tree)),
+        "walker": treewalkers.getTreeWalker("genshi")
+    }
+
+# pylint:enable=wrong-import-position
 
 
-def get_data_files(subdirectory, files='*.dat'):
-    return glob.glob(os.path.join(test_dir, subdirectory, files))
+def get_data_files(subdirectory, files='*.dat', search_dir=test_dir):
+    return sorted(glob.glob(os.path.join(search_dir, subdirectory, files)))
 
 
 class DefaultDict(dict):
@@ -70,9 +94,6 @@ class TestData(object):
             self.f = codecs.open(filename, encoding=encoding)
         self.encoding = encoding
         self.newTestHeading = newTestHeading
-
-    def __del__(self):
-        self.f.close()
 
     def __iter__(self):
         data = DefaultDict(None)
@@ -128,7 +149,7 @@ convertExpected = convert(2)
 def errorMessage(input, expected, actual):
     msg = ("Input:\n%s\nExpected:\n%s\nRecieved\n%s\n" %
            (repr(input), repr(expected), repr(actual)))
-    if sys.version_info.major == 2:
+    if sys.version_info[0] == 2:
         msg = msg.encode("ascii", "backslashreplace")
     return msg
 

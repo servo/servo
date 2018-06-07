@@ -5,18 +5,18 @@ Parse a document to a tree, with optional profiling
 """
 
 import sys
-import os
 import traceback
 from optparse import OptionParser
 
-from html5lib import html5parser, sanitizer
-from html5lib.tokenizer import HTMLTokenizer
+from html5lib import html5parser
 from html5lib import treebuilders, serializer, treewalkers
 from html5lib import constants
+from html5lib import _utils
+
 
 def parse():
     optParser = getOptParser()
-    opts,args = optParser.parse_args()
+    opts, args = optParser.parse_args()
     encoding = "utf8"
 
     try:
@@ -24,7 +24,10 @@ def parse():
         # Try opening from the internet
         if f.startswith('http://'):
             try:
-                import urllib.request, urllib.parse, urllib.error, cgi
+                import urllib.request
+                import urllib.parse
+                import urllib.error
+                import cgi
                 f = urllib.request.urlopen(f)
                 contentType = f.headers.get('content-type')
                 if contentType:
@@ -40,7 +43,7 @@ def parse():
             try:
                 # Try opening from file system
                 f = open(f, "rb")
-            except IOError as e:                
+            except IOError as e:
                 sys.stderr.write("Unable to open file: %s\n" % e)
                 sys.exit(1)
     except IndexError:
@@ -49,12 +52,7 @@ def parse():
 
     treebuilder = treebuilders.getTreeBuilder(opts.treebuilder)
 
-    if opts.sanitize:
-        tokenizer = sanitizer.HTMLSanitizer
-    else:
-        tokenizer = HTMLTokenizer
-
-    p = html5parser.HTMLParser(tree=treebuilder, tokenizer=tokenizer, debug=opts.log)
+    p = html5parser.HTMLParser(tree=treebuilder, debug=opts.log)
 
     if opts.fragment:
         parseMethod = p.parseFragment
@@ -64,11 +62,12 @@ def parse():
     if opts.profile:
         import cProfile
         import pstats
-        cProfile.runctx("run(parseMethod, f, encoding)", None,
+        cProfile.runctx("run(parseMethod, f, encoding, scripting)", None,
                         {"run": run,
                          "parseMethod": parseMethod,
                          "f": f,
-                         "encoding": encoding},
+                         "encoding": encoding,
+                         "scripting": opts.scripting},
                         "stats.prof")
         # XXX - We should use a temp file here
         stats = pstats.Stats('stats.prof')
@@ -78,26 +77,28 @@ def parse():
     elif opts.time:
         import time
         t0 = time.time()
-        document = run(parseMethod, f, encoding)
+        document = run(parseMethod, f, encoding, opts.scripting)
         t1 = time.time()
         if document:
             printOutput(p, document, opts)
             t2 = time.time()
-            sys.stderr.write("\n\nRun took: %fs (plus %fs to print the output)"%(t1-t0, t2-t1))
+            sys.stderr.write("\n\nRun took: %fs (plus %fs to print the output)" % (t1 - t0, t2 - t1))
         else:
-            sys.stderr.write("\n\nRun took: %fs"%(t1-t0))
+            sys.stderr.write("\n\nRun took: %fs" % (t1 - t0))
     else:
-        document = run(parseMethod, f, encoding)
+        document = run(parseMethod, f, encoding, opts.scripting)
         if document:
             printOutput(p, document, opts)
 
-def run(parseMethod, f, encoding):
+
+def run(parseMethod, f, encoding, scripting):
     try:
-        document = parseMethod(f, encoding=encoding)
+        document = parseMethod(f, override_encoding=encoding, scripting=scripting)
     except:
         document = None
         traceback.print_exc()
     return document
+
 
 def printOutput(parser, document, opts):
     if opts.encoding:
@@ -108,23 +109,31 @@ def printOutput(parser, document, opts):
 
     if document is not None:
         if opts.xml:
-            sys.stdout.write(document.toxml("utf-8"))
+            tb = opts.treebuilder.lower()
+            if tb == "dom":
+                document.writexml(sys.stdout, encoding="utf-8")
+            elif tb == "lxml":
+                import lxml.etree
+                sys.stdout.write(lxml.etree.tostring(document, encoding="unicode"))
+            elif tb == "etree":
+                sys.stdout.write(_utils.default_etree.tostring(document, encoding="unicode"))
         elif opts.tree:
-            if not hasattr(document,'__getitem__'):
+            if not hasattr(document, '__getitem__'):
                 document = [document]
             for fragment in document:
                 print(parser.tree.testSerializer(fragment))
-        elif opts.hilite:
-            sys.stdout.write(document.hilite("utf-8"))
         elif opts.html:
             kwargs = {}
             for opt in serializer.HTMLSerializer.options:
                 try:
-                    kwargs[opt] = getattr(opts,opt)
+                    kwargs[opt] = getattr(opts, opt)
                 except:
                     pass
             if not kwargs['quote_char']:
                 del kwargs['quote_char']
+
+            if opts.sanitize:
+                kwargs["sanitize"] = True
 
             tokens = treewalkers.getTreeWalker(opts.treebuilder)(document)
             if sys.version_info[0] >= 3:
@@ -133,12 +142,14 @@ def printOutput(parser, document, opts):
                 encoding = "utf-8"
             for text in serializer.HTMLSerializer(**kwargs).serialize(tokens, encoding=encoding):
                 sys.stdout.write(text)
-            if not text.endswith('\n'): sys.stdout.write('\n')
+            if not text.endswith('\n'):
+                sys.stdout.write('\n')
     if opts.error:
-        errList=[]
+        errList = []
         for pos, errorcode, datavars in parser.errors:
-            errList.append("Line %i Col %i"%pos + " " + constants.E.get(errorcode, 'Unknown error "%s"' % errorcode) % datavars)
-        sys.stdout.write("\nParse errors:\n" + "\n".join(errList)+"\n")
+            errList.append("Line %i Col %i" % pos + " " + constants.E.get(errorcode, 'Unknown error "%s"' % errorcode) % datavars)
+        sys.stdout.write("\nParse errors:\n" + "\n".join(errList) + "\n")
+
 
 def getOptParser():
     parser = OptionParser(usage=__doc__)
@@ -152,13 +163,16 @@ def getOptParser():
                       help="Time the run using time.time (may not be accurate on all platforms, especially for short runs)")
 
     parser.add_option("-b", "--treebuilder", action="store", type="string",
-                      dest="treebuilder", default="simpleTree")
+                      dest="treebuilder", default="etree")
 
     parser.add_option("-e", "--error", action="store_true", default=False,
                       dest="error", help="Print a list of parse errors")
 
     parser.add_option("-f", "--fragment", action="store_true", default=False,
                       dest="fragment", help="Parse as a fragment")
+
+    parser.add_option("-s", "--scripting", action="store_true", default=False,
+                      dest="scripting", help="Handle noscript tags as if scripting was enabled")
 
     parser.add_option("", "--tree", action="store_true", default=False,
                       dest="tree", help="Output as debug tree")
@@ -168,9 +182,6 @@ def getOptParser():
 
     parser.add_option("", "--no-html", action="store_false", default=True,
                       dest="html", help="Don't output html")
-
-    parser.add_option("", "--hilite", action="store_true", default=False,
-                      dest="hilite", help="Output as formatted highlighted code.")
 
     parser.add_option("-c", "--encoding", action="store_true", default=False,
                       dest="encoding", help="Print character encoding used")

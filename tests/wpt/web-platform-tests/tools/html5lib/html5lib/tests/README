@@ -1,1 +1,0 @@
-Each testcase file can be run through nose (using ``nosetests``).

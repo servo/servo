@@ -2,20 +2,20 @@ from __future__ import absolute_import, division, unicode_literals
 
 import re
 
-from . import _base
+from . import base
 from ..constants import rcdataElements, spaceCharacters
 spaceCharacters = "".join(spaceCharacters)
 
 SPACES_REGEX = re.compile("[%s]+" % spaceCharacters)
 
 
-class Filter(_base.Filter):
-
+class Filter(base.Filter):
+    """Collapses whitespace except in pre, textarea, and script elements"""
     spacePreserveElements = frozenset(["pre", "textarea"] + list(rcdataElements))
 
     def __iter__(self):
         preserve = 0
-        for token in _base.Filter.__iter__(self):
+        for token in base.Filter.__iter__(self):
             type = token["type"]
             if type == "StartTag" \
                     and (preserve or token["name"] in self.spacePreserveElements):

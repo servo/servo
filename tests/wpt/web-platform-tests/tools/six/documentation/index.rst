@@ -13,12 +13,12 @@ Python 3.  It is intended to support codebases that work on both Python 2 and 3
 without modification.  six consists of only one Python file, so it is painless
 to copy into a project.
 
-Six can be downloaded on `PyPi <http://pypi.python.org/pypi/six/>`_.  Its bug
-tracker and code hosting is on `BitBucket <http://bitbucket.org/gutworth/six>`_.
+Six can be downloaded on `PyPi <https://pypi.python.org/pypi/six/>`_.  Its bug
+tracker and code hosting is on `GitHub <https://github.com/benjaminp/six>`_.
 
 The name, "six", comes from the fact that 2*3 equals 6.  Why not addition?
 Multiplication is more powerful, and, anyway, "five" has already been snatched
-away by the Zope Five project.
+away by the (admittedly now moribund) Zope Five project.
 
 
 Indices and tables
@@ -164,7 +164,9 @@ functions and methods is the stdlib :mod:`py3:inspect` module.
 
    Get the next item of iterator *it*.  :exc:`py3:StopIteration` is raised if
    the iterator is exhausted.  This is a replacement for calling ``it.next()``
-   in Python 2 and ``next(it)`` in Python 3.
+   in Python 2 and ``next(it)`` in Python 3.  Python 2.6 and above have a
+   builtin ``next`` function, so six's version is only necessary for Python 2.5
+   compatibility.
 
 
 .. function:: callable(obj)
@@ -232,6 +234,13 @@ functions and methods is the stdlib :mod:`py3:inspect` module.
    requires the *obj*'s class to be passed.
 
 
+.. function:: create_unbound_method(func, cls)
+
+   Return an unbound method object wrapping *func*.  In Python 2, this will
+   return a :func:`py2:types.MethodType` object.  In Python 3, unbound methods
+   do not exist and this wrapper will simply return *func*.
+
+
 .. class:: Iterator
 
    A class for making portable iterators. The intention is that it be subclassed
@@ -243,7 +252,7 @@ functions and methods is the stdlib :mod:`py3:inspect` module.
    aliased to :class:`py3:object`.)
 
 
-.. function:: wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS, updated=functools.WRAPPER_UPDATES)
+.. decorator:: wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS, updated=functools.WRAPPER_UPDATES)
 
    This is exactly the :func:`py3:functools.wraps` decorator, but it sets the
    ``__wrapped__`` attribute on what it decorates as :func:`py3:functools.wraps`
@@ -270,10 +279,11 @@ Python 2 and 3.
       :func:`exec` with them should be avoided.
 
 
-.. function:: print_(*args, *, file=sys.stdout, end="\\n", sep=" ")
+.. function:: print_(*args, *, file=sys.stdout, end="\\n", sep=" ", flush=False)
 
    Print *args* into *file*.  Each argument will be separated with *sep* and
-   *end* will be written to the file after the last argument is printed.
+   *end* will be written to the file after the last argument is printed.  If
+   *flush* is true, ``file.flush()`` will be called after all data is written.
 
    .. note::
 
@@ -320,7 +330,7 @@ Python 2 and 3.
    decorator.
 
 
-.. function:: add_metaclass(metaclass)
+.. decorator:: add_metaclass(metaclass)
 
    Class decorator that replaces a normally-constructed class with a
    metaclass-constructed one.  Example usage: ::
@@ -337,7 +347,7 @@ Python 2 and 3.
    on Python 3 or ::
 
        class MyClass(object):
-           __metaclass__ = MyMeta
+           __metaclass__ = Meta
 
    on Python 2.
 
@@ -353,7 +363,7 @@ Binary and text data
 >>>>>>>>>>>>>>>>>>>>
 
 Python 3 enforces the distinction between byte strings and text strings far more
-rigoriously than Python 2 does; binary data cannot be automatically coerced to
+rigorously than Python 2 does; binary data cannot be automatically coerced to
 or from text data.  six provides several functions to assist in classifying
 string data in all Python versions.
 
@@ -368,7 +378,7 @@ string data in all Python versions.
    .. note::
 
       Since all Python versions 2.6 and after support the ``b`` prefix,
-      :func:`b`, code without 2.5 support doesn't need :func:`b`.
+      code without 2.5 support doesn't need :func:`b`.
 
 
 .. function:: u(text)
@@ -382,7 +392,7 @@ string data in all Python versions.
    .. note::
 
       In Python 3.3, the ``u`` prefix has been reintroduced. Code that only
-      supports Python 3 versions greater than 3.3 thus does not need
+      supports Python 3 versions of 3.3 and higher thus does not need
       :func:`u`.
 
    .. note::
@@ -425,7 +435,7 @@ string data in all Python versions.
 
 .. data:: StringIO
 
-   This is an fake file object for textual data.  It's an alias for
+   This is a fake file object for textual data.  It's an alias for
    :class:`py2:StringIO.StringIO` in Python 2 and :class:`py3:io.StringIO` in
    Python 3.
 
@@ -435,6 +445,48 @@ string data in all Python versions.
    This is a fake file object for binary data.  In Python 2, it's an alias for
    :class:`py2:StringIO.StringIO`, but in Python 3, it's an alias for
    :class:`py3:io.BytesIO`.
+
+
+.. decorator:: python_2_unicode_compatible
+
+   A class decorator that takes a class defining a ``__str__`` method.  On
+   Python 3, the decorator does nothing.  On Python 2, it aliases the
+   ``__str__`` method to ``__unicode__`` and creates a new ``__str__`` method
+   that returns the result of ``__unicode__()`` encoded with UTF-8.
+
+
+unittest assertions
+>>>>>>>>>>>>>>>>>>>
+
+Six contains compatibility shims for unittest assertions that have been renamed.
+The parameters are the same as their aliases, but you must pass the test method
+as the first argument. For example::
+
+    import six
+    import unittest
+
+    class TestAssertCountEqual(unittest.TestCase):
+        def test(self):
+            six.assertCountEqual(self, (1, 2), [2, 1])
+
+Note these functions are only available on Python 2.7 or later.
+
+.. function:: assertCountEqual()
+
+   Alias for :meth:`~py3:unittest.TestCase.assertCountEqual` on Python 3 and
+   :meth:`~py2:unittest.TestCase.assertItemsEqual` on Python 2.
+
+
+.. function:: assertRaisesRegex()
+
+   Alias for :meth:`~py3:unittest.TestCase.assertRaisesRegex` on Python 3 and
+   :meth:`~py2:unittest.TestCase.assertRaisesRegexp` on Python 2.
+
+
+.. function:: assertRegex()
+
+   Alias for :meth:`~py3:unittest.TestCase.assertRegex` on Python 3 and
+   :meth:`~py2:unittest.TestCase.assertRegexpMatches` on Python 2.
 
 
 Renamed modules and attributes compatibility
@@ -480,14 +532,14 @@ functionality; its structure mimics the structure of the Python 3
 
      from six.moves.cPickle import loads
 
-   work, six places special proxy objects in in :data:`py3:sys.modules`. These
+   work, six places special proxy objects in :data:`py3:sys.modules`. These
    proxies lazily load the underlying module when an attribute is fetched. This
    will fail if the underlying module is not available in the Python
    interpreter. For example, ``sys.modules["six.moves.winreg"].LoadKey`` would
    fail on any non-Windows platform. Unfortunately, some applications try to
    load attributes on every module in :data:`py3:sys.modules`. six mitigates
    this problem for some applications by pretending attributes on unimportable
-   modules don't exist. This hack doesn't work in every case, though. If you are
+   modules do not exist. This hack does not work in every case, though. If you are
    encountering problems with the lazy modules and don't use any from imports
    directly from ``six.moves`` modules, you can workaround the issue by removing
    the six proxy modules::
@@ -498,133 +550,143 @@ functionality; its structure mimics the structure of the Python 3
 
 Supported renames:
 
-+------------------------------+-------------------------------------+-------------------------------------+
-| Name                         | Python 2 name                       | Python 3 name                       |
-+==============================+=====================================+=====================================+
-| ``builtins``                 | :mod:`py2:__builtin__`              | :mod:`py3:builtins`                 |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``configparser``             | :mod:`py2:ConfigParser`             | :mod:`py3:configparser`             |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``copyreg``                  | :mod:`py2:copy_reg`                 | :mod:`py3:copyreg`                  |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``cPickle``                  | :mod:`py2:cPickle`                  | :mod:`py3:pickle`                   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``cStringIO``                | :func:`py2:cStringIO.StringIO`      | :class:`py3:io.StringIO`            |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``dbm_gnu``                  | :func:`py2:gdbm`                    | :class:`py3:dbm.gnu`                |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``_dummy_thread``            | :mod:`py2:dummy_thread`             | :mod:`py3:_dummy_thread`            |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``email_mime_multipart``     | :mod:`py2:email.MIMEMultipart`      | :mod:`py3:email.mime.multipart`     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``email_mime_nonmultipart``  | :mod:`py2:email.MIMENonMultipart`   | :mod:`py3:email.mime.nonmultipart`  |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``email_mime_text``          | :mod:`py2:email.MIMEText`           | :mod:`py3:email.mime.text`          |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``email_mime_base``          | :mod:`py2:email.MIMEBase`           | :mod:`py3:email.mime.base`          |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``filter``                   | :func:`py2:itertools.ifilter`       | :func:`py3:filter`                  |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``filterfalse``              | :func:`py2:itertools.ifilterfalse`  | :func:`py3:itertools.filterfalse`   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``http_cookiejar``           | :mod:`py2:cookielib`                | :mod:`py3:http.cookiejar`           |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``http_cookies``             | :mod:`py2:Cookie`                   | :mod:`py3:http.cookies`             |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``html_entities``            | :mod:`py2:htmlentitydefs`           | :mod:`py3:html.entities`            |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``html_parser``              | :mod:`py2:HTMLParser`               | :mod:`py3:html.parser`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``http_client``              | :mod:`py2:httplib`                  | :mod:`py3:http.client`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``BaseHTTPServer``           | :mod:`py2:BaseHTTPServer`           | :mod:`py3:http.server`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``CGIHTTPServer``            | :mod:`py2:CGIHTTPServer`            | :mod:`py3:http.server`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``SimpleHTTPServer``         | :mod:`py2:SimpleHTTPServer`         | :mod:`py3:http.server`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``input``                    | :func:`py2:raw_input`               | :func:`py3:input`                   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``intern``                   | :func:`py2:intern`                  | :func:`py3:sys.intern`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``map``                      | :func:`py2:itertools.imap`          | :func:`py3:map`                     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``queue``                    | :mod:`py2:Queue`                    | :mod:`py3:queue`                    |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``range``                    | :func:`py2:xrange`                  | :func:`py3:range`                   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``reduce``                   | :func:`py2:reduce`                  | :func:`py3:functools.reduce`        |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``reload_module``            | :func:`py2:reload`                  | :func:`py3:imp.reload`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``reprlib``                  | :mod:`py2:repr`                     | :mod:`py3:reprlib`                  |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``shlex_quote``              | :mod:`py2:pipes.quote`              | :mod:`py3:shlex.quote`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``socketserver``             | :mod:`py2:SocketServer`             | :mod:`py3:socketserver`             |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``_thread``                  | :mod:`py2:thread`                   | :mod:`py3:_thread`                  |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter``                  | :mod:`py2:Tkinter`                  | :mod:`py3:tkinter`                  |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_dialog``           | :mod:`py2:Dialog`                   | :mod:`py3:tkinter.dialog`           |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_filedialog``       | :mod:`py2:FileDialog`               | :mod:`py3:tkinter.FileDialog`       |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_scrolledtext``     | :mod:`py2:ScrolledText`             | :mod:`py3:tkinter.scrolledtext`     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_simpledialog``     | :mod:`py2:SimpleDialog`             | :mod:`py3:tkinter.simpledialog`     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_ttk``              | :mod:`py2:ttk`                      | :mod:`py3:tkinter.ttk`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_tix``              | :mod:`py2:Tix`                      | :mod:`py3:tkinter.tix`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_constants``        | :mod:`py2:Tkconstants`              | :mod:`py3:tkinter.constants`        |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_dnd``              | :mod:`py2:Tkdnd`                    | :mod:`py3:tkinter.dnd`              |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_colorchooser``     | :mod:`py2:tkColorChooser`           | :mod:`py3:tkinter.colorchooser`     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_commondialog``     | :mod:`py2:tkCommonDialog`           | :mod:`py3:tkinter.commondialog`     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_tkfiledialog``     | :mod:`py2:tkFileDialog`             | :mod:`py3:tkinter.filedialog`       |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_font``             | :mod:`py2:tkFont`                   | :mod:`py3:tkinter.font`             |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_messagebox``       | :mod:`py2:tkMessageBox`             | :mod:`py3:tkinter.messagebox`       |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``tkinter_tksimpledialog``   | :mod:`py2:tkSimpleDialog`           | :mod:`py3:tkinter.simpledialog`     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``urllib.parse``             | See :mod:`six.moves.urllib.parse`   | :mod:`py3:urllib.parse`             |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``urllib.error``             | See :mod:`six.moves.urllib.error`   | :mod:`py3:urllib.error`             |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``urllib.request``           | See :mod:`six.moves.urllib.request` | :mod:`py3:urllib.request`           |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``urllib.response``          | See :mod:`six.moves.urllib.response`| :mod:`py3:urllib.response`          |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``urllib.robotparser``       | :mod:`py2:robotparser`              | :mod:`py3:urllib.robotparser`       |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``urllib_robotparser``       | :mod:`py2:robotparser`              | :mod:`py3:urllib.robotparser`       |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``UserDict``                 | :class:`py2:UserDict.UserDict`      | :class:`py3:collections.UserDict`   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``UserList``                 | :class:`py2:UserList.UserList`      | :class:`py3:collections.UserList`   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``UserString``               | :class:`py2:UserString.UserString`  | :class:`py3:collections.UserString` |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``winreg``                   | :mod:`py2:_winreg`                  | :mod:`py3:winreg`                   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``xmlrpc_client``            | :mod:`py2:xmlrpclib`                | :mod:`py3:xmlrpc.client`            |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``xmlrpc_server``            | :mod:`py2:SimpleXMLRPCServer`       | :mod:`py3:xmlrpc.server`            |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``xrange``                   | :func:`py2:xrange`                  | :func:`py3:range`                   |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``zip``                      | :func:`py2:itertools.izip`          | :func:`py3:zip`                     |
-+------------------------------+-------------------------------------+-------------------------------------+
-| ``zip_longest``              | :func:`py2:itertools.izip_longest`  | :func:`py3:itertools.zip_longest`   |
-+------------------------------+-------------------------------------+-------------------------------------+
++------------------------------+-------------------------------------+---------------------------------------+
+| Name                         | Python 2 name                       | Python 3 name                         |
++==============================+=====================================+=======================================+
+| ``builtins``                 | :mod:`py2:__builtin__`              | :mod:`py3:builtins`                   |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``configparser``             | :mod:`py2:ConfigParser`             | :mod:`py3:configparser`               |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``copyreg``                  | :mod:`py2:copy_reg`                 | :mod:`py3:copyreg`                    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``cPickle``                  | :mod:`py2:cPickle`                  | :mod:`py3:pickle`                     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``cStringIO``                | :func:`py2:cStringIO.StringIO`      | :class:`py3:io.StringIO`              |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``dbm_gnu``                  | :func:`py2:gdbm`                    | :class:`py3:dbm.gnu`                  |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``_dummy_thread``            | :mod:`py2:dummy_thread`             | :mod:`py3:_dummy_thread`              |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``email_mime_base``          | :mod:`py2:email.MIMEBase`           | :mod:`py3:email.mime.base`            |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``email_mime_image``         | :mod:`py2:email.MIMEImage`          | :mod:`py3:email.mime.image`           |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``email_mime_multipart``     | :mod:`py2:email.MIMEMultipart`      | :mod:`py3:email.mime.multipart`       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``email_mime_nonmultipart``  | :mod:`py2:email.MIMENonMultipart`   | :mod:`py3:email.mime.nonmultipart`    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``email_mime_text``          | :mod:`py2:email.MIMEText`           | :mod:`py3:email.mime.text`            |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``filter``                   | :func:`py2:itertools.ifilter`       | :func:`py3:filter`                    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``filterfalse``              | :func:`py2:itertools.ifilterfalse`  | :func:`py3:itertools.filterfalse`     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``getcwd``                   | :func:`py2:os.getcwdu`              | :func:`py3:os.getcwd`                 |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``getcwdb``                  | :func:`py2:os.getcwd`               | :func:`py3:os.getcwdb`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``getoutput``                | :func:`py2:commands.getoutput`      | :func:`py3:subprocess.getoutput`      |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``http_cookiejar``           | :mod:`py2:cookielib`                | :mod:`py3:http.cookiejar`             |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``http_cookies``             | :mod:`py2:Cookie`                   | :mod:`py3:http.cookies`               |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``html_entities``            | :mod:`py2:htmlentitydefs`           | :mod:`py3:html.entities`              |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``html_parser``              | :mod:`py2:HTMLParser`               | :mod:`py3:html.parser`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``http_client``              | :mod:`py2:httplib`                  | :mod:`py3:http.client`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``BaseHTTPServer``           | :mod:`py2:BaseHTTPServer`           | :mod:`py3:http.server`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``CGIHTTPServer``            | :mod:`py2:CGIHTTPServer`            | :mod:`py3:http.server`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``SimpleHTTPServer``         | :mod:`py2:SimpleHTTPServer`         | :mod:`py3:http.server`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``input``                    | :func:`py2:raw_input`               | :func:`py3:input`                     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``intern``                   | :func:`py2:intern`                  | :func:`py3:sys.intern`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``map``                      | :func:`py2:itertools.imap`          | :func:`py3:map`                       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``queue``                    | :mod:`py2:Queue`                    | :mod:`py3:queue`                      |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``range``                    | :func:`py2:xrange`                  | :func:`py3:range`                     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``reduce``                   | :func:`py2:reduce`                  | :func:`py3:functools.reduce`          |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``reload_module``            | :func:`py2:reload`                  | :func:`py3:imp.reload`,               |
+|                              |                                     | :func:`py3:importlib.reload`          |
+|                              |                                     | on Python 3.4+                        |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``reprlib``                  | :mod:`py2:repr`                     | :mod:`py3:reprlib`                    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``shlex_quote``              | :mod:`py2:pipes.quote`              | :mod:`py3:shlex.quote`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``socketserver``             | :mod:`py2:SocketServer`             | :mod:`py3:socketserver`               |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``_thread``                  | :mod:`py2:thread`                   | :mod:`py3:_thread`                    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter``                  | :mod:`py2:Tkinter`                  | :mod:`py3:tkinter`                    |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_dialog``           | :mod:`py2:Dialog`                   | :mod:`py3:tkinter.dialog`             |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_filedialog``       | :mod:`py2:FileDialog`               | :mod:`py3:tkinter.FileDialog`         |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_scrolledtext``     | :mod:`py2:ScrolledText`             | :mod:`py3:tkinter.scrolledtext`       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_simpledialog``     | :mod:`py2:SimpleDialog`             | :mod:`py3:tkinter.simpledialog`       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_ttk``              | :mod:`py2:ttk`                      | :mod:`py3:tkinter.ttk`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_tix``              | :mod:`py2:Tix`                      | :mod:`py3:tkinter.tix`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_constants``        | :mod:`py2:Tkconstants`              | :mod:`py3:tkinter.constants`          |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_dnd``              | :mod:`py2:Tkdnd`                    | :mod:`py3:tkinter.dnd`                |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_colorchooser``     | :mod:`py2:tkColorChooser`           | :mod:`py3:tkinter.colorchooser`       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_commondialog``     | :mod:`py2:tkCommonDialog`           | :mod:`py3:tkinter.commondialog`       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_tkfiledialog``     | :mod:`py2:tkFileDialog`             | :mod:`py3:tkinter.filedialog`         |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_font``             | :mod:`py2:tkFont`                   | :mod:`py3:tkinter.font`               |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_messagebox``       | :mod:`py2:tkMessageBox`             | :mod:`py3:tkinter.messagebox`         |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``tkinter_tksimpledialog``   | :mod:`py2:tkSimpleDialog`           | :mod:`py3:tkinter.simpledialog`       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``urllib.parse``             | See :mod:`six.moves.urllib.parse`   | :mod:`py3:urllib.parse`               |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``urllib.error``             | See :mod:`six.moves.urllib.error`   | :mod:`py3:urllib.error`               |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``urllib.request``           | See :mod:`six.moves.urllib.request` | :mod:`py3:urllib.request`             |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``urllib.response``          | See :mod:`six.moves.urllib.response`| :mod:`py3:urllib.response`            |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``urllib.robotparser``       | :mod:`py2:robotparser`              | :mod:`py3:urllib.robotparser`         |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``urllib_robotparser``       | :mod:`py2:robotparser`              | :mod:`py3:urllib.robotparser`         |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``UserDict``                 | :class:`py2:UserDict.UserDict`      | :class:`py3:collections.UserDict`     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``UserList``                 | :class:`py2:UserList.UserList`      | :class:`py3:collections.UserList`     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``UserString``               | :class:`py2:UserString.UserString`  | :class:`py3:collections.UserString`   |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``winreg``                   | :mod:`py2:_winreg`                  | :mod:`py3:winreg`                     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``xmlrpc_client``            | :mod:`py2:xmlrpclib`                | :mod:`py3:xmlrpc.client`              |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``xmlrpc_server``            | :mod:`py2:SimpleXMLRPCServer`       | :mod:`py3:xmlrpc.server`              |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``xrange``                   | :func:`py2:xrange`                  | :func:`py3:range`                     |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``zip``                      | :func:`py2:itertools.izip`          | :func:`py3:zip`                       |
++------------------------------+-------------------------------------+---------------------------------------+
+| ``zip_longest``              | :func:`py2:itertools.izip_longest`  | :func:`py3:itertools.zip_longest`     |
++------------------------------+-------------------------------------+---------------------------------------+
 
 urllib parse
 <<<<<<<<<<<<
@@ -659,7 +721,8 @@ and :mod:`py2:urllib`:
 * :func:`py2:urllib.quote_plus`
 * :func:`py2:urllib.splittag`
 * :func:`py2:urllib.splituser`
-* :func:`py2:urllib.unquote`
+* :func:`py2:urllib.splitvalue`
+* :func:`py2:urllib.unquote` (also exposed as :func:`py3:urllib.parse.unquote_to_bytes`)
 * :func:`py2:urllib.unquote_plus`
 * :func:`py2:urllib.urlencode`
 
@@ -706,6 +769,8 @@ and :mod:`py2:urllib2`:
 * :func:`py2:urllib2.urlopen`
 * :func:`py2:urllib2.install_opener`
 * :func:`py2:urllib2.build_opener`
+* :func:`py2:urllib2.parse_http_list`
+* :func:`py2:urllib2.parse_keqv_list`
 * :class:`py2:urllib2.Request`
 * :class:`py2:urllib2.OpenerDirector`
 * :class:`py2:urllib2.HTTPDefaultErrorHandler`

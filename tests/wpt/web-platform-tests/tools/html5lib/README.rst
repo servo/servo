@@ -51,7 +51,7 @@ pass into html5lib as follows:
   import html5lib
 
   with closing(urlopen("http://example.com/")) as f:
-      document = html5lib.parse(f, encoding=f.info().getparam("charset"))
+      document = html5lib.parse(f, transport_encoding=f.info().getparam("charset"))
 
 When using with ``urllib.request`` (Python 3), the charset from HTTP
 should be pass into html5lib as follows:
@@ -62,7 +62,7 @@ should be pass into html5lib as follows:
   import html5lib
 
   with urlopen("http://example.com/") as f:
-      document = html5lib.parse(f, encoding=f.info().get_content_charset())
+      document = html5lib.parse(f, transport_encoding=f.info().get_content_charset())
 
 To have more control over the parser, create a parser object explicitly.
 For instance, to make the parser raise exceptions on parse errors, use:
@@ -84,13 +84,13 @@ format:
   parser = html5lib.HTMLParser(tree=html5lib.getTreeBuilder("dom"))
   minidom_document = parser.parse("<p>Hello World!")
 
-More documentation is available at http://html5lib.readthedocs.org/.
+More documentation is available at https://html5lib.readthedocs.io/.
 
 
 Installation
 ------------
 
-html5lib works on CPython 2.6+, CPython 3.2+ and PyPy.  To install it,
+html5lib works on CPython 2.7+, CPython 3.3+ and PyPy.  To install it,
 use:
 
 .. code-block:: bash
@@ -104,8 +104,8 @@ Optional Dependencies
 The following third-party libraries may be used for additional
 functionality:
 
-- ``datrie`` can be used to improve parsing performance (though in
-  almost all cases the improvement is marginal);
+- ``datrie`` can be used under CPython to improve parsing performance
+  (though in almost all cases the improvement is marginal);
 
 - ``lxml`` is supported as a tree format (for both building and
   walking) under CPython (but *not* PyPy where it is known to cause
@@ -113,13 +113,8 @@ functionality:
 
 - ``genshi`` has a treewalker (but not builder); and
 
-- ``charade`` can be used as a fallback when character encoding cannot
-  be determined; ``chardet``, from which it was forked, can also be used
-  on Python 2.
-
-- ``ordereddict`` can be used under Python 2.6
-  (``collections.OrderedDict`` is used instead on later versions) to
-  serialize attributes in alphabetical order.
+- ``chardet`` can be used as a fallback when character encoding cannot
+  be determined.
 
 
 Bugs
@@ -132,9 +127,8 @@ Please report any bugs on the `issue tracker
 Tests
 -----
 
-Unit tests require the ``nose`` library and can be run using the
-``nosetests`` command in the root directory; ``ordereddict`` is
-required under Python 2.6. All should pass.
+Unit tests require the ``pytest`` and ``mock`` libraries and can be
+run using the ``py.test`` command in the root directory.
 
 Test data are contained in a separate `html5lib-tests
 <https://github.com/html5lib/html5lib-tests>`_ repository and included

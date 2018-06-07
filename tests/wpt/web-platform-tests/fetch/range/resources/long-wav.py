@@ -50,11 +50,28 @@ def main(request, response):
     response.headers.set("Cache-Control", "no-cache")
 
     range_header = request.headers.get('Range', '')
+    range_header_match = range_header and re.search(r'^bytes=(\d*)-(\d*)$', range_header)
     range_received_key = request.GET.first('range-received-key', '')
+    accept_encoding_key = request.GET.first('accept-encoding-key', '')
 
     if range_received_key and range_header:
+        # Remove any current value
+        request.server.stash.take(range_received_key, '/fetch/range/')
         # This is later collected using stash-take.py
-        request.stash.put(range_received_key, 'range-header-received', '/fetch/range/')
+        request.server.stash.put(range_received_key, 'range-header-received', '/fetch/range/')
+
+    if accept_encoding_key:
+        # Remove any current value
+        request.server.stash.take(
+            accept_encoding_key,
+            '/fetch/range/'
+        )
+        # This is later collected using stash-take.py
+        request.server.stash.put(
+            accept_encoding_key,
+            request.headers.get('Accept-Encoding', ''),
+            '/fetch/range/'
+        )
 
     # Audio details
     sample_rate = 8000
@@ -66,9 +83,9 @@ def main(request, response):
     bytes_remaining_to_send = total_length
     initial_write = ''
 
-    if range_header:
+    if range_header_match:
         response.status = 206
-        start, end = re.search(r'^bytes=(\d*)-(\d*)$', range_header).groups()
+        start, end = range_header_match.groups()
 
         start = int(start)
         end = int(end) if end else 0
