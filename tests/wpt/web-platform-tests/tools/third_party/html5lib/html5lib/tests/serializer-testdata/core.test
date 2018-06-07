@@ -1,0 +1,395 @@
+{
+    "tests": [
+        {
+            "expected": [
+                "<span title='test \"with\" &amp;quot;'>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "test \"with\" &quot;"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value escaping"
+        },
+        {
+            "expected": [
+                "<span title=foo>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value non-quoting"
+        },
+        {
+            "expected": [
+                "<span title=\"foo<bar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo<bar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value non-quoting (with <)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo=bar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo=bar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with =)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo>bar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo>bar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with >)"
+        },
+        {
+            "expected": [
+                "<span title='foo\"bar'>"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo\"bar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with \")"
+        },
+        {
+            "expected": [
+                "<span title=\"foo'bar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo'bar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with ')"
+        },
+        {
+            "expected": [
+                "<span title=\"foo'bar&quot;baz\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo'bar\"baz"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with both \" and ')"
+        },
+        {
+            "expected": [
+                "<span title=\"foo bar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo bar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with space)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo\tbar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo\tbar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with tab)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo\nbar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo\nbar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with LF)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo\rbar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo\rbar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with CR)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo\u000bbar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo\u000bbar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value non-quoting (with linetab)"
+        },
+        {
+            "expected": [
+                "<span title=\"foo\fbar\">"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "span",
+                    [
+                        {
+                            "namespace": null,
+                            "name": "title",
+                            "value": "foo\fbar"
+                        }
+                    ]
+                ]
+            ],
+            "description": "proper attribute value quoting (with form feed)"
+        },
+        {
+            "expected": [
+                "<img>"
+            ],
+            "input": [
+                [
+                    "EmptyTag",
+                    "img",
+                    {}
+                ]
+            ],
+            "description": "void element (as EmptyTag token)"
+        },
+        {
+            "expected": [
+                "<!DOCTYPE foo>"
+            ],
+            "input": [
+                [
+                    "Doctype",
+                    "foo"
+                ]
+            ],
+            "description": "doctype in error"
+        },
+        {
+            "expected": [
+                "a&lt;b&gt;c&amp;d"
+            ],
+            "input": [
+                [
+                    "Characters",
+                    "a<b>c&d"
+                ]
+            ],
+            "description": "character data",
+            "options": {
+                "encoding": "utf-8"
+            }
+        },
+        {
+            "expected": [
+                "<script>a<b>c&d"
+            ],
+            "input": [
+                [
+                    "StartTag",
+                    "http://www.w3.org/1999/xhtml",
+                    "script",
+                    {}
+                ],
+                [
+                    "Characters",
+                    "a<b>c&d"
+                ]
+            ],
+            "description": "rcdata"
+        },
+        {
+            "expected": [
+                "<!DOCTYPE HTML>"
+            ],
+            "input": [
+                [
+                    "Doctype",
+                    "HTML"
+                ]
+            ],
+            "description": "doctype"
+        },
+        {
+            "expected": [
+                "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">"
+            ],
+            "input": [
+                [
+                    "Doctype",
+                    "HTML",
+                    "-//W3C//DTD HTML 4.01//EN",
+                    "http://www.w3.org/TR/html4/strict.dtd"
+                ]
+            ],
+            "description": "HTML 4.01 DOCTYPE"
+        },
+        {
+            "expected": [
+                "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
+            ],
+            "input": [
+                [
+                    "Doctype",
+                    "HTML",
+                    "-//W3C//DTD HTML 4.01//EN"
+                ]
+            ],
+            "description": "HTML 4.01 DOCTYPE without system identifer"
+        },
+        {
+            "expected": [
+                "<!DOCTYPE html SYSTEM \"http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd\">"
+            ],
+            "input": [
+                [
+                    "Doctype",
+                    "html",
+                    "",
+                    "http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd"
+                ]
+            ],
+            "description": "IBM DOCTYPE without public identifer"
+        }
+    ]
+}

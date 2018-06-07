@@ -1,5 +1,0 @@
--r requirements.txt
-
-flake8
-nose
-ordereddict # Python 2.6

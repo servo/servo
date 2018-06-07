@@ -1,0 +1,10 @@
+-r requirements.txt
+
+tox
+
+flake8<3.0
+
+pytest==3.2.5
+coverage
+pytest-expect>=1.1,<2.0
+mock
