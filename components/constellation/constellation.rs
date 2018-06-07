@@ -957,8 +957,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewBrowser(url, response_chan) => {
-                self.handle_new_top_level_browsing_context(url, response_chan);
+            FromCompositorMsg::NewBrowser(url) => {
+                self.handle_new_top_level_browsing_context(url);
             }
             // Close a top level browsing context.
             FromCompositorMsg::CloseBrowser(top_level_browsing_context_id) => {
@@ -1476,13 +1476,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_new_top_level_browsing_context(&mut self, url: ServoUrl, reply: IpcSender<TopLevelBrowsingContextId>) {
+    fn handle_new_top_level_browsing_context(&mut self, url: ServoUrl) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
         let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
-        if let Err(e) = reply.send(top_level_browsing_context_id) {
-            warn!("Failed to send newly created top level browsing context ({}).", e);
-        }
+        let msg = (None, EmbedderMsg::BrowserCreated(top_level_browsing_context_id));
+        self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let load_data = LoadData::new(url.clone(), None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
