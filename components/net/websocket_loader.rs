@@ -43,6 +43,7 @@ pub fn init(
         let channel = establish_a_websocket_connection(req_init, &http_state);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
+                debug!("Established a websocket connection");
                 let _ = resource_event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
                 (sender, receiver)
             },
