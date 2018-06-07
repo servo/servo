@@ -578,7 +578,8 @@ where
                 let swmanager_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(swmanager_receiver);
 
-                PipelineNamespace::install(PipelineNamespaceId(0));
+                // Zero is reserved for the embedder.
+                PipelineNamespace::install(PipelineNamespaceId(1));
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                     script_sender: ipc_script_sender,
@@ -605,8 +606,10 @@ where
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
-                    // We initialize the namespace at 1, since we reserved namespace 0 for the constellation
-                    next_pipeline_namespace_id: PipelineNamespaceId(1),
+                    // We initialize the namespace at 2,
+                    // since we reserved namespace 0 for the embedder,
+                    // and 0 for the constellation
+                    next_pipeline_namespace_id: PipelineNamespaceId(2),
                     focus_pipeline_id: None,
                     time_profiler_chan: state.time_profiler_chan,
                     mem_profiler_chan: state.mem_profiler_chan,
@@ -1026,8 +1029,8 @@ where
             },
             // Create a new top level browsing context. Will use response_chan to return
             // the browsing context id.
-            FromCompositorMsg::NewBrowser(url, response_chan) => {
-                self.handle_new_top_level_browsing_context(url, response_chan);
+            FromCompositorMsg::NewBrowser(url, top_level_browsing_context_id) => {
+                self.handle_new_top_level_browsing_context(url, top_level_browsing_context_id);
             },
             // Close a top level browsing context.
             FromCompositorMsg::CloseBrowser(top_level_browsing_context_id) => {
@@ -1651,17 +1654,12 @@ where
     fn handle_new_top_level_browsing_context(
         &mut self,
         url: ServoUrl,
-        reply: IpcSender<TopLevelBrowsingContextId>,
+        top_level_browsing_context_id: TopLevelBrowsingContextId
     ) {
         let window_size = self.window_size.initial_viewport;
         let pipeline_id = PipelineId::new();
-        let top_level_browsing_context_id = TopLevelBrowsingContextId::new();
-        if let Err(e) = reply.send(top_level_browsing_context_id) {
-            warn!(
-                "Failed to send newly created top level browsing context ({}).",
-                e
-            );
-        }
+        let msg = (Some(top_level_browsing_context_id), EmbedderMsg::BrowserCreated(top_level_browsing_context_id));
+        self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
         let load_data = LoadData::new(url.clone(), None, None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;

@@ -67,11 +67,6 @@ impl Browser {
         mem::replace(&mut self.event_queue, Vec::new())
     }
 
-    pub fn set_browser_id(&mut self, browser_id: BrowserId) {
-        self.browser_id = Some(browser_id);
-        self.browsers.push(browser_id);
-    }
-
     pub fn handle_window_events(&mut self, events: Vec<WindowEvent>) {
         for event in events {
             match event {
@@ -302,6 +297,9 @@ impl Browser {
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
                     // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
+                    if self.browser_id.is_none() {
+                        self.browser_id = Some(new_browser_id);
+                    }
                     self.event_queue.push(WindowEvent::SelectBrowser(new_browser_id));
                 }
                 EmbedderMsg::KeyEvent(ch, key, state, modified) => {
@@ -332,6 +330,7 @@ impl Browser {
                     // TODO: close the appropriate "tab".
                     let _ = self.browsers.pop();
                     if let Some(prev_browser_id) = self.browsers.last() {
+                        self.browser_id = Some(*prev_browser_id);
                         self.event_queue.push(WindowEvent::SelectBrowser(*prev_browser_id));
                     } else {
                         self.event_queue.push(WindowEvent::Quit);
