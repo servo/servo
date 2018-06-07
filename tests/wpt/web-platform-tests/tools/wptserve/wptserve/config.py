@@ -1,5 +1,6 @@
 import logging
 import os
+from threading import Lock
 
 from collections import defaultdict, Mapping
 
@@ -73,6 +74,8 @@ class Config(Mapping):
                 self.log_level = level_name
             self._logger_name = logger.name
 
+        self._ports_lock = Lock()
+
         for k, v in self._default.iteritems():
             setattr(self, k, kwargs.pop(k, v))
 
@@ -137,30 +140,37 @@ class Config(Mapping):
 
     @property
     def ports(self):
-        # To make this method thread-safe, we write to a temporary dict first,
-        # and change self._computed_ports to the new dict at last atomically.
-        new_ports = defaultdict(list)
+        with self._ports_lock:
+            try:
+                old_ports = self._computed_ports
+            except AttributeError:
+                old_ports = {}
 
-        try:
-            old_ports = self._computed_ports
-        except AttributeError:
-            old_ports = {}
+            self._computed_ports = defaultdict(list)
 
-        for scheme, ports in self._ports.iteritems():
-            for i, port in enumerate(ports):
-                if scheme in ["wss", "https"] and not self.ssl_env.ssl_enabled:
-                    port = None
-                if port == "auto":
-                    try:
-                        port = old_ports[scheme][i]
-                    except (KeyError, IndexError):
-                        port = get_port(self.server_host)
-                else:
-                    port = port
-                new_ports[scheme].append(port)
+            for scheme, ports in self._ports.iteritems():
+                for i, port in enumerate(ports):
+                    if scheme in ["wss", "https"] and not self.ssl_env.ssl_enabled:
+                        port = None
+                    if port == "auto":
+                        try:
+                            port = old_ports[scheme][i]
+                        except (KeyError, IndexError):
+                            port = get_port(self.server_host)
+                    else:
+                        port = port
+                    self._computed_ports[scheme].append(port)
 
-        self._computed_ports = new_ports
         return self._computed_ports
+
+    def __getstate__(self):
+        state = self.__dict__
+        del state["_ports_lock"]
+        return state
+
+    def __setstate__(self, state):
+        state["_ports_lock"] = Lock()
+        self.__dict__ = state
 
     @ports.setter
     def ports(self, v):
