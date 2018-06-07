@@ -22,7 +22,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
+use dom::node::{CloneChildrenFlag, ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::textcontrol::{TextControlElement, TextControlSelection};
@@ -418,6 +418,19 @@ impl VirtualMethods for HTMLTextAreaElement {
         } else {
             el.check_disabled_attribute();
         }
+    }
+
+    // The cloning steps for textarea elements must propagate the raw value
+    // and dirty value flag from the node being cloned to the copy.
+    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
+                     clone_children: CloneChildrenFlag) {
+        if let Some(ref s) = self.super_type() {
+            s.cloning_steps(copy, maybe_doc, clone_children);
+        }
+        let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
+        el.value_dirty.set(self.value_dirty.get());
+        let mut textinput = el.textinput.borrow_mut();
+        textinput.set_content(self.textinput.borrow().get_content());
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
