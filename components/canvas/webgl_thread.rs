@@ -761,9 +761,6 @@ impl WebGLImpl {
                 Self::get_framebuffer_attachment_parameter(ctx.gl(), target, attachment, pname, chan),
             WebGLCommand::GetVertexAttribOffset(index, pname, ref chan) =>
                 Self::vertex_attrib_offset(ctx.gl(), index, pname, chan),
-            WebGLCommand::GetTexParameter(target, pname, ref chan) => {
-                chan.send(ctx.gl().get_tex_parameter_iv(target, pname)).unwrap();
-            }
             WebGLCommand::GetShaderPrecisionFormat(shader_type, precision_type, ref chan) =>
                 Self::shader_precision_format(ctx.gl(), shader_type, precision_type, chan),
             WebGLCommand::GetExtensions(ref chan) =>
@@ -864,10 +861,6 @@ impl WebGLImpl {
             WebGLCommand::TexImage2D(target, level, internal, width, height, format, data_type, ref data) =>
                 ctx.gl().tex_image_2d(target, level, internal, width, height,
                                       /*border*/0, format, data_type, Some(data)),
-            WebGLCommand::TexParameteri(target, name, value) =>
-                ctx.gl().tex_parameter_i(target, name, value),
-            WebGLCommand::TexParameterf(target, name, value) =>
-                ctx.gl().tex_parameter_f(target, name, value),
             WebGLCommand::TexSubImage2D(target, level, xoffset, yoffset, x, y, width, height, ref data) =>
                 ctx.gl().tex_sub_image_2d(target, level, xoffset, yoffset, x, y, width, height, data),
             WebGLCommand::DrawingBufferWidth(ref sender) =>
@@ -1019,6 +1012,18 @@ impl WebGLImpl {
                     Ok(value)
                 };
                 sender.send(result).unwrap();
+            }
+            WebGLCommand::GetTexParameterFloat(target, param, ref sender) => {
+                sender.send(ctx.gl().get_tex_parameter_fv(target, param as u32)).unwrap();
+            }
+            WebGLCommand::GetTexParameterInt(target, param, ref sender) => {
+                sender.send(ctx.gl().get_tex_parameter_iv(target, param as u32)).unwrap();
+            }
+            WebGLCommand::TexParameteri(target, param, value) => {
+                ctx.gl().tex_parameter_i(target, param as u32, value)
+            }
+            WebGLCommand::TexParameterf(target, param, value) => {
+                ctx.gl().tex_parameter_f(target, param as u32, value)
             }
         }
 

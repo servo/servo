@@ -4,8 +4,9 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLMsgSender, WebGLResult, WebGLTextureId};
-use canvas_traits::webgl::DOMToTextureCommand;
+use canvas_traits::webgl::{DOMToTextureCommand, TexParameter, TexParameterFloat};
+use canvas_traits::webgl::{TexParameterInt, WebGLCommand, WebGLError, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLResult, WebGLTextureId, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
@@ -202,65 +203,75 @@ impl WebGLTexture {
     /// We have to follow the conversion rules for GLES 2.0. See:
     ///   https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html
     ///
-    pub fn tex_parameter(&self,
-                     target: u32,
-                     name: u32,
-                     value: TexParameterValue) -> WebGLResult<()> {
-        let (int_value, _float_value) = match value {
+    pub fn tex_parameter(
+        &self,
+        param: TexParameter,
+        value: TexParameterValue,
+    ) -> WebGLResult<()> {
+        let target = self.target().unwrap();
+
+        let (int_value, float_value) = match value {
             TexParameterValue::Int(int_value) => (int_value, int_value as f32),
             TexParameterValue::Float(float_value) => (float_value as i32, float_value),
         };
 
-        match name {
-            constants::TEXTURE_MIN_FILTER => {
-                match int_value as u32 {
-                    constants::NEAREST |
-                    constants::LINEAR |
-                    constants::NEAREST_MIPMAP_NEAREST |
-                    constants::LINEAR_MIPMAP_NEAREST |
-                    constants::NEAREST_MIPMAP_LINEAR |
-                    constants::LINEAR_MIPMAP_LINEAR => {
-                        self.min_filter.set(Some(int_value as u32));
-                        self.renderer
-                            .send(WebGLCommand::TexParameteri(target, name, int_value))
-                            .unwrap();
-                        Ok(())
-                    },
-
-                    _ => Err(WebGLError::InvalidEnum),
+        match param {
+            TexParameter::Int(int_param) => {
+                match int_param {
+                    TexParameterInt::TextureMinFilter => {
+                        match int_value as u32 {
+                            constants::NEAREST |
+                            constants::LINEAR |
+                            constants::NEAREST_MIPMAP_NEAREST |
+                            constants::LINEAR_MIPMAP_NEAREST |
+                            constants::NEAREST_MIPMAP_LINEAR |
+                            constants::LINEAR_MIPMAP_LINEAR => {
+                                self.min_filter.set(Some(int_value as u32));
+                                self.renderer
+                                    .send(WebGLCommand::TexParameteri(target, int_param, int_value))
+                                    .unwrap();
+                                Ok(())
+                            }
+                            _ => Err(WebGLError::InvalidEnum),
+                        }
+                    }
+                    TexParameterInt::TextureMagFilter => {
+                        match int_value as u32 {
+                            constants::NEAREST | constants::LINEAR => {
+                                self.mag_filter.set(Some(int_value as u32));
+                                self.renderer
+                                    .send(WebGLCommand::TexParameteri(target, int_param, int_value))
+                                    .unwrap();
+                                Ok(())
+                            }
+                            _ => return Err(WebGLError::InvalidEnum),
+                        }
+                    }
+                    TexParameterInt::TextureWrapS | TexParameterInt::TextureWrapT => {
+                        match int_value as u32 {
+                            constants::CLAMP_TO_EDGE |
+                            constants::MIRRORED_REPEAT |
+                            constants::REPEAT => {
+                                self.renderer
+                                    .send(WebGLCommand::TexParameteri(target, int_param, int_value))
+                                    .unwrap();
+                                Ok(())
+                            }
+                            _ => Err(WebGLError::InvalidEnum),
+                        }
+                    }
                 }
-            },
-            constants::TEXTURE_MAG_FILTER => {
-                match int_value as u32 {
-                    constants::NEAREST |
-                    constants::LINEAR => {
-                        self.mag_filter.set(Some(int_value as u32));
-                        self.renderer
-                            .send(WebGLCommand::TexParameteri(target, name, int_value))
-                            .unwrap();
-                        Ok(())
-                    },
-
-                    _ => Err(WebGLError::InvalidEnum),
+            }
+            TexParameter::Float(float_param @ TexParameterFloat::TextureMaxAnisotropyExt) => {
+                if float_value >= 1. {
+                    self.renderer
+                        .send(WebGLCommand::TexParameterf(target, float_param, float_value))
+                        .unwrap();
+                    Ok(())
+                } else {
+                    Err(WebGLError::InvalidValue)
                 }
-            },
-            constants::TEXTURE_WRAP_S |
-            constants::TEXTURE_WRAP_T => {
-                match int_value as u32 {
-                    constants::CLAMP_TO_EDGE |
-                    constants::MIRRORED_REPEAT |
-                    constants::REPEAT => {
-                        self.renderer
-                            .send(WebGLCommand::TexParameteri(target, name, int_value))
-                            .unwrap();
-                        Ok(())
-                    },
-
-                    _ => Err(WebGLError::InvalidEnum),
-                }
-            },
-
-            _ => Err(WebGLError::InvalidEnum),
+            }
         }
     }
 
