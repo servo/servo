@@ -26,7 +26,7 @@ use values::generics::image::{self as generic, Circle, CompatMode, Ellipse, Shap
 use values::generics::image::PaintWorklet;
 use values::generics::position::Position as GenericPosition;
 use values::specified::{Angle, Color, Length, LengthOrPercentage};
-use values::specified::{Number, NumberOrPercentage, Percentage, RGBAColor};
+use values::specified::{Number, NumberOrPercentage, Percentage};
 use values::specified::position::{LegacyPosition, Position, PositionComponent, Side, X, Y};
 use values::specified::url::SpecifiedImageUrl;
 
@@ -41,19 +41,13 @@ pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl>;
 /// <https://drafts.csswg.org/css-images/#gradients>
 #[cfg(not(feature = "gecko"))]
 pub type Gradient =
-    generic::Gradient<LineDirection, Length, LengthOrPercentage, Position, RGBAColor, Angle>;
+    generic::Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, Angle>;
 
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
 #[cfg(feature = "gecko")]
-pub type Gradient = generic::Gradient<
-    LineDirection,
-    Length,
-    LengthOrPercentage,
-    GradientPosition,
-    RGBAColor,
-    Angle,
->;
+pub type Gradient =
+    generic::Gradient<LineDirection, Length, LengthOrPercentage, GradientPosition, Color, Angle>;
 
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
@@ -121,10 +115,10 @@ pub enum GradientPosition {
 pub type EndingShape = generic::EndingShape<Length, LengthOrPercentage>;
 
 /// A specified gradient item.
-pub type GradientItem = generic::GradientItem<RGBAColor, LengthOrPercentage>;
+pub type GradientItem = generic::GradientItem<Color, LengthOrPercentage>;
 
 /// A computed color stop.
-pub type ColorStop = generic::ColorStop<RGBAColor, LengthOrPercentage>;
+pub type ColorStop = generic::ColorStop<Color, LengthOrPercentage>;
 
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
@@ -957,7 +951,7 @@ impl Parse for ColorStop {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(ColorStop {
-            color: RGBAColor::parse(context, input)?,
+            color: Color::parse(context, input)?,
             position: input.try(|i| LengthOrPercentage::parse(context, i)).ok(),
         })
     }

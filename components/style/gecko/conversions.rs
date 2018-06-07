@@ -9,7 +9,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use gecko::values::{convert_rgba_to_nscolor, GeckoStyleCoordConvertible};
+use gecko::values::GeckoStyleCoordConvertible;
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{self, nsCSSUnit, nsStyleCoord_CalcValue};
 use gecko_bindings::structs::{nsresult, SheetType, nsStyleImage};
@@ -358,7 +358,7 @@ impl nsStyleImage {
 
             match *item {
                 GradientItem::ColorStop(ref stop) => {
-                    gecko_stop.mColor = convert_rgba_to_nscolor(&stop.color);
+                    gecko_stop.mColor = stop.color.into();
                     gecko_stop.mIsInterpolationHint = false;
                     coord.set(stop.position);
                 },
@@ -433,7 +433,6 @@ impl nsStyleImage {
     }
 
     unsafe fn get_gradient(self: &nsStyleImage) -> Box<Gradient> {
-        use gecko::values::convert_nscolor_to_rgba;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
@@ -601,7 +600,7 @@ impl nsStyleImage {
                     )
                 } else {
                     GradientItem::ColorStop(ColorStop {
-                        color: convert_nscolor_to_rgba(stop.mColor),
+                        color: stop.mColor.into(),
                         position: LengthOrPercentage::from_gecko_style_coord(&stop.mLocation),
                     })
                 }
