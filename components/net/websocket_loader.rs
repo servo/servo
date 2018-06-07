@@ -145,9 +145,11 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 
     // Steps 4-5.
     let host = replace_host(host);
+    debug!("making TCP connection to {}:{}", host, port);
     let tcp_stream = TcpStream::connect((&*host, port)).map_err(|e| {
         NetworkError::Internal(format!("Could not connect to host: {}", e))
     })?;
+    debug!("made TCP connection to {}:{}"), host, port);
     Ok(HttpStream(tcp_stream))
 }
 
