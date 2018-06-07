@@ -22,8 +22,7 @@ use std::cell::RefCell;
 use std::fmt::{self, Write};
 use std::mem::{self, ManuallyDrop};
 
-#[cfg(feature = "servo")] use cssparser::RGBA;
-use cssparser::{Parser, TokenSerializationType};
+use cssparser::{Parser, RGBA, TokenSerializationType};
 use cssparser::ParserInput;
 #[cfg(feature = "servo")] use euclid::SideOffsets2D;
 use context::QuirksMode;
@@ -45,7 +44,6 @@ use shared_lock::StylesheetGuards;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
-#[cfg(feature = "servo")] use values::Either;
 use values::generics::text::LineHeight;
 use values::computed;
 use values::computed::NonNegativeLength;
@@ -834,13 +832,13 @@ bitflags! {
         const APPLIES_TO_FIRST_LINE = 1 << 4;
         /// This longhand property applies to ::placeholder.
         const APPLIES_TO_PLACEHOLDER = 1 << 5;
+        /// This property's getComputedStyle implementation requires layout
+        /// to be flushed.
+        const GETCS_NEEDS_LAYOUT_FLUSH = 1 << 6;
 
         /* The following flags are currently not used in Rust code, they
          * only need to be listed in corresponding properties so that
          * they can be checked in the C++ side via ServoCSSPropList.h. */
-        /// This property's getComputedStyle implementation requires layout
-        /// to be flushed.
-        const GETCS_NEEDS_LAYOUT_FLUSH = 0;
         /// This property can be animated on the compositor.
         const CAN_ANIMATE_ON_COMPOSITOR = 0;
     }
@@ -2614,6 +2612,59 @@ impl ComputedValues {
     pub fn custom_properties(&self) -> Option<<&Arc<::custom_properties::CustomPropertiesMap>> {
         self.custom_properties.as_ref()
     }
+
+    /// Writes the value of the given longhand as a string in `dest`.
+    ///
+    /// Note that the value will usually be the computed value, except for
+    /// colors, where it's resolved.
+    pub fn get_longhand_property_value<W>(
+        &self,
+        property_id: LonghandId,
+        dest: &mut CssWriter<W>
+    ) -> fmt::Result
+    where
+        W: Write,
+    {
+        // TODO(emilio): Is it worth to merge branches here just like
+        // PropertyDeclaration::to_css does?
+        //
+        // We'd need to get a concept of ~resolved value, which may not be worth
+        // it.
+        match property_id {
+            % for prop in data.longhands:
+            LonghandId::${prop.camel_case} => {
+                let style_struct =
+                    self.get_${prop.style_struct.ident.strip("_")}();
+                let value =
+                    style_struct
+                    % if prop.logical:
+                    .clone_${prop.ident}(self.writing_mode);
+                    % else:
+                    .clone_${prop.ident}();
+                    % endif
+
+                % if prop.predefined_type == "Color":
+                let value = self.resolve_color(value);
+                % endif
+
+                value.to_css(dest)
+            }
+            % endfor
+        }
+    }
+
+    /// Resolves the currentColor keyword.
+    ///
+    /// Any color value from computed values (except for the 'color' property
+    /// itself) should go through this method.
+    ///
+    /// Usage example:
+    /// let top_color =
+    ///   style.resolve_color(style.get_border().clone_border_top_color());
+    #[inline]
+    pub fn resolve_color(&self, color: computed::Color) -> RGBA {
+        color.to_rgba(self.get_color().clone_color())
+    }
 }
 
 #[cfg(feature = "servo")]
@@ -2724,18 +2775,6 @@ impl ComputedValuesInner {
     #[inline]
     pub fn is_multicol(&self) -> bool {
         self.get_column().is_multicol()
-    }
-
-    /// Resolves the currentColor keyword.
-    ///
-    /// Any color value from computed values (except for the 'color' property
-    /// itself) should go through this method.
-    ///
-    /// Usage example:
-    /// let top_color = style.resolve_color(style.Border.border_top_color);
-    #[inline]
-    pub fn resolve_color(&self, color: computed::Color) -> RGBA {
-        color.to_rgba(self.get_color().color)
     }
 
     /// Get the logical computed inline size.
@@ -2902,19 +2941,19 @@ impl ComputedValuesInner {
     /// Serializes the computed value of this property as a string.
     pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
         match property {
-            % for style_struct in data.active_style_structs():
-                % for longhand in style_struct.longhands:
-                    PropertyDeclarationId::Longhand(LonghandId::${longhand.camel_case}) => {
-                        self.${style_struct.ident}.${longhand.ident}.to_css_string()
-                    }
-                % endfor
-            % endfor
+            PropertyDeclarationId::Longhand(id) => {
+                let mut s = String::new();
+                self.get_longhand_property_value(
+                    property,
+                    &mut CssWriter::new(&mut s)
+                ).unwrap();
+                s
+            }
             PropertyDeclarationId::Custom(name) => {
                 self.custom_properties
                     .as_ref()
                     .and_then(|map| map.get(name))
-                    .map(|value| value.to_css_string())
-                    .unwrap_or(String::new())
+                    .map_or(String::new(), |value| value.to_css_string())
             }
         }
     }
