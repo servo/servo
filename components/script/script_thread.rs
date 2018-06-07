@@ -104,6 +104,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
+use std::cell::RefCell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
 use std::ops::Deref;
@@ -387,6 +388,14 @@ impl<'a> Iterator for DocumentsIter<'a> {
     }
 }
 
+// We borrow the incomplete parser contexts mutably during parsing,
+// which is fine except that parsing can trigger evaluation,
+// which can trigger GC, and so we can end up tracing the script
+// thread during parsing. For this reason, we don't trace the
+// incomplete parser contexts during GC.
+type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
+unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -399,7 +408,7 @@ pub struct ScriptThread {
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
-    incomplete_parser_contexts: DomRefCell<Vec<(PipelineId, ParserContext)>>,
+    incomplete_parser_contexts: RefCell<IncompleteParserContexts>,
     /// A map to store service worker registrations for a given origin
     registration_map: DomRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
@@ -825,7 +834,7 @@ impl ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
             incomplete_loads: DomRefCell::new(vec!()),
-            incomplete_parser_contexts: DomRefCell::new(vec!()),
+            incomplete_parser_contexts: RefCell::new(vec!()),
             registration_map: DomRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
 
