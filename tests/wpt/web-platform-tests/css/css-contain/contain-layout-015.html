@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Containment Test: Layout containment ink overflow</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-layout">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#ink-overflow">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name=assert content="Layout containment treats the element overflowing contents as ink overflow.">
+
+<style>
+#wrapper {
+  width: 100px;
+  height: 100px;
+  overflow: auto;
+  background: red;
+}
+
+#contain-layout {
+  contain: layout;
+  width: 50px;
+  height: 50px;
+}
+
+#overflow {
+  width: 200px;
+  height: 200px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="wrapper">
+  <div id="contain-layout">
+    <div id="overflow"></div>
+  </div>
+</div>

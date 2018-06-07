@@ -1,0 +1,83 @@
+<!doctype html>
+<title>CSS Test: Pseudo-elements and :host selector.</title>
+<link rel="author" title="Antti Koivisto" href="mailto:koivisto@iki.fi"/>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io"/>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+<link rel="match" href="reference/green-box.html"/>
+<style>
+.test {
+    width: 100px;
+    height: 25px;
+    background: red;
+    color: red;
+}
+#host1, #host2  {
+    color: green;
+}
+#host3 div, #host4 div {
+    width: 50%;
+    height: 100%;
+    background: green;
+    display: inline-block;
+}
+</style>
+<p>Test passes if you see a single 100px by 100px green box below.</p>
+<div id="host1" class="test"></div>
+<div id="host2" class="test"></div>
+<div id="host3" class="test"><div>text</div></div>
+<div id="host4" class="test"><div>text</div></div>
+<script>
+
+host1.attachShadow({mode: 'closed'}).innerHTML = `<style>
+    :host::before, :host::after {
+        width: 50%;
+        height: 100%;
+        background: green;
+        display: inline-block;
+        content: "test";
+    }
+    </style>`;
+
+host2.attachShadow({mode: 'closed'}).innerHTML = `<style>
+    :host(.green)::before, :host(.green)::after {
+        width: 50%;
+        height: 100%;
+        background: green;
+        display: inline-block;
+        content: "test";
+    }
+    </style>`;
+
+getComputedStyle(host2).backgroundColor;
+host2.classList.add('green');
+
+host3.attachShadow({mode: 'closed'}).innerHTML = `<style>
+    :host {
+        color: green !important;
+    }
+    :host::before {
+        width: 50%;
+        height: 100%;
+        background: green;
+        display: inline-block;
+        content: "test";
+    }
+    </style><slot></slot>`;
+
+host4.attachShadow({mode: 'closed'}).innerHTML = `<style>
+    :host(.green) {
+        color: green !important;
+    }
+    :host(.green)::after {
+        width: 50%;
+        height: 100%;
+        background: green;
+        display: inline-block;
+        content: "test";
+    }
+    </style><slot></slot>`;
+
+getComputedStyle(host4).backgroundColor;
+host4.classList.add('green');
+
+</script>

@@ -1,6 +1,27 @@
+# Copyright (c) 2010-2017 Benjamin Peterson
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 import operator
 import sys
 import types
+import unittest
 
 import py
 
@@ -211,6 +232,12 @@ def test_map():
     assert six.advance_iterator(map(lambda x: x + 1, range(2))) == 1
 
 
+def test_getoutput():
+    from six.moves import getoutput
+    output = getoutput('echo "foo"')
+    assert output == 'foo'
+
+
 def test_zip():
     from six.moves import zip
     assert six.advance_iterator(zip(range(2), range(2))) == (0, 0)
@@ -389,7 +416,7 @@ def test_dictionary_iterators(monkeypatch):
         monkeypatch.undo()
 
 
-@py.test.mark.skipif(sys.version_info[:2] < (2, 7),
+@py.test.mark.skipif("sys.version_info[:2] < (2, 7)",
                 reason="view methods on dictionaries only available on 2.7+")
 def test_dictionary_views():
     def stock_method_name(viewwhat):
@@ -455,6 +482,20 @@ def test_create_bound_method():
     assert b() is x
 
 
+def test_create_unbound_method():
+    class X(object):
+        pass
+
+    def f(self):
+        return self
+    u = six.create_unbound_method(f, X)
+    py.test.raises(TypeError, u)
+    if six.PY2:
+        assert isinstance(u, types.MethodType)
+    x = X()
+    assert f(x) is x
+
+
 if six.PY3:
 
     def test_b():
@@ -496,7 +537,7 @@ def test_unichr():
 
 def test_int2byte():
     assert six.int2byte(3) == six.b("\x03")
-    py.test.raises((OverflowError, ValueError), six.int2byte, 256)
+    py.test.raises(Exception, six.int2byte, 256)
 
 
 def test_byte2int():
@@ -635,6 +676,17 @@ def test_print_():
     out = six.StringIO()
     six.print_(None, file=out)
     assert out.getvalue() == "None\n"
+    class FlushableStringIO(six.StringIO):
+        def __init__(self):
+            six.StringIO.__init__(self)
+            self.flushed = False
+        def flush(self):
+            self.flushed = True
+    out = FlushableStringIO()
+    six.print_("Hello", file=out)
+    assert not out.flushed
+    six.print_("Hello", file=out, flush=True)
+    assert out.flushed
 
 
 @py.test.mark.skipif("sys.version_info[:2] >= (2, 6)")
@@ -682,6 +734,42 @@ def test_with_metaclass():
     assert issubclass(X, Base)
     assert issubclass(X, Base2)
     assert X.__mro__ == (X, Base, Base2, object)
+    class X(six.with_metaclass(Meta)):
+        pass
+    class MetaSub(Meta):
+        pass
+    class Y(six.with_metaclass(MetaSub, X)):
+        pass
+    assert type(Y) is MetaSub
+    assert Y.__mro__ == (Y, X, object)
+
+
+@py.test.mark.skipif("sys.version_info[:2] < (3, 0)")
+def test_with_metaclass_prepare():
+    """Test that with_metaclass causes Meta.__prepare__ to be called with the correct arguments."""
+
+    class MyDict(dict):
+        pass
+
+    class Meta(type):
+
+        @classmethod
+        def __prepare__(cls, name, bases):
+            namespace = MyDict(super().__prepare__(name, bases), cls=cls, bases=bases)
+            namespace['namespace'] = namespace
+            return namespace
+
+    class Base(object):
+        pass
+
+    bases = (Base,)
+
+    class X(six.with_metaclass(Meta, *bases)):
+        pass
+
+    assert getattr(X, 'cls', type) is Meta
+    assert getattr(X, 'bases', ()) == bases
+    assert isinstance(getattr(X, 'namespace', {}), MyDict)
 
 
 def test_wraps():
@@ -785,3 +873,62 @@ def test_add_metaclass():
         __slots__ = "__weakref__",
     MySlotsWeakref = six.add_metaclass(Meta)(MySlotsWeakref)
     assert type(MySlotsWeakref) is Meta
+
+
+@py.test.mark.skipif("sys.version_info[:2] < (2, 7) or sys.version_info[:2] in ((3, 0), (3, 1))")
+def test_assertCountEqual():
+    class TestAssertCountEqual(unittest.TestCase):
+        def test(self):
+            with self.assertRaises(AssertionError):
+                six.assertCountEqual(self, (1, 2), [3, 4, 5])
+
+            six.assertCountEqual(self, (1, 2), [2, 1])
+
+    TestAssertCountEqual('test').test()
+
+
+@py.test.mark.skipif("sys.version_info[:2] < (2, 7)")
+def test_assertRegex():
+    class TestAssertRegex(unittest.TestCase):
+        def test(self):
+            with self.assertRaises(AssertionError):
+                six.assertRegex(self, 'test', r'^a')
+
+            six.assertRegex(self, 'test', r'^t')
+
+    TestAssertRegex('test').test()
+
+
+@py.test.mark.skipif("sys.version_info[:2] < (2, 7)")
+def test_assertRaisesRegex():
+    class TestAssertRaisesRegex(unittest.TestCase):
+        def test(self):
+            with six.assertRaisesRegex(self, AssertionError, '^Foo'):
+                raise AssertionError('Foo')
+
+            with self.assertRaises(AssertionError):
+                with six.assertRaisesRegex(self, AssertionError, r'^Foo'):
+                    raise AssertionError('Bar')
+
+    TestAssertRaisesRegex('test').test()
+
+
+def test_python_2_unicode_compatible():
+    @six.python_2_unicode_compatible
+    class MyTest(object):
+        def __str__(self):
+            return six.u('hello')
+
+        def __bytes__(self):
+            return six.b('hello')
+
+    my_test = MyTest()
+
+    if six.PY2:
+        assert str(my_test) == six.b("hello")
+        assert unicode(my_test) == six.u("hello")
+    elif six.PY3:
+        assert bytes(my_test) == six.b("hello")
+        assert str(my_test) == six.u("hello")
+
+    assert getattr(six.moves.builtins, 'bytes', str)(my_test) == six.b("hello")

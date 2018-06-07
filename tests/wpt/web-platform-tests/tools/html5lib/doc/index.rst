@@ -8,6 +8,7 @@ Overview
    :maxdepth: 2
 
    movingparts
+   modules
    changes
    License <license>
 

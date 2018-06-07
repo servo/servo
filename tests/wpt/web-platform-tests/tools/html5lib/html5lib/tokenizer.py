@@ -1,9 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 
-try:
-    chr = unichr # flake8: noqa
-except NameError:
-    pass
+from six import unichr as chr
 
 from collections import deque
 
@@ -14,9 +11,9 @@ from .constants import digits, hexDigits, EOF
 from .constants import tokenTypes, tagTokenTypes
 from .constants import replacementCharacters
 
-from .inputstream import HTMLInputStream
+from ._inputstream import HTMLInputStream
 
-from .trie import Trie
+from ._trie import Trie
 
 entitiesTrie = Trie(entities)
 
@@ -34,15 +31,10 @@ class HTMLTokenizer(object):
       Points to HTMLInputStream object.
     """
 
-    def __init__(self, stream, encoding=None, parseMeta=True, useChardet=True,
-                 lowercaseElementName=True, lowercaseAttrName=True, parser=None):
+    def __init__(self, stream, parser=None, **kwargs):
 
-        self.stream = HTMLInputStream(stream, encoding, parseMeta, useChardet)
+        self.stream = HTMLInputStream(stream, **kwargs)
         self.parser = parser
-
-        # Perform case conversions?
-        self.lowercaseElementName = lowercaseElementName
-        self.lowercaseAttrName = lowercaseAttrName
 
         # Setup the initial tokenizer state
         self.escapeFlag = False
@@ -147,8 +139,8 @@ class HTMLTokenizer(object):
         output = "&"
 
         charStack = [self.stream.char()]
-        if (charStack[0] in spaceCharacters or charStack[0] in (EOF, "<", "&")
-                or (allowedChar is not None and allowedChar == charStack[0])):
+        if (charStack[0] in spaceCharacters or charStack[0] in (EOF, "<", "&") or
+                (allowedChar is not None and allowedChar == charStack[0])):
             self.stream.unget(charStack[0])
 
         elif charStack[0] == "#":
@@ -235,8 +227,7 @@ class HTMLTokenizer(object):
         token = self.currentToken
         # Add token to the queue to be yielded
         if (token["type"] in tagTokenTypes):
-            if self.lowercaseElementName:
-                token["name"] = token["name"].translate(asciiUpper2Lower)
+            token["name"] = token["name"].translate(asciiUpper2Lower)
             if token["type"] == tokenTypes["EndTag"]:
                 if token["data"]:
                     self.tokenQueue.append({"type": tokenTypes["ParseError"],
@@ -921,10 +912,9 @@ class HTMLTokenizer(object):
             # Attributes are not dropped at this stage. That happens when the
             # start tag token is emitted so values can still be safely appended
             # to attributes, but we do want to report the parse error in time.
-            if self.lowercaseAttrName:
-                self.currentToken["data"][-1][0] = (
-                    self.currentToken["data"][-1][0].translate(asciiUpper2Lower))
-            for name, value in self.currentToken["data"][:-1]:
+            self.currentToken["data"][-1][0] = (
+                self.currentToken["data"][-1][0].translate(asciiUpper2Lower))
+            for name, _ in self.currentToken["data"][:-1]:
                 if self.currentToken["data"][-1][0] == name:
                     self.tokenQueue.append({"type": tokenTypes["ParseError"], "data":
                                             "duplicate-attribute"})
@@ -1716,11 +1706,11 @@ class HTMLTokenizer(object):
                 else:
                     data.append(char)
 
-        data = "".join(data)
+        data = "".join(data)  # pylint:disable=redefined-variable-type
         # Deal with null here rather than in the parser
         nullCount = data.count("\u0000")
         if nullCount > 0:
-            for i in range(nullCount):
+            for _ in range(nullCount):
                 self.tokenQueue.append({"type": tokenTypes["ParseError"],
                                         "data": "invalid-codepoint"})
             data = data.replace("\u0000", "\uFFFD")

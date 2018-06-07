@@ -4,12 +4,12 @@ from genshi.core import QName
 from genshi.core import START, END, XML_NAMESPACE, DOCTYPE, TEXT
 from genshi.core import START_NS, END_NS, START_CDATA, END_CDATA, PI, COMMENT
 
-from . import _base
+from . import base
 
 from ..constants import voidElements, namespaces
 
 
-class TreeWalker(_base.TreeWalker):
+class TreeWalker(base.TreeWalker):
     def __iter__(self):
         # Buffer the events so we can pass in the following one
         previous = None
@@ -25,7 +25,7 @@ class TreeWalker(_base.TreeWalker):
                 yield token
 
     def tokens(self, event, next):
-        kind, data, pos = event
+        kind, data, _ = event
         if kind == START:
             tag, attribs = data
             name = tag.localname
@@ -39,8 +39,8 @@ class TreeWalker(_base.TreeWalker):
 
             if namespace == namespaces["html"] and name in voidElements:
                 for token in self.emptyTag(namespace, name, converted_attribs,
-                                           not next or next[0] != END
-                                           or next[1] != tag):
+                                           not next or next[0] != END or
+                                           next[1] != tag):
                     yield token
             else:
                 yield self.startTag(namespace, name, converted_attribs)
@@ -48,7 +48,7 @@ class TreeWalker(_base.TreeWalker):
         elif kind == END:
             name = data.localname
             namespace = data.namespace
-            if name not in voidElements:
+            if namespace != namespaces["html"] or name not in voidElements:
                 yield self.endTag(namespace, name)
 
         elif kind == COMMENT:

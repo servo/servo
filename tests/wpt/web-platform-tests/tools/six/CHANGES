@@ -3,8 +3,52 @@ Changelog for six
 
 This file lists the changes in each six version.
 
-Development version
--------------------
+1.11.0
+------
+
+- Pull request #178: `with_metaclass` now properly proxies `__prepare__` to the
+  underlying metaclass.
+
+- Pull request #191: Allow `with_metaclass` to work with metaclasses implemented
+  in C.
+
+- Pull request #203: Add parse_http_list and parse_keqv_list to moved
+  urllib.request.
+
+- Pull request #172 and issue #171: Add unquote_to_bytes to moved urllib.parse.
+
+- Pull request #167: Add `six.moves.getoutput`.
+
+- Pull request #80: Add `six.moves.urllib_parse.splitvalue`.
+
+- Pull request #75: Add `six.moves.email_mime_image`.
+
+- Pull request #72: Avoid creating reference cycles through tracebacks in
+  `reraise`.
+
+1.10.0
+------
+
+- Issue #122: Improve the performance of `six.int2byte` on Python 3.
+
+- Pull request #55 and issue #99: Don't add the `winreg` module to `six.moves`
+  on non-Windows platforms.
+
+- Pull request #60 and issue #108: Add `six.moves.getcwd` and
+  `six.moves.getcwdu`.
+
+- Pull request #64: Add `create_unbound_method` to create unbound methods.
+
+1.9.0
+-----
+
+- Issue #106: Support the `flush` parameter to `six.print_`.
+
+- Pull request #48 and issue #15: Add the `python_2_unicode_compatible`
+  decorator.
+
+- Pull request #57 and issue #50: Add several compatibility methods for unittest
+  assertions that were renamed between Python 2 and 3.
 
 - Issue #105 and pull request #58: Ensure `six.wraps` respects the *updated* and
   *assigned* arguments.
@@ -17,6 +61,9 @@ Development version
 
 - Pull request #51: Add `six.view(keys|values|itmes)`, which provide dictionary
   views on Python 2.7+.
+
+- Issue #112: `six.moves.reload_module` now uses the importlib module on
+  Python 3.4+.
 
 1.8.0
 -----

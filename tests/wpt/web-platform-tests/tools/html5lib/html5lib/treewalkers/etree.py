@@ -1,21 +1,12 @@
 from __future__ import absolute_import, division, unicode_literals
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    try:
-        from ordereddict import OrderedDict
-    except ImportError:
-        OrderedDict = dict
-import gettext
-_ = gettext.gettext
-
+from collections import OrderedDict
 import re
 
-from six import text_type
+from six import string_types
 
-from . import _base
-from ..utils import moduleFactoryFactory
+from . import base
+from .._utils import moduleFactoryFactory
 
 tag_regexp = re.compile("{([^}]*)}(.*)")
 
@@ -24,7 +15,7 @@ def getETreeBuilder(ElementTreeImplementation):
     ElementTree = ElementTreeImplementation
     ElementTreeCommentType = ElementTree.Comment("asd").tag
 
-    class TreeWalker(_base.NonRecursiveTreeWalker):
+    class TreeWalker(base.NonRecursiveTreeWalker):  # pylint:disable=unused-variable
         """Given the particular ElementTree representation, this implementation,
         to avoid using recursion, returns "nodes" as tuples with the following
         content:
@@ -40,9 +31,9 @@ def getETreeBuilder(ElementTreeImplementation):
         """
         def getNodeDetails(self, node):
             if isinstance(node, tuple):  # It might be the root Element
-                elt, key, parents, flag = node
+                elt, _, _, flag = node
                 if flag in ("text", "tail"):
-                    return _base.TEXT, getattr(elt, flag)
+                    return base.TEXT, getattr(elt, flag)
                 else:
                     node = elt
 
@@ -50,17 +41,17 @@ def getETreeBuilder(ElementTreeImplementation):
                 node = node.getroot()
 
             if node.tag in ("DOCUMENT_ROOT", "DOCUMENT_FRAGMENT"):
-                return (_base.DOCUMENT,)
+                return (base.DOCUMENT,)
 
             elif node.tag == "<!DOCTYPE>":
-                return (_base.DOCTYPE, node.text,
+                return (base.DOCTYPE, node.text,
                         node.get("publicId"), node.get("systemId"))
 
             elif node.tag == ElementTreeCommentType:
-                return _base.COMMENT, node.text
+                return base.COMMENT, node.text
 
             else:
-                assert type(node.tag) == text_type, type(node.tag)
+                assert isinstance(node.tag, string_types), type(node.tag)
                 # This is assumed to be an ordinary element
                 match = tag_regexp.match(node.tag)
                 if match:
@@ -75,7 +66,7 @@ def getETreeBuilder(ElementTreeImplementation):
                         attrs[(match.group(1), match.group(2))] = value
                     else:
                         attrs[(None, name)] = value
-                return (_base.ELEMENT, namespace, tag,
+                return (base.ELEMENT, namespace, tag,
                         attrs, len(node) or node.text)
 
         def getFirstChild(self, node):
@@ -131,6 +122,7 @@ def getETreeBuilder(ElementTreeImplementation):
                 if not parents:
                     return parent
                 else:
+                    assert list(parents[-1]).count(parent) == 1
                     return parent, list(parents[-1]).index(parent), parents, None
 
     return locals()

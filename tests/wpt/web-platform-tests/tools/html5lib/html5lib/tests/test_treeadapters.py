@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division, unicode_literals
 
-from . import support  # flake8: noqa
+from . import support  # noqa
 
 import html5lib
 from html5lib.treeadapters import sax
@@ -25,7 +25,7 @@ def test_to_sax():
         ('endElementNS', ('http://www.w3.org/1999/xhtml', 'title'), 'title'),
         ('characters', '\n        '),
         ('endElementNS', ('http://www.w3.org/1999/xhtml', 'head'), 'head'),
-        ('startElementNS',  ('http://www.w3.org/1999/xhtml', 'body'), 'body', {}),
+        ('startElementNS', ('http://www.w3.org/1999/xhtml', 'body'), 'body', {}),
         ('startElementNS', ('http://www.w3.org/1999/xhtml', 'a'), 'a', {(None, 'href'): '/'}),
         ('startElementNS', ('http://www.w3.org/1999/xhtml', 'b'), 'b', {}),
         ('startElementNS', ('http://www.w3.org/1999/xhtml', 'p'), 'p', {}),

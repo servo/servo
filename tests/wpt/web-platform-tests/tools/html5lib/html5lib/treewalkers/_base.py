@@ -1,10 +1,10 @@
 from __future__ import absolute_import, division, unicode_literals
-from six import text_type, string_types
-
-import gettext
-_ = gettext.gettext
 
 from xml.dom import Node
+from ..constants import namespaces, voidElements, spaceCharacters
+
+__all__ = ["DOCUMENT", "DOCTYPE", "TEXT", "ELEMENT", "COMMENT", "ENTITY", "UNKNOWN",
+           "TreeWalker", "NonRecursiveTreeWalker"]
 
 DOCUMENT = Node.DOCUMENT_NODE
 DOCTYPE = Node.DOCUMENT_TYPE_NODE
@@ -14,80 +14,115 @@ COMMENT = Node.COMMENT_NODE
 ENTITY = Node.ENTITY_NODE
 UNKNOWN = "<#UNKNOWN#>"
 
-from ..constants import voidElements, spaceCharacters
 spaceCharacters = "".join(spaceCharacters)
 
 
-def to_text(s, blank_if_none=True):
-    """Wrapper around six.text_type to convert None to empty string"""
-    if s is None:
-        if blank_if_none:
-            return ""
-        else:
-            return None
-    elif isinstance(s, text_type):
-        return s
-    else:
-        return text_type(s)
-
-
-def is_text_or_none(string):
-    """Wrapper around isinstance(string_types) or is None"""
-    return string is None or isinstance(string, string_types)
-
-
 class TreeWalker(object):
+    """Walks a tree yielding tokens
+
+    Tokens are dicts that all have a ``type`` field specifying the type of the
+    token.
+
+    """
     def __init__(self, tree):
+        """Creates a TreeWalker
+
+        :arg tree: the tree to walk
+
+        """
         self.tree = tree
 
     def __iter__(self):
         raise NotImplementedError
 
     def error(self, msg):
+        """Generates an error token with the given message
+
+        :arg msg: the error message
+
+        :returns: SerializeError token
+
+        """
         return {"type": "SerializeError", "data": msg}
 
     def emptyTag(self, namespace, name, attrs, hasChildren=False):
-        assert namespace is None or isinstance(namespace, string_types), type(namespace)
-        assert isinstance(name, string_types), type(name)
-        assert all((namespace is None or isinstance(namespace, string_types)) and
-                   isinstance(name, string_types) and
-                   isinstance(value, string_types)
-                   for (namespace, name), value in attrs.items())
+        """Generates an EmptyTag token
 
-        yield {"type": "EmptyTag", "name": to_text(name, False),
-               "namespace": to_text(namespace),
+        :arg namespace: the namespace of the token--can be ``None``
+
+        :arg name: the name of the element
+
+        :arg attrs: the attributes of the element as a dict
+
+        :arg hasChildren: whether or not to yield a SerializationError because
+            this tag shouldn't have children
+
+        :returns: EmptyTag token
+
+        """
+        yield {"type": "EmptyTag", "name": name,
+               "namespace": namespace,
                "data": attrs}
         if hasChildren:
-            yield self.error(_("Void element has children"))
+            yield self.error("Void element has children")
 
     def startTag(self, namespace, name, attrs):
-        assert namespace is None or isinstance(namespace, string_types), type(namespace)
-        assert isinstance(name, string_types), type(name)
-        assert all((namespace is None or isinstance(namespace, string_types)) and
-                   isinstance(name, string_types) and
-                   isinstance(value, string_types)
-                   for (namespace, name), value in attrs.items())
+        """Generates a StartTag token
 
+        :arg namespace: the namespace of the token--can be ``None``
+
+        :arg name: the name of the element
+
+        :arg attrs: the attributes of the element as a dict
+
+        :returns: StartTag token
+
+        """
         return {"type": "StartTag",
-                "name": text_type(name),
-                "namespace": to_text(namespace),
-                "data": dict(((to_text(namespace, False), to_text(name)),
-                              to_text(value, False))
-                             for (namespace, name), value in attrs.items())}
+                "name": name,
+                "namespace": namespace,
+                "data": attrs}
 
     def endTag(self, namespace, name):
-        assert namespace is None or isinstance(namespace, string_types), type(namespace)
-        assert isinstance(name, string_types), type(namespace)
+        """Generates an EndTag token
 
+        :arg namespace: the namespace of the token--can be ``None``
+
+        :arg name: the name of the element
+
+        :returns: EndTag token
+
+        """
         return {"type": "EndTag",
-                "name": to_text(name, False),
-                "namespace": to_text(namespace),
-                "data": {}}
+                "name": name,
+                "namespace": namespace}
 
     def text(self, data):
-        assert isinstance(data, string_types), type(data)
+        """Generates SpaceCharacters and Characters tokens
 
-        data = to_text(data)
+        Depending on what's in the data, this generates one or more
+        ``SpaceCharacters`` and ``Characters`` tokens.
+
+        For example:
+
+            >>> from html5lib.treewalkers.base import TreeWalker
+            >>> # Give it an empty tree just so it instantiates
+            >>> walker = TreeWalker([])
+            >>> list(walker.text(''))
+            []
+            >>> list(walker.text('  '))
+            [{u'data': '  ', u'type': u'SpaceCharacters'}]
+            >>> list(walker.text(' abc '))  # doctest: +NORMALIZE_WHITESPACE
+            [{u'data': ' ', u'type': u'SpaceCharacters'},
+            {u'data': u'abc', u'type': u'Characters'},
+            {u'data': u' ', u'type': u'SpaceCharacters'}]
+
+        :arg data: the text data
+
+        :returns: one or more ``SpaceCharacters`` and ``Characters`` tokens
+
+        """
+        data = data
         middle = data.lstrip(spaceCharacters)
         left = data[:len(data) - len(middle)]
         if left:
@@ -101,28 +136,45 @@ class TreeWalker(object):
             yield {"type": "SpaceCharacters", "data": right}
 
     def comment(self, data):
-        assert isinstance(data, string_types), type(data)
+        """Generates a Comment token
 
-        return {"type": "Comment", "data": text_type(data)}
+        :arg data: the comment
 
-    def doctype(self, name, publicId=None, systemId=None, correct=True):
-        assert is_text_or_none(name), type(name)
-        assert is_text_or_none(publicId), type(publicId)
-        assert is_text_or_none(systemId), type(systemId)
+        :returns: Comment token
 
+        """
+        return {"type": "Comment", "data": data}
+
+    def doctype(self, name, publicId=None, systemId=None):
+        """Generates a Doctype token
+
+        :arg name:
+
+        :arg publicId:
+
+        :arg systemId:
+
+        :returns: the Doctype token
+
+        """
         return {"type": "Doctype",
-                "name": to_text(name),
-                "publicId": to_text(publicId),
-                "systemId": to_text(systemId),
-                "correct": to_text(correct)}
+                "name": name,
+                "publicId": publicId,
+                "systemId": systemId}
 
     def entity(self, name):
-        assert isinstance(name, string_types), type(name)
+        """Generates an Entity token
 
-        return {"type": "Entity", "name": text_type(name)}
+        :arg name: the entity name
+
+        :returns: an Entity token
+
+        """
+        return {"type": "Entity", "name": name}
 
     def unknown(self, nodeType):
-        return self.error(_("Unknown node type: ") + nodeType)
+        """Handles unknown node types"""
+        return self.error("Unknown node type: " + nodeType)
 
 
 class NonRecursiveTreeWalker(TreeWalker):
@@ -154,7 +206,7 @@ class NonRecursiveTreeWalker(TreeWalker):
 
             elif type == ELEMENT:
                 namespace, name, attributes, hasChildren = details
-                if name in voidElements:
+                if (not namespace or namespace == namespaces["html"]) and name in voidElements:
                     for token in self.emptyTag(namespace, name, attributes,
                                                hasChildren):
                         yield token
@@ -187,7 +239,7 @@ class NonRecursiveTreeWalker(TreeWalker):
                     type, details = details[0], details[1:]
                     if type == ELEMENT:
                         namespace, name, attributes, hasChildren = details
-                        if name not in voidElements:
+                        if (namespace and namespace != namespaces["html"]) or name not in voidElements:
                             yield self.endTag(namespace, name)
                     if self.tree is currentNode:
                         currentNode = None

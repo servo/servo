@@ -1,13 +1,16 @@
 from __future__ import absolute_import, division, unicode_literals
-from six import text_type
-from six.moves import http_client
+
+from six import text_type, binary_type
+from six.moves import http_client, urllib
 
 import codecs
 import re
 
+import webencodings
+
 from .constants import EOF, spaceCharacters, asciiLetters, asciiUppercase
-from .constants import encodings, ReparseException
-from . import utils
+from .constants import _ReparseException
+from . import _utils
 
 from io import StringIO
 
@@ -16,19 +19,26 @@ try:
 except ImportError:
     BytesIO = StringIO
 
-try:
-    from io import BufferedIOBase
-except ImportError:
-    class BufferedIOBase(object):
-        pass
-
 # Non-unicode versions of constants for use in the pre-parser
 spaceCharactersBytes = frozenset([item.encode("ascii") for item in spaceCharacters])
 asciiLettersBytes = frozenset([item.encode("ascii") for item in asciiLetters])
 asciiUppercaseBytes = frozenset([item.encode("ascii") for item in asciiUppercase])
 spacesAngleBrackets = spaceCharactersBytes | frozenset([b">", b"<"])
 
-invalid_unicode_re = re.compile("[\u0001-\u0008\u000B\u000E-\u001F\u007F-\u009F\uD800-\uDFFF\uFDD0-\uFDEF\uFFFE\uFFFF\U0001FFFE\U0001FFFF\U0002FFFE\U0002FFFF\U0003FFFE\U0003FFFF\U0004FFFE\U0004FFFF\U0005FFFE\U0005FFFF\U0006FFFE\U0006FFFF\U0007FFFE\U0007FFFF\U0008FFFE\U0008FFFF\U0009FFFE\U0009FFFF\U000AFFFE\U000AFFFF\U000BFFFE\U000BFFFF\U000CFFFE\U000CFFFF\U000DFFFE\U000DFFFF\U000EFFFE\U000EFFFF\U000FFFFE\U000FFFFF\U0010FFFE\U0010FFFF]")
+
+invalid_unicode_no_surrogate = "[\u0001-\u0008\u000B\u000E-\u001F\u007F-\u009F\uFDD0-\uFDEF\uFFFE\uFFFF\U0001FFFE\U0001FFFF\U0002FFFE\U0002FFFF\U0003FFFE\U0003FFFF\U0004FFFE\U0004FFFF\U0005FFFE\U0005FFFF\U0006FFFE\U0006FFFF\U0007FFFE\U0007FFFF\U0008FFFE\U0008FFFF\U0009FFFE\U0009FFFF\U000AFFFE\U000AFFFF\U000BFFFE\U000BFFFF\U000CFFFE\U000CFFFF\U000DFFFE\U000DFFFF\U000EFFFE\U000EFFFF\U000FFFFE\U000FFFFF\U0010FFFE\U0010FFFF]"  # noqa
+
+if _utils.supports_lone_surrogates:
+    # Use one extra step of indirection and create surrogates with
+    # eval. Not using this indirection would introduce an illegal
+    # unicode literal on platforms not supporting such lone
+    # surrogates.
+    assert invalid_unicode_no_surrogate[-1] == "]" and invalid_unicode_no_surrogate.count("]") == 1
+    invalid_unicode_re = re.compile(invalid_unicode_no_surrogate[:-1] +
+                                    eval('"\\uD800-\\uDFFF"') +  # pylint:disable=eval-used
+                                    "]")
+else:
+    invalid_unicode_re = re.compile(invalid_unicode_no_surrogate)
 
 non_bmp_invalid_codepoints = set([0x1FFFE, 0x1FFFF, 0x2FFFE, 0x2FFFF, 0x3FFFE,
                                   0x3FFFF, 0x4FFFE, 0x4FFFF, 0x5FFFE, 0x5FFFF,
@@ -38,7 +48,7 @@ non_bmp_invalid_codepoints = set([0x1FFFE, 0x1FFFF, 0x2FFFE, 0x2FFFF, 0x3FFFE,
                                   0xDFFFF, 0xEFFFE, 0xEFFFF, 0xFFFFE, 0xFFFFF,
                                   0x10FFFE, 0x10FFFF])
 
-ascii_punctuation_re = re.compile("[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]")
+ascii_punctuation_re = re.compile("[\u0009-\u000D\u0020-\u002F\u003A-\u0040\u005C\u005B-\u0060\u007B-\u007E]")
 
 # Cache for charsUntil()
 charsUntilRegEx = {}
@@ -118,10 +128,13 @@ class BufferedStream(object):
         return b"".join(rv)
 
 
-def HTMLInputStream(source, encoding=None, parseMeta=True, chardet=True):
-    if isinstance(source, http_client.HTTPResponse):
-        # Work around Python bug #20007: read(0) closes the connection.
-        # http://bugs.python.org/issue20007
+def HTMLInputStream(source, **kwargs):
+    # Work around Python bug #20007: read(0) closes the connection.
+    # http://bugs.python.org/issue20007
+    if (isinstance(source, http_client.HTTPResponse) or
+        # Also check for addinfourl wrapping HTTPResponse
+        (isinstance(source, urllib.response.addbase) and
+         isinstance(source.fp, http_client.HTTPResponse))):
         isUnicode = False
     elif hasattr(source, "read"):
         isUnicode = isinstance(source.read(0), text_type)
@@ -129,12 +142,13 @@ def HTMLInputStream(source, encoding=None, parseMeta=True, chardet=True):
         isUnicode = isinstance(source, text_type)
 
     if isUnicode:
-        if encoding is not None:
-            raise TypeError("Cannot explicitly set an encoding with a unicode string")
+        encodings = [x for x in kwargs if x.endswith("_encoding")]
+        if encodings:
+            raise TypeError("Cannot set an encoding with a unicode input, set %r" % encodings)
 
-        return HTMLUnicodeInputStream(source)
+        return HTMLUnicodeInputStream(source, **kwargs)
     else:
-        return HTMLBinaryInputStream(source, encoding, parseMeta, chardet)
+        return HTMLBinaryInputStream(source, **kwargs)
 
 
 class HTMLUnicodeInputStream(object):
@@ -160,22 +174,21 @@ class HTMLUnicodeInputStream(object):
         regardless of any BOM or later declaration (such as in a meta
         element)
 
-        parseMeta - Look for a <meta> element containing encoding information
-
         """
 
-        # Craziness
-        if len("\U0010FFFF") == 1:
+        if not _utils.supports_lone_surrogates:
+            # Such platforms will have already checked for such
+            # surrogate errors, so no need to do this checking.
+            self.reportCharacterErrors = None
+        elif len("\U0010FFFF") == 1:
             self.reportCharacterErrors = self.characterErrorsUCS4
-            self.replaceCharactersRegexp = re.compile("[\uD800-\uDFFF]")
         else:
             self.reportCharacterErrors = self.characterErrorsUCS2
-            self.replaceCharactersRegexp = re.compile("([\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF])")
 
         # List of where new lines occur
         self.newLines = [0]
 
-        self.charEncoding = ("utf-8", "certain")
+        self.charEncoding = (lookupEncoding("utf-8"), "certain")
         self.dataStream = self.openStream(source)
 
         self.reset()
@@ -265,12 +278,10 @@ class HTMLUnicodeInputStream(object):
                 self._bufferedCharacter = data[-1]
                 data = data[:-1]
 
-        self.reportCharacterErrors(data)
+        if self.reportCharacterErrors:
+            self.reportCharacterErrors(data)
 
         # Replace invalid characters
-        # Note U+0000 is dealt with in the tokenizer
-        data = self.replaceCharactersRegexp.sub("\ufffd", data)
-
         data = data.replace("\r\n", "\n")
         data = data.replace("\r", "\n")
 
@@ -280,7 +291,7 @@ class HTMLUnicodeInputStream(object):
         return True
 
     def characterErrorsUCS4(self, data):
-        for i in range(len(invalid_unicode_re.findall(data))):
+        for _ in range(len(invalid_unicode_re.findall(data))):
             self.errors.append("invalid-codepoint")
 
     def characterErrorsUCS2(self, data):
@@ -293,9 +304,9 @@ class HTMLUnicodeInputStream(object):
             codepoint = ord(match.group())
             pos = match.start()
             # Pretty sure there should be endianness issues here
-            if utils.isSurrogatePair(data[pos:pos + 2]):
+            if _utils.isSurrogatePair(data[pos:pos + 2]):
                 # We have a surrogate pair!
-                char_val = utils.surrogatePairToCodepoint(data[pos:pos + 2])
+                char_val = _utils.surrogatePairToCodepoint(data[pos:pos + 2])
                 if char_val in non_bmp_invalid_codepoints:
                     self.errors.append("invalid-codepoint")
                 skip = True
@@ -378,7 +389,9 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
     """
 
-    def __init__(self, source, encoding=None, parseMeta=True, chardet=True):
+    def __init__(self, source, override_encoding=None, transport_encoding=None,
+                 same_origin_parent_encoding=None, likely_encoding=None,
+                 default_encoding="windows-1252", useChardet=True):
         """Initialises the HTMLInputStream.
 
         HTMLInputStream(source, [encoding]) -> Normalized stream from source
@@ -391,8 +404,6 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
         regardless of any BOM or later declaration (such as in a meta
         element)
 
-        parseMeta - Look for a <meta> element containing encoding information
-
         """
         # Raw Stream - for unicode objects this will encode to utf-8 and set
         #              self.charEncoding as appropriate
@@ -400,27 +411,28 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
         HTMLUnicodeInputStream.__init__(self, self.rawStream)
 
-        self.charEncoding = (codecName(encoding), "certain")
-
         # Encoding Information
         # Number of bytes to use when looking for a meta element with
         # encoding information
-        self.numBytesMeta = 512
+        self.numBytesMeta = 1024
         # Number of bytes to use when using detecting encoding using chardet
         self.numBytesChardet = 100
-        # Encoding to use if no other information can be found
-        self.defaultEncoding = "windows-1252"
+        # Things from args
+        self.override_encoding = override_encoding
+        self.transport_encoding = transport_encoding
+        self.same_origin_parent_encoding = same_origin_parent_encoding
+        self.likely_encoding = likely_encoding
+        self.default_encoding = default_encoding
 
-        # Detect encoding iff no explicit "transport level" encoding is supplied
-        if (self.charEncoding[0] is None):
-            self.charEncoding = self.detectEncoding(parseMeta, chardet)
+        # Determine encoding
+        self.charEncoding = self.determineEncoding(useChardet)
+        assert self.charEncoding[0] is not None
 
         # Call superclass
         self.reset()
 
     def reset(self):
-        self.dataStream = codecs.getreader(self.charEncoding[0])(self.rawStream,
-                                                                 'replace')
+        self.dataStream = self.charEncoding[0].codec_info.streamreader(self.rawStream, 'replace')
         HTMLUnicodeInputStream.reset(self)
 
     def openStream(self, source):
@@ -437,29 +449,50 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
         try:
             stream.seek(stream.tell())
-        except:
+        except:  # pylint:disable=bare-except
             stream = BufferedStream(stream)
 
         return stream
 
-    def detectEncoding(self, parseMeta=True, chardet=True):
-        # First look for a BOM
+    def determineEncoding(self, chardet=True):
+        # BOMs take precedence over everything
         # This will also read past the BOM if present
-        encoding = self.detectBOM()
-        confidence = "certain"
-        # If there is no BOM need to look for meta elements with encoding
-        # information
-        if encoding is None and parseMeta:
-            encoding = self.detectEncodingMeta()
-            confidence = "tentative"
-        # Guess with chardet, if avaliable
-        if encoding is None and chardet:
-            confidence = "tentative"
+        charEncoding = self.detectBOM(), "certain"
+        if charEncoding[0] is not None:
+            return charEncoding
+
+        # If we've been overriden, we've been overriden
+        charEncoding = lookupEncoding(self.override_encoding), "certain"
+        if charEncoding[0] is not None:
+            return charEncoding
+
+        # Now check the transport layer
+        charEncoding = lookupEncoding(self.transport_encoding), "certain"
+        if charEncoding[0] is not None:
+            return charEncoding
+
+        # Look for meta elements with encoding information
+        charEncoding = self.detectEncodingMeta(), "tentative"
+        if charEncoding[0] is not None:
+            return charEncoding
+
+        # Parent document encoding
+        charEncoding = lookupEncoding(self.same_origin_parent_encoding), "tentative"
+        if charEncoding[0] is not None and not charEncoding[0].name.startswith("utf-16"):
+            return charEncoding
+
+        # "likely" encoding
+        charEncoding = lookupEncoding(self.likely_encoding), "tentative"
+        if charEncoding[0] is not None:
+            return charEncoding
+
+        # Guess with chardet, if available
+        if chardet:
             try:
-                try:
-                    from charade.universaldetector import UniversalDetector
-                except ImportError:
-                    from chardet.universaldetector import UniversalDetector
+                from chardet.universaldetector import UniversalDetector
+            except ImportError:
+                pass
+            else:
                 buffers = []
                 detector = UniversalDetector()
                 while not detector.done:
@@ -470,37 +503,34 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
                     buffers.append(buffer)
                     detector.feed(buffer)
                 detector.close()
-                encoding = detector.result['encoding']
+                encoding = lookupEncoding(detector.result['encoding'])
                 self.rawStream.seek(0)
-            except ImportError:
-                pass
-        # If all else fails use the default encoding
-        if encoding is None:
-            confidence = "tentative"
-            encoding = self.defaultEncoding
+                if encoding is not None:
+                    return encoding, "tentative"
 
-        # Substitute for equivalent encodings:
-        encodingSub = {"iso-8859-1": "windows-1252"}
+        # Try the default encoding
+        charEncoding = lookupEncoding(self.default_encoding), "tentative"
+        if charEncoding[0] is not None:
+            return charEncoding
 
-        if encoding.lower() in encodingSub:
-            encoding = encodingSub[encoding.lower()]
-
-        return encoding, confidence
+        # Fallback to html5lib's default if even that hasn't worked
+        return lookupEncoding("windows-1252"), "tentative"
 
     def changeEncoding(self, newEncoding):
         assert self.charEncoding[1] != "certain"
-        newEncoding = codecName(newEncoding)
-        if newEncoding in ("utf-16", "utf-16-be", "utf-16-le"):
-            newEncoding = "utf-8"
+        newEncoding = lookupEncoding(newEncoding)
         if newEncoding is None:
             return
+        if newEncoding.name in ("utf-16be", "utf-16le"):
+            newEncoding = lookupEncoding("utf-8")
+            assert newEncoding is not None
         elif newEncoding == self.charEncoding[0]:
             self.charEncoding = (self.charEncoding[0], "certain")
         else:
             self.rawStream.seek(0)
-            self.reset()
             self.charEncoding = (newEncoding, "certain")
-            raise ReparseException("Encoding changed from %s to %s" % (self.charEncoding[0], newEncoding))
+            self.reset()
+            raise _ReparseException("Encoding changed from %s to %s" % (self.charEncoding[0], newEncoding))
 
     def detectBOM(self):
         """Attempts to detect at BOM at the start of the stream. If
@@ -508,8 +538,8 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
         encoding otherwise return None"""
         bomDict = {
             codecs.BOM_UTF8: 'utf-8',
-            codecs.BOM_UTF16_LE: 'utf-16-le', codecs.BOM_UTF16_BE: 'utf-16-be',
-            codecs.BOM_UTF32_LE: 'utf-32-le', codecs.BOM_UTF32_BE: 'utf-32-be'
+            codecs.BOM_UTF16_LE: 'utf-16le', codecs.BOM_UTF16_BE: 'utf-16be',
+            codecs.BOM_UTF32_LE: 'utf-32le', codecs.BOM_UTF32_BE: 'utf-32be'
         }
 
         # Go to beginning of file and read in 4 bytes
@@ -529,9 +559,12 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
 
         # Set the read position past the BOM if one was found, otherwise
         # set it to the start of the stream
-        self.rawStream.seek(encoding and seek or 0)
-
-        return encoding
+        if encoding:
+            self.rawStream.seek(seek)
+            return lookupEncoding(encoding)
+        else:
+            self.rawStream.seek(0)
+            return None
 
     def detectEncodingMeta(self):
         """Report the encoding declared by the meta element
@@ -542,8 +575,8 @@ class HTMLBinaryInputStream(HTMLUnicodeInputStream):
         self.rawStream.seek(0)
         encoding = parser.getEncoding()
 
-        if encoding in ("utf-16", "utf-16-be", "utf-16-le"):
-            encoding = "utf-8"
+        if encoding is not None and encoding.name in ("utf-16be", "utf-16le"):
+            encoding = lookupEncoding("utf-8")
 
         return encoding
 
@@ -557,6 +590,7 @@ class EncodingBytes(bytes):
         return bytes.__new__(self, value.lower())
 
     def __init__(self, value):
+        # pylint:disable=unused-argument
         self._position = -1
 
     def __iter__(self):
@@ -667,7 +701,7 @@ class EncodingParser(object):
             (b"<!", self.handleOther),
             (b"<?", self.handleOther),
             (b"<", self.handlePossibleStartTag))
-        for byte in self.data:
+        for _ in self.data:
             keepParsing = True
             for key, method in methodDispatch:
                 if self.data.matchBytes(key):
@@ -706,7 +740,7 @@ class EncodingParser(object):
                         return False
                 elif attr[0] == b"charset":
                     tentativeEncoding = attr[1]
-                    codec = codecName(tentativeEncoding)
+                    codec = lookupEncoding(tentativeEncoding)
                     if codec is not None:
                         self.encoding = codec
                         return False
@@ -714,7 +748,7 @@ class EncodingParser(object):
                     contentParser = ContentAttrParser(EncodingBytes(attr[1]))
                     tentativeEncoding = contentParser.parse()
                     if tentativeEncoding is not None:
-                        codec = codecName(tentativeEncoding)
+                        codec = lookupEncoding(tentativeEncoding)
                         if codec is not None:
                             if hasPragma:
                                 self.encoding = codec
@@ -871,16 +905,19 @@ class ContentAttrParser(object):
             return None
 
 
-def codecName(encoding):
+def lookupEncoding(encoding):
     """Return the python codec name corresponding to an encoding or None if the
     string doesn't correspond to a valid encoding."""
-    if isinstance(encoding, bytes):
+    if isinstance(encoding, binary_type):
         try:
             encoding = encoding.decode("ascii")
         except UnicodeDecodeError:
             return None
-    if encoding:
-        canonicalName = ascii_punctuation_re.sub("", encoding).lower()
-        return encodings.get(canonicalName, None)
+
+    if encoding is not None:
+        try:
+            return webencodings.lookup(encoding)
+        except AttributeError:
+            return None
     else:
         return None
