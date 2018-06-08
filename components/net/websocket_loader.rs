@@ -124,6 +124,7 @@ type Stream = HttpStream;
 
 // https://fetch.spec.whatwg.org/#concept-websocket-connection-obtain
 fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError> {
+    //debug!("about to obtain connection");
     // Step 1.
     let host = url.host_str().unwrap();
 
@@ -149,7 +150,7 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
     let tcp_stream = TcpStream::connect((&*host, port)).map_err(|e| {
         NetworkError::Internal(format!("Could not connect to host: {}", e))
     })?;
-    debug!("made TCP connection to {}:{}", host, port);
+    //debug!("made TCP connection to {}:{}", host, port);
     Ok(HttpStream(tcp_stream))
 }
 
