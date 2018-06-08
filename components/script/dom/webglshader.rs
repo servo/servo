@@ -12,11 +12,13 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::webgl_extensions::WebGLExtensions;
+use dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
+use offscreen_gl_context::GLLimits;
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
 
@@ -100,6 +102,7 @@ impl WebGLShader {
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
         ext: &WebGLExtensions,
+        limits: &GLLimits,
     ) -> WebGLResult<()> {
         if self.is_deleted.get() && !self.is_attached() {
             return Err(WebGLError::InvalidValue);
@@ -116,7 +119,15 @@ impl WebGLShader {
 
         let mut params = BuiltInResources::default();
         params.FragmentPrecisionHigh = 1;
+        params.MaxVertexAttribs = limits.max_vertex_attribs as i32;
+        params.MaxVertexUniformVectors = limits.max_vertex_uniform_vectors as i32;
+        params.MaxVaryingVectors = limits.max_varying_vectors as i32;
+        params.MaxVertexTextureImageUnits = limits.max_vertex_texture_image_units as i32;
+        params.MaxCombinedTextureImageUnits = limits.max_combined_texture_image_units as i32;
+        params.MaxTextureImageUnits = limits.max_texture_image_units as i32;
+        params.MaxFragmentUniformVectors = limits.max_fragment_uniform_vectors as i32;
         params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
+        params.EXT_shader_texture_lod = ext.is_enabled::<EXTShaderTextureLod>() as i32;
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
                 let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {

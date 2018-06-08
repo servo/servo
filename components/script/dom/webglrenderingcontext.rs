@@ -2025,7 +2025,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn CompileShader(&self, shader: &WebGLShader) {
         handle_potential_webgl_error!(
             self,
-            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager)
+            shader.compile(self.webgl_version, self.glsl_version, &self.extension_manager, &self.limits)
         )
     }
 
