@@ -1,0 +1,35 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "CSS Fonts Module Level 4" spec.
+// See: https://drafts.csswg.org/css-fonts-4/
+
+[Exposed=Window]
+interface CSSFontFaceRule : CSSRule {
+    readonly attribute CSSStyleDeclaration style;
+};
+
+partial interface CSSRule {  const unsigned short FONT_FEATURE_VALUES_RULE = 14;
+};
+interface CSSFontFeatureValuesRule : CSSRule {  attribute CSSOMString fontFamily;
+  readonly attribute CSSFontFeatureValuesMap annotation;
+  readonly attribute CSSFontFeatureValuesMap ornaments;
+  readonly attribute CSSFontFeatureValuesMap stylistic;
+  readonly attribute CSSFontFeatureValuesMap swash;
+  readonly attribute CSSFontFeatureValuesMap characterVariant;
+  readonly attribute CSSFontFeatureValuesMap styleset;
+};
+
+interface CSSFontFeatureValuesMap {
+  maplike<CSSOMString, sequence<unsigned long>>;
+  void set(CSSOMString featureValueName,
+           (unsigned long or sequence<unsigned long>) values);
+};
+partial interface CSSRule {
+  const unsigned short FONT_PALETTE_VALUES_RULE = 15;
+};
+
+interface CSSFontPaletteValuesRule : CSSRule {
+  maplike<unsigned long, (CSSOMString or CSSOMRGBColor)>;
+  attribute CSSOMString fontFamily;
+  attribute CSSOMString basePalette;
+};

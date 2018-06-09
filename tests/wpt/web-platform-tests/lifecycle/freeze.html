@@ -6,7 +6,8 @@
 
 <script>
 var test = async_test('Test freeze callback.');
-var childWindow = window.open('resources/window.html', 'Child Window');
+window.open('resources/window.html', 'Child Window');
+
 var total_steps = 0;
 
 const StepStatus = {

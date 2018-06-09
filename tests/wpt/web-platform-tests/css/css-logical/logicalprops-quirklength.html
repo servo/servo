@@ -1,7 +1,8 @@
 <meta charset="utf-8">
-<title>CSS Logical Properties: {max-,min-}block-size</title>
+<title>CSS Logical Properties</title>
 <link rel="author" title="Xu Xing" href="mailto:openxu@gmail.com">
 <link rel="help" href="https://drafts.csswg.org/css-logical-props-1/#logical-dimension-properties">
+<link rel="help" href="https://drafts.csswg.org/css-logical-props-1/#logical-prop">
 <link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -23,7 +24,12 @@ var tests = [
   {cssText:"inline-size: 1"},
   {cssText:"min-inline-size: 1"},
   {cssText:"max-inline-size: 1"},
+  {cssText:"margin-block-start: 1"},
+  {cssText:"margin-block-end: 1"},
+  {cssText:"margin-inline-start: 1"},
+  {cssText:"margin-inline-end: 1"},
 ];
+
 tests.forEach(function(t) {
   test(() => assert_false(isValidDeclaration(t.cssText)), 'Check that "' + t.cssText + '" is not valid in quirks mode');
 });

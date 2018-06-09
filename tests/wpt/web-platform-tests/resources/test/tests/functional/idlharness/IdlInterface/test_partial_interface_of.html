@@ -1,0 +1,110 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: Partail interface</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "partial" interface objects.</p>
+  <script>
+    "use strict";
+
+    // No original existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial interface A {};');
+      idlArray.test();
+    })();
+
+    // Valid exposure (Note: Worker -> {Shared,Dedicated,Service}Worker)
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        [Exposed=(Worker)]
+        interface B {};
+
+        [Exposed=(DedicatedWorker, ServiceWorker, SharedWorker)]
+        interface C {};`);
+      idlArray.add_idls(`
+        [Exposed=(DedicatedWorker, ServiceWorker, SharedWorker)]
+        partial interface B {};
+
+        [Exposed=(Worker)]
+        partial interface C {};`);
+      idlArray.collapse_partials();
+    })();
+
+    // Invalid exposure
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls(`
+        [Exposed=(Window, ServiceWorker)]
+        interface D {};`);
+      idlArray.add_idls(`
+        [Exposed=(DedicatedWorker)]
+        partial interface D {};`);
+      idlArray.collapse_partials();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Partial interface A: original interface defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original interface should be defined expected true got false"
+    },
+    {
+      "name": "Partial interface B: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface B: valid exposure set",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface C: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface C: valid exposure set",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface D: original interface defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial interface D: valid exposure set",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "Partial D interface is exposed to 'DedicatedWorker', the original interface is not."
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>
