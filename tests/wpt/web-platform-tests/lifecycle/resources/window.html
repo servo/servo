@@ -45,6 +45,15 @@ function testXHR(async) {
   };
 }
 
+function testSendBeacon() {
+  var name = 'testSendBeacon';
+  window.opener.add_step(name);
+  if (navigator.sendBeacon("foo.txt", "data=1"))
+    window.opener.step_success(name);
+  else
+    window.opener.step_fail(name);
+}
+
 window.document.addEventListener("freeze", () => {
   // Testing fetch, only fetch keepalive should succeed.
   testFetch(true /* keepalive */);
@@ -52,11 +61,12 @@ window.document.addEventListener("freeze", () => {
   // Testing XHR, both sync and async should fail.
   testXHR(true /* async */);
   testXHR(false /* sync */);
+  // Testing navigator.sendBeacon, which should be allowed.
+  testSendBeacon();
   window.opener.step_success(freezingStepName);
 });
 
 onload = function() {
-  window.opener.focus();
   window.opener.add_step(freezingStepName);
   test_driver.freeze();
 };

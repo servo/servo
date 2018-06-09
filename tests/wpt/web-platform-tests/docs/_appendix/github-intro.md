@@ -105,6 +105,14 @@ repository.
 
     For additional information, please see the [GitHub docs][github-fork-docs].
 
+## Configure your environment
+
+If all you intend to do is to load [manual tests][manual-tests] or [ref tests][ref-tests] from your local file system,
+the above setup should be sufficient.
+But many tests (and in particular, all [testharness.js tests][testharness-tests]) require a local web server.
+
+See [Local Setup][local-setup] for more information.
+
 ## Branch
 
 Now that you have everything locally, create a branch for your tests.
@@ -362,6 +370,10 @@ If you do not expect work with more PRs from the same author,
 you may also discard your connection to their repo:
 `git remote remove <author-id>`
 
+[local-setup]: {{ site.baseurl }}/introduction.html#local-setup
+[manual-tests]: {{ site.baseurl }}/writing-tests/manual.html
+[ref-tests]: {{ site.baseurl }}/writing-tests/reftests.html
+[testharness-tests]: {{ site.baseurl }}/writing-tests/testharness.html
 [branch]: #branch
 [commit]: #commit
 [clone]: #clone

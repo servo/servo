@@ -1,6 +1,12 @@
 <!doctype html>
 <meta charset=utf-8>
 <title>window.open() with "noopener" tests</title>
+
+<meta name="variant" content="?indexed">
+<meta name="variant" content="?_self">
+<meta name="variant" content="?_parent">
+<meta name="variant" content="?_top">
+
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
@@ -28,7 +34,6 @@ var testData = [
     shouldReuse: false },
 ];
 
-var tests = [];
 /**
  * Loop over our testData array and kick off an async test for each entry.  Each
  * async test opens a window using window.open() with some per-test unique name,
@@ -39,56 +44,59 @@ var tests = [];
  * cases and non-null in the cases when the existing window gets reused) and so
  * forth.
  */
-for (var i = 0; i < testData.length; ++i) {
-  var test = testData[i];
-  var t = async_test(test.testDescription);
-  tests.push(t);
-  t.secondWindowFeatureString = test.secondWindowFeatureString;
-  t.windowName = "someuniquename" + i;
+function indexedTests() {
+  var tests = [];
+  for(var i = 0; i < testData.length; ++i) {
+    var test = testData[i];
+    var t = async_test(test.testDescription);
+    tests.push(t);
+    t.secondWindowFeatureString = test.secondWindowFeatureString;
+    t.windowName = "someuniquename" + i;
 
-  if (test.shouldReuse) {
-    t.step(function() {
-      var windowName = this.windowName;
+    if (test.shouldReuse) {
+      t.step(function() {
+        var windowName = this.windowName;
 
-      var w1 = window.open("", windowName);
-      this.add_cleanup(function() { w1.close(); });
+        var w1 = window.open("", windowName);
+        this.add_cleanup(function() { w1.close(); });
 
-      assert_equals(w1.opener, window);
-
-      var w2 = window.open("", windowName, this.secondWindowFeatureString);
-      assert_equals(w2, w1);
-      assert_equals(w2.opener, w1.opener);
-      assert_equals(w2.opener, window);
-      this.done();
-    });
-  } else {
-    t.step(function() {
-      var w1;
-      this.add_cleanup(function() {
-        w1.close();
-        channel.postMessage(null);
-      });
-
-      var windowName = this.windowName;
-      var channel = new BroadcastChannel(windowName);
-
-      channel.onmessage = this.step_func_done(function(e) {
-        var data = e.data;
-        assert_equals(data.name, windowName, "Should have the right name");
-        assert_equals(data.haveOpener, false, "Should not have opener");
         assert_equals(w1.opener, window);
-        assert_equals(w1.location.href, "about:blank");
+
+        var w2 = window.open("", windowName, this.secondWindowFeatureString);
+        assert_equals(w2, w1);
+        assert_equals(w2.opener, w1.opener);
+        assert_equals(w2.opener, window);
+        this.done();
       });
+    } else {
+      t.step(function() {
+        var w1;
+        this.add_cleanup(function() {
+          w1.close();
+          channel.postMessage(null);
+        });
 
-      w1 = window.open("", windowName);
-      assert_equals(w1.opener, window);
+        var windowName = this.windowName;
+        var channel = new BroadcastChannel(windowName);
 
-      var w2 = window.open("support/noopener-target.html?" + windowName,
-                           windowName, this.secondWindowFeatureString);
-      assert_equals(w2, null);
+        channel.onmessage = this.step_func_done(function(e) {
+          var data = e.data;
+          assert_equals(data.name, windowName, "Should have the right name");
+          assert_equals(data.haveOpener, false, "Should not have opener");
+          assert_equals(w1.opener, window);
+          assert_equals(w1.location.href, "about:blank");
+        });
 
-      assert_equals(w1.opener, window);
-    });
+        w1 = window.open("", windowName);
+        assert_equals(w1.opener, window);
+
+        var w2 = window.open("support/noopener-target.html?" + windowName,
+                            windowName, this.secondWindowFeatureString);
+        assert_equals(w2, null);
+
+        assert_equals(w1.opener, window);
+      });
+    }
   }
 }
 
@@ -96,13 +104,27 @@ for (var i = 0; i < testData.length; ++i) {
  * Loop over the special targets that ignore noopener and check that doing a
  * window.open() with those targets correctly reuses the existing window.
  */
-for (var target of ["_self", "_parent", "_top"]) {
-  var t = async_test("noopener window.open targeting " + target);
-  tests.push(t);
-  t.openedWindow = window.open(`javascript:var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
-  assert_equals(t.openedWindow.opener, window);
-  t.openedWindow.checkValues = t.step_func_done(function(win) {
-    assert_equals(win, this.openedWindow);
-  });
+function specialTargetTest(target) {
+  if (["_self", "_parent", "_top"].includes(target)) {
+    var t = async_test("noopener window.open targeting " + target);
+    t.openedWindow = window.open(`javascript:var w2 = window.open("", "${target}", "noopener"); this.checkValues(w2); this.close(); void(0);`);
+    assert_equals(t.openedWindow.opener, window);
+    t.openedWindow.checkValues = t.step_func_done(function(win) {
+      assert_equals(win, this.openedWindow);
+    });
+  } else {
+    throw 'testError: special target must be one of: _self, _parent, _top'
+  }
+}
+
+/**
+ * Parse the Query string, check if it matches keyword 'indexed' to run the indexed tests,
+ * otherwise test it as a special target
+ */
+var variant = window.location.href.split("?")[1]
+if(variant == "indexed") {
+  indexedTests();
+} else {
+  specialTargetTest(variant);
 }
 </script>

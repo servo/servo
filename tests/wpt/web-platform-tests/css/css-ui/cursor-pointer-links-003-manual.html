@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: pointer cursor on svg links</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#cursor">
+<meta name="flags" content="interact">
+<meta name="assert" content="The pointer cursor is applied to HTML image maps">
+<style>
+</style>
+<body>
+  <p>The test passes if, when moved over the blue box, the cursor indicates a link. Often rendered as the backside of a hand with the index finger poiting and the other fingers closed.</p>
+  <map name="m1"><area coords="0,0,100,100" href=""></map>
+  <img usemap="#m1" src="../support/swatch-blue.png" alt="blue square" width=100 height=100>
+</body>

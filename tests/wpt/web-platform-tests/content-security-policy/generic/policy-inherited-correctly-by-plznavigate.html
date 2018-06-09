@@ -12,17 +12,13 @@
 <body>
   <script>
     var t = async_test("iframe still inherits correct CSP");
-  </script>
 
-  <iframe id="x" srcdoc="<a href='about:blank'>123</a>"></iframe>
-
-  <script>
     window.onmessage = t.step_func_done(function(e) {
       assert_equals(e.data, "frame-src");
     });
 
-    x = document.getElementById('x');
-    x.onload = function() {
+    function doDocWrite() {
+      x = document.getElementById('x');
       x.location = "";
 
       // While document.write is deprecated I did not find another way to reproduce
@@ -34,8 +30,14 @@
         '<iframe src="../support/fail.html"></iframe>'
       );
       x.contentDocument.close();
+
+      var s = document.createElement('script');
+      s.async = true;
+      s.defer = true;
+      s.src = '../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-src%20%27none%27';
+      document.lastChild.appendChild(s);
     }
   </script>
-  <script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=frame-src%20%27none%27''></script>
+  <iframe id="x" onload="doDocWrite()" srcdoc="<a href='about:blank'>123</a>"></iframe>
 </body>
 </html>

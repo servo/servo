@@ -1,0 +1,22 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Input Device Capabilities" spec.
+// See: https://wicg.github.io/InputDeviceCapabilities/
+
+[Constructor(optional InputDeviceCapabilitiesInit deviceInitDict)]
+interface InputDeviceCapabilities {
+    readonly attribute boolean firesTouchEvents;
+    readonly attribute boolean pointerMovementScrolls;
+};
+
+dictionary InputDeviceCapabilitiesInit {
+    boolean firesTouchEvents = false;
+    boolean pointerMovementScrolls = false;
+};
+partial interface UIEvent {
+    readonly attribute InputDeviceCapabilities? sourceCapabilities;
+};
+
+partial dictionary UIEventInit {
+    InputDeviceCapabilities? sourceCapabilities = null;
+};

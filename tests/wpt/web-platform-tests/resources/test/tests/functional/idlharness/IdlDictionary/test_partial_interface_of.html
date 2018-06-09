@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>idlharness: Partial dictionary</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <p>Verify the series of sub-tests that are executed for "partial" dictionary objects.</p>
+  <script>
+    "use strict";
+
+    // No original existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls('partial dictionary A {};');
+      idlArray.test();
+    })();
+
+    // Multiple partials existence
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_untested_idls('partial dictionary B {};');
+      idlArray.add_idls('partial dictionary B {};');
+      idlArray.add_idls('partial dictionary B {};');
+      idlArray.add_idls('partial dictionary B {};');
+      idlArray.add_idls('dictionary B {};');
+      idlArray.test();
+    })();
+  </script>
+  <script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "Partial dictionary A: original dictionary defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original dictionary should be defined expected true got false"
+    },
+    {
+      "name": "Partial dictionary B: original dictionary defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial dictionary B[2]: original dictionary defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "Partial dictionary B[3]: original dictionary defined",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "User Timing Level 2" spec.
+// See: https://w3c.github.io/user-timing/
+
+partial interface Performance {
+    void mark(DOMString markName);
+    void clearMarks(optional DOMString markName);
+    void measure(DOMString measureName,
+                 optional DOMString startMark,
+                 optional DOMString endMark);
+    void clearMeasures(optional DOMString measureName);
+};
+[Exposed=(Window,Worker)]
+interface PerformanceMark : PerformanceEntry {
+};
+[Exposed=(Window,Worker)]
+interface PerformanceMeasure : PerformanceEntry {
+};

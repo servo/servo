@@ -33,12 +33,6 @@ test(() => {
   let members = idlArray.members["A"].members.map(m => m.name);
   assert_array_equals(members, ["B", "C"], 'A should contain B, C');
 }, 'Partial dictionaries');
-
-test(() => {
-  let idlArray = new IdlArray();
-  idlArray.add_idls('partial dictionary D {};');
-  idlArray.assert_throws('Partial dictionary D with no original dictionary', i => i.test());
-}, 'Partial-only dictionary definition')
 </script>
 
 </body>
