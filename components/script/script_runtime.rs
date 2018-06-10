@@ -217,7 +217,7 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
             let target = Trusted::new(global.upcast::<EventTarget>());
 
             // Step 4.
-            global.as_window().dom_manipulation_task_source().queue(
+            global.dom_manipulation_task_source().queue(
                 task!(unhandled_rejection_event: move || {
                     let target = target.root();
                     let cx = target.global().get_cx();
