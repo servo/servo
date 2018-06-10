@@ -75,7 +75,8 @@ class Keyword(object):
         self.name = name
         self.values = values.split()
         if gecko_constant_prefix and gecko_enum_prefix:
-            raise TypeError("Only one of gecko_constant_prefix and gecko_enum_prefix can be specified")
+            raise TypeError("Only one of gecko_constant_prefix and gecko_enum_prefix "
+                            "can be specified")
         self.gecko_constant_prefix = gecko_constant_prefix or \
             "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.gecko_enum_prefix = gecko_enum_prefix
@@ -116,7 +117,8 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value.replace("-moz-", 'moz-')
+        moz_stripped = (value.replace("-moz-", '')
+                        if self.gecko_strip_moz_prefix else value.replace("-moz-", 'moz-'))
         mapped = self.consts_map.get(value)
         if self.gecko_enum_prefix:
             parts = moz_stripped.replace('-', '_').split('_')
@@ -167,7 +169,8 @@ class Longhand(object):
                  gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
-                 flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
+                 flags=None, allowed_in_page_rule=False, allow_quirks=False,
+                 ignored_when_colors_disabled=False,
                  vector=False, servo_restyle_damage="repaint"):
         self.name = name
         if not spec:
