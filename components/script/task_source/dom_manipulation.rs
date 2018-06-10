@@ -8,17 +8,21 @@ use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use msg::constellation_msg::PipelineId;
-use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::MainThreadScriptMsg;
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use servo_atoms::Atom;
 use std::fmt;
 use std::result::Result;
-use std::sync::mpsc::Sender;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
 
-#[derive(Clone, JSTraceable)]
-pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
+#[derive(JSTraceable)]
+pub struct DOMManipulationTaskSource(pub Box<ScriptChan + Send>, pub PipelineId);
+
+impl Clone for DOMManipulationTaskSource {
+    fn clone(&self) -> DOMManipulationTaskSource {
+        DOMManipulationTaskSource(self.0.clone(), self.1.clone())
+    }
+}
 
 impl fmt::Debug for DOMManipulationTaskSource {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -37,12 +41,13 @@ impl TaskSource for DOMManipulationTaskSource {
     where
         T: TaskOnce + 'static,
     {
-        let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
+        let msg_task = CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,
             Box::new(canceller.wrap_task(task)),
             Some(self.1)
-        ));
-        self.0.send(msg).map_err(|_| ())
+        );
+
+        self.0.send(msg_task).map_err(|_| ())
     }
 }
 

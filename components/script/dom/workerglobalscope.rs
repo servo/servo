@@ -43,6 +43,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use task::TaskCanceller;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
@@ -368,6 +369,10 @@ impl WorkerGlobalScope {
         } else {
             panic!("need to implement a sender for SharedWorker")
         }
+    }
+
+    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
+        DOMManipulationTaskSource(self.script_chan(), self.pipeline_id())
     }
 
     pub fn file_reading_task_source(&self) -> FileReadingTaskSource {

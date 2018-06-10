@@ -479,7 +479,7 @@ pub struct ScriptThread {
     /// events in the event queue.
     chan: MainThreadScriptChan,
 
-    dom_manipulation_task_sender: Sender<MainThreadScriptMsg>,
+    dom_manipulation_task_sender: Box<ScriptChan>,
 
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
@@ -926,7 +926,7 @@ impl ScriptThread {
             task_queue,
 
             chan: MainThreadScriptChan(chan.clone()),
-            dom_manipulation_task_sender: chan.clone(),
+            dom_manipulation_task_sender: boxed_script_sender.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
