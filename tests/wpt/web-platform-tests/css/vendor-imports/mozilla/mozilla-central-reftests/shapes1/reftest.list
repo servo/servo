@@ -103,3 +103,9 @@
 == shape-outside-polygon-024.html shape-outside-polygon-024-ref.html
 == shape-outside-polygon-025.html shape-outside-polygon-025-ref.html
 == shape-outside-polygon-032.html shape-outside-polygon-032-ref.html
+
+# Tests of shape-outside layout behavior with too-wide inline elements
+== float-retry-push-circle.html float-retry-push-ref.html
+== float-retry-push-image.html float-retry-push-ref.html
+== float-retry-push-inset.html float-retry-push-ref.html
+== float-retry-push-polygon.html float-retry-push-ref.html

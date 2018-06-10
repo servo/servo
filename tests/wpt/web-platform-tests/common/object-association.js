@@ -14,7 +14,7 @@ window.testIsPerWindow = propertyName => {
     iframe.remove();
 
     const after = frame[propertyName];
-    assert_equals(after, before);
+    assert_equals(after, before, `window.${propertyName} should not change after iframe.remove()`);
   }, `Discarding the browsing context must not change window.${propertyName}`);
 
   async_test(t => {
@@ -56,6 +56,8 @@ window.testIsPerWindow = propertyName => {
 
       const after = frame[propertyName];
       assert_not_equals(after, before);
+
+      frame.document.close();
     });
 
     iframe.src = "/common/blank.html";
