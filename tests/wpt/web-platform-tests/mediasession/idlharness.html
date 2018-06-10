@@ -12,27 +12,20 @@
 <body>
 <h1>Media Session IDL tests</h1>
 <script>
-"use strict";
+'use strict';
 
-function doTest([mediasession]) {
-    var idl_array = new IdlArray();
-    idl_array.add_untested_idls('interface Navigator {};');
-    idl_array.add_idls(mediasession);
-    idl_array.add_objects({
-      MediaMetadata: ["new MediaMetadata()"],
-      Navigator: ["navigator"]
-    });
-    idl_array.test();
-}
-
-function fetchText(url) {
-    return fetch(url).then((response) => response.text());
-}
-
-promise_test(() => {
-    return Promise.all(["/interfaces/mediasession.idl"].map(fetchText))
-                  .then(doTest);
-}, "Test IDL implementation of Media Session");
+promise_test(async () => {
+  var idl_array = new IdlArray();
+  const idl = await fetch('/interfaces/mediasession.idl').then(r => r.text());
+  const html = await fetch('/interfaces/html.idl').then(r => r.text());
+  idl_array.add_idls(idl);
+  idl_array.add_dependency_idls(html);
+  idl_array.add_objects({
+    MediaMetadata: ['new MediaMetadata()'],
+    Navigator: ['navigator']
+  });
+  idl_array.test();
+}, 'Test IDL implementation of Media Session');
 </script>
 <div id="log"></div>
 </body>
