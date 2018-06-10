@@ -53,6 +53,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use task::TaskCanceller;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
@@ -593,6 +594,16 @@ impl GlobalScope {
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg);
+        }
+        unreachable!();
+    }
+
+    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.dom_manipulation_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.dom_manipulation_task_source();
         }
         unreachable!();
     }
