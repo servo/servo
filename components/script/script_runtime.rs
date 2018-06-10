@@ -152,6 +152,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 global.add_uncaught_rejection(promise);
             },
             PromiseRejectionHandlingState::Handled => {
+                global.remove_uncaught_rejection(promise);
                 global.add_consumed_rejection(promise);
             }
         };

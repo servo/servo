@@ -227,6 +227,14 @@ impl GlobalScope {
         self.uncaught_rejections.borrow_mut().push(Heap::boxed(rejection.get()));
     }
 
+    pub fn remove_uncaught_rejection(&self, rejection: HandleObject) {
+        let mut uncaught_rejections = self.uncaught_rejections.borrow_mut();
+
+        if let Some(index) = uncaught_rejections.iter().position(|promise| *promise == Heap::boxed(rejection.get())) {
+            uncaught_rejections.remove(index);
+        }
+    }
+
     pub fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.uncaught_rejections
     }
