@@ -19,7 +19,8 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
-    servo_restyle_damage="rebuild_and_reflow"
+    servo_restyle_damage="rebuild_and_reflow",
+    needs_context=product == "gecko"
 )}
 
 // FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the

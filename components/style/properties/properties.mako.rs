@@ -2501,6 +2501,7 @@ pub mod style_structs {
             /// Whether this is a multicol style.
             #[cfg(feature = "servo")]
             pub fn is_multicol(&self) -> bool {
+                use values::Either;
                 match self.column_width {
                     Either::First(_width) => true,
                     Either::Second(_auto) => !self.column_count.is_auto(),
@@ -2699,6 +2700,26 @@ impl ComputedValues {
 
     /// Get the initial computed values.
     pub fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
+
+    /// Serializes the computed value of this property as a string.
+    pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
+        match property {
+            PropertyDeclarationId::Longhand(id) => {
+                let mut s = String::new();
+                self.get_longhand_property_value(
+                    id,
+                    &mut CssWriter::new(&mut s)
+                ).unwrap();
+                s
+            }
+            PropertyDeclarationId::Custom(name) => {
+                self.custom_properties
+                    .as_ref()
+                    .and_then(|map| map.get(name))
+                    .map_or(String::new(), |value| value.to_css_string())
+            }
+        }
+    }
 }
 
 #[cfg(feature = "servo")]
@@ -2936,26 +2957,6 @@ impl ComputedValuesInner {
 
         // Neither perspective nor transform present
         false
-    }
-
-    /// Serializes the computed value of this property as a string.
-    pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
-        match property {
-            PropertyDeclarationId::Longhand(id) => {
-                let mut s = String::new();
-                self.get_longhand_property_value(
-                    property,
-                    &mut CssWriter::new(&mut s)
-                ).unwrap();
-                s
-            }
-            PropertyDeclarationId::Custom(name) => {
-                self.custom_properties
-                    .as_ref()
-                    .and_then(|map| map.get(name))
-                    .map_or(String::new(), |value| value.to_css_string())
-            }
-        }
     }
 }
 

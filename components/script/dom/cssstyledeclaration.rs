@@ -253,7 +253,7 @@ impl CSSStyleDeclaration {
         self.owner.mutate_associated_block(|pdb, changed| {
             if value.is_empty() {
                 // Step 3
-                *changed = pdb.remove_property(&id);
+                *changed = pdb.remove_property(&id, |_| {});
                 return Ok(());
             }
 
@@ -365,7 +365,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let mut string = String::new();
         self.owner.mutate_associated_block(|pdb, changed| {
             pdb.property_value_to_css(&id, &mut string).unwrap();
-            *changed = pdb.remove_property(&id);
+            *changed = pdb.remove_property(&id, |_| {});
         });
 
         // Step 6
