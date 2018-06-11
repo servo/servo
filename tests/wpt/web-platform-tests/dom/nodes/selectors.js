@@ -34,6 +34,7 @@ var invalidSelectors = [
   {name: "Invalid [att=value] selector", selector: "[class= space unquoted ]"},
   {name: "Unknown pseudo-class",         selector: "div:example"},
   {name: "Unknown pseudo-class",         selector: ":example"},
+  {name: "Unknown pseudo-class",         selector: "div:linkexample"},
   {name: "Unknown pseudo-element",       selector: "div::example"},
   {name: "Unknown pseudo-element",       selector: "::example"},
   {name: "Invalid pseudo-element",       selector: ":::before"},
@@ -249,6 +250,7 @@ var validSelectors = [
   {name: ":not pseudo-class selector, matching ", selector: "#not * :not(:first-child)",   expect: ["not-em1", "not-em2", "not-em3"], level: 3, testType: TEST_QSA | TEST_MATCH},
   {name: ":not pseudo-class selector, matching nothing", selector: ":not(*)",   expect: [] /* no matches */, level: 3, testType: TEST_QSA},
   {name: ":not pseudo-class selector, matching nothing", selector: ":not(*|*)", expect: [] /* no matches */, level: 3, testType: TEST_QSA},
+  {name: ":not pseudo-class selector argument surrounded by spaces, matching ", selector: "#not>:not( div )",   expect: ["not-p1", "not-p2", "not-p3"], level: 3, testType: TEST_QSA | TEST_MATCH},
 
   // Pseudo-elements
   // - ::first-line
@@ -536,10 +538,11 @@ var scopedSelectors = [
   {name: ":root pseudo-class selector, not matching document root element",  selector: ":root", ctx: "#html", expect: [] /*no matches*/, exclude: ["fragment", "detached"],            level: 3, testType: TEST_FIND},
 
   // - :nth-child(n)         (Level 3)
-  {name: ":nth-child selector, matching the third child element",                              selector: ":nth-child(3)",      ctx: "#pseudo-nth-table1", expect: ["pseudo-nth-td3", "pseudo-nth-td9", "pseudo-nth-tr3", "pseudo-nth-td15"],             level: 3, testType: TEST_FIND | TEST_MATCH},
-  {name: ":nth-child selector, matching every third child element",                            selector: "li:nth-child(3n)",   ctx: "#pseudo-nth", expect: ["pseudo-nth-li3", "pseudo-nth-li6", "pseudo-nth-li9", "pseudo-nth-li12"],                    level: 3, testType: TEST_FIND | TEST_MATCH},
-  {name: ":nth-child selector, matching every second child element, starting from the fourth", selector: "li:nth-child(2n+4)", ctx: "#pseudo-nth", expect: ["pseudo-nth-li4", "pseudo-nth-li6", "pseudo-nth-li8", "pseudo-nth-li10", "pseudo-nth-li12"], level: 3, testType: TEST_FIND | TEST_MATCH},
-  {name: ":nth-child selector, matching every fourth child element, starting from the third",  selector: ":nth-child(4n-1)",   ctx: "#pseudo-nth-p1", expect: ["pseudo-nth-em2", "pseudo-nth-span3"],                                                    level: 3, testType: TEST_FIND | TEST_MATCH},
+  {name: ":nth-child selector, matching the third child element",                              selector: ":nth-child(3)",               ctx: "#pseudo-nth-table1", expect: ["pseudo-nth-td3", "pseudo-nth-td9", "pseudo-nth-tr3", "pseudo-nth-td15"],             level: 3, testType: TEST_FIND | TEST_MATCH},
+  {name: ":nth-child selector, matching every third child element",                            selector: "li:nth-child(3n)",            ctx: "#pseudo-nth", expect: ["pseudo-nth-li3", "pseudo-nth-li6", "pseudo-nth-li9", "pseudo-nth-li12"],                    level: 3, testType: TEST_FIND | TEST_MATCH},
+  {name: ":nth-child selector, matching every second child element, starting from the fourth", selector: "li:nth-child(2n+4)",          ctx: "#pseudo-nth", expect: ["pseudo-nth-li4", "pseudo-nth-li6", "pseudo-nth-li8", "pseudo-nth-li10", "pseudo-nth-li12"], level: 3, testType: TEST_FIND | TEST_MATCH},
+  {name: ":nth-child selector, matching every fourth child element, starting from the third",  selector: ":nth-child(4n-1)",            ctx: "#pseudo-nth-p1", expect: ["pseudo-nth-em2", "pseudo-nth-span3"],                                                    level: 3, testType: TEST_FIND | TEST_MATCH},
+  {name: ":nth-child selector used twice, matching ",                                          selector: ":nth-child(1) :nth-child(1)", ctx: "#pseudo-nth", expect: ["pseudo-nth-table1", "pseudo-nth-tr1"],                                                      level: 3, testType: TEST_FIND | TEST_MATCH},
 
   // - :nth-last-child       (Level 3)
   {name: ":nth-last-child selector, matching the third last child element",                                           selector: ":nth-last-child(3)",      ctx: "#pseudo-nth-table1", expect: ["pseudo-nth-tr1", "pseudo-nth-td4", "pseudo-nth-td10", "pseudo-nth-td16"],         level: 3, testType: TEST_FIND | TEST_MATCH},
