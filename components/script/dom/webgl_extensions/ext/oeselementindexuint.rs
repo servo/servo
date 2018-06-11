@@ -37,7 +37,11 @@ impl WebGLExtension for OESElementIndexUint {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_gl_extension("GL_OES_element_index_uint")
+        if cfg!(any(target_os = "android", target_os = "ios")) {
+            return ext.supports_gl_extension("GL_OES_element_index_uint");
+        }
+        // This extension is always available in desktop OpenGL.
+        true
     }
 
     fn enable(ext: &WebGLExtensions) {
