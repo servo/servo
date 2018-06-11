@@ -92,16 +92,6 @@ impl ComputeSquaredDistance for RGBA {
     }
 }
 
-impl Animate for ComplexColorRatios {
-    #[inline]
-    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
-        let bg = self.bg.animate(&other.bg, procedure)?;
-        let fg = self.fg.animate(&other.fg, procedure)?;
-
-        Ok(ComplexColorRatios { bg, fg })
-    }
-}
-
 /// An animated value for `<color>`.
 pub type Color = GenericColor<RGBA>;
 

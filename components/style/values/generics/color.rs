@@ -6,7 +6,7 @@
 
 /// Ratios representing the contribution of color and currentcolor to
 /// the final color value.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
+#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
 pub struct ComplexColorRatios {
     /// Numeric color contribution.
     pub bg: f32,
