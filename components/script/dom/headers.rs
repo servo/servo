@@ -14,7 +14,6 @@ use dom_struct::dom_struct;
 use hyper::header::Headers as HyperHeaders;
 use mime::{Mime, TopLevel, SubLevel};
 use std::cell::Cell;
-use std::result::Result;
 use std::str;
 
 #[dom_struct]
