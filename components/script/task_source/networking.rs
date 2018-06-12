@@ -23,7 +23,7 @@ impl TaskSource for NetworkingTaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static,
     {
@@ -38,7 +38,7 @@ impl TaskSource for NetworkingTaskSource {
 impl NetworkingTaskSource {
     /// This queues a task that will not be cancelled when its associated
     /// global scope gets destroyed.
-    pub fn queue_unconditionally<T>(&self, task: T) -> Result<(), ()>
+    pub fn queue_unconditionally<T>(&self, task: T)
     where
         T: TaskOnce + 'static,
     {

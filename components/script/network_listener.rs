@@ -22,13 +22,10 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
             context: self.context.clone(),
             action: action,
         };
-        let result = if let Some(ref canceller) = self.canceller {
+        if let Some(ref canceller) = self.canceller {
             self.task_source.queue_with_canceller(task, canceller)
         } else {
             self.task_source.queue_unconditionally(task)
-        };
-        if let Err(err) = result {
-            warn!("failed to deliver network data: {:?}", err);
         }
     }
 }

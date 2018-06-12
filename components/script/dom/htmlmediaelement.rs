@@ -226,7 +226,7 @@ impl HTMLMediaElement {
                     this.fulfill_in_flight_play_promises(|| ());
                 }),
                 window.upcast(),
-            ).unwrap();
+            );
         }
 
         // Step 8.
@@ -570,7 +570,7 @@ impl HTMLMediaElement {
                             this.root().delay_load_event(false);
                         }),
                         window.upcast(),
-                    ).unwrap();
+                    );
 
                     // Steps 4.remote.1.4.
                     // FIXME(nox): Somehow we should wait for the task from previous

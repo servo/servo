@@ -10,8 +10,8 @@ use script_thread::MainThreadScriptMsg;
 pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for HistoryTraversalTaskSource {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        Ok(self.0.send(MainThreadScriptMsg::Common(msg)))
+    fn send(&self, msg: CommonScriptMsg) {
+        self.0.send(MainThreadScriptMsg::Common(msg))
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {

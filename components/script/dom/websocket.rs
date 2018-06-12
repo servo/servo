@@ -81,7 +81,7 @@ pub fn close_the_websocket_connection(
         code: code,
         reason: Some(reason),
     };
-    task_source.queue_with_canceller(close_task, &canceller).unwrap();
+    task_source.queue_with_canceller(close_task, &canceller);
 }
 
 pub fn fail_the_websocket_connection(
@@ -95,7 +95,7 @@ pub fn fail_the_websocket_connection(
         code: Some(close_code::ABNORMAL),
         reason: None,
     };
-    task_source.queue_with_canceller(close_task, &canceller).unwrap();
+    task_source.queue_with_canceller(close_task, &canceller);
 }
 
 #[dom_struct]
@@ -212,14 +212,14 @@ impl WebSocket {
                             address: address.clone(),
                             protocol_in_use,
                         };
-                        task_source.queue_with_canceller(open_thread, &canceller).unwrap();
+                        task_source.queue_with_canceller(open_thread, &canceller);
                     },
                     WebSocketNetworkEvent::MessageReceived(message) => {
                         let message_thread = MessageReceivedTask {
                             address: address.clone(),
                             message: message,
                         };
-                        task_source.queue_with_canceller(message_thread, &canceller).unwrap();
+                        task_source.queue_with_canceller(message_thread, &canceller);
                     },
                     WebSocketNetworkEvent::Fail => {
                         fail_the_websocket_connection(address.clone(),
@@ -268,8 +268,7 @@ impl WebSocket {
             let pipeline_id = self.global().pipeline_id();
             self.global()
                 .script_chan()
-                .send(CommonScriptMsg::Task(WebSocketEvent, task, Some(pipeline_id)))
-                .unwrap();
+                .send(CommonScriptMsg::Task(WebSocketEvent, task, Some(pipeline_id)));
         }
 
         Ok(true)

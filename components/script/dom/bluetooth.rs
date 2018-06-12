@@ -245,10 +245,7 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
             action: message.to().unwrap(),
         };
 
-        let result = task_source.queue_unconditionally(task);
-        if let Err(err) = result {
-            warn!("failed to deliver network data: {:?}", err);
-        }
+        task_source.queue_unconditionally(task)
     }));
     action_sender
 }
