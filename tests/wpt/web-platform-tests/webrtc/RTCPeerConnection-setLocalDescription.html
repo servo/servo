@@ -14,7 +14,6 @@
   //   generateOffer
   //   assert_session_desc_not_equals
   //   assert_session_desc_equals
-  //   test_state_change_event
 
   /*
     4.3.2.  Interface Definition
@@ -46,7 +45,10 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc, ['have-local-offer', 'stable', 'have-local-offer']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer({ offerToReceiveAudio: true })
     .then(offer1 =>
@@ -65,13 +67,17 @@
           assert_session_desc_equals(pc.localDescription, offer2);
           assert_session_desc_equals(pc.currentLocalDescription, offer1);
           assert_session_desc_equals(pc.pendingLocalDescription, offer2);
+
+          assert_array_equals(states, ['have-local-offer', 'stable', 'have-local-offer']);
         })));
   }, 'Calling createOffer() and setLocalDescription() again after one round of local-offer/remote-answer should succeed');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc,
-      ['have-remote-offer', 'stable', 'have-local-offer']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return generateOffer({ pc, data: true })
     .then(offer => pc.setRemoteDescription(offer))
@@ -86,9 +92,25 @@
           assert_session_desc_equals(pc.localDescription, offer);
           assert_session_desc_equals(pc.currentLocalDescription, answer);
           assert_session_desc_equals(pc.pendingLocalDescription, offer);
-        })));
 
+          assert_array_equals(states, ['have-remote-offer', 'stable', 'have-local-offer']);
+        })));
   }, 'Switching role from answerer to offerer after going back to stable state should succeed');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    const offer = await pc.createOffer();
+    let eventSequence = '';
+    const signalingstatechangeResolver = new Resolver();
+    pc.onsignalingstatechange = () => {
+      eventSequence += 'onsignalingstatechange;';
+      signalingstatechangeResolver.resolve();
+    };
+    await pc.setLocalDescription(offer);
+    eventSequence += 'setLocalDescription;';
+    await signalingstatechangeResolver.promise;
+    assert_equals(eventSequence, 'onsignalingstatechange;setLocalDescription;');
+  }, 'onsignalingstatechange fires before setLocalDescription resolves');
 
   /*
     TODO

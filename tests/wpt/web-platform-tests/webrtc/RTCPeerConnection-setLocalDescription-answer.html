@@ -14,7 +14,6 @@
   //   generateOffer
   //   generateAnswer
   //   assert_session_desc_equals
-  //   test_state_change_event
 
   /*
     4.3.2.  Interface Definition
@@ -61,7 +60,10 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc, ['have-remote-offer', 'stable']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
@@ -79,6 +81,8 @@
 
           assert_equals(pc.pendingLocalDescription, null);
           assert_equals(pc.pendingRemoteDescription, null);
+
+          assert_array_equals(states, ['have-remote-offer', 'stable']);
         })));
   }, 'setLocalDescription() with valid answer should succeed');
 
@@ -90,6 +94,8 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
@@ -120,6 +126,8 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
       pc.setRemoteDescription(offer)
@@ -142,15 +150,18 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return pc.createOffer()
     .then(offer =>
       promise_rejects(t, 'InvalidStateError',
         pc.setLocalDescription({ type: 'answer', sdp: offer.sdp })));
-
   }, 'Calling setLocalDescription(answer) from stable state should reject with InvalidStateError');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.createOffer()
     .then(offer =>

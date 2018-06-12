@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Clipboard API and events" spec.
+// See: https://w3c.github.io/clipboard-apis/
+
 dictionary ClipboardEventInit : EventInit {
   DataTransfer? clipboardData = null;
 };

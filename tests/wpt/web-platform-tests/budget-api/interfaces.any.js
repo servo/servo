@@ -11,14 +11,9 @@ promise_test(async () => {
   const idl = await fetch('/interfaces/budget-api.idl').then(r => r.text());
 
   const idlArray = new IdlArray();
-  idlArray.add_untested_idls(html, { only: [
-    'Navigator',
-    'NavigatorContentUtils',
-    'NavigatorCookies',
-    'NavigatorPlugins',
-  ] });
-  idlArray.add_untested_idls(workers);
   idlArray.add_idls(idl);
+  idlArray.add_dependency_idls(html);
+  idlArray.add_dependency_idls(workers);
   idlArray.test();
   done();
 }, 'budget-api interfaces.');

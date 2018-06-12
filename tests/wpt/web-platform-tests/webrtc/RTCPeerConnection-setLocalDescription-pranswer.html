@@ -14,7 +14,6 @@
   //   generateOffer
   //   generateAnswer
   //   assert_session_desc_equals
-  //   test_state_change_event
 
   /*
     4.3.2.  Interface Definition
@@ -64,11 +63,12 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return pc.createOffer()
     .then(offer =>
       promise_rejects(t, 'InvalidStateError',
         pc.setLocalDescription({ type: 'pranswer', sdp: offer.sdp })));
-
   }, 'setLocalDescription(pranswer) from stable state should reject with InvalidStateError');
 
   /*
@@ -81,7 +81,10 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc, ['have-remote-offer', 'have-local-pranswer']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
@@ -103,13 +106,18 @@
           assert_equals(pc.currentLocalDescription, null);
 
           assert_equals(pc.pendingRemoteDescription, null);
+
+          assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer']);
         });
       }));
   }, 'setLocalDescription(pranswer) should succeed');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc, ['have-remote-offer', 'have-local-pranswer']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
@@ -119,13 +127,19 @@
         const pranswer = { type: 'pranswer', sdp: answer.sdp };
 
         return pc.setLocalDescription(pranswer)
-        .then(() => pc.setLocalDescription(pranswer));
+        .then(() => pc.setLocalDescription(pranswer))
+        .then(() => {
+          assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer']);
+        });
       }));
   }, 'setLocalDescription(pranswer) can be applied multiple times while still in have-local-pranswer');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc, ['have-remote-offer', 'have-local-pranswer', 'stable']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer =>
@@ -146,6 +160,8 @@
 
           assert_equals(pc.pendingLocalDescription, null);
           assert_equals(pc.pendingRemoteDescription, null);
+
+          assert_array_equals(states, ['have-remote-offer', 'have-local-pranswer', 'stable']);
         });
       }));
   }, 'setLocalDescription(answer) from have-local-pranswer state should succeed');

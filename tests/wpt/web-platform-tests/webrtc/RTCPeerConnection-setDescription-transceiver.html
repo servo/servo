@@ -66,6 +66,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio');
     assert_equals(transceiver.mid, null);
 
@@ -99,7 +100,10 @@
    */
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     const transceiver1 = pc1.addTransceiver('audio');
     assert_array_equals(pc1.getTransceivers(), [transceiver1]);
@@ -139,6 +143,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio');
     assert_equals(transceiver.mid, null);
 
@@ -159,6 +164,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver1 = pc.addTransceiver('audio');
     assert_equals(transceiver1.mid, null);
 
@@ -204,7 +210,10 @@
    */
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     pc1.addTransceiver('audio');
 

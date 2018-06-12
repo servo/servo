@@ -687,6 +687,9 @@ assertions:
   - id: 2d.colorspace.img.noinfo
     text: "Furthermore, the rendering of images that have no color correction information (such as those returned by the toDataURL() method) *must* be rendered with no color correction<^>."
 
+  - id: 2d.scrollPathIntoView.basic
+    text: "The scrollPathIntoView() method, when invoked, *must* run these steps<^>:"
+
   - id: security.start
     text: "All canvas elements *must* start with their origin-clean set to true<^>."
   - id: security.drawImage.image

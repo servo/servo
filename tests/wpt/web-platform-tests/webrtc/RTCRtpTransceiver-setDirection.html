@@ -56,6 +56,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
     assert_equals(transceiver.direction, 'recvonly');
     assert_equals(transceiver.currentDirection, null);

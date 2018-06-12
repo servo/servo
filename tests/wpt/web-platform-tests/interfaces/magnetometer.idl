@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Magnetometer" spec.
+// See: https://w3c.github.io/magnetometer/
+
 [Constructor(optional MagnetometerSensorOptions sensorOptions), SecureContext,
   Exposed=Window]
 interface Magnetometer : Sensor {

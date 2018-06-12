@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the UI Events spec.
-// See https://w3c.github.io/uievents/
+// Content of this file was automatically extracted from the
+// "UI Events" spec.
+// See: https://w3c.github.io/uievents/
 
 [Constructor(DOMString type, optional UIEventInit eventInitDict), Exposed=Window]
 interface UIEvent : Event {

@@ -33,14 +33,19 @@ let loadChromiumResources = Promise.resolve().then(() => {
   return chain;
 });
 
+async function initialize_generic_sensor_tests() {
+  if (typeof GenericSensorTest === 'undefined') {
+    await loadChromiumResources;
+  }
+  assert_true(typeof GenericSensorTest !== 'undefined');
+  let sensorTest = new GenericSensorTest();
+  await sensorTest.initialize();
+  return sensorTest;
+}
+
 function sensor_test(func, name, properties) {
   promise_test(async (t) => {
-    if (typeof GenericSensorTest === 'undefined') {
-      await loadChromiumResources;
-    }
-    assert_true(typeof GenericSensorTest !== 'undefined');
-    let sensorTest = new GenericSensorTest();
-    await sensorTest.initialize();
+    let sensorTest = await initialize_generic_sensor_tests();
     try {
       await func(t);
     } finally {

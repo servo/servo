@@ -11,6 +11,7 @@
 // have IDs set according to the rules in rtcweb-data-channel.
 promise_test(test => {
   const pc = new RTCPeerConnection;
+  test.add_cleanup(() => pc.close());
   const channel = pc.createDataChannel('');
   return pc.createOffer()
   .then(offer => pc.setLocalDescription(offer))
@@ -35,6 +36,7 @@ promise_test(test => {
 
 promise_test(test => {
   const pc = new RTCPeerConnection;
+  test.add_cleanup(() => pc.close());
   const channel = pc.createDataChannel('');
   return pc.createOffer()
   .then(offer => pc.setLocalDescription(offer))

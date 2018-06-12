@@ -17,6 +17,10 @@ const cross_origin_src =
   "https://{{domains[www]}}:{{ports[https][0]}}" + same_origin_src;
 const base_src = "/feature-policy/resources/redirect-on-load.html#";
 
+function get_feature_policies_for_sensor(sensorType) {
+  return feature_policies[sensorType];
+}
+
 function run_fp_tests_disabled(sensorName) {
   const sensorType = self[sensorName];
   const featureNameList = feature_policies[sensorName];

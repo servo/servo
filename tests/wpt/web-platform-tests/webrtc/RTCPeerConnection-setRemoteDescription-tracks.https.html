@@ -7,420 +7,348 @@
 <script>
   'use strict';
 
-  // Test is based on the following editor draft:
-  // https://w3c.github.io/webrtc-pc/archives/20171002/webrtc.html
-
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   getUserMediaTracksAndStreams
-  //   performOffer
+  //   addEventListenerPromise
+  //   exchangeOffer
+  //   exchangeOfferAnswer
   //   Resolver
 
   // These tests are concerned with the observable consequences of processing
   // the addition or removal of remote tracks, including events firing and the
   // states of RTCPeerConnection, MediaStream and MediaStreamTrack.
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const localTrack = tracks[0];
-      caller.addTrack(localTrack);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        const remoteTrack = trackEvent.track;
-        assert_equals(remoteTrack.id, localTrack.id,
-                      'Expected local and remote track IDs to match.');
-        assert_equals(trackEvent.streams.length, 0,
-                      'Expected remote track not to belong to a stream.');
-        t.done();
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    caller.addTrack(localStream.getTracks()[0]);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.track.id, localStream.getTracks()[0].id,
+                    'Local and remote track IDs match.');
+      assert_equals(e.streams.length, 0, 'No remote stream created.');
+    });
+    await exchangeOffer(caller, callee);
+    await ontrackPromise;
   }, 'addTrack() with a track and no stream makes ontrack fire with a track and no stream.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const localTrack = tracks[0];
-      const localStream = streams[0];
-      caller.addTrack(localTrack, localStream);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        assert_equals(trackEvent.streams.length, 1,
-                      'Expected track event to fire with a single stream.');
-        const remoteTrack = trackEvent.track;
-        const remoteStream = trackEvent.streams[0];
-        assert_equals(remoteTrack.id, localTrack.id,
-                      'Expected local and remote track IDs to match.');
-        assert_equals(remoteStream.id, localStream.id,
-                      'Expected local and remote stream IDs to match.');
-        assert_array_equals(remoteStream.getTracks(), [remoteTrack],
-                            'Expected the remote stream\'s tracks to be the remote track.');
-        t.done();
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    caller.addTrack(localStream.getTracks()[0], localStream);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.track.id, localStream.getTracks()[0].id,
+                    'Local and remote track IDs match.');
+      assert_equals(e.streams.length, 1, 'Created a single remote stream.');
+      assert_equals(e.streams[0].id, localStream.id,
+                    'Local and remote stream IDs match.');
+      assert_array_equals(e.streams[0].getTracks(), [e.track],
+                          'The remote stream contains the remote track.');
+    });
+    await exchangeOffer(caller, callee);
+    await ontrackPromise;
   }, 'addTrack() with a track and a stream makes ontrack fire with a track and a stream.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let eventSequence = '';
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const ontrackResolver = new Resolver();
-      callee.ontrack = () => {
-        eventSequence += 'ontrack;';
-        ontrackResolver.resolve();
-      }
-      caller.addTrack(tracks[0]);
-      return Promise.all([
-        ontrackResolver.promise,
-        performOffer(caller, callee).then(() => {
-          eventSequence += 'setRemoteDescription;';
-        })
-      ]);
-    }))
-    .then(t.step_func(() => {
-      assert_equals(eventSequence, 'ontrack;setRemoteDescription;');
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    caller.addTrack(localStream.getTracks()[0], localStream);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      eventSequence += 'ontrack;';
+    });
+    await exchangeOffer(caller, callee);
+    eventSequence += 'setRemoteDescription;';
+    await ontrackPromise;
+    assert_equals(eventSequence, 'ontrack;setRemoteDescription;');
   }, 'ontrack fires before setRemoteDescription resolves.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(2)
-    .then(t.step_func(([tracks, streams]) => {
-      const localTrack1 = tracks[0];
-      const localTrack2 = tracks[1];
-      const localStream = streams[0];
-      caller.addTrack(localTrack1, localStream);
-      caller.addTrack(localTrack2, localStream);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        assert_equals(trackEvent.streams.length, 1,
-                      'Expected track event to fire with a single stream.');
-        const remoteTrack1 = trackEvent.track;
-        const remoteStream = trackEvent.streams[0];
-        assert_equals(remoteTrack1.id, localTrack1.id,
-                      'Expected first remote track ID to match first local track ID.');
-        assert_equals(remoteStream.getTracks().length, 2,
-                      'Expected the remote stream to contain two tracks.');
-        callee.ontrack = t.step_func(trackEvent => {
-          assert_equals(trackEvent.streams.length, 1,
-                        'Expected track event to fire with a single stream.');
-          const remoteTrack2 = trackEvent.track;
-          assert_equals(trackEvent.streams[0], remoteStream,
-                        'Expected both track events to fire with the same remote stream.');
-          assert_equals(remoteTrack2.id, localTrack2.id,
-                        'Expected second remote track ID to match second local track ID.');
-          assert_equals(remoteStream.getTracks().length, 2,
-                        'Expected the remote stream to contain two tracks.');
-          assert_array_equals(remoteStream.getTracks(), [remoteTrack1, remoteTrack2],
-                              'Expected the remote stream\'s tracks to be the [first, second] remote tracks.');
-          t.done();
-        });
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStreams = await Promise.all([
+      navigator.mediaDevices.getUserMedia({audio: true}),
+      navigator.mediaDevices.getUserMedia({audio: true}),
+    ]);
+    caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
+    caller.addTrack(localStreams[1].getTracks()[0], localStreams[0]);
+    let ontrackEventsFired = 0;
+    const ontrackEventResolvers = [ new Resolver(), new Resolver() ];
+    callee.ontrack = t.step_func(e => {
+      ontrackEventResolvers[ontrackEventsFired++].resolve(e);
+    });
+    await exchangeOffer(caller, callee);
+    let firstTrackEvent = await ontrackEventResolvers[0].promise;
+    assert_equals(firstTrackEvent.track.id,
+                  localStreams[0].getTracks()[0].id,
+                  'First ontrack\'s track ID matches first local track.');
+    assert_equals(firstTrackEvent.streams.length, 1,
+                  'First ontrack fires with a single stream.');
+    assert_equals(firstTrackEvent.streams[0].id,
+                  localStreams[0].id,
+                  'First ontrack\'s stream ID matches local stream.');
+    let secondTrackEvent = await ontrackEventResolvers[1].promise;
+    assert_equals(secondTrackEvent.track.id,
+                  localStreams[1].getTracks()[0].id,
+                  'Second ontrack\'s track ID matches second local track.');
+    assert_equals(secondTrackEvent.streams.length, 1,
+                  'Second ontrack fires with a single stream.');
+    assert_equals(secondTrackEvent.streams[0].id,
+                  localStreams[0].id,
+                  'Second ontrack\'s stream ID matches local stream.');
+    assert_array_equals(firstTrackEvent.streams, secondTrackEvent.streams,
+                        'ontrack was fired with the same streams both times.');
+    assert_array_equals(firstTrackEvent.streams[0].getTracks(),
+                        [firstTrackEvent.track, secondTrackEvent.track],
+                        'The remote stream == [first track, second track].');
+    assert_equals(ontrackEventsFired, 2, 'Unexpected number of track events.');
   }, 'addTrack() with two tracks and one stream makes ontrack fire twice with the tracks and shared stream.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(2)
-    .then(t.step_func(([tracks, streams]) => {
-      const localTracks = tracks;
-      const localStream = streams[0];
-      caller.addTrack(localTracks[0], localStream);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        assert_equals(trackEvent.streams.length, 1,
-                      'Expected track event to fire with a single stream.');
-        const remoteTracks = [ trackEvent.track ];
-        const remoteStream = trackEvent.streams[0];
-        assert_equals(remoteTracks[0].id, localTracks[0].id, 'Remote track ID.');
-        assert_equals(remoteStream.id, localStream.id, 'Remote stream ID.');
-        assert_array_equals(remoteStream.getTracks(), remoteTracks,
-                            'Expected the remote stream\'s tracks to be the remote track.');
-        caller.addTrack(localTracks[1], localStream);
-        performOffer(caller, callee);
-        remoteStream.onaddtrack = t.step_func(trackEvent => {
-          remoteTracks.push(trackEvent.track);
-          assert_equals(remoteTracks[1].id, localTracks[1].id, 'Remote track ID.');
-          assert_array_equals(remoteStream.getTracks(), remoteTracks,
-                              'Expected the remote stream\'s tracks to be the remote tracks.');
-          t.done();
-        });
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    let eventSequence = '';
+    const localStreams = await Promise.all([
+      navigator.mediaDevices.getUserMedia({audio: true}),
+      navigator.mediaDevices.getUserMedia({audio: true}),
+    ]);
+    caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
+    const remoteStreams = [];
+    callee.ontrack = e => {
+      if (!remoteStreams.includes(e.streams[0]))
+        remoteStreams.push(e.streams[0]);
+    };
+    await exchangeOfferAnswer(caller, callee);
+    assert_equals(remoteStreams.length, 1, 'One remote stream created.');
+    assert_equals(remoteStreams[0].getTracks()[0].id,
+                  localStreams[0].getTracks()[0].id,
+                  'First local and remote tracks have the same ID.');
+    const onaddtrackPromise =
+        addEventListenerPromise(t, remoteStreams[0], 'addtrack', e => {
+      assert_equals(e.track.id, localStreams[1].getTracks()[0].id,
+                    'Second local and remote tracks have the same ID.');
+    });
+    caller.addTrack(localStreams[1].getTracks()[0], localStreams[0]);
+    await exchangeOffer(caller, callee);
+    await onaddtrackPromise;
+    assert_equals(remoteStreams.length, 1, 'Still a single remote stream.');
   }, 'addTrack() for an existing stream makes stream.onaddtrack fire.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let eventSequence = '';
-    return getUserMediaTracksAndStreams(2)
-    .then(t.step_func(([tracks, streams]) => {
-      const localTracks = tracks;
-      const localStream = streams[0];
-      caller.addTrack(localTracks[0], localStream);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        callee.ontrack = null;
-        const remoteStream = trackEvent.streams[0];
-        const onaddtrackResolver = new Resolver();
-        remoteStream.onaddtrack = () => {
-          eventSequence += 'stream.onaddtrack;';
-          onaddtrackResolver.resolve();
-        }
-        caller.addTrack(localTracks[1], localStream);
-        Promise.all([
-          onaddtrackResolver.promise,
-          performOffer(caller, callee).then(() => {
-            eventSequence += 'setRemoteDescription;';
-          })
-        ]).then(t.step_func(() => {
-          assert_equals(eventSequence, 'stream.onaddtrack;setRemoteDescription;');
-          t.done();
-        }));
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    const localStreams = await Promise.all([
+      navigator.mediaDevices.getUserMedia({audio: true}),
+      navigator.mediaDevices.getUserMedia({audio: true}),
+    ]);
+    caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
+    const remoteStreams = [];
+    callee.ontrack = e => {
+      if (!remoteStreams.includes(e.streams[0]))
+        remoteStreams.push(e.streams[0]);
+    };
+    await exchangeOfferAnswer(caller, callee);
+    assert_equals(remoteStreams.length, 1, 'One remote stream created.');
+    const onaddtrackPromise =
+        addEventListenerPromise(t, remoteStreams[0], 'addtrack', e => {
+      eventSequence += 'stream.onaddtrack;';
+    });
+    caller.addTrack(localStreams[1].getTracks()[0], localStreams[0]);
+    await exchangeOffer(caller, callee);
+    eventSequence += 'setRemoteDescription;';
+    await onaddtrackPromise;
+    assert_equals(remoteStreams.length, 1, 'Still a single remote stream.');
+    assert_equals(eventSequence, 'stream.onaddtrack;setRemoteDescription;');
   }, 'stream.onaddtrack fires before setRemoteDescription resolves.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(2)
-    .then(t.step_func(([tracks, streams]) => {
-      const localTrack = tracks[0];
-      const localStreams = streams;
-      caller.addTrack(localTrack, localStreams[0], localStreams[1]);
-      const performOffer = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        assert_equals(trackEvent.streams.length, 2,
-                      'Expected the track event to fire with two streams.');
-        const remoteTrack = trackEvent.track;
-        const remoteStreams = trackEvent.streams;
-        assert_equals(remoteTrack.id, localTrack.id,
-                      'Expected local and remote track IDs to match.');
-        assert_equals(remoteStreams[0].id, localStreams[0].id,
-                      'Expected the first remote stream ID to match the first local stream ID.');
-        assert_equals(remoteStreams[1].id, localStreams[1].id,
-                      'Expected the second remote stream ID to match the second local stream ID.');
-        assert_array_equals(remoteStreams[0].getTracks(), [remoteTrack],
-                            'Expected the remote stream\'s tracks to be the remote track.');
-        assert_array_equals(remoteStreams[1].getTracks(), [remoteTrack],
-                            'Expected the remote stream\'s tracks to be the remote track.');
-        t.done();
-      });
-      return performOffer;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStreams = await Promise.all([
+      navigator.mediaDevices.getUserMedia({audio: true}),
+      navigator.mediaDevices.getUserMedia({audio: true}),
+    ]);
+    caller.addTrack(localStreams[0].getTracks()[0],
+                    localStreams[0], localStreams[1]);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.track.id, localStreams[0].getTracks()[0].id,
+                    'Local and remote track IDs match.');
+      assert_equals(e.streams.length, 2, 'Two remote stream created.');
+      assert_array_equals(e.streams[0].getTracks(), [e.track],
+                          'First remote stream == [remote track].');
+      assert_array_equals(e.streams[1].getTracks(), [e.track],
+                          'Second remote stream == [remote track].');
+      assert_equals(e.streams[0].id, localStreams[0].id,
+                    'First local and remote stream IDs match.');
+      assert_equals(e.streams[1].id, localStreams[1].id,
+                    'Second local and remote stream IDs match.');
+    });
+    await exchangeOffer(caller, callee);
+    await ontrackPromise;
   }, 'addTrack() with a track and two streams makes ontrack fire with a track and two streams.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      caller.addTrack(tracks[0]);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        assert_array_equals(callee.getReceivers(), [trackEvent.receiver]);
-        t.done();
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    caller.addTrack(localStream.getTracks()[0]);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_array_equals(callee.getReceivers(), [e.receiver],
+                          'getReceivers() == [e.receiver].');
+    });
+    await exchangeOffer(caller, callee);
+    await ontrackPromise;
   }, 'ontrack\'s receiver matches getReceivers().');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
-      assert_not_equals(sender, null);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        const receivers = callee.getReceivers();
-        assert_equals(receivers.length, 1,
-                      'Expected getReceivers() to be the track event\'s receiver.');
-        caller.removeTrack(sender);
-        performOffer(caller, callee)
-        .then(t.step_func(() => {
-          assert_array_equals(callee.getReceivers(), receivers,
-                              'Expected the set of receivers to remain the same.');
-          t.done();
-        }));
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    const sender = caller.addTrack(localStream.getTracks()[0]);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track');
+    await exchangeOfferAnswer(caller, callee);
+    await ontrackPromise;
+    assert_equals(callee.getReceivers().length, 1, 'One receiver created.');
+    caller.removeTrack(sender);
+    await exchangeOffer(caller, callee);
+    assert_equals(callee.getReceivers().length, 1, 'Receiver not removed.');
   }, 'removeTrack() does not remove the receiver.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0], streams[0]);
-      assert_not_equals(sender, null);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        assert_not_equals(trackEvent.track, null);
-        assert_equals(trackEvent.streams.length, 1);
-        assert_true(trackEvent.streams[0].getTracks().includes(trackEvent.track));
-        caller.removeTrack(sender);
-        performOffer(caller, callee);
-        trackEvent.streams[0].onremovetrack = t.step_func(removeEvent => {
-          assert_equals(removeEvent.track, trackEvent.track);
-          assert_false(trackEvent.streams[0].getTracks().includes(trackEvent.track));
-          t.done();
-        });
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    const sender = caller.addTrack(localStream.getTracks()[0], localStream);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.streams.length, 1);
+      return e.streams[0];
+    });
+    await exchangeOfferAnswer(caller, callee);
+    const remoteStream = await ontrackPromise;
+    const remoteTrack = remoteStream.getTracks()[0];
+    const onremovetrackPromise =
+        addEventListenerPromise(t, remoteStream, 'removetrack', e => {
+      assert_equals(e.track, remoteTrack);
+      assert_equals(remoteStream.getTracks().length, 0,
+                    'Remote stream emptied of tracks.');
+    });
+    caller.removeTrack(sender);
+    await exchangeOffer(caller, callee);
+    await onremovetrackPromise;
   }, 'removeTrack() makes stream.onremovetrack fire and the track to be removed from the stream.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let eventSequence = '';
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0], streams[0]);
-      assert_not_equals(sender, null);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        const remoteStream = trackEvent.streams[0];
-        const onremovetrackResolver = new Resolver();
-        remoteStream.onremovetrack = t.step_func(removeEvent => {
-          eventSequence += 'stream.onremovetrack;';
-          onremovetrackResolver.resolve();
-        });
-        caller.removeTrack(sender);
-        return Promise.all([
-          onremovetrackResolver.promise,
-          performOffer(caller, callee).then(() => {
-            eventSequence += 'setRemoteDescription;';
-          })
-        ]).then(t.step_func(() => {
-          assert_equals(eventSequence, 'stream.onremovetrack;setRemoteDescription;');
-          t.done();
-        }));
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    const sender = caller.addTrack(localStream.getTracks()[0], localStream);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.streams.length, 1);
+      return e.streams[0];
+    });
+    await exchangeOfferAnswer(caller, callee);
+    const remoteStream = await ontrackPromise;
+    const remoteTrack = remoteStream.getTracks()[0];
+    const onremovetrackPromise =
+        addEventListenerPromise(t, remoteStream, 'removetrack', e => {
+      eventSequence += 'stream.onremovetrack;';
+    });
+    caller.removeTrack(sender);
+    await exchangeOffer(caller, callee);
+    eventSequence += 'setRemoteDescription;';
+    await onremovetrackPromise;
+    assert_equals(eventSequence, 'stream.onremovetrack;setRemoteDescription;');
   }, 'stream.onremovetrack fires before setRemoteDescription resolves.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
-      assert_not_equals(sender, null);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        const remoteTrack = trackEvent.track;
-        caller.removeTrack(sender);
-        performOffer(caller, callee);
-        remoteTrack.onmute = t.step_func(() => {
-          assert_true(trackEvent.track.muted);
-          t.done();
-        });
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => callee.close());
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    const sender = caller.addTrack(localStream.getTracks()[0], localStream);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.streams.length, 1);
+      return e.streams[0];
+    });
+    await exchangeOfferAnswer(caller, callee);
+    const remoteStream = await ontrackPromise;
+    const remoteTrack = remoteStream.getTracks()[0];
+    const onmutePromise =
+        addEventListenerPromise(t, remoteTrack, 'mute', () => {
+      assert_true(remoteTrack.muted);
+    });
+    caller.removeTrack(sender);
+    await exchangeOffer(caller, callee);
+    await onmutePromise;
   }, 'removeTrack() makes track.onmute fire and the track to be muted.');
 
-  async_test(t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let eventSequence = '';
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = caller.addTrack(tracks[0]);
-      assert_not_equals(sender, null);
-      const offerPromise = performOffer(caller, callee);
-      callee.ontrack = t.step_func(trackEvent => {
-        const remoteTrack = trackEvent.track;
-        const onmuteResolver = new Resolver();
-        remoteTrack.onmute = t.step_func(() => {
-          eventSequence += 'track.onmute;';
-          onmuteResolver.resolve();
-        });
-        caller.removeTrack(sender);
-        return Promise.all([
-          onmuteResolver.promise,
-          performOffer(caller, callee).then(() => {
-            eventSequence += 'setRemoteDescription;';
-          })
-        ]).then(t.step_func(() => {
-          assert_equals(eventSequence, 'track.onmute;setRemoteDescription;');
-          t.done();
-        }));
-      });
-      return offerPromise;
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    const localStream =
+        await navigator.mediaDevices.getUserMedia({audio: true});
+    const sender = caller.addTrack(localStream.getTracks()[0], localStream);
+    const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
+      assert_equals(e.streams.length, 1);
+      return e.streams[0];
+    });
+    await exchangeOfferAnswer(caller, callee);
+    const remoteStream = await ontrackPromise;
+    const remoteTrack = remoteStream.getTracks()[0];
+    const onmutePromise =
+        addEventListenerPromise(t, remoteTrack, 'mute', () => {
+      eventSequence += 'track.onmute;';
+    });
+    caller.removeTrack(sender);
+    await exchangeOffer(caller, callee);
+    eventSequence += 'setRemoteDescription;';
+    await onmutePromise;
+    assert_equals(eventSequence, 'track.onmute;setRemoteDescription;');
   }, 'track.onmute fires before setRemoteDescription resolves.');
 
-  async_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-    return getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      const sender = pc.addTrack(tracks[0]);
-      assert_not_equals(sender, null);
-      pc.removeTrack(sender);
-      pc.removeTrack(sender);
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
+    t.add_cleanup(() => pc.close());
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const sender = pc.addTrack(stream.getTracks()[0]);
+    pc.removeTrack(sender);
+    pc.removeTrack(sender);
   }, 'removeTrack() twice is safe.');
 </script>

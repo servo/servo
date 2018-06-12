@@ -1,7 +1,10 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+<meta name="variant" content="">
+<meta name="variant" content="?keep-promise">
 <title>Example with iframe that consolidates tests via fetch_tests_from_window</title>
+<script src="../../variants.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -16,7 +19,7 @@ tests from an <tt>iframe</tt> into the primary document.</p>
 executing</p>
 <div id="log"></div>
 
-<iframe id="childContext" src="promise-async.html" style="display:none"></iframe>
+<iframe id="childContext" src="promise-async.html?keep-promise" style="display:none"></iframe>
 <!-- promise-async.html has async tests with promises -->
 
 <script>

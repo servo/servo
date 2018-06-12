@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Accelerometer" spec.
+// See: https://w3c.github.io/accelerometer/
+
 [Constructor(optional AccelerometerSensorOptions options), SecureContext,
   Exposed=Window]
 interface Accelerometer : Sensor {

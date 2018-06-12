@@ -56,6 +56,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -75,11 +76,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `setParameters() with modified rtcp.cname should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -99,7 +100,6 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `setParameters() with modified rtcp.reducedSize should reject with InvalidModificationError`);
 
 </script>

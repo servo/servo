@@ -36,7 +36,10 @@
    */
   async_test(t => {
     const localPc = new RTCPeerConnection();
+    t.add_cleanup(() => localPc.close());
     const remotePc = new RTCPeerConnection();
+
+    t.add_cleanup(() => remotePc.close());
 
     let eventCount = 0;
 
@@ -69,7 +72,6 @@
     remotePc.addEventListener('datachannel', onDataChannel);
     exchangeIceCandidates(localPc, remotePc);
     doSignalingHandshake(localPc, remotePc);
-
   }, 'datachannel event should fire when new data channel is announced to the remote peer');
 
   /*
@@ -98,7 +100,10 @@
    */
   async_test(t => {
     const localPc = new RTCPeerConnection();
+    t.add_cleanup(() => localPc.close());
     const remotePc = new RTCPeerConnection();
+
+    t.add_cleanup(() => remotePc.close());
 
     const onDataChannel = t.step_func_done(event => {
       const remoteChannel = event.channel;
@@ -145,7 +150,10 @@
    */
   async_test(t => {
     const localPc = new RTCPeerConnection();
+    t.add_cleanup(() => localPc.close());
     const remotePc = new RTCPeerConnection();
+
+    t.add_cleanup(() => remotePc.close());
 
     const onDataChannel = t.unreached_func('datachannel event should not be fired');
 
@@ -158,7 +166,6 @@
     doSignalingHandshake(localPc, remotePc);
 
     t.step_timeout(t.step_func_done(), 200);
-
   }, 'Data channel created with negotiated set to true should not fire datachannel event on remote peer');
 
   /*

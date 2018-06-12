@@ -109,10 +109,11 @@ self.onmessage = function(e) {
 </script>
 
 <script>
-function makeWorker(script)
-{
-    var blob = new Blob([script]);
-    return new Worker(URL.createObjectURL(blob));
+function makeWorker(test) {
+    var blob = new Blob([document.getElementById("myWorker").textContent]);
+    var worker = new Worker(URL.createObjectURL(blob));
+    worker.onerror = test.unreached_func("error");
+    return worker;
 }
 
 function drawImageBitmap(image, x, y)
@@ -126,7 +127,7 @@ function drawImageBitmap(image, x, y)
 }
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker();
     worker.addEventListener('message', t.step_func_done(function(msg) {
         assert_true(msg.data);
     }));
@@ -134,7 +135,7 @@ async_test(function(t) {
 }, "Test that transferToImageBitmap returns an ImageBitmap with correct width and height in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         var clr = drawImageBitmap(msg.data, 50, 25);
         assert_array_equals(clr, [0, 255, 0, 255]);
@@ -143,7 +144,7 @@ async_test(function(t) {
 }, "Test that transferToImageBitmap returns an ImageBitmap with correct color in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         var clr = drawImageBitmap(msg.data, 50, 25);
         assert_array_equals(clr, [0, 0, 0, 0]);
@@ -152,7 +153,7 @@ async_test(function(t) {
 }, "Test that call transferToImageBitmap twice returns an ImageBitmap with correct color in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         var clr = drawImageBitmap(msg.data, 50, 25);
         assert_array_equals(clr, [0, 0, 0, 255]);
@@ -161,7 +162,7 @@ async_test(function(t) {
 }, "Test that call transferToImageBitmap twice on a alpha-disabled context returns an ImageBitmap with correct color in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         assert_true(msg.data);
     }));
@@ -169,7 +170,7 @@ async_test(function(t) {
 }, "Test that transferToImageBitmap won't change context's property in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         var clr1 = drawImageBitmap(msg.data, 23, 25);
         assert_array_equals(clr1, [0, 255, 0, 255]);
@@ -180,7 +181,7 @@ async_test(function(t) {
 }, "Test that call transferToImageBitmap preserves transform in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         if (msg.data == true || msg.data == false)
             assert_true(msg.data);
@@ -189,7 +190,7 @@ async_test(function(t) {
 }, "Test that call transferToImageBitmap on a detached OffscreenCanvas throws an exception in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         assert_true(msg.data);
     }));

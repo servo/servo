@@ -12,7 +12,6 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   assert_session_desc_equals()
-  //   test_state_change_event()
 
   /*
     4.3.2.  Interface Definition
@@ -52,11 +51,14 @@
 
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     pc1.createDataChannel('datachannel');
 
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
-    test_state_change_event(t, pc2, ['have-remote-offer']);
+    const states = [];
+    pc2.addEventListener('signalingstatechange', () => states.push(pc2.signalingState));
 
     return pc1.createOffer()
      .then(offer => {
@@ -66,18 +68,22 @@
         assert_session_desc_equals(pc2.remoteDescription, offer);
         assert_session_desc_equals(pc2.pendingRemoteDescription, offer);
         assert_equals(pc2.currentRemoteDescription, null);
+
+        assert_array_equals(states, ['have-remote-offer']);
       });
     });
-   }, 'setRemoteDescription with valid offer should succeed');
+  }, 'setRemoteDescription with valid offer should succeed');
 
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     pc1.createDataChannel('datachannel');
 
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
-    // have-remote-offer event should only fire once
-    test_state_change_event(t, pc2, ['have-remote-offer']);
+    const states = [];
+    pc2.addEventListener('signalingstatechange', () => states.push(pc2.signalingState));
 
     return pc1.createOffer()
     .then(offer => {
@@ -88,18 +94,22 @@
         assert_session_desc_equals(pc2.remoteDescription, offer);
         assert_session_desc_equals(pc2.pendingRemoteDescription, offer);
         assert_equals(pc2.currentRemoteDescription, null);
+
+        assert_array_equals(states, ['have-remote-offer']);
       });
     });
   }, 'setRemoteDescription multiple times should succeed');
 
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     pc1.createDataChannel('datachannel');
 
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
-    // have-remote-offer event should only fire once
-    test_state_change_event(t, pc2, ['have-remote-offer']);
+    const states = [];
+    pc2.addEventListener('signalingstatechange', () => states.push(pc2.signalingState));
 
     return pc1.createOffer()
     .then(offer1 => {
@@ -116,6 +126,8 @@
             assert_session_desc_equals(pc2.remoteDescription, offer2);
             assert_session_desc_equals(pc2.pendingRemoteDescription, offer2);
             assert_equals(pc2.currentRemoteDescription, null);
+
+            assert_array_equals(states, ['have-remote-offer']);
           });
         });
       });
@@ -131,6 +143,8 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription({
       type: 'offer',
@@ -159,6 +173,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return pc.createOffer()
     .then(offer => {
       return pc.setLocalDescription(offer)

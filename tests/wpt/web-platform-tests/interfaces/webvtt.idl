@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the WebVTT spec.
-// See https://w3c.github.io/webvtt/
+// Content of this file was automatically extracted from the
+// "WebVTT: The Web Video Text Tracks Format" spec.
+// See: https://w3c.github.io/webvtt/
 
 enum AutoKeyword { "auto" };
 typedef (double or AutoKeyword) LineAndPositionSetting;

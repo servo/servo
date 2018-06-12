@@ -12,6 +12,7 @@ ENC = 'utf8'
 HERE = os.path.dirname(os.path.abspath(__file__))
 WPT_ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 HARNESS = os.path.join(HERE, 'harness.html')
+TEST_TYPES = ('functional', 'unit')
 
 def pytest_addoption(parser):
     parser.addoption("--binary", action="store", default=None, help="path to browser binary")
@@ -32,12 +33,23 @@ def pytest_configure(config):
     config.add_cleanup(config.server.stop)
     config.add_cleanup(config.driver.quit)
 
+def resolve_uri(context, uri):
+    if uri.startswith('/'):
+        base = WPT_ROOT
+        path = uri[1:]
+    else:
+        base = os.path.dirname(context)
+        path = uri
+
+    return os.path.exists(os.path.join(base, path))
+
 class HTMLItem(pytest.Item, pytest.Collector):
     def __init__(self, filename, test_type, parent):
         self.filename = filename
         self.type = test_type
+        self.variants = []
 
-        if test_type not in ('functional', 'unit'):
+        if test_type not in TEST_TYPES:
             raise ValueError('Unrecognized test type: "%s"' % test_type)
 
         with io.open(filename, encoding=ENC) as f:
@@ -45,20 +57,36 @@ class HTMLItem(pytest.Item, pytest.Collector):
 
         parsed = html5lib.parse(markup, namespaceHTMLElements=False)
         name = None
+        includes_variants_script = False
         self.expected = None
 
         for element in parsed.getiterator():
             if not name and element.tag == 'title':
                 name = element.text
                 continue
-            if element.attrib.get('id') == 'expected':
-                self.expected = json.loads(unicode(element.text))
+            if element.tag == 'meta' and element.attrib.get('name') == 'variant':
+                self.variants.append(element.attrib.get('content'))
                 continue
+            if element.tag == 'script':
+                if element.attrib.get('id') == 'expected':
+                    self.expected = json.loads(unicode(element.text))
+
+                src = element.attrib.get('src', '')
+
+                if 'variants.js' in src:
+                    includes_variants_script = True
+                    if not resolve_uri(filename, src):
+                        raise ValueError('Could not resolve path "%s" from %s' % (src, filename))
 
         if not name:
             raise ValueError('No name found in file: %s' % filename)
-        elif self.type == 'functional' and not self.expected:
-            raise ValueError('Functional tests must specify expected report data')
+        elif self.type == 'functional':
+            if not self.expected:
+                raise ValueError('Functional tests must specify expected report data')
+            if not includes_variants_script:
+                raise ValueError('No variants script found in file: %s' % filename)
+            if len(self.variants) == 0:
+                raise ValueError('No test variants specified in file %s' % filename)
         elif self.type == 'unit' and self.expected:
             raise ValueError('Unit tests must not specify expected report data')
 
@@ -95,12 +123,17 @@ class HTMLItem(pytest.Item, pytest.Collector):
             assert test[u'status_string'] == u'PASS', msg
 
     def _run_functional_test(self):
+        for variant in self.variants:
+            self._run_functional_test_variant(variant)
+
+    def _run_functional_test_variant(self, variant):
         driver = self.session.config.driver
         server = self.session.config.server
 
         driver.get(server.url(HARNESS))
 
-        actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % server.url(str(self.filename)))
+        test_url = server.url(str(self.filename) + variant)
+        actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % test_url)
 
         # Test object ordering is not guaranteed. This weak assertion verifies
         # that the indices are unique and sequential

@@ -109,6 +109,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio', {
       direction: 'recvonly'
     });
@@ -126,6 +127,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio', {
       direction: 'inactive'
     });
@@ -166,6 +168,7 @@
     let dtmfSender;
     let sender;
     let pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
       .then(([track, mediaStream]) => {
         sender = pc.addTrack(track, mediaStream);

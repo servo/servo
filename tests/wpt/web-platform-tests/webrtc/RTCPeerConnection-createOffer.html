@@ -15,7 +15,6 @@
   //   generateAnswer()
   //   countAudioLine()
   //   countVideoLine()
-  //   test_state_change_event()
   //   assert_session_desc_equals()
 
   /*
@@ -31,6 +30,8 @@
   promise_test(t => {
     const pc = new RTCPeerConnection()
 
+    t.add_cleanup(() => pc.close());
+
     return pc.createOffer()
     .then(offer => {
       assert_equals(typeof offer, 'object',
@@ -43,7 +44,10 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
-    test_state_change_event(t, pc, ['have-local-offer']);
+    t.add_cleanup(() => pc.close());
+
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer({ offerToReceiveAudio: true })
     .then(offer =>
@@ -53,11 +57,14 @@
         assert_session_desc_equals(pc.localDescription, offer);
         assert_session_desc_equals(pc.pendingLocalDescription, offer);
         assert_equals(pc.currentLocalDescription, null);
+
+        assert_array_equals(states, ['have-local-offer']);
       }));
   }, 'createOffer() and then setLocalDescription() should succeed');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     pc.close();
 
     return promise_rejects(t, 'InvalidStateError',
@@ -78,6 +85,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const promise = pc.createOffer();
 
     pc.addTransceiver('audio');
@@ -122,6 +130,8 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return pc.createOffer({ offerToReceiveAudio: true })
     .then(offer1 => {
       assert_equals(countAudioLine(offer1.sdp), 1,
@@ -149,6 +159,8 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer1 => {
       assert_equals(countVideoLine(offer1.sdp), 1,
@@ -164,6 +176,8 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.createOffer({
       offerToReceiveAudio: true,
