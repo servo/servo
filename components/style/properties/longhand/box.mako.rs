@@ -9,8 +9,6 @@
                          inherited=False,
                          gecko_name="Display") %>
 
-// TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-//
 // We allow "display" to apply to placeholders because we need to make the
 // placeholder pseudo-element an inline-block in the UA stylesheet in Gecko.
 ${helpers.predefined_type(
@@ -19,10 +17,10 @@ ${helpers.predefined_type(
     "computed::Display::inline()",
     initial_specified_value="specified::Display::inline()",
     animation_value_type="discrete",
-    needs_context=False,
     flags="APPLIES_TO_PLACEHOLDER",
     spec="https://drafts.csswg.org/css-display/#propdef-display",
-    servo_restyle_damage="rebuild_and_reflow"
+    servo_restyle_damage="rebuild_and_reflow",
+    needs_context=product == "gecko"
 )}
 
 // FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the
@@ -257,7 +255,6 @@ ${helpers.predefined_type(
     vector=True,
     allow_empty="NotInitial",
     need_index=True,
-    needs_context=False,
     animation_value_type="none",
     extra_prefixes=transition_extra_prefixes,
     spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",

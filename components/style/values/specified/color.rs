@@ -18,6 +18,7 @@ use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParse
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 use super::AllowQuirks;
 use values::computed::{Color as ComputedColor, Context, ToComputedValue};
+use values::generics::color::Color as GenericColor;
 use values::specified::calc::CalcNode;
 
 /// Specified color value
@@ -88,11 +89,11 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
                 };
 
                 Ok(AngleOrNumber::Angle { degrees })
-            },
+            }
             Token::Number { value, .. } => Ok(AngleOrNumber::Number { value }),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(|i| CalcNode::parse_angle_or_number(self.0, i))
-            },
+            }
             t => return Err(location.new_unexpected_token_error(t)),
         }
     }
@@ -119,10 +120,10 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
             Token::Number { value, .. } => Ok(NumberOrPercentage::Number { value }),
             Token::Percentage { unit_value, .. } => {
                 Ok(NumberOrPercentage::Percentage { unit_value })
-            },
+            }
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(|i| CalcNode::parse_number_or_percentage(self.0, i))
-            },
+            }
             t => return Err(location.new_unexpected_token_error(t)),
         }
     }
@@ -168,10 +169,10 @@ impl Parse for Color {
                         Err(e.location.new_custom_error(StyleParseErrorKind::ValueError(
                             ValueParseErrorKind::InvalidColor(t),
                         )))
-                    },
+                    }
                     _ => Err(e),
                 }
-            },
+            }
         }
     }
 }
@@ -275,10 +276,10 @@ impl Color {
                 }
                 return parse_hash_color(ident.as_bytes())
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            },
+            }
             ref t => {
                 return Err(location.new_unexpected_token_error(t.clone()));
-            },
+            }
         };
         if value < 0 {
             return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -358,11 +359,11 @@ impl Color {
                         Keyword::MozVisitedhyperlinktext => pres_context.mVisitedLinkColor,
                     })
                 })
-            },
+            }
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
                 _context.map(|context| ComputedColor::rgba(context.device().body_text_color()))
-            },
+            }
         }
     }
 }
@@ -372,7 +373,7 @@ impl ToComputedValue for Color {
 
     fn to_computed_value(&self, context: &Context) -> ComputedColor {
         let result = self.to_computed_color(Some(context)).unwrap();
-        if result.foreground_ratio != 0 {
+        if !result.is_numeric() {
             if let Some(longhand) = context.for_non_inherited_property {
                 if longhand.stores_complex_colors_lossily() {
                     context.rule_cache_conditions.borrow_mut().set_uncacheable();
@@ -383,12 +384,10 @@ impl ToComputedValue for Color {
     }
 
     fn from_computed_value(computed: &ComputedColor) -> Self {
-        if computed.is_numeric() {
-            Color::rgba(computed.color)
-        } else if computed.is_currentcolor() {
-            Color::currentcolor()
-        } else {
-            Color::Complex(*computed)
+        match *computed {
+            GenericColor::Numeric(color) => Color::rgba(color),
+            GenericColor::Foreground => Color::currentcolor(),
+            GenericColor::Complex(..) => Color::Complex(*computed),
         }
     }
 }

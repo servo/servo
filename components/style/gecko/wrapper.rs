@@ -67,7 +67,6 @@ use media_queries::Device;
 use properties::{ComputedValues, LonghandId};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap};
-use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, Direction, PseudoClassStringArg};
@@ -181,7 +180,6 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
 
         let author_styles = AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
 
-        debug_assert!(!author_styles.stylesheets.dirty());
         debug_assert!(
             author_styles.quirks_mode == self.as_node().owner_doc().quirks_mode() ||
                 author_styles.stylesheets.is_empty()
@@ -617,31 +615,37 @@ impl<'le> GeckoElement<'le> {
     // GeckoNode is a raw reference.
     //
     // We can use a Cell<T>, but that's a bit of a pain.
+    #[inline]
     fn set_flags(&self, flags: u32) {
         unsafe { Gecko_SetNodeFlags(self.as_node().0, flags) }
     }
 
+    #[inline]
     unsafe fn unset_flags(&self, flags: u32) {
         Gecko_UnsetNodeFlags(self.as_node().0, flags)
     }
 
     /// Returns true if this element has descendants for lazy frame construction.
+    #[inline]
     pub fn descendants_need_frames(&self) -> bool {
         self.flags() & (NODE_DESCENDANTS_NEED_FRAMES as u32) != 0
     }
 
     /// Returns true if this element needs lazy frame construction.
+    #[inline]
     pub fn needs_frame(&self) -> bool {
         self.flags() & (NODE_NEEDS_FRAME as u32) != 0
     }
 
     /// Returns a reference to the DOM slots for this Element, if they exist.
+    #[inline]
     fn dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
         let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
         unsafe { slots.as_ref() }
     }
 
     /// Returns a reference to the extended DOM slots for this Element.
+    #[inline]
     fn extended_slots(&self) -> Option<&structs::FragmentOrElement_nsExtendedDOMSlots> {
         self.dom_slots().and_then(|s| unsafe {
             (s._base.mExtendedSlots.mPtr as *const structs::FragmentOrElement_nsExtendedDOMSlots)
@@ -699,6 +703,7 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
         debug_assert!(!self.is_xul_element());
         self.extended_slots()
@@ -1113,7 +1118,23 @@ impl<'le> TElement for GeckoElement<'le> {
             assert_eq!(base as *const _, self.0 as *const _, "Bad cast");
         }
 
-        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] = &*slot.mAssignedNodes;
+        // FIXME(emilio): Workaround a bindgen bug on Android that causes
+        // mAssignedNodes to be at the wrong offset. See bug 1466406.
+        //
+        // Bug 1466580 tracks running the Android layout tests on automation.
+        //
+        // The actual bindgen bug still needs reduction.
+        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] =
+            if !cfg!(target_os = "android") {
+                debug_assert_eq!(
+                    unsafe { bindings::Gecko_GetAssignedNodes(self.0) },
+                    &slot.mAssignedNodes as *const _,
+                );
+
+                &*slot.mAssignedNodes
+            } else {
+                unsafe { &**bindings::Gecko_GetAssignedNodes(self.0) }
+            };
 
         debug_assert_eq!(
             mem::size_of::<structs::RefPtr<structs::nsINode>>(),
@@ -1351,6 +1372,7 @@ impl<'le> TElement for GeckoElement<'le> {
         !self.is_in_native_anonymous_subtree()
     }
 
+    #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
         if !self.is_in_native_anonymous_subtree() {
             return None;
@@ -1364,6 +1386,7 @@ impl<'le> TElement for GeckoElement<'le> {
         PseudoElement::from_pseudo_type(pseudo_type)
     }
 
+    #[inline]
     fn store_children_to_process(&self, _: isize) {
         // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
     }
@@ -1587,6 +1610,7 @@ impl<'le> TElement for GeckoElement<'le> {
     ) -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
         use properties::LonghandIdSet;
+        use values::computed::TransitionProperty;
 
         debug_assert!(
             self.might_need_transitions_update(Some(before_change_style), after_change_style),
@@ -1630,6 +1654,7 @@ impl<'le> TElement for GeckoElement<'le> {
             };
 
             match transition_property {
+                TransitionProperty::Custom(..) |
                 TransitionProperty::Unsupported(..) => {},
                 TransitionProperty::Shorthand(ref shorthand) => {
                     if shorthand.longhands().any(property_check_helper) {

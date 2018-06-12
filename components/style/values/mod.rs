@@ -9,7 +9,7 @@
 #![deny(missing_docs)]
 
 use Atom;
-pub use cssparser::{serialize_identifier, CowRcStr, Parser, SourceLocation, Token, RGBA};
+pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser, SourceLocation, Token, RGBA};
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
@@ -58,6 +58,28 @@ where
     W: Write,
 {
     serialize_identifier(&ident, dest)
+}
+
+/// Serialize a name which is represented as an Atom.
+#[cfg(feature = "gecko")]
+pub fn serialize_atom_name<W>(ident: &Atom, dest: &mut W) -> fmt::Result
+where
+    W: Write,
+{
+    ident.with_str(|s| serialize_name(s, dest))
+}
+
+/// Serialize a name which is represented as an Atom.
+#[cfg(feature = "servo")]
+pub fn serialize_atom_name<Static, W>(
+    ident: &::string_cache::Atom<Static>,
+    dest: &mut W,
+) -> fmt::Result
+where
+    Static: ::string_cache::StaticAtomSet,
+    W: Write,
+{
+    serialize_name(&ident, dest)
 }
 
 /// Serialize a normalized value into percentage.

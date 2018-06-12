@@ -9,7 +9,6 @@
     from itertools import groupby
 %>
 
-use cssparser::Parser;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings::RawServoAnimationValueMap;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoGfxMatrix4x4;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
@@ -27,12 +26,12 @@ use smallvec::SmallVec;
 use std::{cmp, ptr};
 use std::mem::{self, ManuallyDrop};
 #[cfg(feature = "gecko")] use hash::FnvHashMap;
-use style_traits::{KeywordsCollectFn, ParseError, SpecifiedValueInfo};
 use super::ComputedValues;
-use values::{CSSFloat, CustomIdent};
+use values::CSSFloat;
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use values::animated::color::RGBA as AnimatedRGBA;
 use values::animated::effects::Filter as AnimatedFilter;
+#[cfg(feature = "gecko")] use values::computed::TransitionProperty;
 use values::computed::{Angle, CalcLengthOrPercentage};
 use values::computed::{ClipRect, Context};
 use values::computed::{Length, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -70,78 +69,6 @@ pub fn nscsspropertyid_is_animatable(property: nsCSSPropertyID) -> bool {
     }
 }
 
-/// A given transition property, that is either `All`, a transitionable longhand property,
-/// a shorthand with at least one transitionable longhand component, or an unsupported property.
-// NB: This needs to be here because it needs all the longhands generated
-// beforehand.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToCss)]
-pub enum TransitionProperty {
-    /// A shorthand.
-    Shorthand(ShorthandId),
-    /// A longhand transitionable property.
-    Longhand(LonghandId),
-    /// Unrecognized property which could be any non-transitionable, custom property, or
-    /// unknown property.
-    Unsupported(CustomIdent),
-}
-
-impl TransitionProperty {
-    /// Returns `all`.
-    #[inline]
-    pub fn all() -> Self {
-        TransitionProperty::Shorthand(ShorthandId::All)
-    }
-
-    /// Parse a transition-property value.
-    pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        // FIXME(https://github.com/rust-lang/rust/issues/33156): remove this
-        // enum and use PropertyId when stable Rust allows destructors in
-        // statics.
-        //
-        // FIXME: This should handle aliases too.
-        pub enum StaticId {
-            Longhand(LonghandId),
-            Shorthand(ShorthandId),
-        }
-        ascii_case_insensitive_phf_map! {
-            static_id -> StaticId = {
-                % for prop in data.shorthands:
-                "${prop.name}" => StaticId::Shorthand(ShorthandId::${prop.camel_case}),
-                % endfor
-                % for prop in data.longhands:
-                "${prop.name}" => StaticId::Longhand(LonghandId::${prop.camel_case}),
-                % endfor
-            }
-        }
-
-        let location = input.current_source_location();
-        let ident = input.expect_ident()?;
-
-        Ok(match static_id(&ident) {
-            Some(&StaticId::Longhand(id)) => TransitionProperty::Longhand(id),
-            Some(&StaticId::Shorthand(id)) => TransitionProperty::Shorthand(id),
-            None => {
-                TransitionProperty::Unsupported(
-                    CustomIdent::from_ident(location, ident, &["none"])?,
-                )
-            },
-        })
-    }
-
-    /// Convert TransitionProperty to nsCSSPropertyID.
-    #[cfg(feature = "gecko")]
-    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
-        Ok(match *self {
-            TransitionProperty::Shorthand(ShorthandId::All) => {
-                nsCSSPropertyID::eCSSPropertyExtra_all_properties
-            }
-            TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Unsupported(..) => return Err(()),
-        })
-    }
-}
-
 /// Convert nsCSSPropertyID to TransitionProperty
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
@@ -165,15 +92,6 @@ impl From<nsCSSPropertyID> for TransitionProperty {
                 panic!("non-convertible nsCSSPropertyID")
             }
         }
-    }
-}
-
-impl SpecifiedValueInfo for TransitionProperty {
-    fn collect_completion_keywords(f: KeywordsCollectFn) {
-        // `transition-property` can actually accept all properties and
-        // arbitrary identifiers, but `all` is a special one we'd like
-        // to list.
-        f(&["all"]);
     }
 }
 

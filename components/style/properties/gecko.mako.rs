@@ -28,7 +28,6 @@ use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImageValue;
-use gecko_bindings::bindings::Gecko_StyleTransition_SetUnsupportedProperty;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
 use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
@@ -49,7 +48,6 @@ use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use media_queries::Device;
-use properties::animated_properties::TransitionProperty;
 use properties::computed_value_flags::*;
 use properties::{longhands, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
@@ -60,7 +58,7 @@ use std::marker::PhantomData;
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, CustomIdent, Either, KeyframesName, None_};
-use values::computed::{NonNegativeLength, ToComputedValue, Percentage};
+use values::computed::{NonNegativeLength, ToComputedValue, Percentage, TransitionProperty};
 use values::computed::font::FontSize;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
@@ -390,17 +388,9 @@ impl ${style_struct.gecko_struct_name} {
 
 <%!
 def get_gecko_property(ffi_name, self_param = "self"):
-    if "mBorderColor" in ffi_name:
-        return ffi_name.replace("mBorderColor",
-                                "unsafe { *%s.gecko.__bindgen_anon_1.mBorderColor.as_ref() }"
-                                % self_param)
     return "%s.gecko.%s" % (self_param, ffi_name)
 
 def set_gecko_property(ffi_name, expr):
-    if "mBorderColor" in ffi_name:
-        ffi_name = ffi_name.replace("mBorderColor",
-                                    "*self.gecko.__bindgen_anon_1.mBorderColor.as_mut()")
-        return "unsafe { %s = %s };" % (ffi_name, expr)
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
@@ -1596,7 +1586,7 @@ fn static_assert() {
         self.gecko.mComputedBorder.${side.ident} = self.gecko.mBorder.${side.ident};
     }
 
-    <% impl_color("border_%s_color" % side.ident, "(mBorderColor)[%s]" % side.index) %>
+    <% impl_color("border_%s_color" % side.ident, "mBorder%sColor" % side.name) %>
 
     <% impl_non_negative_length("border_%s_width" % side.ident,
                                 "mComputedBorder.%s" % side.ident,
@@ -3267,6 +3257,8 @@ fn static_assert() {
               I::IntoIter: ExactSizeIterator
     {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_no_properties;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_variable;
+        use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
 
         let v = v.into_iter();
 
@@ -3274,10 +3266,17 @@ fn static_assert() {
             self.gecko.mTransitions.ensure_len(v.len());
             self.gecko.mTransitionPropertyCount = v.len() as u32;
             for (servo, gecko) in v.zip(self.gecko.mTransitions.iter_mut()) {
+                unsafe { gecko.mUnknownProperty.clear() };
+
                 match servo {
-                    TransitionProperty::Unsupported(ref ident) => unsafe {
-                        Gecko_StyleTransition_SetUnsupportedProperty(gecko, ident.0.as_ptr())
+                    TransitionProperty::Unsupported(ident) => {
+                        gecko.mProperty = eCSSProperty_UNKNOWN;
+                        gecko.mUnknownProperty.mRawPtr = ident.0.into_addrefed();
                     },
+                    TransitionProperty::Custom(name) => {
+                        gecko.mProperty = eCSSPropertyExtra_variable;
+                        gecko.mUnknownProperty.mRawPtr = name.into_addrefed();
+                    }
                     _ => gecko.mProperty = servo.to_nscsspropertyid().unwrap(),
                 }
             }
@@ -3307,15 +3306,24 @@ fn static_assert() {
         use gecko_bindings::structs::nsCSSPropertyID::eCSSProperty_UNKNOWN;
 
         let property = self.gecko.mTransitions[index].mProperty;
-        if property == eCSSProperty_UNKNOWN || property == eCSSPropertyExtra_variable {
+        if property == eCSSProperty_UNKNOWN {
             let atom = self.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
             debug_assert!(!atom.is_null());
             TransitionProperty::Unsupported(CustomIdent(unsafe{
                 Atom::from_raw(atom)
             }))
+        } else if property == eCSSPropertyExtra_variable {
+            let atom = self.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
+            debug_assert!(!atom.is_null());
+            TransitionProperty::Custom(unsafe{
+                Atom::from_raw(atom)
+            })
         } else if property == eCSSPropertyExtra_no_properties {
-            // Actually, we don't expect TransitionProperty::Unsupported also represents "none",
-            // but if the caller wants to convert it, it is fine. Please use it carefully.
+            // Actually, we don't expect TransitionProperty::Unsupported also
+            // represents "none", but if the caller wants to convert it, it is
+            // fine. Please use it carefully.
+            //
+            // FIXME(emilio): This is a hack, is this reachable?
             TransitionProperty::Unsupported(CustomIdent(atom!("none")))
         } else {
             property.into()
@@ -3336,11 +3344,12 @@ fn static_assert() {
 
         for (index, transition) in self.gecko.mTransitions.iter_mut().enumerate().take(count as usize) {
             transition.mProperty = other.gecko.mTransitions[index].mProperty;
+            unsafe { transition.mUnknownProperty.clear() };
             if transition.mProperty == eCSSProperty_UNKNOWN ||
                transition.mProperty == eCSSPropertyExtra_variable {
                 let atom = other.gecko.mTransitions[index].mUnknownProperty.mRawPtr;
                 debug_assert!(!atom.is_null());
-                unsafe { Gecko_StyleTransition_SetUnsupportedProperty(transition, atom) };
+                transition.mUnknownProperty.mRawPtr = unsafe { Atom::from_raw(atom) }.into_addrefed();
             }
         }
     }

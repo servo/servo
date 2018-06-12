@@ -177,7 +177,11 @@ pub enum ValueParseErrorKind<'i> {
 
 impl<'i> StyleParseErrorKind<'i> {
     /// Create an InvalidValue parse error
-    pub fn new_invalid(name: CowRcStr<'i>, value_error: ParseError<'i>) -> ParseError<'i> {
+    pub fn new_invalid<S>(name: S, value_error: ParseError<'i>) -> ParseError<'i>
+    where
+        S: Into<CowRcStr<'i>>,
+    {
+        let name = name.into();
         let variant = match value_error.kind {
             cssparser::ParseErrorKind::Custom(StyleParseErrorKind::ValueError(e)) => {
                 match e {

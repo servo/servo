@@ -315,39 +315,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
-    #[cfg(feature = "gecko")]
-    fn adjust_for_contain(&mut self) {
-        use properties::longhands::contain::SpecifiedValue;
-
-        // An element with contain: paint needs to be a formatting context, and
-        // also implies overflow: clip.
-        //
-        // TODO(emilio): This mimics Gecko, but spec links are missing!
-        let contain = self.style.get_box().clone_contain();
-        if !contain.contains(SpecifiedValue::PAINT) {
-            return;
-        }
-
-        if self.style.get_box().clone_display() == Display::Inline {
-            self.style
-                .mutate_box()
-                .set_adjusted_display(Display::InlineBlock, false);
-        }
-
-        // When 'contain: paint', update overflow from 'visible' to 'clip'.
-        if self.style
-            .get_box()
-            .clone_contain()
-            .contains(SpecifiedValue::PAINT)
-        {
-            if self.style.get_box().clone_overflow_x() == Overflow::Visible {
-                let box_style = self.style.mutate_box();
-                box_style.set_overflow_x(Overflow::MozHiddenUnscrollable);
-                box_style.set_overflow_y(Overflow::MozHiddenUnscrollable);
-            }
-        }
-    }
-
     /// When mathvariant is not "none", font-weight and font-style are
     /// both forced to "normal".
     #[cfg(feature = "gecko")]
@@ -752,7 +719,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_table_text_align();
-            self.adjust_for_contain();
             self.adjust_for_mathvariant();
             self.adjust_for_justify_items();
         }

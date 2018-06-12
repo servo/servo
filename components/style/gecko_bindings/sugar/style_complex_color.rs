@@ -5,28 +5,21 @@
 //! Rust helpers to interact with Gecko's StyleComplexColor.
 
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
-use gecko_bindings::structs::{nscolor, StyleComplexColor};
+use gecko_bindings::structs::StyleComplexColor;
+use gecko_bindings::structs::StyleComplexColor_Tag as Tag;
 use values::{Auto, Either};
-use values::computed::Color as ComputedColor;
+use values::computed::{Color as ComputedColor, RGBAColor as ComputedRGBA};
 use values::computed::ui::ColorOrAuto;
-
-impl From<nscolor> for StyleComplexColor {
-    fn from(other: nscolor) -> Self {
-        StyleComplexColor {
-            mColor: other,
-            mForegroundRatio: 0,
-            mIsAuto: false,
-        }
-    }
-}
+use values::generics::color::{Color as GenericColor, ComplexColorRatios};
 
 impl StyleComplexColor {
     /// Create a `StyleComplexColor` value that represents `currentColor`.
     pub fn current_color() -> Self {
         StyleComplexColor {
             mColor: 0,
-            mForegroundRatio: 255,
-            mIsAuto: false,
+            mBgRatio: 0.,
+            mFgRatio: 1.,
+            mTag: Tag::eForeground,
         }
     }
 
@@ -34,28 +27,66 @@ impl StyleComplexColor {
     pub fn auto() -> Self {
         StyleComplexColor {
             mColor: 0,
-            mForegroundRatio: 255,
-            mIsAuto: true,
+            mBgRatio: 0.,
+            mFgRatio: 1.,
+            mTag: Tag::eAuto,
+        }
+    }
+}
+
+impl From<ComputedRGBA> for StyleComplexColor {
+    fn from(other: ComputedRGBA) -> Self {
+        StyleComplexColor {
+            mColor: convert_rgba_to_nscolor(&other),
+            mBgRatio: 1.,
+            mFgRatio: 0.,
+            mTag: Tag::eNumeric,
         }
     }
 }
 
 impl From<ComputedColor> for StyleComplexColor {
     fn from(other: ComputedColor) -> Self {
-        StyleComplexColor {
-            mColor: convert_rgba_to_nscolor(&other.color).into(),
-            mForegroundRatio: other.foreground_ratio,
-            mIsAuto: false,
+        match other {
+            GenericColor::Numeric(color) => color.into(),
+            GenericColor::Foreground => Self::current_color(),
+            GenericColor::Complex(color, ratios) => {
+                debug_assert!(ratios != ComplexColorRatios::NUMERIC);
+                debug_assert!(ratios != ComplexColorRatios::FOREGROUND);
+                StyleComplexColor {
+                    mColor: convert_rgba_to_nscolor(&color).into(),
+                    mBgRatio: ratios.bg,
+                    mFgRatio: ratios.fg,
+                    mTag: Tag::eComplex,
+                }
+            }
         }
     }
 }
 
 impl From<StyleComplexColor> for ComputedColor {
     fn from(other: StyleComplexColor) -> Self {
-        debug_assert!(!other.mIsAuto);
-        ComputedColor {
-            color: convert_nscolor_to_rgba(other.mColor),
-            foreground_ratio: other.mForegroundRatio,
+        match other.mTag {
+            Tag::eNumeric => {
+                debug_assert!(other.mBgRatio == 1. && other.mFgRatio == 0.);
+                GenericColor::Numeric(convert_nscolor_to_rgba(other.mColor))
+            }
+            Tag::eForeground => {
+                debug_assert!(other.mBgRatio == 0. && other.mFgRatio == 1.);
+                GenericColor::Foreground
+            }
+            Tag::eComplex => {
+                debug_assert!(other.mBgRatio != 1. || other.mFgRatio != 0.);
+                debug_assert!(other.mBgRatio != 0. || other.mFgRatio != 1.);
+                GenericColor::Complex(
+                    convert_nscolor_to_rgba(other.mColor),
+                    ComplexColorRatios {
+                        bg: other.mBgRatio,
+                        fg: other.mFgRatio,
+                    },
+                )
+            }
+            Tag::eAuto => unreachable!("Unsupport StyleComplexColor with tag eAuto"),
         }
     }
 }
@@ -71,7 +102,7 @@ impl From<ColorOrAuto> for StyleComplexColor {
 
 impl From<StyleComplexColor> for ColorOrAuto {
     fn from(other: StyleComplexColor) -> Self {
-        if !other.mIsAuto {
+        if other.mTag != Tag::eAuto {
             Either::First(other.into())
         } else {
             Either::Second(Auto)

@@ -1951,14 +1951,9 @@ pub struct CascadeData {
     /// cascade level.
     normal_rules: ElementAndPseudoRules,
 
-    /// The `:host` pseudo rules that are the rightmost selector.
-    ///
-    /// Note that as of right now these can't affect invalidation in any way,
-    /// until we support the :host(<selector>) notation.
-    ///
-    /// Also, note that other engines don't accept stuff like :host::before /
-    /// :host::after, so we don't need to store pseudo rules at all.
-    host_rules: Option<Box<SelectorMap<Rule>>>,
+    /// The `:host` pseudo rules that are the rightmost selector (without
+    /// accounting for pseudo-elements).
+    host_rules: Option<Box<ElementAndPseudoRules>>,
 
     /// The data coming from ::slotted() pseudo-element rules.
     ///
@@ -2122,11 +2117,7 @@ impl CascadeData {
 
     #[inline]
     fn host_rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
-        if pseudo.is_some() {
-            return None;
-        }
-
-        self.host_rules.as_ref().map(|rules| &**rules)
+        self.host_rules.as_ref().and_then(|d| d.rules(pseudo))
     }
 
     #[inline]
@@ -2258,20 +2249,20 @@ impl CascadeData {
                             }
                         }
 
-                        if selector.is_featureless_host_selector() {
-                            let host_rules = self.host_rules
-                                .get_or_insert_with(|| Box::new(Default::default()));
-                            host_rules.insert(rule, quirks_mode)?;
+                        // NOTE(emilio): It's fine to look at :host and then at
+                        // ::slotted(..), since :host::slotted(..) could never
+                        // possibly match, as <slot> is not a valid shadow host.
+                        let rules = if selector.is_featureless_host_selector_or_pseudo_element() {
+                            self.host_rules
+                                .get_or_insert_with(|| Box::new(Default::default()))
+                        } else if selector.is_slotted() {
+                            self.slotted_rules
+                                .get_or_insert_with(|| Box::new(Default::default()))
                         } else {
-                            let rules = if selector.is_slotted() {
-                                self.slotted_rules
-                                    .get_or_insert_with(|| Box::new(Default::default()))
-                            } else {
-                                &mut self.normal_rules
-                            };
+                            &mut self.normal_rules
+                        };
 
-                            rules.insert(rule, pseudo_element, quirks_mode)?;
-                        }
+                        rules.insert(rule, pseudo_element, quirks_mode)?;
                     }
                     self.rules_source_order += 1;
                 },

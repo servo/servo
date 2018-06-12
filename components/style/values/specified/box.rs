@@ -6,17 +6,29 @@
 
 use Atom;
 use cssparser::Parser;
+use custom_properties::Name as CustomPropertyName;
 use parser::{Parse, ParserContext};
-use properties::{LonghandId, PropertyId, PropertyFlags, PropertyDeclarationId};
+use properties::{LonghandId, ShorthandId, PropertyId, PropertyFlags, PropertyDeclarationId};
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{CssWriter, KeywordsCollectFn, ParseError, StyleParseErrorKind, SpecifiedValueInfo, ToCss};
 use values::{CustomIdent, KeyframesName};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
+
+#[cfg(feature = "gecko")]
+fn moz_display_values_enabled(context: &ParserContext) -> bool {
+    use gecko_bindings::structs;
+    use stylesheets::Origin;
+    context.stylesheet_origin == Origin::UserAgent ||
+    context.chrome_rules_enabled() ||
+    unsafe {
+        structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled
+    }
+}
 
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
@@ -41,9 +53,9 @@ pub enum Display {
     TableCaption,
     ListItem,
     None,
-    #[css(aliases = "-webkit-flex")]
+    #[parse(aliases = "-webkit-flex")]
     Flex,
-    #[css(aliases = "-webkit-inline-flex")]
+    #[parse(aliases = "-webkit-inline-flex")]
     InlineFlex,
     #[cfg(feature = "gecko")]
     Grid,
@@ -72,22 +84,31 @@ pub enum Display {
     #[cfg(feature = "gecko")]
     MozInlineBox,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGrid,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozInlineGrid,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGridGroup,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGridLine,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozStack,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozInlineStack,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozDeck,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozPopup,
     #[cfg(feature = "gecko")]
+    #[parse(condition = "moz_display_values_enabled")]
     MozGroupbox,
 }
 
@@ -444,7 +465,7 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
 }
 
 fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillChangeBits {
-    let id = match PropertyId::parse(ident, context) {
+    let id = match PropertyId::parse_ignoring_rule_type(ident, context) {
         Ok(id) => id,
         Err(..) => return WillChangeBits::empty(),
     };
@@ -712,5 +733,98 @@ impl Parse for Perspective {
             context,
             input,
         )?))
+    }
+}
+
+/// A given transition property, that is either `All`, a longhand or shorthand
+/// property, or an unsupported or custom property.
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue)]
+pub enum TransitionProperty {
+    /// A shorthand.
+    Shorthand(ShorthandId),
+    /// A longhand transitionable property.
+    Longhand(LonghandId),
+    /// A custom property.
+    Custom(CustomPropertyName),
+    /// Unrecognized property which could be any non-transitionable, custom property, or
+    /// unknown property.
+    Unsupported(CustomIdent),
+}
+
+impl ToCss for TransitionProperty {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use values::serialize_atom_name;
+        match *self {
+            TransitionProperty::Shorthand(ref s) => s.to_css(dest),
+            TransitionProperty::Longhand(ref l) => l.to_css(dest),
+            TransitionProperty::Custom(ref name) => {
+                dest.write_str("--")?;
+                serialize_atom_name(name, dest)
+            }
+            TransitionProperty::Unsupported(ref i) => i.to_css(dest),
+        }
+    }
+}
+
+impl Parse for TransitionProperty {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let location = input.current_source_location();
+        let ident = input.expect_ident()?;
+
+        let id = match PropertyId::parse_ignoring_rule_type(&ident, context) {
+            Ok(id) => id,
+            Err(..) => return Ok(TransitionProperty::Unsupported(
+                CustomIdent::from_ident(location, ident, &["none"])?,
+            )),
+        };
+
+        Ok(match id.as_shorthand() {
+            Ok(s) => TransitionProperty::Shorthand(s),
+            Err(longhand_or_custom) => {
+                match longhand_or_custom {
+                    PropertyDeclarationId::Longhand(id) => TransitionProperty::Longhand(id),
+                    PropertyDeclarationId::Custom(custom) => {
+                        TransitionProperty::Custom(custom.clone())
+                    }
+                }
+            }
+        })
+    }
+}
+
+impl SpecifiedValueInfo for TransitionProperty {
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        // `transition-property` can actually accept all properties and
+        // arbitrary identifiers, but `all` is a special one we'd like
+        // to list.
+        f(&["all"]);
+    }
+}
+
+impl TransitionProperty {
+    /// Returns `all`.
+    #[inline]
+    pub fn all() -> Self {
+        TransitionProperty::Shorthand(ShorthandId::All)
+    }
+
+    /// Convert TransitionProperty to nsCSSPropertyID.
+    #[cfg(feature = "gecko")]
+    pub fn to_nscsspropertyid(&self) -> Result<::gecko_bindings::structs::nsCSSPropertyID, ()> {
+        Ok(match *self {
+            TransitionProperty::Shorthand(ShorthandId::All) => {
+                ::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
+            }
+            TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
+            TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
+            TransitionProperty::Custom(..) |
+            TransitionProperty::Unsupported(..) => return Err(()),
+        })
     }
 }

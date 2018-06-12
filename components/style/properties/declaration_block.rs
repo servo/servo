@@ -492,9 +492,9 @@ impl PropertyDeclarationBlock {
     ///     declaration with more importance, and will ensure that, if inserted,
     ///     it's inserted at the end of the declaration block.
     ///
-    ///   * For `DeclarationSource::CssOm`, this will override importance and
-    ///     will preserve the original position on the block.
+    ///   * For `DeclarationSource::CssOm`, this will override importance.
     ///
+    /// Returns whether the declaration has changed.
     pub fn push(
         &mut self,
         declaration: PropertyDeclaration,
@@ -517,15 +517,15 @@ impl PropertyDeclarationBlock {
                     continue;
                 }
 
-                let important = self.declarations_importance[i];
-                // For declarations from parsing, non-important declarations
-                // shouldn't override existing important one.
-                if important && !importance.important() &&
-                    matches!(source, DeclarationSource::Parsing) {
-                    return true;
-                }
-
                 if matches!(source, DeclarationSource::Parsing) {
+                    let important = self.declarations_importance[i];
+
+                    // For declarations from parsing, non-important declarations
+                    // shouldn't override existing important one.
+                    if important && !importance.important() {
+                        return false;
+                    }
+
                     // As a compatibility hack, specially on Android,
                     // don't allow to override a prefixed webkit display
                     // value with an unprefixed version from parsing
@@ -564,27 +564,17 @@ impl PropertyDeclarationBlock {
         true
     }
 
-    /// Set the declaration importance for a given property, if found.
-    ///
-    /// Returns whether any declaration was updated.
-    pub fn set_importance(&mut self, property: &PropertyId, new_importance: Importance) -> bool {
-        let mut updated_at_least_one = false;
-        for (i, declaration) in self.declarations.iter().enumerate() {
-            if declaration.id().is_or_is_longhand_of(property) {
-                let is_important = new_importance.important();
-                if self.declarations_importance[i] != is_important {
-                    self.declarations_importance.set(i, is_important);
-                    updated_at_least_one = true;
-                }
-            }
-        }
-        updated_at_least_one
-    }
-
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
     /// Returns whether any declaration was actually removed.
-    pub fn remove_property(&mut self, property: &PropertyId) -> bool {
+    pub fn remove_property<C>(
+        &mut self,
+        property: &PropertyId,
+        mut before_change_callback: C,
+    ) -> bool
+    where
+        C: FnMut(&Self),
+    {
         let longhand_id = property.longhand_id();
         if let Some(id) = longhand_id {
             if !self.longhands.contains(id) {
@@ -592,23 +582,28 @@ impl PropertyDeclarationBlock {
             }
         }
         let mut removed_at_least_one = false;
-        let longhands = &mut self.longhands;
-        let declarations_importance = &mut self.declarations_importance;
         let mut i = 0;
-        self.declarations.retain(|declaration| {
-            let id = declaration.id();
-            let remove = id.is_or_is_longhand_of(property);
-            if remove {
+        let mut len = self.len();
+        while i < len {
+            {
+                let id = self.declarations[i].id();
+                if !id.is_or_is_longhand_of(property) {
+                    i += 1;
+                    continue;
+                }
+
+                if !removed_at_least_one {
+                    before_change_callback(&*self);
+                }
                 removed_at_least_one = true;
                 if let PropertyDeclarationId::Longhand(id) = id {
-                    longhands.remove(id);
+                    self.longhands.remove(id);
                 }
-                declarations_importance.remove(i);
-            } else {
-                i += 1;
+                self.declarations_importance.remove(i);
             }
-            !remove
-        });
+            self.declarations.remove(i);
+            len -= 1;
+        }
 
         if longhand_id.is_some() {
             debug_assert!(removed_at_least_one);
@@ -1116,9 +1111,7 @@ where
     let mut parser = Parser::new(&mut input);
     let start_position = parser.position();
     parser.parse_entirely(|parser| {
-        let name = id.name().into();
-        PropertyDeclaration::parse_into(declarations, id, name, &context, parser)
-            .map_err(|e| e.into())
+        PropertyDeclaration::parse_into(declarations, id, &context, parser)
     }).map_err(|err| {
         let location = err.location;
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
@@ -1169,7 +1162,7 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
             }
         };
         input.parse_until_before(Delimiter::Bang, |input| {
-            PropertyDeclaration::parse_into(self.declarations, id, name, self.context, input)
+            PropertyDeclaration::parse_into(self.declarations, id, self.context, input)
         })?;
         let importance = match input.try(parse_important) {
             Ok(()) => Importance::Important,
