@@ -185,6 +185,6 @@ impl Storage {
                 event.upcast::<Event>().fire(global.upcast());
             }),
             global.upcast(),
-        ).unwrap();
+        );
     }
 }

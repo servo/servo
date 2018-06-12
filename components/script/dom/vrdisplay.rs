@@ -517,7 +517,7 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id))).unwrap();
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id)));
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());

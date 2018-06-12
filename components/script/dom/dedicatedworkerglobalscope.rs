@@ -197,7 +197,7 @@ impl DedicatedWorkerGlobalScope {
                         WorkerEvent,
                         Box::new(SimpleWorkerErrorHandler::new(worker)),
                         pipeline_id
-                    )).unwrap();
+                    ));
                     return;
                 }
                 Ok((metadata, bytes)) => (metadata, bytes)
@@ -368,7 +368,7 @@ impl DedicatedWorkerGlobalScope {
             }
         }));
         // TODO: Should use the DOM manipulation task source.
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id)));
     }
 }
 
@@ -393,7 +393,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id)));
         Ok(())
     }
 

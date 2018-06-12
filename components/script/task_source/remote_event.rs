@@ -23,7 +23,7 @@ impl TaskSource for RemoteEventTaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static,
     {

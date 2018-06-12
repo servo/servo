@@ -65,7 +65,7 @@ impl fmt::Debug for CommonScriptMsg {
 /// A cloneable interface for communicating with an event loop.
 pub trait ScriptChan: JSTraceable {
     /// Send a message to the associated event loop.
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
+    fn send(&self, msg: CommonScriptMsg);
     /// Clone this handle.
     fn clone(&self) -> Box<ScriptChan + Send>;
 }
