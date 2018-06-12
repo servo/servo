@@ -33,7 +33,10 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSSt
 use dom::customelementregistry::CustomElementRegistry;
 use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::hashchangeevent::HashChangeEvent;
 use dom::history::History;
 use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
@@ -1560,13 +1563,33 @@ impl Window {
                     referrer_policy: Option<ReferrerPolicy>) {
         let doc = self.Document();
         let referrer_policy = referrer_policy.or(doc.get_referrer_policy());
-
         // https://html.spec.whatwg.org/multipage/#navigating-across-documents
         if !force_reload && url.as_url()[..Position::AfterQuery] ==
             doc.url().as_url()[..Position::AfterQuery] {
                 // Step 6
                 if let Some(fragment) = url.fragment() {
+                    self.send_to_constellation(ScriptMsg::NavigatedToFragment(url.clone(), replace));
                     doc.check_and_scroll_fragment(fragment);
+                    let this = Trusted::new(self);
+                    let old_url = doc.url().into_string();
+                    let new_url = url.clone().into_string();
+                    let task = task!(hashchange_event: move || {
+                        let this = this.root();
+                        let event = HashChangeEvent::new(
+                            &this,
+                            atom!("hashchange"),
+                            false,
+                            false,
+                            old_url,
+                            new_url);
+                        event.upcast::<Event>().fire(this.upcast::<EventTarget>());
+                    });
+                    // FIXME(nox): Why are errors silenced here?
+                    let _ = self.script_chan.send(CommonScriptMsg::Task(
+                        ScriptThreadEventCategory::DomEvent,
+                        Box::new(self.task_canceller().wrap_task(task)),
+                        self.pipeline_id()
+                    ));
                     doc.set_url(url.clone());
                     return
                 }
