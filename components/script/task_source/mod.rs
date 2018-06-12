@@ -10,7 +10,6 @@ pub mod performance_timeline;
 pub mod user_interaction;
 
 use dom::globalscope::GlobalScope;
-use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
 
 pub trait TaskSource {
@@ -18,11 +17,11 @@ pub trait TaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static;
 
-    fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
+    fn queue<T>(&self, task: T, global: &GlobalScope)
     where
         T: TaskOnce + 'static,
     {

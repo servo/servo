@@ -24,7 +24,7 @@ impl TaskSource for FileReadingTaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static,
     {

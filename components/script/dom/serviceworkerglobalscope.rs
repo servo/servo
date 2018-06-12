@@ -54,9 +54,9 @@ pub struct ServiceWorkerChan {
 }
 
 impl ScriptChan for ServiceWorkerChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        Ok(self.sender
-               .send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(msg))))
+    fn send(&self, msg: CommonScriptMsg) {
+        self.sender
+            .send(ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(msg)))
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {

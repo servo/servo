@@ -112,7 +112,6 @@ use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
-use std::result::Result;
 use std::sync::Arc;
 use std::thread;
 use style::thread_state::{self, ThreadState};
@@ -241,7 +240,7 @@ pub enum MainThreadScriptMsg {
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
     fn send(&self, msg: CommonScriptMsg) {
-        ScriptChan::send(&**self, msg).unwrap();
+        ScriptChan::send(&**self, msg);
     }
 }
 
@@ -288,8 +287,8 @@ impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
 pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
 
 impl ScriptChan for SendableMainThreadScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        Ok(self.0.send(msg))
+    fn send(&self, msg: CommonScriptMsg) {
+        self.0.send(msg)
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -302,8 +301,8 @@ impl ScriptChan for SendableMainThreadScriptChan {
 pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for MainThreadScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        Ok(self.0.send(MainThreadScriptMsg::Common(msg)))
+    fn send(&self, msg: CommonScriptMsg) {
+        self.0.send(MainThreadScriptMsg::Common(msg))
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {

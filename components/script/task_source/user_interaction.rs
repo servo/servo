@@ -13,7 +13,6 @@ use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use std::fmt;
-use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
@@ -31,7 +30,7 @@ impl TaskSource for UserInteractionTaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static,
     {
@@ -40,7 +39,7 @@ impl TaskSource for UserInteractionTaskSource {
             Box::new(canceller.wrap_task(task)),
             Some(self.1)
         ));
-        Ok(self.0.send(msg))
+        self.0.send(msg)
     }
 }
 

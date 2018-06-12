@@ -19,8 +19,8 @@ pub struct SendableWorkerScriptChan<T: DomObject> {
 }
 
 impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptChan<T> {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        Ok(self.sender.send((self.worker.clone(), msg)))
+    fn send(&self, msg: CommonScriptMsg) {
+        self.sender.send((self.worker.clone(), msg))
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -41,9 +41,9 @@ pub struct WorkerThreadWorkerChan<T: DomObject> {
 }
 
 impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        Ok(self.sender
-               .send((self.worker.clone(), WorkerScriptMsg::Common(msg))))
+    fn send(&self, msg: CommonScriptMsg) {
+        self.sender
+            .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {

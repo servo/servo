@@ -11,7 +11,6 @@ use dom::globalscope::GlobalScope;
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
-use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
 use task_source::TaskSource;
 
@@ -35,7 +34,7 @@ impl TaskSource for PerformanceTimelineTaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static,
     {
@@ -44,7 +43,7 @@ impl TaskSource for PerformanceTimelineTaskSource {
             Box::new(canceller.wrap_task(task)),
             Some(self.1)
         );
-        self.0.send(msg).map_err(|_| ())
+        self.0.send(msg)
     }
 }
 
