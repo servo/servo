@@ -1739,7 +1739,9 @@ impl Animate for Quaternion {
 
         let (this_weight, other_weight) = procedure.weights();
         debug_assert!(
-            (this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON ||
+            // Doule EPSILON since both this_weight and other_weght have calculation errors
+            // which are approximately equal to EPSILON.
+            (this_weight + other_weight - 1.0f64).abs() <= f64::EPSILON * 2.0 ||
             other_weight == 1.0f64 || other_weight == 0.0f64,
             "animate should only be used for interpolating or accumulating transforms"
         );
