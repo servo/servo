@@ -85,7 +85,10 @@ impl History {
         // Step 6
         let hash_changed =  old_url.fragment() != url.fragment();
 
-        // TODO: Step 8 - scroll restoration
+        // Step 8
+        if let Some(fragment) = url.fragment() {
+            document.check_and_scroll_fragment(fragment);
+        }
 
         // Step 11
         let state_changed = state_id != self.state_id.get();
