@@ -41,11 +41,13 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return pc.getStats();
   }, 'getStats() with no argument should succeed');
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return pc.getStats(null);
   }, 'getStats(null) should succeed');
 
@@ -59,6 +61,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
       return promise_rejects(t, 'InvalidAccessError', pc.getStats(track));
@@ -67,6 +70,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
       pc.addTrack(track, mediaStream);
@@ -76,6 +80,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const track = generateMediaStreamTrack();
     pc.addTransceiver(track);
 
@@ -84,6 +89,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
       // addTransceiver allows adding same track multiple times
@@ -100,6 +106,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver1 = pc.addTransceiver('audio');
 
     // Create another transceiver that resends what
@@ -117,6 +124,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return pc.getStats()
     .then(statsReport => {
       validateStatsReport(statsReport);
@@ -126,6 +134,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
       pc.addTrack(track, mediaStream);
@@ -140,6 +149,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
       pc.addTrack(track);
@@ -162,6 +172,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return getTrackFromUserMedia('audio')
     .then(([track, mediaStream]) => {
       pc.addTrack(track, mediaStream);
@@ -185,6 +196,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio');
 
     return pc.getStats(transceiver.receiver.track)

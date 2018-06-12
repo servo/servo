@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Web Background Synchronization spec.
-// See https://wicg.github.io/BackgroundSync/spec/
+// Content of this file was automatically extracted from the
+// "Web Background Synchronization" spec.
+// See: https://wicg.github.io/BackgroundSync/spec/
 
 partial interface ServiceWorkerRegistration {
   readonly attribute SyncManager sync;

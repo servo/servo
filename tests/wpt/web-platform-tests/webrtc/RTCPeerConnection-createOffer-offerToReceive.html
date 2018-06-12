@@ -21,6 +21,7 @@
     // Start testing
     promise_test(t => {
       const pc = new RTCPeerConnection();
+      t.add_cleanup(() => pc.close());
       const dummy = pc.createDataChannel('foo'); // Just to have something to offer
 
       return pc.createOffer(offerToReceiveFalse)
@@ -32,6 +33,8 @@
 
     promise_test(t => {
       const pc = new RTCPeerConnection();
+
+      t.add_cleanup(() => pc.close());
 
       return pc.createOffer(offerToReceiveTrue)
       .then(() => {
@@ -46,6 +49,8 @@
 
     promise_test(t => {
       const pc = new RTCPeerConnection();
+
+      t.add_cleanup(() => pc.close());
 
       return pc.createOffer(offerToReceiveTrue)
       .then(() => {
@@ -66,6 +71,8 @@
 
     promise_test(t => {
       const pc = new RTCPeerConnection();
+
+      t.add_cleanup(() => pc.close());
 
       return getTrackFromUserMedia(kind)
       .then(([track, stream]) => {
@@ -91,6 +98,8 @@
     promise_test(t => {
       const pc = new RTCPeerConnection();
 
+      t.add_cleanup(() => pc.close());
+
       return getTrackFromUserMedia(kind)
       .then(([track, stream]) => {
         pc.addTrack(track, stream);
@@ -110,6 +119,8 @@
     promise_test(t => {
       const pc = new RTCPeerConnection();
 
+      t.add_cleanup(() => pc.close());
+
       pc.addTransceiver(kind, {direction: 'recvonly'});
 
       return pc.createOffer(offerToReceiveFalse)
@@ -126,7 +137,10 @@
 
     promise_test(t => {
       const pc = new RTCPeerConnection();
+      t.add_cleanup(() => pc.close());
       const pc2 = new RTCPeerConnection();
+
+      t.add_cleanup(() => pc2.close());
 
       return getTrackFromUserMedia(kind)
       .then(([track, stream]) => {
@@ -153,6 +167,8 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
     .then(() => {

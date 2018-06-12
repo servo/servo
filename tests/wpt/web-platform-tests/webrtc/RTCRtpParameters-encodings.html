@@ -192,6 +192,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
     const param = sender.getParameters();
     validateSenderRtpParameters(param);
@@ -205,11 +206,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `sender.setParameters() with mismatch number of encodings should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
     const param = sender.getParameters();
     validateSenderRtpParameters(param);
@@ -218,11 +219,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `sender.setParameters() with encodings unset should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -240,11 +241,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `setParameters() with modified encoding.ssrc field should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -262,11 +263,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `setParameters() with modified encoding.rtx field should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -284,11 +285,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `setParameters() with modified encoding.fec field should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio', {
       sendEncodings: [{ rid: 'foo' }],
     });
@@ -302,7 +303,6 @@
     encoding.rid = 'bar';
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `setParameters() with modified encoding.rid field should reject with InvalidModificationError`);
 
   /*
@@ -313,6 +313,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -322,11 +323,11 @@
     encoding.scaleResolutionDownBy = 0.5;
     return promise_rejects(t, 'RangeError',
       sender.setParameters(param));
-
   }, `setParameters() with encoding.scaleResolutionDownBy field set to less than 1.0 should reject with RangeError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -342,13 +343,13 @@
 
       assert_approx_equals(encoding.scaleResolutionDownBy, 1.5, 0.01);
     });
-
   }, `setParameters() with encoding.scaleResolutionDownBy field set to greater than 1.0 should succeed`);
 
   // Helper function to test that modifying an encoding field should succeed
   function test_modified_encoding(field, value1, value2, desc) {
     promise_test(t => {
       const pc = new RTCPeerConnection();
+      t.add_cleanup(() => pc.close());
       const { sender } = pc.addTransceiver('audio', {
         sendEncodings: [{
           [field]: value1

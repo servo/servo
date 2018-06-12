@@ -38,6 +38,8 @@
   promise_test(function(t) {
     var pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp}))
     .then(function() {
       assert_true(pc.canTrickleIceCandidates, 'canTrickleIceCandidates property is true after setRemoteDescription');
@@ -46,6 +48,8 @@
 
   promise_test(function(t) {
     var pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp.replace('a=ice-options:trickle\r\n', '')}))
     .then(function() {

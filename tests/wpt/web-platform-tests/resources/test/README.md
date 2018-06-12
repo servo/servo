@@ -81,3 +81,10 @@ must include a summary of the expected results as a JSON string within a
       "type": "complete"
     }
     </script>
+
+`testharness.js` is expected to function consistently in a number of
+distinct environments. In order to verify this expectation, each functional
+test may be executed under a number of distinct conditions. These conditions
+are applied using WPT's "test variants" pattern. The available variants are
+defined in the `variants.js` file; this file must be included before
+`testharness.js`. Every test must specify at least one variant.

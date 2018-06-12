@@ -1,41 +1,64 @@
 <!DOCTYPE html>
-<html>
-<body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-
-var previousOrientation = screen.orientation;
-
-test(function() {
-    screen.orientation.unlock();
+test(() => {
+  screen.orientation.unlock();
 }, "Test that screen.orientation.unlock() doesn't throw when there is no lock");
 
-async_test(function(t) {
-    var orientations = ['any', 'portrait', 'landscape', 'portrait-secondary',
-                        'landscape-primary', 'landscape-secondary', 'portrait-primary'];
+test(() => {
+  const value = screen.orientation.unlock();
+  assert_equals(value, undefined);
+}, "Test that screen.orientation.unlock() returns a void value");
 
-    setOrientation = function(idx) {
-        if( idx == orientations.length) {
-            screen.orientation.unlock();
-            t.done();
-            return;
-        }
-        (function(i) {
-            screen.orientation.lock(orientations[i]).then(function() {
-                setOrientation(i+1);
-            },function() {});
-        })(idx);
-    };
+promise_test(async t => {
+  const value = await screen.orientation.lock('any');
+  assert_equals(value, undefined);
+}, "Test that screen.orientation.lock returns a promise which will be fulfilled with a void value.");
 
-    setOrientation(0);
-
+promise_test(async t => {
+  const orientations = [
+    'any',
+    'natural',
+    'portrait',
+    'landscape',
+    'portrait-secondary',
+    'landscape-primary',
+    'landscape-secondary',
+    'portrait-primary',
+  ];
+  for (const orientation of orientations) {
+    const promiseToChange = screen.orientation.lock(orientation);
+    assert_true(promiseToChange instanceof Promise, "Expected an instance of Promise");
+    await promiseToChange;
+    const type = screen.orientation.type;
+    switch (orientation) {
+    case 'any':
+      break;
+    case 'natural':
+      assert_true(type == "portrait-primary" || type == "landscape-primary");
+      break;
+    case 'portrait':
+      assert_true(type == "portrait-primary" || type == "portrait-secondary");
+      break;
+    case 'landscape':
+      assert_true(type == "landscape-primary" || type == "landscape-secondary");
+      break;
+    default:
+      assert_equals(type, orientation, "Expected orientation to change");
+      break;
+    }
+  }
+  screen.orientation.unlock();
 }, "Test that screen.orientation.lock returns a pending promise.");
 
-test(function() {
-    assert_equals(screen.orientation, previousOrientation);
+promise_test(async t => {
+  const preType = screen.orientation.type;
+  const isPortrait = preType.includes("portrait");
+  const newType = `${ isPortrait ? "landscape" : "portrait" }-primary`;
+  const p = screen.orientation.lock(newType);
+  assert_equals(screen.orientation.type, preType, "Must not change orientation until next spin of event loop");
+  await p;
+  assert_equals(screen.orientation.type, newType);
 }, "Test that screen.orientation.lock() is actually async");
-
 </script>
-</body>
-</html>

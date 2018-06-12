@@ -40,6 +40,8 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
       const tracks = mediaStream.getTracks();
@@ -66,6 +68,8 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
@@ -102,6 +106,8 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
       const tracks = mediaStream.getTracks();
@@ -121,6 +127,8 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
@@ -148,6 +156,8 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {

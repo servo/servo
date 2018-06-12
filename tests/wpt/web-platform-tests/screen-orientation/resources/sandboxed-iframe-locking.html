@@ -1,13 +1,11 @@
-<!DOCTYPE html>
-<html>
 <script>
-    var msg = "";
-    screen.orientation.lock("portrait-primary").then(function() {
-        msg = screen.orientation.type;
-    }, function(error) {
-        msg = error.name;
-    }).then(function() {
-        parent.window.postMessage(msg, "*");
-    });
+let msg = "";
+screen.orientation.lock("portrait-primary")
+.then(() => {
+  msg = screen.orientation.type;
+}).catch(error => {
+  msg = error.name;
+}).finally(() => {
+  parent.window.postMessage(msg, "*");
+});
 </script>
-</html>

@@ -1,46 +1,29 @@
 <!DOCTYPE html>
-<html>
-<body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<iframe id="testIframe" sandbox="allow-scripts allow-same-origin" style="display:none">
+<iframe id="testIframe" sandbox="allow-scripts allow-same-origin"
+  style="display:none" src="resources/iframe-listen-orientation-change.html">
 </iframe>
 
 <script>
-    var test = async_test("Test subframes receive orientation change events");
+promise_test(async t => {
+  let orientations = [
+    'portrait-primary',
+    'portrait-secondary',
+    'landscape-primary',
+    'landscape-secondary'
+  ];
+  if (screen.orientation.type.includes('portrait')) {
+    orientations = orientations.reverse();
+  }
+  const messageWatcher = new EventWatcher(t, window, "message");
 
-    var orientations = [
-        'portrait-primary',
-        'portrait-secondary',
-        'landscape-primary',
-        'landscape-secondary'
-    ];
-
-    var currentIndex = orientations.indexOf(window.screen.orientation.type);
-    var eventsReceived = 0;
-
-    function getNextIndex() {
-        return (currentIndex + 1) % orientations.length;
-    }
-
-    function changeOrientation() {
-        screen.orientation.lock(orientations[getNextIndex()]).then(function () {}, function () {});
-        currentIndex = getNextIndex();
-    }
-
-    window.onmessage = test.step_func(function (ev) {
-        assert_equals(ev.data, orientations[currentIndex], "subframe receives orientation change event");
-        ++eventsReceived;
-        if (eventsReceived < orientations.length)
-            changeOrientation()
-        else
-            test.done();
-    });
-
-    var testIframe = document.getElementById("testIframe");
-    testIframe.src = "resources/iframe-listen-orientation-change.html";
-    testIframe.onload = changeOrientation;
+  for (const orientation of orientations) {
+    await screen.orientation.lock(orientation);
+    const message = await messageWatcher.wait_for("message");
+    assert_equals(message.data, orientation, "subframe receives orientation change event");
+  }
+  screen.orientation.unlock();
+}, "Test subframes receive orientation change events");
 </script>
-</body>
-</html>

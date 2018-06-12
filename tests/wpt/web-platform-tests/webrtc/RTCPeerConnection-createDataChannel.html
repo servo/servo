@@ -362,6 +362,7 @@ test(() => {
  */
 promise_test(t => {
   const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
   const channel1 = pc.createDataChannel('channel');
   assert_equals(channel1.id, null,
     'Expect initial id to be null');

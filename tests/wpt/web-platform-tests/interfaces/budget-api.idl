@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the budget-api spec.
-// See https://wicg.github.io/budget-api/
+// Content of this file was automatically extracted from the
+// "Web Budget API" spec.
+// See: https://wicg.github.io/budget-api/
 
 [Exposed=Window]
 partial interface Navigator {

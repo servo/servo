@@ -45,6 +45,7 @@ const remoteValue2 = 2;
 
 promise_test(t => {
   const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
   assert_equals(pc.sctp, null);
   let maxMessageSize;
 
@@ -69,6 +70,7 @@ promise_test(t => {
 
 promise_test(t => {
   const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
   assert_equals(pc.sctp, null);
 
   return generateOffer({ pc, data: true })
@@ -97,6 +99,7 @@ promise_test(t => {
 
 promise_test(t => {
   const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
   assert_equals(pc.sctp, null);
 
   return generateOffer({ pc, data: true })
@@ -118,6 +121,7 @@ promise_test(t => {
 
 promise_test(t => {
   const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
   assert_equals(pc.sctp, null);
 
   return generateOffer({ pc, data: true })
@@ -152,6 +156,7 @@ promise_test(t => {
 
 promise_test(t => {
   const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
   assert_equals(pc.sctp, null);
   const largerThanCanSendSize = canSendSize + 1;
 

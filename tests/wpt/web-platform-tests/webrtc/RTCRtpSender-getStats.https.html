@@ -41,7 +41,9 @@
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     const { sender } = caller.addTransceiver('audio');
 
     await doSignalingHandshake(caller, callee);
@@ -52,7 +54,9 @@
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
     const [track] = stream.getTracks();
     const sender = caller.addTrack(track, stream);

@@ -38,7 +38,9 @@
    */
   async_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
 
     pc1.createDataChannel('test');
     exchangeIceCandidates(pc1, pc2);

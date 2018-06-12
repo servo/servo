@@ -24,6 +24,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return promise_rejects(t, 'InvalidStateError',
       pc.createAnswer());
   }, 'createAnswer() with null remoteDescription should reject with InvalidStateError');
@@ -35,6 +36,8 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.createOffer({ offerToReceiveVideo: true })
     .then(offer => pc.setRemoteDescription(offer))
@@ -50,6 +53,8 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return generateOffer({ pc, data: true })
     .then(offer => pc.setRemoteDescription(offer))

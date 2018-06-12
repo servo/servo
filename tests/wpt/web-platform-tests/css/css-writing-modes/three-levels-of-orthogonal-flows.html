@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>Three levels of writing mode roots with text inside, no constraints</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic" title="4. Intrinsic Size Determination">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#orthogonal-auto" title="7.3.1. Available Space in Orthogonal Flows">
+<link rel="match" href="reference/three-levels-of-orthogonal-flows.html">
+<p>The yellow box should be in the top right corner of the hotpink box.</p>
+<div style="writing-mode:vertical-rl; width:30em; height:30em; background:hotpink;">
+  <div style="writing-mode:horizontal-tb;">
+    <div style="writing-mode:vertical-rl; background:yellow;">
+      <div style="visibility:hidden;">
+        Roses are red,<br>
+        violets are blue.<br>
+        All my base<br>
+        are belong to you.<br>
+      </div>
+    </div>
+  </div>
+</div>

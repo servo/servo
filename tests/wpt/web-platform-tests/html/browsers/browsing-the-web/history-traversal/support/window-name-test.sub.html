@@ -1,6 +1,7 @@
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
 <script>
+  setup({explicit_done: true})
   function process_test_result(passed, test_name) {
     if ({{GET[sendmessage]}}) {
       if (window.opener) {
@@ -12,6 +13,7 @@
       test(function(t) {
         assert_equals(passed, true);
       }, test_name);
+      done();
     }
   }
 

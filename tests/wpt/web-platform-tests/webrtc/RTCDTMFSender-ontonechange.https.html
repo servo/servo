@@ -232,6 +232,7 @@
    */
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const transceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
     const dtmfSender = transceiver.sender.dtmf;
 
@@ -279,7 +280,6 @@
 
     dtmfSender.addEventListener('tonechange', onToneChange);
     dtmfSender.insertDTMF('ABCD', 100, 70);
-
   }, `Setting transceiver.currentDirection to recvonly in the middle of tonechange events should stop future tonechange events from firing`);
 
   /* Section 7.3 - Tone change event */

@@ -12,7 +12,6 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   assert_session_desc_equals
-  //   test_state_change_event
 
   /*
     4.3.2.  Interface Definition
@@ -58,8 +57,10 @@
    */
   promise_test(t=> {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
-    test_state_change_event(t, pc, ['have-local-offer', 'stable']);
+    const states = [];
+    pc.addEventListener('signalingstatechange', () => states.push(pc.signalingState));
 
     return pc.createOffer()
     .then(offer => pc.setLocalDescription(offer))
@@ -76,6 +77,8 @@
       assert_equals(pc.localDescription, null);
       assert_equals(pc.pendingLocalDescription, null);
       assert_equals(pc.currentLocalDescription, null);
+
+      assert_array_equals(states, ['have-local-offer', 'stable']);
     });
   }, 'setLocalDescription(rollback) from have-local-offer state should reset back to stable state');
 
@@ -94,12 +97,14 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return promise_rejects(t, 'InvalidStateError',
       pc.setLocalDescription({ type: 'rollback' }));
   }, `setLocalDescription(rollback) from stable state should reject with InvalidStateError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return pc.createOffer({ offerToReceiveAudio: true })
     .then(offer =>
       pc.setRemoteDescription(offer)
@@ -113,6 +118,7 @@
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     return pc.createOffer()
     .then(offer => pc.setLocalDescription(offer))
     .then(() => pc.setLocalDescription({

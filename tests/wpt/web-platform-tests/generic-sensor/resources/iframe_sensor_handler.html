@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>iframe sensor tester</title>
+<script src="/resources/testharness.js"></script>
+<script src="/generic-sensor/generic-sensor-tests.js"></script>
+<script>
+  let mockBackend = null;
+  // Minimum frequency supported by the mock backend is 5Hz. Using 200ms
+  // update period + 50ms threshold.
+  const maxUpdatePeriod = 250;
+  let sensor = null;
+  let lastTimestamp = null;
+
+  window.onmessage = (e) => {
+    if (e.data.command === 'create_sensor') {
+      assert_equals(sensor, null);
+      initialize_generic_sensor_tests().then((backend) => {
+        mockBackend = backend;
+        try {
+          sensor = new self[e.data.type]();
+          e.source.postMessage({command: e.data.command,
+                                result: 'success'}, '*');
+        } catch (e) {
+          e.source.postMessage({command: e.data.command, result: ''}, '*');
+        }
+      });
+    } else if (e.data.command === 'start_sensor') {
+      assert_not_equals(sensor, null);
+      try {
+        sensor.start();
+        sensor.onreading = () => lastTimestamp = sensor.timestamp;
+        let onReadingListener = () => {
+          e.source.postMessage({command: e.data.command,
+                                result: 'success'}, '*');
+        }
+        sensor.addEventListener('reading', onReadingListener, {once: true});
+      } catch (e) {
+        e.source.postMessage({command: e.data.command, result: ''}, '*');
+      }
+    } else if (e.data.command === 'is_sensor_suspended') {
+      let cachedTimestamp = lastTimestamp;
+      let timeoutId = setTimeout(() => {
+        e.source.postMessage({command: e.data.command,
+                              result: cachedTimestamp === lastTimestamp}, '*');
+      }, maxUpdatePeriod);
+
+      let suspendListener = () => {
+        clearTimeout(timeoutId);
+        e.source.postMessage({command: e.data.command,
+                              result: cachedTimestamp === lastTimestamp}, '*');
+      }
+      sensor.addEventListener('reading', suspendListener, {once: true});
+    } else if (e.data.command === 'reset_sensor_backend') {
+      if (sensor) {
+        sensor.stop();
+      }
+      mockBackend.reset().then(() => {
+        e.source.postMessage({command: e.data.command,
+                              result: 'success'}, '*');
+      });
+    }
+  }
+</script>

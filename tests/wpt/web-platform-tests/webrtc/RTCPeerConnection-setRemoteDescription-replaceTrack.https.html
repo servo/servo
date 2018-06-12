@@ -12,6 +12,7 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
@@ -28,6 +29,7 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
@@ -44,6 +46,7 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
@@ -62,6 +65,7 @@
   async_test(t => {
     const expectedException = 'InvalidStateError';
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
@@ -84,6 +88,7 @@
   async_test(t => {
     const expectedException = 'InvalidModificationError';
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
@@ -108,6 +113,7 @@
   async_test(t => {
     const expectedException = 'InvalidModificationError';
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     return getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);

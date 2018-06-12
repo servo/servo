@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Fetch Standard" spec.
+// See: https://fetch.spec.whatwg.org/
+
 typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
 
 [Constructor(optional HeadersInit init),

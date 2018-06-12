@@ -8,7 +8,7 @@
 <script>
 async_test(function(t) {
     var img = document.getElementById("brokenurl");
-    img.src = "http://also a broken url";
+    img.src = "http://[";
     var errorevent = false;
 
     // The errors should be queued in the event loop, so they should only trigger
@@ -17,7 +17,7 @@ async_test(function(t) {
     img.addEventListener('loadend', t.step_func_done(function() {
         assert_true(errorevent, "error event fired");
     }));
-}, 'src="http://also a broken url"');
+}, 'src="http://["');
 
 async_test(function(t) {
     var img = document.getElementById("emptysrc");

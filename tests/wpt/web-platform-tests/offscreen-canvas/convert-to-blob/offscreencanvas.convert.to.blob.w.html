@@ -112,10 +112,11 @@ self.onmessage = function(e) {
 </script>
 
 <script>
-function makeWorker(script)
-{
-    var blob = new Blob([script]);
-    return new Worker(URL.createObjectURL(blob));
+function makeWorker(test) {
+    var blob = new Blob([document.getElementById("myWorker").textContent]);
+    var worker = new Worker(URL.createObjectURL(blob));
+    worker.onerror = test.unreached_func("error");
+    return worker;
 }
 
 function drawCanvas(ctx)
@@ -190,7 +191,7 @@ function compareWithToBlob(t, typeVal, qualityVal, blob2)
 }
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "empty", "empty", msg.data);
     }));
@@ -198,7 +199,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with default arguments produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "empty", 1.0, msg.data);
     }));
@@ -206,7 +207,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with default type/1.0 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "empty", 0.2, msg.data);
     }));
@@ -214,7 +215,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with default type/0.2 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/png", "empty", msg.data);
     }));
@@ -222,7 +223,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with png/default quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/png", 1.0, msg.data);
     }));
@@ -230,7 +231,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with png/1.0 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/png", 0.2, msg.data);
     }));
@@ -238,7 +239,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with png/0.2 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/jpeg", "empty", msg.data);
     }));
@@ -246,7 +247,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with jpeg/default quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/jpeg", 1.0, msg.data);
     }));
@@ -254,7 +255,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with jpeg/1.0 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/jpeg", 0.2, msg.data);
     }));
@@ -262,7 +263,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with jpeg/0.2 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/webp", "empty", msg.data);
     }));
@@ -270,7 +271,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with webp/default quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/webp", 1.0, msg.data);
     }));
@@ -278,7 +279,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with webp/1.0 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func(function(msg) {
         compareWithToBlob(t, "image/webp", 0.2, msg.data);
     }));
@@ -286,7 +287,7 @@ async_test(function(t) {
 }, "Test that convertToBlob with webp/0.2 quality produces correct result in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         if (msg.data == true || msg.data == false)
             assert_true(msg.data);
@@ -295,7 +296,7 @@ async_test(function(t) {
 }, "Test that call convertToBlob on a detached OffscreenCanvas throws exception in a worker");
 
 async_test(function(t) {
-    var worker = makeWorker(document.getElementById("myWorker").textContent);
+    var worker = makeWorker(t);
     worker.addEventListener('message', t.step_func_done(function(msg) {
         if (msg.data == true || msg.data == false)
             assert_true(msg.data);

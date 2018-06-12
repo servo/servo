@@ -56,7 +56,10 @@
    */
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     const port = window.location.port;
     const [idpDomain] = getIdpDomains();
@@ -92,9 +95,12 @@
     const idpHost = hostString(idpDomain, port);
 
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection({
       peerIdentity: `bob@${idpDomain}`
     });
+
+    t.add_cleanup(() => pc2.close());
 
     pc1.setIdentityProvider(idpHost, {
       protocol: 'mock-idp.js',
@@ -131,9 +137,12 @@
     const idpHost = hostString(idpDomain, port);
 
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection({
       peerIdentity: `alice@${idpDomain}`
     });
+
+    t.add_cleanup(() => pc2.close());
 
     // Ask mockidp.js to return custom contents in validation result
     pc1.setIdentityProvider(idpHost, {
@@ -167,9 +176,12 @@
     const idpHost1 = hostString(idpDomain1, port);
 
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection({
       peerIdentity: `alice@${idpDomain2}`
     });
+
+    t.add_cleanup(() => pc2.close());
 
     // mock-idp.js will return assertion of domain2 identity
     // with domain1 in the idp.domain field
@@ -220,9 +232,12 @@
     const idpHost = hostString(idpDomain, port);
 
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection({
       peerIdentity: `alice@${idpDomain}`
     });
+
+    t.add_cleanup(() => pc2.close());
 
     // Ask mock-idp.js to throw error during validation,
     // i.e. during pc2.setRemoteDescription()
@@ -263,7 +278,10 @@
    */
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     const port = window.location.port;
     const [idpDomain] = getIdpDomains();

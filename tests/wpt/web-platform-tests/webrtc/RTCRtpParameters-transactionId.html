@@ -85,6 +85,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -95,11 +96,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `sender.setParameters() with transaction ID different from last getParameters() should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -109,11 +110,11 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param));
-
   }, `sender.setParameters() with transaction ID unset should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param = sender.getParameters();
@@ -123,11 +124,11 @@
     .then(() =>
       promise_rejects(t, 'InvalidModificationError',
         sender.setParameters(param)));
-
   }, `setParameters() twice with the same parameters should reject with InvalidModificationError`);
 
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
 
     const param1 = sender.getParameters();
@@ -140,7 +141,6 @@
 
     return promise_rejects(t, 'InvalidModificationError',
       sender.setParameters(param1));
-
   }, `setParameters() with parameters older than last getParameters() should reject with InvalidModificationError`);
 
 </script>

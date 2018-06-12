@@ -144,6 +144,7 @@ SET TIMEOUT: encrypted-media/polyfill/clearkey-polyfill.js
 SET TIMEOUT: encrypted-media/scripts/playback-temporary-events.js
 SET TIMEOUT: eventsource/eventsource-close.htm
 SET TIMEOUT: eventsource/eventsource-request-cancellation.htm
+SET TIMEOUT: generic-sensor/resources/iframe_sensor_handler.html
 SET TIMEOUT: html/browsers/browsing-the-web/history-traversal/*
 SET TIMEOUT: html/browsers/browsing-the-web/navigating-across-documents/*
 SET TIMEOUT: html/browsers/browsing-the-web/scroll-to-fragid/*
