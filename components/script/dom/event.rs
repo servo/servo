@@ -103,16 +103,6 @@ impl Event {
         self.cancelable.set(cancelable);
     }
 
-    // Determine if there are any listeners for a given target and type.
-    // See https://github.com/whatwg/dom/issues/453
-    pub fn has_listeners_for(&self, target: &EventTarget, type_: &Atom) -> bool {
-        // TODO: take 'removed' into account? Not implemented in Servo yet.
-        // https://dom.spec.whatwg.org/#event-listener-removed
-        let mut event_path = self.construct_event_path(&target);
-        event_path.push(DomRoot::from_ref(target));
-        event_path.iter().any(|target| target.has_listeners_for(type_))
-    }
-
     // https://dom.spec.whatwg.org/#event-path
     fn construct_event_path(&self, target: &EventTarget) -> Vec<DomRoot<EventTarget>> {
         let mut event_path = vec![];

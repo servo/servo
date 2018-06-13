@@ -1658,7 +1658,7 @@ impl Document {
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
         let event_target = self.window.upcast::<EventTarget>();
-        let has_listeners = event.has_listeners_for(&event_target, &atom!("beforeunload"));
+        let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
         event_target.dispatch_event_with_target(
             document.root().upcast(),
             &event,
@@ -1731,7 +1731,7 @@ impl Document {
             );
             event.set_trusted(true);
             let event_target = self.window.upcast::<EventTarget>();
-            let has_listeners = event.has_listeners_for(&event_target, &atom!("unload"));
+            let has_listeners = event_target.has_listeners_for(&atom!("unload"));
             let _ = event_target.dispatch_event_with_target(
                 document.root().upcast(),
                 &event,
