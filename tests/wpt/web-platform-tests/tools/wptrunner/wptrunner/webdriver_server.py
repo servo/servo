@@ -3,10 +3,8 @@ import errno
 import os
 import platform
 import socket
-import threading
 import time
 import traceback
-import urlparse
 
 import mozprocess
 

@@ -1,4 +1,3 @@
-import os
 import sys
 
 from os.path import join, dirname
@@ -9,7 +8,7 @@ import pytest
 from .base import all_products, active_products
 
 sys.path.insert(0, join(dirname(__file__), "..", "..", "..", ".."))  # repo root
-from tools import localpaths
+from tools import localpaths  # noqa: flake8
 from wptserve import sslutils
 
 from wptrunner import environment

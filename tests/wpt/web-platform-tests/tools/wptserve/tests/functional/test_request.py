@@ -1,11 +1,8 @@
-import unittest
-
 import pytest
 
 wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer
 from wptserve.request import InputFile
-from urllib2 import HTTPError
 
 
 class TestInputFile(TestUsingServer):

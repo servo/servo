@@ -1,22 +1,16 @@
 import base64
-import hashlib
-import httplib
 import json
 import os
 import subprocess
 import tempfile
 import threading
-import traceback
-import urlparse
 import uuid
-from collections import defaultdict
 
 from mozprocess import ProcessHandler
 
 from serve.serve import make_hosts_file
 
-from .base import (ExecutorException,
-                   ConnectionlessProtocol,
+from .base import (ConnectionlessProtocol,
                    RefTestImplementation,
                    testharness_result_converter,
                    reftest_result_converter,
@@ -24,9 +18,7 @@ from .base import (ExecutorException,
                    WebDriverProtocol)
 from .process import ProcessTestExecutor
 from ..browsers.base import browser_command
-from ..wpttest import WdspecResult, WdspecSubtestResult
 from ..webdriver_server import ServoDriverServer
-from .executormarionette import WdspecRun
 
 pytestrunner = None
 webdriver = None

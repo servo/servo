@@ -1,7 +1,6 @@
 import logging
 import sys
 import threading
-from Queue import Empty
 from StringIO import StringIO
 from multiprocessing import Queue
 

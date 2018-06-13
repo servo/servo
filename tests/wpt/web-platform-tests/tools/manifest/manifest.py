@@ -6,7 +6,7 @@ from six import iteritems, itervalues, viewkeys, string_types
 
 from .item import ManualTest, WebdriverSpecTest, Stub, RefTestNode, RefTest, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
 from .log import get_logger
-from .utils import from_os_path, to_os_path, rel_path_to_url
+from .utils import from_os_path, to_os_path
 
 
 CURRENT_VERSION = 4

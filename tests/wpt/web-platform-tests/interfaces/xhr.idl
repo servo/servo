@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "XMLHttpRequest Standard" spec.
+// See: https://xhr.spec.whatwg.org/
+
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface XMLHttpRequestEventTarget : EventTarget {
   // event handlers
@@ -59,7 +64,6 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute USVString responseText;
   [Exposed=Window] readonly attribute Document? responseXML;
 };
-
 typedef (File or USVString) FormDataEntryValue;
 
 [Constructor(optional HTMLFormElement form),
@@ -75,7 +79,6 @@ interface FormData {
   void set(USVString name, Blob blobValue, optional USVString filename);
   iterable<USVString, FormDataEntryValue>;
 };
-
 [Constructor(DOMString type, optional ProgressEventInit eventInitDict),
  Exposed=(Window,DedicatedWorker,SharedWorker)]
 interface ProgressEvent : Event {

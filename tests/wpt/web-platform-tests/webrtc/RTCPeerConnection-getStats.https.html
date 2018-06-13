@@ -81,7 +81,7 @@
   promise_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack();
+    const track = generateMediaStreamTrack('audio');
     pc.addTransceiver(track);
 
     return pc.getStats(track);

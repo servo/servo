@@ -5,8 +5,6 @@ import shutil
 import sys
 import uuid
 
-from .. import testloader
-
 from base import Step, StepRunner
 from tree import Commit
 

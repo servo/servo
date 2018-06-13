@@ -16,7 +16,7 @@ def execute_async_script(session, script, args=None):
 
 def test_arguments(session):
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         function func() {
             return arguments;
         }
@@ -27,7 +27,7 @@ def test_arguments(session):
 
 def test_array(session):
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve([1, 2]);
         """)
     assert_success(response, [1, 2])
@@ -43,7 +43,7 @@ def test_file_list(session, tmpdir):
         upload.send_keys(str(file))
 
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve(document.querySelector('input').files);
         """)
     value = assert_success(response)
@@ -67,7 +67,7 @@ def test_html_all_collection(session):
     ps = session.find.css("p")
 
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve(document.all);
         """)
     value = assert_success(response)
@@ -90,7 +90,7 @@ def test_html_collection(session):
     ps = session.find.css("p")
 
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve(document.getElementsByTagName('p'));
         """)
     value = assert_success(response)
@@ -110,7 +110,7 @@ def test_html_form_controls_collection(session):
     inputs = session.find.css("input")
 
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve(document.forms[0].elements);
         """)
     value = assert_success(response)
@@ -130,7 +130,7 @@ def test_html_options_collection(session):
     options = session.find.css("option")
 
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve(document.querySelector('select').options);
         """)
     value = assert_success(response)
@@ -148,7 +148,7 @@ def test_node_list(session):
     ps = session.find.css("p")
 
     response = execute_async_script(session, """
-        let [resolve] = arguments;
+        let resolve = arguments[0];
         resolve(document.querySelectorAll('p'));
         """)
     value = assert_success(response)

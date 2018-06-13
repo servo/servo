@@ -1,6 +1,5 @@
-import os
 from six.moves.urllib.parse import urljoin
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractproperty
 
 
 def get_source_file(source_files, tests_root, manifest, path):
