@@ -367,6 +367,8 @@ impl EventTarget {
         Ok(EventTarget::new(global, proto))
     }
 
+    /// Determine if there are any listeners for a given event type.
+    /// See <https://github.com/whatwg/dom/issues/453>.
     pub fn has_listeners_for(&self, type_: &Atom) -> bool {
         match self.handlers.borrow().get(type_) {
             Some(listeners) => listeners.has_listeners(),
