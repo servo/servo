@@ -24,18 +24,20 @@
     reportCookieName = location.pathname.split('/')[location.pathname.split('/').length - 1].split('.')[0];
   }
 
-  var reportID = "";
+  var reportID = "{{GET[reportID]}}";
 
-  var cookies = document.cookie.split(';');
-  for (var i = 0; i < cookies.length; i++) {
-    var cookieName = cookies[i].split('=')[0].trim();
-    var cookieValue = cookies[i].split('=')[1].trim();
+  if (reportID == "") {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookieName = cookies[i].split('=')[0].trim();
+      var cookieValue = cookies[i].split('=')[1].trim();
 
-    if (cookieName == reportCookieName) {
-      reportID = cookieValue;
-      var cookieToDelete = cookieName + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=" + document.location.pathname.substring(0, document.location.pathname.lastIndexOf('/') + 1);
-      document.cookie = cookieToDelete;
-      break;
+      if (cookieName == reportCookieName) {
+        reportID = cookieValue;
+        var cookieToDelete = cookieName + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=" + document.location.pathname.substring(0, document.location.pathname.lastIndexOf('/') + 1);
+        document.cookie = cookieToDelete;
+        break;
+      }
     }
   }
 

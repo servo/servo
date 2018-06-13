@@ -3,7 +3,7 @@
 <!-- WARNING: These tests are preliminary and probably partly incorrect.  -->
 <title>CSSOM View automated IDL tests</title>
 <link rel="author" title="Ms2ger" href="mailto:Ms2ger@gmail.com">
-<link rel="help" href="https://drafts.csswg.org/cssom-1/#idl-index">
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#idl-index">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/WebIDLParser.js></script>
@@ -17,11 +17,11 @@
 <script>
 "use strict";
 
-function doTest([html, dom, uievents, cssom, geometry, cssom_view]) {
+function doTest([html, dom, uievents, cssom, cssom_view]) {
 
   var idlArray = new IdlArray();
   var svg = "interface SVGElement : Element {};";
-  idlArray.add_untested_idls(html + dom + svg + cssom + geometry);
+  idlArray.add_untested_idls(html + dom + svg + cssom);
   idlArray.add_untested_idls(uievents, { only: [
     'UIEvent',
     'UIEventInit',
@@ -45,7 +45,6 @@ function doTest([html, dom, uievents, cssom, geometry, cssom_view]) {
     // "MouseEvent": ["new MouseEvent('foo')"],
     "Text": ["document.createTextNode('x')"],
     // "CSSPseudoElement": [],
-    "Document": ["document"],
   });
   idlArray.test();
 };
@@ -66,7 +65,6 @@ promise_test(function() {
                       fetchData("/interfaces/dom.idl"),
                       fetchData("/interfaces/uievents.idl"),
                       fetchData("/interfaces/cssom.idl"),
-                      fetchData("/interfaces/geometry.idl"),
                       fetchData("/interfaces/cssom-view.idl"),
                       waitForLoad()])
                 .then(doTest);

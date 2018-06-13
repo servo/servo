@@ -4,6 +4,7 @@
 
 use canvas_traits::webgl::{WebGLError, WebGLVersion};
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -41,8 +42,16 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
 // Param names that are implemented for glGetParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
-const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 1] = [
-    OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 2] = [
+    EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
+    OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES,
+];
+
+// Param names that are implemented for glGetTexParameter in a WebGL 1.0 context
+// but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
+// Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
+const DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1: [GLenum; 1] = [
+    EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT,
 ];
 
 /// WebGL features that are enabled/disabled by WebGL Extensions.
@@ -57,20 +66,30 @@ struct WebGLExtensionFeatures {
     hint_targets: FnvHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
     disabled_get_parameter_names: FnvHashSet<GLenum>,
+    /// WebGL GetTexParameter() names enabled by extensions.
+    disabled_get_tex_parameter_names: FnvHashSet<GLenum>,
     /// WebGL OES_element_index_uint extension.
     element_index_uint_enabled: bool,
 }
 
 impl WebGLExtensionFeatures {
     fn new(webgl_version: WebGLVersion) -> Self {
-        let (disabled_tex_types, disabled_get_parameter_names, element_index_uint_enabled) = match webgl_version {
+        let (
+            disabled_tex_types,
+            disabled_get_parameter_names,
+            disabled_get_tex_parameter_names,
+            element_index_uint_enabled,
+        ) = match webgl_version {
             WebGLVersion::WebGL1 => {
-                (DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
-                 DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
-                 false)
+                (
+                    DEFAULT_DISABLED_TEX_TYPES_WEBGL1.iter().cloned().collect(),
+                    DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
+                    DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
+                    false,
+                )
             },
             WebGLVersion::WebGL2 => {
-                (Default::default(), Default::default(), true)
+                (Default::default(), Default::default(), Default::default(), true)
             }
         };
         Self {
@@ -81,6 +100,7 @@ impl WebGLExtensionFeatures {
             query_parameter_handlers: Default::default(),
             hint_targets: Default::default(),
             disabled_get_parameter_names,
+            disabled_get_tex_parameter_names,
             element_index_uint_enabled,
         }
     }
@@ -236,7 +256,17 @@ impl WebGLExtensions {
         !self.features.borrow().disabled_get_parameter_names.contains(&name)
     }
 
+    pub fn enable_get_tex_parameter_name(&self, name: GLenum) {
+        self.features.borrow_mut().disabled_get_tex_parameter_names.remove(&name);
+    }
+
+    pub fn is_get_tex_parameter_name_enabled(&self, name: GLenum) -> bool {
+        !self.features.borrow().disabled_get_tex_parameter_names.contains(&name)
+    }
+
     fn register_all_extensions(&self) {
+        self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
+        self.register::<ext::oeselementindexuint::OESElementIndexUint>();
         self.register::<ext::oesstandardderivatives::OESStandardDerivatives>();
         self.register::<ext::oestexturefloat::OESTextureFloat>();
         self.register::<ext::oestexturefloatlinear::OESTextureFloatLinear>();

@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html class=reftest-wait>
 <link rel="help" href="https://drafts.css-houdini.org/css-layout-api/#dom-layoutconstraintsoptions-fixedinlinesize">
-<link rel="match" href="layout-child-ref.html">
+<link rel="match" href="green-square-ref.html">
 <meta name="assert" content="This test checks that fixing the inline size of children works as expected." />
 
 <style>
 .test {
   background: red;
-  margin: 10px;
   width: 100px;
 }
 
@@ -56,5 +55,5 @@
 </div>
 
 <script>
-importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-fixed-sizes-worklet.js'});
+importWorkletAndTerminateTestAfterAsyncPaint(CSS.layoutWorklet, {url: 'support/layout-child-sizes-worklet.js'});
 </script>

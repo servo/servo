@@ -10,6 +10,10 @@ ar = "arm-linux-androideabi-ar"
 linker = "./ports/servo/fake-ld-arm64.sh"
 ar = "aarch64-linux-android-ar"
 
+[target.i686-linux-android]
+linker = "./ports/servo/fake-ld-x86.sh"
+ar = "i686-linux-android-ar"
+
 [target.arm-unknown-linux-gnueabihf]
 linker = "arm-linux-gnueabihf-gcc"
 ar = "arm-linux-gnueabihf-ar"

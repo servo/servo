@@ -2,10 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate embedder_traits;
 extern crate servo_config;
 
-use embedder_traits::resources::register_resources_for_tests;
 use servo_config::opts::{parse_url_or_filename, parse_pref_from_command_line};
 use servo_config::prefs::{PrefValue, PREFS};
 use std::path::Path;
@@ -75,7 +73,6 @@ fn test_argument_parsing_special() {
 
 #[test]
 fn test_parse_pref_from_command_line() {
-    register_resources_for_tests();
     // Test with boolean values.
     parse_pref_from_command_line("testtrue=true");
     assert_eq!(*PREFS.get("testtrue"), PrefValue::Boolean(true));

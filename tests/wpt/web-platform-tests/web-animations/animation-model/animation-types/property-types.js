@@ -893,6 +893,30 @@ const transformListType = {
     test(t => {
       const idlName = propertyToIDL(property);
       const target = createTestElement(t, setup);
+      const animation =
+        target.animate({ [idlName]: ['rotate(0deg)',
+                                     'rotate(1080deg) translateX(100px)'] },
+                       1000);
+
+      testAnimationSampleMatrices(animation, idlName,
+        [{ time: 500, expected: [ -1, 0, 0, -1, -50, 0 ] }]);
+    }, `${property}: extend shorter list (from)`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      const animation =
+        target.animate({ [idlName]: ['rotate(0deg) translateX(100px)',
+                                     'rotate(1080deg)'] },
+                       1000);
+
+      testAnimationSampleMatrices(animation, idlName,
+        [{ time: 500, expected: [ -1, 0, 0, -1, -50, 0 ] }]);
+    }, `${property}: extend shorter list (to)`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
       const animation =              // matrix(0, 1, -1, 0, 0, 100)
         target.animate({ [idlName]: ['rotate(90deg) translateX(100px)',
                                      // matrix(-1, 0, 0, -1, 200, 0)
@@ -1168,6 +1192,30 @@ const transformListType = {
     test(t => {
       const idlName = propertyToIDL(property);
       const target = createTestElement(t, setup);
+      target.style[idlName] = 'rotate(45deg) translateX(100px)';
+      const animation = target.animate({ [idlName]: ['rotate(-90deg)',
+                                                     'rotate(90deg)'] },
+                                       { duration: 1000, fill: 'both',
+                                         composite: 'add' });
+
+      testAnimationSampleMatrices(animation, idlName,
+        [{ time: 0,    expected: [ Math.cos(-Math.PI / 4),
+                                   Math.sin(-Math.PI / 4),
+                                  -Math.sin(-Math.PI / 4),
+                                   Math.cos(-Math.PI / 4),
+                                   100 * Math.cos(Math.PI / 4),
+                                   100 * Math.sin(Math.PI / 4) ] },
+         { time: 1000, expected: [ Math.cos(Math.PI * 3 / 4),
+                                   Math.sin(Math.PI * 3 / 4),
+                                  -Math.sin(Math.PI * 3 / 4),
+                                   Math.cos(Math.PI * 3 / 4),
+                                   100 * Math.cos(Math.PI / 4),
+                                   100 * Math.sin(Math.PI / 4) ] }]);
+    }, `${property}: rotate on rotate and translate`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
       target.style[idlName] = 'matrix(0, 1, -1, 0, 0, 0)';
       const animation =               // Same matrices as above.
         target.animate({ [idlName]: [ 'matrix(1, 0, 0, 1, 100, 0)',
@@ -1362,6 +1410,53 @@ const transformListType = {
         [{ time: 0,    expected: [ 0, 1, -1, 0, 100, 0 ] },
          { time: 1000, expected: [ 0, 1, -1, 0, 200, 0 ] }]);
     }, `${property}: translate on rotate`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rotate(45deg)';
+      const animation =
+        target.animate({ [idlName]: ['rotate(45deg) translateX(0px)',
+                                     'rotate(45deg) translateX(100px)'] },
+                       { duration: 1000, fill: 'both', composite: 'accumulate' });
+
+      testAnimationSampleMatrices(animation, idlName,
+        [{ time: 0,    expected: [ Math.cos(Math.PI / 2),
+                                   Math.sin(Math.PI / 2),
+                                  -Math.sin(Math.PI / 2),
+                                   Math.cos(Math.PI / 2),
+                                   0 * Math.cos(Math.PI / 2),
+                                   0 * Math.sin(Math.PI / 2) ] },
+         { time: 1000, expected: [ Math.cos(Math.PI / 2),
+                                   Math.sin(Math.PI / 2),
+                                  -Math.sin(Math.PI / 2),
+                                   Math.cos(Math.PI / 2),
+                                   100 * Math.cos(Math.PI / 2),
+                                   100 * Math.sin(Math.PI / 2) ] }]);
+    }, `${property}: rotate and translate on rotate`);
+
+    test(t => {
+      const idlName = propertyToIDL(property);
+      const target = createTestElement(t, setup);
+      target.style[idlName] = 'rotate(45deg) translateX(100px)';
+      const animation =
+        target.animate({ [idlName]: ['rotate(45deg)', 'rotate(45deg)'] },
+                       { duration: 1000, fill: 'both', composite: 'accumulate' });
+
+      testAnimationSampleMatrices(animation, idlName,
+        [{ time: 0,    expected: [ Math.cos(Math.PI / 2),
+                                   Math.sin(Math.PI / 2),
+                                  -Math.sin(Math.PI / 2),
+                                   Math.cos(Math.PI / 2),
+                                   100 * Math.cos(Math.PI / 2),
+                                   100 * Math.sin(Math.PI / 2) ] },
+         { time: 1000, expected: [ Math.cos(Math.PI / 2),
+                                   Math.sin(Math.PI / 2),
+                                  -Math.sin(Math.PI / 2),
+                                   Math.cos(Math.PI / 2),
+                                   100 * Math.cos(Math.PI / 2),
+                                   100 * Math.sin(Math.PI / 2) ] }]);
+    }, `${property}: rotate on roate and translate`);
 
     test(t => {
       const idlName = propertyToIDL(property);

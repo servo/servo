@@ -522,6 +522,6 @@ impl JsTimerTask {
     // always done via rooted JsTimers, which is safe.
     #[allow(unsafe_code)]
     fn collect_heap_args<'b>(&self, args: &'b [Heap<JSVal>]) -> Vec<HandleValue<'b>> {
-        args.iter().map(|arg| unsafe { arg.handle() }).collect()
+        args.iter().map(|arg| unsafe { HandleValue::from_raw(arg.handle()) }).collect()
     }
 }

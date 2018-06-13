@@ -43,7 +43,9 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
     if run_info_extras is None:
         run_info_extras = {}
 
-    run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=debug,
+    run_info = wpttest.get_run_info(kwargs["run_info"], product,
+                                    browser_version=kwargs.get("browser_version"),
+                                    debug=debug,
                                     extras=run_info_extras)
 
     test_manifests = testloader.ManifestLoader(test_paths, force_manifest_update=kwargs["manifest_update"],
@@ -108,8 +110,6 @@ def list_disabled(test_paths, product, **kwargs):
 def list_tests(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
 
-    rv = []
-
     ssl_env = env.ssl_env(logger, **kwargs)
 
     run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
@@ -153,7 +153,9 @@ def run_tests(config, test_paths, product, **kwargs):
             ))
 
         if "test_loader" in kwargs:
-            run_info = wpttest.get_run_info(kwargs["run_info"], product, debug=None,
+            run_info = wpttest.get_run_info(kwargs["run_info"], product,
+                                            browser_version=kwargs.get("browser_version"),
+                                            debug=None,
                                             extras=run_info_extras(**kwargs))
             test_loader = kwargs["test_loader"]
         else:
@@ -245,6 +247,12 @@ def run_tests(config, test_paths, product, **kwargs):
                             if test.testdriver and not executor_cls.supports_testdriver:
                                 logger.test_start(test.id)
                                 logger.test_end(test.id, status="SKIP")
+                            elif test.jsshell and not executor_cls.supports_jsshell:
+                                # We expect that tests for JavaScript shells
+                                # will not be run along with tests that run in
+                                # a full web browser, so we silently skip them
+                                # here.
+                                pass
                             else:
                                 run_tests["testharness"].append(test)
                     else:
@@ -283,11 +291,23 @@ def run_tests(config, test_paths, product, **kwargs):
         logger.error("No tests ran")
         return False
 
+    if unexpected_total and not kwargs["fail_on_unexpected"]:
+        logger.info("Tolerating %s unexpected results" % unexpected_total)
+        return True
+
     return unexpected_total == 0
 
 
 def check_stability(**kwargs):
     import stability
+    if kwargs["stability"]:
+        logger.warning("--stability is deprecated; please use --verify instead!")
+        kwargs['verify_max_time'] = None
+        kwargs['verify_chaos_mode'] = False
+        kwargs['verify_repeat_loop'] = 0
+        kwargs['verify_repeat_restart'] = 10 if kwargs['repeat'] == 1 else kwargs['repeat']
+        kwargs['verify_output_results'] = True
+
     return stability.check_stability(logger,
                                      max_time=kwargs['verify_max_time'],
                                      chaos_mode=kwargs['verify_chaos_mode'],
@@ -303,7 +323,7 @@ def start(**kwargs):
         list_disabled(**kwargs)
     elif kwargs["list_tests"]:
         list_tests(**kwargs)
-    elif kwargs["verify"]:
+    elif kwargs["verify"] or kwargs["stability"]:
         check_stability(**kwargs)
     else:
         return not run_tests(**kwargs)

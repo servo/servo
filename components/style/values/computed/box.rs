@@ -11,7 +11,7 @@ use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 
 pub use values::specified::box_::{AnimationName, Contain, Display, OverflowClipBox};
-pub use values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, WillChange};
+pub use values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, TransitionProperty, WillChange};
 
 /// A computed value for the `vertical-align` property.
 pub type VerticalAlign = GenericVerticalAlign<LengthOrPercentage>;

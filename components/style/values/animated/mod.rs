@@ -15,9 +15,8 @@ use values::computed::Angle as ComputedAngle;
 use values::computed::BorderCornerRadius as ComputedBorderCornerRadius;
 use values::computed::MaxLength as ComputedMaxLength;
 use values::computed::MozLength as ComputedMozLength;
-#[cfg(feature = "servo")]
+use values::computed::length::CalcLengthOrPercentage;
 use values::computed::url::ComputedUrl;
-use values::specified::url::SpecifiedUrl;
 
 pub mod color;
 pub mod effects;
@@ -259,9 +258,8 @@ macro_rules! trivial_to_animated_value {
 }
 
 trivial_to_animated_value!(Au);
+trivial_to_animated_value!(CalcLengthOrPercentage);
 trivial_to_animated_value!(ComputedAngle);
-trivial_to_animated_value!(SpecifiedUrl);
-#[cfg(feature = "servo")]
 trivial_to_animated_value!(ComputedUrl);
 trivial_to_animated_value!(bool);
 trivial_to_animated_value!(f32);

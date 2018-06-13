@@ -26,12 +26,12 @@ the correct arguments.
 
 ## Authoring Tests
 
-Test cases are expressed as `.html` files located within the `tests/`
-sub-directory. Each test should include the `testharness.js` library with the
-following markup:
+Test cases are expressed as `.html` files located within the `tests/unit/` and
+`tests/funtional/` sub-directories. Each test should include the
+`testharness.js` library with the following markup:
 
-    <script src="../../testharness.js"></script>
-    <script src="../../testharnessreport.js"></script>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
 
 This should be followed by one or more `<script>` tags that interface with the
 `testharness.js` API in some way. For example:
@@ -42,8 +42,25 @@ This should be followed by one or more `<script>` tags that interface with the
       }, 'This test is expected to fail.');
     </script>
 
-Finally, each test may include a summary of the expected results as a JSON
-string within a `<script>` tag with an `id` of `"expected"`, e.g.:
+### Unit tests
+
+The "unit test" type allows for concisely testing the expected behavior of
+assertion methods. These tests may define any number of sub-tests; the
+acceptance criteria is simply that all tests executed pass.
+
+### Functional tests
+
+Thoroughly testing the behavior of the harness itself requires ensuring a
+number of considerations which cannot be verified with the "unit testing"
+strategy. These include:
+
+- Ensuring that some tests are not run
+- Ensuring conditions that cause test failures
+- Ensuring conditions that cause harness errors
+
+Functional tests allow for these details to be verified. Every functional test
+must include a summary of the expected results as a JSON string within a
+`<script>` tag with an `id` of `"expected"`, e.g.:
 
     <script type="text/json" id="expected">
     {
@@ -65,5 +82,9 @@ string within a `<script>` tag with an `id` of `"expected"`, e.g.:
     }
     </script>
 
-This is useful to test, for example, whether asserations that should fail or
-throw actually do.
+`testharness.js` is expected to function consistently in a number of
+distinct environments. In order to verify this expectation, each functional
+test may be executed under a number of distinct conditions. These conditions
+are applied using WPT's "test variants" pattern. The available variants are
+defined in the `variants.js` file; this file must be included before
+`testharness.js`. Every test must specify at least one variant.

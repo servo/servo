@@ -6,67 +6,20 @@
 
 use SendableFrameTree;
 use compositor::CompositingReason;
+use embedder_traits::EventLoopWaker;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{InputMethodType, Key, KeyModifiers, KeyState, PipelineId, TopLevelBrowsingContextId};
-use net_traits::filemanager_thread::FilterPattern;
+use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
 use net_traits::image::base::Image;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult, LoadData};
-use servo_url::ServoUrl;
+use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
 use std::sync::mpsc::{Receiver, Sender};
-use style_traits::cursor::CursorKind;
 use style_traits::viewport::ViewportConstraints;
 use webrender;
 use webrender_api::{self, DeviceIntPoint, DeviceUintSize};
 
-
-/// Used to wake up the event loop, provided by the servo port/embedder.
-pub trait EventLoopWaker : 'static + Send {
-    fn clone(&self) -> Box<EventLoopWaker + Send>;
-    fn wake(&self);
-}
-
-/// Sends messages to the embedder.
-pub struct EmbedderProxy {
-    pub sender: Sender<EmbedderMsg>,
-    pub event_loop_waker: Box<EventLoopWaker>,
-}
-
-impl EmbedderProxy {
-    pub fn send(&self, msg: EmbedderMsg) {
-        // Send a message and kick the OS event loop awake.
-        if let Err(err) = self.sender.send(msg) {
-            warn!("Failed to send response ({}).", err);
-        }
-        self.event_loop_waker.wake();
-    }
-}
-
-impl Clone for EmbedderProxy {
-    fn clone(&self) -> EmbedderProxy {
-        EmbedderProxy {
-            sender: self.sender.clone(),
-            event_loop_waker: self.event_loop_waker.clone(),
-        }
-    }
-}
-
-/// The port that the embedder receives messages on.
-pub struct EmbedderReceiver {
-    pub receiver: Receiver<EmbedderMsg>
-}
-
-impl EmbedderReceiver {
-    pub fn try_recv_embedder_msg(&mut self) -> Option<EmbedderMsg> {
-        self.receiver.try_recv().ok()
-    }
-    pub fn recv_embedder_msg(&mut self) -> EmbedderMsg {
-        self.receiver.recv().unwrap()
-    }
-}
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -113,57 +66,12 @@ impl CompositorProxy {
     }
 }
 
-pub enum EmbedderMsg {
-    /// A status message to be displayed by the browser chrome.
-    Status(TopLevelBrowsingContextId, Option<String>),
-    /// Alerts the embedder that the current page has changed its title.
-    ChangePageTitle(TopLevelBrowsingContextId, Option<String>),
-    /// Move the window to a point
-    MoveTo(TopLevelBrowsingContextId, DeviceIntPoint),
-    /// Resize the window to size
-    ResizeTo(TopLevelBrowsingContextId, DeviceUintSize),
-    /// Wether or not to follow a link
-    AllowNavigation(TopLevelBrowsingContextId, ServoUrl, IpcSender<bool>),
-    /// Sends an unconsumed key event back to the embedder.
-    KeyEvent(Option<TopLevelBrowsingContextId>, Option<char>, Key, KeyState, KeyModifiers),
-    /// Changes the cursor.
-    SetCursor(CursorKind),
-    /// A favicon was detected
-    NewFavicon(TopLevelBrowsingContextId, ServoUrl),
-    /// <head> tag finished parsing
-    HeadParsed(TopLevelBrowsingContextId),
-    /// The history state has changed.
-    HistoryChanged(TopLevelBrowsingContextId, Vec<LoadData>, usize),
-    /// Enter or exit fullscreen
-    SetFullscreenState(TopLevelBrowsingContextId, bool),
-    /// The load of a page has begun
-    LoadStart(TopLevelBrowsingContextId),
-    /// The load of a page has completed
-    LoadComplete(TopLevelBrowsingContextId),
-    /// A pipeline panicked. First string is the reason, second one is the backtrace.
-    Panic(TopLevelBrowsingContextId, String, Option<String>),
-    /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(Vec<String>, IpcSender<Option<String>>),
-    /// Open file dialog to select files. Set boolean flag to true allows to select multiple files.
-    SelectFiles(Vec<FilterPattern>, bool, IpcSender<Option<Vec<String>>>),
-    /// Request to present an IME to the user when an editable element is focused.
-    ShowIME(TopLevelBrowsingContextId, InputMethodType),
-    /// Request to hide the IME when the editable element is blurred.
-    HideIME(TopLevelBrowsingContextId),
-    /// Servo has shut down
-    Shutdown,
-}
-
 /// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
-    /// Requests that the compositor shut down.
-    Exit,
-
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
     /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
-
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
@@ -211,7 +119,6 @@ pub enum Msg {
 impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            Msg::Exit => write!(f, "Exit"),
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
@@ -229,32 +136,6 @@ impl Debug for Msg {
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
-        }
-    }
-}
-
-impl Debug for EmbedderMsg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
-            EmbedderMsg::Status(..) => write!(f, "Status"),
-            EmbedderMsg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
-            EmbedderMsg::MoveTo(..) => write!(f, "MoveTo"),
-            EmbedderMsg::ResizeTo(..) => write!(f, "ResizeTo"),
-            EmbedderMsg::AllowNavigation(..) => write!(f, "AllowNavigation"),
-            EmbedderMsg::KeyEvent(..) => write!(f, "KeyEvent"),
-            EmbedderMsg::SetCursor(..) => write!(f, "SetCursor"),
-            EmbedderMsg::NewFavicon(..) => write!(f, "NewFavicon"),
-            EmbedderMsg::HeadParsed(..) => write!(f, "HeadParsed"),
-            EmbedderMsg::HistoryChanged(..) => write!(f, "HistoryChanged"),
-            EmbedderMsg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
-            EmbedderMsg::LoadStart(..) => write!(f, "LoadStart"),
-            EmbedderMsg::LoadComplete(..) => write!(f, "LoadComplete"),
-            EmbedderMsg::Panic(..) => write!(f, "Panic"),
-            EmbedderMsg::GetSelectedBluetoothDevice(..) => write!(f, "GetSelectedBluetoothDevice"),
-            EmbedderMsg::SelectFiles(..) => write!(f, "SelectFiles"),
-            EmbedderMsg::ShowIME(..) => write!(f, "ShowIME"),
-            EmbedderMsg::HideIME(..) => write!(f, "HideIME"),
-            EmbedderMsg::Shutdown => write!(f, "Shutdown"),
         }
     }
 }

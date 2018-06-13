@@ -17,7 +17,7 @@ function testNoComputedStyle(element, description) {
     assert_true(!!element);
     let style = getComputedStyle(element);
     assert_true(!!style);
-    assert_equals(style.length, 0);
+    assert_true(style.length === 0);
     assert_equals(style.color, "");
   }, `getComputedStyle returns no style for ${description}`);
 }

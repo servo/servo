@@ -1,3 +1,6 @@
+// NOTE: this file needs to be split up rather than expanded. See ../location.sub.html for some
+// extracted tests. Tracked by https://github.com/web-platform-tests/wpt/issues/4934.
+
 setup({explicit_done:true});
 onload = function() {
   var encoding = '{{GET[encoding]}}';
@@ -14,7 +17,7 @@ onload = function() {
     'utf-16be':'%C3%A5',
     'utf-16le':'%C3%A5',
     'windows-1252':'%E5',
-    'windows-1251':'&%23229;'
+    'windows-1251':'%26%23229%3B'
   };
   var expected_current = expected_obj[encoding];
   var expected_utf8 = expected_obj['utf-8'];
@@ -22,154 +25,6 @@ onload = function() {
   function msg(expected, got) {
     return 'expected substring '+expected+' got '+got;
   }
-
-  function poll_for_stash(test_obj, uuid, expected) {
-      var start = new Date();
-      var poll = test_obj.step_func(function () {
-          var xhr = new XMLHttpRequest();
-          xhr.open('GET', stash_take + uuid);
-          xhr.onload = test_obj.step_func(function(e) {
-              if (xhr.response == "") {
-                  if (new Date() - start > 10000) {
-                      // If we set the status to TIMEOUT here we avoid a race between the
-                      // page and the test timing out
-                      test_obj.force_timeout();
-                  }
-                  step_timeout(poll, 200);
-              } else {
-                  assert_equals(xhr.response, expected);
-                  test_obj.done();
-              }
-          });
-          xhr.send();
-      })
-      step_timeout(poll, 200);
-  }
-
-  // background attribute, check with getComputedStyle
-  function test_background(tag) {
-    var spec_url = 'https://html.spec.whatwg.org/multipage/rendering.html';
-    spec_url += tag == 'body' ? '#the-page' : '#tables';
-    test(function() {
-      var elm = document.createElement(tag);
-      document.body.appendChild(elm);
-      this.add_cleanup(function() {
-        document.body.removeChild(elm);
-      });
-      elm.setAttribute('background', input_url_png);
-      var got = getComputedStyle(elm).backgroundImage;
-      assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
-    }, 'getComputedStyle <'+tag+' background>',
-    {help:spec_url});
-  }
-
-  'body, table, thead, tbody, tfoot, tr, td, th'.split(', ').forEach(function(str) {
-    test_background(str);
-  });
-
-  // get a reflecting IDL attributes whose content attribute takes a URL or a list of space-separated URLs
-  function test_reflecting(tag, attr, idlAttr, multiple) {
-    idlAttr = idlAttr || attr;
-    var input = input_url_html;
-    if (multiple) {
-      input += ' ' + input;
-    }
-    test(function() {
-      var elm = document.createElement(tag);
-      assert_true(idlAttr in elm, idlAttr + ' is not supported');
-      elm.setAttribute(attr, input);
-      var got = elm[idlAttr];
-      assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
-    }, 'Getting <'+tag+'>.'+idlAttr + (multiple ? ' (multiple URLs)' : ''),
-    {help:'https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes'});
-  }
-
-  ('iframe src, a href, base href, link href, img src, embed src, object data, track src, video src, audio src, input src, form action, ' +
-  'input formaction formAction, button formaction formAction, script src').split(', ').forEach(function(str) {
-    var arr = str.split(' ');
-    test_reflecting(arr[0], arr[1], arr[2]);
-  });
-
-  'a ping'.split(', ').forEach(function(str) {
-    var arr = str.split(' ');
-    test_reflecting(arr[0], arr[1], arr[2], true);
-  });
-
-  function setup_navigation(elm, iframe, id, test_obj) {
-    iframe.name = id;
-    elm.target = id;
-    elm.setAttribute('href', input_url_html);
-    document.body.appendChild(iframe);
-    document.body.appendChild(elm);
-    test_obj.add_cleanup(function() {
-      document.body.removeChild(iframe);
-      document.body.removeChild(elm);
-    });
-  }
-
-  // follow hyperlink
-  function test_follow_link(tag) {
-    async_test(function() {
-      var elm = document.createElement(tag);
-      var iframe = document.createElement('iframe');
-      setup_navigation(elm, iframe, 'test_follow_link_'+tag, this);
-      iframe.onload = this.step_func_done(function() { // when the page navigated to has loaded
-        assert_equals(iframe.contentDocument.body.textContent, expected_current);
-      });
-      // follow the hyperlink
-      elm.click();
-      // check that navigation succeeded by ...??? XXX
-    }, 'follow hyperlink <'+tag+' href>',
-    {help:'https://html.spec.whatwg.org/multipage/#following-hyperlinks'});
-  }
-
-  'a, area, link'.split(', ').forEach(function(str) {
-    test_follow_link(str);
-  });
-
-  // follow hyperlink with ping attribute
-  function test_follow_link_ping(tag) {
-    async_test(function() {
-      var uuid = token();
-      var elm = document.createElement(tag);
-      // check if ping is supported
-      assert_true('ping' in elm, 'ping not supported');
-      elm.setAttribute('ping', stash_put + uuid);
-      var iframe = document.createElement('iframe');
-      setup_navigation(elm, iframe, 'test_follow_link_ping_'+tag, this);
-      // follow the hyperlink
-      elm.click();
-      // check that navigation succeeded by ...??? XXX
-      // check that the right URL was requested for the ping
-      poll_for_stash(this, uuid, expected_current);
-    }, 'hyperlink auditing <'+tag+' ping>',
-    {help:'https://html.spec.whatwg.org/multipage/#hyperlink-auditing'});
-  }
-
-  'a, area'.split(', ').forEach(function(str) {
-    test_follow_link_ping(str);
-  });
-
-  // navigating with meta refresh
-  async_test(function() {
-    var iframe = document.createElement('iframe');
-    iframe.src = blank;
-    document.body.appendChild(iframe);
-    this.add_cleanup(function() {
-      document.body.removeChild(iframe);
-    });
-    iframe.onload = this.step_func_done(function() {
-      var doc = iframe.contentDocument;
-      var got = doc.body.textContent;
-      if (got == '') {
-        doc.write('<meta http-equiv=refresh content="0; URL='+input_url_html+'">REFRESH');
-        doc.close();
-        return;
-      }
-      assert_equals(got, expected_current);
-    });
-  }, 'meta refresh',
-  {help:'https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-refresh'});
 
   // loading html (or actually svg to support <embed>)
   function test_load_nested_browsing_context(tag, attr, spec_url) {
@@ -504,55 +359,6 @@ onload = function() {
     });
   }, 'window.open()',
   {help:'https://html.spec.whatwg.org/multipage/#dom-open'});
-
-  // location
-  function test_location(func, desc) {
-    async_test(function() {
-      var iframe = document.createElement('iframe');
-      document.body.appendChild(iframe);
-      this.add_cleanup(function() {
-        document.body.removeChild(iframe);
-      });
-      func(iframe.contentWindow, input_url_html);
-      iframe.onload = this.step_func(function() {
-        var got = iframe.contentDocument.body.textContent;
-        if (got != '') {
-          assert_equals(got, expected_current);
-          this.done();
-        }
-      });
-    }, desc,
-    {help:'https://html.spec.whatwg.org/multipage/#the-location-interface'});
-  }
-  [[function(win, input) { win.location = input; }, "location [PutForwards]"],
-   [function(win, input) { win.location.assign(input); }, "location.assign()"],
-   [function(win, input) { win.location.replace(input); }, "location.replace()"],
-   [function(win, input) { win.location.href = input; }, "location.href"]].forEach(function(arr) {
-    test_location(arr[0], arr[1]);
-  });
-
-  // location.search
-  async_test(function() {
-    var iframe = document.createElement('iframe');
-    iframe.src = input_url_html;
-    document.body.appendChild(iframe);
-    this.add_cleanup(function() {
-      document.body.removeChild(iframe);
-    });
-    var i = 0;
-    iframe.onload = this.step_func(function() {
-      i++;
-      if (i == 1) {
-        iframe.contentWindow.location.search = '?' + input_url_html.split('?')[1] + '&other=foobar';
-      } else {
-        var got = iframe.contentDocument.body.textContent;
-        assert_equals(got, expected_current);
-        this.done();
-      }
-    });
-  }, 'location.search',
-  {help:['https://html.spec.whatwg.org/multipage/#the-location-interface',
-         'http://url.spec.whatwg.org/#dom-url-search']});
 
   // a.search, area.search
   function test_hyperlink_search(tag) {

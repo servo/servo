@@ -92,7 +92,7 @@ macro_rules! with_all_bounds {
         /// NB: We need Clone so that we can derive(Clone) on struct with that
         /// are parameterized on SelectorImpl. See
         /// <https://github.com/rust-lang/rust/issues/26925>
-        pub trait SelectorImpl: Clone + Sized + 'static {
+        pub trait SelectorImpl: Clone + Debug + Sized + 'static {
             type ExtraMatchingData: Sized + Default + 'static;
             type AttrValue: $($InSelector)*;
             type Identifier: $($InSelector)*;
@@ -544,10 +544,26 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     /// Whether this selector is a featureless :host selector, with no
-    /// combinators to the left.
+    /// combinators to the left, and optionally has a pseudo-element to the
+    /// right.
     #[inline]
-    pub fn is_featureless_host_selector(&self) -> bool {
-        self.iter().is_featureless_host_selector()
+    pub fn is_featureless_host_selector_or_pseudo_element(&self) -> bool {
+        let mut iter = self.iter();
+        if !self.has_pseudo_element() {
+            return iter.is_featureless_host_selector();
+        }
+
+        // Skip the pseudo-element.
+        for _ in &mut iter { }
+
+        match iter.next_sequence() {
+            None => return false,
+            Some(combinator) => {
+                debug_assert_eq!(combinator, Combinator::PseudoElement);
+            }
+        }
+
+        iter.is_featureless_host_selector()
     }
 
     /// Returns an iterator over this selector in matching order (right-to-left),

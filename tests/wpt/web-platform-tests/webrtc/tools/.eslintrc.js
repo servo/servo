@@ -72,7 +72,7 @@ module.exports = {
     assert_optional_dict_field: true,
     assert_optional_enum_field: true,
 
-    // identity-helper.js
+    // identity-helper.sub.js
     parseAssertionResult: true,
     getIdpDomains: true,
     assert_rtcerror_rejection: true,

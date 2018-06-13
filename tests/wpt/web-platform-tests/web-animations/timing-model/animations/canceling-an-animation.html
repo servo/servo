@@ -11,6 +11,17 @@
 <script>
 'use strict';
 
+test(t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.cancel();
+
+  assert_equals(animation.startTime, null,
+                'The start time of a canceled animation should be unresolved');
+  assert_equals(animation.currentTime, null,
+                'The hold time of a canceled animation should be unresolved');
+}, 'Canceling an animation should cause its start time and hold time to be'
+   + ' unresolved');
+
 promise_test(t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   const retPromise = animation.ready.then(() => {

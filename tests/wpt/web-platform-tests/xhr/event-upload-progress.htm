@@ -4,25 +4,30 @@
 <title>XMLHttpRequest: upload progress event</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-    <link rel="help" href="https://xhr.spec.whatwg.org/#handler-xhr-onprogress" data-tested-assertations="../.." />
-    <link rel="help" href="https://xhr.spec.whatwg.org/#dom-xmlhttprequest-upload" data-tested-assertations=".." />
-
+<script src="/common/get-host-info.sub.js"></script>
 <div id="log"></div>
 <script>
-  var test = async_test();
-  test.step(function() {
-    var client = new XMLHttpRequest();
-    client.upload.onprogress = test.step_func(function(e) {
-      assert_true(e instanceof ProgressEvent);
-      // This short payload will most likely be sent before the first progress evt
-      assert_equals(e.loaded, 22);
-      assert_equals(e.total, 22);
-      test.done();
-    });
-    client.onreadystatechange = test.step_func(function() {
-      if (client.readyState === 4) assert_unreached("onprogress not called.");
-    });
-    client.open("POST", "resources/upload.py");
-    client.send("This is a test string.");
-  });
+const remote = get_host_info().HTTP_REMOTE_ORIGIN + "/xhr/resources/corsenabled.py",
+      redirect = "resources/redirect.py?code=307&location=" + remote;
+
+[remote, redirect].forEach(url => {
+  async_test(test => {
+    const client = new XMLHttpRequest();
+    client.upload.onprogress = test.step_func_done();
+    client.onload = test.unreached_func();
+    client.open("POST", url);
+    client.send("On time: " + url);
+  }, "Upload events registered on time (" + url + ")");
+});
+
+[remote, redirect].forEach(url => {
+  async_test(test => {
+    const client = new XMLHttpRequest();
+    client.onload = test.step_func_done();
+    client.open("POST", url);
+    client.send("Too late: " + url);
+    client.upload.onloadstart = test.unreached_func(); // registered too late
+    client.upload.onprogress = test.unreached_func(); // registered too late
+  }, "Upload events registered too late (" + url + ")");
+});
 </script>

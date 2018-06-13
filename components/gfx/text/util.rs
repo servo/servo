@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ucd::{Codepoint, UnicodeBlock};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CompressionMode {
     CompressNone,
@@ -113,4 +115,43 @@ pub fn is_bidi_control(c: char) -> bool {
         '\u{200E}' | '\u{200F}' | '\u{061C}' => true,
         _ => false
     }
+}
+
+pub fn unicode_plane(codepoint: char) -> u32 {
+    (codepoint as u32) >> 16
+}
+
+pub fn is_cjk(codepoint: char) -> bool {
+    if let Some(block) = codepoint.block() {
+        match block {
+            UnicodeBlock::CJKRadicalsSupplement |
+            UnicodeBlock::KangxiRadicals |
+            UnicodeBlock::IdeographicDescriptionCharacters |
+            UnicodeBlock::CJKSymbolsandPunctuation |
+            UnicodeBlock::Hiragana |
+            UnicodeBlock::Katakana |
+            UnicodeBlock::Bopomofo |
+            UnicodeBlock::HangulCompatibilityJamo |
+            UnicodeBlock::Kanbun |
+            UnicodeBlock::BopomofoExtended |
+            UnicodeBlock::CJKStrokes |
+            UnicodeBlock::KatakanaPhoneticExtensions |
+            UnicodeBlock::EnclosedCJKLettersandMonths |
+            UnicodeBlock::CJKCompatibility |
+            UnicodeBlock::CJKUnifiedIdeographsExtensionA |
+            UnicodeBlock::YijingHexagramSymbols |
+            UnicodeBlock::CJKUnifiedIdeographs |
+            UnicodeBlock::CJKCompatibilityIdeographs |
+            UnicodeBlock::CJKCompatibilityForms |
+            UnicodeBlock::HalfwidthandFullwidthForms => {
+                return true
+            }
+
+            _ => {}
+        }
+    }
+
+
+    // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
+    unicode_plane(codepoint) == 2
 }

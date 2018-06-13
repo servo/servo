@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Ambient Light Sensor" spec.
+// See: https://w3c.github.io/ambient-light/
+
 [Constructor(optional SensorOptions sensorOptions), SecureContext, Exposed=Window]
 interface AmbientLightSensor : Sensor {
   readonly attribute double? illuminance;

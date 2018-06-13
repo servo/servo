@@ -93,7 +93,7 @@ extern crate style;
 extern crate style_traits;
 extern crate swapper;
 extern crate time;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
+#[cfg(target_os = "linux")]
 extern crate tinyfiledialogs;
 extern crate unicode_segmentation;
 extern crate url;

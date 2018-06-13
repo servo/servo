@@ -70,7 +70,6 @@ function run_test(algorithmNames, slowTest) {
         }, testTag + ": generateKey" + parameterString(algorithm, extractable, usages));
     }
 
-
     // Test all valid sets of parameters for successful
     // key generation.
     testVectors.forEach(function(vector) {
@@ -78,7 +77,7 @@ function run_test(algorithmNames, slowTest) {
             allAlgorithmSpecifiersFor(name).forEach(function(algorithm) {
                 allValidUsages(vector.usages, false, vector.mandatoryUsages).forEach(function(usages) {
                     [false, true].forEach(function(extractable) {
-                        testSuccess(algorithm, extractable, usages, vector.resultType, "Success");
+                        subsetTest(testSuccess, algorithm, extractable, usages, vector.resultType, "Success");
                     });
                 });
             });

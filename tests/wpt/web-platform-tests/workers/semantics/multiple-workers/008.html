@@ -24,6 +24,7 @@ onload = t.step_func(function() {
       this.done();
     });
   });
+  w1.onerror = this.unreached_func("error");
 });
 </script>
 <!--

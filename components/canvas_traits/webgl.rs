@@ -7,7 +7,6 @@ use gleam::gl;
 use nonzero::NonZeroU32;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
-use std::fmt;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
 /// Sender type used in WebGLCommands.
@@ -155,7 +154,7 @@ impl WebGLMsgSender {
 }
 
 /// WebGL Commands for a specific WebGLContext
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGLCommand {
     GetContextAttributes(WebGLSender<GLContextAttributes>),
     ActiveTexture(u32),
@@ -207,7 +206,6 @@ pub enum WebGLCommand {
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetExtensions(WebGLSender<String>),
-    GetTexParameter(u32, u32, WebGLSender<i32>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
     GetActiveAttrib(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
@@ -260,8 +258,6 @@ pub enum WebGLCommand {
     VertexAttribPointer2f(u32, i32, bool, i32, u32),
     SetViewport(i32, i32, i32, i32),
     TexImage2D(u32, i32, i32, i32, i32, u32, u32, ByteBuf),
-    TexParameteri(u32, u32, i32),
-    TexParameterf(u32, u32, f32),
     TexSubImage2D(u32, i32, i32, i32, i32, i32, u32, u32, ByteBuf),
     DrawingBufferWidth(WebGLSender<i32>),
     DrawingBufferHeight(WebGLSender<i32>),
@@ -272,10 +268,12 @@ pub enum WebGLCommand {
     DeleteVertexArray(WebGLVertexArrayId),
     BindVertexArray(Option<WebGLVertexArrayId>),
     GetParameterBool(ParameterBool, WebGLSender<bool>),
+    GetParameterBool4(ParameterBool4, WebGLSender<[bool; 4]>),
     GetParameterInt(ParameterInt, WebGLSender<i32>),
     GetParameterInt4(ParameterInt4, WebGLSender<[i32; 4]>),
     GetParameterFloat(ParameterFloat, WebGLSender<f32>),
     GetParameterFloat2(ParameterFloat2, WebGLSender<[f32; 2]>),
+    GetParameterFloat4(ParameterFloat4, WebGLSender<[f32; 4]>),
     GetProgramParameterBool(WebGLProgramId, ProgramParameterBool, WebGLSender<bool>),
     GetProgramParameterInt(WebGLProgramId, ProgramParameterInt, WebGLSender<i32>),
     GetShaderParameterBool(WebGLShaderId, ShaderParameterBool, WebGLSender<bool>),
@@ -283,6 +281,10 @@ pub enum WebGLCommand {
     GetVertexAttribBool(u32, VertexAttribBool, WebGLSender<WebGLResult<bool>>),
     GetVertexAttribInt(u32, VertexAttribInt, WebGLSender<WebGLResult<i32>>),
     GetVertexAttribFloat4(u32, VertexAttribFloat4, WebGLSender<WebGLResult<[f32; 4]>>),
+    GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
+    GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
+    TexParameteri(u32, TexParameterInt, i32),
+    TexParameterf(u32, TexParameterFloat, f32),
 }
 
 macro_rules! define_resource_id_struct {
@@ -376,7 +378,7 @@ pub enum WebGLError {
     ContextLost,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum WebGLFramebufferBindingRequest {
     Explicit(WebGLFramebufferId),
     Default,
@@ -416,155 +418,19 @@ pub enum DOMToTextureCommand {
     Lock(PipelineId, usize, WebGLSender<Option<(u32, Size2D<i32>)>>),
 }
 
-impl fmt::Debug for WebGLCommand {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        use self::WebGLCommand::*;
-        let name = match *self {
-            GetContextAttributes(..) => "GetContextAttributes",
-            ActiveTexture(..) => "ActiveTexture",
-            BlendColor(..) => "BlendColor",
-            BlendEquation(..) => "BlendEquation",
-            BlendEquationSeparate(..) => "BlendEquationSeparate",
-            BlendFunc(..) => "BlendFunc",
-            BlendFuncSeparate(..) => "BlendFuncSeparate",
-            AttachShader(..) => "AttachShader",
-            DetachShader(..) => "DetachShader",
-            BindAttribLocation(..) => "BindAttribLocation",
-            BufferData(..) => "BufferData",
-            BufferSubData(..) => "BufferSubData",
-            Clear(..) => "Clear",
-            ClearColor(..) => "ClearColor",
-            ClearDepth(..) => "ClearDepth",
-            ClearStencil(..) => "ClearStencil",
-            ColorMask(..) => "ColorMask",
-            CopyTexImage2D(..) => "CopyTexImage2D",
-            CopyTexSubImage2D(..) => "CopyTexSubImage2D",
-            CullFace(..) => "CullFace",
-            FrontFace(..) => "FrontFace",
-            DepthFunc(..) => "DepthFunc",
-            DepthMask(..) => "DepthMask",
-            DepthRange(..) => "DepthRange",
-            Enable(..) => "Enable",
-            Disable(..) => "Disable",
-            CompileShader(..) => "CompileShader",
-            CreateBuffer(..) => "CreateBuffer",
-            CreateFramebuffer(..) => "CreateFramebuffer",
-            CreateRenderbuffer(..) => "CreateRenderbuffer",
-            CreateTexture(..) => "CreateTexture",
-            CreateProgram(..) => "CreateProgram",
-            CreateShader(..) => "CreateShader",
-            DeleteBuffer(..) => "DeleteBuffer",
-            DeleteFramebuffer(..) => "DeleteFramebuffer",
-            DeleteRenderbuffer(..) => "DeleteRenderBuffer",
-            DeleteTexture(..) => "DeleteTexture",
-            DeleteProgram(..) => "DeleteProgram",
-            DeleteShader(..) => "DeleteShader",
-            BindBuffer(..) => "BindBuffer",
-            BindFramebuffer(..) => "BindFramebuffer",
-            BindRenderbuffer(..) => "BindRenderbuffer",
-            BindTexture(..) => "BindTexture",
-            DisableVertexAttribArray(..) => "DisableVertexAttribArray",
-            DrawArrays(..) => "DrawArrays",
-            DrawElements(..) => "DrawElements",
-            EnableVertexAttribArray(..) => "EnableVertexAttribArray",
-            FramebufferRenderbuffer(..) => "FramebufferRenderbuffer",
-            FramebufferTexture2D(..) => "FramebufferTexture2D",
-            GetExtensions(..) => "GetExtensions",
-            GetTexParameter(..) => "GetTexParameter",
-            GetShaderPrecisionFormat(..) => "GetShaderPrecisionFormat",
-            GetActiveAttrib(..) => "GetActiveAttrib",
-            GetActiveUniform(..) => "GetActiveUniform",
-            GetAttribLocation(..) => "GetAttribLocation",
-            GetUniformLocation(..) => "GetUniformLocation",
-            GetShaderInfoLog(..) => "GetShaderInfoLog",
-            GetProgramInfoLog(..) => "GetProgramInfoLog",
-            GetVertexAttribOffset(..) => "GetVertexAttribOffset",
-            GetFramebufferAttachmentParameter(..) => "GetFramebufferAttachmentParameter",
-            GetRenderbufferParameter(..) => "GetRenderbufferParameter",
-            PolygonOffset(..) => "PolygonOffset",
-            ReadPixels(..) => "ReadPixels",
-            RenderbufferStorage(..) => "RenderbufferStorage",
-            SampleCoverage(..) => "SampleCoverage",
-            Scissor(..) => "Scissor",
-            StencilFunc(..) => "StencilFunc",
-            StencilFuncSeparate(..) => "StencilFuncSeparate",
-            StencilMask(..) => "StencilMask",
-            StencilMaskSeparate(..) => "StencilMaskSeparate",
-            StencilOp(..) => "StencilOp",
-            StencilOpSeparate(..) => "StencilOpSeparate",
-            Hint(..) => "Hint",
-            IsEnabled(..) => "IsEnabled",
-            LineWidth(..) => "LineWidth",
-            PixelStorei(..) => "PixelStorei",
-            LinkProgram(..) => "LinkProgram",
-            Uniform1f(..) => "Uniform1f",
-            Uniform1fv(..) => "Uniform1fv",
-            Uniform1i(..) => "Uniform1i",
-            Uniform1iv(..) => "Uniform1iv",
-            Uniform2f(..) => "Uniform2f",
-            Uniform2fv(..) => "Uniform2fv",
-            Uniform2i(..) => "Uniform2i",
-            Uniform2iv(..) => "Uniform2iv",
-            Uniform3f(..) => "Uniform3f",
-            Uniform3fv(..) => "Uniform3fv",
-            Uniform3i(..) => "Uniform3i",
-            Uniform3iv(..) => "Uniform3iv",
-            Uniform4f(..) => "Uniform4f",
-            Uniform4fv(..) => "Uniform4fv",
-            Uniform4i(..) => "Uniform4i",
-            Uniform4iv(..) => "Uniform4iv",
-            UniformMatrix2fv(..) => "UniformMatrix2fv",
-            UniformMatrix3fv(..) => "UniformMatrix3fv",
-            UniformMatrix4fv(..) => "UniformMatrix4fv",
-            UseProgram(..) => "UseProgram",
-            ValidateProgram(..) => "ValidateProgram",
-            VertexAttrib(..) => "VertexAttrib",
-            VertexAttribPointer2f(..) => "VertexAttribPointer2f",
-            VertexAttribPointer(..) => "VertexAttribPointer",
-            SetViewport(..) => "SetViewport",
-            TexImage2D(..) => "TexImage2D",
-            TexParameteri(..) => "TexParameteri",
-            TexParameterf(..) => "TexParameterf",
-            TexSubImage2D(..) => "TexSubImage2D",
-            DrawingBufferWidth(..) => "DrawingBufferWidth",
-            DrawingBufferHeight(..) => "DrawingBufferHeight",
-            Finish(..) => "Finish",
-            Flush => "Flush",
-            GenerateMipmap(..) => "GenerateMipmap",
-            CreateVertexArray(..) => "CreateVertexArray",
-            DeleteVertexArray(..) => "DeleteVertexArray",
-            BindVertexArray(..) => "BindVertexArray",
-            GetParameterBool(..) => "GetParameterBool",
-            GetParameterInt(..) => "GetParameterInt",
-            GetParameterInt4(..) => "GetParameterInt4",
-            GetParameterFloat(..) => "GetParameterFloat",
-            GetParameterFloat2(..) => "GetParameterFloat2",
-            GetProgramParameterBool(..) => "GetProgramParameterBool",
-            GetProgramParameterInt(..) => "GetProgramParameterInt",
-            GetShaderParameterBool(..) => "GetShaderParameterBool",
-            GetShaderParameterInt(..) => "GetShaderParameterInt",
-            GetVertexAttribBool(..) => "GetVertexAttribBool",
-            GetVertexAttribInt(..) => "GetVertexAttribInt",
-            GetVertexAttribFloat4(..) => "GetVertexAttribFloat4",
-        };
-
-        write!(f, "CanvasWebGLMsg::{}(..)", name)
-    }
-}
-
 macro_rules! parameters {
     ($name:ident { $(
         $variant:ident($kind:ident { $(
             $param:ident = gl::$value:ident,
         )+ }),
     )+ }) => {
-        #[derive(Clone, Deserialize, Serialize)]
+        #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
         pub enum $name { $(
             $variant($kind),
         )+}
 
         $(
-            #[derive(Clone, Deserialize, Serialize)]
+            #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
             #[repr(u32)]
             pub enum $kind { $(
                 $param = gl::$value,
@@ -592,7 +458,11 @@ parameters! {
             Dither = gl::DITHER,
             PolygonOffsetFill = gl::POLYGON_OFFSET_FILL,
             SampleCoverageInvert = gl::SAMPLE_COVERAGE_INVERT,
+            ScissorTest = gl::SCISSOR_TEST,
             StencilTest = gl::STENCIL_TEST,
+        }),
+        Bool4(ParameterBool4 {
+            ColorWritemask = gl::COLOR_WRITEMASK,
         }),
         Int(ParameterInt {
             ActiveTexture = gl::ACTIVE_TEXTURE,
@@ -607,15 +477,10 @@ parameters! {
             CullFaceMode = gl::CULL_FACE_MODE,
             DepthBits = gl::DEPTH_BITS,
             DepthFunc = gl::DEPTH_FUNC,
+            FragmentShaderDerivativeHint = gl::FRAGMENT_SHADER_DERIVATIVE_HINT,
             FrontFace = gl::FRONT_FACE,
+            GenerateMipmapHint = gl::GENERATE_MIPMAP_HINT,
             GreenBits = gl::GREEN_BITS,
-            MaxCombinedTextureImageUnits = gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS,
-            MaxCubeMapTextureSize = gl::MAX_CUBE_MAP_TEXTURE_SIZE,
-            MaxRenderbufferSize = gl::MAX_RENDERBUFFER_SIZE,
-            MaxTextureImageUnits = gl::MAX_TEXTURE_IMAGE_UNITS,
-            MaxTextureSize = gl::MAX_TEXTURE_SIZE,
-            MaxVertexAttribs = gl::MAX_VERTEX_ATTRIBS,
-            MaxVertexTextureImageUnits = gl::MAX_VERTEX_TEXTURE_IMAGE_UNITS,
             PackAlignment = gl::PACK_ALIGNMENT,
             RedBits = gl::RED_BITS,
             SampleBuffers = gl::SAMPLE_BUFFERS,
@@ -638,14 +503,15 @@ parameters! {
             StencilWritemask = gl::STENCIL_WRITEMASK,
             SubpixelBits = gl::SUBPIXEL_BITS,
             UnpackAlignment = gl::UNPACK_ALIGNMENT,
-            FragmentShaderDerivativeHint = gl::FRAGMENT_SHADER_DERIVATIVE_HINT,
         }),
         Int4(ParameterInt4 {
+            ScissorBox = gl::SCISSOR_BOX,
             Viewport = gl::VIEWPORT,
         }),
         Float(ParameterFloat {
             DepthClearValue = gl::DEPTH_CLEAR_VALUE,
             LineWidth = gl::LINE_WIDTH,
+            MaxTextureMaxAnisotropyExt = gl::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
             PolygonOffsetFactor = gl::POLYGON_OFFSET_FACTOR,
             PolygonOffsetUnits = gl::POLYGON_OFFSET_UNITS,
             SampleCoverageValue = gl::SAMPLE_COVERAGE_VALUE,
@@ -653,6 +519,11 @@ parameters! {
         Float2(ParameterFloat2 {
             AliasedPointSizeRange = gl::ALIASED_POINT_SIZE_RANGE,
             AliasedLineWidthRange = gl::ALIASED_LINE_WIDTH_RANGE,
+            DepthRange = gl::DEPTH_RANGE,
+        }),
+        Float4(ParameterFloat4 {
+            BlendColor = gl::BLEND_COLOR,
+            ColorClearValue = gl::COLOR_CLEAR_VALUE,
         }),
     }
 }
@@ -680,6 +551,20 @@ parameters! {
         }),
         Int(ShaderParameterInt {
             ShaderType = gl::SHADER_TYPE,
+        }),
+    }
+}
+
+parameters! {
+    TexParameter {
+        Float(TexParameterFloat {
+            TextureMaxAnisotropyExt = gl::TEXTURE_MAX_ANISOTROPY_EXT,
+        }),
+        Int(TexParameterInt {
+            TextureMagFilter = gl::TEXTURE_MAG_FILTER,
+            TextureMinFilter = gl::TEXTURE_MIN_FILTER,
+            TextureWrapS = gl::TEXTURE_WRAP_S,
+            TextureWrapT = gl::TEXTURE_WRAP_T,
         }),
     }
 }

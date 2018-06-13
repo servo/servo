@@ -4,19 +4,7 @@
 <script src=/resources/testharnessreport.js></script>
 <div id=log></div>
 <script>
-function startURLSettersTests() {
-  var setup = async_test("Loading data…")
-  setup.step(function() {
-    var request = new XMLHttpRequest()
-    request.open("GET", "setters_tests.json")
-    request.send()
-    request.responseType = "json"
-    request.onload = setup.step_func(function() {
-      runURLSettersTests(request.response)
-      setup.done()
-    })
-  })
-}
+promise_test(() => fetch("resources/setters_tests.json").then(res => res.json()).then(runURLSettersTests), "Loading data…");
 
 function runURLSettersTests(all_test_cases) {
   for (var attribute_to_be_set in all_test_cases) {
@@ -57,6 +45,4 @@ function runURLSettersTests(all_test_cases) {
     }
   }
 }
-
-startURLSettersTests()
 </script>

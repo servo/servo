@@ -1,0 +1,49 @@
+[Exposed=Window]
+partial interface Navigator {
+  [SameObject] readonly attribute MediaSession mediaSession;
+};
+
+enum MediaSessionPlaybackState {
+  "none",
+  "paused",
+  "playing"
+};
+
+enum MediaSessionAction {
+  "play",
+  "pause",
+  "seekbackward",
+  "seekforward",
+  "previoustrack",
+  "nexttrack",
+};
+
+callback MediaSessionActionHandler = void();
+
+[Exposed=Window]
+interface MediaSession {
+  attribute MediaMetadata? metadata;
+  attribute MediaSessionPlaybackState playbackState;
+  void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
+};
+
+[Constructor(optional MediaMetadataInit init), Exposed=Window]
+interface MediaMetadata {
+  attribute DOMString title;
+  attribute DOMString artist;
+  attribute DOMString album;
+  attribute FrozenArray<MediaImage> artwork;
+};
+
+dictionary MediaMetadataInit {
+  DOMString title = "";
+  DOMString artist = "";
+  DOMString album = "";
+  sequence<MediaImage> artwork = [];
+};
+
+dictionary MediaImage {
+  required USVString src;
+  DOMString sizes = "";
+  DOMString type = "";
+};

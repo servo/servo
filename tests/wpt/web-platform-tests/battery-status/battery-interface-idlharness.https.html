@@ -7,71 +7,26 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
-<script type="text/plain" class="untested">
-interface Navigator { };
-
-interface EventTarget {
-  void addEventListener(DOMString type, EventListener? callback, optional boolean capture);
-  void removeEventListener(DOMString type, EventListener? callback, optional boolean capture);
-  boolean dispatchEvent(Event event);
-};
-
-[Callback]
-interface EventListener {
-  void handleEvent(Event event);
-};
-[TreatNonObjectAsNull]
-callback EventHandlerNonNull = any (Event event);
-typedef EventHandlerNonNull? EventHandler;
-</script>
-<script type="text/plain">
-partial interface Navigator {
-    Promise<BatteryManager> getBattery ();
-};
-
-[Exposed=Window]
-interface BatteryManager : EventTarget {
-    readonly attribute boolean             charging;
-    readonly attribute unrestricted double chargingTime;
-    readonly attribute unrestricted double dischargingTime;
-    readonly attribute double              level;
-             attribute EventHandler        onchargingchange;
-             attribute EventHandler        onchargingtimechange;
-             attribute EventHandler        ondischargingtimechange;
-             attribute EventHandler        onlevelchange;
-};
-</script>
 <script>
 "use strict";
-var t = async_test();
-var idl_array = new IdlArray();
-var idls;
-var manager;
-[].forEach.call(document.querySelectorAll('script[type=text\\/plain]'), function(node) {
-  idls = node.textContent;
-  idl_array[(node.className === 'untested') ? 'add_untested_idls' : 'add_idls'](idls);
-});
-t.step(function() {
-  assert_idl_attribute(navigator, 'getBattery', 'navigator must have getBattery attribute');
-  navigator.getBattery().then(function(bm) {
-    manager = bm;
-    idl_array.add_objects({Navigator: ['navigator'], BatteryManager: ['manager']});
-    idl_array.test();
-    t.done();
-  }).catch(function(err) {
-    t.assert_unreached("navigator.getBattery failed");
+
+promise_test(async () => {
+  const idl_array = new IdlArray();
+  const dom_idl = await fetch("/interfaces/dom.idl").then(r => r.text());
+  const battery_idl = await fetch("/interfaces/battery.idl").then(r => r.text());
+  const manager = await navigator.getBattery();
+
+  idl_array.add_untested_idls(dom_idl, {only: ['EventTarget']});
+  idl_array.add_untested_idls('interface EventHandler {};');
+  idl_array.add_untested_idls('interface Navigator {};');
+  idl_array.add_idls(battery_idl);
+
+  window.manager = manager;
+
+  idl_array.add_objects({
+    Navigator: ['navigator'],
+    BatteryManager: ['manager'],
   });
-});
+  idl_array.test();
+}, "Test IDL implementation of Battery Status API");
 </script>
-
-<h2>Description</h2>
-<p>
-  This test validates the BatteryManager interface IDL.
-</p>
-<p>
-  This test uses <a href="/resources/idlharness.js">idlharness.js</a>, and
-  is complementary to the <a href="battery-interface.html">battery-interface.html</a>
-  test.
-</p>
-
-<div id="log"></div>

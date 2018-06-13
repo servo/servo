@@ -363,13 +363,14 @@ impl Stylesheet {
 
         let rule_parser = TopLevelRuleParser {
             stylesheet_origin: origin,
-            shared_lock: shared_lock,
+            shared_lock,
             loader: stylesheet_loader,
-            context: context,
-            error_context: error_context,
+            context,
+            error_context,
             state: State::Start,
-            had_hierarchy_error: false,
-            namespaces: namespaces,
+            dom_error: None,
+            insert_rule_context: None,
+            namespaces,
         };
 
         {

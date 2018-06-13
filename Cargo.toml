@@ -2,9 +2,6 @@
 members = [
     "ports/servo",
     "tests/unit/*",
-
-    "ports/geckolib",
-    "ports/geckolib/tests",
 ]
 default-members = [
     "ports/servo",

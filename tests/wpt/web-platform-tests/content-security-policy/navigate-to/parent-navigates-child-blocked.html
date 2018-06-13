@@ -7,12 +7,6 @@
 
 <body>
 <script>
-  var t = async_test("Test that the parent can't navigate the child because the relevant policy belongs to the navigation initiator (in this case the parent)");
-  window.addEventListener('securitypolicyviolation', t.step_func_done(function(e) {
-    assert_equals(e.violatedDirective, 'navigate-to');
-  }));
-  window.onmessage = t.unreached_func("Should not have received a message from the child");
-
   var i = document.createElement('iframe');
   var src_changed = false;
   i.onload = function() {
@@ -20,7 +14,8 @@
     src_changed = true;
     i.src = "support/post_message_to_frame_owner.html";
   }
-  i.src = "support/wait_for_navigation.html?csp=navigate-to%20%self%27";
+  i.src = "support/wait_for_navigation.html?csp=navigate-to%20%27self%27";
   document.body.appendChild(i);
 </script>
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=navigate-to%20support%2Fwait_for_navigation.html'></script>
 </body>

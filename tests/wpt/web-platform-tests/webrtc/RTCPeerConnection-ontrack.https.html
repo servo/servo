@@ -98,6 +98,8 @@
   async_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     // Fail the test if the ontrack event handler is not implemented
     assert_idl_attribute(pc, 'ontrack', 'Expect pc to have ontrack event handler attribute');
 
@@ -151,6 +153,8 @@ a=ssrc:1001 cname:some
   async_test(t => {
     const pc = new RTCPeerConnection();
 
+    t.add_cleanup(() => pc.close());
+
     assert_idl_attribute(pc, 'ontrack', 'Expect pc to have ontrack event handler attribute');
 
     const sdp = `v=0
@@ -182,12 +186,14 @@ a=ssrc:1001 cname:some
     .then(t.step_func(() => {
       t.step_timeout(t.step_func_done(), 100);
     }));
-
   }, 'setRemoteDescription() with m= line of recvonly direction should not trigger track event');
 
   async_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     pc2.ontrack = t.step_func(trackEvent => {
       const { track } = trackEvent;
@@ -210,12 +216,14 @@ a=ssrc:1001 cname:some
     .catch(t.step_func(err => {
       assert_unreached('Error ' + err.name + ': ' + err.message);
     }));
-
   }, 'addTrack() should cause remote connection to fire ontrack when setRemoteDescription()');
 
   async_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     pc2.ontrack = t.step_func(trackEvent => {
       const { track } = trackEvent;
@@ -235,12 +243,14 @@ a=ssrc:1001 cname:some
     .catch(t.step_func(err => {
       assert_unreached('Error ' + err.name + ': ' + err.message);
     }));
-
   }, `addTransceiver('video') should cause remote connection to fire ontrack when setRemoteDescription()`);
 
   async_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     pc2.ontrack = t.step_func(trackEvent => {
       const { track } = trackEvent;
@@ -264,7 +274,6 @@ a=ssrc:1001 cname:some
     .then(t.step_func(() => {
       t.step_timeout(t.step_func_done(), 100);
     }));
-
   }, `addTransceiver() with inactive direction should not cause remote connection to fire ontrack when setRemoteDescription()`);
 
 </script>

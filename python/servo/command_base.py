@@ -285,27 +285,10 @@ class CommandBase(object):
         # Set default android target
         self.handle_android_target("armv7-linux-androideabi")
 
-        self.set_use_geckolib_toolchain(False)
-
-    _use_geckolib_toolchain = False
-    _geckolib_toolchain = None
     _default_toolchain = None
 
-    def set_use_geckolib_toolchain(self, use_geckolib_toolchain=True):
-        self._use_geckolib_toolchain = use_geckolib_toolchain
-
     def toolchain(self):
-        if self._use_geckolib_toolchain:
-            return self.geckolib_toolchain()
-        else:
-            return self.default_toolchain()
-
-    def geckolib_toolchain(self):
-        if self._geckolib_toolchain is None:
-            filename = path.join(self.context.topdir, "geckolib-rust-toolchain")
-            with open(filename) as f:
-                self._geckolib_toolchain = f.read().strip()
-        return self._geckolib_toolchain
+        return self.default_toolchain()
 
     def default_toolchain(self):
         if self._default_toolchain is None:
@@ -474,7 +457,7 @@ class CommandBase(object):
             bin_folder = path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
         return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
 
-    def build_env(self, hosts_file_path=None, target=None, is_build=False, geckolib=False, test_unit=False):
+    def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -495,6 +478,7 @@ class CommandBase(object):
                 return path.join(msvc_deps_dir, package, msvc_deps[package])
 
             extra_path += [path.join(package_dir("cmake"), "bin")]
+            extra_path += [path.join(package_dir("llvm"), "bin")]
             extra_path += [path.join(package_dir("ninja"), "bin")]
             # Link openssl
             env["OPENSSL_INCLUDE_DIR"] = path.join(package_dir("openssl"), "include")
@@ -502,6 +486,8 @@ class CommandBase(object):
             env["OPENSSL_LIBS"] = "libsslMD:libcryptoMD"
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(package_dir("moztools"), "bin")
+            # Link LLVM
+            env["LIBCLANG_PATH"] = path.join(package_dir("llvm"), "lib")
 
         if is_windows():
             if not os.environ.get("NATIVE_WIN32_PYTHON"):
@@ -593,10 +579,7 @@ class CommandBase(object):
 
         env['GIT_INFO'] = '-'.join(git_info)
 
-        if geckolib:
-            geckolib_build_path = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
-            env["CARGO_TARGET_DIR"] = geckolib_build_path
-        elif self.config["build"]["thinlto"]:
+        if self.config["build"]["thinlto"]:
             env['RUSTFLAGS'] += " -Z thinlto"
 
         return env
@@ -606,9 +589,6 @@ class CommandBase(object):
 
     def servo_manifest(self):
         return path.join(self.context.topdir, "ports", "servo", "Cargo.toml")
-
-    def geckolib_manifest(self):
-        return path.join(self.context.topdir, "ports", "geckolib", "Cargo.toml")
 
     def servo_features(self):
         """Return a list of optional features to enable for the Servo crate"""
@@ -630,6 +610,7 @@ class CommandBase(object):
         if target == "arm-linux-androideabi":
             self.config["android"]["platform"] = "android-18"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "arm"
             self.config["android"]["lib"] = "armeabi"
             self.config["android"]["toolchain_name"] = target + "-4.9"
@@ -637,6 +618,7 @@ class CommandBase(object):
         elif target == "armv7-linux-androideabi":
             self.config["android"]["platform"] = "android-18"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = "arm-linux-androideabi"
             self.config["android"]["arch"] = "arm"
             self.config["android"]["lib"] = "armeabi-v7a"
             self.config["android"]["toolchain_name"] = "arm-linux-androideabi-4.9"
@@ -644,9 +626,18 @@ class CommandBase(object):
         elif target == "aarch64-linux-android":
             self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "arm64"
             self.config["android"]["lib"] = "arm64-v8a"
             self.config["android"]["toolchain_name"] = target + "-4.9"
+            return True
+        elif target == "i686-linux-android":
+            self.config["android"]["platform"] = "android-18"
+            self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = "x86"
+            self.config["android"]["arch"] = "x86"
+            self.config["android"]["lib"] = "x86"
+            self.config["android"]["toolchain_name"] = "x86-4.9"
             return True
         return False
 

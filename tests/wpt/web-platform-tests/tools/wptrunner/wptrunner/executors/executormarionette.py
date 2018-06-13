@@ -60,7 +60,7 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
 
     def execute_script(self, script, async=False):
         method = self.marionette.execute_async_script if async else self.marionette.execute_script
-        return method(script, new_sandbox=False)
+        return method(script, new_sandbox=False, sandbox=None)
 
     def set_timeout(self, timeout):
         """Set the Marionette script timeout.
@@ -119,7 +119,7 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
 
     def load_runner(self, url_protocol):
         # Check if we previously had a test window open, and if we did make sure it's closed
-        self.marionette.execute_script("if (window.win) {window.win.close()}")
+        self.parent.base.execute_script("if (window.win) {window.win.close()}")
         url = urlparse.urljoin(self.parent.executor.server_url(url_protocol),
                                "/testharness_runner.html")
         self.logger.debug("Loading %s" % url)
@@ -133,7 +133,7 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
                 "that your firewall rules or network setup does not "
                 "prevent access.\e%s" % (url, traceback.format_exc(e)))
             raise
-        self.marionette.execute_script(
+        self.parent.base.execute_script(
             "document.title = '%s'" % threading.current_thread().name.replace("'", '"'))
 
     def close_old_windows(self, url_protocol):
@@ -183,7 +183,7 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
         if window_id:
             try:
                 # Try this, it's in Level 1 but nothing supports it yet
-                win_s = self.marionette.execute_script("return window['%s'];" % self.window_id)
+                win_s = self.parent.base.execute_script("return window['%s'];" % self.window_id)
                 win_obj = json.loads(win_s)
                 test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
             except Exception:
@@ -326,7 +326,7 @@ class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
         }
         if message:
             obj["message"] = str(message)
-        self.marionette.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
+        self.parent.base.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
 
 
 class MarionetteProtocol(Protocol):
@@ -445,7 +445,7 @@ class ExecuteAsyncScriptRun(object):
         else:
             wait_timeout = None
 
-        flag = self.result_flag.wait(wait_timeout)
+        self.result_flag.wait(wait_timeout)
 
         if self.result == (None, None):
             self.logger.debug("Timed out waiting for a result")
@@ -494,8 +494,8 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
                                      debug_info=debug_info)
 
         self.protocol = MarionetteProtocol(self, browser, capabilities, timeout_multiplier)
-        self.script = open(os.path.join(here, "testharness_marionette.js")).read()
-        self.script_resume = open(os.path.join(here, "testharness_marionette_resume.js")).read()
+        self.script = open(os.path.join(here, "testharness_webdriver.js")).read()
+        self.script_resume = open(os.path.join(here, "testharness_webdriver_resume.js")).read()
         self.close_after_done = close_after_done
         self.window_id = str(uuid.uuid4())
 
@@ -675,9 +675,6 @@ class InternalRefTestImplementation(object):
         self.executor.protocol.marionette._send_message("reftest:setup", data)
 
     def run_test(self, test):
-        viewport_size = test.viewport_size
-        dpi = test.dpi
-
         references = self.get_references(test)
         rv = self.executor.protocol.marionette._send_message("reftest:run",
                                                              {"test": self.executor.test_url(test),

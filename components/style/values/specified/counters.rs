@@ -8,17 +8,18 @@
 use computed_values::list_style_type::T as ListStyleType;
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
+use selectors::parser::SelectorParseErrorKind;
 use style_traits::{ParseError, StyleParseErrorKind};
 use values::CustomIdent;
 #[cfg(feature = "gecko")]
 use values::generics::CounterStyleOrNone;
+use values::generics::counters as generics;
 use values::generics::counters::CounterIncrement as GenericCounterIncrement;
 use values::generics::counters::CounterPair;
 use values::generics::counters::CounterReset as GenericCounterReset;
 #[cfg(feature = "gecko")]
 use values::specified::Attr;
 use values::specified::Integer;
-#[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedImageUrl;
 
 /// A specified value for the `counter-increment` property.
@@ -79,69 +80,129 @@ fn parse_counters<'i, 't>(
     }
 }
 
-#[cfg(feature = "servo")]
-type CounterStyleType = ListStyleType;
-
-#[cfg(feature = "gecko")]
-type CounterStyleType = CounterStyleOrNone;
-
-#[cfg(feature = "servo")]
-#[inline]
-fn is_decimal(counter_type: &CounterStyleType) -> bool {
-    *counter_type == ListStyleType::Decimal
-}
-
-#[cfg(feature = "gecko")]
-#[inline]
-fn is_decimal(counter_type: &CounterStyleType) -> bool {
-    *counter_type == CounterStyleOrNone::decimal()
-}
-
 /// The specified value for the `content` property.
-///
-/// https://drafts.csswg.org/css-content/#propdef-content
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
-pub enum Content {
-    /// `normal` reserved keyword.
-    Normal,
-    /// `none` reserved keyword.
-    None,
-    /// `-moz-alt-content`.
+pub type Content = generics::Content<SpecifiedImageUrl>;
+
+/// The specified value for a content item in the `content` property.
+pub type ContentItem = generics::ContentItem<SpecifiedImageUrl>;
+
+impl Content {
+    #[cfg(feature = "servo")]
+    fn parse_counter_style(_: &ParserContext, input: &mut Parser) -> ListStyleType {
+        input
+            .try(|input| {
+                input.expect_comma()?;
+                ListStyleType::parse(input)
+            })
+            .unwrap_or(ListStyleType::Decimal)
+    }
+
     #[cfg(feature = "gecko")]
-    MozAltContent,
-    /// Content items.
-    Items(#[css(iterable)] Box<[ContentItem]>),
+    fn parse_counter_style(context: &ParserContext, input: &mut Parser) -> CounterStyleOrNone {
+        input
+            .try(|input| {
+                input.expect_comma()?;
+                CounterStyleOrNone::parse(context, input)
+            })
+            .unwrap_or(CounterStyleOrNone::decimal())
+    }
 }
 
-/// Items for the `content` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
-pub enum ContentItem {
-    /// Literal string content.
-    String(Box<str>),
-    /// `counter(name, style)`.
-    #[css(comma, function)]
-    Counter(CustomIdent, #[css(skip_if = "is_decimal")] CounterStyleType),
-    /// `counters(name, separator, style)`.
-    #[css(comma, function)]
-    Counters(
-        CustomIdent,
-        Box<str>,
-        #[css(skip_if = "is_decimal")] CounterStyleType,
-    ),
-    /// `open-quote`.
-    OpenQuote,
-    /// `close-quote`.
-    CloseQuote,
-    /// `no-open-quote`.
-    NoOpenQuote,
-    /// `no-close-quote`.
-    NoCloseQuote,
-    /// `attr([namespace? `|`]? ident)`
-    #[cfg(feature = "gecko")]
-    Attr(Attr),
-    /// `url(url)`
-    #[cfg(feature = "gecko")]
-    Url(SpecifiedImageUrl),
+impl Parse for Content {
+    // normal | none | [ <string> | <counter> | open-quote | close-quote | no-open-quote |
+    // no-close-quote ]+
+    // TODO: <uri>, attr(<identifier>)
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if input
+            .try(|input| input.expect_ident_matching("normal"))
+            .is_ok()
+        {
+            return Ok(generics::Content::Normal);
+        }
+        if input
+            .try(|input| input.expect_ident_matching("none"))
+            .is_ok()
+        {
+            return Ok(generics::Content::None);
+        }
+        #[cfg(feature = "gecko")]
+        {
+            if input
+                .try(|input| input.expect_ident_matching("-moz-alt-content"))
+                .is_ok()
+            {
+                return Ok(generics::Content::MozAltContent);
+            }
+        }
+
+        let mut content = vec![];
+        loop {
+            #[cfg(feature = "gecko")]
+            {
+                if let Ok(url) = input.try(|i| SpecifiedImageUrl::parse(context, i)) {
+                    content.push(generics::ContentItem::Url(url));
+                    continue;
+                }
+            }
+            // FIXME: remove clone() when lifetimes are non-lexical
+            match input.next().map(|t| t.clone()) {
+                Ok(Token::QuotedString(ref value)) => {
+                    content.push(generics::ContentItem::String(
+                        value.as_ref().to_owned().into_boxed_str(),
+                    ));
+                },
+                Ok(Token::Function(ref name)) => {
+                    let result = match_ignore_ascii_case! { &name,
+                        "counter" => Some(input.parse_nested_block(|input| {
+                            let location = input.current_source_location();
+                            let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
+                            let style = Content::parse_counter_style(context, input);
+                            Ok(generics::ContentItem::Counter(name, style))
+                        })),
+                        "counters" => Some(input.parse_nested_block(|input| {
+                            let location = input.current_source_location();
+                            let name = CustomIdent::from_ident(location, input.expect_ident()?, &[])?;
+                            input.expect_comma()?;
+                            let separator = input.expect_string()?.as_ref().to_owned().into_boxed_str();
+                            let style = Content::parse_counter_style(context, input);
+                            Ok(generics::ContentItem::Counters(name, separator, style))
+                        })),
+                        #[cfg(feature = "gecko")]
+                        "attr" => Some(input.parse_nested_block(|input| {
+                            Ok(generics::ContentItem::Attr(Attr::parse_function(context, input)?))
+                        })),
+                        _ => None
+                    };
+                    match result {
+                        Some(result) => content.push(result?),
+                        None => {
+                            return Err(input.new_custom_error(
+                                StyleParseErrorKind::UnexpectedFunction(name.clone()),
+                            ))
+                        },
+                    }
+                },
+                Ok(Token::Ident(ref ident)) => {
+                    content.push(match_ignore_ascii_case! { &ident,
+                        "open-quote" => generics::ContentItem::OpenQuote,
+                        "close-quote" => generics::ContentItem::CloseQuote,
+                        "no-open-quote" => generics::ContentItem::NoOpenQuote,
+                        "no-close-quote" => generics::ContentItem::NoCloseQuote,
+                        _ => return Err(input.new_custom_error(
+                            SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                        ))
+                    });
+                },
+                Err(_) => break,
+                Ok(t) => return Err(input.new_unexpected_token_error(t)),
+            }
+        }
+        if content.is_empty() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        Ok(generics::Content::Items(content.into_boxed_slice()))
+    }
 }

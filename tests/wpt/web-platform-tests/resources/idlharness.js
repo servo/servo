@@ -183,11 +183,19 @@ self.IdlArray = function()
      *   A implements C;
      *   D implements E;
      *
-     * results in { A: ["B", "C"], D: ["E"] }.
+     * results in this["implements"] = { A: ["B", "C"], D: ["E"] }.
+     *
+     * Similarly,
+     *
+     *   interface A : B {};
+     *   interface B : C {};
+     *
+     * results in this["inheritance"] = { A: "B", B: "C" }
      */
     this.partials = [];
     this["implements"] = {};
     this["includes"] = {};
+    this["inheritance"] = {};
 };
 
 //@}
@@ -204,19 +212,118 @@ IdlArray.prototype.add_untested_idls = function(raw_idls, options)
 {
     /** Entry point.  See documentation at beginning of file. */
     var parsed_idls = WebIDL2.parse(raw_idls);
-    for (var i = 0; i < parsed_idls.length; i++)
-    {
+    this.mark_as_untested(parsed_idls);
+    this.internal_add_idls(parsed_idls, options);
+};
+
+//@}
+IdlArray.prototype.mark_as_untested = function (parsed_idls)
+//@{
+{
+    for (var i = 0; i < parsed_idls.length; i++) {
         parsed_idls[i].untested = true;
-        if ("members" in parsed_idls[i])
-        {
-            for (var j = 0; j < parsed_idls[i].members.length; j++)
-            {
+        if ("members" in parsed_idls[i]) {
+            for (var j = 0; j < parsed_idls[i].members.length; j++) {
                 parsed_idls[i].members[j].untested = true;
             }
         }
     }
-    this.internal_add_idls(parsed_idls, options);
 };
+//@}
+
+//@}
+IdlArray.prototype.is_excluded_by_options = function (name, options)
+//@{
+{
+    return options &&
+        (options.except && options.except.includes(name)
+         || options.only && !options.only.includes(name));
+};
+//@}
+
+//@}
+IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
+//@{
+{
+    const parsed_idls = WebIDL2.parse(raw_idls);
+    const new_options = { only: [] }
+
+    const all_deps = new Set();
+    Object.values(this.inheritance).forEach(v => all_deps.add(v));
+    Object.values(this.implements).forEach(v => all_deps.add(v));
+    // NOTE: If 'A includes B' for B that we care about, then A is also a dep.
+    Object.keys(this.includes).forEach(k => {
+        all_deps.add(k);
+        this.includes[k].forEach(v => all_deps.add(v));
+    });
+    this.partials.map(p => p.name).forEach(v => all_deps.add(v));
+    // Add the attribute idlTypes of all the nested members of all tested idls.
+    for (const obj of [this.members, this.partials]) {
+        const tested = Object.values(obj).filter(m => !m.untested && m.members);
+        for (const parsed of tested) {
+            for (const attr of Object.values(parsed.members).filter(m => !m.untested && m.type === 'attribute')) {
+                all_deps.add(attr.idlType.idlType);
+            }
+        }
+    }
+
+    if (options && options.except && options.only) {
+        throw new IdlHarnessError("The only and except options can't be used together.");
+    }
+
+    const should_skip = name => {
+        // NOTE: Deps are untested, so we're lenient, and skip re-encountered definitions.
+        // e.g. for 'idl' containing A:B, B:C, C:D
+        //      array.add_idls(idl, {only: ['A','B']}).
+        //      array.add_dependency_idls(idl);
+        // B would be encountered as tested, and encountered as a dep, so we ignore.
+        return name in this.members
+            || this.is_excluded_by_options(name, options);
+    }
+    // Record of skipped items, in case we later determine they are a dependency.
+    // Maps name -> [parsed_idl, ...]
+    const skipped = new Map();
+    const process = function(parsed) {
+        let name = parsed.name
+            || parsed.type == "implements" && parsed.target
+            || parsed.type == "includes" && parsed.target;
+        if (!name || should_skip(name) || !all_deps.has(name)) {
+            name &&
+                skipped.has(name)
+                    ? skipped.get(name).push(parsed)
+                    : skipped.set(name, [parsed]);
+            return;
+        }
+
+        new_options.only.push(name);
+        const follow_up = [];
+        for (const dep_type of ["inheritance", "implements", "includes"]) {
+            if (parsed[dep_type]) {
+                const dep = parsed[dep_type];
+                new_options.only.push(dep);
+                all_deps.add(dep);
+                follow_up.push(dep);
+            }
+        }
+
+        for (const deferred of follow_up) {
+            if (skipped.has(deferred)) {
+                const next = skipped.get(deferred);
+                skipped.delete(deferred);
+                next.forEach(process);
+            }
+        }
+    }
+    for (let parsed of parsed_idls) {
+        process(parsed);
+    }
+
+    this.mark_as_untested(parsed_idls);
+
+    if (new_options.only.length) {
+        this.internal_add_idls(parsed_idls, new_options);
+    }
+}
 
 //@}
 IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
@@ -242,17 +349,8 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
         throw new IdlHarnessError("The only and except options can't be used together.");
     }
 
-    function should_skip(name)
-    {
-        if (options && options.only && options.only.indexOf(name) == -1)
-        {
-            return true;
-        }
-        if (options && options.except && options.except.indexOf(name) != -1)
-        {
-            return true;
-        }
-        return false;
+    var should_skip = name => {
+        return this.is_excluded_by_options(name, options);
     }
 
     parsed_idls.forEach(function(parsed_idl)
@@ -304,6 +402,17 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
         {
             throw new IdlHarnessError("Duplicate identifier " + parsed_idl.name);
         }
+
+        if (parsed_idl["inheritance"]) {
+            // NOTE: Clash should be impossible (would require redefinition of parsed_idl.name).
+            if (parsed_idl.name in this["inheritance"]
+                && parsed_idl["inheritance"] != this["inheritance"][parsed_idl.name]) {
+                throw new IdlHarnessError(
+                    `Inheritance for ${parsed_idl.name} was already defined`);
+            }
+            this["inheritance"][parsed_idl.name] = parsed_idl["inheritance"];
+        }
+
         switch(parsed_idl.type)
         {
         case "interface":
@@ -553,42 +662,48 @@ IdlArray.prototype.is_json_type = function(type)
 };
 
 function exposure_set(object, default_set) {
-    var exposed = object.extAttrs.filter(function(a) { return a.name == "Exposed" });
-    if (exposed.length > 1) {
+    var exposed = object.extAttrs && object.extAttrs.filter(a => a.name === "Exposed");
+    if (exposed && exposed.length > 1) {
         throw new IdlHarnessError(
             `Multiple 'Exposed' extended attributes on ${object.name}`);
     }
 
-    if (exposed.length === 0) {
-        return default_set;
+    let result = default_set || ["Window"];
+    if (result && !(result instanceof Set)) {
+        result = new Set(result);
     }
-
-    var set = exposed[0].rhs.value;
-    // Could be a list or a string.
-    if (typeof set == "string") {
-        set = [ set ];
+    if (exposed && exposed.length) {
+        var set = exposed[0].rhs.value;
+        // Could be a list or a string.
+        if (typeof set == "string") {
+            set = [ set ];
+        }
+        result = new Set(set);
     }
-    return set;
+    if (result && result.has("Worker")) {
+        result.delete("Worker");
+        result.add("DedicatedWorker");
+        result.add("ServiceWorker");
+        result.add("SharedWorker");
+    }
+    return result;
 }
 
 function exposed_in(globals) {
     if ('document' in self) {
-        return globals.indexOf("Window") >= 0;
+        return globals.has("Window");
     }
     if ('DedicatedWorkerGlobalScope' in self &&
         self instanceof DedicatedWorkerGlobalScope) {
-        return globals.indexOf("Worker") >= 0 ||
-               globals.indexOf("DedicatedWorker") >= 0;
+        return globals.has("DedicatedWorker");
     }
     if ('SharedWorkerGlobalScope' in self &&
         self instanceof SharedWorkerGlobalScope) {
-        return globals.indexOf("Worker") >= 0 ||
-               globals.indexOf("SharedWorker") >= 0;
+        return globals.has("SharedWorker");
     }
     if ('ServiceWorkerGlobalScope' in self &&
         self instanceof ServiceWorkerGlobalScope) {
-        return globals.indexOf("Worker") >= 0 ||
-               globals.indexOf("ServiceWorker") >= 0;
+        return globals.has("ServiceWorker");
     }
     throw new IdlHarnessError("Unexpected global object");
 }
@@ -628,27 +743,7 @@ IdlArray.prototype.test = function()
 
     // First merge in all the partial interfaces and implements statements we
     // encountered.
-    this.partials.forEach(function(parsed_idl)
-    {
-        if (!(parsed_idl.name in this.members)
-            || !(this.members[parsed_idl.name] instanceof IdlInterface
-                 || this.members[parsed_idl.name] instanceof IdlDictionary))
-        {
-            throw new IdlHarnessError(`Partial ${parsed_idl.type} ${parsed_idl.name} with no original ${parsed_idl.type}`);
-        }
-        if (parsed_idl.extAttrs)
-        {
-            parsed_idl.extAttrs.forEach(function(extAttr)
-            {
-                this.members[parsed_idl.name].extAttrs.push(extAttr);
-            }.bind(this));
-        }
-        parsed_idl.members.forEach(function(member)
-        {
-            this.members[parsed_idl.name].members.push(new IdlInterfaceMember(member));
-        }.bind(this));
-    }.bind(this));
-    this.partials = [];
+    this.collapse_partials();
 
     for (var lhs in this["implements"])
     {
@@ -705,7 +800,7 @@ IdlArray.prototype.test = function()
             return;
         }
 
-        var globals = exposure_set(member, ["Window"]);
+        var globals = exposure_set(member);
         member.exposed = exposed_in(globals);
         member.exposureSet = globals;
     }.bind(this));
@@ -723,6 +818,78 @@ IdlArray.prototype.test = function()
         }
     }
 };
+
+//@}
+IdlArray.prototype.collapse_partials = function()
+//@{
+{
+    const testedPartials = new Map();
+    this.partials.forEach(function(parsed_idl)
+    {
+        const originalExists = parsed_idl.name in this.members
+            && (this.members[parsed_idl.name] instanceof IdlInterface
+                || this.members[parsed_idl.name] instanceof IdlDictionary);
+
+        let partialTestName = parsed_idl.name;
+        if (!parsed_idl.untested) {
+            // Ensure unique test name in case of multiple partials.
+            let partialTestCount = 1;
+            if (testedPartials.has(parsed_idl.name)) {
+                partialTestCount += testedPartials.get(parsed_idl.name);
+                partialTestName = `${partialTestName}[${partialTestCount}]`;
+            }
+            testedPartials.set(parsed_idl.name, partialTestCount);
+
+            test(function () {
+                assert_true(originalExists, `Original ${parsed_idl.type} should be defined`);
+            }.bind(this), `Partial ${parsed_idl.type} ${partialTestName}: original ${parsed_idl.type} defined`);
+        }
+        if (!originalExists) {
+            // Not good.. but keep calm and carry on.
+            return;
+        }
+
+        if (parsed_idl.extAttrs)
+        {
+            // Special-case "Exposed". Must be a subset of original interface's exposure.
+            // Exposed on a partial is the equivalent of having the same Exposed on all nested members.
+            // See https://github.com/heycam/webidl/issues/154 for discrepency between Exposed and
+            // other extended attributes on partial interfaces.
+            const exposureAttr = parsed_idl.extAttrs.find(a => a.name === "Exposed");
+            if (exposureAttr) {
+                if (!parsed_idl.untested) {
+                    test(function () {
+                        const partialExposure = exposure_set(parsed_idl);
+                        const memberExposure = exposure_set(this.members[parsed_idl.name]);
+                        partialExposure.forEach(name => {
+                            if (!memberExposure || !memberExposure.has(name)) {
+                                throw new IdlHarnessError(
+                                    `Partial ${parsed_idl.name} ${parsed_idl.type} is exposed to '${name}', the original ${parsed_idl.type} is not.`);
+                            }
+                        });
+                    }.bind(this), `Partial ${parsed_idl.type} ${partialTestName}: valid exposure set`);
+                }
+                parsed_idl.members.forEach(function (member) {
+                    member.extAttrs.push(exposureAttr);
+                }.bind(this));
+            }
+
+            parsed_idl.extAttrs.forEach(function(extAttr)
+            {
+                // "Exposed" already handled above.
+                if (extAttr.name === "Exposed") {
+                    return;
+                }
+                this.members[parsed_idl.name].extAttrs.push(extAttr);
+            }.bind(this));
+        }
+        parsed_idl.members.forEach(function(member)
+        {
+            this.members[parsed_idl.name].members.push(new IdlInterfaceMember(member));
+        }.bind(this));
+    }.bind(this));
+    this.partials = [];
+}
 
 //@}
 IdlArray.prototype.assert_type_is = function(value, type)
@@ -778,7 +945,7 @@ IdlArray.prototype.assert_type_is = function(value, type)
         return;
     }
 
-    if (type.sequence)
+    if (type.generic === "sequence")
     {
         assert_true(Array.isArray(value), "should be an Array");
         if (!value.length)
@@ -1420,7 +1587,7 @@ IdlInterface.prototype.test_self = function()
             if (this.is_callback()) {
                 throw new IdlHarnessError("Invalid IDL: LegacyWindowAlias extended attribute on non-interface " + this.name);
             }
-            if (this.exposureSet.indexOf("Window") === -1) {
+            if (!this.exposureSet.has("Window")) {
                 throw new IdlHarnessError("Invalid IDL: LegacyWindowAlias extended attribute on " + this.name + " which is not exposed in Window");
             }
             // TODO: when testing of [NoInterfaceObject] interfaces is supported,

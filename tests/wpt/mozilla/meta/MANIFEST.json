@@ -307,6 +307,18 @@
      {}
     ]
    ],
+   "css/background_border_padding_crash.html": [
+    [
+     "/_mozilla/css/background_border_padding_crash.html",
+     [
+      [
+       "/_mozilla/css/background_border_padding_crash-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/background_clip_a.html": [
     [
      "/_mozilla/css/background_clip_a.html",
@@ -2262,6 +2274,42 @@
       [
        "/_mozilla/css/font_face_attribute_ref.html",
        "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_01.html": [
+    [
+     "/_mozilla/css/font_fallback_01.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_02.html": [
+    [
+     "/_mozilla/css/font_fallback_02.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/font_fallback_03.html": [
+    [
+     "/_mozilla/css/font_fallback_03.html",
+     [
+      [
+       "/_mozilla/css/font_fallback_failed_ref.html",
+       "!="
       ]
      ],
      {}
@@ -5453,18 +5501,6 @@
      {}
     ]
    ],
-   "css/setpropertypriority.html": [
-    [
-     "/_mozilla/css/setpropertypriority.html",
-     [
-      [
-       "/_mozilla/css/setpropertypriority_ref.html",
-       "=="
-      ]
-     ],
-     {}
-    ]
-   ],
    "css/simple_inline_absolute_containing_block_a.html": [
     [
      "/_mozilla/css/simple_inline_absolute_containing_block_a.html",
@@ -7423,6 +7459,11 @@
      {}
     ]
    ],
+   "css/background_border_padding_crash-ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/background_clip_ref.html": [
     [
      {}
@@ -8244,6 +8285,11 @@
     ]
    ],
    "css/font_face_attribute_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/font_fallback_failed_ref.html": [
     [
      {}
     ]
@@ -9589,11 +9635,6 @@
     ]
    ],
    "css/setattribute_id_restyle_b.html": [
-    [
-     {}
-    ]
-   ],
-   "css/setpropertypriority_ref.html": [
     [
      {}
     ]
@@ -31733,12 +31774,6 @@
      {}
     ]
    ],
-   "css/cssom-view/dom-element-scroll.html": [
-    [
-     "/_mozilla/css/cssom-view/dom-element-scroll.html",
-     {}
-    ]
-   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -39217,6 +39252,12 @@
      {}
     ]
    ],
+   "mozilla/webgl/bindBuffer.html": [
+    [
+     "/_mozilla/mozilla/webgl/bindBuffer.html",
+     {}
+    ]
+   ],
    "mozilla/webgl/bufferData.html": [
     [
      "/_mozilla/mozilla/webgl/bufferData.html",
@@ -39226,6 +39267,12 @@
    "mozilla/webgl/bufferSubData.html": [
     [
      "/_mozilla/mozilla/webgl/bufferSubData.html",
+     {}
+    ]
+   ],
+   "mozilla/webgl/clear.html": [
+    [
+     "/_mozilla/mozilla/webgl/clear.html",
      {}
     ]
    ],
@@ -60140,6 +60187,14 @@
    "a85620b9a57b3cb46b7629b7a8fead6417d2dd28",
    "reftest"
   ],
+  "css/background_border_padding_crash-ref.html": [
+   "a9b8abdba927b26841acb2405a8a753e4efb2d24",
+   "support"
+  ],
+  "css/background_border_padding_crash.html": [
+   "068fea92a7884351465963e76306435cf6680b56",
+   "reftest"
+  ],
   "css/background_clip_a.html": [
    "e2d43d67ea0485e171fc1280498ac68a483e881a",
    "reftest"
@@ -61104,10 +61159,6 @@
    "16a4dd68da41156fbdd139b4a56547f94ad4dbe7",
    "support"
   ],
-  "css/cssom-view/dom-element-scroll.html": [
-   "247b85d5988878a7b27bc9f0f7b817085725c038",
-   "testharness"
-  ],
   "css/data_img_a.html": [
    "323bf50369f98ed02acccdd3a5824e38d3f353bf",
    "reftest"
@@ -61498,6 +61549,22 @@
   ],
   "css/font_face_attribute_ref.html": [
    "0c8f70a37e6d56370576c7f5ba7f1df359db8f9c",
+   "support"
+  ],
+  "css/font_fallback_01.html": [
+   "1dee8f90d8d1ee1f91e9ad9d1442a3abfec5d596",
+   "reftest"
+  ],
+  "css/font_fallback_02.html": [
+   "60d61d9d51206c8b741ef7914447329722950d67",
+   "reftest"
+  ],
+  "css/font_fallback_03.html": [
+   "4ef0d7e423624e93b3f028d9baa5a11f9e8f28b2",
+   "reftest"
+  ],
+  "css/font_fallback_failed_ref.html": [
+   "ebc502a8b3e0fd4dd5eb79a1dae83ab3e6774178",
    "support"
   ],
   "css/font_size.html": [
@@ -63670,14 +63737,6 @@
   ],
   "css/setattribute_id_restyle_b.html": [
    "3de96c5c95089cb3c931f0158613ed585438f9ec",
-   "support"
-  ],
-  "css/setpropertypriority.html": [
-   "67d08c6e155403d6452a48ea57680fc242264d15",
-   "reftest"
-  ],
-  "css/setpropertypriority_ref.html": [
-   "c869671f731182ae1e07b9e6e6fc9b76c20a6d31",
    "support"
   ],
   "css/simple_inline_absolute_containing_block_a.html": [
@@ -70856,12 +70915,20 @@
    "bc2a964c294e678b3c0e98ba83ce30a59a8bee3f",
    "testharness"
   ],
+  "mozilla/webgl/bindBuffer.html": [
+   "3ee0f8120ec78da6584399fef852276b65f9b650",
+   "testharness"
+  ],
   "mozilla/webgl/bufferData.html": [
    "e58b2257043682723fbd17eac6dcbadb32c3ca3e",
    "testharness"
   ],
   "mozilla/webgl/bufferSubData.html": [
    "c333c7b99156d63fcd3ad28014c7915a12cf8169",
+   "testharness"
+  ],
+  "mozilla/webgl/clear.html": [
+   "d5a3af49d99e8165aa154c31ca8d846e45094986",
    "testharness"
   ],
   "mozilla/webgl/clearcolor.html": [

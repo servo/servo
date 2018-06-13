@@ -8,7 +8,7 @@ metadata:
   source: '{{ event.head.repo.url }}'
 tasks:
   - provisionerId: '{{ taskcluster.docker.provisionerId }}'
-    workerType: '{{ taskcluster.docker.workerType }}'
+    workerType: 'servo-docker-worker'
     extra:
       github:
         events:
@@ -16,7 +16,7 @@ tasks:
           - pull_request.reopened
           - pull_request.synchronize
     payload:
-      maxRunTime: 3600
+      maxRunTime: 7200
       image: 'servobrowser/servo-linux-dev:servo-linux-build-deps-2017-06-30'
       command:
         - /bin/bash

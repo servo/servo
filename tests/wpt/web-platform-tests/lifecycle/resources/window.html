@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head><title>Frozen Window</title></head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<h1>This window will be frozen</h1>
+<script>
+
+const freezingStepName = 'testOnFreeze';
+
+function testFetch(keepalive) {
+  var name = 'testfetch' + (keepalive ? 'with' : 'without') + 'keepalive';
+  window.opener.add_step(name);
+
+  function handler(expected) {
+    if (expected == true)
+      window.opener.step_success(name);
+    else
+      window.opener.step_fail(name);
+  }
+
+  fetch('foo.txt', {
+    keepalive: keepalive
+  }).then(() => handler(keepalive)).catch(() => handler(!keepalive));
+}
+
+function testXHR(async) {
+  var name = 'test' + (async ? 'Async' : 'Sync') + 'XHR';
+  window.opener.add_step(name);
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 0)
+        window.opener.step_success(name);
+      else
+        window.opener.step_fail(name);
+    }
+  }
+  xhr.open('GET', 'foo.txt', async);
+  try {
+    xhr.send(null);
+  } catch {
+    window.opener.step_success(name);
+  };
+}
+
+function testSendBeacon() {
+  var name = 'testSendBeacon';
+  window.opener.add_step(name);
+  if (navigator.sendBeacon("foo.txt", "data=1"))
+    window.opener.step_success(name);
+  else
+    window.opener.step_fail(name);
+}
+
+window.document.addEventListener("freeze", () => {
+  // Testing fetch, only fetch keepalive should succeed.
+  testFetch(true /* keepalive */);
+  testFetch(false /* keepalive */);
+  // Testing XHR, both sync and async should fail.
+  testXHR(true /* async */);
+  testXHR(false /* sync */);
+  // Testing navigator.sendBeacon, which should be allowed.
+  testSendBeacon();
+  window.opener.step_success(freezingStepName);
+});
+
+onload = function() {
+  window.opener.add_step(freezingStepName);
+  test_driver.freeze();
+};
+
+</script>
+</body>
+</html>

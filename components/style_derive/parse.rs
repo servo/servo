@@ -4,14 +4,22 @@
 
 use cg;
 use quote::Tokens;
-use syn::DeriveInput;
+use syn::{DeriveInput, Path};
 use synstructure;
 use to_css::CssVariantAttrs;
+
+#[darling(attributes(parse), default)]
+#[derive(Default, FromVariant)]
+pub struct ParseVariantAttrs {
+    pub aliases: Option<String>,
+    pub condition: Option<Path>,
+}
 
 pub fn derive(input: DeriveInput) -> Tokens {
     let name = &input.ident;
     let s = synstructure::Structure::new(&input);
 
+    let mut saw_condition = false;
     let match_body = s.variants().iter().fold(quote!(), |match_body, variant| {
         let bindings = variant.bindings();
         assert!(
@@ -19,23 +27,31 @@ pub fn derive(input: DeriveInput) -> Tokens {
             "Parse is only supported for single-variant enums for now"
         );
 
-        let variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
-        if variant_attrs.skip {
+        let css_variant_attrs =
+            cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
+        let parse_attrs =
+            cg::parse_variant_attrs_from_ast::<ParseVariantAttrs>(&variant.ast());
+        if css_variant_attrs.skip {
             return match_body;
         }
 
         let identifier = cg::to_css_identifier(
-            &variant_attrs.keyword.unwrap_or(variant.ast().ident.as_ref().into()),
+            &css_variant_attrs.keyword.unwrap_or(variant.ast().ident.as_ref().into()),
         );
         let ident = &variant.ast().ident;
 
-        let mut body = quote! {
-            #match_body
-            #identifier => Ok(#name::#ident),
+        saw_condition |= parse_attrs.condition.is_some();
+        let condition = match parse_attrs.condition {
+            Some(ref p) => quote! { if #p(context) },
+            None => quote! { },
         };
 
+        let mut body = quote! {
+            #match_body
+            #identifier #condition => Ok(#name::#ident),
+        };
 
-        let aliases = match variant_attrs.aliases {
+        let aliases = match parse_attrs.aliases {
             Some(aliases) => aliases,
             None => return body,
         };
@@ -43,24 +59,50 @@ pub fn derive(input: DeriveInput) -> Tokens {
         for alias in aliases.split(",") {
             body = quote! {
                 #body
-                #alias => Ok(#name::#ident),
+                #alias #condition => Ok(#name::#ident),
             };
         }
 
         body
     });
 
+    let context_ident = if saw_condition {
+        quote! { context }
+    } else {
+        quote! { _ }
+    };
+
+    let parse_body = if saw_condition {
+        quote! {
+            let location = input.current_source_location();
+            let ident = input.expect_ident()?;
+            match_ignore_ascii_case! { &ident,
+                #match_body
+                _ => Err(location.new_unexpected_token_error(
+                    ::cssparser::Token::Ident(ident.clone())
+                ))
+            }
+        }
+    } else {
+        quote! { Self::parse(input) }
+    };
+
+
     let parse_trait_impl = quote! {
         impl ::parser::Parse for #name {
             #[inline]
             fn parse<'i, 't>(
-                _: &::parser::ParserContext,
+                #context_ident: &::parser::ParserContext,
                 input: &mut ::cssparser::Parser<'i, 't>,
             ) -> Result<Self, ::style_traits::ParseError<'i>> {
-                Self::parse(input)
+                #parse_body
             }
         }
     };
+
+    if saw_condition {
+        return parse_trait_impl;
+    }
 
     // TODO(emilio): It'd be nice to get rid of these, but that makes the
     // conversion harder...

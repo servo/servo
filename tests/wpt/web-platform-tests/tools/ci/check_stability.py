@@ -7,8 +7,6 @@ import subprocess
 import sys
 from ConfigParser import SafeConfigParser
 
-import requests
-
 here = os.path.dirname(__file__)
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 sys.path.insert(0, wpt_root)
@@ -22,7 +20,7 @@ from tools.wpt import markdown
 from tools import localpaths
 
 logger = None
-stability_run, write_inconsistent, write_results = None, None, None
+run_step, write_inconsistent, write_results = None, None, None
 wptrunner = None
 
 def setup_logging():
@@ -37,10 +35,9 @@ def setup_logging():
 
 
 def do_delayed_imports():
-    global stability_run, write_inconsistent, write_results, wptrunner
-    from tools.wpt.stability import run as stability_run
-    from tools.wpt.stability import write_inconsistent, write_results
+    global wptrunner, run_step, write_inconsistent, write_results
     from wptrunner import wptrunner
+    from wptrunner.stability import run_step, write_inconsistent, write_results
 
 
 class TravisFold(object):
@@ -178,52 +175,6 @@ def pr():
     return pr if pr != "false" else None
 
 
-def post_results(results, pr_number, iterations, product, url, status):
-    """Post stability results to a given URL."""
-    payload_results = []
-
-    for test_name, test in results.iteritems():
-        subtests = []
-        for subtest_name, subtest in test['subtests'].items():
-            subtests.append({
-                'test': subtest_name,
-                'result': {
-                    'messages': list(subtest['messages']),
-                    'status': subtest['status']
-                },
-            })
-        payload_results.append({
-            'test': test_name,
-            'result': {
-                'status': test['status'],
-                'subtests': subtests
-            }
-        })
-
-    payload = {
-        "pull": {
-            "number": int(pr_number),
-            "sha": os.environ.get("TRAVIS_PULL_REQUEST_SHA"),
-        },
-        "job": {
-            "id": int(os.environ.get("TRAVIS_JOB_ID")),
-            "number": os.environ.get("TRAVIS_JOB_NUMBER"),
-            "allow_failure": os.environ.get("TRAVIS_ALLOW_FAILURE") == 'true',
-            "status": status,
-        },
-        "build": {
-            "id": int(os.environ.get("TRAVIS_BUILD_ID")),
-            "number": os.environ.get("TRAVIS_BUILD_NUMBER"),
-        },
-        "product": product,
-        "iterations": iterations,
-        "message": "All results were stable." if status == "passed" else "Unstable results.",
-        "results": payload_results,
-    }
-
-    requests.post(url, json=payload)
-
-
 def get_changed_files(manifest_path, rev, ignore_changes, skip_tests):
     if not rev:
         branch_point = testfiles.branch_point()
@@ -248,7 +199,6 @@ def main():
 
     venv = Virtualenv(os.environ.get("VIRTUAL_ENV", os.path.join(wpt_root, "_venv")))
     venv.install_requirements(os.path.join(wpt_root, "tools", "wptrunner", "requirements.txt"))
-    venv.install("requests")
 
     args, wpt_args = get_parser().parse_known_args()
     return run(venv, wpt_args, **vars(args))
@@ -266,7 +216,6 @@ def run(venv, wpt_args, **kwargs):
         config.readfp(config_fp)
         skip_tests = config.get("file detection", "skip_tests").split()
         ignore_changes = set(config.get("file detection", "ignore_changes").split())
-        results_url = config.get("file detection", "results_url")
 
     if kwargs["output_bytes"] is not None:
         replace_streams(kwargs["output_bytes"],
@@ -280,8 +229,6 @@ def run(venv, wpt_args, **kwargs):
         pass
 
     setup_logging()
-
-    browser_name = wpt_args.product.split(":")[0]
 
     pr_number = pr()
 
@@ -318,10 +265,14 @@ def run(venv, wpt_args, **kwargs):
 
         do_delayed_imports()
 
-        wpt_kwargs["stability"] = True
         wpt_kwargs["prompt"] = False
         wpt_kwargs["install_browser"] = True
         wpt_kwargs["install"] = wpt_kwargs["product"].split(":")[0] == "firefox"
+
+        wpt_kwargs["pause_after_test"] = False
+        wpt_kwargs["verify_log_full"] = True
+        if wpt_kwargs["repeat"] == 1:
+            wpt_kwargs["repeat"] = 10
 
         wpt_kwargs = setup_wptrunner(venv, **wpt_kwargs)
 
@@ -331,9 +282,8 @@ def run(venv, wpt_args, **kwargs):
     with TravisFold("running_tests"):
         logger.info("Starting tests")
 
-
         wpt_logger = wptrunner.logger
-        iterations, results, inconsistent = stability_run(venv, wpt_logger, **wpt_kwargs)
+        results, inconsistent, iterations = run_step(wpt_logger, wpt_kwargs["repeat"], True, {}, **wpt_kwargs)
 
     if results:
         if inconsistent:
@@ -345,10 +295,6 @@ def run(venv, wpt_args, **kwargs):
             write_results(logger.info, results, iterations,
                           pr_number=pr_number,
                           use_details=True)
-            if pr_number:
-                post_results(results, iterations=iterations, url=results_url,
-                             product=wpt_args.product, pr_number=pr_number,
-                             status="failed" if inconsistent else "passed")
     else:
         logger.info("No tests run.")
         # Be conservative and only return errors when we know for sure tests are changed.

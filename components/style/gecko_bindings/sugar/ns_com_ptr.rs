@@ -13,13 +13,6 @@ impl<T> nsCOMPtr<T> {
     pub fn raw<U>(&self) -> *mut T {
         self.mRawPtr
     }
-
-    /// Set this pointer from an addrefed raw pointer.
-    /// It leaks the old pointer.
-    #[inline]
-    pub unsafe fn set_raw_from_addrefed<U>(&mut self, ptr: *mut T) {
-        self.mRawPtr = ptr;
-    }
 }
 
 #[cfg(not(feature = "gecko_debug"))]
@@ -28,12 +21,5 @@ impl nsCOMPtr {
     #[inline]
     pub fn raw<T>(&self) -> *mut T {
         self._base.mRawPtr as *mut _
-    }
-
-    /// Set this pointer from an addrefed raw pointer.
-    /// It leaks the old pointer.
-    #[inline]
-    pub unsafe fn set_raw_from_addrefed<T>(&mut self, ptr: *mut T) {
-        self._base.mRawPtr = ptr as *mut _;
     }
 }

@@ -135,14 +135,17 @@ pub trait TDocument: Sized + Copy + Clone {
     fn quirks_mode(&self) -> QuirksMode;
 
     /// Get a list of elements with a given ID in this document, sorted by
-    /// document position.
+    /// tree position.
     ///
     /// Can return an error to signal that this list is not available, or also
     /// return an empty slice.
-    fn elements_with_id(
+    fn elements_with_id<'a>(
         &self,
         _id: &Atom,
-    ) -> Result<&[<Self::ConcreteNode as TNode>::ConcreteElement], ()> {
+    ) -> Result<&'a [<Self::ConcreteNode as TNode>::ConcreteElement], ()>
+    where
+        Self: 'a,
+    {
         Err(())
     }
 }
@@ -342,6 +345,21 @@ pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
     fn style_data<'a>(&self) -> &'a CascadeData
     where
         Self: 'a;
+
+    /// Get a list of elements with a given ID in this shadow root, sorted by
+    /// tree position.
+    ///
+    /// Can return an error to signal that this list is not available, or also
+    /// return an empty slice.
+    fn elements_with_id<'a>(
+        &self,
+        _id: &Atom,
+    ) -> Result<&'a [<Self::ConcreteNode as TNode>::ConcreteElement], ()>
+    where
+        Self: 'a,
+    {
+        Err(())
+    }
 }
 
 /// The element trait, the main abstraction the style crate acts over.
@@ -446,12 +464,6 @@ pub trait TElement:
     /// Return the list of slotted nodes of this node.
     fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
         &[]
-    }
-
-    /// For a given NAC element, return the closest non-NAC ancestor, which is
-    /// guaranteed to exist.
-    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
-        unreachable!("Servo doesn't know about NAC");
     }
 
     /// Get this element's style attribute.
@@ -639,9 +651,8 @@ pub trait TElement:
         false
     }
 
-    /// Returns true if this element is native anonymous (only Gecko has native
-    /// anonymous content).
-    fn is_native_anonymous(&self) -> bool {
+    /// Returns true if this element is in a native anonymous subtree.
+    fn is_in_native_anonymous_subtree(&self) -> bool {
         false
     }
 
@@ -776,7 +787,7 @@ pub trait TElement:
     /// element.
     fn rule_hash_target(&self) -> Self {
         if self.implemented_pseudo_element().is_some() {
-            self.closest_non_native_anonymous_ancestor()
+            self.pseudo_element_originating_element()
                 .expect("Trying to collect rules for a detached pseudo-element")
         } else {
             *self

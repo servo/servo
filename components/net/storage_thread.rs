@@ -67,25 +67,32 @@ impl StorageManager {
                     self.keys(sender, url, storage_type)
                 }
                 StorageThreadMsg::SetItem(sender, url, storage_type, name, value) => {
-                    self.set_item(sender, url, storage_type, name, value)
+                    self.set_item(sender, url, storage_type, name, value);
+                    self.save_state()
                 }
                 StorageThreadMsg::GetItem(sender, url, storage_type, name) => {
                     self.request_item(sender, url, storage_type, name)
                 }
                 StorageThreadMsg::RemoveItem(sender, url, storage_type, name) => {
-                    self.remove_item(sender, url, storage_type, name)
+                    self.remove_item(sender, url, storage_type, name);
+                    self.save_state()
                 }
                 StorageThreadMsg::Clear(sender, url, storage_type) => {
-                    self.clear(sender, url, storage_type)
+                    self.clear(sender, url, storage_type);
+                    self.save_state()
                 }
                 StorageThreadMsg::Exit(sender) => {
-                    if let Some(ref config_dir) = self.config_dir {
-                        resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
-                    }
+                    // Nothing to do since we save localstorage set eagerly.
                     let _ = sender.send(());
                     break
                 }
             }
+        }
+    }
+
+    fn save_state(&self) {
+        if let Some(ref config_dir) = self.config_dir {
+            resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
         }
     }
 

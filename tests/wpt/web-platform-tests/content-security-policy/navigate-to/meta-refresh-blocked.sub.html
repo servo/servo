@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+<iframe src="support/meta_refresh_navigation.sub.html?csp=navigate-to%20%27none%27&report_id={{$id:uuid()}}&target=post_message_to_frame_owner.html"></iframe>
+
+<script async defer src='../support/checkReport.sub.js?reportField=violated-directive&reportValue=navigate-to%20%27none%27&reportID={{$id}}'></script>
+</body>

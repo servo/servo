@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "WebDriver" spec.
+// See: https://w3c.github.io/webdriver/webdriver-spec.html
+
+Navigator includes NavigatorAutomationInformation;
+interface mixin NavigatorAutomationInformation {
+    readonly attribute boolean webdriver;
+};

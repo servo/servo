@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title> WorkerGlobalScope API: requestAnimationFrame()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script id="worker" type="text/worker">
+const res = [];
+requestAnimationFrame((dt) => {
+  res.push(dt);
+  requestAnimationFrame((dt) => {
+    res.push(dt);
+    requestAnimationFrame((dt) => {
+      res.push(dt);
+      postMessage(res);
+    });
+  });
+});
+</script>
+<script>
+async_test(function(t) {
+  var blob = new Blob([document.getElementById('worker').textContent]);
+  var worker = new Worker(URL.createObjectURL(blob));
+  worker.addEventListener("message", (ev) => {
+    const ret = ev.data;
+    assert_equals(ret.length, 3);
+    assert_true(ret[0] < ret[1]);
+    assert_true(ret[1] < ret[2]);
+    t.done();
+  });
+});
+</script>

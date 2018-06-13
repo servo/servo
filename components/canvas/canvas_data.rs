@@ -69,19 +69,19 @@ impl<'a> CanvasData<'a> {
         // It discards the extra pixels (if any) that won't be painted
         let image_data = crop_image(image_data, image_size, source_rect);
 
+        let writer = |draw_target: &DrawTarget| {
+            write_image(&draw_target, image_data, source_rect.size, dest_rect,
+                        smoothing_enabled, self.state.draw_options.composition,
+                        self.state.draw_options.alpha);
+        };
+
         if self.need_to_draw_shadow() {
             let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
                                  Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
 
-            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
-                write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
-                            smoothing_enabled, self.state.draw_options.composition,
-                            self.state.draw_options.alpha);
-            });
+            self.draw_with_shadow(&rect, writer);
         } else {
-            write_image(&self.drawtarget, image_data, source_rect.size, dest_rect,
-                        smoothing_enabled, self.state.draw_options.composition,
-                        self.state.draw_options.alpha);
+            writer(&self.drawtarget);
         }
     }
 
@@ -96,21 +96,8 @@ impl<'a> CanvasData<'a> {
         // In this case source and target are the same canvas
         let image_data = self.read_pixels(source_rect.to_i32(), image_size);
 
-        if self.need_to_draw_shadow() {
-            let rect = Rect::new(Point2D::new(dest_rect.origin.x as f32, dest_rect.origin.y as f32),
-                                 Size2D::new(dest_rect.size.width as f32, dest_rect.size.height as f32));
-
-            self.draw_with_shadow(&rect, |new_draw_target: &DrawTarget| {
-                write_image(&new_draw_target, image_data, source_rect.size, dest_rect,
-                            smoothing_enabled, self.state.draw_options.composition,
-                            self.state.draw_options.alpha);
-            });
-        } else {
-            // Writes on target canvas
-            write_image(&self.drawtarget, image_data, image_size, dest_rect,
-                        smoothing_enabled, self.state.draw_options.composition,
-                        self.state.draw_options.alpha);
-        }
+        // The dimensions of image_data are source_rect.size
+        self.draw_image(image_data, source_rect.size, dest_rect, source_rect, smoothing_enabled);
     }
 
     pub fn save_context_state(&mut self) {

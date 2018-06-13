@@ -16,15 +16,14 @@ use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
-use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
+use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
-use script_traits::ScriptMsg;
 use servo_arc::Arc;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -306,8 +305,12 @@ impl HTMLLinkElement {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
-                let event = ScriptMsg::NewFavicon(url.clone());
-                document.window().upcast::<GlobalScope>().script_to_constellation_chan().send(event).unwrap();
+                let window = document.window();
+                if window.is_top_level() {
+                    let msg = EmbedderMsg::NewFavicon(url.clone());
+                    window.send_to_embedder(msg);
+                }
+
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

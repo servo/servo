@@ -4,19 +4,7 @@
 <script src=/resources/testharnessreport.js></script>
 <div id=log></div>
 <script>
-function runURLOriginTests() {
-  var setup = async_test("Loading data…")
-  setup.step(function() {
-    var request = new XMLHttpRequest()
-    request.open("GET", "urltestdata.json")
-    request.send()
-    request.responseType = "json"
-    request.onload = setup.step_func(function() {
-      runURLTests(request.response)
-      setup.done()
-    })
-  })
-}
+promise_test(() => fetch("resources/urltestdata.json").then(res => res.json()).then(runURLTests), "Loading data…");
 
 function bURL(url, base) {
   return new URL(url, base || "about:blank")
@@ -33,5 +21,4 @@ function runURLTests(urltests) {
     }, "Origin parsing: <" + expected.input + "> against <" + expected.base + ">")
   }
 }
-runURLOriginTests()
 </script>

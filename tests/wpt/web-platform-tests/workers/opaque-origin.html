@@ -11,6 +11,7 @@ onmessage = e => {
   channel.port2.postMessage(e.data);
 };
 fetch_tests_from_worker(channel.port1);
+channel.port1.start();
 </script>
 <iframe sandbox="allow-scripts" src="support/sandboxed-tests.html?pipe=sub"></iframe>
 </body>

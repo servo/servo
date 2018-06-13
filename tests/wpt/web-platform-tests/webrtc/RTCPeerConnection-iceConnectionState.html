@@ -104,7 +104,10 @@
    */
   async_test(t => {
     const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
     const pc2 = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc2.close());
 
     const onIceConnectionStateChange = t.step_func(() => {
       const { iceConnectionState } = pc1;
@@ -138,7 +141,6 @@
 
     exchangeIceCandidates(pc1, pc2);
     doSignalingHandshake(pc1, pc2);
-
   }, 'connection with one data channel should eventually have connected connection state');
 
   /*

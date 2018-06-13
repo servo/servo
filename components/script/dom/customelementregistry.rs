@@ -5,6 +5,7 @@
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding;
+use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementConstructor;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::CustomElementRegistryMethods;
 use dom::bindings::codegen::Bindings::CustomElementRegistryBinding::ElementDefinitionOptions;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -31,7 +32,7 @@ use js::glue::UnwrapObject;
 use js::jsapi::{Heap, IsCallable, IsConstructor, HandleValueArray};
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::{HandleObject, MutableHandleValue};
+use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use js::rust::wrappers::{JS_GetProperty, Construct1, JS_SameValue};
 use microtask::Microtask;
 use script_thread::ScriptThread;
@@ -193,7 +194,11 @@ unsafe fn get_callback(
 impl CustomElementRegistryMethods for CustomElementRegistry {
     #[allow(unsafe_code, unrooted_must_root)]
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
-    fn Define(&self, name: DOMString, constructor_: Rc<Function>, options: &ElementDefinitionOptions) -> ErrorResult {
+    fn Define(
+        &self, name: DOMString,
+        constructor_: Rc<CustomElementConstructor>,
+        options: &ElementDefinitionOptions
+    ) -> ErrorResult {
         let cx = self.window.get_cx();
         rooted!(in(cx) let constructor = constructor_.callback());
         let name = LocalName::from(&*name);
@@ -402,7 +407,7 @@ pub struct CustomElementDefinition {
     pub local_name: LocalName,
 
     #[ignore_malloc_size_of = "Rc"]
-    pub constructor: Rc<Function>,
+    pub constructor: Rc<CustomElementConstructor>,
 
     pub observed_attributes: Vec<DOMString>,
 
@@ -414,7 +419,7 @@ pub struct CustomElementDefinition {
 impl CustomElementDefinition {
     fn new(name: LocalName,
            local_name: LocalName,
-           constructor: Rc<Function>,
+           constructor: Rc<CustomElementConstructor>,
            observed_attributes: Vec<DOMString>,
            callbacks: LifecycleCallbacks)
            -> CustomElementDefinition {
@@ -543,7 +548,7 @@ pub fn upgrade_element(definition: Rc<CustomElementDefinition>, element: &Elemen
 /// <https://html.spec.whatwg.org/multipage/#concept-upgrade-an-element>
 /// Steps 7.1-7.2
 #[allow(unsafe_code)]
-fn run_upgrade_constructor(constructor: &Rc<Function>, element: &Element) -> ErrorResult {
+fn run_upgrade_constructor(constructor: &Rc<CustomElementConstructor>, element: &Element) -> ErrorResult {
     let window = window_from_node(element);
     let cx = window.get_cx();
     rooted!(in(cx) let constructor_val = ObjectValue(constructor.callback()));
@@ -607,7 +612,7 @@ impl CustomElementReaction {
             CustomElementReaction::Upgrade(ref definition) => upgrade_element(definition.clone(), element),
             CustomElementReaction::Callback(ref callback, ref arguments) => {
                 // We're rooted, so it's safe to hand out a handle to objects in Heap
-                let arguments = arguments.iter().map(|arg| unsafe { arg.handle() }).collect();
+                let arguments = arguments.iter().map(|arg| unsafe { HandleValue::from_raw(arg.handle()) }).collect();
                 let _ = callback.Call_(&*element, arguments, ExceptionHandling::Report);
             }
         }

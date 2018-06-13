@@ -234,7 +234,6 @@ pub struct CssVariantAttrs {
     pub comma: bool,
     pub dimension: bool,
     pub keyword: Option<String>,
-    pub aliases: Option<String>,
     pub skip: bool,
 }
 

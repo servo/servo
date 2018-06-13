@@ -1,0 +1,164 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Tests for CSS animation event order</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#event-dispatch"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+  @keyframes anim {
+    from { margin-left: 0px; }
+    to { margin-left: 100px; }
+  }
+</style>
+<body>
+<div id="log"></div>
+<script type='text/javascript'>
+'use strict';
+
+/**
+ * Asserts that the set of actual and received events match.
+ * @param actualEvents   An array of the received AnimationEvent objects.
+ * @param expectedEvents A series of array objects representing the expected
+ *        events, each having the form:
+ *          [ event type, target element, elapsed time ]
+ */
+const checkEvents = (actualEvents, ...expectedEvents) => {
+  assert_equals(actualEvents.length, expectedEvents.length,
+                `Number of actual events (${actualEvents.length}: \
+${actualEvents.map(event => event.type).join(', ')}) should match expected \
+events (${expectedEvents.map(event => event.type).join(', ')})`);
+
+  actualEvents.forEach((actualEvent, i) => {
+    assert_equals(expectedEvents[i][0], actualEvent.type,
+                  'Event type should match');
+    assert_equals(expectedEvents[i][1], actualEvent.target,
+                  'Event target should match');
+    assert_equals(expectedEvents[i][2], actualEvent.elapsedTime,
+                  'Event\'s elapsed time should match');
+  });
+};
+
+const setupAnimation = (t, animationStyle, receiveEvents) => {
+  const div = addDiv(t, { style: "animation: " + animationStyle });
+
+  for (const name of ['start', 'iteration', 'end']) {
+    div['onanimation' + name] = evt => {
+    receiveEvents.push({ type:        evt.type,
+                         target:      evt.target,
+                         elapsedTime: evt.elapsedTime });
+    };
+  }
+
+  const watcher = new EventWatcher(t, div, [ 'animationstart',
+                                             'animationiteration',
+                                             'animationend' ]);
+
+  const animation = div.getAnimations()[0];
+
+  return [animation, watcher, div];
+};
+
+promise_test(async t => {
+  let events = [];
+  const [animation1, watcher1, div1] =
+    setupAnimation(t, 'anim 100s 2 paused', events);
+  const [animation2, watcher2, div2] =
+    setupAnimation(t, 'anim 100s 2 paused', events);
+
+  await Promise.all([ watcher1.wait_for('animationstart'),
+                      watcher2.wait_for('animationstart') ]);
+
+  checkEvents(events, ['animationstart', div1, 0],
+                      ['animationstart', div2, 0]);
+
+  events.length = 0;  // Clear received event array
+
+  animation1.currentTime = 100 * MS_PER_SEC;
+  animation2.currentTime = 100 * MS_PER_SEC;
+
+  await Promise.all([ watcher1.wait_for('animationiteration'),
+                      watcher2.wait_for('animationiteration') ]);
+
+  checkEvents(events, ['animationiteration', div1, 100],
+                      ['animationiteration', div2, 100]);
+
+  events.length = 0;  // Clear received event array
+
+  animation1.finish();
+  animation2.finish();
+
+  await Promise.all([ watcher1.wait_for('animationend'),
+                      watcher2.wait_for('animationend') ]);
+
+  checkEvents(events, ['animationend', div1, 200],
+                      ['animationend', div2, 200]);
+}, 'Test same events are ordered by elements.');
+
+promise_test(async t => {
+  let events = [];
+  const [animation1, watcher1, div1] =
+    setupAnimation(t, 'anim 200s 400s', events);
+  const [animation2, watcher2, div2] =
+    setupAnimation(t, 'anim 300s 2', events);
+
+  await watcher2.wait_for('animationstart');
+
+  animation1.currentTime = 400 * MS_PER_SEC;
+  animation2.currentTime = 400 * MS_PER_SEC;
+
+  events.length = 0;  // Clear received event array
+
+  await Promise.all([ watcher1.wait_for('animationstart'),
+                      watcher2.wait_for('animationiteration') ]);
+
+  checkEvents(events, ['animationiteration', div2, 300],
+                      ['animationstart',     div1, 0]);
+}, 'Test start and iteration events are ordered by time.');
+
+promise_test(async t => {
+  let events = [];
+  const [animation1, watcher1, div1] =
+    setupAnimation(t, 'anim 150s', events);
+  const [animation2, watcher2, div2] =
+    setupAnimation(t, 'anim 100s 2', events);
+
+  await Promise.all([ watcher1.wait_for('animationstart'),
+                      watcher2.wait_for('animationstart') ]);
+
+  animation1.currentTime = 150 * MS_PER_SEC;
+  animation2.currentTime = 150 * MS_PER_SEC;
+
+  events.length = 0;  // Clear received event array
+
+  await Promise.all([ watcher1.wait_for('animationend'),
+                      watcher2.wait_for('animationiteration') ]);
+
+  checkEvents(events, ['animationiteration', div2, 100],
+                      ['animationend',       div1, 150]);
+}, 'Test iteration and end events are ordered by time.');
+
+promise_test(async t => {
+  let events = [];
+  const [animation1, watcher1, div1] =
+    setupAnimation(t, 'anim 100s 100s', events);
+  const [animation2, watcher2, div2] =
+    setupAnimation(t, 'anim 100s 2', events);
+
+  animation1.finish();
+  animation2.finish();
+
+  await Promise.all([ watcher1.wait_for([ 'animationstart',
+                                          'animationend' ]),
+                      watcher2.wait_for([ 'animationstart',
+                                          'animationend' ]) ]);
+
+  checkEvents(events, ['animationstart', div2, 0],
+                      ['animationstart', div1, 0],
+                      ['animationend',   div1, 100],
+                      ['animationend',   div2, 200]);
+}, 'Test start and end events are sorted correctly when fired simultaneously');
+
+</script>
+</body>
+</html>

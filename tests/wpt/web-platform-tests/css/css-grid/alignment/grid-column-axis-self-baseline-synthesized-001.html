@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Self-Baseline alignment along column-axis on fixed sized grids and synthesized baselines</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#column-align">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-alignment">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-baseline">
+<link rel="help" href="https://drafts.csswg.org/css-align/#synthesize-baseline">
+<link rel="stylesheet" href="../../support/grid.css">
+<link rel="stylesheet" href="../../support/alignment.css">
+<meta name="assert" content="Grid items orthogonal to the Baseline Alignment Context should use their border-box 'under' edge as synthesized baseline.">
+<style>
+.container { position: relative; }
+.grid {
+  position: relative;
+  text-orientation: sideways;
+  grid: 200px 100px / 100px 200px;
+  font-family: Ahem;
+}
+.bigFont  { font-size: 50px; }
+.height25 { height: 25px; }
+.width25  { width: 25px; }
+.width300 { width: 300px; }
+
+.paddingLeft { padding-left: 25px; }
+.paddingRight { padding-right: 25px; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<pre>Horizontal grid and verticalRL item</pre>
+
+<div class="grid width300 alignItemsBaseline">
+  <div class="firstRowFirstColumn verticalRL" data-offset-x="0"   data-offset-y="0"   data-expected-width="100" data-expected-height="200">ÉÉ É ÉÉÉ É ÉÉ É</div>
+  <div class="firstRowSecondColumn bigFont"   data-offset-x="100" data-offset-y="160" data-expected-width="200" data-expected-height="100">É É ÉÉ</div>
+  <div class="autoRowAutoColumnSpanning2 height25"></div>
+</div>
+
+<pre>Horizontal grid and verticalLR item</pre>
+
+<div class="grid width300 alignItemsBaseline">
+  <div class="firstRowFirstColumn verticalLR" data-offset-x="0"   data-offset-y="0"   data-expected-width="100" data-expected-height="200">ÉÉ É ÉÉÉ É ÉÉ É</div>
+  <div class="firstRowSecondColumn bigFont"   data-offset-x="100" data-offset-y="160" data-expected-width="200" data-expected-height="100">É É ÉÉ</div>
+  <div class="autoRowAutoColumnSpanning2 height25"></div>
+</div>
+
+<pre>VerticalLR grid and Horizontal item</pre>
+
+<div class="grid alignItemsBaseline verticalLR">
+  <div class="firstRowFirstColumn horizontalTB"         data-offset-x="35" data-offset-y="0"   data-expected-width="200" data-expected-height="100">ÉÉ É ÉÉÉ É ÉÉ É</div>
+  <div class="firstRowSecondColumn bigFont paddingLeft" data-offset-x="0"  data-offset-y="100" data-expected-width="125" data-expected-height="200">É É ÉÉ</div>
+  <div class="autoRowAutoColumnSpanning2 width25"></div>
+</div>
+
+<pre>VerticalRL grid and Horizontal item</pre>
+
+<div class="grid alignItemsBaseline verticalRL">
+  <div class="firstRowFirstColumn horizontalTB"          data-offset-x="100" data-offset-y="0"   data-expected-width="200" data-expected-height="100">ÉÉ É ÉÉÉ É ÉÉ É</div>
+  <div class="firstRowSecondColumn bigFont paddingRight" data-offset-x="40"  data-offset-y="100" data-expected-width="125" data-expected-height="200">É É ÉÉ</div>
+  <div class="autoRowAutoColumnSpanning2 width25"></div>
+</div>
+
+</body>

@@ -804,7 +804,7 @@
   }
 
   var FakeBluetoothChooser = {
-    name: 'content::mojom::FakeBluetoothChooser',
+    name: 'content.mojom.FakeBluetoothChooser',
     kVersion: 0,
     ptrClass: FakeBluetoothChooserPtr,
     proxyClass: FakeBluetoothChooserProxy,

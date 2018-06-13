@@ -38,14 +38,25 @@ pub static BLUR_INFLATION_FACTOR: i32 = 3;
 /// An index into the vector of ClipScrollNodes. During WebRender conversion these nodes
 /// are given ClipIds.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize)]
-pub struct ClipScrollNodeIndex(pub usize);
+pub struct ClipScrollNodeIndex(usize);
 
 impl ClipScrollNodeIndex {
+    pub fn root_scroll_node() -> ClipScrollNodeIndex {
+        ClipScrollNodeIndex(1)
+    }
+
+    pub fn root_reference_frame() -> ClipScrollNodeIndex {
+        ClipScrollNodeIndex(0)
+    }
+
+    pub fn new(index: usize) -> ClipScrollNodeIndex {
+        assert_ne!(index, 0, "Use the root_reference_frame constructor");
+        assert_ne!(index, 1, "Use the root_scroll_node constructor");
+        ClipScrollNodeIndex(index)
+    }
+
     pub fn is_root_scroll_node(&self) -> bool {
-        match *self {
-            ClipScrollNodeIndex(0) => true,
-            _ => false,
-        }
+        *self == Self::root_scroll_node()
     }
 
     pub fn to_define_item(&self) -> DisplayItem {
@@ -53,6 +64,10 @@ impl ClipScrollNodeIndex {
             base: BaseDisplayItem::empty(),
             node_index: *self,
         }))
+    }
+
+    pub fn to_index(self) -> usize {
+        self.0
     }
 }
 
@@ -190,6 +205,9 @@ pub struct StackingContext {
 
     /// The clip and scroll info for this StackingContext.
     pub parent_clipping_and_scrolling: ClippingAndScrolling,
+
+    /// The index of the reference frame that this stacking context estalishes.
+    pub established_reference_frame: Option<ClipScrollNodeIndex>,
 }
 
 impl StackingContext {
@@ -207,6 +225,7 @@ impl StackingContext {
         transform_style: TransformStyle,
         perspective: Option<LayoutTransform>,
         parent_clipping_and_scrolling: ClippingAndScrolling,
+        established_reference_frame: Option<ClipScrollNodeIndex>,
     ) -> StackingContext {
         StackingContext {
             id,
@@ -220,6 +239,7 @@ impl StackingContext {
             transform_style,
             perspective,
             parent_clipping_and_scrolling,
+            established_reference_frame,
         }
     }
 
@@ -236,7 +256,8 @@ impl StackingContext {
             None,
             TransformStyle::Flat,
             None,
-            ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
+            ClippingAndScrolling::simple(ClipScrollNodeIndex::root_scroll_node()),
+            None,
         )
     }
 
@@ -303,15 +324,16 @@ impl fmt::Debug for StackingContext {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct StickyFrameData {
     pub margins: SideOffsets2D<Option<f32>>,
     pub vertical_offset_bounds: StickyOffsetBounds,
     pub horizontal_offset_bounds: StickyOffsetBounds,
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ClipScrollNodeType {
+    Placeholder,
     ScrollFrame(ScrollSensitivity, ExternalScrollId),
     StickyFrame(StickyFrameData),
     Clip,
@@ -331,6 +353,21 @@ pub struct ClipScrollNode {
 
     /// The type of this ClipScrollNode.
     pub node_type: ClipScrollNodeType,
+}
+
+impl ClipScrollNode {
+    pub fn placeholder() -> ClipScrollNode {
+        ClipScrollNode {
+            parent_index: ClipScrollNodeIndex(0),
+            clip: ClippingRegion::from_rect(LayoutRect::zero()),
+            content_rect: LayoutRect::zero(),
+            node_type: ClipScrollNodeType::Placeholder,
+        }
+    }
+
+    pub fn is_placeholder(&self) -> bool {
+        self.node_type == ClipScrollNodeType::Placeholder
+    }
 }
 
 /// One drawing command in the list.
@@ -406,7 +443,8 @@ impl BaseDisplayItem {
             clip_rect: LayoutRect::max_rect(),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
-            clipping_and_scrolling: ClippingAndScrolling::simple(ClipScrollNodeIndex(0)),
+            clipping_and_scrolling:
+                ClippingAndScrolling::simple(ClipScrollNodeIndex::root_scroll_node()),
         }
     }
 }

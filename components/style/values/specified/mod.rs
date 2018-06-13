@@ -23,7 +23,6 @@ use super::generics::grid::{TrackList as GenericTrackList, TrackSize as GenericT
 use values::serialize_atom_identifier;
 use values::specified::calc::CalcNode;
 
-pub use properties::animated_properties::TransitionProperty;
 pub use self::angle::Angle;
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
@@ -40,7 +39,7 @@ pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumer
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective};
-pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
+pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
@@ -61,10 +60,8 @@ pub use self::list::Quotes;
 pub use self::list::ListStyleType;
 pub use self::outline::OutlineStyle;
 pub use self::rect::LengthOrNumberRect;
+pub use self::resolution::Resolution;
 pub use self::percentage::Percentage;
-pub use self::pointing::{CaretColor, Cursor};
-#[cfg(feature = "gecko")]
-pub use self::pointing::CursorImage;
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::svg::{SVGLength, SVGOpacity, SVGPaint, SVGPaintKind};
@@ -77,7 +74,9 @@ pub use self::text::{TextAlignKeyword, TextDecorationLine, TextOverflow, WordSpa
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, TimingFunction, Transform};
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
-pub use self::ui::MozForceBrokenImageIcon;
+pub use self::ui::{ColorOrAuto, Cursor, MozForceBrokenImageIcon};
+#[cfg(feature = "gecko")]
+pub use self::ui::CursorImage;
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 #[cfg(feature = "gecko")]
@@ -104,9 +103,9 @@ pub mod length;
 pub mod list;
 pub mod outline;
 pub mod percentage;
-pub mod pointing;
 pub mod position;
 pub mod rect;
+pub mod resolution;
 pub mod source_size_list;
 pub mod svg;
 pub mod table;

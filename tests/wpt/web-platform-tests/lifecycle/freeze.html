@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver freeze method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+var test = async_test('Test freeze callback.');
+window.open('resources/window.html', 'Child Window');
+
+var total_steps = 0;
+
+const StepStatus = {
+  ADDED: 0,
+  SUCCESS: 1,
+  FAIL: 2,
+};
+
+var steps_map = new Map();
+
+function add_step(name) {
+  steps_map[name] = StepStatus.ADDED;
+  total_steps++;
+}
+
+function step_success(name) {
+  total_steps--;
+  steps_map[name] = StepStatus.SUCCESS;
+  if (total_steps == 0)
+    test.done();
+}
+
+function step_fail(name) {
+  total_steps--;
+  steps_map[name] = StepStatus.FAIL;
+  test.step(() => assert_unreached('During onfreeze: ' + name + ' failed to behave as expected.'));
+  if (total_steps == 0)
+    test.done();
+}
+
+test.step_timeout(() => {
+  for (var step in steps_map) {
+    if(steps_map[step] == StepStatus.ADDED)
+      test.step(() => assert_unreached('During onfreeze: ' + step + ' never finshed.'));
+  }
+}, 1000);
+
+</script>
+

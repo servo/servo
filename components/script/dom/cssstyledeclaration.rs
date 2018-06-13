@@ -253,7 +253,7 @@ impl CSSStyleDeclaration {
         self.owner.mutate_associated_block(|pdb, changed| {
             if value.is_empty() {
                 // Step 3
-                *changed = pdb.remove_property(&id);
+                *changed = pdb.remove_property(&id, |_| {});
                 return Ok(());
             }
 
@@ -312,22 +312,18 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unkwown property
-            return DOMString::new()
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return DOMString::new(),
         };
         self.get_property_value(id)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unkwown property
-            return DOMString::new()
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return DOMString::new(),
         };
 
         self.owner.with_block(|pdb| {
@@ -347,46 +343,11 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                    priority: DOMString)
                    -> ErrorResult {
         // Step 3
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unknown property
-            return Ok(())
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return Ok(()),
         };
         self.set_property(id, value, priority)
-    }
-
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
-    fn SetPropertyPriority(&self, property: DOMString, priority: DOMString) -> ErrorResult {
-        // Step 1
-        if self.readonly {
-            return Err(Error::NoModificationAllowed);
-        }
-
-        // Step 2 & 3
-        let id = match PropertyId::parse(&property) {
-            Ok(id) => id,
-            Err(..) => return Ok(()), // Unkwown property
-        };
-
-        // Step 4
-        let importance = match &*priority {
-            "" => Importance::Normal,
-            p if p.eq_ignore_ascii_case("important") => Importance::Important,
-            _ => return Ok(()),
-        };
-
-        self.owner.mutate_associated_block(|pdb, changed| {
-            // Step 5 & 6
-            *changed = pdb.set_importance(&id, importance);
-        });
-
-        Ok(())
-    }
-
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
-    fn SetPropertyValue(&self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, DOMString::new())
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -396,17 +357,15 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return Err(Error::NoModificationAllowed);
         }
 
-        let id = if let Ok(id) = PropertyId::parse(&property) {
-            id
-        } else {
-            // Unkwown property, cannot be there to remove.
-            return Ok(DOMString::new())
+        let id = match PropertyId::parse_enabled_for_all_content(&property) {
+            Ok(id) => id,
+            Err(..) => return Ok(DOMString::new()),
         };
 
         let mut string = String::new();
         self.owner.mutate_associated_block(|pdb, changed| {
             pdb.property_value_to_css(&id, &mut string).unwrap();
-            *changed = pdb.remove_property(&id);
+            *changed = pdb.remove_property(&id, |_| {});
         });
 
         // Step 6
@@ -415,12 +374,16 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(&self) -> DOMString {
-        self.GetPropertyValue(DOMString::from("float"))
+        self.get_property_value(PropertyId::Longhand(LonghandId::Float))
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(&self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue(DOMString::from("float"), value)
+        self.set_property(
+            PropertyId::Longhand(LonghandId::Float),
+            value,
+            DOMString::new(),
+        )
     }
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface

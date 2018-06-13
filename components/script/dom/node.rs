@@ -392,6 +392,13 @@ impl Node {
          self.mutation_observers.borrow_mut()
     }
 
+    /// Removes the mutation observer for a given node.
+    pub fn remove_mutation_observer(&self, observer: &MutationObserver) {
+        self.mutation_observers.borrow_mut().retain(|reg_obs| {
+            &*reg_obs.observer != observer
+        })
+    }
+
     /// Dumps the subtree rooted at this node, for debugging.
     pub fn dump(&self) {
         self.dump_indent(0);
@@ -621,8 +628,6 @@ impl Node {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
     pub fn scroll_area(&self) -> Rect<i32> {
         // Step 1
         let document = self.owner_doc();

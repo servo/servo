@@ -168,36 +168,6 @@ function generateAnswer(offer) {
   .then(() => pc.createAnswer());
 }
 
-// Wait for peer connection to fire onsignalingstatechange
-// event, compare and make sure the new state is the same
-// as expected state. It accepts an RTCPeerConnection object
-// and an array of expected state changes. The test passes
-// if all expected state change events have been fired, and
-// fail if the new state is different from the expected state.
-//
-// Note that the promise is never resolved if no change
-// event is fired. To avoid confusion with the main test
-// getting timed out, this is done in parallel as a separate
-// test
-function test_state_change_event(parentTest, pc, expectedStates) {
-  return async_test(t => {
-    pc.onsignalingstatechange = t.step_func(() => {
-      if(expectedStates.length === 0) {
-        return;
-      }
-
-      const newState = pc.signalingState;
-      const expectedState = expectedStates.shift();
-
-      assert_equals(newState, expectedState, 'New signaling state is different from expected.');
-
-      if(expectedStates.length === 0) {
-        t.done();
-      }
-    });
-  }, `Test onsignalingstatechange event for ${parentTest.name}`);
-}
-
 // Run a test function that return a promise that should
 // never be resolved. For lack of better options,
 // we wait for a time out and pass the test if the
@@ -229,7 +199,7 @@ function exchangeIceCandidates(pc1, pc2) {
       // There is ongoing discussion on w3c/webrtc-pc#1213
       // that there should be an empty candidate string event
       // for end of candidate for each m= section.
-      if(candidate) {
+      if(candidate && remotePc.signalingState !== 'closed') {
         remotePc.addIceCandidate(candidate);
       }
     });
@@ -418,16 +388,19 @@ function getUserMediaTracksAndStreams(count, type = 'audio') {
   });
 }
 
-// Creates an offer for the caller, set it as the caller's local description and
-// then sets the callee's remote description to the offer. Returns the Promise
-// of the setRemoteDescription call.
-function performOffer(caller, callee) {
-  let sessionDescription;
-  return caller.createOffer()
-  .then(offer => {
-    sessionDescription = offer;
-    return caller.setLocalDescription(offer);
-  }).then(() => callee.setRemoteDescription(sessionDescription));
+async function exchangeOffer(caller, callee) {
+  const offer = await caller.createOffer();
+  await caller.setLocalDescription(offer);
+  return callee.setRemoteDescription(offer);
+}
+async function exchangeAnswer(caller, callee) {
+  const answer = await callee.createAnswer();
+  await callee.setLocalDescription(answer);
+  return caller.setRemoteDescription(answer);
+}
+async function exchangeOfferAnswer(caller, callee) {
+  await exchangeOffer(caller, callee);
+  return exchangeAnswer(caller, callee);
 }
 
 
@@ -444,4 +417,14 @@ class Resolver {
     this.resolve = promiseResolve;
     this.reject = promiseReject;
   }
+}
+
+function addEventListenerPromise(t, target, type, listener) {
+  return new Promise((resolve, reject) => {
+    target.addEventListener(type, t.step_func(e => {
+      if (listener != undefined)
+        e = listener(e);
+      resolve(e);
+    }));
+  });
 }

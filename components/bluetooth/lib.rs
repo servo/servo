@@ -5,8 +5,8 @@
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
-extern crate compositing;
 extern crate device;
+extern crate embedder_traits;
 extern crate ipc_channel;
 #[macro_use]
 extern crate log;
@@ -21,9 +21,9 @@ use bluetooth_traits::{BluetoothDeviceMsg, BluetoothRequest, BluetoothResponse, 
 use bluetooth_traits::{BluetoothError, BluetoothResponseResult, BluetoothResult};
 use bluetooth_traits::blocklist::{uuid_is_blocklisted, Blocklist};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
-use compositing::compositor_thread::{EmbedderMsg, EmbedderProxy};
 use device::bluetooth::{BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic};
 use device::bluetooth::{BluetoothGATTDescriptor, BluetoothGATTService};
+use embedder_traits::{EmbedderMsg, EmbedderProxy};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
@@ -382,7 +382,7 @@ impl BluetoothManager {
         }
 
         let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
-        let msg = EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender);
+        let msg = (None, EmbedderMsg::GetSelectedBluetoothDevice(dialog_rows, ipc_sender));
         self.embedder_proxy.send(msg);
 
         match ipc_receiver.recv() {

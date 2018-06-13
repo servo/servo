@@ -50,7 +50,7 @@ setup_logging()
 
 
 ERROR_MSG = """You must fix all errors; for details on how to fix them, see
-http://web-platform-tests.org/writing-tests/lint-tool.html
+https://web-platform-tests.org/writing-tests/lint-tool.html
 
 However, instead of fixing a particular error, it's sometimes
 OK to add a line to the lint.whitelist file in the root of the
@@ -157,7 +157,7 @@ def check_git_ignore(repo_root, paths):
                 if filter_string[0] != '!':
                     errors += [("IGNORED PATH", "%s matches an ignore filter in .gitignore - "
                                 "please add a .gitignore exception" % path, path, None)]
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             # Nonzero return code means that no match exists.
             pass
     return errors
@@ -443,7 +443,7 @@ def check_parsed(repo_root, path, f):
             not source_file.spec_links):
             return [("MISSING-LINK", "Testcase file must have a link to a spec", path, None)]
 
-    if source_file.name_is_non_test or source_file.name_is_manual:
+    if source_file.name_is_non_test:
         return []
 
     if source_file.markup_type is None:
@@ -453,10 +453,10 @@ def check_parsed(repo_root, path, f):
         return [("PARSE-FAILED", "Unable to parse file", path, None)]
 
     if source_file.type == "manual" and not source_file.name_is_manual:
-        return [("CONTENT-MANUAL", "Manual test whose filename doesn't end in '-manual'", path, None)]
+        errors.append(("CONTENT-MANUAL", "Manual test whose filename doesn't end in '-manual'", path, None))
 
     if source_file.type == "visual" and not source_file.name_is_visual:
-        return [("CONTENT-VISUAL", "Visual test whose filename doesn't end in '-visual'", path, None)]
+        errors.append(("CONTENT-VISUAL", "Visual test whose filename doesn't end in '-visual'", path, None))
 
     for reftest_node in source_file.reftest_nodes:
         href = reftest_node.attrib.get("href", "").strip(space_chars)
@@ -664,7 +664,11 @@ def check_script_metadata(repo_root, path, f):
             elif key == b"timeout":
                 if value != b"long":
                     errors.append(("UNKNOWN-TIMEOUT-METADATA", "Unexpected value for timeout metadata", path, idx + 1))
+            elif key == b"title":
+                pass
             elif key == b"script":
+                pass
+            elif key == b"variant":
                 pass
             else:
                 errors.append(("UNKNOWN-METADATA", "Unexpected kind of metadata", path, idx + 1))
@@ -813,8 +817,6 @@ def create_parser():
                         help="Output machine-readable JSON format")
     parser.add_argument("--markdown", action="store_true",
                         help="Output markdown")
-    parser.add_argument("--css-mode", action="store_true",
-                        help="Run CSS testsuite specific lints")
     parser.add_argument("--repo-root", help="The WPT directory. Use this"
                         "option if the lint script exists outside the repository")
     parser.add_argument("--all", action="store_true", help="If no paths are passed, try to lint the whole "

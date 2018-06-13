@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Keyboard Lock" spec.
+// See: https://w3c.github.io/keyboard-lock/
+
 partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Keyboard keyboard;
 };

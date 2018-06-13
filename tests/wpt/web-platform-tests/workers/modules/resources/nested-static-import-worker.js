@@ -1,2 +1,2 @@
-import './static-import-worker.js';
-postMessage('LOADED')
+import * as module from './export-on-static-import-script.js';
+postMessage(module.importedModules);

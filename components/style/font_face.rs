@@ -323,7 +323,7 @@ macro_rules! is_descriptor_enabled {
     ("font-variation-settings") => {
         unsafe {
             use gecko_bindings::structs::mozilla;
-            mozilla::StaticPrefs_sVarCache_layout_css_font_variations_enabled
+            mozilla::StaticPrefs_sVarCache_layout_css_font_variations_enabled != 0
         }
     };
     ($name:tt) => {

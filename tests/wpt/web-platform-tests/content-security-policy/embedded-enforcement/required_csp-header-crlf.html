@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Sec-Required-CSP header.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      // CRLF characters
+      { "name": "\\r\\n character after directive name",
+        "csp": "script-src\r\n'unsafe-inline'",
+        "expected": null },
+      { "name": "\\r\\n character in directive value",
+        "csp": "script-src 'unsafe-inline'\r\n'unsafe-eval'",
+        "expected": null },
+      { "name": "\\n character after directive name",
+        "csp": "script-src\n'unsafe-inline'",
+        "expected": null },
+      { "name": "\\n character in directive value",
+        "csp": "script-src 'unsafe-inline'\n'unsafe-eval'",
+        "expected": null },
+      { "name": "\\r character after directive name",
+        "csp": "script-src\r'unsafe-inline'",
+        "expected": null },
+      { "name": "\\r character in directive value",
+        "csp": "script-src 'unsafe-inline'\r'unsafe-eval'",
+        "expected": null },
+        
+      // HTML encoded CRLF characters
+      { "name": "%0D%0A character after directive name",
+        "csp": "script-src%0D%0A'unsafe-inline'",
+        "expected": null },
+      { "name": "%0D%0A character in directive value",
+        "csp": "script-src 'unsafe-inline'%0D%0A'unsafe-eval'",
+        "expected": null },
+      { "name": "%0A character after directive name",
+        "csp": "script-src%0A'unsafe-inline'",
+        "expected": null },
+      { "name": "%0A character in directive value",
+        "csp": "script-src 'unsafe-inline'%0A'unsafe-eval'",
+        "expected": null },
+      { "name": "%0D character after directive name",
+        "csp": "script-src%0D'unsafe-inline'",
+        "expected": null },
+      { "name": "%0D character in directive value",
+        "csp": "script-src 'unsafe-inline'%0D'unsafe-eval'",
+        "expected": null },
+
+      // Attempt HTTP Header injection
+      { "name": "Attempt injecting after directive name using \\r\\n",
+        "csp": "script-src\r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive name using \\r",
+        "csp": "script-src\rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive name using \\n",
+        "csp": "script-src\nTest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after directive value using \\r\\n",
+        "csp": "script-src example.com\r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive value using \\r",
+        "csp": "script-src example.com\rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive value using \\n",
+        "csp": "script-src example.com\nTest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after semicolon using \\r\\n",
+        "csp": "script-src example.com;\r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after semicolon using \\r",
+        "csp": "script-src example.com;\rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after semicolon using \\n",
+        "csp": "script-src example.com;\nTest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after space between name and value using \\r\\n",
+        "csp": "script-src \r\nTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after space between name and value using \\r",
+        "csp": "script-src \rTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after space between name and value using \\n",
+        "csp": "script-src \nTest-Header-Injection: dummy",
+        "expected": null },
+
+      // Attempt HTTP Header injection using URL encoded characters
+      { "name": "Attempt injecting after directive name using %0D%0A",
+        "csp": "script-src%0D%0ATest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive name using %0D",
+        "csp": "script-src%0DTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive name using %0A",
+        "csp": "script-src%0ATest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after directive value using %0D%0A",
+        "csp": "script-src example.com%0D%0ATest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive value using %0D",
+        "csp": "script-src example.com%0DTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after directive value using %0A",
+        "csp": "script-src example.com%0ATest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after semicolon using %0D%0A",
+        "csp": "script-src example.com;%0D%0ATest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after semicolon using %0D",
+        "csp": "script-src example.com;%0DTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after semicolon using %0A",
+        "csp": "script-src example.com;%0ATest-Header-Injection: dummy",
+        "expected": null },
+
+      { "name": "Attempt injecting after space between name and value using %0D%0A",
+        "csp": "script-src %0D%0ATest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after space between name and value using %0D",
+        "csp": "script-src %0DTest-Header-Injection: dummy",
+        "expected": null },
+      { "name": "Attempt injecting after space between name and value using %0A",
+        "csp": "script-src %0ATest-Header-Injection: dummy",
+        "expected": null },
+
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.REQUIRED_CSP);
+        assert_required_csp(t, url, test.csp, [test.expected]);
+      }, "Test CRLF: " + test.name);
+    });
+  </script>
+</body>
+</html>

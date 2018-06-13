@@ -27,7 +27,7 @@ async_test(t => {
     (() => {
       c1.postMessage({blob: new Blob(['foo', 'bar'])});
     })();
-    // TODO(https://github.com/w3c/web-platform-tests/issues/7899): Change to
+    // TODO(https://github.com/web-platform-tests/wpt/issues/7899): Change to
     // some sort of cross-browser GC trigger.
     if (self.gc) self.gc();
   }, 'Blobs work on BroadcastChannel');

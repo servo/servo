@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>IdlDictionary.prototype.traverse_inherited_and_consequential_interfaces()</title>
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script src="../../../idl-helper.js"></script>
+<pre id=fragments>
+    interface A : B { };
+    interface B : C { };
+    interface C { };
+    interface D : E { };
+    interface E : F { };
+    interface F { };
+    interface G { };
+    interface H { };
+    interface I { };
+    interface J { };
+
+    A implements G;
+    A implements H;
+    B implements D;
+    E implements I;
+    H implements J;
+</pre>
+<script>
+    "use strict";
+    test(function() {
+        var interfaces = [];
+        interfaceFrom('interface A { };').traverse_inherited_and_consequential_interfaces(function(i) {
+            interfaces.push(i.name);
+        });
+        assert_array_equals(interfaces, ["A"]);
+    }, 'should return an array that includes itself.');
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A { }; A implements B;");
+        assert_throws(new Error(), _ => context.members["A"].traverse_inherited_and_consequential_interfaces(function() {}));
+    }, "should throw for interfaces which are extended by another interface which wasn't added to the IdlArray.");
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls("interface A { };");
+        assert_throws(new TypeError(), _ => context.members["A"].traverse_inherited_and_consequential_interfaces());
+    }, "should throw if not passed a callback");
+
+    test(function() {
+        var context = new IdlArray();
+        context.add_idls(document.getElementById('fragments').textContent);
+        var interfaces = [];
+        context.members["A"].traverse_inherited_and_consequential_interfaces(function(i) {
+            interfaces.push(i.name);
+        });
+        assert_array_equals(interfaces, ["C", "B", "F", "E", "I", "D", "A", "G", "H", "J"]);
+    }, 'should return an array that includes the identifier of the interfaces in the correct order.');
+</script>
+</body>
+</html>

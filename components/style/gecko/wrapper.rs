@@ -67,7 +67,6 @@ use media_queries::Device;
 use properties::{ComputedValues, LonghandId};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use properties::animated_properties::{AnimationValue, AnimationValueMap};
-use properties::animated_properties::TransitionProperty;
 use properties::style_structs::Font;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{AttrValue, Direction, PseudoClassStringArg};
@@ -86,6 +85,29 @@ use std::mem;
 use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylist::CascadeData;
+
+
+#[inline]
+fn elements_with_id<'a, 'le>(
+    array: *const structs::nsTArray<*mut RawGeckoElement>,
+) -> &'a [GeckoElement<'le>] {
+    unsafe {
+        if array.is_null() {
+            return &[];
+        }
+
+        let elements: &[*mut RawGeckoElement] = &**array;
+
+        // NOTE(emilio): We rely on the in-memory representation of
+        // GeckoElement<'ld> and *mut RawGeckoElement being the same.
+        #[allow(dead_code)]
+        unsafe fn static_assert() {
+            mem::transmute::<*mut RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *mut _);
+        }
+
+        mem::transmute(elements)
+    }
+}
 
 /// A simple wrapper over `nsIDocument`.
 #[derive(Clone, Copy)]
@@ -109,24 +131,14 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         self.0.mCompatMode.into()
     }
 
-    fn elements_with_id(&self, id: &Atom) -> Result<&[GeckoElement<'ld>], ()> {
-        unsafe {
-            let array = bindings::Gecko_GetElementsWithId(self.0, id.as_ptr());
-            if array.is_null() {
-                return Ok(&[]);
-            }
-
-            let elements: &[*mut RawGeckoElement] = &**array;
-
-            // NOTE(emilio): We rely on the in-memory representation of
-            // GeckoElement<'ld> and *mut RawGeckoElement being the same.
-            #[allow(dead_code)]
-            unsafe fn static_assert() {
-                mem::transmute::<*mut RawGeckoElement, GeckoElement<'static>>(0xbadc0de as *mut _);
-            }
-
-            Ok(mem::transmute(elements))
-        }
+    #[inline]
+    fn elements_with_id<'a>(&self, id: &Atom) -> Result<&'a [GeckoElement<'ld>], ()>
+    where
+        Self: 'a,
+    {
+        Ok(elements_with_id(unsafe {
+            bindings::Gecko_Document_GetElementsWithId(self.0, id.as_ptr())
+        }))
     }
 }
 
@@ -168,13 +180,22 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
 
         let author_styles = AuthorStyles::<GeckoStyleSheet>::from_ffi(author_styles);
 
-        debug_assert!(!author_styles.stylesheets.dirty());
         debug_assert!(
             author_styles.quirks_mode == self.as_node().owner_doc().quirks_mode() ||
                 author_styles.stylesheets.is_empty()
         );
 
         &author_styles.data
+    }
+
+    #[inline]
+    fn elements_with_id<'a>(&self, id: &Atom) -> Result<&'a [GeckoElement<'lr>], ()>
+    where
+        Self: 'a,
+    {
+        Ok(elements_with_id(unsafe {
+            bindings::Gecko_ShadowRoot_GetElementsWithId(self.0, id.as_ptr())
+        }))
     }
 }
 
@@ -566,6 +587,20 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 
 impl<'le> GeckoElement<'le> {
     #[inline]
+    fn closest_anon_subtree_root_parent(&self) -> Option<Self> {
+        debug_assert!(self.is_in_native_anonymous_subtree());
+        let mut current = *self;
+
+        loop {
+            if current.is_root_of_native_anonymous_subtree() {
+                return current.traversal_parent();
+            }
+
+            current = current.traversal_parent()?;
+        }
+    }
+
+    #[inline]
     fn may_have_anonymous_children(&self) -> bool {
         self.as_node()
             .get_bool_flag(nsINode_BooleanFlag::ElementMayHaveAnonymousChildren)
@@ -580,31 +615,37 @@ impl<'le> GeckoElement<'le> {
     // GeckoNode is a raw reference.
     //
     // We can use a Cell<T>, but that's a bit of a pain.
+    #[inline]
     fn set_flags(&self, flags: u32) {
         unsafe { Gecko_SetNodeFlags(self.as_node().0, flags) }
     }
 
+    #[inline]
     unsafe fn unset_flags(&self, flags: u32) {
         Gecko_UnsetNodeFlags(self.as_node().0, flags)
     }
 
     /// Returns true if this element has descendants for lazy frame construction.
+    #[inline]
     pub fn descendants_need_frames(&self) -> bool {
         self.flags() & (NODE_DESCENDANTS_NEED_FRAMES as u32) != 0
     }
 
     /// Returns true if this element needs lazy frame construction.
+    #[inline]
     pub fn needs_frame(&self) -> bool {
         self.flags() & (NODE_NEEDS_FRAME as u32) != 0
     }
 
     /// Returns a reference to the DOM slots for this Element, if they exist.
+    #[inline]
     fn dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
         let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
         unsafe { slots.as_ref() }
     }
 
     /// Returns a reference to the extended DOM slots for this Element.
+    #[inline]
     fn extended_slots(&self) -> Option<&structs::FragmentOrElement_nsExtendedDOMSlots> {
         self.dom_slots().and_then(|s| unsafe {
             (s._base.mExtendedSlots.mPtr as *const structs::FragmentOrElement_nsExtendedDOMSlots)
@@ -662,10 +703,11 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
+    #[inline]
     fn non_xul_xbl_binding_parent_raw_content(&self) -> *mut nsIContent {
         debug_assert!(!self.is_xul_element());
         self.extended_slots()
-            .map_or(ptr::null_mut(), |slots| slots._base.mBindingParent)
+            .map_or(ptr::null_mut(), |slots| slots._base.mBindingParent.raw::<nsIContent>())
     }
 
     #[inline]
@@ -788,13 +830,6 @@ impl<'le> GeckoElement<'le> {
     fn is_root_of_native_anonymous_subtree(&self) -> bool {
         use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS_ROOT;
         return self.flags() & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0;
-    }
-
-    /// This logic is duplicated in Gecko's nsINode::IsInNativeAnonymousSubtree.
-    #[inline]
-    fn is_in_native_anonymous_subtree(&self) -> bool {
-        use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0
     }
 
     /// This logic is duplicated in Gecko's nsIContent::IsInAnonymousSubtree.
@@ -1015,13 +1050,11 @@ impl<'le> TElement for GeckoElement<'le> {
     type TraversalChildrenIterator = GeckoChildrenIterator<'le>;
 
     fn inheritance_parent(&self) -> Option<Self> {
-        if self.is_native_anonymous() {
-            self.closest_non_native_anonymous_ancestor()
-        } else {
-            self.as_node()
-                .flattened_tree_parent()
-                .and_then(|n| n.as_element())
+        if self.implemented_pseudo_element().is_some() {
+            return self.pseudo_element_originating_element()
         }
+
+        self.as_node().flattened_tree_parent().and_then(|n| n.as_element())
     }
 
     fn traversal_children(&self) -> LayoutIterator<GeckoChildrenIterator<'le>> {
@@ -1085,7 +1118,23 @@ impl<'le> TElement for GeckoElement<'le> {
             assert_eq!(base as *const _, self.0 as *const _, "Bad cast");
         }
 
-        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] = &*slot.mAssignedNodes;
+        // FIXME(emilio): Workaround a bindgen bug on Android that causes
+        // mAssignedNodes to be at the wrong offset. See bug 1466406.
+        //
+        // Bug 1466580 tracks running the Android layout tests on automation.
+        //
+        // The actual bindgen bug still needs reduction.
+        let assigned_nodes: &[structs::RefPtr<structs::nsINode>] =
+            if !cfg!(target_os = "android") {
+                debug_assert_eq!(
+                    unsafe { bindings::Gecko_GetAssignedNodes(self.0) },
+                    &slot.mAssignedNodes as *const _,
+                );
+
+                &*slot.mAssignedNodes
+            } else {
+                unsafe { &**bindings::Gecko_GetAssignedNodes(self.0) }
+            };
 
         debug_assert_eq!(
             mem::size_of::<structs::RefPtr<structs::nsINode>>(),
@@ -1151,19 +1200,6 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe { bindings::Gecko_DestroyAnonymousContentList(array) };
     }
 
-    fn closest_non_native_anonymous_ancestor(&self) -> Option<Self> {
-        debug_assert!(self.is_native_anonymous());
-        let mut parent = self.traversal_parent()?;
-
-        loop {
-            if !parent.is_native_anonymous() {
-                return Some(parent);
-            }
-
-            parent = parent.traversal_parent()?;
-        }
-    }
-
     #[inline]
     fn as_node(&self) -> Self::ConcreteNode {
         unsafe { GeckoNode(&*(self.0 as *const _ as *const RawGeckoNode)) }
@@ -1200,15 +1236,8 @@ impl<'le> TElement for GeckoElement<'le> {
         unsafe {
             let slots = self.extended_slots()?;
 
-            let base_declaration: &structs::DeclarationBlock =
+            let declaration: &structs::DeclarationBlock =
                 slots.mSMILOverrideStyleDeclaration.mRawPtr.as_ref()?;
-
-            let declaration: &structs::ServoDeclarationBlock = mem::transmute(base_declaration);
-
-            debug_assert_eq!(
-                &declaration._base as *const structs::DeclarationBlock,
-                base_declaration as *const structs::DeclarationBlock
-            );
 
             let raw: &structs::RawServoDeclarationBlock = declaration.mRaw.mRawPtr.as_ref()?;
 
@@ -1331,10 +1360,11 @@ impl<'le> TElement for GeckoElement<'le> {
         self.state().intersects(ElementState::IN_VISITED_STATE)
     }
 
+    /// This logic is duplicated in Gecko's nsINode::IsInNativeAnonymousSubtree.
     #[inline]
-    fn is_native_anonymous(&self) -> bool {
-        use gecko_bindings::structs::NODE_IS_NATIVE_ANONYMOUS;
-        self.flags() & (NODE_IS_NATIVE_ANONYMOUS as u32) != 0
+    fn is_in_native_anonymous_subtree(&self) -> bool {
+        use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+        self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0
     }
 
     #[inline]
@@ -1342,8 +1372,9 @@ impl<'le> TElement for GeckoElement<'le> {
         !self.is_in_native_anonymous_subtree()
     }
 
+    #[inline]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        if !self.is_native_anonymous() {
+        if !self.is_in_native_anonymous_subtree() {
             return None;
         }
 
@@ -1355,6 +1386,7 @@ impl<'le> TElement for GeckoElement<'le> {
         PseudoElement::from_pseudo_type(pseudo_type)
     }
 
+    #[inline]
     fn store_children_to_process(&self, _: isize) {
         // This is only used for bottom-up traversal, and is thus a no-op for Gecko.
     }
@@ -1578,6 +1610,7 @@ impl<'le> TElement for GeckoElement<'le> {
     ) -> bool {
         use gecko_bindings::structs::nsCSSPropertyID;
         use properties::LonghandIdSet;
+        use values::computed::TransitionProperty;
 
         debug_assert!(
             self.might_need_transitions_update(Some(before_change_style), after_change_style),
@@ -1621,6 +1654,7 @@ impl<'le> TElement for GeckoElement<'le> {
             };
 
             match transition_property {
+                TransitionProperty::Custom(..) |
                 TransitionProperty::Unsupported(..) => {},
                 TransitionProperty::Shorthand(ref shorthand) => {
                     if shorthand.longhands().any(property_check_helper) {
@@ -1892,7 +1926,22 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn pseudo_element_originating_element(&self) -> Option<Self> {
         debug_assert!(self.implemented_pseudo_element().is_some());
-        self.closest_non_native_anonymous_ancestor()
+        let parent = self.closest_anon_subtree_root_parent()?;
+
+        // FIXME(emilio): Special-case for <input type="number">s
+        // pseudo-elements, which are nested NAC. Probably nsNumberControlFrame
+        // should instead inherit from nsTextControlFrame, and then this could
+        // go away.
+        if let Some(PseudoElement::MozNumberText) = parent.implemented_pseudo_element() {
+            debug_assert_eq!(
+                self.implemented_pseudo_element().unwrap(),
+                PseudoElement::Placeholder,
+                "You added a new pseudo, do you really want this?"
+            );
+            return parent.closest_anon_subtree_root_parent();
+        }
+
+        Some(parent)
     }
 
     #[inline]

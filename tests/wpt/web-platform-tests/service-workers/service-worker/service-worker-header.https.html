@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Service Worker: Service-Worker header</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+
+promise_test(t => {
+  const script = 'resources/service-worker-header.py';
+  const scope = 'resources/service-worker-header';
+  return service_worker_unregister_and_register(t, script, scope)
+    .then(registration => {
+      assert_true(registration instanceof ServiceWorkerRegistration);
+      return registration.unregister();
+    });
+}, 'A request to fetch service worker script should have Service-Worker header');
+
+</script>

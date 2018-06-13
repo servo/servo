@@ -8,12 +8,13 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <iframe id="testframe" src="form-data-set-usv-form.html"></iframe>
+<iframe id="testframe2" src="form-data-set-usv-form.html"></iframe>
 
 <script>
 "use strict";
 
 async_test(t => {
-  window.onload = t.step_func(() => {
+  window.addEventListener("load", t.step_func(() => {
     const iframe = document.querySelector("#testframe");
     const form = iframe.contentWindow.document.querySelector("form");
 
@@ -35,6 +36,17 @@ async_test(t => {
     });
 
     form.submit();
-  });
-});
+  }));
+}, 'Strings from form controls should be converted to Unicode scalar values in form submission');
+
+async_test(t => {
+  window.addEventListener("load", t.step_func_done(() => {
+    const iframe = document.querySelector("#testframe2");
+    const formData = new FormData(iframe.contentWindow.document.querySelector("form"));
+    assert_equals(formData.get("input1\uFFFD"), "input1\uFFFD");
+    assert_equals(formData.get("input2\uFFFD"), "input2\uFFFD");
+    assert_equals(formData.get("input3\uFFFD"), "input3\uFFFD");
+    assert_equals(formData.get("input4\uFFFD"), "input4\uFFFD");
+  }));
+}, 'Strings from form controls should be converted to Unicode scalar values in FormData');
 </script>

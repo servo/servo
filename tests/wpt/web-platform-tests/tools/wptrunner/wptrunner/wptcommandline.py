@@ -66,6 +66,10 @@ scheme host and port.""")
 
     parser.add_argument("--no-capture-stdio", action="store_true", default=False,
                         help="Don't capture stdio and write to logging")
+    parser.add_argument("--no-fail-on-unexpected", action="store_false",
+                        default=True,
+                        dest="fail_on_unexpected",
+                        help="Exit with status code 0 when test expectations are violated")
 
     mode_group = parser.add_argument_group("Mode")
     mode_group.add_argument("--list-test-groups", action="store_true",
@@ -77,9 +81,13 @@ scheme host and port.""")
     mode_group.add_argument("--list-tests", action="store_true",
                             default=False,
                             help="List all tests that will run")
-    mode_group.add_argument("--verify", action="store_true",
-                            default=False,
-                            help="Run a stability check on the selected tests")
+    stability_group = mode_group.add_mutually_exclusive_group()
+    stability_group.add_argument("--verify", action="store_true",
+                                 default=False,
+                                 help="Run a stability check on the selected tests")
+    stability_group.add_argument("--stability", action="store_true",
+                                 default=False,
+                                 help=argparse.SUPPRESS)
     mode_group.add_argument("--verify-log-full", action="store_true",
                             default=False,
                             help="Output per-iteration test results when running verify")

@@ -7,7 +7,6 @@
 
 extern crate app_units;
 extern crate cssparser;
-extern crate embedder_traits;
 extern crate euclid;
 #[macro_use] extern crate html5ever;
 extern crate parking_lot;
@@ -33,7 +32,6 @@ mod parsing;
 mod properties;
 mod rule_tree;
 mod size_of;
-#[path = "../../../ports/geckolib/tests/specified_values.rs"]
 mod specified_values;
 mod str;
 mod stylesheets;

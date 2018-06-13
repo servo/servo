@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Feature Policy spec.
-// See https://wicg.github.io/feature-policy/
+// Content of this file was automatically extracted from the
+// "Feature Policy" spec.
+// See: https://wicg.github.io/feature-policy/
 
 partial interface HTMLIFrameElement {
     [CEReactions] attribute DOMString allow;

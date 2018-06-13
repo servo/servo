@@ -5,7 +5,6 @@ from metadata import MetadataUpdateRunner
 from sync import SyncFromUpstreamRunner
 from tree import GitTree, HgTree, NoVCSTree
 
-from .. import environment as env
 from base import Step, StepRunner, exit_clean, exit_unclean
 from state import State
 

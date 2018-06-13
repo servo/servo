@@ -4,7 +4,7 @@
 
 import re
 
-PHYSICAL_SIDES = ["top", "left", "bottom", "right"]
+PHYSICAL_SIDES = ["top", "right", "bottom", "left"]
 LOGICAL_SIDES = ["block-start", "block-end", "inline-start", "inline-end"]
 PHYSICAL_SIZES = ["width", "height"]
 LOGICAL_SIZES = ["block-size", "inline-size"]
@@ -164,7 +164,7 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, cast_type='u8',
                  logical=False, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
-                 vector=False, need_animatable=False, servo_restyle_damage="repaint"):
+                 vector=False, servo_restyle_damage="repaint"):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -225,6 +225,10 @@ class Longhand(object):
 
         # See compute_damage for the various values this can take
         self.servo_restyle_damage = servo_restyle_damage
+
+    @staticmethod
+    def type():
+        return "longhand"
 
     def experimental(self, product):
         if product == "gecko":
@@ -361,6 +365,10 @@ class Shorthand(object):
     animatable = property(get_animatable)
     transitionable = property(get_transitionable)
 
+    @staticmethod
+    def type():
+        return "shorthand"
+
     def experimental(self, product):
         if product == "gecko":
             return bool(self.gecko_pref)
@@ -391,6 +399,10 @@ class Alias(object):
         self.gecko_pref = gecko_pref
         self.allowed_in_page_rule = original.allowed_in_page_rule
         self.allowed_in_keyframe_block = original.allowed_in_keyframe_block
+
+    @staticmethod
+    def type():
+        return "alias"
 
     def experimental(self, product):
         if product == "gecko":

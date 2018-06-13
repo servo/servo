@@ -35,8 +35,10 @@
     assert_equals(pc.canTrickleIceCandidates, null, 'canTrickleIceCandidates property is null');
   }, 'canTrickleIceCandidates property is null prior to setRemoteDescription');
 
-  promise_test(function() {
+  promise_test(function(t) {
     var pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp}))
     .then(function() {
@@ -44,8 +46,10 @@
     })
   }, 'canTrickleIceCandidates property is true after setRemoteDescription with a=ice-options:trickle');
 
-  promise_test(function() {
+  promise_test(function(t) {
     var pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return pc.setRemoteDescription(new RTCSessionDescription({type: 'offer', sdp: sdp.replace('a=ice-options:trickle\r\n', '')}))
     .then(function() {

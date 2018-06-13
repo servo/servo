@@ -163,7 +163,7 @@ impl FontInfo {
 
         let weight = StyleFontWeight(weight_val as f32);
 
-        let stretch = NonNegative(match min(9, max(1, width_val)) {
+        let stretch = StyleFontStretch(NonNegative(match min(9, max(1, width_val)) {
             1 => FontStretchKeyword::UltraCondensed,
             2 => FontStretchKeyword::ExtraCondensed,
             3 => FontStretchKeyword::Condensed,
@@ -174,7 +174,7 @@ impl FontInfo {
             8 => FontStretchKeyword::ExtraExpanded,
             9 => FontStretchKeyword::UltraExpanded,
             _ => return Err(()),
-        }.compute());
+        }.compute()));
 
         let style = if italic_bool {
             GenericFontStyle::Italic
@@ -212,7 +212,7 @@ impl FontInfo {
             // slightly blacker black
             FontWeight::ExtraBlack => 1000.,
         });
-        let stretch = NonNegative(match font.stretch() {
+        let stretch = StyleFontStretch(NonNegative(match font.stretch() {
             FontStretch::Undefined => FontStretchKeyword::Normal,
             FontStretch::UltraCondensed => FontStretchKeyword::UltraCondensed,
             FontStretch::ExtraCondensed => FontStretchKeyword::ExtraCondensed,
@@ -223,7 +223,7 @@ impl FontInfo {
             FontStretch::Expanded => FontStretchKeyword::Expanded,
             FontStretch::ExtraExpanded => FontStretchKeyword::ExtraExpanded,
             FontStretch::UltraExpanded => FontStretchKeyword::UltraExpanded,
-        }.compute());
+        }.compute()));
 
         Ok(FontInfo {
             family_name: font.family_name(),

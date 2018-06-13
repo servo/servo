@@ -18,7 +18,7 @@ async_test(function (t) {
     t.done();
   });
 
-  client.open("GET", "http://nonexistent-origin.{{host}}:{{ports[http][0]}}");
+  client.open("GET", "http://nonexistent.{{host}}:{{ports[http][0]}}");
   client.send("null");
 }, document.title);
 

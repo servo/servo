@@ -5,7 +5,7 @@
 use app_units::Au;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
-use freetype::freetype::{FT_Done_Face, FT_New_Memory_Face};
+use freetype::freetype::{FT_Done_Face, FT_New_Face, FT_New_Memory_Face};
 use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
@@ -20,6 +20,7 @@ use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use servo_atoms::Atom;
 use std::{mem, ptr};
+use std::ffi::CString;
 use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
 use style::computed_values::font_stretch::T as FontStretch;
@@ -87,6 +88,39 @@ impl Drop for FontHandle {
     }
 }
 
+fn create_face(
+    lib: FT_Library,
+    template: &FontTemplateData,
+    pt_size: Option<Au>,
+) -> Result<FT_Face, ()> {
+    unsafe {
+        let mut face: FT_Face = ptr::null_mut();
+        let face_index = 0 as FT_Long;
+
+        let result = if let Some(ref bytes) = template.bytes {
+            FT_New_Memory_Face(lib, bytes.as_ptr(), bytes.len() as FT_Long, face_index, &mut face)
+        } else {
+            // This will trigger a synchronous file read in the layout thread, which we may want to
+            // revisit at some point. See discussion here:
+            //
+            // https://github.com/servo/servo/pull/20506#issuecomment-378838800
+
+            let filename = CString::new(&*template.identifier).expect("filename contains NUL byte!");
+            FT_New_Face(lib, filename.as_ptr(), face_index, &mut face)
+        };
+
+        if !succeeded(result) || face.is_null() {
+            return Err(());
+        }
+
+        if let Some(s) = pt_size {
+            FontHandle::set_char_size(face, s).or(Err(()))?
+        }
+
+        Ok(face)
+    }
+}
+
 impl FontHandleMethods for FontHandle {
     fn new_from_template(fctx: &FontContextHandle,
                        template: Arc<FontTemplateData>,
@@ -95,37 +129,19 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        return create_face_from_buffer(ft_ctx, &template.bytes, pt_size).map(|face| {
-            let mut handle = FontHandle {
-                  face: face,
-                  font_data: template.clone(),
-                  handle: fctx.clone(),
-                  can_do_fast_shaping: false,
-            };
-            // TODO (#11310): Implement basic support for GPOS and GSUB.
-            handle.can_do_fast_shaping = handle.has_table(KERN) &&
-                                         !handle.has_table(GPOS) &&
-                                         !handle.has_table(GSUB);
-            handle
-        });
+        let face = create_face(ft_ctx, &template, pt_size)?;
 
-        fn create_face_from_buffer(lib: FT_Library, buffer: &[u8], pt_size: Option<Au>)
-                                   -> Result<FT_Face, ()> {
-            unsafe {
-                let mut face: FT_Face = ptr::null_mut();
-                let face_index = 0 as FT_Long;
-                let result = FT_New_Memory_Face(lib, buffer.as_ptr(), buffer.len() as FT_Long,
-                                                face_index, &mut face);
-
-                if !succeeded(result) || face.is_null() {
-                    return Err(());
-                }
-                if let Some(s) = pt_size {
-                    FontHandle::set_char_size(face, s).or(Err(()))?
-                }
-                Ok(face)
-            }
-        }
+        let mut handle = FontHandle {
+              face: face,
+              font_data: template.clone(),
+              handle: fctx.clone(),
+              can_do_fast_shaping: false,
+        };
+        // TODO (#11310): Implement basic support for GPOS and GSUB.
+        handle.can_do_fast_shaping = handle.has_table(KERN) &&
+                                     !handle.has_table(GPOS) &&
+                                     !handle.has_table(GSUB);
+        Ok(handle)
     }
 
     fn template(&self) -> Arc<FontTemplateData> {
@@ -187,7 +203,7 @@ impl FontHandleMethods for FontHandle {
         } else {
             FontStretchKeyword::Normal
         }.compute();
-        NonNegative(percentage)
+        FontStretch(NonNegative(percentage))
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -197,7 +213,7 @@ impl FontHandleMethods for FontHandle {
             if idx != 0 as FT_UInt {
                 Some(idx as GlyphId)
             } else {
-                debug!("Invalid codepoint: {}", codepoint);
+                debug!("Invalid codepoint: U+{:04X} ('{}')", codepoint as u32, codepoint);
                 None
             }
         }

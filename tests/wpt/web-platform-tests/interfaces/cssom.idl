@@ -118,8 +118,6 @@ interface CSSStyleDeclaration {
   CSSOMString getPropertyValue(CSSOMString property);
   CSSOMString getPropertyPriority(CSSOMString property);
   [CEReactions] void setProperty(CSSOMString property, [TreatNullAs=EmptyString] CSSOMString value, [TreatNullAs=EmptyString] optional CSSOMString priority = "");
-  [CEReactions] void setPropertyValue(CSSOMString property, [TreatNullAs=EmptyString] CSSOMString value);
-  [CEReactions] void setPropertyPriority(CSSOMString property, [TreatNullAs=EmptyString] CSSOMString priority);
   [CEReactions] CSSOMString removeProperty(CSSOMString property);
   readonly attribute CSSRule? parentRule;
   [CEReactions] attribute [TreatNullAs=EmptyString] CSSOMString cssFloat;

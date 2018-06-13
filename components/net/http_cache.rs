@@ -4,7 +4,7 @@
 
 #![deny(missing_docs)]
 
-//! A memory cache implementing the logic specified in http://tools.ietf.org/html/rfc7234
+//! A memory cache implementing the logic specified in <http://tools.ietf.org/html/rfc7234>
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use fetch::methods::{Data, DoneChannel};

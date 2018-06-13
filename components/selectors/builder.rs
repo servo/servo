@@ -36,6 +36,7 @@ use std::slice;
 /// (from left to right). Once the process is complete, callers should invoke
 /// build(), which transforms the contents of the SelectorBuilder into a heap-
 /// allocated Selector and leaves the builder in a drained state.
+#[derive(Debug)]
 pub struct SelectorBuilder<Impl: SelectorImpl> {
     /// The entire sequence of simple selectors, from left to right, without combinators.
     ///
@@ -104,7 +105,7 @@ impl<Impl: SelectorImpl> SelectorBuilder<Impl> {
         parsed_slotted: bool,
     ) -> ThinArc<SpecificityAndFlags, Component<Impl>> {
         // Compute the specificity and flags.
-        let mut spec = SpecificityAndFlags(specificity(self.simple_selectors.iter()));
+        let mut spec = SpecificityAndFlags(specificity(&*self, self.simple_selectors.iter()));
         if parsed_pseudo {
             spec.0 |= HAS_PSEUDO_BIT;
         }
@@ -268,25 +269,35 @@ impl From<Specificity> for u32 {
     }
 }
 
-fn specificity<Impl>(iter: slice::Iter<Component<Impl>>) -> u32
+fn specificity<Impl>(builder: &SelectorBuilder<Impl>, iter: slice::Iter<Component<Impl>>) -> u32
 where
     Impl: SelectorImpl,
 {
-    complex_selector_specificity(iter).into()
+    complex_selector_specificity(builder, iter).into()
 }
 
-fn complex_selector_specificity<Impl>(mut iter: slice::Iter<Component<Impl>>) -> Specificity
+fn complex_selector_specificity<Impl>(
+    builder: &SelectorBuilder<Impl>,
+    mut iter: slice::Iter<Component<Impl>>,
+) -> Specificity
 where
     Impl: SelectorImpl,
 {
     fn simple_selector_specificity<Impl>(
+        builder: &SelectorBuilder<Impl>,
         simple_selector: &Component<Impl>,
         specificity: &mut Specificity,
     ) where
         Impl: SelectorImpl,
     {
         match *simple_selector {
-            Component::Combinator(..) => unreachable!(),
+            Component::Combinator(ref combinator) => {
+                unreachable!(
+                    "Found combinator {:?} in simple selectors vector? {:?}",
+                    combinator,
+                    builder,
+                );
+            }
             // FIXME(emilio): Spec doesn't define any particular specificity for
             // ::slotted(), so apply the general rule for pseudos per:
             //
@@ -326,7 +337,7 @@ where
             },
             Component::Negation(ref negated) => {
                 for ss in negated.iter() {
-                    simple_selector_specificity(&ss, specificity);
+                    simple_selector_specificity(builder, &ss, specificity);
                 }
             },
         }
@@ -334,7 +345,7 @@ where
 
     let mut specificity = Default::default();
     for simple_selector in &mut iter {
-        simple_selector_specificity(&simple_selector, &mut specificity);
+        simple_selector_specificity(builder, &simple_selector, &mut specificity);
     }
     specificity
 }

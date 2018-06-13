@@ -16,13 +16,13 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring", "num_cpus",
+gecko = ["num_cpus",
          "style_traits/gecko", "fallible/known_system_malloc"]
 use_bindgen = ["bindgen", "regex", "toml"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "arrayvec/use_union",
          "servo_url", "string_cache"]
-gecko_debug = ["nsstring/gecko_debug"]
+gecko_debug = []
 
 [dependencies]
 app_units = "0.6"
@@ -32,7 +32,7 @@ bitflags = "1.0"
 byteorder = "1.0"
 cfg-if = "0.1.0"
 cssparser = "0.23.0"
-debug_unreachable = "0.1.1"
+new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.7", optional = true}
 euclid = "0.17"
 fallible = { path = "../fallible" }
@@ -46,11 +46,10 @@ log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
-nsstring = {path = "../../support/gecko/nsstring", optional = true}
 num_cpus = {version = "1.1.0", optional = true}
 num-integer = "0.1.32"
 num-traits = "0.1.32"
-ordered-float = "0.4"
+new-ordered-float = "1.0"
 owning_ref = "0.3.3"
 parking_lot = "0.5"
 precomputed-hash = "0.1.1"
@@ -60,7 +59,7 @@ serde = {version = "1.0", optional = true, features = ["derive"]}
 servo_arc = { path = "../servo_arc" }
 servo_atoms = {path = "../atoms", optional = true}
 servo_config = {path = "../config", optional = true}
-smallbitvec = "2.1.0"
+smallbitvec = "2.1.1"
 smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
 style_derive = {path = "../style_derive"}

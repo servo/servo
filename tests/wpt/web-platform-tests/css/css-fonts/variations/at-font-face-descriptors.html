@@ -118,8 +118,8 @@
             // Single value, calc
             { value: "calc(200.5%)",            isValid: true,  expectedValue: "200.5%", description: "Simple calc value" },
             { value: "calc(50%*2 - 20%)",       isValid: true,  expectedValue: "80%", description: "Valid calc expression" },
-            { value: "calc(-100%)",             isValid: false, description: "Negative calc value" },
-            { value: "calc(50% - 50%*2)",       isValid: false, description: "Negative calc expression" },
+            { value: "calc(-100%)",             isValid: true,  description: "Negative calc value (to be clamped)" },
+            { value: "calc(50% - 50%*2)",       isValid: true,  expectedValue: "calc(-50%)", description: "Negative calc expression (to be clamped)" },
             { value: "calc(100)",               isValid: false, description: "Unit-less calc value" },
             { value: "calc(100px)",             isValid: false, description: "Calc value with units" },
 

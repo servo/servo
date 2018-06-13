@@ -62,6 +62,7 @@ use dom::windowproxy::WindowProxy;
 use dom::worker::TrustedWorkerAddress;
 use dom::worklet::WorkletThreadPool;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
+use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Vector2D, Rect};
 use fetch::FetchCanceller;
 use hyper::header::{ContentType, HttpDate, Headers, LastModified};
@@ -103,6 +104,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
+use std::cell::RefCell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
 use std::ops::Deref;
@@ -219,9 +221,6 @@ enum MixedMessage {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Notifies the script that a window associated with a particular pipeline
-    /// should be closed (only dispatched to ScriptThread).
-    ExitWindow(PipelineId),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptThread). Allows for a replace bool to be passed. If true,
     /// the current entry will be replaced instead of a new entry being added.
@@ -386,6 +385,14 @@ impl<'a> Iterator for DocumentsIter<'a> {
     }
 }
 
+// We borrow the incomplete parser contexts mutably during parsing,
+// which is fine except that parsing can trigger evaluation,
+// which can trigger GC, and so we can end up tracing the script
+// thread during parsing. For this reason, we don't trace the
+// incomplete parser contexts during GC.
+type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
+unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -398,7 +405,7 @@ pub struct ScriptThread {
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
-    incomplete_parser_contexts: DomRefCell<Vec<(PipelineId, ParserContext)>>,
+    incomplete_parser_contexts: RefCell<IncompleteParserContexts>,
     /// A map to store service worker registrations for a given origin
     registration_map: DomRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
@@ -824,7 +831,7 @@ impl ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
             incomplete_loads: DomRefCell::new(vec!()),
-            incomplete_parser_contexts: DomRefCell::new(vec!()),
+            incomplete_parser_contexts: RefCell::new(vec!()),
             registration_map: DomRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
 
@@ -1192,7 +1199,6 @@ impl ScriptThread {
                     MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id)) =>
                         pipeline_id,
                     MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
-                    MainThreadScriptMsg::ExitWindow(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
@@ -1342,9 +1348,6 @@ impl ScriptThread {
         match msg {
             MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace)
-            },
-            MainThreadScriptMsg::ExitWindow(id) => {
-                self.handle_exit_window_msg(id)
             },
             MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _)) => {
                 task.run_box()
@@ -1714,20 +1717,6 @@ impl ScriptThread {
         window.set_window_size(new_size);
     }
 
-    /// We have gotten a window.close from script, which we pass on to the compositor.
-    /// We do not shut down the script thread now, because the compositor will ask the
-    /// constellation to shut down the pipeline, which will clean everything up
-    /// normally. If we do exit, we will tear down the DOM nodes, possibly at a point
-    /// where layout is still accessing them.
-    fn handle_exit_window_msg(&self, id: PipelineId) {
-        debug!("script thread handling exit window msg");
-
-        // TODO(tkuehn): currently there is only one window,
-        // so this can afford to be naive and just shut down the
-        // constellation. In the future it'll need to be smarter.
-        self.script_sender.send((id, ScriptMsg::Exit)).unwrap();
-    }
-
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
     fn handle_page_headers_available(&self, id: &PipelineId,
@@ -1822,7 +1811,7 @@ impl ScriptThread {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
-        document.send_title_to_constellation();
+        document.send_title_to_embedder();
     }
 
     /// Handles a request to exit a pipeline and shut down layout.
@@ -2282,6 +2271,7 @@ impl ScriptThread {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
+                let window = document.window();
 
                 // Get the previous target temporarily
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
@@ -2310,9 +2300,8 @@ impl ScriptThread {
                                                let url = document.url();
                                                url.join(&value).map(|url| url.to_string()).ok()
                                            });
-
-                        let event = ScriptMsg::NodeStatus(status);
-                        self.script_sender.send((pipeline_id, event)).unwrap();
+                        let event = EmbedderMsg::Status(status);
+                        window.send_to_embedder(event);
 
                         state_already_changed = true;
                     }
@@ -2325,8 +2314,8 @@ impl ScriptThread {
                                                .inclusive_ancestors()
                                                .filter_map(DomRoot::downcast::<HTMLAnchorElement>)
                                                .next() {
-                            let event = ScriptMsg::NodeStatus(None);
-                            self.script_sender.send((pipeline_id, event)).unwrap();
+                            let event = EmbedderMsg::Status(None);
+                            window.send_to_embedder(event);
                         }
                     }
                 }

@@ -9,7 +9,7 @@ def main(request, response):
 
     out = StringIO()
     with gzip_module.GzipFile(fileobj=out, mode="w") as f:
-      f.write(output)
+        f.write(output)
     output = out.getvalue()
 
     headers = [("Content-type", "text/plain"),

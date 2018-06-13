@@ -322,8 +322,25 @@
         }
 
         add_result_callback(testFinished);
-        //start the first test manually
-        queue(testCollection[testIndex]);
+
+        function startTestsWhenIframesLoaded() {
+          if (testframe1.contentWindow.document.readyState != 'complete' ||
+              testframe2.contentWindow.document.readyState != 'complete') {
+            return;
+          }
+          testframe1.removeEventListener('load', startTestsWhenIframesLoaded, false);
+          testframe2.removeEventListener('load', startTestsWhenIframesLoaded, false);
+
+          //start the first test
+          queue(testCollection[testIndex]);
+        }
+
+        // add listeners to trigger the tests once the iframes are loaded,
+        // but also try to start it right away in case the load events have
+        // already fired and we missed them.
+        testframe1.addEventListener('load', startTestsWhenIframesLoaded, false);
+        testframe2.addEventListener('load', startTestsWhenIframesLoaded, false);
+        startTestsWhenIframesLoaded();
      </script>
 </body>
 </html>

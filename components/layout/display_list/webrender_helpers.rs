@@ -41,7 +41,12 @@ impl WebRenderDisplayListConverter for DisplayList {
 
         let mut clip_ids = Vec::with_capacity(self.clip_scroll_nodes.len());
         clip_ids.resize(self.clip_scroll_nodes.len(), None);
-        clip_ids[0] = Some(ClipId::root_scroll_node(pipeline_id.to_webrender()));
+
+        // We need to add the WebRender root reference frame and root scroll node ids
+        // here manually, because WebRender creates these automatically.
+        let webrender_pipeline = pipeline_id.to_webrender();
+        clip_ids[0] = Some(ClipId::root_reference_frame(webrender_pipeline));
+        clip_ids[1] = Some(ClipId::root_scroll_node(webrender_pipeline));
 
         for item in &self.list {
             item.convert_to_webrender(
@@ -78,7 +83,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         current_clip_and_scroll_info: &mut ClipAndScrollInfo,
     ) {
         let get_id = |clip_ids: &[Option<ClipId>], index: ClipScrollNodeIndex| -> ClipId {
-            match clip_ids[index.0] {
+            match clip_ids[index.to_index()] {
                 Some(id) => id,
                 None => unreachable!("Tried to use WebRender ClipId before it was defined."),
             }
@@ -216,7 +221,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
-                builder.push_stacking_context(
+                let reference_frame_clip_id = builder.push_stacking_context(
                     &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
                     None,
                     stacking_context.transform.map(Into::into),
@@ -226,10 +231,17 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context.filters.clone(),
                     GlyphRasterSpace::Screen,
                 );
+
+                match (reference_frame_clip_id, stacking_context.established_reference_frame) {
+                    (Some(webrender_id), Some(frame_index)) =>
+                        clip_ids[frame_index.to_index()] = Some(webrender_id),
+                    (None, None) => {},
+                    _ => warn!("Mismatch between reference frame establishment!"),
+                }
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClipScrollNode(ref item) => {
-                let node = &clip_scroll_nodes[item.node_index.0];
+                let node = &clip_scroll_nodes[item.node_index.to_index()];
                 let parent_id = get_id(clip_ids, node.parent_index);
                 let item_rect = node.clip.main;
 
@@ -263,9 +275,12 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         builder.pop_clip_id();
                         id
                     },
+                    ClipScrollNodeType::Placeholder => {
+                        unreachable!("Found DefineClipScrollNode for Placeholder type node.");
+                    }
                 };
 
-                clip_ids[item.node_index.0] = Some(webrender_id);
+                clip_ids[item.node_index.to_index()] = Some(webrender_id);
             },
         }
     }

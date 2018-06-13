@@ -19,6 +19,7 @@
 
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let track;
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
@@ -32,7 +33,7 @@
       // TODO(hbos): Here and elsewhere, validateRtcStats() only tests id,
       // timestamp and type is correct type. Should validate based on stats type
       // but it expects both audio and video members.
-      // https://github.com/w3c/web-platform-tests/issues/9010
+      // https://github.com/web-platform-tests/wpt/issues/9010
       validateRtcStats(report, trackStats);
       t.done();
     }))
@@ -43,6 +44,7 @@
 
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let stream;
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
@@ -64,6 +66,7 @@
 
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let track;
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
@@ -90,6 +93,7 @@
 
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let stream;
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
@@ -117,6 +121,7 @@
 
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let track;
     let stream;
     return getUserMediaTracksAndStreams(1)
@@ -155,6 +160,7 @@
   // https://github.com/w3c/webrtc-pc/issues/1125
   async_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let track;
     let stream;
     return getUserMediaTracksAndStreams(1)
@@ -189,7 +195,9 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let sendingTrack;
     return getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
@@ -217,7 +225,9 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let receivingTrack;
     callee.ontrack = trackEvent => {
       assert_true(receivingTrack == undefined, 'ontrack has not fired before');
@@ -249,7 +259,9 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let sendingTrack1;
     let sendingTrack2;
     let sender;
@@ -276,7 +288,9 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let sendingTrack1;
     let sendingTrack2;
     let sender;
@@ -285,7 +299,7 @@
       sendingTrack1 = tracks[0];
       sendingTrack2 = tracks[1];
       sender = caller.addTrack(sendingTrack1);
-      return performOffer(caller, callee);
+      return exchangeOffer(caller, callee);
     }))
     .then(t.step_func(() => {
       return sender.replaceTrack(sendingTrack2);
@@ -311,7 +325,9 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let sendingTrack1;
     let sendingTrack2;
     let sender;
@@ -345,7 +361,9 @@
 
   async_test(t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let sendingTrack1;
     let sendingTrack2;
     let sender;
@@ -380,7 +398,9 @@
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
@@ -426,7 +446,9 @@
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
@@ -472,7 +494,9 @@
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
@@ -497,7 +521,9 @@
 
   promise_test(async t => {
     const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
@@ -523,6 +549,7 @@
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(1);
     await promise_rejects(t, 'InvalidAccessError', pc.getStats(tracks[0]));
   }, 'RTCPeerConnection.getStats(track) throws InvalidAccessError when there ' +
@@ -530,6 +557,7 @@
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     let [tracks, streams] = await getUserMediaTracksAndStreams(2);
     let sender1 = pc.addTrack(tracks[0]);
     let sender2 = pc.addTrack(tracks[1]);

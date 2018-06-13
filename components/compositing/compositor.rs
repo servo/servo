@@ -385,10 +385,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return false
             }
 
-            (Msg::Exit, _) => {
-                self.start_shutting_down();
-            }
-
             (Msg::ShutdownComplete, _) => {
                 self.finish_shutting_down();
                 return false;
@@ -918,6 +914,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             (delta * old_event_count + this_delta) /
                             new_event_count);
                     }
+                    last_combined_event.magnification *= scroll_event.magnification;
                 }
             }
         }
@@ -937,6 +934,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let cursor = webrender_api::WorldPoint::from_untyped(&cursor);
             let mut txn = webrender_api::Transaction::new();
             txn.scroll(scroll_location, cursor);
+            if combined_event.magnification != 1.0 {
+                let old_zoom = self.pinch_zoom_level();
+                self.set_pinch_zoom_level(old_zoom * combined_event.magnification);
+                txn.set_pinch_zoom(webrender_api::ZoomFactor::new(self.pinch_zoom_level()));
+            }
+            txn.generate_frame();
             self.webrender_api.send_transaction(self.webrender_document, txn);
             self.waiting_for_results_of_scroll = true
         }
@@ -1376,8 +1379,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
-        // TODO(gw): Access via WR.
-        1.0
+        self.viewport_zoom.get()
+    }
+
+    fn set_pinch_zoom_level(&mut self, mut zoom: f32) {
+        if let Some(min) = self.min_viewport_zoom {
+            zoom = f32::max(min.get(), zoom);
+        }
+        if let Some(max) = self.max_viewport_zoom {
+            zoom = f32::min(max.get(), zoom);
+        }
+        self.viewport_zoom = PinchZoomFactor::new(zoom);
     }
 
     pub fn toggle_webrender_debug(&mut self, option: WebRenderDebugOption) {
@@ -1404,17 +1416,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn capture_webrender(&mut self) {
-        match env::current_dir() {
-            Ok(current_dir) => {
-                let capture_id = now().to_timespec().sec.to_string();
-                let capture_path = current_dir.join("capture_webrender").join(capture_id);
+        let capture_id = now().to_timespec().sec.to_string();
+        let available_path = [env::current_dir(), Ok(env::temp_dir())].iter()
+            .filter_map(|val| val.as_ref().map(|dir| dir.join("capture_webrender").join(&capture_id)).ok())
+            .find(|val| {
+                match create_dir_all(&val) {
+                    Ok(_) => true,
+                    Err(err) => {
+                        eprintln!("Unable to create path '{:?}' for capture: {:?}", &val, err);
+                        false
+                    }
+                }
+            });
+
+        match available_path {
+            Some(capture_path) => {
                 let revision_file_path = capture_path.join("wr.txt");
 
-                if let Err(err) = create_dir_all(&capture_path) {
-                    eprintln!("Unable to create path '{:?}' for capture: {:?}", capture_path, err);
-                    return
-                }
-
+                debug!("Trying to save webrender capture under {:?}", &revision_file_path);
                 self.webrender_api.save_capture(capture_path, webrender_api::CaptureBits::all());
 
                 match File::create(revision_file_path) {
@@ -1427,7 +1446,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     Err(err) => eprintln!("Capture triggered, creating webrender revision info skipped: {:?}", err)
                 }
             },
-            Err(err) => eprintln!("Unable to locate path to save captures: {:?}", err)
+            None => eprintln!("Unable to locate path to save captures")
         }
     }
 }

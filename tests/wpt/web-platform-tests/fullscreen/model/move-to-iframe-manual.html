@@ -7,6 +7,7 @@
 <iframe></iframe>
 <script>
 async_test(t => {
+  t.add_cleanup(() => document.exitFullscreen());
   const div = document.querySelector("div");
   const iframe = document.querySelector("iframe");
   document.onfullscreenchange = t.step_func(event => {
@@ -16,6 +17,9 @@ async_test(t => {
     assert_equals(div.ownerDocument, document);
     iframe.contentDocument.body.appendChild(div);
     assert_not_equals(div.ownerDocument, document);
+    // Moving /div/ removes it from the top layer and thus the fullscreen
+    // element synchronously becomes null.
+    assert_equals(document.fullscreenElement, null);
 
     div.onfullscreenchange = t.unreached_func("fullscreenchange fired on element");
     iframe.contentDocument.onfullscreenchange = t.unreached_func("fullscreenchange fired on other document");

@@ -41,7 +41,7 @@ test(function() {
     const url = new URL("http://localhost/query?param0=0&param1=1&param2=2");
     const searchParams = url.searchParams;
     const seen = [];
-    for (const param of searchParams) {
+    for (param of searchParams) {
         if (param[0] === 'param0') {
             searchParams.delete('param1');
         }
@@ -56,7 +56,7 @@ test(function() {
     const url = new URL("http://localhost/query?param0=0&param1=1&param2=2");
     const searchParams = url.searchParams;
     const seen = [];
-    for (const param of searchParams) {
+    for (param of searchParams) {
         if (param[0] === 'param0') {
             searchParams.delete('param0');
             // 'param1=1' is now in the first slot, so the next iteration will see 'param2=2'.
@@ -72,7 +72,7 @@ test(function() {
     const url = new URL("http://localhost/query?param0=0&param1=1&param2=2");
     const searchParams = url.searchParams;
     const seen = [];
-    for (const param of searchParams) {
+    for (param of searchParams) {
         seen.push(param[0]);
         searchParams.delete(param[0]);
     }

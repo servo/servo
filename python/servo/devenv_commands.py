@@ -28,28 +28,16 @@ from servo.util import STATIC_RUST_LANG_ORG_DIST, URLOPEN_KWARGS
 
 @CommandProvider
 class MachCommands(CommandBase):
-    def run_cargo(self, params, geckolib=False, check=False):
+    def run_cargo(self, params, check=False):
         if not params:
             params = []
 
         self.ensure_bootstrapped()
         self.ensure_clobbered()
-        env = self.build_env(geckolib=geckolib)
+        env = self.build_env()
 
         if check:
             params = ['check'] + params
-
-        if geckolib:
-            # for c in $(cargo --list | tail -$(($(cargo --list | wc -l) - 1))); do
-            #   (cargo help $c 2>&1 | grep "\\--package" >/dev/null 2>&1) && echo $c
-            # done
-            if params and params[0] in [
-                'bench', 'build', 'check', 'clean', 'doc', 'fmt', 'pkgid',
-                'run', 'rustc', 'rustdoc', 'test', 'update',
-            ]:
-                params[1:1] = ['--package', 'geckoservo']
-
-            self.set_use_geckolib_toolchain()
 
         build_start = time()
         status = self.call_rustup_run(["cargo"] + params, env=env)
@@ -71,15 +59,6 @@ class MachCommands(CommandBase):
     def cargo(self, params):
         return self.run_cargo(params)
 
-    @Command('cargo-geckolib',
-             description='Run Cargo with the same compiler version and root crate as build-geckolib',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to Cargo")
-    def cargo_geckolib(self, params):
-        return self.run_cargo(params, geckolib=True)
-
     @Command('check',
              description='Run "cargo check"',
              category='devenv')
@@ -88,15 +67,6 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo check")
     def check(self, params):
         return self.run_cargo(params, check=True)
-
-    @Command('check-geckolib',
-             description='Run "cargo check" with the same compiler version and root crate as build-geckolib',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to cargo check")
-    def check_geckolib(self, params):
-        return self.run_cargo(params, check=True, geckolib=True)
 
     @Command('cargo-update',
              description='Same as update-cargo',
@@ -211,22 +181,6 @@ class MachCommands(CommandBase):
 
         self.ensure_bootstrapped()
         return self.call_rustup_run(["rustc"] + params, env=self.build_env())
-
-    @Command('rustc-geckolib',
-             description='Run the Rust compiler with the same compiler version and root crate as build-geckolib',
-             category='devenv')
-    @CommandArgument(
-        'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to rustc")
-    def rustc_geckolib(self, params):
-        if params is None:
-            params = []
-
-        self.set_use_geckolib_toolchain()
-        self.ensure_bootstrapped()
-        env = self.build_env(geckolib=True)
-
-        return self.call_rustup_run(["rustc"] + params, env=env)
 
     @Command('grep',
              description='`git grep` for selected directories.',

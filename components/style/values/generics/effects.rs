@@ -4,9 +4,6 @@
 
 //! Generic types for CSS values related to effects.
 
-#[cfg(feature = "gecko")]
-use values::specified::url::SpecifiedUrl;
-
 /// A generic value for a single `box-shadow`.
 #[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
          ToAnimatedValue, ToAnimatedZero, ToCss)]
@@ -23,9 +20,10 @@ pub struct BoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
 
 /// A generic value for a single `filter`.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[animation(no_bound(Url))]
 #[derive(Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
          SpecifiedValueInfo, ToAnimatedValue, ToComputedValue, ToCss)]
-pub enum Filter<Angle, Factor, Length, DropShadow> {
+pub enum Filter<Angle, Factor, Length, DropShadow, Url> {
     /// `blur(<length>)`
     #[css(function)]
     Blur(Length),
@@ -58,8 +56,7 @@ pub enum Filter<Angle, Factor, Length, DropShadow> {
     DropShadow(DropShadow),
     /// `<url>`
     #[animation(error)]
-    #[cfg(feature = "gecko")]
-    Url(SpecifiedUrl),
+    Url(Url),
 }
 
 /// A generic value for the `drop-shadow()` filter and the `text-shadow` property.

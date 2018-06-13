@@ -82,6 +82,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const negotiated = awaitNegotiation(pc);
 
     pc.createDataChannel('test');
@@ -114,6 +115,7 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
     const negotiated = awaitNegotiation(pc);
 
     pc.addTransceiver('audio');
@@ -183,6 +185,8 @@
    */
   promise_test(t => {
     const pc = new RTCPeerConnection();
+
+    t.add_cleanup(() => pc.close());
 
     return assert_first_promise_fulfill_after_second(
       awaitNegotiation(pc),

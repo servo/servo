@@ -15,7 +15,7 @@ def get_response(raw_headers, filter_value, filter_name):
             if value == filter_value:
                 result += name + ","
         elif name.lower() == filter_name:
-            result += name + ": " + value + "\n";
+            result += name + ": " + value + "\n"
     return result
 
 def main(request, response):

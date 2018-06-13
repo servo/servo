@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<script>
+'use strict';
+
+window.onmessage = message => {
+  if (message.data === 'Ready') {
+    let onSuccess = () => { parent.postMessage('Failure', '*'); };
+    let onError = error => {
+      if (error.name == 'InvalidStateError') {
+        parent.postMessage('Success', '*');
+      } else {
+        parent.postMessage('Failure', '*');
+      }
+    };
+
+    navigator.keyboard.getLayoutMap().then(onSuccess, onError);
+  }
+};
+
+</script>

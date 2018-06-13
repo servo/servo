@@ -6,7 +6,7 @@ def main(request, response):
   # not specify a body. The expected browser behavior for this condition is not
   # currently defined--see the following for further discussion:
   #
-  # https://github.com/w3c/web-platform-tests/pull/5227
+  # https://github.com/web-platform-tests/wpt/pull/5227
   if status[0] in ["204", "205"]:
       body = ""
   else:

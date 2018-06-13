@@ -7,8 +7,8 @@
 <script src="resources/picture-in-picture-helpers.js"></script>
 <body></body>
 <script>
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
 
   video.addEventListener('leavepictureinpicture', t.step_func_done(event => {
     assert_equals(event.target, video);
@@ -19,11 +19,11 @@ promise_test(t => {
   }));
 
   return requestPictureInPictureWithTrustedClick(video)
-  .then(() => document.exitPictureInPicture())
+  .then(() => document.exitPictureInPicture());
 }, 'leavepictureinpicture event is fired if document.exitPictureInPicture');
 
-promise_test(t => {
-  const video = document.createElement('video');
+promise_test(async t => {
+  const video = await loadVideo();
 
   video.addEventListener('leavepictureinpicture', t.step_func_done(event => {
     assert_equals(event.target, video);

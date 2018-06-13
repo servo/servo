@@ -4,7 +4,8 @@
 
 //! A rust helper to ease the use of Gecko's refcounted types.
 
-use gecko_bindings::structs;
+use Atom;
+use gecko_bindings::{structs, bindings};
 use gecko_bindings::sugar::ownership::HasArcFFI;
 use servo_arc::Arc;
 use std::{fmt, mem, ptr};
@@ -255,13 +256,16 @@ unsafe impl<T: ThreadSafeRefCounted> Send for RefPtr<T> {}
 unsafe impl<T: ThreadSafeRefCounted> Sync for RefPtr<T> {}
 
 macro_rules! impl_refcount {
-    ($t:ty, $addref:ident, $release:ident) => {
+    ($t:ty, $addref:path, $release:path) => {
         unsafe impl RefCounted for $t {
+            #[inline]
             fn addref(&self) {
-                unsafe { ::gecko_bindings::bindings::$addref(self as *const _ as *mut _) }
+                unsafe { $addref(self as *const _ as *mut _) }
             }
+
+            #[inline]
             unsafe fn release(&self) {
-                ::gecko_bindings::bindings::$release(self as *const _ as *mut _)
+                $release(self as *const _ as *mut _)
             }
         }
     };
@@ -271,50 +275,63 @@ macro_rules! impl_refcount {
 //
 // Gets you a free RefCounted impl implemented via FFI.
 macro_rules! impl_threadsafe_refcount {
-    ($t:ty, $addref:ident, $release:ident) => {
+    ($t:ty, $addref:path, $release:path) => {
         impl_refcount!($t, $addref, $release);
         unsafe impl ThreadSafeRefCounted for $t {}
     };
 }
 
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::RawGeckoURLExtraData,
-    Gecko_AddRefURLExtraDataArbitraryThread,
-    Gecko_ReleaseURLExtraDataArbitraryThread
+    structs::RawGeckoURLExtraData,
+    bindings::Gecko_AddRefURLExtraDataArbitraryThread,
+    bindings::Gecko_ReleaseURLExtraDataArbitraryThread
 );
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::nsStyleQuoteValues,
-    Gecko_AddRefQuoteValuesArbitraryThread,
-    Gecko_ReleaseQuoteValuesArbitraryThread
+    structs::nsStyleQuoteValues,
+    bindings::Gecko_AddRefQuoteValuesArbitraryThread,
+    bindings::Gecko_ReleaseQuoteValuesArbitraryThread
 );
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::nsCSSValueSharedList,
-    Gecko_AddRefCSSValueSharedListArbitraryThread,
-    Gecko_ReleaseCSSValueSharedListArbitraryThread
+    structs::nsCSSValueSharedList,
+    bindings::Gecko_AddRefCSSValueSharedListArbitraryThread,
+    bindings::Gecko_ReleaseCSSValueSharedListArbitraryThread
 );
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::mozilla::css::URLValue,
-    Gecko_AddRefCSSURLValueArbitraryThread,
-    Gecko_ReleaseCSSURLValueArbitraryThread
+    structs::mozilla::css::URLValue,
+    bindings::Gecko_AddRefCSSURLValueArbitraryThread,
+    bindings::Gecko_ReleaseCSSURLValueArbitraryThread
 );
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::mozilla::css::GridTemplateAreasValue,
-    Gecko_AddRefGridTemplateAreasValueArbitraryThread,
-    Gecko_ReleaseGridTemplateAreasValueArbitraryThread
+    structs::mozilla::css::GridTemplateAreasValue,
+    bindings::Gecko_AddRefGridTemplateAreasValueArbitraryThread,
+    bindings::Gecko_ReleaseGridTemplateAreasValueArbitraryThread
 );
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::ImageValue,
-    Gecko_AddRefImageValueArbitraryThread,
-    Gecko_ReleaseImageValueArbitraryThread
+    structs::ImageValue,
+    bindings::Gecko_AddRefImageValueArbitraryThread,
+    bindings::Gecko_ReleaseImageValueArbitraryThread
 );
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::SharedFontList,
-    Gecko_AddRefSharedFontListArbitraryThread,
-    Gecko_ReleaseSharedFontListArbitraryThread
+    structs::SharedFontList,
+    bindings::Gecko_AddRefSharedFontListArbitraryThread,
+    bindings::Gecko_ReleaseSharedFontListArbitraryThread
+);
+impl_threadsafe_refcount!(
+    structs::SheetLoadDataHolder,
+    bindings::Gecko_AddRefSheetLoadDataHolderArbitraryThread,
+    bindings::Gecko_ReleaseSheetLoadDataHolderArbitraryThread
 );
 
+#[inline]
+unsafe fn addref_atom(atom: *mut structs::nsAtom) {
+    mem::forget(Atom::from_raw(atom));
+}
+#[inline]
+unsafe fn release_atom(atom: *mut structs::nsAtom) {
+    let _ = Atom::from_addrefed(atom);
+}
 impl_threadsafe_refcount!(
-    ::gecko_bindings::structs::SheetLoadDataHolder,
-    Gecko_AddRefSheetLoadDataHolderArbitraryThread,
-    Gecko_ReleaseSheetLoadDataHolderArbitraryThread
+    structs::nsAtom,
+    addref_atom,
+    release_atom
 );

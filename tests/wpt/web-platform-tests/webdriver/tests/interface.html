@@ -1,49 +1,23 @@
 <!doctype html>
 <meta charset=utf-8>
-
+<link rel="help" href="https://w3c.github.io/webdriver/">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
 
-<script type=text/plain class=untested>
-[Exposed=Window]
-interface Navigator {
-  // objects implementing this interface also implement the interfaces given below
-};
-</script>
-
-<script type=text/plain>
-Navigator includes NavigatorAutomationInformation;
-
-interface mixin NavigatorAutomationInformation {
-  readonly attribute boolean webdriver;
-};
-</script>
-
 <script>
-"use strict";
+  "use strict";
 
-test(() => assert_idl_attribute(navigator, "webdriver"), "navigator.webdriver is present");
-
-// When test is run in automation navigator.webdriver is likely to
-// be true because WebDriver controls the browser instance.  To that
-// extent, this test is a bit special.  It should also be possible to
-// run the test manually, when WebDriver is not active, and so either
-// true/false outcome is OK.
-if (navigator.webdriver) {
-  test(() => assert_true(navigator.webdriver), "navigator.webdriver is true when webdriver-active is set");
-} else {
-  test(() => assert_false(navigator.webdriver), "navigator.webdriver is false when webdriver-active is not set");
-}
-
-var idls = new IdlArray();
-for (let node of [...document.scripts].filter(({type}) => type == "text/plain")) {
-  if (node.className == "untested") {
-    idls.add_untested_idls(node.textContent);
-  } else {
-    idls.add_idls(node.textContent);
-  }
-};
-idls.test();
+  promise_test(async () => {
+    const idl_array = new IdlArray();
+    const idl = await fetch("/interfaces/webdriver.idl").then(r => r.text());
+    const html = await fetch("/interfaces/html.idl").then(r => r.text());
+    idl_array.add_idls(idl);
+    idl_array.add_dependency_idls(html);
+    idl_array.add_objects({
+      Navigator: ["navigator"]
+    });
+    idl_array.test();
+  }, "Test IDL implementation of webdriver API");
 </script>

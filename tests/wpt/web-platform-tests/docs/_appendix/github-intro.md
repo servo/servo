@@ -43,14 +43,7 @@ If you are a first-time GitHub user, read on for more details of the workflow.
     time you talk to the remote server, you'll need to set up password caching.
     See [Caching your GitHub password in Git][password-caching].
 
-## Test Repositories
-
-The test repository that you contribute to will depend on the specification
-that you are testing.
-
-**Main W3C test repository**: [github.com/w3c/web-platform-tests][main-repo]
-
-## Fork
+## Fork the test repository
 
 Now that you have Git set up, you will need to fork the test repository. This
 will enable you to [submit][submit] your tests using a pull request (more on this
@@ -61,9 +54,9 @@ will enable you to [submit][submit] your tests using a pull request (more on thi
 2.  Click the ![fork][forkbtn] button in the upper right.
 
 3.  The fork will take several seconds, then you will be redirected to your
-    GitHub page for this forked repository. If you forked the HTML test repo
-    (for example), you will now be at
-    **https://github.com/username/web-platform-tests**.
+    GitHub page for this forked repository.
+    You will now be at
+    **https://github.com/username/wpt**.
 
 4. After the fork is complete, you're ready to [clone](#clone).
 
@@ -74,26 +67,14 @@ If your [fork](#fork) was successful, the next step is to clone (download a copy
 ### Clone the test repo
 At the command prompt, cd into the directory where you want to keep the tests.
 
-        $ git clone --recursive https://github.com/username/web-platform-tests.git
+        $ git clone https://github.com/username/wpt.git
 
-_This will download the tests into a directory named for the repo:_ `web-platform-tests/`.
+_This will download the tests into a directory named for the repo:_ `wpt/`.
 
 * You should now have a full copy of the test repository on your local
   machine. Feel free to browse the directories on your hard drive. You can also
   browse them on [github.com][github-w3c] and see the full history of contributions
   there.
-
-### Clone the submodules
-
-* If you cloned the test repo and used the `--recursive` option, you'll find its submodules in `[repo-root]/resources/`.
-
-* If you cloned the the test repo and did not use the `--recursive` option, you will likely have an empty `resources` directory at the root of your cloned repo. You can clone the submodules with these additional steps:
-
-        $ cd web-platform-tests
-        $ git submodule update --init --recursive
-
-    _You should now see the submodules in the repository. For example,_ `testharness` _files in should be in the resources directory._
-
 
 ## Configure Remote / Upstream
 Synchronizing your forked repository with the W3C repository will enable you to
@@ -111,7 +92,7 @@ repository.
 3.  Next, add the remote of the repository your forked.  This assigns the
     original repository to a remote called "upstream":
 
-        $ git remote add upstream https://github.com/w3c/web-platform-tests.git
+        $ git remote add upstream https://github.com/web-platform-tests/wpt.git
 
 4.  To pull in changes in the original repository that are not present in your
     local repository first fetch them:
@@ -123,6 +104,14 @@ repository.
         $ git merge upstream/master
 
     For additional information, please see the [GitHub docs][github-fork-docs].
+
+## Configure your environment
+
+If all you intend to do is to load [manual tests][manual-tests] or [ref tests][ref-tests] from your local file system,
+the above setup should be sufficient.
+But many tests (and in particular, all [testharness.js tests][testharness-tests]) require a local web server.
+
+See [Local Setup][local-setup] for more information.
 
 ## Branch
 
@@ -209,24 +198,23 @@ them back up to the server:
 2.  Now you can send a message that you have changes or additions you'd like
     to be reviewed and merged into the main (original) test repository. You do
     this by using a pull request. In a browser, open the GitHub page for your
-    forked repository: **https://github.com/username/web-platform-tests**.
+    forked repository: **https://github.com/username/wpt**.
 
 3. Now create the pull request.  There are several ways to create a PR in the
 GitHub UI.  Below is one method and others can be found on
 [GitHub.com][github-createpr]
 
-    1. Click the ![pull request link][pullrequestlink] link on the right side
-    of the UI, then click the ![new pull request][pullrequestbtn] button.
+    1. Click the ![new pull request][pullrequestbtn] button.
 
     2.  On the left, you should see the base repo is the
-        w3c/web-platform-tests. On the right, you should see your fork of that
+        web-platform-tests/wpt. On the right, you should see your fork of that
         repo. In the branch menu of your forked repo, switch to `topic`
 
-        **Note:** If you see _'There isn't anything to compare'_, click
-        the ![edit][editbtn] button and make sure your fork and your `topic`
+        **Note:** If you see _'There isn't anything to compare'_,
+        make sure your fork and your `topic`
         branch is selected on the right side.
 
-    3. Select the ![create pull request][createprlink] link at the top.
+    3. Select the ![create pull request][createpr] button at the top.
 
     4. Scroll down and review the diff
 
@@ -238,7 +226,7 @@ GitHub UI.  Below is one method and others can be found on
     6.  If you'd like to add more detailed comments, use the comment field
     below.
 
-    7.  Click ![the send pull request button][sendpullrequest]
+    7.  Click ![the create pull request button][createpr]
 
 
 4. Wait for feedback on your pull request and once your pull request is
@@ -323,8 +311,8 @@ If it is possible to review the tests without a local copy,
 but the reviewer still wants to make some simple tweaks to the tests before merging,
 it is possible to do so via the Github web UI.
 
-1. Open the pull request. E.g. https://github.com/w3c/web-platform-tests/pull/1234
-2. Go to the ![Files changed][files-changed] view (e.g. https://github.com/w3c/web-platform-tests/pull/1234/files)
+1. Open the pull request. E.g. https://github.com/web-platform-tests/wpt/pull/1234
+2. Go to the ![Files changed][files-changed] view (e.g. https://github.com/web-platform-tests/wpt/pull/1234/files)
 3. Locate the files you wish to change, and click the ![pencil][pencil-icon] icon in the upper right corner
 4. Make the desired change
 5. Write a commit message (including a good title) at the bottom
@@ -382,6 +370,10 @@ If you do not expect work with more PRs from the same author,
 you may also discard your connection to their repo:
 `git remote remove <author-id>`
 
+[local-setup]: {{ site.baseurl }}/introduction.html#local-setup
+[manual-tests]: {{ site.baseurl }}/writing-tests/manual.html
+[ref-tests]: {{ site.baseurl }}/writing-tests/reftests.html
+[testharness-tests]: {{ site.baseurl }}/writing-tests/testharness.html
 [branch]: #branch
 [commit]: #commit
 [clone]: #clone
@@ -393,13 +385,10 @@ you may also discard your connection to their repo:
 [github-fork-docs]: https://help.github.com/articles/fork-a-repo
 [github-createpr]: https://help.github.com/articles/creating-a-pull-request
 [help]: https://help.github.com/
-[main-repo]: https://github.com/w3c/web-platform-tests
+[main-repo]: https://github.com/web-platform-tests/wpt
 [password-caching]: https://help.github.com/articles/caching-your-github-password-in-git
-[pullrequestlink]: {{ site.baseurl }}{% link /assets/pullrequestlink.png %}
 [pullrequestbtn]: {{ site.baseurl }}{% link /assets/pullrequestbtn.png %}
-[editbtn]: {{ site.baseurl }}{% link /assets/editbtn.png %}
-[createprlink]: {{ site.baseurl }}{% link /assets/createprlink.png %}
-[sendpullrequest]: {{ site.baseurl }}{% link /assets/sendpullrequest.png %}
+[createpr]: {{ site.baseurl }}{% link /assets/createpr.png %}
 [praccepteddelete]: {{ site.baseurl }}{% link /assets/praccepteddelete.png %}
 [submit]: #submit
 [remote-upstream]: #configure-remote-upstream

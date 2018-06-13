@@ -13,6 +13,7 @@ extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
+extern crate embedder_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate hyper;
@@ -364,7 +365,7 @@ impl fmt::Debug for ConstellationControlMsg {
             WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
         };
-        write!(formatter, "ConstellationMsg::{}", variant)
+        write!(formatter, "ConstellationControlMsg::{}", variant)
     }
 }
 
@@ -702,12 +703,43 @@ pub enum ConstellationMsg {
     NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
     /// Close a top level browsing context.
     CloseBrowser(TopLevelBrowsingContextId),
+    /// Panic a top level browsing context.
+    SendError(Option<TopLevelBrowsingContextId>, String),
     /// Make browser visible.
     SelectBrowser(TopLevelBrowsingContextId),
     /// Forward an event to the script task of the given pipeline.
     ForwardEvent(PipelineId, CompositorEvent),
     /// Requesting a change to the onscreen cursor.
     SetCursor(CursorKind),
+}
+
+impl fmt::Debug for ConstellationMsg {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        use self::ConstellationMsg::*;
+        let variant = match *self {
+            Exit => "Exit",
+            GetBrowsingContext(..) => "GetBrowsingContext",
+            GetPipeline(..) => "GetPipeline",
+            GetFocusTopLevelBrowsingContext(..) => "GetFocusTopLevelBrowsingContext",
+            IsReadyToSaveImage(..) => "IsReadyToSaveImage",
+            KeyEvent(..) => "KeyEvent",
+            LoadUrl(..) => "LoadUrl",
+            TraverseHistory(..) => "TraverseHistory",
+            WindowSize(..) => "WindowSize",
+            TickAnimation(..) => "TickAnimation",
+            WebDriverCommand(..) => "WebDriverCommand",
+            Reload(..) => "Reload",
+            LogEntry(..) => "LogEntry",
+            WebVREvents(..) => "WebVREvents",
+            NewBrowser(..) => "NewBrowser",
+            CloseBrowser(..) => "CloseBrowser",
+            SendError(..) => "SendError",
+            SelectBrowser(..) => "SelectBrowser",
+            ForwardEvent(..) => "ForwardEvent",
+            SetCursor(..) => "SetCursor",
+        };
+        write!(formatter, "ConstellationMsg::{}", variant)
+    }
 }
 
 /// Resources required by workerglobalscopes

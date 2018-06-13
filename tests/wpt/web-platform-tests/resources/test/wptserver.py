@@ -1,17 +1,17 @@
-import json
+import logging
 import os
 import subprocess
 import time
+import sys
 import urllib2
 
 
 class WPTServer(object):
-
     def __init__(self, wpt_root):
         self.wpt_root = wpt_root
-        config_file = os.path.join(wpt_root, 'config.default.json')
-        with open(config_file, 'rb') as config_handle:
-            config = json.load(config_handle)
+        sys.path.insert(0, os.path.join(wpt_root, "tools"))
+        from serve.serve import Config
+        config = Config()
         self.host = config["browser_host"]
         self.http_port = config["ports"]["http"][0]
         self.https_port = config["ports"]["https"][0]
@@ -20,15 +20,19 @@ class WPTServer(object):
 
     def start(self):
         self.devnull = open(os.devnull, 'w')
+        wptserve_cmd = [os.path.join(self.wpt_root, 'wpt'), 'serve']
+        logging.info('Executing %s' % ' '.join(wptserve_cmd))
         self.proc = subprocess.Popen(
-            [os.path.join(self.wpt_root, 'wpt'), 'serve'],
+            wptserve_cmd,
             stderr=self.devnull,
             cwd=self.wpt_root)
 
         for retry in range(5):
             # Exponential backoff.
             time.sleep(2 ** retry)
-            if self.proc.poll() != None:
+            exit_code = self.proc.poll()
+            if exit_code != None:
+                logging.warn('Command "%s" exited with %s', ' '.join(wptserve_cmd), exit_code)
                 break
             try:
                 urllib2.urlopen(self.base_url, timeout=1)
@@ -36,7 +40,7 @@ class WPTServer(object):
             except urllib2.URLError:
                 pass
 
-        raise Exception('Could not start wptserve.')
+        raise Exception('Could not start wptserve on %s' % self.base_url)
 
     def stop(self):
         self.proc.terminate()

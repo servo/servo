@@ -32,7 +32,7 @@ a copy of the web-platform-tests repository. This can be located
 anywhere on the filesystem, but the easiest option is to put it
 under the same parent directory as the wptrunner checkout::
 
-  git clone https://github.com/w3c/web-platform-tests.git
+  git clone https://github.com/web-platform-tests/wpt.git
 
 It is also necessary to generate a web-platform-tests ``MANIFEST.json``
 file. It's recommended to also put that under the same parent directory as
@@ -220,7 +220,7 @@ url to pull from; ``branch`` the branch to sync against and
 use when checking out the tests e.g.::
 
   [web-platform-tests]
-  remote_url = https://github.com/w3c/web-platform-tests.git
+  remote_url = https://github.com/web-platform-tests/wpt.git
   branch = master
   sync_path = sync
 

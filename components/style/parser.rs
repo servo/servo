@@ -150,10 +150,19 @@ impl<'a> ParserContext<'a> {
     }
 }
 
-// XXXManishearth Replace all specified value parse impls with impls of this
-// trait. This will make it easy to write more generic values in the future.
 /// A trait to abstract parsing of a specified value given a `ParserContext` and
 /// CSS input.
+///
+/// This can be derived on keywords with `#[derive(Parse)]`.
+///
+/// The derive code understands the following attributes on each of the variants:
+///
+///  * `#[parse(aliases = "foo,bar")]` can be used to alias a value with another
+///    at parse-time.
+///
+///  * `#[parse(condition = "function")]` can be used to make the parsing of the
+///    value conditional on `function`, which needs to fulfill
+///    `fn(&ParserContext) -> bool`.
 pub trait Parse: Sized {
     /// Parse a value of this type.
     ///

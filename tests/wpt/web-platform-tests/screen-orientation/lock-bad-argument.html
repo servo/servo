@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<html>
-<body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -11,6 +9,8 @@ promise_test(t => {
     undefined,
     123,
     window,
+    "",
+    true,
     ["portrait-primary", "landscape-primary"],
   ];
   const promisesToReject = invalid_lock_types.map(type =>
@@ -23,6 +23,4 @@ promise_test(t => {
   return promise_rejects(t, new TypeError(), screen.orientation.lock());
 }, "screen.orientation.lock() must throw when the input is missing.");
 </script>
-</body>
-</html>
 

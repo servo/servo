@@ -22,10 +22,11 @@ use style::computed_values::background_origin::single_value::T as BackgroundOrig
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::properties::style_structs::{self, Background};
 use style::values::Either;
-use style::values::computed::{Angle, GradientItem};
+use style::values::computed::{Angle, GradientItem, BackgroundSize as ComputedBackgroundSize};
 use style::values::computed::{LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{NumberOrPercentage, Percentage, Position};
 use style::values::computed::image::{EndingShape, LineDirection};
+use style::values::generics::NonNegative;
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::{Circle, Ellipse, ShapeExtent};
 use style::values::generics::image::EndingShape as GenericEndingShape;
@@ -91,7 +92,7 @@ pub fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 /// For a given area and an image compute how big the
 /// image should be displayed on the background.
 fn compute_background_image_size(
-    bg_size: BackgroundSize<LengthOrPercentageOrAuto>,
+    bg_size: ComputedBackgroundSize,
     bounds_size: Size2D<Au>,
     intrinsic_size: Option<Size2D<Au>>,
 ) -> Size2D<Au> {
@@ -99,9 +100,9 @@ fn compute_background_image_size(
         None => match bg_size {
             BackgroundSize::Cover | BackgroundSize::Contain => bounds_size,
             BackgroundSize::Explicit { width, height } => Size2D::new(
-                MaybeAuto::from_style(width, bounds_size.width)
+                MaybeAuto::from_style(width.0, bounds_size.width)
                     .specified_or_default(bounds_size.width),
-                MaybeAuto::from_style(height, bounds_size.height)
+                MaybeAuto::from_style(height.0, bounds_size.height)
                     .specified_or_default(bounds_size.height),
             ),
         },
@@ -123,29 +124,29 @@ fn compute_background_image_size(
                 (
                     BackgroundSize::Explicit {
                         width,
-                        height: LengthOrPercentageOrAuto::Auto,
+                        height: NonNegative(LengthOrPercentageOrAuto::Auto),
                     },
                     _,
                 ) => {
-                    let width = MaybeAuto::from_style(width, bounds_size.width)
+                    let width = MaybeAuto::from_style(width.0, bounds_size.width)
                         .specified_or_default(own_size.width);
                     Size2D::new(width, width.scale_by(image_aspect_ratio.recip()))
                 },
                 (
                     BackgroundSize::Explicit {
-                        width: LengthOrPercentageOrAuto::Auto,
+                        width: NonNegative(LengthOrPercentageOrAuto::Auto),
                         height,
                     },
                     _,
                 ) => {
-                    let height = MaybeAuto::from_style(height, bounds_size.height)
+                    let height = MaybeAuto::from_style(height.0, bounds_size.height)
                         .specified_or_default(own_size.height);
                     Size2D::new(height.scale_by(image_aspect_ratio), height)
                 },
                 (BackgroundSize::Explicit { width, height }, _) => Size2D::new(
-                    MaybeAuto::from_style(width, bounds_size.width)
+                    MaybeAuto::from_style(width.0, bounds_size.width)
                         .specified_or_default(own_size.width),
-                    MaybeAuto::from_style(height, bounds_size.height)
+                    MaybeAuto::from_style(height.0, bounds_size.height)
                         .specified_or_default(own_size.height),
                 ),
             }
@@ -711,7 +712,7 @@ fn handle_overlapping_radii(size: LayoutSize, radii: BorderRadius) -> BorderRadi
 }
 
 pub fn build_border_radius(
-    abs_bounds: &Rect<Au>,
+    abs_bounds: Rect<Au>,
     border_style: &style_structs::Border,
 ) -> BorderRadius {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
@@ -811,10 +812,7 @@ pub fn build_image_border_details(
     }
 }
 
-fn calculate_border_image_outset_side(
-    outset: LengthOrNumber,
-    border_width: Au,
-) -> Au {
+fn calculate_border_image_outset_side(outset: LengthOrNumber, border_width: Au) -> Au {
     match outset {
         Either::First(length) => length.into(),
         Either::Second(factor) => border_width.scale_by(factor),

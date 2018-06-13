@@ -6,7 +6,6 @@
 
 extern crate base64;
 extern crate brotli;
-extern crate compositing;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate embedder_traits;

@@ -23,4 +23,8 @@ test(() => {
   assert_throws(new SyntaxError(), () => CSSNumericValue.parse('calc(calc(1px * 2s) + 3%)'));
 }, 'Parsing a calc with incompatible units throws a SyntaxError');
 
+test(() => {
+  assert_style_value_equals(new CSSUnitValue(1, 'px'), CSSNumericValue.parse(' 1px  '));
+}, 'Parsing ignores surrounding spaces');
+
 </script>

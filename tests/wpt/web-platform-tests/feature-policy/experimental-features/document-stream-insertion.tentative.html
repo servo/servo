@@ -1,0 +1,82 @@
+<!doctype html>
+<title>'document-stream-insertion' tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<style>
+html, body {
+  height: 100%;
+  width: 100%;
+}
+</style>
+<iframe></iframe>
+<script>
+  "use strict";
+
+  let iframeElement = document.querySelector("iframe");
+  let url = url_base + "document-stream-insertion.html";
+
+  let text_to_write = "<div>FOO<\/div>";
+  let test_cases = [{
+                      api: "open",
+                      query: "body",
+                      expected_value_enabled: false,
+                    },
+                    {
+                      api: "close"
+                    },
+                    {
+                      api: "write",
+                      args: text_to_write,
+                      query: "div",
+                      expected_value_enabled: "FOO"
+                    },
+                    {
+                      api: "writeln",
+                      args: text_to_write,
+                      query: "div",
+                      expected_value_enabled: "FOO"
+                    }];
+
+  // The feature 'document-stream-insertion' is enabled by default and when it
+  // is enabled, all dynamic markup insertion API work as intended.
+  test_cases.forEach((tc) => {
+    promise_test(async() => {
+      await loadUrlInIframe(iframeElement, url);
+      await sendMessageAndGetResponse(iframeElement.contentWindow, tc).then((response) => {
+        assert_false(
+          response.did_throw_exception,
+          `When feature is disabled, invoking 'document.${tc.api}' should not` +
+          " throw an exception.");
+        if (tc.query) {
+          assert_equals(
+            response.value,
+            tc.expected_value_enabled,
+            `The added script tag by 'document.${tc.api}' must have run.`);
+        }
+      });
+    }, `Verify 'document.${tc.api}' is not normally blocked.` );
+  });
+
+
+  // Disabling 'document-stream-insertion' throws exception on the included API.
+  test_cases.forEach((tc) => {
+    promise_test(async() => {
+      setFeatureState(iframeElement, "document-stream-insertion", "'none'");
+      await loadUrlInIframe(iframeElement, url);
+      await sendMessageAndGetResponse(iframeElement.contentWindow, tc).then((response) => {
+        assert_true(
+          response.did_throw_exception,
+          `When feature is enabled, invoking 'document.${tc.api}' should ` +
+          " throw an exception.");
+        if (tc.query) {
+          assert_not_equals(
+            response.value,
+            tc.expected_value_enabled,
+            `The added script tag by 'document.${tc.api}' must not have run.`);
+        }
+      });
+    }, `Verify 'document.${tc.api}' is blocked when the feature is disabled.` );
+  });
+
+</script>

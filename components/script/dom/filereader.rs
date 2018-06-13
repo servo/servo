@@ -51,12 +51,15 @@ pub type TrustedFileReader = Trusted<FileReader>;
 pub struct ReadMetaData {
     pub blobtype: String,
     pub label: Option<String>,
-    pub function: FileReaderFunction
+    pub function: FileReaderFunction,
 }
 
 impl ReadMetaData {
-    pub fn new(blobtype: String,
-               label: Option<String>, function: FileReaderFunction) -> ReadMetaData {
+    pub fn new(
+        blobtype: String,
+        label: Option<String>,
+        function: FileReaderFunction,
+    ) -> ReadMetaData {
         ReadMetaData {
             blobtype: blobtype,
             label: label,
@@ -82,6 +85,54 @@ pub enum FileReaderResult {
     String(DOMString),
 }
 
+pub struct FileReaderSharedFunctionality;
+
+impl FileReaderSharedFunctionality {
+    pub fn dataurl_format(blob_contents: &[u8], blob_type: String) -> DOMString {
+        let base64 = base64::encode(&blob_contents);
+
+        let dataurl = if blob_type.is_empty() {
+            format!("data:base64,{}", base64)
+        } else {
+            format!("data:{};base64,{}", blob_type, base64)
+        };
+
+        DOMString::from(dataurl)
+    }
+
+    pub fn text_decode(
+        blob_contents: &[u8],
+        blob_type: &str,
+        blob_label: &Option<String>,
+    ) -> DOMString {
+        //https://w3c.github.io/FileAPI/#encoding-determination
+        // Steps 1 & 2 & 3
+        let mut encoding = blob_label
+            .as_ref()
+            .map(|string| string.as_bytes())
+            .and_then(Encoding::for_label);
+
+        // Step 4 & 5
+        encoding = encoding.or_else(|| {
+            let resultmime = blob_type.parse::<Mime>().ok();
+            resultmime.and_then(|Mime(_, _, ref parameters)| {
+                parameters
+                    .iter()
+                    .find(|&&(ref k, _)| &Attr::Charset == k)
+                    .and_then(|&(_, ref v)| Encoding::for_label(v.as_str().as_bytes()))
+            })
+        });
+
+        // Step 6
+        let enc = encoding.unwrap_or(UTF_8);
+
+        let convert = blob_contents;
+        // Step 7
+        let (output, _, _) = enc.decode(convert);
+        DOMString::from(output)
+    }
+}
+
 #[dom_struct]
 pub struct FileReader {
     eventtarget: EventTarget,
@@ -103,8 +154,11 @@ impl FileReader {
     }
 
     pub fn new(global: &GlobalScope) -> DomRoot<FileReader> {
-        reflect_dom_object(Box::new(FileReader::new_inherited()),
-                           global, FileReaderBinding::Wrap)
+        reflect_dom_object(
+            Box::new(FileReader::new_inherited()),
+            global,
+            FileReaderBinding::Wrap,
+        )
     }
 
     pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReader>> {
@@ -112,7 +166,11 @@ impl FileReader {
     }
 
     //https://w3c.github.io/FileAPI/#dfn-error-steps
-    pub fn process_read_error(filereader: TrustedFileReader, gen_id: GenerationId, error: DOMErrorName) {
+    pub fn process_read_error(
+        filereader: TrustedFileReader,
+        gen_id: GenerationId,
+        error: DOMErrorName,
+    ) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -174,8 +232,12 @@ impl FileReader {
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
     #[allow(unsafe_code)]
-    pub fn process_read_eof(filereader: TrustedFileReader, gen_id: GenerationId,
-                            data: ReadMetaData, blob_contents: Arc<Vec<u8>>) {
+    pub fn process_read_eof(
+        filereader: TrustedFileReader,
+        gen_id: GenerationId,
+        data: ReadMetaData,
+        blob_contents: Arc<Vec<u8>>,
+    ) {
         let fr = filereader.root();
 
         macro_rules! return_on_abort(
@@ -192,13 +254,21 @@ impl FileReader {
         // Step 8.2
 
         match data.function {
-            FileReaderFunction::ReadAsDataUrl =>
-                FileReader::perform_readasdataurl(&fr.result, data, &blob_contents),
-            FileReaderFunction::ReadAsText =>
-                FileReader::perform_readastext(&fr.result, data, &blob_contents),
+            FileReaderFunction::ReadAsDataUrl => {
+                FileReader::perform_readasdataurl(&fr.result, data, &blob_contents)
+            },
+            FileReaderFunction::ReadAsText => {
+                FileReader::perform_readastext(&fr.result, data, &blob_contents)
+            },
             FileReaderFunction::ReadAsArrayBuffer => {
-                let _ac = JSAutoCompartment::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
-                FileReader::perform_readasarraybuffer(&fr.result, fr.global().get_cx(), data, &blob_contents)
+                let _ac =
+                    JSAutoCompartment::new(fr.global().get_cx(), *fr.reflector().get_jsobject());
+                FileReader::perform_readasarraybuffer(
+                    &fr.result,
+                    fr.global().get_cx(),
+                    data,
+                    &blob_contents,
+                )
             },
         };
 
@@ -215,55 +285,43 @@ impl FileReader {
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsText
-    fn perform_readastext(result: &DomRefCell<Option<FileReaderResult>>, data: ReadMetaData, blob_bytes: &[u8]) {
+    fn perform_readastext(
+        result: &DomRefCell<Option<FileReaderResult>>,
+        data: ReadMetaData,
+        blob_bytes: &[u8],
+    ) {
         let blob_label = &data.label;
         let blob_type = &data.blobtype;
 
-        //https://w3c.github.io/FileAPI/#encoding-determination
-        // Steps 1 & 2 & 3
-        let mut encoding = blob_label.as_ref()
-            .map(|string| string.as_bytes())
-            .and_then(Encoding::for_label);
-
-        // Step 4 & 5
-        encoding = encoding.or_else(|| {
-            let resultmime = blob_type.parse::<Mime>().ok();
-            resultmime.and_then(|Mime(_, _, ref parameters)| {
-                parameters.iter()
-                    .find(|&&(ref k, _)| &Attr::Charset == k)
-                    .and_then(|&(_, ref v)| Encoding::for_label(v.as_str().as_bytes()))
-            })
-        });
-
-        // Step 6
-        let enc = encoding.unwrap_or(UTF_8);
-
-        let convert = blob_bytes;
-        // Step 7
-        let (output, _, _) = enc.decode(convert);
-        *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(output)));
+        let output = FileReaderSharedFunctionality::text_decode(blob_bytes, blob_type, blob_label);
+        *result.borrow_mut() = Some(FileReaderResult::String(output));
     }
 
     //https://w3c.github.io/FileAPI/#dfn-readAsDataURL
-    fn perform_readasdataurl(result: &DomRefCell<Option<FileReaderResult>>, data: ReadMetaData, bytes: &[u8]) {
-        let base64 = base64::encode(bytes);
+    fn perform_readasdataurl(
+        result: &DomRefCell<Option<FileReaderResult>>,
+        data: ReadMetaData,
+        bytes: &[u8],
+    ) {
+        let output = FileReaderSharedFunctionality::dataurl_format(bytes, data.blobtype);
 
-        let output = if data.blobtype.is_empty() {
-            format!("data:base64,{}", base64)
-        } else {
-            format!("data:{};base64,{}", data.blobtype, base64)
-        };
-
-        *result.borrow_mut() = Some(FileReaderResult::String(DOMString::from(output)));
+        *result.borrow_mut() = Some(FileReaderResult::String(output));
     }
 
     // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
     #[allow(unsafe_code)]
-    fn perform_readasarraybuffer(result: &DomRefCell<Option<FileReaderResult>>,
-        cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
+    fn perform_readasarraybuffer(
+        result: &DomRefCell<Option<FileReaderResult>>,
+        cx: *mut JSContext,
+        _: ReadMetaData,
+        bytes: &[u8],
+    ) {
         unsafe {
             rooted!(in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-            assert!(ArrayBuffer::create(cx, CreateWith::Slice(bytes), array_buffer.handle_mut()).is_ok());
+            assert!(
+                ArrayBuffer::create(cx, CreateWith::Slice(bytes), array_buffer.handle_mut())
+                    .is_ok()
+            );
 
             *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
 
@@ -335,13 +393,12 @@ impl FileReaderMethods for FileReader {
     // https://w3c.github.io/FileAPI/#dfn-result
     unsafe fn GetResult(&self, _: *mut JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
-            FileReaderResult::String(ref string) =>
-                StringOrObject::String(string.clone()),
+            FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set((*arr_buffer.ptr.get()).to_object());
                 StringOrObject::Object(result)
-            }
+            },
         })
     }
 
@@ -351,12 +408,17 @@ impl FileReaderMethods for FileReader {
     }
 }
 
-
 impl FileReader {
     fn dispatch_progress_event(&self, type_: Atom, loaded: u64, total: Option<u64>) {
-        let progressevent = ProgressEvent::new(&self.global(),
-            type_, EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
-            total.is_some(), loaded, total.unwrap_or(0));
+        let progressevent = ProgressEvent::new(
+            &self.global(),
+            type_,
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            total.is_some(),
+            loaded,
+            total.unwrap_or(0),
+        );
         progressevent.upcast::<Event>().fire(self.upcast());
     }
 
@@ -365,7 +427,12 @@ impl FileReader {
         self.generation_id.set(GenerationId(prev_id + 1));
     }
 
-    fn read(&self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
+    fn read(
+        &self,
+        function: FileReaderFunction,
+        blob: &Blob,
+        label: Option<DOMString>,
+    ) -> ErrorResult {
         // Step 1
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(Error::InvalidState);
@@ -388,16 +455,19 @@ impl FileReader {
         let canceller = global.task_canceller();
         let task_source = global.file_reading_task_source();
 
-        thread::Builder::new().name("file reader async operation".to_owned()).spawn(move || {
-            perform_annotated_read_operation(
-                gen_id,
-                load_data,
-                blob_contents,
-                fr,
-                task_source,
-                canceller,
-            )
-        }).expect("Thread spawning failed");
+        thread::Builder::new()
+            .name("file reader async operation".to_owned())
+            .spawn(move || {
+                perform_annotated_read_operation(
+                    gen_id,
+                    load_data,
+                    blob_contents,
+                    fr,
+                    task_source,
+                    canceller,
+                )
+            })
+            .expect("Thread spawning failed");
 
         Ok(())
     }

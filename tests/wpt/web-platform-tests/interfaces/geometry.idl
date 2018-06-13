@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Geometry Interfaces spec.
-// See https://drafts.fxtf.org/geometry/
+// Content of this file was automatically extracted from the
+// "Geometry Interfaces Module Level 1" spec.
+// See: https://drafts.fxtf.org/geometry/
 
 [Constructor(optional unrestricted double x = 0, optional unrestricted double y = 0,
              optional unrestricted double z = 0, optional unrestricted double w = 1),

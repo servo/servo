@@ -2465,13 +2465,19 @@ impl Fragment {
 
     /// Given the stacking-context-relative border box, returns the stacking-context-relative
     /// content box.
-    pub fn stacking_relative_content_box(&self, stacking_relative_border_box: &Rect<Au>)
+    pub fn stacking_relative_content_box(&self, stacking_relative_border_box: Rect<Au>)
                                          -> Rect<Au> {
         let border_padding = self.border_padding.to_physical(self.style.writing_mode);
         Rect::new(Point2D::new(stacking_relative_border_box.origin.x + border_padding.left,
                                stacking_relative_border_box.origin.y + border_padding.top),
                   Size2D::new(stacking_relative_border_box.size.width - border_padding.horizontal(),
                               stacking_relative_border_box.size.height - border_padding.vertical()))
+    }
+
+    /// Returns true if this fragment may establish a reference frame.
+    pub fn can_establish_reference_frame(&self) -> bool {
+           !self.style().get_box().transform.0.is_empty() ||
+           self.style().get_box().perspective != Perspective::None
     }
 
     /// Returns true if this fragment has a filter, transform, or perspective property set.

@@ -15,7 +15,7 @@ def main(request, response):
         body = request.cookies[ident].value
         response.delete_cookie(ident)
     else:
-        response.set_cookie(ident, "COOKIE");
+        response.set_cookie(ident, "COOKIE")
         body = "NO_COOKIE"
 
     return headers, body

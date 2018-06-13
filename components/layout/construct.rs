@@ -54,7 +54,7 @@ use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::ServoRestyleDamage;
-use style::values::computed::counters::ContentItem;
+use style::values::generics::counters::ContentItem;
 use style::values::generics::url::UrlOrNone as ImageUrlOrNone;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -1533,8 +1533,9 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
         let style = node.style(self.style_context());
 
-        // Bail out if this node has an ancestor with display: none.
-        if style.is_in_display_none_subtree() {
+        // Bail out if this node is display: none. The style system guarantees
+        // that we don't arrive here for children of those.
+        if style.get_box().display.is_none() {
             self.set_flow_construction_result(node, ConstructionResult::None);
             return;
         }

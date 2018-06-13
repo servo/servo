@@ -4,8 +4,8 @@ def main(request, response):
     if "headers" in request.GET:
         checked_headers = request.GET.first("headers").split("|")
         for header in checked_headers:
-          if header in request.headers:
-              headers.append(("x-request-" + header, request.headers.get(header, "") ))
+            if header in request.headers:
+                headers.append(("x-request-" + header, request.headers.get(header, "")))
 
     if "cors" in request.GET:
         if "Origin" in request.headers:

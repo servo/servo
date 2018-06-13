@@ -54,7 +54,7 @@ promise_test(t => {
                               () => {});
           r.update().then(() => resolvedCount += 1,
                           () => {});
-          return wait_for_activation_on_dummy_scope(t);
+          return wait_for_activation_on_dummy_scope(t, window);
         })
       .then(() => {
           assert_equals(resolvedCount, 0,

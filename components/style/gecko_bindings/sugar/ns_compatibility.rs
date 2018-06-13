@@ -8,6 +8,7 @@ use context::QuirksMode;
 use gecko_bindings::structs::nsCompatibility;
 
 impl From<nsCompatibility> for QuirksMode {
+    #[inline]
     fn from(mode: nsCompatibility) -> QuirksMode {
         match mode {
             nsCompatibility::eCompatibility_FullStandards => QuirksMode::NoQuirks,

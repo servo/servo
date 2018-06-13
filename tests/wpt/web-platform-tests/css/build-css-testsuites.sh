@@ -41,12 +41,6 @@ main() {
     # Install dependencies
     $VENV/bin/pip install -r requirements.txt
 
-    # Error if submodules are not there
-    if [ ! -d tools/apiclient -o ! -d tools/w3ctestlib ]; then
-        echo 'Please run `git submodule update --init --recursive`'
-        exit 1
-    fi
-
     # Run the build script
     $VENV/bin/python tools/build.py "$@"
 }

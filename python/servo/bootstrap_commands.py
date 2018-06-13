@@ -128,18 +128,15 @@ class MachCommands(CommandBase):
                      help='Keep up to this many most recent nightlies')
     def clean_nightlies(self, force=False, keep=None):
         default_toolchain = self.default_toolchain()
-        geckolib_toolchain = self.geckolib_toolchain()
         print("Current Rust version for Servo: {}".format(default_toolchain))
-        print("Current Rust version for geckolib: {}".format(geckolib_toolchain))
         old_toolchains = []
         keep = int(keep)
-        for toolchain_file in ['rust-toolchain', 'geckolib-rust-toolchain']:
-            stdout = subprocess.check_output(['git', 'log', '--format=%H', toolchain_file])
-            for i, commit_hash in enumerate(stdout.split(), 1):
-                if i > keep:
-                    toolchain = subprocess.check_output(
-                        ['git', 'show', '%s:%s' % (commit_hash, toolchain_file)])
-                    old_toolchains.append(toolchain.strip())
+        stdout = subprocess.check_output(['git', 'log', '--format=%H', 'rust-toolchain'])
+        for i, commit_hash in enumerate(stdout.split(), 1):
+            if i > keep:
+                toolchain = subprocess.check_output(
+                    ['git', 'show', '%s:rust-toolchain' % commit_hash])
+                old_toolchains.append(toolchain.strip())
 
         removing_anything = False
         stdout = subprocess.check_output(['rustup', 'toolchain', 'list'])
@@ -237,8 +234,14 @@ class MachCommands(CommandBase):
         git_dir = path.join(cargo_dir, "git")
         git_db_dir = path.join(git_dir, "db")
         git_checkout_dir = path.join(git_dir, "checkouts")
-        git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
-        git_checkout_list = os.listdir(git_checkout_dir)
+        if os.path.isdir(git_db_dir):
+            git_db_list = filter(lambda f: not f.startswith('.'), os.listdir(git_db_dir))
+        else:
+            git_db_list = []
+        if os.path.isdir(git_checkout_dir):
+            git_checkout_list = os.listdir(git_checkout_dir)
+        else:
+            git_checkout_list = []
 
         for d in list(set(git_db_list + git_checkout_list)):
             crate_name = d.replace("-{}".format(d.split("-")[-1]), "")

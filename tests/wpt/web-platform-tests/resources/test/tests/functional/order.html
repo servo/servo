@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="">
+<meta name="variant" content="?keep-promise">
+<title>Ordering</title>
+<script src="../../variants.js"></script>
+<meta name="timeout" content="6000">
+</head>
+<body>
+<div id="log"></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {}, 'second');
+test(function() {}, 'first');
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [{
+    "status_string": "PASS",
+    "name": "first",
+    "message": null,
+    "properties": {}
+  }, {
+    "status_string": "PASS",
+    "name": "second",
+    "message": null,
+    "properties": {}
+  }],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

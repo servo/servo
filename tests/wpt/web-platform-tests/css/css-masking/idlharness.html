@@ -1,0 +1,36 @@
+<!doctype html>
+<title>css-masking IDL tests</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+  "use strict";
+
+  promise_test(async () => {
+    const idl_array = new IdlArray();
+    const idl = await fetch("/interfaces/css-masking.idl").then(r => r.text());
+    const dom = await fetch("/interfaces/dom.idl").then(r => r.text());
+    idl_array.add_idls(idl);
+    idl_array.add_untested_idls('interface SVGElement : Element {};');
+    idl_array.add_untested_idls('interface SVGAnimatedEnumeration {};');
+    idl_array.add_untested_idls('interface SVGAnimatedLength {};');
+    idl_array.add_untested_idls('interface SVGAnimatedTransformList {};');
+    idl_array.add_dependency_idls(dom); // Needed for Element
+    idl_array.add_objects({
+      SVGClipPathElement: [document.querySelector('#clip1')],
+      SVGMaskElement: [document.querySelector('#mask1')],
+    });
+    idl_array.test();
+  }, "Test IDL implementation of css-masking");
+</script>
+
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <clipPath id="clip1">
+    <rect x="50" y="50" width="100" height="100" />
+  </clipPath>
+  <mask id="mask1" x="0" y="0" width="1" height="1" maskContentUnits="objectBoundingBox">
+    <rect x="0" y="0" width="1" height="1" fill="white" />
+  </mask>
+</svg>

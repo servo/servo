@@ -111,14 +111,14 @@ function perform_test() {
     addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=object', 'object');
     addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=video-poster', 'video');
     addEntryIfExists(entries, expected_entries, '/media/test.mp4?id=video-src', 'video');
-    addEntryIfExists(entries, expected_entries, '/media/test.mp4?id=video-source', 'source');
-    addEntryIfExists(entries, expected_entries, '/media/test.ogv?id=video-source', 'source');
+    addEntryIfExists(entries, expected_entries, '/media/test.mp4?id=video-source', 'video');
+    addEntryIfExists(entries, expected_entries, '/media/test.ogv?id=video-source', 'video');
     addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=video-track', 'track');
     addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-src', 'audio');
-    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-wav', 'source');
-    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-mpeg', 'source');
-    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-ogg', 'source');
-    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-source', 'source');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-wav', 'audio');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-mpeg', 'audio');
+    addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=audio-source-ogg', 'audio');
+    addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-source', 'img');
     addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-img', 'img');
     addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-notsupported-img', 'img');
     addEntryIfExists(entries, expected_entries, pathname + 'blue.png?id=picture-img-src', 'img');
@@ -133,7 +133,7 @@ function perform_test() {
     addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=beacon', 'beacon');
     addEntryIfExists(entries, expected_entries, pathname + 'empty.py?id=fetch', 'fetch');
     addEntryIfExists(entries, expected_entries, pathname + 'empty.py?favicon', 'link');
-    addEntryIfExists(entries, expected_entries, pathname + 'eventsource.py?id=eventsource', 'eventsource');
+    addEntryIfExists(entries, expected_entries, pathname + 'eventsource.py?id=eventsource', 'other');
 
     test_resource_entries(entries, expected_entries);
     done();
