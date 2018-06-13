@@ -132,7 +132,9 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::Normal(ref border) => {
                         webrender_api::BorderDetails::Normal(*border)
                     },
-                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::NinePatch(*image),
+                    BorderDetails::Image(ref image) => {
+                        webrender_api::BorderDetails::NinePatch(*image)
+                    },
                     BorderDetails::Gradient(ref gradient) => {
                         webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
                             gradient: builder.create_gradient(
@@ -222,7 +224,6 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let reference_frame_clip_id = builder.push_stacking_context(
                     &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
                     None,
-                    stacking_context.scroll_policy,
                     stacking_context.transform.map(Into::into),
                     stacking_context.transform_style,
                     stacking_context.perspective,
