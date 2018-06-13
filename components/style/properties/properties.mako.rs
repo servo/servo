@@ -137,7 +137,32 @@ pub mod shorthands {
     use style_traits::{ParseError, StyleParseErrorKind};
     use values::specified;
 
-    <%include file="/shorthand/serialize.mako.rs" />
+    use style_traits::{CssWriter, ToCss};
+    use values::specified::{BorderStyle, Color};
+    use std::fmt::{self, Write};
+
+    fn serialize_directional_border<W, I,>(
+        dest: &mut CssWriter<W>,
+        width: &I,
+        style: &BorderStyle,
+        color: &Color,
+    ) -> fmt::Result
+    where
+        W: Write,
+        I: ToCss,
+    {
+        width.to_css(dest)?;
+        // FIXME(emilio): Should we really serialize the border style if it's
+        // `solid`?
+        dest.write_str(" ")?;
+        style.to_css(dest)?;
+        if *color != Color::CurrentColor {
+            dest.write_str(" ")?;
+            color.to_css(dest)?;
+        }
+        Ok(())
+    }
+
     <%include file="/shorthand/background.mako.rs" />
     <%include file="/shorthand/border.mako.rs" />
     <%include file="/shorthand/box.mako.rs" />
