@@ -10,7 +10,7 @@ use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListP
 use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use font_face::parse_font_face_block;
-use media_queries::{parse_media_query_list, MediaList};
+use media_queries::MediaList;
 use parser::{Parse, ParserContext, ParserErrorContext};
 use properties::parse_property_declaration_list;
 use selector_parser::{SelectorImpl, SelectorParser};
@@ -197,8 +197,11 @@ impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for TopLevelRuleParser<'a, 
                 let url_string = input.expect_url_or_string()?.as_ref().to_owned();
                 let url = CssUrl::parse_from_string(url_string, &self.context);
 
-                let media = parse_media_query_list(&self.context, input,
-                                                   self.error_context.error_reporter);
+                let media = MediaList::parse(
+                    &self.context,
+                    input,
+                    self.error_context.error_reporter,
+                );
                 let media = Arc::new(self.shared_lock.wrap(media));
 
                 let prelude = AtRuleNonBlockPrelude::Import(url, media, location);
@@ -380,8 +383,11 @@ impl<'a, 'b, 'i, R: ParseErrorReporter> AtRuleParser<'i> for NestedRuleParser<'a
 
         match_ignore_ascii_case! { &*name,
             "media" => {
-                let media_queries = parse_media_query_list(self.context, input,
-                                                           self.error_context.error_reporter);
+                let media_queries = MediaList::parse(
+                    self.context,
+                    input,
+                    self.error_context.error_reporter,
+                );
                 let arc = Arc::new(self.shared_lock.wrap(media_queries));
                 Ok(AtRuleType::WithBlock(AtRuleBlockPrelude::Media(arc, location)))
             },
