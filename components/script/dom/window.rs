@@ -694,6 +694,12 @@ impl WindowMethods for Window {
         self.window_proxy()
     }
 
+    // https://html.spec.whatwg.org/multipage/#accessing-other-browsing-contexts
+    fn Length(&self) -> u32 {
+        let doc = self.Document();
+        doc.iter_iframes().count() as u32
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<DomRoot<WindowProxy>> {
         // Steps 1-3.

@@ -31,7 +31,7 @@
 
   // other browsing contexts
   [Replaceable] readonly attribute WindowProxy frames;
-  //[Replaceable] readonly attribute unsigned long length;
+  [Replaceable] readonly attribute unsigned long length;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
   [Unforgeable] readonly attribute WindowProxy? top;
