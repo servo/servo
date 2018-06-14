@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import multiprocessing
-import sys
 import threading
 import traceback
 from Queue import Empty

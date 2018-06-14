@@ -4,7 +4,6 @@ import os
 import sys
 
 import mock
-import pytest
 import six
 
 from ...localpaths import repo_root

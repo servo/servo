@@ -13,17 +13,12 @@ pytestrunner = None
 here = os.path.join(os.path.split(__file__)[0])
 
 from .base import (CallbackHandler,
-                   ExecutorException,
                    RefTestExecutor,
                    RefTestImplementation,
-                   TestExecutor,
                    TestharnessExecutor,
                    WdspecExecutor,
-                   WdspecRun,
                    WebDriverProtocol,
                    extra_timeout,
-                   testharness_result_converter,
-                   reftest_result_converter,
                    strip_server)
 from .protocol import (BaseProtocolPart,
                        TestharnessProtocolPart,

@@ -27,117 +27,6 @@
 
     <div id="log"></div>
 
-    <pre id="untested_idl" style="display: none">
-      interface ArrayBuffer {
-      };
-
-      interface ArrayBufferView {
-      };
-
-      interface URL {
-      };
-
-      interface EventTarget {
-      };
-
-      interface Event {
-      };
-
-      [TreatNonCallableAsNull]
-      callback EventHandlerNonNull = any (Event event);
-      typedef EventHandlerNonNull? EventHandler;
-    </pre>
-
-    <pre id="idl" style="display: none">
-[Constructor,
- Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts, optional BlobPropertyBag options), Exposed=Window,Worker]
-interface Blob {
-
-  readonly attribute unsigned long long size;
-  readonly attribute DOMString type;
-
-  //slice Blob into byte-ranged chunks
-
-  Blob slice([Clamp] optional long long start,
-             [Clamp] optional long long end,
-             optional DOMString contentType);
-};
-
-dictionary BlobPropertyBag {
-  DOMString type = "";
-};
-
-[Constructor(sequence<(Blob or DOMString or ArrayBufferView or ArrayBuffer)> fileBits,
-[EnsureUTF16] DOMString fileName, optional FilePropertyBag options), Exposed=Window,Worker]
-interface File : Blob {
-
-  readonly attribute DOMString name;
-  readonly attribute long long lastModified;
-
-};
-
-dictionary FilePropertyBag {
-
-  DOMString type = "";
-  long long lastModified;
-
-};
-
-[Exposed=Window,Worker] interface FileList {
-  getter File? item(unsigned long index);
-  readonly attribute unsigned long length;
-};
-
-[Constructor, Exposed=Window,Worker]
-interface FileReader: EventTarget {
-
-  // async read methods
-  void readAsArrayBuffer(Blob blob);
-  void readAsText(Blob blob, optional DOMString label);
-  void readAsDataURL(Blob blob);
-
-  void abort();
-
-  // states
-  const unsigned short EMPTY = 0;
-  const unsigned short LOADING = 1;
-  const unsigned short DONE = 2;
-
-  readonly attribute unsigned short readyState;
-
-  // File or Blob data
-  readonly attribute (DOMString or ArrayBuffer)? result;
-
-  readonly attribute DOMException? error;
-
-  // event handler attributes
-  attribute EventHandler onloadstart;
-  attribute EventHandler onprogress;
-  attribute EventHandler onload;
-  attribute EventHandler onabort;
-  attribute EventHandler onerror;
-  attribute EventHandler onloadend;
-
-};
-
-[Constructor, Exposed=Worker]
-interface FileReaderSync {
-
-  // Synchronously return strings
-
-  ArrayBuffer readAsArrayBuffer(Blob blob);
-  DOMString readAsText(Blob blob, optional DOMString label);
-  DOMString readAsDataURL(Blob blob);
-};
-
-partial interface URL {
-
-  static DOMString createObjectURL(Blob blob);
-  static void revokeObjectURL(DOMString url);
-
-};
-    </pre>
-
     <script>
       var fileInput;
 
@@ -145,10 +34,18 @@ partial interface URL {
         fileInput = document.querySelector("#fileChooser")
       }, {explicit_done: true, explicit_timeout: true});
 
-      on_event(fileInput, "change", function(evt) {
-        var idl_array = new IdlArray();
-        idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
-        idl_array.add_idls(document.getElementById("idl").textContent);
+      on_event(fileInput, "change", async function(evt) {
+        const idl = await fetch('/interfaces/FileAPI.idl').then(r => r.text());
+        const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+        const html = await fetch('/interfaces/html.idl').then(r => r.text());
+        const url = await fetch('/interfaces/url.idl').then(r => r.text());
+
+        const idl_array = new IdlArray();
+        idl_array.add_idls(idl);
+        idl_array.add_dependency_idls(url);
+        idl_array.add_dependency_idls(html);
+        idl_array.add_dependency_idls(dom);
+        idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface ArrayBuffer {};");
 
         idl_array.add_objects({
           FileList: [fileInput.files],

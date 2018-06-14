@@ -1,10 +1,7 @@
 import os
 import shutil
-import sys
 import tempfile
-import types
 import uuid
-from collections import defaultdict
 
 from mozlog import reader
 from mozlog import structuredlog

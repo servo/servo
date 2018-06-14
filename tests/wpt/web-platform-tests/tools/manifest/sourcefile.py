@@ -12,7 +12,7 @@ except ImportError:
 import html5lib
 
 from . import XMLParser
-from .item import Stub, ManualTest, WebdriverSpecTest, RefTestNode, RefTest, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
+from .item import Stub, ManualTest, WebdriverSpecTest, RefTestNode, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
 from .utils import rel_path_to_url, ContextManagerBytesIO, cached_property
 
 wd_pattern = "*.py"

@@ -1,10 +1,7 @@
 import argparse
 import os
 import platform
-import shutil
-import subprocess
 import sys
-import tarfile
 from distutils.spawn import find_executable
 
 wpt_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
@@ -466,7 +463,7 @@ def main():
 
 if __name__ == "__main__":
     import pdb
-    from tools import localpaths
+    from tools import localpaths  # noqa: flake8
     try:
         main()
     except Exception:

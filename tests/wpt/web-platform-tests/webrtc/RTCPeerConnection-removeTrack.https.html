@@ -147,8 +147,7 @@
 
     pc.removeTrack(sender);
     assert_equals(sender.track, null);
-    assert_equals(transceiver.direction, 'sendrecv',
-      'direction should not be altered');
+    assert_equals(transceiver.direction, 'recvonly');
 
   }, 'addTransceiver - Calling removeTrack with valid sender should set sender.track to null');
 
@@ -179,31 +178,33 @@
       10. If transceiver.currentDirection is sendrecv set transceiver.direction
           to recvonly.
    */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     const track = generateMediaStreamTrack('audio');
-    const transceiver = pc.addTransceiver(track);
+    const transceiver = caller.addTransceiver(track);
     const { sender } = transceiver;
 
     assert_equals(sender.track, track);
     assert_equals(transceiver.direction, 'sendrecv');
     assert_equals(transceiver.currentDirection, null);
 
-    return pc.createOffer()
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(answer => pc.setRemoteDescription(answer))
-    .then(() => {
-      assert_equals(transceiver.currentDirection, 'sendrecv');
+    const offer = await caller.createOffer();
+    await caller.setLocalDescription(offer);
+    await callee.setRemoteDescription(offer);
+    callee.addTrack(track);
+    const answer = await callee.createAnswer();
+    await callee.setLocalDescription(answer);
+    await caller.setRemoteDescription(answer);
+    assert_equals(transceiver.currentDirection, 'sendrecv');
 
-      pc.removeTrack(sender);
-      assert_equals(sender.track, null);
-      assert_equals(transceiver.direction, 'recvonly');
-      assert_equals(transceiver.currentDirection, 'sendrecv',
-        'Expect currentDirection to not change');
-    });
+    caller.removeTrack(sender);
+    assert_equals(sender.track, null);
+    assert_equals(transceiver.direction, 'recvonly');
+    assert_equals(transceiver.currentDirection, 'sendrecv',
+      'Expect currentDirection to not change');
   }, 'Calling removeTrack with currentDirection sendrecv should set direction to recvonly');
 
   /*
@@ -212,7 +213,7 @@
       11. If transceiver.currentDirection is sendonly set transceiver.direction
           to inactive.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const track = generateMediaStreamTrack('audio');
@@ -223,20 +224,17 @@
     assert_equals(transceiver.direction, 'sendonly');
     assert_equals(transceiver.currentDirection, null);
 
-    return pc.createOffer()
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(answer => pc.setRemoteDescription(answer))
-    .then(() => {
-      assert_equals(transceiver.currentDirection, 'sendonly');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+    assert_equals(transceiver.currentDirection, 'sendonly');
 
-      pc.removeTrack(sender);
-      assert_equals(sender.track, null);
-      assert_equals(transceiver.direction, 'inactive');
-      assert_equals(transceiver.currentDirection, 'sendonly',
-        'Expect currentDirection to not change');
-    });
+    pc.removeTrack(sender);
+    assert_equals(sender.track, null);
+    assert_equals(transceiver.direction, 'inactive');
+    assert_equals(transceiver.currentDirection, 'sendonly',
+      'Expect currentDirection to not change');
   }, 'Calling removeTrack with currentDirection sendonly should set direction to inactive');
 
   /*
@@ -245,30 +243,32 @@
       9.  If transceiver.currentDirection is recvonly or inactive,
           then abort these steps.
    */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
     const track = generateMediaStreamTrack('audio');
-    const transceiver = pc.addTransceiver(track, { direction: 'recvonly' });
+    const transceiver = caller.addTransceiver(track, { direction: 'recvonly' });
     const { sender } = transceiver;
 
     assert_equals(sender.track, track);
     assert_equals(transceiver.direction, 'recvonly');
     assert_equals(transceiver.currentDirection, null);
 
-    return pc.createOffer()
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(answer => pc.setRemoteDescription(answer))
-    .then(() => {
-      assert_equals(transceiver.currentDirection, 'recvonly');
+    const offer = await caller.createOffer();
+    await caller.setLocalDescription(offer);
+    await callee.setRemoteDescription(offer);
+    callee.addTrack(track);
+    const answer = await callee.createAnswer();
+    await callee.setLocalDescription(answer);
+    await caller.setRemoteDescription(answer);
+    assert_equals(transceiver.currentDirection, 'recvonly');
 
-      pc.removeTrack(sender);
-      assert_equals(sender.track, null);
-      assert_equals(transceiver.direction, 'recvonly');
-      assert_equals(transceiver.currentDirection, 'recvonly');
-    });
+    caller.removeTrack(sender);
+    assert_equals(sender.track, null);
+    assert_equals(transceiver.direction, 'recvonly');
+    assert_equals(transceiver.currentDirection, 'recvonly');
   }, 'Calling removeTrack with currentDirection recvonly should not change direction');
 
   /*
@@ -277,7 +277,7 @@
       9.  If transceiver.currentDirection is recvonly or inactive,
           then abort these steps.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const track = generateMediaStreamTrack('audio');
@@ -288,19 +288,16 @@
     assert_equals(transceiver.direction, 'inactive');
     assert_equals(transceiver.currentDirection, null);
 
-    return pc.createOffer()
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(answer => pc.setRemoteDescription(answer))
-    .then(() => {
-      assert_equals(transceiver.currentDirection, 'inactive');
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+    assert_equals(transceiver.currentDirection, 'inactive');
 
-      pc.removeTrack(sender);
-      assert_equals(sender.track, null);
-      assert_equals(transceiver.direction, 'inactive');
-      assert_equals(transceiver.currentDirection, 'inactive');
-    });
+    pc.removeTrack(sender);
+    assert_equals(sender.track, null);
+    assert_equals(transceiver.direction, 'inactive');
+    assert_equals(transceiver.currentDirection, 'inactive');
   }, 'Calling removeTrack with currentDirection inactive should not change direction');
 
   /*

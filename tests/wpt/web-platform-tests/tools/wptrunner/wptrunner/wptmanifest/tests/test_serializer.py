@@ -1,8 +1,6 @@
 import sys
 import unittest
 
-from cStringIO import StringIO
-
 import pytest
 
 from .. import parser, serializer

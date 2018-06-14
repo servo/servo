@@ -1,7 +1,6 @@
 import imp
 import json
 import os
-import sys
 
 here = os.path.dirname(__file__)
 localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, "localpaths.py")))

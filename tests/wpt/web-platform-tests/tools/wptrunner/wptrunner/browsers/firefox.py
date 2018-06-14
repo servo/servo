@@ -4,7 +4,6 @@ import platform
 import signal
 import subprocess
 import sys
-import tempfile
 
 import mozinfo
 import mozleak
@@ -21,9 +20,9 @@ from .base import (get_free_port,
                    cmd_arg,
                    browser_command)
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executormarionette import (MarionetteTestharnessExecutor,
-                                            MarionetteRefTestExecutor,
-                                            MarionetteWdspecExecutor)
+from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # noqa: F401
+                                            MarionetteRefTestExecutor,  # noqa: F401
+                                            MarionetteWdspecExecutor)  # noqa: F401
 
 
 here = os.path.join(os.path.split(__file__)[0])

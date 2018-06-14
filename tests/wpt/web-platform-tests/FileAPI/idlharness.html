@@ -20,37 +20,30 @@
     </form>
 
     <script>
-var file_input;
-setup(function() {
-    var idl_array = new IdlArray();
+      'use strict';
 
-    var request = new XMLHttpRequest();
-    request.open("GET", "/interfaces/FileAPI.idl");
-    request.send();
-    request.onload = function() {
-        var idls = request.responseText;
+      promise_test(async () => {
+        const idl = await fetch('/interfaces/FileAPI.idl').then(r => r.text());
+        const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+        const html = await fetch('/interfaces/html.idl').then(r => r.text());
+        const url = await fetch('/interfaces/url.idl').then(r => r.text());
 
+        const idl_array = new IdlArray();
+        idl_array.add_idls(idl);
+        idl_array.add_dependency_idls(url);
+        idl_array.add_dependency_idls(html);
+        idl_array.add_dependency_idls(dom);
         idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface ArrayBuffer {};");
-        idl_array.add_untested_idls("interface URL {};");
-        idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface EventTarget {};");
-        idl_array.add_untested_idls("[Exposed=(Window,Worker)] interface Event {};");
-        idl_array.add_untested_idls("[TreatNonCallableAsNull] callback EventHandlerNonNull = any (Event event);");
-        idl_array.add_untested_idls("typedef EventHandlerNonNull? EventHandler;");
 
-        idl_array.add_idls(idls);
-
-        file_input = document.querySelector("#fileChooser");
         idl_array.add_objects({
-            Blob: ['new Blob(["TEST"])'],
-            File: ['new File(["myFileBits"], "myFileName")'],
-            FileList: ['file_input.files'],
-            FileReader: ['new FileReader()']
+          Blob: ['new Blob(["TEST"])'],
+          File: ['new File(["myFileBits"], "myFileName")'],
+          FileList: ['document.querySelector("#fileChooser").files'],
+          FileReader: ['new FileReader()']
         });
 
         idl_array.test();
-        done();
-  };
-}, {explicit_done: true});
+      }, 'Test FileAPI IDL implementation');
     </script>
 
   </body>

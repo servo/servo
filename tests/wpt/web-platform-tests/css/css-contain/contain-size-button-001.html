@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on button</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<link rel="match" href="reference/contain-size-button-001-ref.html">
+<meta name=assert content="Size containment does apply to buttons, thus their size and baseline is the same than if they don't have contents.">
+<style>
+button {
+  border: 5px solid green;
+  padding: 0;
+  contain: size;
+  color: transparent;
+}
+</style>
+
+<p>This test passes if it has the same output as the reference. You see the word "before", a 10px green square, and then the word "after".</p>
+before<button>flex</button>after

@@ -3,9 +3,9 @@ import subprocess
 from .base import Browser, ExecutorBrowser, require_arg
 from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorselenium import (SeleniumTestharnessExecutor,
-                                          SeleniumRefTestExecutor)
-from ..executors.executorchrome import ChromeDriverWdspecExecutor
+from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
+                                          SeleniumRefTestExecutor)  # noqa: F401
+from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
 
 
 __wptrunner__ = {"product": "chrome_android",
