@@ -229,7 +229,7 @@ impl Device {
 }
 
 /// The kind of matching that should be performed on a media feature value.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
 pub enum Range {
     /// At least the specified value.
     Min,
@@ -241,7 +241,7 @@ pub enum Range {
 
 /// A expression for gecko contains a reference to the media feature, the value
 /// the media query contained, and the range to evaluate.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct Expression {
     feature: &'static nsMediaFeature,
     value: Option<MediaExpressionValue>,
@@ -294,7 +294,7 @@ impl PartialEq for Expression {
 /// If the first, this would need to store the relevant values.
 ///
 /// See: https://github.com/w3c/csswg-drafts/issues/1968
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum MediaExpressionValue {
     /// A length.
     Length(Length),

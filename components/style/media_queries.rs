@@ -24,9 +24,8 @@ pub use servo::media_queries::{Device, Expression};
 pub use gecko::media_queries::{Device, Expression};
 
 /// A type that encapsulates a media query list.
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[css(comma)]
-#[derive(Clone, Debug, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, ToCss)]
 pub struct MediaList {
     /// The list of media queries.
     #[css(iterable)]
@@ -43,8 +42,7 @@ impl MediaList {
 }
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
     /// <https://drafts.csswg.org/mediaqueries/#mq-only>
@@ -57,8 +55,7 @@ pub enum Qualifier {
 /// A [media query][mq].
 ///
 /// [mq]: https://drafts.csswg.org/mediaqueries/
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub struct MediaQuery {
     /// The qualifier for this query.
     pub qualifier: Option<Qualifier>,
@@ -123,8 +120,7 @@ impl ToCss for MediaQuery {
 }
 
 /// <http://dev.w3.org/csswg/mediaqueries-3/#media0>
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
 pub enum MediaQueryType {
     /// A media type that matches every device.
     All,
@@ -152,8 +148,7 @@ impl MediaQueryType {
 }
 
 /// <https://drafts.csswg.org/mediaqueries/#media-types>
-#[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
 pub struct MediaType(pub CustomIdent);
 
 impl MediaType {
@@ -180,6 +175,7 @@ impl MediaType {
         }
     }
 }
+
 impl MediaQuery {
     /// Parse a media query given css input.
     ///
