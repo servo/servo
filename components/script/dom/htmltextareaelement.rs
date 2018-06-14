@@ -263,6 +263,11 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
+    fn TextLength(&self) -> u32 {
+       self.textinput.borrow().get_content().len() as u32
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     fn Labels(&self) -> DomRoot<NodeList> {
         self.upcast::<HTMLElement>().labels()
