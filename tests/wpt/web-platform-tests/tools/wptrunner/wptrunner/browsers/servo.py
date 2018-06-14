@@ -2,7 +2,7 @@ import os
 
 from .base import NullBrowser, ExecutorBrowser, require_arg
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorservo import ServoTestharnessExecutor, ServoRefTestExecutor, ServoWdspecExecutor
+from ..executors.executorservo import ServoTestharnessExecutor, ServoRefTestExecutor, ServoWdspecExecutor  # noqa: F401
 
 here = os.path.join(os.path.split(__file__)[0])
 

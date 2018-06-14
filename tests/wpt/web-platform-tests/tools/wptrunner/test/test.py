@@ -1,15 +1,10 @@
 import ConfigParser
 import argparse
-import json
 import os
 import sys
-import tempfile
-import threading
-import time
-from StringIO import StringIO
 
-from mozlog import structuredlog, reader
-from mozlog.handlers import BaseHandler, StreamHandler, StatusHandler
+from mozlog import structuredlog
+from mozlog.handlers import BaseHandler, StreamHandler
 from mozlog.formatters import MachFormatter
 from wptrunner import wptcommandline, wptrunner
 

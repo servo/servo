@@ -1,4 +1,3 @@
-import platform
 import os
 
 import mock
@@ -8,7 +7,7 @@ import hypothesis.strategies as hs
 
 import pytest
 
-from .. import manifest, item, sourcefile, utils
+from .. import manifest, item, utils
 
 
 def SourceFileWithTest(path, hash, cls, *args):

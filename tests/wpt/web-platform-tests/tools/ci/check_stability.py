@@ -17,7 +17,7 @@ from tools.wpt.virtualenv import Virtualenv
 from tools.wpt.utils import Kwargs
 from tools.wpt.run import create_parser, setup_wptrunner
 from tools.wpt import markdown
-from tools import localpaths
+from tools import localpaths  # noqa: F401
 
 logger = None
 run_step, write_inconsistent, write_results = None, None, None
@@ -270,7 +270,7 @@ def run(venv, wpt_args, **kwargs):
         wpt_kwargs["install"] = wpt_kwargs["product"].split(":")[0] == "firefox"
 
         wpt_kwargs["pause_after_test"] = False
-        wpt_kwargs["verify_log_full"] = True
+        wpt_kwargs["verify_log_full"] = False
         if wpt_kwargs["repeat"] == 1:
             wpt_kwargs["repeat"] = 10
 

@@ -1,4 +1,3 @@
-import os
 import sys
 
 from mozlog.structured import structuredlog, commandline

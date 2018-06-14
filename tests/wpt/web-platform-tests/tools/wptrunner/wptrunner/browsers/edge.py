@@ -1,9 +1,9 @@
 from .base import Browser, ExecutorBrowser, require_arg
 from ..webdriver_server import EdgeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorselenium import (SeleniumTestharnessExecutor,
-                                          SeleniumRefTestExecutor)
-from ..executors.executoredge import EdgeDriverWdspecExecutor
+from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
+                                          SeleniumRefTestExecutor)  # noqa: F401
+from ..executors.executoredge import EdgeDriverWdspecExecutor  # noqa: F401
 
 __wptrunner__ = {"product": "edge",
                  "check_args": "check_args",
@@ -35,8 +35,6 @@ def browser_kwargs(test_type, run_info_data, **kwargs):
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
-    from selenium.webdriver import DesiredCapabilities
-
     executor_kwargs = base_executor_kwargs(test_type, server_config,
                                            cache_manager, **kwargs)
     executor_kwargs["close_after_done"] = True

@@ -3,7 +3,7 @@ import re
 import subprocess
 
 from .. import vcs
-from ..vcs import bind_to_repo, git, hg
+from ..vcs import git, hg
 
 
 def get_unique_name(existing, initial):

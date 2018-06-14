@@ -15,8 +15,8 @@ import requests
 
 from .base import Browser, ExecutorBrowser, require_arg
 from ..executors import executor_kwargs as base_executor_kwargs
-from ..executors.executorselenium import (SeleniumTestharnessExecutor,
-                                          SeleniumRefTestExecutor)
+from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
+                                          SeleniumRefTestExecutor)  # noqa: F401
 
 here = os.path.split(__file__)[0]
 # Number of seconds to wait between polling operations when detecting status of

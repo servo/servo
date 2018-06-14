@@ -3,7 +3,7 @@ import platform
 import socket
 from abc import ABCMeta, abstractmethod
 
-from ..wptcommandline import require_arg
+from ..wptcommandline import require_arg  # noqa: F401
 
 here = os.path.split(__file__)[0]
 

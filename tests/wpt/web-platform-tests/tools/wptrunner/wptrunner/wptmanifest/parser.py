@@ -14,7 +14,6 @@
 
 from __future__ import unicode_literals
 
-import types
 from cStringIO import StringIO
 
 from node import (AtomNode, BinaryExpressionNode, BinaryOperatorNode,

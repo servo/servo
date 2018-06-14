@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 from ..lint import check_path
 from .base import check_errors
 import pytest
-import six
 
 def test_allowed_path_length():
     basename = 29 * "test/"

@@ -1,1 +1,1 @@
-import serve
+import serve  # noqa: F401

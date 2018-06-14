@@ -1,10 +1,9 @@
 import argparse
-import ast
 import os
 import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import config
 import wpttest
