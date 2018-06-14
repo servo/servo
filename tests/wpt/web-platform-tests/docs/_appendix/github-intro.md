@@ -178,6 +178,26 @@ them to be reviewed and merged.
 
 7.  Repeat these steps as many times as you'd like before you submit.
 
+## Verify
+
+The Web Platform Test project has an automated tool
+to verify that coding conventions have been followed,
+and to catch a number of common mistakes.
+
+You can and should run this tool locally.
+It will be run on your submissions anyway,
+and any failure will be grounds for rejection,
+so you might as well fix them first.
+
+1. On the command line, navigate to to the directory where your clone
+of the repository is located.
+
+2. Run `./wpt lint`
+
+3. Fix any mistake it reports and [commit](#commit) again.
+
+For more details, see the [documentation about the lint tool][lint-tool]
+
 ## Submit
 
 If you're here now looking for more instructions, that means you've written
@@ -399,3 +419,4 @@ you may also discard your connection to their repo:
 [files-changed]: {{ site.baseurl }}{% link /assets/files-changed.png %}
 [more-commits]: {{ site.baseurl }}{% link /assets/more-commits.png %}
 [github flow]: https://guides.github.com/introduction/flow/
+[lint-tool]: {{ site.baseurl }}/writing-tests/lint-tool.html

@@ -1,7 +1,5 @@
 import unittest
 
-from cStringIO import StringIO
-
 from ..backends import conditional
 from ..node import BinaryExpressionNode, BinaryOperatorNode, VariableNode, NumberNode
 

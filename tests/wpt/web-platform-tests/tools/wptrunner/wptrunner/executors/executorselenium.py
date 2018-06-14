@@ -1,9 +1,7 @@
 import json
 import os
 import socket
-import sys
 import threading
-import time
 import traceback
 import urlparse
 import uuid

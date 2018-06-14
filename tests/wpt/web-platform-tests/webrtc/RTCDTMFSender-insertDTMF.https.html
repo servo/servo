@@ -107,40 +107,40 @@
     7.2.  insertDTMF
       4.  If transceiver.currentDirection is recvonly or inactive, throw an InvalidStateError.
    */
-  promise_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    const transceiver = pc.addTransceiver('audio', {
-      direction: 'recvonly'
-    });
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+    const transceiver =
+        caller.addTransceiver('audio', { direction: 'recvonly' });
     const dtmfSender = transceiver.sender.dtmf;
 
-    return pc.createOffer()
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(() => {
-      assert_equals(transceiver.currentDirection, 'inactive');
-      assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
-    });
+    const offer = await caller.createOffer();
+    await caller.setLocalDescription(offer);
+    await callee.setRemoteDescription(offer);
+    const track = generateMediaStreamTrack('audio');
+    callee.addTrack(track);
+    const answer = await callee.createAnswer();
+    await callee.setLocalDescription(answer);
+    await caller.setRemoteDescription(answer);
+    assert_equals(transceiver.currentDirection, 'recvonly');
+    assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
   }, 'insertDTMF() should throw InvalidStateError if transceiver.currentDirection is recvonly');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const transceiver = pc.addTransceiver('audio', {
-      direction: 'inactive'
-    });
+    const transceiver =
+        pc.addTransceiver('audio', { direction: 'inactive' });
     const dtmfSender = transceiver.sender.dtmf;
 
-    return pc.createOffer()
-    .then(offer =>
-      pc.setLocalDescription(offer)
-      .then(() => generateAnswer(offer)))
-    .then(() => {
-      assert_equals(transceiver.currentDirection, 'inactive');
-      assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
-    });
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+    assert_equals(transceiver.currentDirection, 'inactive');
+    assert_throws('InvalidStateError', () => dtmfSender.insertDTMF(''));
   }, 'insertDTMF() should throw InvalidStateError if transceiver.currentDirection is inactive');
 
   /*

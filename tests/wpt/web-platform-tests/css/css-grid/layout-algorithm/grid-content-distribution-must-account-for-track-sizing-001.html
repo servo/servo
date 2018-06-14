@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Content Distribution and the track sizing algorithm</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-align">
+<link rel="help" href="https://drafts.csswg.org/css-align/#content-distribution">
+<link rel="help" href="https://drafts.csswg.org/css-align/#valdef-align-content-space-between">
+<link rel="stylesheet" href="../../support/alignment.css">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Content Distribution on the inline-axis may affect to the row track's size.">
+<style>
+.grid {
+  display: inline-grid;
+  background: grey;
+  grid-template-columns: 50px 50px;
+  font: 20px/1 Ahem;
+  width: 200px;
+}
+
+.item {
+  grid-column: span 2;
+  background: green;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+    <div class="grid justifyContentSpaceBetween" data-expected-width="200" data-expected-height="40">
+        <div class="item" data-expected-width="200" data-expected-height="40">XXX XX X XX X XXX</div>
+    </div>
+</body>

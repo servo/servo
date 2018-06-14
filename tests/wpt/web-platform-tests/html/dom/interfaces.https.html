@@ -1,10 +1,13 @@
 <!doctype html>
 <meta charset=utf-8>
-<!-- WARNING: These tests are preliminary and probably partly incorrect.  -->
 <title>HTML IDL tests</title>
 <meta name=timeout content=long>
+<meta name="variant" content="?include=(Document|Window)">
+<meta name="variant" content="?include=HTML.*">
+<meta name="variant" content="?exclude=(Document|Window|HTML.*)">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/common/subset-tests-by-key.js></script>
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
 

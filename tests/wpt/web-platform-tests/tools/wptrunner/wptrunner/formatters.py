@@ -11,7 +11,8 @@ class WptreportFormatter(BaseFormatter):
         self.results = {}
 
     def suite_start(self, data):
-        self.results['run_info'] = data['run_info']
+        if 'run_info' in data:
+            self.results['run_info'] = data['run_info']
         self.results['time_start'] = data['time']
 
     def suite_end(self, data):
@@ -32,6 +33,10 @@ class WptreportFormatter(BaseFormatter):
                 "message": None
             }
         return self.raw_results[test_name]
+
+    def test_start(self, data):
+        test = self.find_or_create_test(data)
+        test["start_time"] = data["time"]
 
     def create_subtest(self, data):
         test = self.find_or_create_test(data)
@@ -54,6 +59,8 @@ class WptreportFormatter(BaseFormatter):
 
     def test_end(self, data):
         test = self.find_or_create_test(data)
+        start_time = test.pop("start_time")
+        test["duration"] = data["time"] - start_time
         test["status"] = data["status"]
         if "message" in data:
             test["message"] = data["message"]
