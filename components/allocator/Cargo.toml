@@ -8,14 +8,8 @@ publish = false
 [lib]
 path = "lib.rs"
 
-[features]
-unstable = ["kernel32-sys", "jemalloc-sys"]
-
-[dependencies]
-libc = "0.2"  # Only used when 'unstable' is disabled, but looks like Cargo cannot express that.
-
 [target.'cfg(not(windows))'.dependencies]
-jemalloc-sys = { version = "0.1.4", optional = true }
+jemalloc-sys = { version = "0.1.4" }
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = { version = "0.2.1", optional = true }
+kernel32-sys = { version = "0.2.1" }

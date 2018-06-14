@@ -4,20 +4,17 @@
 
 //! Selecting the default global allocator for Servo
 
-#![cfg_attr(feature = "unstable", feature(global_allocator, allocator_api, alloc_system))]
-
-#[cfg(feature = "unstable")]
 #[global_allocator]
 static ALLOC: Allocator = Allocator;
 
 pub use platform::*;
 
 
-#[cfg(all(feature = "unstable", not(windows)))]
+#[cfg(not(windows))]
 mod platform {
     extern crate jemalloc_sys as ffi;
 
-    use std::alloc::{GlobalAlloc, Layout, Opaque};
+    use std::alloc::{GlobalAlloc, Layout};
     use std::os::raw::{c_int, c_void};
 
     /// Get the size of a heap block.
@@ -65,44 +62,43 @@ mod platform {
 
     unsafe impl GlobalAlloc for Allocator {
         #[inline]
-        unsafe fn alloc(&self, layout: Layout) -> *mut Opaque {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
             let flags = layout_to_flags(layout.align(), layout.size());
-            ffi::mallocx(layout.size(), flags)  as *mut Opaque
+            ffi::mallocx(layout.size(), flags) as *mut u8
         }
 
         #[inline]
-        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut Opaque {
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
             if layout.align() <= MIN_ALIGN && layout.align() <= layout.size() {
-                ffi::calloc(1, layout.size()) as *mut Opaque
+                ffi::calloc(1, layout.size()) as *mut u8
             } else {
                 let flags = layout_to_flags(layout.align(), layout.size()) | ffi::MALLOCX_ZERO;
-                ffi::mallocx(layout.size(), flags) as *mut Opaque
+                ffi::mallocx(layout.size(), flags) as *mut u8
             }
         }
 
         #[inline]
-        unsafe fn dealloc(&self, ptr: *mut Opaque, layout: Layout) {
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
             let flags = layout_to_flags(layout.align(), layout.size());
             ffi::sdallocx(ptr as *mut _, layout.size(), flags)
         }
 
         #[inline]
         unsafe fn realloc(&self,
-                          ptr: *mut Opaque,
+                          ptr: *mut u8,
                           layout: Layout,
-                          new_size: usize) -> *mut Opaque {
+                          new_size: usize) -> *mut u8 {
             let flags = layout_to_flags(layout.align(), new_size);
-            ffi::rallocx(ptr as *mut _, new_size, flags) as *mut Opaque
+            ffi::rallocx(ptr as *mut _, new_size, flags) as *mut u8
         }
     }
 }
 
-#[cfg(all(feature = "unstable", windows))]
+#[cfg(windows)]
 mod platform {
-    extern crate alloc_system;
     extern crate kernel32;
 
-    pub use self::alloc_system::System as Allocator;
+    pub use std::alloc::System as Allocator;
     use self::kernel32::{GetProcessHeap, HeapSize, HeapValidate};
     use std::os::raw::c_void;
 
@@ -115,22 +111,5 @@ mod platform {
         }
 
         HeapSize(heap, 0, ptr) as usize
-    }
-}
-
-#[cfg(not(feature = "unstable"))]
-mod platform {
-    use std::os::raw::c_void;
-
-    /// Without `#[global_allocator]` we cannot be certain of what allocator is used
-    /// or how it is linked. We therefore disable memory reporting. (Return zero.)
-    pub unsafe extern "C" fn usable_size(_ptr: *const c_void) -> usize {
-        0
-    }
-
-    /// Memory allocation APIs compatible with libc
-    pub mod libc_compat {
-        extern crate libc;
-        pub use self::libc::{malloc, realloc, free};
     }
 }

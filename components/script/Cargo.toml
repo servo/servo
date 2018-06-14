@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 debugmozjs = ['mozjs/debugmozjs']
-unstable = ["servo_allocator/unstable"]
+unstable = []
 unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
 default = ["unrooted_must_root_lint"]
 
