@@ -38,7 +38,7 @@
   //         attribute any opener;
   // Note that this can return null in the case that the browsing context has been discarded.
   // https://github.com/whatwg/html/issues/2115
-  readonly attribute WindowProxy? parent;
+  [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
   //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
   //                 optional DOMString features = "", optional boolean replace = false);
