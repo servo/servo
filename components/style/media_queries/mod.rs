@@ -24,7 +24,7 @@ pub use servo::media_queries::{Device, Expression};
 pub use gecko::media_queries::{Device, Expression};
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, Parse, ToCss)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
     /// <https://drafts.csswg.org/mediaqueries/#mq-only>
@@ -168,20 +168,7 @@ impl MediaQuery {
     ) -> Result<MediaQuery, ParseError<'i>> {
         let mut expressions = vec![];
 
-        let qualifier = if input
-            .try(|input| input.expect_ident_matching("only"))
-            .is_ok()
-        {
-            Some(Qualifier::Only)
-        } else if input
-            .try(|input| input.expect_ident_matching("not"))
-            .is_ok()
-        {
-            Some(Qualifier::Not)
-        } else {
-            None
-        };
-
+        let qualifier = input.try(Qualifier::parse).ok();
         let media_type = match input.try(|i| i.expect_ident_cloned()) {
             Ok(ident) => MediaQueryType::parse(&*ident).map_err(|()| {
                 input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
