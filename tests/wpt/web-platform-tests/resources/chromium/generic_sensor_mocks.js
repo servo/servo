@@ -201,11 +201,11 @@ var GenericSensorTest = (() => {
       if (testInternal.initialized)
         throw new Error('Call reset() before initialize().');
 
-      if (testRunner) { // Grant sensor permissions for Chromium testrunner.
+      if (window.testRunner) { // Grant sensor permissions for Chromium testrunner.
         ['accelerometer', 'gyroscope',
          'magnetometer', 'ambient-light-sensor'].forEach((entry) => {
-          testRunner.setPermission(entry, 'granted',
-                                   location.origin, location.origin);
+          window.testRunner.setPermission(entry, 'granted',
+                                          location.origin, location.origin);
         });
       }
 

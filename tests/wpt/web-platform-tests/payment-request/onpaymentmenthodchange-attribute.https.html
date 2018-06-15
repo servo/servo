@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for onpaymentmethodchange attribute</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#onpaymentmethodchange-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+const testMethod = Object.freeze({ supportedMethods: "not-a-real-method" });
+const applePay = Object.freeze({ supportedMethods: "https://apple.com/apple-pay" });
+const defaultMethods = Object.freeze([testMethod, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  assert_idl_attribute(request, "onpaymentmethodchange");
+}, "Must have a onpaymentmethodchange IDL attribute");
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new Event("paymentmethodchange");
+  let didHandle = false;
+  request.onpaymentmethodchange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onpaymentmethodchange attribute is a generic handler for "paymentmethodchange"`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentMethodChangeEvent("paymentmethodchange");
+  let didHandle = false;
+  request.onpaymentmethodchange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "event did not fire");
+}, `onpaymentmethodchange attribute is a handler for PaymentMethodChangeEvent`);
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new PaymentMethodChangeEvent("paymentmethodchange", {
+    methodName: "test"
+  });
+  let didHandle = false;
+  let didListen = false;
+  request.onpaymentmethodchange = evt => {
+    assert_equals(ev, evt, "must be same event");
+    didHandle = true;
+  };
+  request.addEventListener("paymentmethodchange", evt => {
+    assert_equals(ev, evt, "must be same event");
+    didListen = true;
+  });
+  request.dispatchEvent(ev);
+  assert_true(didHandle, "onpaymentmethodchange did not receive the event");
+  assert_true(didListen, "addEventListener did not receive the event");
+}, `onpaymentmethodchange attribute and listeners both work`);
+</script>

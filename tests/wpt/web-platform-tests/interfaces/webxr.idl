@@ -60,8 +60,8 @@ callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRPresentation
 };
 
 enum XRFrameOfReferenceType {
-  "headModel",
-  "eyeLevel",
+  "head-model",
+  "eye-level",
   "stage",
 };
 

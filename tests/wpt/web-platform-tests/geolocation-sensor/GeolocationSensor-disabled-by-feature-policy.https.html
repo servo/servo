@@ -8,7 +8,7 @@
 <script>
 "use strict";
 
-run_fp_tests_disabled(GeolocationSensor);
+run_fp_tests_disabled('GeolocationSensor');
 
 promise_test(async t => {
   await promise_rejects(t, 'SecurityError', GeolocationSensor.read());
