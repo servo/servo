@@ -319,7 +319,9 @@ class MachCommands(CommandBase):
         if self_test:
             return test_tidy.do_tests()
         else:
-            return tidy.scan(not all_files, not no_progress, stylo=stylo)
+            manifest_dirty = run_update(self.context.topdir, check_clean=True)
+            tidy_failed = tidy.scan(not all_files, not no_progress, stylo=stylo)
+            return tidy_failed or manifest_dirty
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
