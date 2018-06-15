@@ -319,6 +319,7 @@ class MachCommands(CommandBase):
         if self_test:
             return test_tidy.do_tests()
         else:
+            run_update(self.context.topdir, check_clean=True)
             return tidy.scan(not all_files, not no_progress, stylo=stylo)
 
     @Command('test-webidl',

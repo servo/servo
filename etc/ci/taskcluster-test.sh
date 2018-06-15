@@ -27,5 +27,4 @@ env ./mach test-unit
 env ./mach package --dev
 env ./mach build --dev --no-default-features --features default-except-unstable
 bash ./etc/ci/lockfile_changed.sh
-bash ./etc/ci/manifest_changed.sh
 bash ./etc/ci/check_no_panic.sh
