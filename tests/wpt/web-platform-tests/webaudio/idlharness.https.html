@@ -2,6 +2,7 @@
 <meta charset="utf-8">
 <title>WebAudio IDL tests</title>
 <link rel="help" href="https://webaudio.github.io/web-audio-api/"/>
+<meta name="timeout" content="long"><!-- Heavy computation of the idl_objects -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
@@ -10,42 +11,26 @@
 'use strict';
 
 promise_test(async t => {
-  const [html, dom, uievents, mediacapture, webaudio] = await Promise.all([
-    // Needed for EventTarget, HTMLMediaElement
-    '/interfaces/html.idl',
-
-    // Needed for Event, EventListener
-    '/interfaces/dom.idl',
-
-    // Needed for MouseEvent
-    '/interfaces/uievents.idl',
-
-    // Needed for MediaStream, MediaStreamTrack
-    '/interfaces/mediacapture-main.idl',
-
-    '/interfaces/web-audio-api.idl'
-  ].map(url => fetch(url).then(response => response.text())));
+  const cssom = await fetch('/interfaces/cssom.idl').then(r => r.text());
+  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  const html = await fetch('/interfaces/html.idl').then(r => r.text());
+  const uievents = await fetch('/interfaces/uievents.idl').then(r => r.text());
+  const mediacapture = await fetch('/interfaces/mediacapture-main.idl').then(r => r.text());
+  const webaudio = await fetch('/interfaces/web-audio-api.idl').then(r => r.text());
 
   const idl_array = new IdlArray();
+  idl_array.add_idls(webaudio);
 
   // Dependencies of HTML
-  idl_array.add_untested_idls('interface LinkStyle {};');
+  idl_array.add_dependency_idls(html);
+  idl_array.add_dependency_idls(uievents);
+  idl_array.add_dependency_idls(dom);
+  idl_array.add_dependency_idls(mediacapture);
+  idl_array.add_dependency_idls(cssom);
+
   idl_array.add_untested_idls('interface SVGElement {};');
   idl_array.add_untested_idls('interface WorkletGlobalScope {};');
-  idl_array.add_untested_idls(html);
-  idl_array.add_untested_idls(uievents, { only: [
-    'MouseEvent',
-    'MouseEventInit',
-    'EventModifierInit',
-    'UIEvent',
-    'UIEventInit',
-  ]});
-
-  idl_array.add_untested_idls(dom);
-  idl_array.add_untested_idls(mediacapture);
   idl_array.add_untested_idls('interface Worklet {};');
-
-  idl_array.add_idls(webaudio);
 
   const sample_rate = 44100;
   const context = new AudioContext;

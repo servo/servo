@@ -2,36 +2,50 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
-  <link rel="author" title="Rob Dodson" href="robdodson@chromium.org" />
+  <title>CSS Test (Selectors): Programmatic focus causes :focus-visible to match</title>
+  <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    :focus-visible { background-color: rgb(128, 196, 128); }
-    :focus:not(:focus-visible) { background-color: rgb(196, 128, 128); }
+    :root {
+      --focus-background: hsl(50, 94%, 72%);
+      --focus-ring-color: rgb(59, 153, 252);
+    }
+
+    :focus-visible {
+      outline: var(--focus-ring-color) auto 5px;
+    }
+
+    * {
+      outline: 0;
+    }
+
+    :focus {
+      background-color: var(--focus-background);
+    }
   </style>
 </head>
 <body>
+  This test checks that programmatically focusing an element causes <code>:focus-visible</code> matching to trigger.
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Click the button below that says "Click me."</li>
-    <li>If the element that says "I will be focused programmatically." does not have a <strong>green</strong> background, then the test result is FAILURE. If the element <em>has</em> a <strong>green</strong> background, then the test result is SUCCESS.</li>
+    <li>If the element that says "I will be focused programmatically." does not have a blue outline, then the test result is FAILURE. If the element has a blue outline, then the test result is SUCCESS.</li>
   </ol>
   <br />
   <button id="button">Click me.</button>
-  <div id="el" tabindex="-1">I will be focused programmatically.</el>
+  <div id="el" tabindex="-1">I will be focused programmatically.</div>
   <script>
     button.addEventListener("click", () => {
-        el.focus();
+      el.focus();
     });
     async_test(function(t) {
-        el.addEventListener("focus", t.step_func(() => {
-            assert_equals(getComputedStyle(el).backgroundColor,
-                          "rgb(128, 196, 128)");
-            t.done();
-        }));
-        el.focus();
+      el.addEventListener("focus", t.step_func(() => {
+        assert_equals(getComputedStyle(el).outlineColor, "rgb(59, 153, 252)");
+        t.done();
+      }));
+      el.focus();
     }, "Programmatic focus should always match :focus-visible");
   </script>
 </body>
