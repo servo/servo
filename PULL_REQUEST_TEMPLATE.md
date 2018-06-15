@@ -7,6 +7,9 @@
 - [ ] `./mach test-tidy` does not report any errors
 - [ ] These changes fix #__ (github issue number if applicable).
 
+<!-- If you add new tests for wpt -->
+- [ ] `./etc/ci/manifest_changed.sh` does not report any errors
+
 <!-- Either: -->
 - [ ] There are tests for these changes OR
 - [ ] These changes do not require tests because _____
