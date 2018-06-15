@@ -569,7 +569,7 @@ class WebSocketServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         server_options = self.websocket_server_options
         if server_options.use_tls:
-            self._logger.info('Performing TLS steps')
+            #self._logger.info('Performing TLS steps')
             if server_options.tls_module == _TLS_BY_STANDARD_MODULE:
                 try:
                     accepted_socket.do_handshake()
@@ -644,10 +644,10 @@ class WebSocketServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                     [socket_[0] for socket_ in self._sockets],
                     [], [], poll_interval)
                 for socket_ in r:
-                    self._logger.info('Socket selected; handling request')
+                    #self._logger.info('Socket selected; handling request')
                     self.socket = socket_
                     handle_request()
-                    self._logger.info('Handled request')
+                    #self._logger.info('Handled request')
                 self.socket = None
         finally:
             self._logger.info('Marking shutdown; no longer serving forever')
