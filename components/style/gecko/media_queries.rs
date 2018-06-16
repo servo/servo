@@ -651,141 +651,150 @@ impl MediaFeatureExpression {
         })?;
 
         input.parse_nested_block(|input| {
-            // FIXME: remove extra indented block when lifetimes are non-lexical
-            let feature;
-            let range;
+            Self::parse_in_parenthesis_block(context, input)
+        })
+    }
+
+    /// Parse a media range expression where we've already consumed the
+    /// parenthesis.
+    pub fn parse_in_parenthesis_block<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // FIXME: remove extra indented block when lifetimes are non-lexical
+        let feature;
+        let range;
+        {
+            let location = input.current_source_location();
+            let ident = input.expect_ident().map_err(|err| {
+                err.location.new_custom_error(match err.kind {
+                    BasicParseErrorKind::UnexpectedToken(t) => {
+                        StyleParseErrorKind::ExpectedIdentifier(t)
+                    },
+                    _ => StyleParseErrorKind::UnspecifiedError,
+                })
+            })?;
+
+            let mut flags = 0;
+
+            if context.chrome_rules_enabled() || context.stylesheet_origin == Origin::UserAgent
             {
-                let location = input.current_source_location();
-                let ident = input.expect_ident().map_err(|err| {
-                    err.location.new_custom_error(match err.kind {
-                        BasicParseErrorKind::UnexpectedToken(t) => {
-                            StyleParseErrorKind::ExpectedIdentifier(t)
-                        },
-                        _ => StyleParseErrorKind::UnspecifiedError,
-                    })
-                })?;
-
-                let mut flags = 0;
-
-                if context.chrome_rules_enabled() || context.stylesheet_origin == Origin::UserAgent
-                {
-                    flags |= structs::nsMediaFeature_RequirementFlags_eUserAgentAndChromeOnly;
-                }
-
-                let result = {
-                    let mut feature_name = &**ident;
-
-                    if unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_webkit } &&
-                        starts_with_ignore_ascii_case(feature_name, "-webkit-")
-                    {
-                        feature_name = &feature_name[8..];
-                        flags |= structs::nsMediaFeature_RequirementFlags_eHasWebkitPrefix;
-                        if unsafe {
-                            structs::StaticPrefs_sVarCache_layout_css_prefixes_device_pixel_ratio_webkit
-                        } {
-                            flags |= structs::nsMediaFeature_RequirementFlags_eWebkitDevicePixelRatioPrefEnabled;
-                        }
-                    }
-
-                    let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
-                        feature_name = &feature_name[4..];
-                        Some(Range::Min)
-                    } else if starts_with_ignore_ascii_case(feature_name, "max-") {
-                        feature_name = &feature_name[4..];
-                        Some(Range::Max)
-                    } else {
-                        None
-                    };
-
-                    let atom = Atom::from(string_as_ascii_lowercase(feature_name));
-                    match find_feature(|f| atom.as_ptr() == unsafe { *f.mName as *mut _ }) {
-                        Some(f) => Ok((f, range)),
-                        None => Err(()),
-                    }
-                };
-
-                match result {
-                    Ok((f, r)) => {
-                        feature = f;
-                        range = r;
-                    },
-                    Err(()) => {
-                        return Err(location.new_custom_error(
-                            StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                        ))
-                    },
-                }
-
-                if (feature.mReqFlags & !flags) != 0 {
-                    return Err(location.new_custom_error(
-                        StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                    ));
-                }
-
-                if range.is_some() &&
-                    feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed
-                {
-                    return Err(location.new_custom_error(
-                        StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
-                    ));
-                }
+                flags |= structs::nsMediaFeature_RequirementFlags_eUserAgentAndChromeOnly;
             }
 
-            let feature_allows_ranges =
-                feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed;
+            let result = {
+                let mut feature_name = &**ident;
 
-            let operator = input.try(consume_operation_or_colon);
-            let operator = match operator {
-                Err(..) => {
-                    // If there's no colon, this is a media query of the
-                    // form '(<feature>)', that is, there's no value
-                    // specified.
-                    //
-                    // Gecko doesn't allow ranged expressions without a
-                    // value, so just reject them here too.
-                    if range.is_some() {
-                        return Err(input.new_custom_error(
-                            StyleParseErrorKind::RangedExpressionWithNoValue
-                        ));
+                if unsafe { structs::StaticPrefs_sVarCache_layout_css_prefixes_webkit } &&
+                    starts_with_ignore_ascii_case(feature_name, "-webkit-")
+                {
+                    feature_name = &feature_name[8..];
+                    flags |= structs::nsMediaFeature_RequirementFlags_eHasWebkitPrefix;
+                    if unsafe {
+                        structs::StaticPrefs_sVarCache_layout_css_prefixes_device_pixel_ratio_webkit
+                    } {
+                        flags |= structs::nsMediaFeature_RequirementFlags_eWebkitDevicePixelRatioPrefEnabled;
                     }
-
-                    return Ok(Self::new(feature, None, None));
                 }
-                Ok(operator) => operator,
+
+                let range = if starts_with_ignore_ascii_case(feature_name, "min-") {
+                    feature_name = &feature_name[4..];
+                    Some(Range::Min)
+                } else if starts_with_ignore_ascii_case(feature_name, "max-") {
+                    feature_name = &feature_name[4..];
+                    Some(Range::Max)
+                } else {
+                    None
+                };
+
+                let atom = Atom::from(string_as_ascii_lowercase(feature_name));
+                match find_feature(|f| atom.as_ptr() == unsafe { *f.mName as *mut _ }) {
+                    Some(f) => Ok((f, range)),
+                    None => Err(()),
+                }
             };
 
-            let range_or_operator = match range {
-                Some(range) => {
-                    if operator.is_some() {
-                        return Err(input.new_custom_error(
-                            StyleParseErrorKind::MediaQueryExpectedFeatureValue
-                        ));
-                    }
-                    Some(RangeOrOperator::Range(range))
+            match result {
+                Ok((f, r)) => {
+                    feature = f;
+                    range = r;
+                },
+                Err(()) => {
+                    return Err(location.new_custom_error(
+                        StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
+                    ))
+                },
+            }
+
+            if (feature.mReqFlags & !flags) != 0 {
+                return Err(location.new_custom_error(
+                    StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
+                ));
+            }
+
+            if range.is_some() &&
+                feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed
+            {
+                return Err(location.new_custom_error(
+                    StyleParseErrorKind::MediaQueryExpectedFeatureName(ident.clone()),
+                ));
+            }
+        }
+
+        let feature_allows_ranges =
+            feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed;
+
+        let operator = input.try(consume_operation_or_colon);
+        let operator = match operator {
+            Err(..) => {
+                // If there's no colon, this is a media query of the
+                // form '(<feature>)', that is, there's no value
+                // specified.
+                //
+                // Gecko doesn't allow ranged expressions without a
+                // value, so just reject them here too.
+                if range.is_some() {
+                    return Err(input.new_custom_error(
+                        StyleParseErrorKind::RangedExpressionWithNoValue
+                    ));
                 }
-                None => {
-                    match operator {
-                        Some(operator) => {
-                            if !feature_allows_ranges {
-                                return Err(input.new_custom_error(
-                                    StyleParseErrorKind::MediaQueryExpectedFeatureValue
-                                ));
-                            }
-                            Some(RangeOrOperator::Operator(operator))
+
+                return Ok(Self::new(feature, None, None));
+            }
+            Ok(operator) => operator,
+        };
+
+        let range_or_operator = match range {
+            Some(range) => {
+                if operator.is_some() {
+                    return Err(input.new_custom_error(
+                        StyleParseErrorKind::MediaQueryExpectedFeatureValue
+                    ));
+                }
+                Some(RangeOrOperator::Range(range))
+            }
+            None => {
+                match operator {
+                    Some(operator) => {
+                        if !feature_allows_ranges {
+                            return Err(input.new_custom_error(
+                                StyleParseErrorKind::MediaQueryExpectedFeatureValue
+                            ));
                         }
-                        None => None,
+                        Some(RangeOrOperator::Operator(operator))
                     }
+                    None => None,
                 }
-            };
+            }
+        };
 
-            let value =
-                parse_feature_value(feature, feature.mValueType, context, input).map_err(|err| {
-                    err.location
-                        .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
-                })?;
+        let value =
+            parse_feature_value(feature, feature.mValueType, context, input).map_err(|err| {
+                err.location
+                    .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
+            })?;
 
-            Ok(Self::new(feature, Some(value), range_or_operator))
-        })
+        Ok(Self::new(feature, Some(value), range_or_operator))
     }
 
     /// Returns whether this media query evaluates to true for the given device.

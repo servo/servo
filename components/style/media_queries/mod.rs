@@ -6,9 +6,11 @@
 //!
 //! [mq]: https://drafts.csswg.org/mediaqueries/
 
+mod media_condition;
 mod media_list;
 mod media_query;
 
+pub use self::media_condition::MediaCondition;
 pub use self::media_list::MediaList;
 pub use self::media_query::{MediaQuery, MediaQueryType, MediaType, Qualifier};
 

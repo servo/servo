@@ -183,32 +183,41 @@ impl MediaFeatureExpression {
     /// Parse a media expression of the form:
     ///
     /// ```
-    /// (media-feature: media-value)
+    /// media-feature: media-value
     /// ```
     ///
-    /// Only supports width and width ranges for now.
+    /// Only supports width ranges for now.
     pub fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let name = input.expect_ident_cloned()?;
-            input.expect_colon()?;
-            // TODO: Handle other media features
-            Ok(MediaFeatureExpression(match_ignore_ascii_case! { &name,
-                "min-width" => {
-                    ExpressionKind::Width(Range::Min(specified::Length::parse_non_negative(context, input)?))
-                },
-                "max-width" => {
-                    ExpressionKind::Width(Range::Max(specified::Length::parse_non_negative(context, input)?))
-                },
-                "width" => {
-                    ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
-                },
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
-            }))
+            Self::parse_in_parenthesis_block(context, input)
         })
+    }
+
+    /// Parse a media range expression where we've already consumed the
+    /// parenthesis.
+    pub fn parse_in_parenthesis_block<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let name = input.expect_ident_cloned()?;
+        input.expect_colon()?;
+        // TODO: Handle other media features
+        Ok(MediaFeatureExpression(match_ignore_ascii_case! { &name,
+            "min-width" => {
+                ExpressionKind::Width(Range::Min(specified::Length::parse_non_negative(context, input)?))
+            },
+            "max-width" => {
+                ExpressionKind::Width(Range::Max(specified::Length::parse_non_negative(context, input)?))
+            },
+            "width" => {
+                ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
+            },
+            _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
+        }))
     }
 
     /// Evaluate this expression and return whether it matches the current
