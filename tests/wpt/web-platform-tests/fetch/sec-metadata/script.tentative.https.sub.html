@@ -10,7 +10,7 @@
     t.add_cleanup(_ => header = null);
 
     assert_header_equals(header, {
-      "cause": "forced",
+      "cause": undefined,
       "destination": "script",
       "target": "subresource",
       "site": "same-origin"
@@ -25,7 +25,7 @@
     t.add_cleanup(_ => header = null);
 
     assert_header_equals(header, {
-      "cause": "forced",
+      "cause": undefined,
       "destination": "script",
       "target": "subresource",
       "site": "same-site"
@@ -40,7 +40,7 @@
     t.add_cleanup(_ => header = null);
 
     assert_header_equals(header, {
-      "cause": "forced",
+      "cause": undefined,
       "destination": "script",
       "target": "subresource",
       "site": "cross-site"

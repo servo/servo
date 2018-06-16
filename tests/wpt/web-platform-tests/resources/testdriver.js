@@ -129,7 +129,7 @@
          * https://github.com/WICG/page-lifecycle/blob/master/README.md|Lifecycle API
          * for Web Pages}
          *
-         * @returns {Promise} fullfilled after the freeze request is sent, or rejected
+         * @returns {Promise} fulfilled after the freeze request is sent, or rejected
          *                    in case the WebDriver command errors
          */
         freeze: function() {
@@ -139,7 +139,7 @@
 
     window.test_driver_internal = {
         /**
-         * Triggers a user-initated click
+         * Triggers a user-initiated click
          *
          * @param {Element} element - element to be clicked
          * @param {{x: number, y: number} coords - viewport coordinates to click at
@@ -150,7 +150,7 @@
         },
 
         /**
-         * Triggers a user-initated click
+         * Triggers a user-initiated click
          *
          * @param {Element} element - element to be clicked
          * @param {String} keys - keys to send to the element
@@ -163,7 +163,7 @@
         /**
          * Freeze the current page
          *
-         * @returns {Promise} fullfilled after freeze request is sent, otherwise
+         * @returns {Promise} fulfilled after freeze request is sent, otherwise
          * it gets rejected
          */
         freeze: function() {

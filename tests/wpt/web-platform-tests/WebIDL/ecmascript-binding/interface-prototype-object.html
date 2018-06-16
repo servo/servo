@@ -16,4 +16,12 @@ test(function() {
   assert_equals(Document.prototype[Symbol.toStringTag], "DocumentPrototype");
 }, "The class string of an interface prototype object is the concatenation of " +
    "the interface's identifier and the string 'Prototype'.");
+
+test(function() {
+  // https://heycam.github.io/webidl/#create-an-interface-prototype-object
+  assert_own_property(Element.prototype, Symbol.unscopables, "Element.prototype has @@unscopables.");
+  let unscopables = Element.prototype[Symbol.unscopables];
+  assert_equals(typeof unscopables, "object", "@@unscopables is an Object.");
+  assert_equals(Object.getPrototypeOf(unscopables), null, "@@unscopables's prototype is null.");
+}, "[Unscopable] extended attribute makes @@unscopables object on the prototype object, whose prototype is null.");
 </script>

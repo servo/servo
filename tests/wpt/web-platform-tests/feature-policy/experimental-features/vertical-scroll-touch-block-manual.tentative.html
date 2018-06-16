@@ -39,10 +39,10 @@ iframe {
 
   // Wait for the helper scripts to load.
   promise_test(async() => {
-    if (window.touch_scroll_api_ready)
+    if (window.input_api_ready)
       return Promise.resolve();
     await new Promise( (r) => {
-      window.resolve_on_touch_scroll_api_ready = r;
+      window.resolve_on_input_api_ready = r;
     });
 
   }, "Make sure input injection API is ready.");
@@ -231,7 +231,7 @@ iframe {
     assert_equals(
         new_scale_factor,
         current_scale_factor,
-        "Pinch zoom must be blocked.")
+        "Pinch zoom must be blocked.");
   }, "Verify that pinch zoom is blocked in frames with 'vertical-scroll' none'" +
      " where 'touchstart' is prevent defaulted.");
 </script>

@@ -2,22 +2,38 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <title>CSS Test (Selectors): :focus-visible always matches on texty input elements</title>
   <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    :focus-visible { background-color: rgb(128, 196, 128); }
+    :root {
+      --focus-background: hsl(50, 94%, 72%);
+      --focus-ring-color: rgb(59, 153, 252);
+    }
+
+    :focus-visible {
+      outline: var(--focus-ring-color) auto 5px;
+    }
+
+    * {
+      outline: 0;
+    }
+
+    :focus {
+      background-color: var(--focus-background);
+    }
   </style>
 </head>
 <body>
+  This test checks that <code>:focus-visible</code> always matches on <code>&lt;input&gt;</code> elements which take text input, regardless of focus mechanism.
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li><strong>Click</strong> each form element below to focus it.</li>
-    <li>If the element does not have a green background, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
+    <li>If the element does not have a blue outline, then the test result is FAILURE. If the element has a blue outline, then the test result is SUCCESS.</li>
   </ol>
-  <br />
+  <br>
   <div>
     <input data-tested="false" id="input1" value="Focus me."></input>
   </div>
@@ -70,8 +86,7 @@
     async_test(function(t) {
         function testNextTarget(e) {
             let el = e.target;
-            assert_equals(getComputedStyle(el).backgroundColor,
-                          "rgb(128, 196, 128)");
+            assert_equals(getComputedStyle(el).outlineColor, "rgb(59, 153, 252)");
             el.dataset.tested = true;
             let nextTarget = document.querySelector("[data-tested=false]");
             if (nextTarget) {

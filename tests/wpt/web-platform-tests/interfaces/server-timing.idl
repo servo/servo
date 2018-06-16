@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Server Timing" spec.
+// See: https://w3c.github.io/server-timing/
+
+[Exposed=(Window,Worker)]
+interface PerformanceServerTiming {
+    readonly attribute DOMString           name;
+    readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString           description;
+    [Default] object toJSON();
+};
+[Exposed=(Window,Worker)]
+partial interface PerformanceResourceTiming {
+    readonly attribute FrozenArray<PerformanceServerTiming> serverTiming;
+};

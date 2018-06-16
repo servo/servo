@@ -2,21 +2,36 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <title>CSS Test (Selectors): :focus-visible does not match on non-texty inputs</title>
   <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    :focus:not(:focus-visible) { background-color: rgb(128, 196, 128); }
-    label:focus-within:not(:focus-visible) { background-color: rgb(128, 196, 128); }
+    :root {
+      --focus-background: hsl(50, 94%, 72%);
+      --focus-ring-color: rgb(59, 153, 252);
+    }
+
+    :focus-visible {
+      outline: var(--focus-ring-color) auto 5px;
+    }
+
+    * {
+      outline: 0;
+    }
+
+    :focus {
+      background-color: var(--focus-background);
+    }
   </style>
 </head>
 <body>
+  This test checks that <code>:focus-visible</code> is <em>not</em> triggered by mouse focus on <code>&lt;input&gt;</code> elements which do not take text input.
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Click each element element below to focus it.</li>
-    <li>If the element does not have a green background, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
+    <li>If the element has a blue outline, then the test result is FAILURE. If the element does NOT have a blue outline, then the test result is SUCCESS.</li>
   </ol>
   <br />
   <div>
@@ -64,8 +79,7 @@
         document.querySelectorAll("[data-tested]").forEach((el) => {
             el.addEventListener("click", t.step_func((e) => {
                 let el = e.target;
-                assert_equals(getComputedStyle(el).backgroundColor,
-                              "rgb(128, 196, 128)");
+                assert_equals(getComputedStyle(el).outlineStyle, "none");
                 el.dataset.tested = true;
                 if (document.querySelector("[data-tested=false]")) {
                     mouseClickInTarget("[data-tested=false]");

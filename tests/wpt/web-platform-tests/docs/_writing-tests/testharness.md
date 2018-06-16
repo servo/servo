@@ -146,6 +146,10 @@ be made available by the framework:
     self.GLOBAL.isWindow()
     self.GLOBAL.isWorker()
 
+### Specifying a test title in auto-generated boilerplate tests
+
+Use `// META: title=This is the title of the test` at the beginning of the resource.
+
 ### Including other JavaScript resources in auto-generated boilerplate tests
 
 Use `// META: script=link/to/resource.js` at the beginning of the resource. For example,

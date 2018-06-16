@@ -37,22 +37,15 @@
     5.1.  addTrack
       4.  If connection's [[isClosed]] slot is true, throw an InvalidStateError.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
 
-      const track = tracks[0];
-
-      pc.close();
-      assert_throws('InvalidStateError', () => pc.addTrack(track, mediaStream))
-    });
+    pc.close();
+    assert_throws('InvalidStateError', () => pc.addTrack(track, stream))
   }, 'addTrack when pc is closed should throw InvalidStateError');
 
   /*
@@ -66,87 +59,69 @@
               transceiver be the result.
           4.  Add transceiver to connection's set of transceivers.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
 
-      const track = tracks[0];
-      const sender = pc.addTrack(track);
+    const sender = pc.addTrack(track);
 
-      assert_true(sender instanceof RTCRtpSender,
-        'Expect sender to be instance of RTCRtpSender');
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
 
-      assert_equals(sender.track, track,
-        `Expect sender's track to be the added track`);
+    assert_equals(sender.track, track,
+      `Expect sender's track to be the added track`);
 
-      const transceivers = pc.getTransceivers();
-      assert_equals(transceivers.length, 1,
-        'Expect only one transceiver with sender added');
+    const transceivers = pc.getTransceivers();
+    assert_equals(transceivers.length, 1,
+      'Expect only one transceiver with sender added');
 
-      const [transceiver] = transceivers;
-      assert_equals(transceiver.sender, sender);
+    const [transceiver] = transceivers;
+    assert_equals(transceiver.sender, sender);
 
-      assert_array_equals([sender], pc.getSenders(),
-        'Expect only one sender with given track added');
+    assert_array_equals([sender], pc.getSenders(),
+      'Expect only one sender with given track added');
 
-      const { receiver } = transceiver;
-      assert_equals(receiver.track.kind, 'audio');
-      assert_array_equals([transceiver.receiver], pc.getReceivers(),
-        'Expect only one receiver associated with transceiver added');
-    });
-  }, 'addTrack with single track argument and no mediaStream should succeed');
+    const { receiver } = transceiver;
+    assert_equals(receiver.track.kind, 'audio');
+    assert_array_equals([transceiver.receiver], pc.getReceivers(),
+      'Expect only one receiver associated with transceiver added');
+  }, 'addTrack with single track argument and no stream should succeed');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
 
-      const track = tracks[0];
-      const sender = pc.addTrack(track, mediaStream);
+    const sender = pc.addTrack(track, stream);
 
-      assert_true(sender instanceof RTCRtpSender,
-        'Expect sender to be instance of RTCRtpSender');
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
 
-      assert_equals(sender.track, track,
-        `Expect sender's track to be the added track`);
-    });
-  }, 'addTrack with single track argument and single mediaStream should succeed');
+    assert_equals(sender.track, track,
+      `Expect sender's track to be the added track`);
+  }, 'addTrack with single track argument and single stream should succeed');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
 
-      const track = tracks[0];
-      const mediaStream2 = new MediaStream([track]);
-      const sender = pc.addTrack(track, mediaStream, mediaStream2);
+    const stream2 = new MediaStream([track]);
+    const sender = pc.addTrack(track, stream, stream2);
 
-      assert_true(sender instanceof RTCRtpSender,
-        'Expect sender to be instance of RTCRtpSender');
+    assert_true(sender instanceof RTCRtpSender,
+      'Expect sender to be instance of RTCRtpSender');
 
-      assert_equals(sender.track, track,
-        `Expect sender's track to be the added track`);
-    });
-  }, 'addTrack with single track argument and multiple mediaStreams should succeed');
+    assert_equals(sender.track, track,
+      `Expect sender's track to be the added track`);
+  }, 'addTrack with single track argument and multiple streams should succeed');
 
   /*
     5.1.  addTrack
@@ -154,22 +129,15 @@
           If an RTCRtpSender for track already exists in senders, throw an
           InvalidAccessError.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
 
-      const track = tracks[0];
-
-      pc.addTrack(track, mediaStream);
-      assert_throws('InvalidAccessError', () => pc.addTrack(track, mediaStream));
-    });
+    pc.addTrack(track, stream);
+    assert_throws('InvalidAccessError', () => pc.addTrack(track, stream));
   }, 'Adding the same track multiple times should throw InvalidAccessError');
 
   /*
@@ -190,8 +158,9 @@
           3.  Enable sending direction on the RTCRtpTransceiver associated
               with sender.
    */
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     const transceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
     assert_equals(transceiver.sender.track, null);
@@ -204,11 +173,11 @@
     assert_equals(sender.track, track);
     assert_equals(transceiver.direction, 'sendrecv');
     assert_array_equals([sender], pc.getSenders());
-
   }, 'addTrack with existing sender with null track, same kind, and recvonly direction should reuse sender');
 
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     const transceiver = pc.addTransceiver('audio');
     assert_equals(transceiver.sender.track, null);
@@ -218,22 +187,49 @@
     const sender = pc.addTrack(track);
 
     assert_equals(sender.track, track);
+    assert_equals(sender, transceiver.sender);
+  }, 'addTrack with existing sender that has not been used to send should reuse the sender');
+
+  promise_test(async t => {
+    const caller = new RTCPeerConnection();
+    t.add_cleanup(() => caller.close());
+    const callee = new RTCPeerConnection();
+    t.add_cleanup(() => callee.close());
+
+    const transceiver =
+        caller.addTransceiver(generateMediaStreamTrack('audio'));
+    {
+      const offer = await caller.createOffer();
+      await caller.setLocalDescription(offer);
+      await callee.setRemoteDescription(offer);
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      await caller.setRemoteDescription(answer);
+    }
+    assert_equals(transceiver.currentDirection, 'sendonly');
+
+    caller.removeTrack(transceiver.sender);
+    {
+      const offer = await caller.createOffer();
+      await caller.setLocalDescription(offer);
+      await callee.setRemoteDescription(offer);
+      const answer = await callee.createAnswer();
+      await callee.setLocalDescription(answer);
+      await caller.setRemoteDescription(answer);
+    }
+    assert_equals(transceiver.direction, 'recvonly');
+    assert_equals(transceiver.currentDirection, 'inactive');
+
+    // |transceiver.sender| is currently not used for sending, but it should not
+    // be reused because it has been used for sending before.
+    const sender = caller.addTrack(generateMediaStreamTrack('audio'));
+    assert_true(sender != null);
     assert_not_equals(sender, transceiver.sender);
+  }, 'addTrack with existing sender that has been used to send should create new sender');
 
-    const senders = pc.getSenders();
-    assert_equals(senders.length, 2,
-      'Expect 2 senders added to connection');
-
-    assert_true(senders.includes(sender),
-      'Expect senders list to include sender');
-
-    assert_true(senders.includes(transceiver.sender),
-      `Expect senders list to include first transceiver's sender`);
-
-  }, 'addTrack with existing sender with null track, same kind, and sendrecv direction should create new sender');
-
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
 
     const transceiver = pc.addTransceiver('video', { direction: 'recvonly' });
     assert_equals(transceiver.sender.track, null);
@@ -254,7 +250,6 @@
 
     assert_true(senders.includes(transceiver.sender),
       `Expect senders list to include first transceiver's sender`);
-
   }, 'addTrack with existing sender with null track, different kind, and recvonly direction should create new sender');
 
   /*
