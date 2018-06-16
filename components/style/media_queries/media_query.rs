@@ -12,9 +12,10 @@ use parser::ParserContext;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use str::string_as_ascii_lowercase;
-use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use super::MediaFeatureExpression;
+use style_traits::{CssWriter, ParseError, ToCss};
+use super::media_condition::MediaCondition;
 use values::CustomIdent;
+
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
@@ -65,8 +66,9 @@ pub struct MediaQuery {
     pub qualifier: Option<Qualifier>,
     /// The media type for this query, that can be known, unknown, or "all".
     pub media_type: MediaQueryType,
-    /// The set of range expressions that this media query contains.
-    pub expressions: Vec<MediaFeatureExpression>,
+    /// The condition that this media query contains. This cannot have `or`
+    /// in the first level.
+    pub condition: Option<MediaCondition>,
 }
 
 impl ToCss for MediaQuery {
@@ -86,28 +88,23 @@ impl ToCss for MediaQuery {
                 //
                 // Otherwise, we'd serialize media queries like "(min-width:
                 // 40px)" in "all (min-width: 40px)", which is unexpected.
-                if self.qualifier.is_some() || self.expressions.is_empty() {
+                if self.qualifier.is_some() || self.condition.is_none() {
                     dest.write_str("all")?;
                 }
             },
             MediaQueryType::Concrete(MediaType(ref desc)) => desc.to_css(dest)?,
         }
 
-        if self.expressions.is_empty() {
-            return Ok(());
-        }
+        let condition = match self.condition {
+            Some(ref c) => c,
+            None => return Ok(()),
+        };
 
         if self.media_type != MediaQueryType::All || self.qualifier.is_some() {
             dest.write_str(" and ")?;
         }
 
-        self.expressions[0].to_css(dest)?;
-
-        for expr in self.expressions.iter().skip(1) {
-            dest.write_str(" and ")?;
-            expr.to_css(dest)?;
-        }
-        Ok(())
+        condition.to_css(dest)
     }
 }
 
@@ -118,7 +115,7 @@ impl MediaQuery {
         Self {
             qualifier: Some(Qualifier::Not),
             media_type: MediaQueryType::All,
-            expressions: vec![],
+            condition: None,
         }
     }
 
@@ -129,40 +126,34 @@ impl MediaQuery {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<MediaQuery, ParseError<'i>> {
-        let mut expressions = vec![];
+        if let Ok(condition) = input.try(|i| MediaCondition::parse(context, i)) {
+            return Ok(Self {
+                qualifier: None,
+                media_type: MediaQueryType::All,
+                condition: Some(condition),
+            })
+        }
 
         let qualifier = input.try(Qualifier::parse).ok();
-        let media_type = match input.try(|i| i.expect_ident_cloned()) {
-            Ok(ident) => MediaQueryType::parse(&*ident).map_err(|()| {
-                input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone()))
-            })?,
-            Err(_) => {
-                // Media type is only optional if qualifier is not specified.
-                if qualifier.is_some() {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-                }
-
-                // Without a media type, require at least one expression.
-                expressions.push(MediaFeatureExpression::parse(context, input)?);
-
-                MediaQueryType::All
-            },
+        let media_type = {
+            let location = input.current_source_location();
+            let ident = input.expect_ident()?;
+            match MediaQueryType::parse(&ident) {
+                Ok(t) => t,
+                Err(..) => return Err(location.new_custom_error(
+                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
+                ))
+            }
         };
 
-        // Parse any subsequent expressions
-        loop {
-            if input
-                .try(|input| input.expect_ident_matching("and"))
-                .is_err()
-            {
-                return Ok(MediaQuery {
-                    qualifier,
-                    media_type,
-                    expressions,
-                });
-            }
-            expressions.push(MediaFeatureExpression::parse(context, input)?)
-        }
+        let condition =
+            if input.try(|i| i.expect_ident_matching("and")).is_ok() {
+                Some(MediaCondition::parse_disallow_or(context, input)?)
+            } else {
+                None
+            };
+
+        Ok(Self { qualifier, media_type, condition })
     }
 }
 
