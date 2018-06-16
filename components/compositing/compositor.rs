@@ -18,7 +18,6 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId};
 use net_traits::image::base::Image;
 #[cfg(feature = "gleam")]
 use net_traits::image::base::PixelFormat;
-use nonzero::NonZeroU32;
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, ScrollState, TouchEventType, TouchId};
@@ -30,6 +29,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::{File, create_dir_all};
 use std::io::Write;
+use std::num::NonZeroU32;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::Instant;

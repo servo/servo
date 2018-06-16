@@ -11,15 +11,11 @@ path = "lib.rs"
 test = false
 doctest = false
 
-[features]
-unstable = ["nonzero/unstable"]
-
 [dependencies]
 bitflags = "1.0"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
-nonzero = {path = "../nonzero"}
-serde = "1.0.14"
+serde = "1.0.60"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [dev-dependencies]

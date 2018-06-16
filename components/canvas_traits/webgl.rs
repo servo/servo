@@ -4,9 +4,9 @@
 
 use euclid::Size2D;
 use gleam::gl;
-use nonzero::NonZeroU32;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
+use std::num::NonZeroU32;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
 /// Sender type used in WebGLCommands.

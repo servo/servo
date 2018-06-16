@@ -14,4 +14,3 @@ doctest = false
 [dependencies]
 lazy_static = "1"
 log = "0.4"
-nonzero = {path = "../nonzero"}
