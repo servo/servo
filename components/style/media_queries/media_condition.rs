@@ -8,7 +8,8 @@
 
 use cssparser::{Parser, Token};
 use parser::ParserContext;
-use style_traits::ParseError;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ParseError, ToCss};
 
 use super::MediaFeatureExpression;
 
@@ -31,6 +32,39 @@ pub enum MediaCondition {
     Operation(Box<[MediaCondition]>, Operator),
     /// A condition wrapped in parenthesis.
     InParens(Box<MediaCondition>),
+}
+
+impl ToCss for MediaCondition {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match *self {
+            // NOTE(emilio): MediaFeatureExpression already includes the
+            // parenthesis.
+            MediaCondition::Feature(ref f) => f.to_css(dest),
+            MediaCondition::Not(ref c) => {
+                dest.write_str("not ")?;
+                c.to_css(dest)
+            }
+            MediaCondition::InParens(ref c) => {
+                dest.write_char('(')?;
+                c.to_css(dest)?;
+                dest.write_char(')')
+            }
+            MediaCondition::Operation(ref list, op) => {
+                let mut iter = list.iter();
+                iter.next().unwrap().to_css(dest)?;
+                for item in iter {
+                    dest.write_char(' ')?;
+                    op.to_css(dest)?;
+                    dest.write_char(' ')?;
+                    item.to_css(dest)?;
+                }
+                Ok(())
+            }
+        }
+    }
 }
 
 impl MediaCondition {
