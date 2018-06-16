@@ -82,14 +82,13 @@ GitHub.
 
 Pull Requests are automatically labeled based on the directory the
 files they change are in; there are also comments added automatically
-to notify a number of people: this list of people comes from OWNERS
+to notify a number of people: this list of people comes from META.yml
 files in those same directories and their parents (i.e., they work
-recursively: `a/OWNERS` will get notified for `a/foo.html` and
+recursively: `a/META.yml` will get notified for `a/foo.html` and
 `a/b/bar.html`).
 
 If you want to be notified about changes to tests in a directory, feel
-free to add yourself to the OWNERS file: there's no requirement to own
-anything as a result!
+free to add yourself to the META.yml file!
 
 
 ## Local Setup

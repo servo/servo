@@ -189,3 +189,6 @@
 == object-position-svg-002i.html object-position-svg-002-ref.html
 == object-position-svg-002o.html object-position-svg-002-ref.html
 == object-position-svg-002p.html object-position-svg-002-ref.html
+
+# Tests for gradient color stops with 'currentcolor'
+== color-stop-currentcolor.html color-stop-currentcolor-ref.html

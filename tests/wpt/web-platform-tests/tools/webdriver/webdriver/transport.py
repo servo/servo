@@ -144,6 +144,7 @@ class HTTPWireProtocol(object):
 
         if headers is None:
             headers = {}
+        headers.update({'Connection': 'keep-alive'})
 
         url = self.url(uri)
 

@@ -185,7 +185,7 @@ In the example above, `foo()` returns a Promise that resolves with the string
 a resolve reaction that verifies the returned value.
 
 Note that in the promise chain constructed in `test_function` assertions don't
-need to wrapped in `step` or `step_func` calls.
+need to be wrapped in `step` or `step_func` calls.
 
 Unlike Asynchronous Tests, Promise Tests don't start running until after the
 previous Promise Test finishes.

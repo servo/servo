@@ -1,0 +1,38 @@
+<!doctype html>
+<head>
+<meta charset=utf-8>
+<title>Modify HTMLScriptElement's text after #prepare-a-script</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-a-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+var t = async_test("Modify inline script element's text " +
+                   "after prepare-a-script before evaluation");
+</script>
+
+<!-- This is "a style sheet that is blocking scripts" and thus ... -->
+<link rel="stylesheet" href="resources/slow.py"></link>
+
+<script src="resources/script-text-modifications.py" async></script>
+
+<!-- This inline script becomes a parser-blocking script, and thus
+the async script above is evaluated after script0 is inserted into DOM,
+prepare-a-script'ed, and before its evaluation. -->
+<script id="script0">
+t.step(() => {
+    // When this is evaluated after the stylesheet is loaded,
+    // script0's innerText is modified by the async script above,
+    // but the evaluated script is still the original script here,
+    // not what is overwritten, because "child text content" is taken in
+    // #prepare-a-script and passed to "creating a classic script".
+    var s = document.getElementById('script0');
+    assert_equals(s.innerText,
+                  't.unreached_func("This should not be evaluated")();',
+                  "<script>'s innerText should be already modified");
+    assert_equals(s.text,
+                  't.unreached_func("This should not be evaluated")();',
+                  "<script>'s text should be already modified");
+    t.done();
+  });
+</script>

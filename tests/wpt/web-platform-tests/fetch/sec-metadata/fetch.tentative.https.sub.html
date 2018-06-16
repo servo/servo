@@ -8,7 +8,7 @@
         .then(r => r.json())
         .then(j => {
           assert_header_equals(j.header, {
-            "cause": "forced",
+            "cause": undefined,
             "destination": "\"\"",
             "target": "subresource",
             "site": "same-origin"
@@ -21,7 +21,7 @@
         .then(r => r.json())
         .then(j => {
           assert_header_equals(j.header, {
-            "cause": "forced",
+            "cause": undefined,
             "destination": "\"\"",
             "target": "subresource",
             "site": "same-site"
@@ -34,7 +34,7 @@
         .then(r => r.json())
         .then(j => {
           assert_header_equals(j.header, {
-            "cause": "forced",
+            "cause": undefined,
             "destination": "\"\"",
             "target": "subresource",
             "site": "cross-site"

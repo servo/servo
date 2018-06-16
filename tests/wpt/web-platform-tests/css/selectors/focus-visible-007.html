@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>CSS Test (Selectors): Keyboard focus enables :focus-visible</title>
+  <title>CSS Test (Selectors): Keyboard use triggers :focus-visible</title>
   <link rel="author" title="Alice Boxhall" href="aboxhall@chromium.org" />
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
@@ -10,16 +10,38 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
-    body[data-hadkeydown] #one:focus-visible { background-color: rgb(128, 196, 128); }
-    body:not([data-hadkeydown]) #one:focus-visible { background-color: rgb(196, 128, 128); }
+    :root {
+      --focus-background: hsl(50, 94%, 72%);
+      --focus-ring-color: rgb(59, 153, 252);
+    }
 
-    body:not([data-hadkeydown]) #two:focus-visible { background-color: rgb(196, 128, 128); }
-    body:not([data-hadkeydown]) #two:focus:not(:focus-visible) {
-      background-color: rgb(128, 196, 128);
+    :focus-visible {
+      outline: var(--focus-ring-color) auto 5px;
+    }
+
+    * {
+      outline-width: 0;
+    }
+
+    :focus {
+      background-color: var(--focus-background);
     }
   </style>
 </head>
 <body>
+  This test checks that using the keyboard in a way that does not move focus still causes <code>:focus-visible</code> matching to trigger.
+  <ol id="instructions">
+    <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
+    <li>Use the mouse to focus the element below that says "Click me first."</li>
+    <li>If the element has a blue outline, then the test result is FAILURE.</li>
+    <li>Press the SHIFT key.</li>
+    <li>If the element now DOES NOT have a blue outline, then the test result is FAILURE..</li>
+    <li>Use the mouse to click the element that says "Click me first." a second time</li>
+    <li>If the element now DOES NOT still have a blue outline, then the test result is FAILURE.</li>
+    <li>Use the mouse to click the element below that says "Click me second."</li>
+        <li>If the element does not have a blue outline then the test result is SUCCESS.</li>
+  </ol>
+
   <div id="one" tabindex="0">Click me first.</div>
   <div id="two" tabindex="0">Click me second.</div>
   <script>
@@ -54,7 +76,7 @@
         });
 
         const test_modality_change = t.step_func(() => {
-          assert_equals(getComputedStyle(one).backgroundColor, "rgb(128, 196, 128)");
+          assert_equals(getComputedStyle(one).outlineColor, "rgb(59, 153, 252)");
           tested_modality_change = true;
           one.removeEventListener("keyup", test_modality_change);
           one.addEventListener("click", test_modality_unchanged_by_mouse_click);
@@ -63,7 +85,7 @@
 
         const test_modality_unchanged_by_mouse_click = t.step_func(() => {
           assert_true(tested_modality_change);
-          assert_equals(getComputedStyle(one).backgroundColor, "rgb(128, 196, 128)");
+          assert_equals(getComputedStyle(one).outlineColor, "rgb(59, 153, 252)");
           tested_modality_unchanged_by_mouse_click = true;
           one.removeEventListener("click", test_modality_unchanged_by_mouse_click);
           two.addEventListener("focus", test_mouse_focus_after_modality_change);
@@ -73,7 +95,7 @@
         const test_mouse_focus_after_modality_change = t.step_func(() => {
           assert_true(tested_modality_unchanged_by_mouse_click);
           assert_false("hadkeydown" in document.body.dataset);
-          assert_equals(getComputedStyle(two).backgroundColor, "rgb(128, 196, 128)");
+          assert_equals(getComputedStyle(two).outlineColor, "rgb(59, 153, 252)");
           tested_mouse_focus_after_modality_change = true;
           t.done();
         });

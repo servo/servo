@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Auto-positioned out-of-flow positioned box that would have been the sole piece of content on a second line, had it not been out-of-flow positioned</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#abs-non-replaced-height" title="10.6.4 Absolutely positioned, non-replaced elements">
+<link rel="match" href="hypothetical-inline-alone-on-second-line-ref.html" />
+<p>The second line should be just below the first line.</p>
+<span style="padding-left:100px;">
+  Line 1<br>
+  <span style="position:absolute; padding-left:100px;">Line 2</span>
+</span>
