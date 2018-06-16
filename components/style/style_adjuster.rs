@@ -19,6 +19,14 @@ use properties::longhands::position::computed_value::T as Position;
 /// NOTE(emilio): If new adjustments are introduced that depend on reset
 /// properties of the parent, you may need tweaking the
 /// `ChildCascadeRequirement` code in `matching.rs`.
+///
+/// NOTE(emilio): Also, if new adjustments are introduced that break the
+/// following invariant:
+///
+///   Given same tag name, namespace, rules and parent style, two elements would
+///   end up with exactly the same style.
+///
+/// Then you need to adjust the lookup_by_rules conditions in the sharing cache.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
 }
