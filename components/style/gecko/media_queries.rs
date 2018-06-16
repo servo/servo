@@ -292,16 +292,16 @@ enum RangeOrOperator {
     Operator(Operator),
 }
 
-/// A expression for gecko contains a reference to the media feature, the value
-/// the media query contained, and the range to evaluate.
+/// A range expression for gecko contains a reference to the media feature, the
+/// value the media query contained, and the range to evaluate.
 #[derive(Clone, Debug, MallocSizeOf)]
-pub struct Expression {
+pub struct MediaFeatureExpression {
     feature: &'static nsMediaFeature,
     value: Option<MediaExpressionValue>,
     range_or_operator: Option<RangeOrOperator>,
 }
 
-impl ToCss for Expression {
+impl ToCss for MediaFeatureExpression {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: fmt::Write,
@@ -341,8 +341,8 @@ impl ToCss for Expression {
     }
 }
 
-impl PartialEq for Expression {
-    fn eq(&self, other: &Expression) -> bool {
+impl PartialEq for MediaFeatureExpression {
+    fn eq(&self, other: &Self) -> bool {
         self.feature.mName == other.feature.mName && self.value == other.value &&
             self.range_or_operator == other.range_or_operator
     }
@@ -379,7 +379,10 @@ pub enum MediaExpressionValue {
 }
 
 impl MediaExpressionValue {
-    fn from_css_value(for_expr: &Expression, css_value: &nsCSSValue) -> Option<Self> {
+    fn from_css_value(
+        for_expr: &MediaFeatureExpression,
+        css_value: &nsCSSValue,
+    ) -> Option<Self> {
         // NB: If there's a null value, that means that we don't support the
         // feature.
         if css_value.mUnit == nsCSSUnit::eCSSUnit_Null {
@@ -437,7 +440,7 @@ impl MediaExpressionValue {
 }
 
 impl MediaExpressionValue {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>, for_expr: &Expression) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>, for_expr: &MediaFeatureExpression) -> fmt::Result
     where
         W: fmt::Write,
     {
@@ -615,7 +618,7 @@ fn consume_operation_or_colon(
     }))
 }
 
-impl Expression {
+impl MediaFeatureExpression {
     /// Trivially construct a new expression.
     fn new(
         feature: &'static nsMediaFeature,
@@ -746,11 +749,7 @@ impl Expression {
                         ));
                     }
 
-                    return Ok(Expression::new(
-                        feature,
-                        None,
-                        None,
-                    ));
+                    return Ok(Self::new(feature, None, None));
                 }
                 Ok(operator) => operator,
             };
@@ -785,7 +784,7 @@ impl Expression {
                         .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
                 })?;
 
-            Ok(Expression::new(feature, Some(value), range_or_operator))
+            Ok(Self::new(feature, Some(value), range_or_operator))
         })
     }
 

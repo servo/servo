@@ -13,7 +13,7 @@ use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use str::string_as_ascii_lowercase;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-use super::Expression;
+use super::MediaFeatureExpression;
 use values::CustomIdent;
 
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
@@ -65,8 +65,8 @@ pub struct MediaQuery {
     pub qualifier: Option<Qualifier>,
     /// The media type for this query, that can be known, unknown, or "all".
     pub media_type: MediaQueryType,
-    /// The set of expressions that this media query contains.
-    pub expressions: Vec<Expression>,
+    /// The set of range expressions that this media query contains.
+    pub expressions: Vec<MediaFeatureExpression>,
 }
 
 impl ToCss for MediaQuery {
@@ -143,7 +143,7 @@ impl MediaQuery {
                 }
 
                 // Without a media type, require at least one expression.
-                expressions.push(Expression::parse(context, input)?);
+                expressions.push(MediaFeatureExpression::parse(context, input)?);
 
                 MediaQueryType::All
             },
@@ -161,7 +161,7 @@ impl MediaQuery {
                     expressions,
                 });
             }
-            expressions.push(Expression::parse(context, input)?)
+            expressions.push(MediaFeatureExpression::parse(context, input)?)
         }
     }
 }
