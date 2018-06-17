@@ -18,10 +18,10 @@ interface HTMLTextAreaElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
   // [CEReactions]
   //          attribute DOMString inputMode;
-  // [CEReactions]
-  //          attribute long maxLength;
-  // [CEReactions]
-  //          attribute long minLength;
+  [CEReactions, SetterThrows]
+           attribute long maxLength;
+  [CEReactions, SetterThrows]
+           attribute long minLength;
            attribute DOMString name;
   [CEReactions]
            attribute DOMString placeholder;
