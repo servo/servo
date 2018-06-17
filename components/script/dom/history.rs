@@ -129,7 +129,7 @@ impl History {
             let event = HashChangeEvent::new(
                 &self.window,
                 atom!("hashchange"),
-                true,
+                false,
                 false,
                 old_url.into_string(),
                 url.into_string());
