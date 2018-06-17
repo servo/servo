@@ -1773,6 +1773,7 @@ policies and contribution forms [3].
         this.remote = remote;
         this.message_target = message_target;
         this.message_handler = function(message) {
+            console.log(message.data.type);
             var passesFilter = !message_filter || message_filter(message);
             if (this_obj.running && message.data && passesFilter &&
                 (message.data.type in this_obj.message_handlers)) {
