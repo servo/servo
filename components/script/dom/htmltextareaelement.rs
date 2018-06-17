@@ -44,6 +44,8 @@ pub struct HTMLTextAreaElement {
     #[ignore_malloc_size_of = "#7193"]
     textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
     placeholder: DomRefCell<DOMString>,
+    maxlength: Cell<i32>,
+    minlength: Cell<i32>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -110,6 +112,9 @@ static DEFAULT_COLS: u32 = 20;
 // https://html.spec.whatwg.org/multipage/#attr-textarea-rows-value
 static DEFAULT_ROWS: u32 = 2;
 
+static DEFAULT_MAX_LENGTH: i32 = -1;
+static DEFAULT_MIN_LENGTH: i32 = -1;
+
 impl HTMLTextAreaElement {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
@@ -124,6 +129,8 @@ impl HTMLTextAreaElement {
             textinput: DomRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
             value_dirty: Cell::new(false),
+            maxlength: Cell::new(DEFAULT_MAX_LENGTH),
+            minlength: Cell::new(DEFAULT_MIN_LENGTH),
             form_owner: Default::default(),
         }
     }
@@ -191,6 +198,18 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-placeholder
     make_setter!(SetPlaceholder, "placeholder");
+
+    // https://html.spec.whatwg.org/multipage/#attr-textarea-maxlength
+    make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#attr-textarea-maxlength
+    make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#attr-textarea-minlength
+    make_int_getter!(MinLength, "minlength", DEFAULT_MIN_LENGTH);
+
+    // https://html.spec.whatwg.org/multipage/#attr-textarea-minlength
+    make_limited_int_setter!(SetMinLength, "minlength", DEFAULT_MIN_LENGTH);
 
     // https://html.spec.whatwg.org/multipage/#attr-textarea-readonly
     make_bool_getter!(ReadOnly, "readonly");
@@ -369,6 +388,34 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                 }
             },
+            local_name!("maxlength") => {
+                match *attr.value() {
+                    AttrValue::Int(_, value) => {
+                        let mut textinput = self.textinput.borrow_mut();
+
+                        if value < 0 {
+                            textinput.set_max_length(None);
+                        } else {
+                            textinput.set_max_length(Some(value as usize))
+                        }
+                    },
+                    _ => panic!("Expected an AttrValue::Int"),
+                }
+            },
+            local_name!("minlength") => {
+                match *attr.value() {
+                    AttrValue::Int(_, value) => {
+                        let mut textinput = self.textinput.borrow_mut();
+
+                        if value < 0 {
+                            textinput.set_min_length(None);
+                        } else {
+                            textinput.set_min_length(Some(value as usize))
+                        }
+                    },
+                    _ => panic!("Expected an AttrValue::Int"),
+                }
+            },
             local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
@@ -409,6 +456,8 @@ impl VirtualMethods for HTMLTextAreaElement {
         match *name {
             local_name!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
             local_name!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),
+            local_name!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
+            local_name!("minlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
