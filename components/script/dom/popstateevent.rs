@@ -71,7 +71,7 @@ impl PopStateEvent {
     pub fn dispatch_jsval(target: &EventTarget,
                           window: &Window,
                           state: HandleValue) {
-        let event = PopStateEvent::new(window, atom!("popstate"), true, false, state);
+        let event = PopStateEvent::new(window, atom!("popstate"), false, false, state);
         event.upcast::<Event>().fire(target);
     }
 }
