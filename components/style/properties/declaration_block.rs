@@ -564,51 +564,71 @@ impl PropertyDeclarationBlock {
         true
     }
 
+    /// Returns the first declaration that would be removed by removing
+    /// `property`.
+    #[inline]
+    pub fn first_declaration_to_remove(
+        &self,
+        property: &PropertyId,
+    ) -> Option<usize> {
+        if let Some(id) = property.longhand_id() {
+            if !self.longhands.contains(id) {
+                return None;
+            }
+        }
+
+        self.declarations.iter().position(|declaration| {
+            declaration.id().is_or_is_longhand_of(property)
+        })
+    }
+
+    /// Removes a given declaration at a given index.
+    #[inline]
+    fn remove_declaration_at(&mut self, i: usize) {
+        {
+            let id = self.declarations[i].id();
+            if let PropertyDeclarationId::Longhand(id) = id {
+                self.longhands.remove(id);
+            }
+            self.declarations_importance.remove(i);
+        }
+        self.declarations.remove(i);
+    }
+
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
-    /// Returns whether any declaration was actually removed.
-    pub fn remove_property<C>(
+    /// `first_declaration` needs to be the result of
+    /// `first_declaration_to_remove`.
+    #[inline]
+    pub fn remove_property(
         &mut self,
         property: &PropertyId,
-        mut before_change_callback: C,
-    ) -> bool
-    where
-        C: FnMut(&Self),
-    {
-        let longhand_id = property.longhand_id();
-        if let Some(id) = longhand_id {
-            if !self.longhands.contains(id) {
-                return false
-            }
-        }
-        let mut removed_at_least_one = false;
-        let mut i = 0;
+        first_declaration: usize,
+    ) {
+        debug_assert_eq!(
+            Some(first_declaration),
+            self.first_declaration_to_remove(property)
+        );
+        debug_assert!(self.declarations[first_declaration].id().is_or_is_longhand_of(property));
+
+        self.remove_declaration_at(first_declaration);
+
+        let shorthand = match property.as_shorthand() {
+            Ok(s) => s,
+            Err(_longhand_or_custom) => return,
+        };
+
+        let mut i = first_declaration;
         let mut len = self.len();
         while i < len {
-            {
-                let id = self.declarations[i].id();
-                if !id.is_or_is_longhand_of(property) {
-                    i += 1;
-                    continue;
-                }
-
-                if !removed_at_least_one {
-                    before_change_callback(&*self);
-                }
-                removed_at_least_one = true;
-                if let PropertyDeclarationId::Longhand(id) = id {
-                    self.longhands.remove(id);
-                }
-                self.declarations_importance.remove(i);
+            if !self.declarations[i].id().is_longhand_of(shorthand) {
+                i += 1;
+                continue;
             }
-            self.declarations.remove(i);
+
+            self.remove_declaration_at(i);
             len -= 1;
         }
-
-        if longhand_id.is_some() {
-            debug_assert!(removed_at_least_one);
-        }
-        removed_at_least_one
     }
 
     /// Take a declaration block known to contain a single property and serialize it.
@@ -725,9 +745,7 @@ impl PropertyDeclarationBlock {
 
         builder.build()
     }
-}
 
-impl PropertyDeclarationBlock {
     /// Like the method on ToCss, but without the type parameter to avoid
     /// accidentally monomorphizing this large function multiple times for
     /// different writers.
