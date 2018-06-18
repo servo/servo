@@ -626,6 +626,7 @@ ${helpers.single_keyword("-moz-appearance",
                          gecko_ffi_name="mAppearance",
                          gecko_constant_prefix="ThemeWidgetType_NS_THEME",
                          products="gecko",
+                         alias="-webkit-appearance:layout.css.webkit-appearance.enabled",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
                          animation_value_type="discrete")}
 

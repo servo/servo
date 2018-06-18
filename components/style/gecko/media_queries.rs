@@ -23,7 +23,7 @@ use properties::ComputedValues;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicIsize, AtomicUsize, Ordering};
-use str::starts_with_ignore_ascii_case;
+use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use string_cache::Atom;
 use style_traits::{CSSPixel, CssWriter, DevicePixel};
 use style_traits::{ParseError, StyleParseErrorKind, ToCss};
@@ -118,8 +118,7 @@ impl Device {
 
     /// Set the font size of the root element (for rem)
     pub fn set_root_font_size(&self, size: Au) {
-        self.root_font_size
-            .store(size.0 as isize, Ordering::Relaxed)
+        self.root_font_size.store(size.0 as isize, Ordering::Relaxed)
     }
 
     /// Sets the body text color for the "inherit color from body" quirk.
@@ -229,7 +228,7 @@ impl Device {
 }
 
 /// The kind of matching that should be performed on a media feature value.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
 pub enum Range {
     /// At least the specified value.
     Min,
@@ -241,7 +240,7 @@ pub enum Range {
 
 /// A expression for gecko contains a reference to the media feature, the value
 /// the media query contained, and the range to evaluate.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct Expression {
     feature: &'static nsMediaFeature,
     value: Option<MediaExpressionValue>,
@@ -294,7 +293,7 @@ impl PartialEq for Expression {
 /// If the first, this would need to store the relevant values.
 ///
 /// See: https://github.com/w3c/csswg-drafts/issues/1968
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum MediaExpressionValue {
     /// A length.
     Length(Length),
@@ -596,7 +595,7 @@ impl Expression {
                         Range::Equal
                     };
 
-                    let atom = Atom::from(feature_name);
+                    let atom = Atom::from(string_as_ascii_lowercase(feature_name));
                     match find_feature(|f| atom.as_ptr() == unsafe { *f.mName as *mut _ }) {
                         Some(f) => Ok((f, range)),
                         None => Err(()),

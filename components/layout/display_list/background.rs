@@ -20,6 +20,7 @@ use style::computed_values::background_attachment::single_value::T as Background
 use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::background_origin::single_value::T as BackgroundOrigin;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
+use style::properties::ComputedValues;
 use style::properties::style_structs::{self, Background};
 use style::values::Either;
 use style::values::computed::{Angle, GradientItem, BackgroundSize as ComputedBackgroundSize};
@@ -429,7 +430,11 @@ fn convert_ellipse_size_keyword(
     }
 }
 
-fn convert_gradient_stops(gradient_items: &[GradientItem], total_length: Au) -> Vec<GradientStop> {
+fn convert_gradient_stops(
+    style: &ComputedValues,
+    gradient_items: &[GradientItem],
+    total_length: Au,
+) -> Vec<GradientStop> {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
 
     // Only keep the color stops, discard the color interpolation hints.
@@ -497,8 +502,8 @@ fn convert_gradient_stops(gradient_items: &[GradientItem], total_length: Au) -> 
                         .unwrap();
                     let end_offset = position_to_offset(end_stop.position.unwrap(), total_length);
                     stop_run = Some(StopRun {
-                        start_offset: start_offset,
-                        end_offset: end_offset,
+                        start_offset,
+                        end_offset,
                         start_index: i - 1,
                         stop_count: end_index,
                     })
@@ -518,7 +523,7 @@ fn convert_gradient_stops(gradient_items: &[GradientItem], total_length: Au) -> 
         assert!(offset.is_finite());
         stops.push(GradientStop {
             offset: offset,
-            color: stop.color.to_layout(),
+            color: style.resolve_color(stop.color).to_layout(),
         })
     }
     stops
@@ -533,6 +538,7 @@ fn as_gradient_extend_mode(repeating: bool) -> ExtendMode {
 }
 
 pub fn convert_linear_gradient(
+    style: &ComputedValues,
     size: Size2D<Au>,
     stops: &[GradientItem],
     direction: LineDirection,
@@ -581,19 +587,20 @@ pub fn convert_linear_gradient(
     // This is the length of the gradient line.
     let length = Au::from_f32_px((delta.x.to_f32_px() * 2.0).hypot(delta.y.to_f32_px() * 2.0));
 
-    let stops = convert_gradient_stops(stops, length);
+    let stops = convert_gradient_stops(style, stops, length);
 
     let center = Point2D::new(size.width / 2, size.height / 2);
 
     Gradient {
         start_point: (center - delta).to_layout(),
         end_point: (center + delta).to_layout(),
-        stops: stops,
+        stops,
         extend_mode: as_gradient_extend_mode(repeating),
     }
 }
 
 pub fn convert_radial_gradient(
+    style: &ComputedValues,
     size: Size2D<Au>,
     stops: &[GradientItem],
     shape: EndingShape,
@@ -620,7 +627,7 @@ pub fn convert_radial_gradient(
         },
     };
 
-    let stops = convert_gradient_stops(stops, radius.width);
+    let stops = convert_gradient_stops(style, stops, radius.width);
 
     RadialGradient {
         center: center.to_layout(),

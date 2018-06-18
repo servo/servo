@@ -29,7 +29,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
 use style::attr::AttrValue;
-use style::media_queries::parse_media_query_list;
+use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{CssRuleType, Stylesheet};
@@ -277,12 +277,21 @@ impl HTMLLinkElement {
         let mut input = ParserInput::new(&mq_str);
         let mut css_parser = CssParser::new(&mut input);
         let doc_url = document.url();
-        let context = CssParserContext::new_for_cssom(&doc_url, Some(CssRuleType::Media),
-                                                      ParsingMode::DEFAULT,
-                                                      document.quirks_mode());
+        // FIXME(emilio): This looks somewhat fishy, since we use the context
+        // only to parse the media query list, CssRuleType::Media doesn't make
+        // much sense.
+        let context = CssParserContext::new_for_cssom(
+            &doc_url,
+            Some(CssRuleType::Media),
+            ParsingMode::DEFAULT,
+            document.quirks_mode(),
+        );
         let window = document.window();
-        let media = parse_media_query_list(&context, &mut css_parser,
-                                           window.css_error_reporter());
+        let media = MediaList::parse(
+            &context,
+            &mut css_parser,
+            window.css_error_reporter(),
+        );
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());

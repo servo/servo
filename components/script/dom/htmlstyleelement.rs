@@ -21,7 +21,7 @@ use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
 use std::cell::Cell;
-use style::media_queries::parse_media_query_list;
+use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
 use style::stylesheets::{CssRuleType, Stylesheet, Origin};
 use style_traits::ParsingMode;
@@ -91,9 +91,11 @@ impl HTMLStyleElement {
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mut input = ParserInput::new(&mq_str);
         let css_error_reporter = window.css_error_reporter();
-        let mq = Arc::new(shared_lock.wrap(parse_media_query_list(&context,
-                                                                  &mut CssParser::new(&mut input),
-                                                                  css_error_reporter)));
+        let mq = Arc::new(shared_lock.wrap(MediaList::parse(
+            &context,
+            &mut CssParser::new(&mut input),
+            css_error_reporter),
+        ));
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(&data, window.get_url(),
                                          Origin::Author, mq,

@@ -1116,6 +1116,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let display_item = match gradient.kind {
                 GradientKind::Linear(angle_or_corner) => {
                     let gradient = convert_linear_gradient(
+                        style,
                         placement.tile_size,
                         &gradient.items[..],
                         angle_or_corner,
@@ -1130,6 +1131,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 },
                 GradientKind::Radial(shape, center, _angle) => {
                     let gradient = convert_radial_gradient(
+                        style,
                         placement.tile_size,
                         &gradient.items[..],
                         shape,
@@ -1298,6 +1300,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Either::Second(Image::Gradient(ref gradient)) => Some(match gradient.kind {
                 GradientKind::Linear(angle_or_corner) => BorderDetails::Gradient(GradientBorder {
                     gradient: convert_linear_gradient(
+                        style,
                         bounds.size,
                         &gradient.items[..],
                         angle_or_corner,
@@ -1308,6 +1311,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 GradientKind::Radial(shape, center, _angle) => {
                     BorderDetails::RadialGradient(RadialGradientBorder {
                         gradient: convert_radial_gradient(
+                            style,
                             bounds.size,
                             &gradient.items[..],
                             shape,

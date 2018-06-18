@@ -7,12 +7,11 @@
 //!
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
-use cssparser::RGBA;
 use std::f32::consts::PI;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 use values::{Either, None_};
-use values::computed::{Angle, Context};
+use values::computed::{Angle, Color, Context};
 use values::computed::{Length, LengthOrPercentage, NumberOrPercentage, ToComputedValue};
 #[cfg(feature = "gecko")]
 use values::computed::Percentage;
@@ -32,7 +31,7 @@ pub type Image = generic::Image<Gradient, MozImageRect, ComputedImageUrl>;
 /// Computed values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
 pub type Gradient =
-    generic::Gradient<LineDirection, Length, LengthOrPercentage, Position, RGBA, Angle>;
+    generic::Gradient<LineDirection, Length, LengthOrPercentage, Position, Color, Angle>;
 
 /// A computed gradient kind.
 pub type GradientKind =
@@ -58,10 +57,10 @@ pub enum LineDirection {
 pub type EndingShape = generic::EndingShape<Length, LengthOrPercentage>;
 
 /// A computed gradient item.
-pub type GradientItem = generic::GradientItem<RGBA, LengthOrPercentage>;
+pub type GradientItem = generic::GradientItem<Color, LengthOrPercentage>;
 
 /// A computed color stop.
-pub type ColorStop = generic::ColorStop<RGBA, LengthOrPercentage>;
+pub type ColorStop = generic::ColorStop<Color, LengthOrPercentage>;
 
 /// Computed values for `-moz-image-rect(...)`.
 pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, ComputedImageUrl>;

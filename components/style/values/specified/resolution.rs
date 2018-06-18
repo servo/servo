@@ -12,7 +12,7 @@ use style_traits::{ParseError, StyleParseErrorKind};
 use values::CSSFloat;
 
 /// A specified resolution.
-#[derive(Clone, Debug, PartialEq, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
 pub enum Resolution {
     /// Dots per inch.
     #[css(dimension)]
