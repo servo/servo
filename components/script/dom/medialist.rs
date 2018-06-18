@@ -13,8 +13,8 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::media_queries::{MediaQuery, parse_media_query_list};
 use style::media_queries::MediaList as StyleMediaList;
+use style::media_queries::MediaQuery;
 use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, Locked};
 use style::stylesheets::CssRuleType;
@@ -80,8 +80,11 @@ impl MediaListMethods for MediaList {
         let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
                                                    ParsingMode::DEFAULT,
                                                    quirks_mode);
-        *media_queries = parse_media_query_list(&context, &mut parser,
-                                                window.css_error_reporter());
+        *media_queries = StyleMediaList::parse(
+            &context,
+            &mut parser,
+            window.css_error_reporter(),
+        );
     }
 
     // https://drafts.csswg.org/cssom/#dom-medialist-length

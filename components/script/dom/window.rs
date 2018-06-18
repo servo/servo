@@ -1020,8 +1020,11 @@ impl WindowMethods for Window {
         let context = CssParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
                                                       ParsingMode::DEFAULT,
                                                       quirks_mode);
-        let media_query_list = media_queries::parse_media_query_list(&context, &mut parser,
-                                                                     self.css_error_reporter());
+        let media_query_list = media_queries::MediaList::parse(
+            &context,
+            &mut parser,
+            self.css_error_reporter(),
+        );
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);
         self.media_query_lists.push(&*mql);

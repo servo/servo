@@ -16,7 +16,7 @@ use dom::medialist::MediaList;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
-use style::media_queries::parse_media_query_list;
+use style::media_queries::MediaList as StyleMediaList;
 use style::parser::ParserContext;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::{CssRuleType, MediaRule};
@@ -79,8 +79,11 @@ impl CSSMediaRule {
                                                    ParsingMode::DEFAULT,
                                                    quirks_mode);
 
-        let new_medialist = parse_media_query_list(&context, &mut input,
-                                                   window.css_error_reporter());
+        let new_medialist = StyleMediaList::parse(
+            &context,
+            &mut input,
+            window.css_error_reporter(),
+        );
         let mut guard = self.cssconditionrule.shared_lock().write();
 
         // Clone an Arc because we can’t borrow `guard` twice at the same time.
