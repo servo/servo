@@ -6,9 +6,9 @@
 //!
 //! https://drafts.csswg.org/mediaqueries/#typedef-media-query-list
 
+use context::QuirksMode;
 use cssparser::{Delimiter, Parser};
 use cssparser::{ParserInput, Token};
-use context::QuirksMode;
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use parser::{ParserContext, ParserErrorContext};
 use super::{Device, MediaQuery, Qualifier};

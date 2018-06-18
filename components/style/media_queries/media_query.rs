@@ -13,12 +13,11 @@ use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use str::string_as_ascii_lowercase;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
+use super::Expression;
 use values::CustomIdent;
 
-use super::Expression;
-
 /// <https://drafts.csswg.org/mediaqueries/#mq-prefix>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
 pub enum Qualifier {
     /// Hide a media query from legacy UAs:
     /// <https://drafts.csswg.org/mediaqueries/#mq-only>
