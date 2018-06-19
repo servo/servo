@@ -14,7 +14,6 @@ mac-rel-wpt1:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
   - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-wpt2:
   - ./mach clean-nightlies --keep 3 --force
@@ -47,7 +46,6 @@ mac-dev-unit:
   - python ./etc/memory_reports_over_time.py --test
   - ./mach package --dev
   - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-css1:
   - ./mach clean-nightlies --keep 3 --force
@@ -56,7 +54,6 @@ mac-rel-css1:
   - ./mach test-wpt --release --processes 4 --total-chunks 6 --this-chunk 5 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
   - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-css2:
   - ./mach clean-nightlies --keep 3 --force
@@ -112,7 +109,6 @@ linux-dev:
     - ./mach package --dev
     - ./mach build --dev --no-default-features --features default-except-unstable
     - bash ./etc/ci/lockfile_changed.sh
-    - bash ./etc/ci/manifest_changed.sh
     - bash ./etc/ci/check_no_panic.sh
     - ./etc/ci/clean_build_artifacts.sh
 
@@ -142,7 +138,6 @@ linux-rel-css:
     - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - bash ./etc/ci/lockfile_changed.sh
-    - bash ./etc/ci/manifest_changed.sh
     - ./etc/ci/clean_build_artifacts.sh
 
 linux-nightly:
@@ -162,7 +157,6 @@ android:
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
   - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-nightly:
@@ -177,14 +171,12 @@ arm32:
   - ./mach clean-cargo-cache --keep 3 --force
   - ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
 
 arm64:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
-  - bash ./etc/ci/manifest_changed.sh
 
 windows-msvc-dev:
   env:
