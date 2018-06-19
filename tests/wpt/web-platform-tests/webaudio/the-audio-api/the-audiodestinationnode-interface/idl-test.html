@@ -42,10 +42,10 @@ interface BaseAudioContext : EventTarget {
     readonly        attribute AudioListener        listener;
     readonly        attribute AudioContextState    state;
     readonly        attribute double               baseLatency;
-    Promise<void>          resume ();
+    Promise&lt;void&gt;          resume ();
                     attribute EventHandler         onstatechange;
     AudioBuffer            createBuffer (unsigned long numberOfChannels, unsigned long length, float sampleRate);
-    Promise<AudioBuffer>   decodeAudioData (ArrayBuffer audioData, optional DecodeSuccessCallback successCallback, optional DecodeErrorCallback errorCallback);
+    Promise&lt;AudioBuffer&gt;   decodeAudioData (ArrayBuffer audioData, optional DecodeSuccessCallback successCallback, optional DecodeErrorCallback errorCallback);
     AudioBufferSourceNode  createBufferSource ();
     ConstantSourceNode     createConstantSource ();
     ScriptProcessorNode    createScriptProcessor (optional unsigned long bufferSize = 0
@@ -56,7 +56,7 @@ interface BaseAudioContext : EventTarget {
     GainNode               createGain ();
     DelayNode              createDelay (optional double maxDelayTime);
     BiquadFilterNode       createBiquadFilter ();
-    IIRFilterNode          createIIRFilter (sequence<double> feedforward, sequence<double> feedback);
+    IIRFilterNode          createIIRFilter (sequence&lt;double&gt; feedforward, sequence&lt;double&gt; feedback);
     WaveShaperNode         createWaveShaper ();
     PannerNode             createPanner ();
     StereoPannerNode       createStereoPanner ();

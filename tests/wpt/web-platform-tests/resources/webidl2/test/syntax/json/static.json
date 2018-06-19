@@ -20,13 +20,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
                 "name": "cx",
+                "escapedName": "cx",
                 "extAttrs": []
             },
             {
@@ -37,13 +38,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
                 "name": "cy",
+                "escapedName": "cy",
                 "extAttrs": []
             },
             {
@@ -54,13 +56,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
                 "name": "radius",
+                "escapedName": "radius",
                 "extAttrs": []
             },
             {
@@ -71,13 +74,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "long"
+                    "idlType": "long",
+                    "extAttrs": []
                 },
                 "name": "triangulationCount",
+                "escapedName": "triangulationCount",
                 "extAttrs": []
             },
             {
@@ -89,55 +93,62 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "Point"
+                    "idlType": "Point",
+                    "extAttrs": []
                 },
                 "name": "triangulate",
+                "escapedName": "triangulate",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Circle"
+                            "idlType": "Circle",
+                            "extAttrs": []
                         },
-                        "name": "c1"
+                        "name": "c1",
+                        "escapedName": "c1"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Circle"
+                            "idlType": "Circle",
+                            "extAttrs": []
                         },
-                        "name": "c2"
+                        "name": "c2",
+                        "escapedName": "c2"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Circle"
+                            "idlType": "Circle",
+                            "extAttrs": []
                         },
-                        "name": "c3"
+                        "name": "c3",
+                        "escapedName": "c3"
                     }
                 ],
                 "extAttrs": []

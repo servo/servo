@@ -6,7 +6,7 @@ a dictionary with the fields
 "browser": String indicating the Browser implementation used to launch that
            product.
 "executor": Dictionary with keys as supported test types and values as the name
-            of the Executor implemantation that will be used to run that test
+            of the Executor implementation that will be used to run that test
             type.
 "browser_kwargs": String naming function that takes product, binary,
                   prefs_root and the wptrunner.run_tests kwargs dict as arguments
@@ -25,6 +25,7 @@ module global scope.
 product_list = ["chrome",
                 "chrome_android",
                 "edge",
+                "fennec",
                 "firefox",
                 "ie",
                 "safari",

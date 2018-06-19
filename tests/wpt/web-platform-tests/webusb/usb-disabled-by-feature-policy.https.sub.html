@@ -5,10 +5,13 @@
 <script src=/feature-policy/resources/featurepolicy.js></script>
 <script>
 'use strict';
-var same_origin_src = '/feature-policy/resources/feature-policy-usb.html';
-var cross_origin_src = 'https://{{domains[www]}}:{{ports[https][0]}}' +
-  same_origin_src;
-var header = 'Feature-Policy header {"usb" : []}';
+const sub = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const same_origin_src = '/feature-policy/resources/feature-policy-usb.html';
+const cross_origin_src = sub + same_origin_src;
+const same_origin_worker_frame_src =
+    '/feature-policy/resources/feature-policy-usb-worker.html';
+const cross_origin_worker_frame_src = sub + same_origin_worker_frame_src;
+const header = 'Feature-Policy header {"usb" : []}';
 
 promise_test(() => {
   return navigator.usb.getDevices().then(() => {
@@ -24,8 +27,22 @@ async_test(t => {
 }, header + ' disallows same-origin iframes.');
 
 async_test(t => {
+  test_feature_availability('usb.getDevices()', t, same_origin_worker_frame_src,
+      expect_feature_unavailable_default);
+}, header + ' disallows workers in same-origin iframes.');
+
+async_test(t => {
   test_feature_availability('usb.getDevices()', t, cross_origin_src,
       expect_feature_unavailable_default);
 }, header + ' disallows cross-origin iframes.');
+
+async_test(t => {
+  test_feature_availability('usb.getDevices()', t,
+      cross_origin_worker_frame_src,
+      expect_feature_unavailable_default);
+}, header + ' disallows workers in cross-origin iframes.');
+
+fetch_tests_from_worker(new Worker(
+    '/webusb/resources/usb-disabled-by-feature-policy-worker.js'));
 </script>
 </body>

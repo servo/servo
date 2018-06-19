@@ -257,7 +257,10 @@ IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
 
     const all_deps = new Set();
     Object.values(this.inheritance).forEach(v => all_deps.add(v));
-    Object.values(this.implements).forEach(v => all_deps.add(v));
+    Object.entries(this.implements).forEach(([k, v]) => {
+        all_deps.add(k);
+        all_deps.add(v);
+    });
     // NOTE: If 'A includes B' for B that we care about, then A is also a dep.
     Object.keys(this.includes).forEach(k => {
         all_deps.add(k);

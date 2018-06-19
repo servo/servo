@@ -12,72 +12,73 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": true,
                     "idlType": [
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": true,
                             "idlType": [
                                 {
                                     "type": null,
-                                    "sequence": false,
                                     "generic": null,
                                     "nullable": false,
                                     "union": false,
-                                    "idlType": "Date"
+                                    "idlType": "Date",
+                                    "extAttrs": []
                                 },
                                 {
                                     "type": null,
-                                    "sequence": false,
                                     "generic": null,
                                     "nullable": false,
                                     "union": false,
-                                    "idlType": "Event"
+                                    "idlType": "Event",
+                                    "extAttrs": []
                                 }
-                            ]
+                            ],
+                            "extAttrs": []
                         },
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": true,
                             "union": true,
                             "idlType": [
                                 {
                                     "type": null,
-                                    "sequence": false,
                                     "generic": null,
                                     "nullable": false,
                                     "union": false,
-                                    "idlType": "Node"
+                                    "idlType": "Node",
+                                    "extAttrs": []
                                 },
                                 {
                                     "type": null,
-                                    "sequence": false,
                                     "generic": null,
                                     "nullable": false,
                                     "union": false,
-                                    "idlType": "DOMString"
+                                    "idlType": "DOMString",
+                                    "extAttrs": []
                                 }
-                            ]
+                            ],
+                            "extAttrs": []
                         }
-                    ]
+                    ],
+                    "extAttrs": []
                 },
                 "name": "test",
+                "escapedName": "test",
                 "extAttrs": []
             },
             {
@@ -88,14 +89,12 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": true,
                     "idlType": [
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
@@ -111,15 +110,17 @@
                         },
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Date"
+                            "idlType": "Date",
+                            "extAttrs": []
                         }
-                    ]
+                    ],
+                    "extAttrs": []
                 },
                 "name": "test2",
+                "escapedName": "test2",
                 "extAttrs": []
             }
         ],

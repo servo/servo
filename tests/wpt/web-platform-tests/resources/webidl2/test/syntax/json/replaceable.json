@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned long"
+                    "idlType": "unsigned long",
+                    "extAttrs": []
                 },
                 "name": "value",
+                "escapedName": "value",
                 "extAttrs": [
                     {
                         "name": "Replaceable",
@@ -37,13 +38,14 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "increment",
+                "escapedName": "increment",
                 "arguments": [],
                 "extAttrs": []
             }

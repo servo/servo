@@ -3,44 +3,44 @@
         "type": "typedef",
         "idlType": {
             "type": "typedef-type",
-            "sequence": false,
             "generic": null,
             "nullable": false,
             "union": true,
             "idlType": [
                 {
                     "type": null,
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "ImageData"
+                    "idlType": "ImageData",
+                    "extAttrs": []
                 },
                 {
                     "type": null,
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "HTMLImageElement"
+                    "idlType": "HTMLImageElement",
+                    "extAttrs": []
                 },
                 {
                     "type": null,
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "HTMLCanvasElement"
+                    "idlType": "HTMLCanvasElement",
+                    "extAttrs": []
                 },
                 {
                     "type": null,
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "HTMLVideoElement"
+                    "idlType": "HTMLVideoElement",
+                    "extAttrs": []
                 }
-            ]
+            ],
+            "extAttrs": []
         },
         "name": "TexImageSource",
         "extAttrs": []

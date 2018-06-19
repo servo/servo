@@ -5,12 +5,17 @@
 <script src=/feature-policy/resources/featurepolicy.js></script>
 <script>
 'use strict';
-var relative_path = '/feature-policy/resources/feature-policy-usb.html';
-var base_src = '/feature-policy/resources/redirect-on-load.html#';
-var same_origin_src = base_src + relative_path;
-var cross_origin_src = base_src + 'https://{{domains[www]}}:{{ports[https][0]}}' +
-  relative_path;
-var header = 'Feature-Policy allow="usb"';
+const relative_path = '/feature-policy/resources/feature-policy-usb.html';
+const base_src = '/feature-policy/resources/redirect-on-load.html#';
+const relative_worker_frame_path =
+    '/feature-policy/resources/feature-policy-usb-worker.html';
+const sub = 'https://{{domains[www]}}:{{ports[https][0]}}';
+const same_origin_src = base_src + relative_path;
+const cross_origin_src = base_src + sub + relative_path;
+const same_origin_worker_frame_src = base_src + relative_worker_frame_path;
+const cross_origin_worker_frame_src = base_src + sub +
+    relative_worker_frame_path;
+const header = 'Feature-Policy allow="usb"';
 
 async_test(t => {
   test_feature_availability(
@@ -20,8 +25,20 @@ async_test(t => {
 
 async_test(t => {
   test_feature_availability(
+      'usb.getDevices()', t, same_origin_worker_frame_src,
+      expect_feature_available_default, 'usb');
+}, header + ' allows workers in same-origin relocation.');
+
+async_test(t => {
+  test_feature_availability(
       'usb.getDevices()', t, cross_origin_src,
       expect_feature_unavailable_default, 'usb');
 }, header + ' disallows cross-origin relocation.');
+
+async_test(t => {
+  test_feature_availability(
+      'usb.getDevices()', t, cross_origin_worker_frame_src,
+      expect_feature_unavailable_default, 'usb');
+}, header + ' disallows workers in cross-origin relocation.');
 </script>
 </body>

@@ -2,9 +2,6 @@
 interface Foo {
   void foo(sequence<record<ByteString, any>> param);
   record<DOMString, (float or DOMString)?> bar();
-
-  // Make sure record can still be registered as a type.
-  record baz();
 };
 
 interface Bar {

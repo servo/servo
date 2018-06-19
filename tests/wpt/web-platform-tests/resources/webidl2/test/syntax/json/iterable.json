@@ -9,11 +9,11 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "long"
+                        "idlType": "long",
+                        "extAttrs": []
                     }
                 ],
                 "extAttrs": []
@@ -32,19 +32,19 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "short"
+                        "idlType": "short",
+                        "extAttrs": []
                     },
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": true,
                         "union": false,
-                        "idlType": "double"
+                        "idlType": "double",
+                        "extAttrs": []
                     }
                 ],
                 "extAttrs": []
@@ -63,7 +63,6 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,

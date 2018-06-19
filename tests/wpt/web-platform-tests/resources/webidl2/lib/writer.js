@@ -2,8 +2,6 @@
 
 (() => {
   function write(ast, opt = {}) {
-    let curPea = "";
-    let curTPea = "";
     const noop = str => str;
     const optNames = "type".split(" ");
     const context = [];
@@ -14,23 +12,9 @@
     function literal(it) {
       return it.value;
     };
-    function wsPea(it) {
-      curPea += it.value;
-      return "";
-    };
-    function wsTPea(it) {
-      curTPea += it.value;
-      return "";
-    };
-    function lineComment(it) {
-      return `//${it.value}\n`;
-    };
-    function multilineComment(it) {
-      return `/*${it.value}*/`;
-    };
     function type(it) {
       if (typeof it === "string") return opt.type(it); // XXX should maintain some context
-      let ret = extended_attributes(it.extAttrs, curPea);
+      let ret = extended_attributes(it.extAttrs);
       if (it.union) ret += `(${it.idlType.map(type).join(" or ")})`;
       else {
         if (it.generic) ret += `${it.generic}<`;
@@ -52,74 +36,56 @@
       else if (tp === "sequence") return "[]";
       else return `"${it.value}"`;
     };
-    function argument(arg, pea) {
-      let ret = extended_attributes(arg.extAttrs, pea);
+    function argument(arg) {
+      let ret = extended_attributes(arg.extAttrs);
       if (arg.optional) ret += "optional ";
       ret += type(arg.idlType);
       if (arg.variadic) ret += "...";
-      ret += ` ${arg.name}`;
-      if (arg["default"]) ret += ` = ${const_value(arg["default"])}`;
+      ret += ` ${arg.escapedName}`;
+      if (arg.default) ret += ` = ${const_value(arg.default)}`;
       return ret;
-    };
-    function args(its) {
-      let res = "";
-      let pea = "";
-      for (let i = 0, n = its.length; i < n; i++) {
-        const arg = its[i];
-        if (arg.type === "ws") res += arg.value;
-        else if (arg.type === "ws-pea") pea += arg.value;
-        else {
-          res += argument(arg, pea);
-          if (i < n - 1) res += ",";
-          pea = "";
-        }
-      }
-      return res;
     };
     function make_ext_at(it) {
       context.unshift(it);
       let ret = it.name;
       if (it.rhs) {
-        if (it.rhs.type === "identifier-list") ret += `=(${it.rhs.value.join(',')})`;
+        if (it.rhs.type === "identifier-list") ret += `=(${it.rhs.value.join(",")})`;
         else ret += `=${it.rhs.value}`;
       }
-      if (it.arguments) ret += `(${it["arguments"].length ? args(it["arguments"]) : ""})`;
+      if (it.arguments) ret += `(${it.arguments.length ? it.arguments.map(argument).join(",") : ""})`;
       context.shift(); // XXX need to add more contexts, but not more than needed for ReSpec
       return ret;
     };
-    function extended_attributes(eats, pea) {
+    function extended_attributes(eats) {
       if (!eats || !eats.length) return "";
-      return `[${eats.map(make_ext_at).join(", ")}]${pea}`;
+      return `[${eats.map(make_ext_at).join(", ")}]`;
     };
 
-    const modifiers = "getter setter creator deleter legacycaller stringifier static".split(" ");
+    const modifiers = "getter setter deleter stringifier static".split(" ");
     function operation(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       if (it.stringifier && !it.idlType) return "stringifier;";
       for (const mod of modifiers) {
         if (it[mod]) ret += mod + " ";
       }
       ret += type(it.idlType) + " ";
-      if (it.name) ret += it.name;
-      ret += `(${args(it["arguments"])});`;
+      if (it.name) ret += it.escapedName;
+      ret += `(${it.arguments.map(argument).join(",")});`;
       return ret;
     };
 
     function attribute(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
-      if (it["static"]) ret += "static ";
+      let ret = extended_attributes(it.extAttrs);
+      if (it.static) ret += "static ";
       if (it.stringifier) ret += "stringifier ";
-      if (it.readonly) ret += "readonly ";
       if (it.inherit) ret += "inherit ";
-      ret += `attribute ${type(it.idlType)} ${it.name};`;
+      if (it.readonly) ret += "readonly ";
+      ret += `attribute ${type(it.idlType)} ${it.escapedName};`;
       return ret;
     };
 
     function interface_(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       if (it.partial) ret += "partial ";
       ret += `interface ${it.name} `;
       if (it.inheritance) ret += `: ${it.inheritance} `;
@@ -128,8 +94,7 @@
     };
 
     function interface_mixin(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       if (it.partial) ret += "partial ";
       ret += `interface mixin ${it.name} `;
       ret += `{${iterate(it.members)}};`;
@@ -137,8 +102,7 @@
     }
 
     function namespace(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       if (it.partial) ret += "partial ";
       ret += `namespace ${it.name} `;
       ret += `{${iterate(it.members)}};`;
@@ -146,8 +110,7 @@
     }
 
     function dictionary(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       if (it.partial) ret += "partial ";
       ret += `dictionary ${it.name} `;
       if (it.inheritance) ret += `: ${it.inheritance} `;
@@ -155,49 +118,39 @@
       return ret;
     };
     function field(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       if (it.required) ret += "required ";
-      ret += `${type(it.idlType)} ${it.name}`;
-      if (it["default"]) ret += ` = ${const_value(it["default"])}`;
+      ret += `${type(it.idlType)} ${it.escapedName}`;
+      if (it.default) ret += ` = ${const_value(it.default)}`;
       ret += ";";
       return ret;
     };
     function const_(it) {
-      const ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      const ret = extended_attributes(it.extAttrs);
       return `${ret}const ${type(it.idlType)}${it.nullable ? "?" : ""} ${it.name} = ${const_value(it.value)};`;
     };
     function typedef(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
-      ret += `typedef ${extended_attributes(it.typeExtAttrs, curTPea)}`;
-      curTPea = "";
+      let ret = extended_attributes(it.extAttrs);
+      ret += `typedef ${extended_attributes(it.typeExtAttrs)}`;
       return `${ret}${type(it.idlType)} ${it.name};`;
     };
     function implements_(it) {
-      const ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
-      return `${ret}${it.target} implements ${it["implements"]};`;
+      const ret = extended_attributes(it.extAttrs);
+      return `${ret}${it.target} implements ${it.implements};`;
     };
     function includes(it) {
-      const ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      const ret = extended_attributes(it.extAttrs);
       return `${ret}${it.target} includes ${it.includes};`;
     };
     function callback(it) {
-      const ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
-      return `${ret}callback ${it.name} = ${type(it.idlType)}(${args(it["arguments"])});`;
+      const ret = extended_attributes(it.extAttrs);
+      return `${ret}callback ${it.name} = ${type(it.idlType)}(${it.arguments.map(argument).join(",")});`;
     };
     function enum_(it) {
-      let ret = extended_attributes(it.extAttrs, curPea);
-      curPea = "";
+      let ret = extended_attributes(it.extAttrs);
       ret += `enum ${it.name} {`;
       for (const v of it.values) {
-        if (v.type === "string") ret += `"${v.value}"`;
-        else if (v.type === "ws") ret += v.value;
-        else if (v.type === ",") ret += ",";
+        ret += `"${v.value}",`;
       }
       return ret + "};";
     };
@@ -218,11 +171,6 @@
     };
 
     const table = {
-      ws: literal,
-      "ws-pea": wsPea,
-      "ws-tpea": wsTPea,
-      "line-comment": lineComment,
-      "multiline-comment": multilineComment,
       interface: interface_,
       "interface mixin": interface_mixin,
       namespace,

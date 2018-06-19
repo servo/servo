@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned short"
+                    "idlType": "unsigned short",
+                    "extAttrs": []
                 },
                 "name": "nodeType",
+                "escapedName": "nodeType",
                 "extAttrs": []
             }
         ],
@@ -39,55 +40,62 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "addEventListener",
+                "escapedName": "addEventListener",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "type"
+                        "name": "type",
+                        "escapedName": "type"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "EventListener"
+                            "idlType": "EventListener",
+                            "extAttrs": []
                         },
-                        "name": "listener"
+                        "name": "listener",
+                        "escapedName": "listener"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "boolean"
+                            "idlType": "boolean",
+                            "extAttrs": []
                         },
-                        "name": "useCapture"
+                        "name": "useCapture",
+                        "escapedName": "useCapture"
                     }
                 ],
                 "extAttrs": []

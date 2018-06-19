@@ -2,6 +2,12 @@
 //
 // |options| describes how the testing of the AudioParam should be done:
 //
+//   sourceNodeName: name of source node to use for testing; defaults to
+//                   'OscillatorNode'.  If set to 'none', then no source node
+//                   is created for testing and it is assumed that the AudioNode
+//                   under test are sources and need to be started.
+//   verifyPieceWiseConstant: if true, verify that the k-rate output is
+//                            piecewise constant for each render quantum.
 //   nodeName:  name of the AudioNode to be tested
 //   nodeOptions:  options to be used in the AudioNode constructor
 //
@@ -42,7 +48,14 @@ function doTest(context, should, options) {
       context, {numberOfInputs: context.destination.numberOfChannels});
   merger.connect(context.destination);
 
-  let src = new OscillatorNode(context);
+  let src = null;
+
+  // Skip creating a source to drive the graph if |sourceNodeName| is 'none'.
+  // If |sourceNodeName| is given, use that, else default to OscillatorNode.
+  if (options.sourceNodeName !== 'none') {
+    src = new window[options.sourceNodeName || 'OscillatorNode'](context);
+  }
+
   let kRateNode = new window[options.nodeName](context, options.nodeOptions);
   let aRateNode = new window[options.nodeName](context, options.nodeOptions);
   let inverter = new GainNode(context, {gain: -1});
@@ -81,16 +94,30 @@ function doTest(context, should, options) {
     });
   });
 
+  // Connect the source, if specified.
+  if (src) {
+    src.connect(kRateNode);
+    src.connect(aRateNode);
+  }
+
   // The k-rate result is channel 0, and the a-rate result is channel 1.
-  src.connect(kRateNode).connect(merger, 0, 0);
-  src.connect(aRateNode).connect(merger, 0, 1);
+  kRateNode.connect(merger, 0, 0);
+  aRateNode.connect(merger, 0, 1);
 
   // Compute the difference between the a-rate and k-rate results and send
   // that to channel 2.
   kRateNode.connect(merger, 0, 2);
   aRateNode.connect(inverter).connect(merger, 0, 2);
 
-  src.start();
+  if (src) {
+    src.start();
+  } else {
+    // If there's no source, then assume the test nodes are sources and start
+    // them.
+    kRateNode.start();
+    aRateNode.start();
+  }
+
   return context.startRendering().then(renderedBuffer => {
     let kRateOutput = renderedBuffer.getChannelData(0);
     let aRateOutput = renderedBuffer.getChannelData(1);
@@ -113,5 +140,16 @@ function doTest(context, should, options) {
            options.prefix
          }: Difference between a-rate and k-rate ${options.nodeName}`)
         .notBeConstantValueOf(0);
+
+    if (options.verifyPieceWiseConstant) {
+      // Verify that the output from the k-rate parameter is step-wise
+      // constant.
+      for (let k = 0; k < kRateOutput.length; k += 128) {
+        should(
+            kRateOutput.slice(k, k + 128),
+            `${options.prefix} k-rate output [${k}: ${k + 127}]`)
+            .beConstantValueOf(kRateOutput[k]);
+      }
+    }
   });
 }

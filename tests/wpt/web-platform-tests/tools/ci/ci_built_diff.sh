@@ -15,6 +15,10 @@ main() {
         '2dcontext/drawing-text-to-the-canvas/2d.text.draw.fill.maxWidth.large.png'
         '2dcontext/drawing-text-to-the-canvas/2d.text.draw.fill.rtl.png'
         '2dcontext/drawing-text-to-the-canvas/2d.text.draw.stroke.basic.png'
+        'offscreen-canvas/text/2d.text.draw.fill.basic.png'
+        'offscreen-canvas/text/2d.text.draw.fill.maxWidth.large.png'
+        'offscreen-canvas/text/2d.text.draw.fill.rtl.png'
+        'offscreen-canvas/text/2d.text.draw.stroke.basic.png'
     )
 
     ./update-built-tests.sh

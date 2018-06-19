@@ -12,13 +12,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned long"
+                    "idlType": "unsigned long",
+                    "extAttrs": []
                 },
                 "name": "width",
+                "escapedName": "width",
                 "extAttrs": []
             },
             {
@@ -29,13 +30,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned long"
+                    "idlType": "unsigned long",
+                    "extAttrs": []
                 },
                 "name": "height",
+                "escapedName": "height",
                 "extAttrs": []
             }
         ],
@@ -56,13 +58,14 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "boolean"
+                    "idlType": "boolean",
+                    "extAttrs": []
                 },
                 "name": "isMouseOver",
+                "escapedName": "isMouseOver",
                 "arguments": [],
                 "extAttrs": []
             },
@@ -75,27 +78,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "setDimensions",
+                "escapedName": "setDimensions",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Dimensions"
+                            "idlType": "Dimensions",
+                            "extAttrs": []
                         },
-                        "name": "size"
+                        "name": "size",
+                        "escapedName": "size"
                     }
                 ],
                 "extAttrs": []
@@ -109,41 +115,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "setDimensions",
+                "escapedName": "setDimensions",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "unsigned long"
+                            "idlType": "unsigned long",
+                            "extAttrs": []
                         },
-                        "name": "width"
+                        "name": "width",
+                        "escapedName": "width"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "unsigned long"
+                            "idlType": "unsigned long",
+                            "extAttrs": []
                         },
-                        "name": "height"
+                        "name": "height",
+                        "escapedName": "height"
                     }
                 ],
                 "extAttrs": []

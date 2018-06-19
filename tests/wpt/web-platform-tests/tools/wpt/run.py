@@ -204,6 +204,14 @@ Consider installing certutil via your OS package manager or directly.""")
             kwargs["prefs_root"] = prefs_root
 
 
+class Fennec(BrowserSetup):
+    name = "fennec"
+    browser_cls = browser.Fennec
+
+    def setup_kwargs(self, kwargs):
+        pass
+
+
 class Chrome(BrowserSetup):
     name = "chrome"
     browser_cls = browser.Chrome
@@ -374,6 +382,7 @@ class WebKit(BrowserSetup):
 
 
 product_setup = {
+    "fennec": Fennec,
     "firefox": Firefox,
     "chrome": Chrome,
     "chrome_android": ChromeAndroid,

@@ -13,13 +13,14 @@
                 "stringifier": true,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": null,
+                "escapedName": null,
                 "arguments": [],
                 "extAttrs": []
             }

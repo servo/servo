@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "Name"
+                    "idlType": "Name",
+                    "extAttrs": []
                 },
                 "name": "name",
+                "escapedName": "name",
                 "extAttrs": [
                     {
                         "name": "PutForwards",
@@ -39,13 +40,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned short"
+                    "idlType": "unsigned short",
+                    "extAttrs": []
                 },
                 "name": "age",
+                "escapedName": "age",
                 "extAttrs": []
             }
         ],

@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "Vector"
+                    "idlType": "Vector",
+                    "extAttrs": []
                 },
                 "name": "unit",
+                "escapedName": "unit",
                 "extAttrs": []
             },
             {
@@ -30,41 +31,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "double"
+                    "idlType": "double",
+                    "extAttrs": []
                 },
                 "name": "dotProduct",
+                "escapedName": "dotProduct",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Vector"
+                            "idlType": "Vector",
+                            "extAttrs": []
                         },
-                        "name": "x"
+                        "name": "x",
+                        "escapedName": "x"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Vector"
+                            "idlType": "Vector",
+                            "extAttrs": []
                         },
-                        "name": "y"
+                        "name": "y",
+                        "escapedName": "y"
                     }
                 ],
                 "extAttrs": []
@@ -78,41 +84,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "Vector"
+                    "idlType": "Vector",
+                    "extAttrs": []
                 },
                 "name": "crossProduct",
+                "escapedName": "crossProduct",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Vector"
+                            "idlType": "Vector",
+                            "extAttrs": []
                         },
-                        "name": "x"
+                        "name": "x",
+                        "escapedName": "x"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Vector"
+                            "idlType": "Vector",
+                            "extAttrs": []
                         },
-                        "name": "y"
+                        "name": "y",
+                        "escapedName": "y"
                     }
                 ],
                 "extAttrs": []

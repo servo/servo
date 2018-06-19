@@ -6,4 +6,6 @@ interface Person {
   // short can take.
   attribute unsigned short age;
 
+  // required is an allowed attribute name
+  attribute any required;
 };

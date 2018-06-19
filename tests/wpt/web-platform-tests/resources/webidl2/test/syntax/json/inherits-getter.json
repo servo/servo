@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": "name",
+                "escapedName": "name",
                 "extAttrs": []
             }
         ],
@@ -38,13 +39,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned short"
+                    "idlType": "unsigned short",
+                    "extAttrs": []
                 },
                 "name": "age",
+                "escapedName": "age",
                 "extAttrs": []
             },
             {
@@ -55,17 +57,45 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": "name",
+                "escapedName": "name",
                 "extAttrs": []
             }
         ],
         "inheritance": "Animal",
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "Ghost",
+        "partial": false,
+        "members": [
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": true,
+                "readonly": true,
+                "idlType": {
+                    "type": "attribute-type",
+                    "generic": null,
+                    "nullable": false,
+                    "union": false,
+                    "idlType": "DOMString",
+                    "extAttrs": []
+                },
+                "name": "name",
+                "escapedName": "name",
+                "extAttrs": []
+            }
+        ],
+        "inheritance": "Person",
         "extAttrs": []
     }
 ]
