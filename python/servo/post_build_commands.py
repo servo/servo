@@ -93,7 +93,7 @@ class PostBuildCommands(CommandBase):
                 "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
                 "exit"
             ]
-            shell = subprocess.Popen(["adb", "shell"], stdin=subprocess.PIPE)
+            shell = subprocess.Popen([self.android_adb_path(env), "shell"], stdin=subprocess.PIPE)
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
