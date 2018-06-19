@@ -97,29 +97,9 @@ macro_rules! expanded {
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
-    <%include file="/longhands/background.mako.rs" />
-    <%include file="/longhands/border.mako.rs" />
-    <%include file="/longhands/box.mako.rs" />
-    <%include file="/longhands/color.mako.rs" />
-    <%include file="/longhands/column.mako.rs" />
-    <%include file="/longhands/counters.mako.rs" />
-    <%include file="/longhands/effects.mako.rs" />
-    <%include file="/longhands/font.mako.rs" />
-    <%include file="/longhands/inherited_box.mako.rs" />
-    <%include file="/longhands/inherited_table.mako.rs" />
-    <%include file="/longhands/inherited_text.mako.rs" />
-    <%include file="/longhands/inherited_ui.mako.rs" />
-    <%include file="/longhands/list.mako.rs" />
-    <%include file="/longhands/margin.mako.rs" />
-    <%include file="/longhands/outline.mako.rs" />
-    <%include file="/longhands/padding.mako.rs" />
-    <%include file="/longhands/position.mako.rs" />
-    <%include file="/longhands/table.mako.rs" />
-    <%include file="/longhands/text.mako.rs" />
-    <%include file="/longhands/ui.mako.rs" />
-    <%include file="/longhands/inherited_svg.mako.rs" />
-    <%include file="/longhands/svg.mako.rs" />
-    <%include file="/longhands/xul.mako.rs" />
+    % for style_struct in data.style_structs:
+    include!("${os.path.join(OUT_DIR, 'longhands/{}.rs'.format(style_struct.name_lower))}");
+    % endfor
 }
 
 macro_rules! unwrap_or_initial {
@@ -163,22 +143,11 @@ pub mod shorthands {
         Ok(())
     }
 
-    <%include file="/shorthands/background.mako.rs" />
-    <%include file="/shorthands/border.mako.rs" />
-    <%include file="/shorthands/box.mako.rs" />
-    <%include file="/shorthands/column.mako.rs" />
-    <%include file="/shorthands/font.mako.rs" />
-    <%include file="/shorthands/inherited_text.mako.rs" />
-    <%include file="/shorthands/list.mako.rs" />
-    <%include file="/shorthands/margin.mako.rs" />
-    <%include file="/shorthands/svg.mako.rs" />
-    <%include file="/shorthands/outline.mako.rs" />
-    <%include file="/shorthands/padding.mako.rs" />
-    <%include file="/shorthands/position.mako.rs" />
-    <%include file="/shorthands/inherited_svg.mako.rs" />
-    <%include file="/shorthands/text.mako.rs" />
+    % for style_struct in data.style_structs:
+    include!("${os.path.join(OUT_DIR, 'shorthands/{}.rs'.format(style_struct.name_lower))}");
+    % endfor
 
-    // We don't defined the 'all' shorthand using the regular helpers:shorthand
+    // We didn't define the 'all' shorthand using the regular helpers:shorthand
     // mechanism, since it causes some very large types to be generated.
     //
     // Also, make sure logical properties appear before its physical
