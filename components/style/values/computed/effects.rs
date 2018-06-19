@@ -7,7 +7,7 @@
 #[cfg(not(feature = "gecko"))]
 use values::Impossible;
 use values::computed::{Angle, NonNegativeNumber};
-use values::computed::color::RGBAColor;
+use values::computed::color::Color;
 use values::computed::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use values::computed::url::ComputedUrl;
@@ -16,7 +16,7 @@ use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 
 /// A computed value for a single shadow of the `box-shadow` property.
-pub type BoxShadow = GenericBoxShadow<Option<RGBAColor>, Length, NonNegativeLength, Length>;
+pub type BoxShadow = GenericBoxShadow<Color, Length, NonNegativeLength, Length>;
 
 /// A computed value for a single `filter`.
 #[cfg(feature = "gecko")]
@@ -27,4 +27,4 @@ pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Sim
 pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Impossible, Impossible>;
 
 /// A computed value for the `drop-shadow()` filter.
-pub type SimpleShadow = GenericSimpleShadow<Option<RGBAColor>, Length, NonNegativeLength>;
+pub type SimpleShadow = GenericSimpleShadow<Color, Length, NonNegativeLength>;

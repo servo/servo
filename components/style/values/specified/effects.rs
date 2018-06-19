@@ -17,14 +17,14 @@ use values::generics::effects::BoxShadow as GenericBoxShadow;
 use values::generics::effects::Filter as GenericFilter;
 use values::generics::effects::SimpleShadow as GenericSimpleShadow;
 use values::specified::{Angle, NumberOrPercentage};
-use values::specified::color::RGBAColor;
+use values::specified::color::Color;
 use values::specified::length::{Length, NonNegativeLength};
 #[cfg(feature = "gecko")]
 use values::specified::url::SpecifiedUrl;
 
 /// A specified value for a single shadow of the `box-shadow` property.
 pub type BoxShadow =
-    GenericBoxShadow<Option<RGBAColor>, Length, Option<NonNegativeLength>, Option<Length>>;
+    GenericBoxShadow<Option<Color>, Length, Option<NonNegativeLength>, Option<Length>>;
 
 /// A specified value for a single `filter`.
 #[cfg(feature = "gecko")]
@@ -93,7 +93,7 @@ impl ToComputedValue for Factor {
 }
 
 /// A specified value for the `drop-shadow()` filter.
-pub type SimpleShadow = GenericSimpleShadow<Option<RGBAColor>, Length, Option<NonNegativeLength>>;
+pub type SimpleShadow = GenericSimpleShadow<Option<Color>, Length, Option<NonNegativeLength>>;
 
 impl Parse for BoxShadow {
     fn parse<'i, 't>(
@@ -135,7 +135,7 @@ impl Parse for BoxShadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| RGBAColor::parse(context, i)) {
+                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
                     color = Some(value);
                     continue;
                 }
@@ -249,16 +249,18 @@ impl Parse for SimpleShadow {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let color = input.try(|i| RGBAColor::parse(context, i)).ok();
+        let color = input.try(|i| Color::parse(context, i)).ok();
         let horizontal = Length::parse(context, input)?;
         let vertical = Length::parse(context, input)?;
         let blur = input.try(|i| Length::parse_non_negative(context, i)).ok();
-        let color = color.or_else(|| input.try(|i| RGBAColor::parse(context, i)).ok());
+        let blur = blur.map(NonNegative::<Length>);
+        let color = color.or_else(|| input.try(|i| Color::parse(context, i)).ok());
+
         Ok(SimpleShadow {
-            color: color,
-            horizontal: horizontal,
-            vertical: vertical,
-            blur: blur.map(NonNegative::<Length>),
+            color,
+            horizontal,
+            vertical,
+            blur,
         })
     }
 }
@@ -269,7 +271,10 @@ impl ToComputedValue for SimpleShadow {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         ComputedSimpleShadow {
-            color: self.color.to_computed_value(context),
+            color: self.color
+                .as_ref()
+                .unwrap_or(&Color::currentcolor())
+                .to_computed_value(context),
             horizontal: self.horizontal.to_computed_value(context),
             vertical: self.vertical.to_computed_value(context),
             blur: self.blur
@@ -282,7 +287,7 @@ impl ToComputedValue for SimpleShadow {
     #[inline]
     fn from_computed_value(computed: &Self::ComputedValue) -> Self {
         SimpleShadow {
-            color: ToComputedValue::from_computed_value(&computed.color),
+            color: Some(ToComputedValue::from_computed_value(&computed.color)),
             horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
             vertical: ToComputedValue::from_computed_value(&computed.vertical),
             blur: Some(ToComputedValue::from_computed_value(&computed.blur)),
