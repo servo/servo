@@ -3877,7 +3877,7 @@ where
         }
         % if category_to_cascade_now == "early":
             let writing_mode =
-                WritingMode::new(context.builder.get_inheritedbox());
+                WritingMode::new(context.builder.get_inherited_box());
             context.builder.writing_mode = writing_mode;
 
             let mut _skip_font_family = false;
