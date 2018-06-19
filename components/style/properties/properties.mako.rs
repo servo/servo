@@ -97,29 +97,29 @@ macro_rules! expanded {
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
-    <%include file="/longhand/background.mako.rs" />
-    <%include file="/longhand/border.mako.rs" />
-    <%include file="/longhand/box.mako.rs" />
-    <%include file="/longhand/color.mako.rs" />
-    <%include file="/longhand/column.mako.rs" />
-    <%include file="/longhand/counters.mako.rs" />
-    <%include file="/longhand/effects.mako.rs" />
-    <%include file="/longhand/font.mako.rs" />
-    <%include file="/longhand/inherited_box.mako.rs" />
-    <%include file="/longhand/inherited_table.mako.rs" />
-    <%include file="/longhand/inherited_text.mako.rs" />
-    <%include file="/longhand/inherited_ui.mako.rs" />
-    <%include file="/longhand/list.mako.rs" />
-    <%include file="/longhand/margin.mako.rs" />
-    <%include file="/longhand/outline.mako.rs" />
-    <%include file="/longhand/padding.mako.rs" />
-    <%include file="/longhand/position.mako.rs" />
-    <%include file="/longhand/table.mako.rs" />
-    <%include file="/longhand/text.mako.rs" />
-    <%include file="/longhand/ui.mako.rs" />
-    <%include file="/longhand/inherited_svg.mako.rs" />
-    <%include file="/longhand/svg.mako.rs" />
-    <%include file="/longhand/xul.mako.rs" />
+    <%include file="/longhands/background.mako.rs" />
+    <%include file="/longhands/border.mako.rs" />
+    <%include file="/longhands/box.mako.rs" />
+    <%include file="/longhands/color.mako.rs" />
+    <%include file="/longhands/column.mako.rs" />
+    <%include file="/longhands/counters.mako.rs" />
+    <%include file="/longhands/effects.mako.rs" />
+    <%include file="/longhands/font.mako.rs" />
+    <%include file="/longhands/inherited_box.mako.rs" />
+    <%include file="/longhands/inherited_table.mako.rs" />
+    <%include file="/longhands/inherited_text.mako.rs" />
+    <%include file="/longhands/inherited_ui.mako.rs" />
+    <%include file="/longhands/list.mako.rs" />
+    <%include file="/longhands/margin.mako.rs" />
+    <%include file="/longhands/outline.mako.rs" />
+    <%include file="/longhands/padding.mako.rs" />
+    <%include file="/longhands/position.mako.rs" />
+    <%include file="/longhands/table.mako.rs" />
+    <%include file="/longhands/text.mako.rs" />
+    <%include file="/longhands/ui.mako.rs" />
+    <%include file="/longhands/inherited_svg.mako.rs" />
+    <%include file="/longhands/svg.mako.rs" />
+    <%include file="/longhands/xul.mako.rs" />
 }
 
 macro_rules! unwrap_or_initial {
@@ -163,20 +163,20 @@ pub mod shorthands {
         Ok(())
     }
 
-    <%include file="/shorthand/background.mako.rs" />
-    <%include file="/shorthand/border.mako.rs" />
-    <%include file="/shorthand/box.mako.rs" />
-    <%include file="/shorthand/column.mako.rs" />
-    <%include file="/shorthand/font.mako.rs" />
-    <%include file="/shorthand/inherited_text.mako.rs" />
-    <%include file="/shorthand/list.mako.rs" />
-    <%include file="/shorthand/margin.mako.rs" />
-    <%include file="/shorthand/mask.mako.rs" />
-    <%include file="/shorthand/outline.mako.rs" />
-    <%include file="/shorthand/padding.mako.rs" />
-    <%include file="/shorthand/position.mako.rs" />
-    <%include file="/shorthand/inherited_svg.mako.rs" />
-    <%include file="/shorthand/text.mako.rs" />
+    <%include file="/shorthands/background.mako.rs" />
+    <%include file="/shorthands/border.mako.rs" />
+    <%include file="/shorthands/box.mako.rs" />
+    <%include file="/shorthands/column.mako.rs" />
+    <%include file="/shorthands/font.mako.rs" />
+    <%include file="/shorthands/inherited_text.mako.rs" />
+    <%include file="/shorthands/list.mako.rs" />
+    <%include file="/shorthands/margin.mako.rs" />
+    <%include file="/shorthands/mask.mako.rs" />
+    <%include file="/shorthands/outline.mako.rs" />
+    <%include file="/shorthands/padding.mako.rs" />
+    <%include file="/shorthands/position.mako.rs" />
+    <%include file="/shorthands/inherited_svg.mako.rs" />
+    <%include file="/shorthands/text.mako.rs" />
 
     // We don't defined the 'all' shorthand using the regular helpers:shorthand
     // mechanism, since it causes some very large types to be generated.
