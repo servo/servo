@@ -104,7 +104,7 @@ dictionary ScrollToOptions : ScrollOptions {
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-window-interface
 partial interface Window {
   [Exposed=(Window), NewObject] MediaQueryList matchMedia(DOMString query);
-  [SameObject] readonly attribute Screen screen;
+  [SameObject, Replaceable] readonly attribute Screen screen;
 
   // browsing context
   void moveTo(long x, long y);
@@ -113,14 +113,14 @@ partial interface Window {
   void resizeBy(long x, long y);
 
   // viewport
-  readonly attribute long innerWidth;
-  readonly attribute long innerHeight;
+  [Replaceable] readonly attribute long innerWidth;
+  [Replaceable] readonly attribute long innerHeight;
 
   // viewport scrolling
-  readonly attribute long scrollX;
-  readonly attribute long pageXOffset;
-  readonly attribute long scrollY;
-  readonly attribute long pageYOffset;
+  [Replaceable] readonly attribute long scrollX;
+  [Replaceable] readonly attribute long pageXOffset;
+  [Replaceable] readonly attribute long scrollY;
+  [Replaceable] readonly attribute long pageYOffset;
   void scroll(optional ScrollToOptions options);
   void scroll(unrestricted double x, unrestricted double y);
   void scrollTo(optional ScrollToOptions options);
@@ -129,11 +129,11 @@ partial interface Window {
   void scrollBy(unrestricted double x, unrestricted double y);
 
   // client
-  readonly attribute long screenX;
-  readonly attribute long screenY;
-  readonly attribute long outerWidth;
-  readonly attribute long outerHeight;
-  readonly attribute double devicePixelRatio;
+  [Replaceable] readonly attribute long screenX;
+  [Replaceable] readonly attribute long screenY;
+  [Replaceable] readonly attribute long outerWidth;
+  [Replaceable] readonly attribute long outerHeight;
+  [Replaceable] readonly attribute double devicePixelRatio;
 };
 
 // Proprietary extensions.
