@@ -23,14 +23,14 @@
 
       [{name: 'positionX', initial: 0, final: 1000},
        {name: 'positionY', initial: 0, final: 1000},
-       {name: 'orientationX', initial: .1, final: 1000},
-       {name: 'orientationY', initial: .1, final: 1000},
-       {name: 'orientationZ', initial: .1, final: 1000},
+       {name: 'orientationX', initial: 1, final: 10},
+       {name: 'orientationY', initial: 1, final: 10},
+       {name: 'orientationZ', initial: 1, final: 10},
       ].forEach(paramProperty => {
         audit.define('Panner k-rate ' + paramProperty.name, (task, should) => {
           // Arbitrary sample rate and duration.
           let sampleRate = 8000;
-          let testDuration = 1;
+          let testDuration = 5 * 128 / sampleRate;
           let context = new OfflineAudioContext({
             numberOfChannels: 3,
             sampleRate: sampleRate,
@@ -38,6 +38,8 @@
           });
 
           doTest(context, should, {
+            sourceNodeName: 'ConstantSourceNode',
+            verifyPieceWiseConstant: true,
             nodeName: 'PannerNode',
             // Make the source directional so orientation matters, and set some
             // defaults for the position and orientation so that we're not on an
@@ -46,11 +48,11 @@
             nodeOptions: {
               distanceModel: 'inverse',
               coneOuterAngle: 360,
-              coneInnerAngle: 10,
-              positionX: 10,
-              positionY: 10,
-              positionZ: 10,
-              orientationX: 1,
+              coneInnerAngle: 0,
+              positionX: 1,
+              positionY: 1,
+              positionZ: 1,
+              orientationX: 0,
               orientationY: 1,
               orientationZ: 1
             },

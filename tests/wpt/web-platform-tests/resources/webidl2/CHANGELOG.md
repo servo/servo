@@ -1,5 +1,13 @@
 # Change Log
 
+## [v10.2.1](https://github.com/w3c/webidl2.js/tree/v10.2.1) (2018-03-09)
+[Full Changelog](https://github.com/w3c/webidl2.js/compare/v10.2.0...v10.2.1)
+
+**Merged pull requests:**
+
+- Optimise tokenisation and whitespace skipping [\#139](https://github.com/w3c/webidl2.js/pull/139) ([ricea](https://github.com/ricea))
+- refactor: small syntax changes [\#137](https://github.com/w3c/webidl2.js/pull/137) ([saschanaz](https://github.com/saschanaz))
+
 ## [v10.2.0](https://github.com/w3c/webidl2.js/tree/v10.2.0) (2018-01-30)
 [Full Changelog](https://github.com/w3c/webidl2.js/compare/v10.1.0...v10.2.0)
 

@@ -12,13 +12,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": "name",
+                "escapedName": "name",
                 "extAttrs": []
             },
             {
@@ -29,13 +30,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": "owner",
+                "escapedName": "owner",
                 "extAttrs": []
             },
             {
@@ -47,17 +49,19 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "boolean"
+                    "idlType": "boolean",
+                    "extAttrs": []
                 },
                 "name": "isMemberOfBreed",
+                "escapedName": "isMemberOfBreed",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [
                             {
                                 "name": "TreatUndefinedAs",
@@ -71,13 +75,14 @@
                         ],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "breedName"
+                        "name": "breedName",
+                        "escapedName": "breedName"
                     }
                 ],
                 "extAttrs": []

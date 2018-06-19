@@ -78,13 +78,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "double"
+                    "idlType": "double",
+                    "extAttrs": []
                 },
                 "name": "r",
+                "escapedName": "r",
                 "extAttrs": []
             },
             {
@@ -95,13 +96,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "double"
+                    "idlType": "double",
+                    "extAttrs": []
                 },
                 "name": "cx",
+                "escapedName": "cx",
                 "extAttrs": []
             },
             {
@@ -112,13 +114,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "double"
+                    "idlType": "double",
+                    "extAttrs": []
                 },
                 "name": "cy",
+                "escapedName": "cy",
                 "extAttrs": []
             },
             {
@@ -129,13 +132,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "double"
+                    "idlType": "double",
+                    "extAttrs": []
                 },
                 "name": "circumference",
+                "escapedName": "circumference",
                 "extAttrs": []
             }
         ],
@@ -153,16 +157,18 @@
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "double"
+                            "idlType": "double",
+                            "extAttrs": []
                         },
-                        "name": "radius"
+                        "name": "radius",
+                        "escapedName": "radius"
                     }
                 ],
                 "type": "extended-attribute",
@@ -183,26 +189,25 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": true,
                     "idlType": [
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "long"
+                            "idlType": "long",
+                            "extAttrs": []
                         },
                         {
                             "type": null,
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "Node"
+                            "idlType": "Node",
+                            "extAttrs": []
                         }
                     ],
                     "extAttrs": [
@@ -215,6 +220,7 @@
                     ]
                 },
                 "name": "attrib",
+                "escapedName": "attrib",
                 "extAttrs": []
             }
         ],

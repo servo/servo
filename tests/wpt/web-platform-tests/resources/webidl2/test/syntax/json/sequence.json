@@ -13,34 +13,37 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "drawPolygon",
+                "escapedName": "drawPolygon",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
                             "union": false,
                             "idlType": {
                                 "type": "argument-type",
-                                "sequence": false,
                                 "generic": null,
                                 "nullable": false,
                                 "union": false,
-                                "idlType": "float"
-                            }
+                                "idlType": "float",
+                                "extAttrs": []
+                            },
+                            "extAttrs": []
                         },
-                        "name": "coordinates"
+                        "name": "coordinates",
+                        "escapedName": "coordinates"
                     }
                 ],
                 "extAttrs": []
@@ -54,48 +57,21 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": true,
                     "generic": "sequence",
                     "nullable": false,
                     "union": false,
                     "idlType": {
                         "type": "return-type",
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "float"
-                    }
+                        "idlType": "float",
+                        "extAttrs": []
+                    },
+                    "extAttrs": []
                 },
                 "name": "getInflectionPoints",
-                "arguments": [],
-                "extAttrs": []
-            }
-        ],
-        "inheritance": null,
-        "extAttrs": []
-    },
-    {
-        "type": "interface",
-        "name": "Foo",
-        "partial": false,
-        "members": [
-            {
-                "type": "operation",
-                "getter": false,
-                "setter": false,
-                "deleter": false,
-                "static": false,
-                "stringifier": false,
-                "idlType": {
-                    "type": "return-type",
-                    "sequence": false,
-                    "generic": null,
-                    "nullable": false,
-                    "union": false,
-                    "idlType": "sequence"
-                },
-                "name": "bar",
+                "escapedName": "getInflectionPoints",
                 "arguments": [],
                 "extAttrs": []
             }
@@ -117,27 +93,27 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "f1",
+                "escapedName": "f1",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
                             "union": false,
                             "idlType": {
                                 "type": "argument-type",
-                                "sequence": false,
                                 "generic": null,
                                 "nullable": false,
                                 "union": false,
@@ -150,9 +126,11 @@
                                         "rhs": null
                                     }
                                 ]
-                            }
+                            },
+                            "extAttrs": []
                         },
-                        "name": "arg"
+                        "name": "arg",
+                        "escapedName": "arg"
                     }
                 ],
                 "extAttrs": []

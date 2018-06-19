@@ -13,73 +13,81 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "object"
+                    "idlType": "object",
+                    "extAttrs": []
                 },
                 "name": "createColor",
+                "escapedName": "createColor",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
-                        "name": "v1"
+                        "name": "v1",
+                        "escapedName": "v1"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
-                        "name": "v2"
+                        "name": "v2",
+                        "escapedName": "v2"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
-                        "name": "v3"
+                        "name": "v3",
+                        "escapedName": "v3"
                     },
                     {
                         "optional": true,
                         "variadic": false,
-                        "extAttrs": [],
-                        "idlType": {
-                            "type": "argument-type",
-                            "sequence": false,
-                            "generic": null,
-                            "nullable": false,
-                            "union": false,
-                            "idlType": "float"
-                        },
-                        "name": "alpha",
                         "default": {
                             "type": "number",
                             "value": "3.5"
-                        }
+                        },
+                        "extAttrs": [],
+                        "idlType": {
+                            "type": "argument-type",
+                            "generic": null,
+                            "nullable": false,
+                            "union": false,
+                            "idlType": "float",
+                            "extAttrs": []
+                        },
+                        "name": "alpha",
+                        "escapedName": "alpha"
                     }
                 ],
                 "extAttrs": []

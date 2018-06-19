@@ -9,19 +9,19 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "long"
+                        "idlType": "long",
+                        "extAttrs": []
                     },
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "float"
+                        "idlType": "float",
+                        "extAttrs": []
                     }
                 ],
                 "readonly": false,
@@ -41,19 +41,19 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "long"
+                        "idlType": "long",
+                        "extAttrs": []
                     },
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "float"
+                        "idlType": "float",
+                        "extAttrs": []
                     }
                 ],
                 "readonly": true,
@@ -73,7 +73,6 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
@@ -89,7 +88,6 @@
                     },
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,

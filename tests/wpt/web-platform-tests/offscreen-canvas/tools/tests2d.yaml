@@ -9216,3 +9216,990 @@
     offscreenCanvas.height = n;
     @assert offscreenCanvas.width === n;
     @assert offscreenCanvas.height === n;
+
+- name: 2d.text.font.parse.basic
+  testing:
+    - 2d.text.font.parse
+    - 2d.text.font.get
+  code: |
+    ctx.font = '20px serif';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20PX   SERIF';
+    @assert ctx.font === '20px serif'; @moz-todo
+
+- name: 2d.text.font.parse.tiny
+  testing:
+    - 2d.text.font.parse
+    - 2d.text.font.get
+  code: |
+    ctx.font = '1px sans-serif';
+    @assert ctx.font === '1px sans-serif';
+
+- name: 2d.text.font.parse.complex
+  testing:
+    - 2d.text.font.parse
+    - 2d.text.font.get
+    - 2d.text.font.lineheight
+  code: |
+    ctx.font = 'small-caps italic 400 12px/2 Unknown Font, sans-serif';
+    @assert ctx.font === 'italic small-caps 12px "Unknown Font", sans-serif'; @moz-todo
+
+  # TODO:
+  #   2d.text.font.parse.size.absolute
+  #     xx-small x-small small medium large x-large xx-large
+  #   2d.text.font.parse.size.relative
+  #     smaller larger
+  #   2d.text.font.parse.size.length.relative
+  #     em ex px
+  #   2d.text.font.parse.size.length.absolute
+  #     in cm mm pt pc
+
+- name: 2d.text.font.parse.system
+  desc: System fonts must be computed to explicit values
+  testing:
+    - 2d.text.font.parse
+    - 2d.text.font.get
+    - 2d.text.font.systemfonts
+  code: |
+    ctx.font = 'message-box';
+    @assert ctx.font !== 'message-box';
+
+- name: 2d.text.font.parse.invalid
+  testing:
+    - 2d.text.font.invalid
+  code: |
+    ctx.font = '20px serif';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'bogus';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'inherit';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '10px {bogus}';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '10px initial';
+    @assert ctx.font === '20px serif'; @moz-todo
+
+    ctx.font = '20px serif';
+    ctx.font = '10px default';
+    @assert ctx.font === '20px serif'; @moz-todo
+
+    ctx.font = '20px serif';
+    ctx.font = '10px inherit';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = '1em serif; background: green; margin: 10px';
+    @assert ctx.font === '20px serif';
+
+- name: 2d.text.font.default
+  testing:
+    - 2d.text.font.default
+  code: |
+    @assert ctx.font === '10px sans-serif';
+
+
+
+- name: 2d.text.align.valid
+  testing:
+    - 2d.text.align.get
+    - 2d.text.align.set
+  code: |
+    ctx.textAlign = 'start';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'end';
+    @assert ctx.textAlign === 'end';
+
+    ctx.textAlign = 'left';
+    @assert ctx.textAlign === 'left';
+
+    ctx.textAlign = 'right';
+    @assert ctx.textAlign === 'right';
+
+    ctx.textAlign = 'center';
+    @assert ctx.textAlign === 'center';
+
+- name: 2d.text.align.invalid
+  testing:
+    - 2d.text.align.invalid
+  code: |
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'bogus';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'END';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'end ';
+    @assert ctx.textAlign === 'start';
+
+    ctx.textAlign = 'start';
+    ctx.textAlign = 'end\0';
+    @assert ctx.textAlign === 'start';
+
+- name: 2d.text.align.default
+  testing:
+    - 2d.text.align.default
+  code: |
+    @assert ctx.textAlign === 'start';
+
+
+- name: 2d.text.baseline.valid
+  testing:
+    - 2d.text.baseline.get
+    - 2d.text.baseline.set
+  code: |
+    ctx.textBaseline = 'top';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'hanging';
+    @assert ctx.textBaseline === 'hanging';
+
+    ctx.textBaseline = 'middle';
+    @assert ctx.textBaseline === 'middle';
+
+    ctx.textBaseline = 'alphabetic';
+    @assert ctx.textBaseline === 'alphabetic';
+
+    ctx.textBaseline = 'ideographic';
+    @assert ctx.textBaseline === 'ideographic';
+
+    ctx.textBaseline = 'bottom';
+    @assert ctx.textBaseline === 'bottom';
+
+- name: 2d.text.baseline.invalid
+  testing:
+    - 2d.text.baseline.invalid
+  code: |
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'bogus';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'MIDDLE';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle ';
+    @assert ctx.textBaseline === 'top';
+
+    ctx.textBaseline = 'top';
+    ctx.textBaseline = 'middle\0';
+    @assert ctx.textBaseline === 'top';
+
+- name: 2d.text.baseline.default
+  testing:
+    - 2d.text.baseline.default
+  code: |
+    @assert ctx.textBaseline === 'alphabetic';
+
+- name: 2d.text.draw.fill.basic
+  desc: fillText draws filled text
+  manual:
+  testing:
+    - 2d.text.draw
+    - 2d.text.draw.fill
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('PASS', 5, 35);
+  expected: &passfill |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 0)
+    cr.select_font_face("Arial")
+    cr.set_font_size(35)
+    cr.translate(5, 35)
+    cr.text_path("PASS")
+    cr.fill()
+
+- name: 2d.text.draw.fill.unaffected
+  desc: fillText does not start a new path or subpath
+  testing:
+    - 2d.text.draw.fill
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('FAIL', 5, 35);
+
+    ctx.lineTo(100, 50);
+    ctx.lineTo(0, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 5,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.text.draw.fill.rtl
+  desc: fillText respects Right-To-Left Override characters
+  manual:
+  testing:
+    - 2d.text.draw
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('\u202eFAIL \xa0 \xa0 SSAP', 5, 35);
+  expected: *passfill
+
+- name: 2d.text.draw.fill.maxWidth.large
+  desc: fillText handles maxWidth correctly
+  manual:
+  testing:
+    - 2d.text.draw.maxwidth
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('PASS', 5, 35, 200);
+  expected: *passfill
+
+- name: 2d.text.draw.fill.maxWidth.small
+  desc: fillText handles maxWidth correctly
+  testing:
+    - 2d.text.draw.maxwidth
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', -100, 35, 90);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.zero
+  desc: fillText handles maxWidth correctly
+  testing:
+    - 2d.text.draw.maxwidth
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, 0);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.negative
+  desc: fillText handles maxWidth correctly
+  testing:
+    - 2d.text.draw.maxwidth
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, -1);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.NaN
+  desc: fillText handles maxWidth correctly
+  testing:
+    - 2d.text.draw.maxwidth
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.font = '35px Arial, sans-serif';
+    ctx.fillText('fail fail fail fail fail', 5, 35, NaN);
+    _assertGreen(ctx, 100, 50);
+  expected: green
+
+- name: 2d.text.draw.stroke.basic
+  desc: strokeText draws stroked text
+  manual:
+  testing:
+    - 2d.text.draw
+    - 2d.text.draw.stroke
+  code: |
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#0f0';
+    ctx.fillStyle = '#f00';
+    ctx.lineWidth = 1;
+    ctx.font = '35px Arial, sans-serif';
+    ctx.strokeText('PASS', 5, 35);
+  expected: |
+    size 100 50
+    cr.set_source_rgb(0, 0, 0)
+    cr.rectangle(0, 0, 100, 50)
+    cr.fill()
+    cr.set_source_rgb(0, 1, 0)
+    cr.select_font_face("Arial")
+    cr.set_font_size(35)
+    cr.set_line_width(1)
+    cr.translate(5, 35)
+    cr.text_path("PASS")
+    cr.stroke()
+
+- name: 2d.text.draw.stroke.unaffected
+  desc: strokeText does not start a new path or subpath
+  testing:
+    - 2d.text.draw.stroke
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.moveTo(0, 0);
+    ctx.lineTo(100, 0);
+
+    ctx.font = '35px Arial, sans-serif';
+    ctx.strokeStyle = '#f00';
+    ctx.strokeText('FAIL', 5, 35);
+
+    ctx.lineTo(100, 50);
+    ctx.lineTo(0, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fill();
+
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 5,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.text.draw.kern.consistent
+  desc: Stroked and filled text should have exactly the same kerning so it overlaps
+  manual:
+  testing:
+    - 2d.text.draw
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 3;
+    ctx.font = '20px Arial, sans-serif';
+    ctx.fillText('VAVAVAVAVAVAVA', -50, 25);
+    ctx.fillText('ToToToToToToTo', -50, 45);
+    ctx.strokeText('VAVAVAVAVAVAVA', -50, 25);
+    ctx.strokeText('ToToToToToToTo', -50, 45);
+  expected: green
+
+# CanvasTest is:
+#   A = (0, 0) to (1em, 0.75em)       (above baseline)
+#   B = (0, 0) to (1em, -0.25em)      (below baseline)
+#   C = (0, -0.25em) to (1em, 0.75em) (the em square) plus some Xs above and below
+#   D = (0, -0.25em) to (1em, 0.75em) (the em square) plus some Xs left and right
+#   E = (0, -0.25em) to (1em, 0.75em) (the em square)
+#   space = empty, 1em wide
+#
+# At 50px, "E" will fill the canvas vertically
+# At 67px, "A" will fill the canvas vertically
+#
+# Ideographic baseline  is 0.125em above alphabetic
+# Mathematical baseline is 0.375em above alphabetic
+# Hanging baseline      is 0.500em above alphabetic
+
+- name: 2d.text.draw.fill.maxWidth.fontface
+  desc: fillText works on @font-face fonts
+  testing:
+    - 2d.text.draw.maxwidth
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#f00';
+        ctx.fillText('EEEE', -50, 37.5, 40);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fill.maxWidth.bound
+  desc: fillText handles maxWidth based on line size, not bounding box size
+  testing:
+    - 2d.text.draw.maxwidth
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('DD', 0, 37.5, 100);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fontface
+  testing:
+    - 2d.text.font.fontface
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '67px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('AA', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fontface.repeat
+  desc: Draw with the font immediately, then wait a bit until and draw again. (This crashes some version of WebKit.)
+  testing:
+    - 2d.text.font.fontface
+  fonts:
+    - CanvasTest
+  fonthack: 0
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.font = '67px CanvasTest';
+    ctx.fillStyle = '#0f0';
+    ctx.fillText('AA', 0, 50);
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillText('AA', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.fontface.notinpage
+  desc: "@font-face fonts should work even if they are not used in the page"
+  testing:
+    - 2d.text.font.fontface
+  fonts:
+    - CanvasTest
+  fonthack: 0
+  code: |
+    ctx.font = '67px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('AA', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.baseline.top
+  desc: textBaseline top is the top of the em square (not the bounding box)
+  testing:
+    - 2d.text.baseline.top
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textBaseline = 'top';
+        ctx.fillText('CC', 0, 0);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.baseline.bottom
+  desc: textBaseline bottom is the bottom of the em square (not the bounding box)
+  testing:
+    - 2d.text.baseline.bottom
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('CC', 0, 50);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.baseline.middle
+  desc: textBaseline middle is the middle of the em square (not the bounding box)
+  testing:
+    - 2d.text.baseline.middle
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CC', 0, 25);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.baseline.alphabetic
+  testing:
+    - 2d.text.baseline.alphabetic
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText('CC', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.baseline.ideographic
+  testing:
+    - 2d.text.baseline.ideographic
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textBaseline = 'ideographic';
+        ctx.fillText('CC', 0, 31.25);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 95,45 ==~ 0,255,0,255; @moz-todo
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.baseline.hanging
+  testing:
+    - 2d.text.baseline.hanging
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textBaseline = 'hanging';
+        ctx.fillText('CC', 0, 12.5);
+        @assert pixel 5,5 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 95,5 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.left
+  desc: textAlign left is the left of the first em square (not the bounding box)
+  testing:
+    - 2d.text.align.left
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'left';
+        ctx.fillText('DD', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.right
+  desc: textAlign right is the right of the last em square (not the bounding box)
+  testing:
+    - 2d.text.align.right
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'right';
+        ctx.fillText('DD', 100, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.start.ltr
+  desc: textAlign start with ltr is the left edge
+  testing:
+    - 2d.text.align.left
+  fonts:
+    - CanvasTest
+  canvas: width="100" height="50" dir="ltr"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'start';
+        ctx.fillText('DD', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.start.rtl
+  desc: textAlign start with rtl is the right edge
+  testing:
+    - 2d.text.align.right
+    - 2d.text.draw.direction
+  fonts:
+    - CanvasTest
+  canvas: width="100" height="50" dir="rtl"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'start';
+        ctx.fillText('DD', 100, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.end.ltr
+  desc: textAlign end with ltr is the right edge
+  testing:
+    - 2d.text.align.right
+  fonts:
+    - CanvasTest
+  canvas: width="100" height="50" dir="ltr"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'end';
+        ctx.fillText('DD', 100, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.end.rtl
+  desc: textAlign end with rtl is the left edge
+  testing:
+    - 2d.text.align.left
+    - 2d.text.draw.direction
+  fonts:
+    - CanvasTest
+  canvas: width="100" height="50" dir="rtl"
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'end';
+        ctx.fillText('DD', 0, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.align.center
+  desc: textAlign center is the center of the em squares (not the bounding box)
+  testing:
+    - 2d.text.align.center
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'center';
+        ctx.fillText('DD', 50, 37.5);
+        @assert pixel 5,5 ==~ 0,255,0,255;
+        @assert pixel 95,5 ==~ 0,255,0,255;
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+        @assert pixel 5,45 ==~ 0,255,0,255;
+        @assert pixel 95,45 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+
+- name: 2d.text.draw.space.basic
+  desc: U+0020 is rendered the correct size (1em wide)
+  testing:
+    - 2d.text.draw.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('E EE', -100, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.space.collapse.space
+  desc: Space characters are converted to U+0020, and collapsed (per CSS)
+  testing:
+    - 2d.text.draw.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('E  EE', -100, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.space.collapse.other
+  desc: Space characters are converted to U+0020, and collapsed (per CSS)
+  testing:
+    - 2d.text.draw.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('E \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dEE', -100, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.space.collapse.nonspace
+  desc: Non-space characters are not converted to U+0020 and collapsed
+  testing:
+    - 2d.text.draw.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText('E\x0b EE', -150, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.space.collapse.start
+  desc: Space characters at the start of a line are collapsed (per CSS)
+  testing:
+    - 2d.text.draw.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.fillText(' EE', 0, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255; @moz-todo
+        @assert pixel 75,25 ==~ 0,255,0,255;
+    }), 500);
+  expected: green
+
+- name: 2d.text.draw.space.collapse.end
+  desc: Space characters at the end of a line are collapsed (per CSS)
+  testing:
+    - 2d.text.draw.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    ctx.font = '50px CanvasTest';
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(0, 0, 100, 50);
+        ctx.fillStyle = '#0f0';
+        ctx.textAlign = 'right';
+        ctx.fillText('EE ', 100, 37.5);
+        @assert pixel 25,25 ==~ 0,255,0,255;
+        @assert pixel 75,25 ==~ 0,255,0,255; @moz-todo
+    }), 500);
+  expected: green
+
+- name: 2d.text.measure.width.basic
+  testing:
+    - 2d.text.measure
+  fonts:
+    - CanvasTest
+  code: |
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.font = '50px CanvasTest';
+        @assert ctx.measureText('A').width === 50;
+        @assert ctx.measureText('AA').width === 100;
+        @assert ctx.measureText('ABCD').width === 200;
+
+        ctx.font = '100px CanvasTest';
+        @assert ctx.measureText('A').width === 100;
+    }), 500);
+
+- name: 2d.text.measure.width.empty
+  desc: The empty string has zero width
+  testing:
+    - 2d.text.measure
+  fonts:
+    - CanvasTest
+  code: |
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.font = '50px CanvasTest';
+        @assert ctx.measureText("").width === 0;
+    }), 500);
+
+- name: 2d.text.measure.width.space
+  desc: Space characters are converted to U+0020 and collapsed (per CSS)
+  testing:
+    - 2d.text.measure.spaces
+  fonts:
+    - CanvasTest
+  code: |
+    deferTest();
+    step_timeout(t.step_func_done(function () {
+        ctx.font = '50px CanvasTest';
+        @assert ctx.measureText('A B').width === 150;
+        @assert ctx.measureText('A  B').width === 150; @moz-todo
+        @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 150; @moz-todo
+        @assert ctx.measureText('A \x0b B').width >= 200;
+
+        @assert ctx.measureText(' AB').width === 100; @moz-todo
+        @assert ctx.measureText('AB ').width === 100; @moz-todo
+    }), 500);
+
+# TODO: shadows, alpha, composite, clip

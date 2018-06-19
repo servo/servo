@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned long"
+                    "idlType": "unsigned long",
+                    "extAttrs": []
                 },
                 "name": "propertyCount",
+                "escapedName": "propertyCount",
                 "extAttrs": []
             },
             {
@@ -30,27 +31,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
                 "name": "getProperty",
+                "escapedName": "getProperty",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "propertyName"
+                        "name": "propertyName",
+                        "escapedName": "propertyName"
                     }
                 ],
                 "extAttrs": []
@@ -64,41 +68,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "setProperty",
+                "escapedName": "setProperty",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "propertyName"
+                        "name": "propertyName",
+                        "escapedName": "propertyName"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
-                        "name": "propertyValue"
+                        "name": "propertyValue",
+                        "escapedName": "propertyValue"
                     }
                 ],
                 "extAttrs": []
@@ -120,13 +129,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned long"
+                    "idlType": "unsigned long",
+                    "extAttrs": []
                 },
                 "name": "propertyCount",
+                "escapedName": "propertyCount",
                 "extAttrs": []
             },
             {
@@ -138,27 +148,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
                 "name": "getProperty",
+                "escapedName": "getProperty",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "propertyName"
+                        "name": "propertyName",
+                        "escapedName": "propertyName"
                     }
                 ],
                 "extAttrs": []
@@ -172,41 +185,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "setProperty",
+                "escapedName": "setProperty",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "propertyName"
+                        "name": "propertyName",
+                        "escapedName": "propertyName"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
-                        "name": "propertyValue"
+                        "name": "propertyValue",
+                        "escapedName": "propertyValue"
                     }
                 ],
                 "extAttrs": []
@@ -220,27 +238,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
                 "name": null,
+                "escapedName": null,
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "propertyName"
+                        "name": "propertyName",
+                        "escapedName": "propertyName"
                     }
                 ],
                 "extAttrs": []
@@ -254,41 +275,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": null,
+                "escapedName": null,
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "propertyName"
+                        "name": "propertyName",
+                        "escapedName": "propertyName"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "float"
+                            "idlType": "float",
+                            "extAttrs": []
                         },
-                        "name": "propertyValue"
+                        "name": "propertyValue",
+                        "escapedName": "propertyValue"
                     }
                 ],
                 "extAttrs": []

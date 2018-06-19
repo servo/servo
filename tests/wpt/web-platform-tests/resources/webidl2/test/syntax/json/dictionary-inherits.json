@@ -7,14 +7,15 @@
             {
                 "type": "field",
                 "name": "fillPattern",
+                "escapedName": "fillPattern",
                 "required": false,
                 "idlType": {
                     "type": "dictionary-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": true,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "extAttrs": [],
                 "default": {
@@ -25,14 +26,15 @@
             {
                 "type": "field",
                 "name": "strokePattern",
+                "escapedName": "strokePattern",
                 "required": false,
                 "idlType": {
                     "type": "dictionary-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": true,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "extAttrs": [],
                 "default": {
@@ -42,16 +44,18 @@
             {
                 "type": "field",
                 "name": "position",
+                "escapedName": "position",
                 "required": false,
                 "idlType": {
                     "type": "dictionary-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "Point"
+                    "idlType": "Point",
+                    "extAttrs": []
                 },
-                "extAttrs": []
+                "extAttrs": [],
+                "default": null
             }
         ],
         "inheritance": null,
@@ -65,16 +69,18 @@
             {
                 "type": "field",
                 "name": "hydrometry",
+                "escapedName": "hydrometry",
                 "required": false,
                 "idlType": {
                     "type": "dictionary-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "float"
+                    "idlType": "float",
+                    "extAttrs": []
                 },
-                "extAttrs": []
+                "extAttrs": [],
+                "default": null
             }
         ],
         "inheritance": "PaintOptions",

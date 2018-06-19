@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned long"
+                    "idlType": "unsigned long",
+                    "extAttrs": []
                 },
                 "name": "size",
+                "escapedName": "size",
                 "extAttrs": []
             },
             {
@@ -30,27 +31,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "any"
+                    "idlType": "any",
+                    "extAttrs": []
                 },
                 "name": "getByIndex",
+                "escapedName": "getByIndex",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "unsigned long"
+                            "idlType": "unsigned long",
+                            "extAttrs": []
                         },
-                        "name": "index"
+                        "name": "index",
+                        "escapedName": "index"
                     }
                 ],
                 "extAttrs": []
@@ -64,41 +68,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "setByIndex",
+                "escapedName": "setByIndex",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "unsigned long"
+                            "idlType": "unsigned long",
+                            "extAttrs": []
                         },
-                        "name": "index"
+                        "name": "index",
+                        "escapedName": "index"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "any"
+                            "idlType": "any",
+                            "extAttrs": []
                         },
-                        "name": "value"
+                        "name": "value",
+                        "escapedName": "value"
                     }
                 ],
                 "extAttrs": []
@@ -112,27 +121,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "removeByIndex",
+                "escapedName": "removeByIndex",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "unsigned long"
+                            "idlType": "unsigned long",
+                            "extAttrs": []
                         },
-                        "name": "index"
+                        "name": "index",
+                        "escapedName": "index"
                     }
                 ],
                 "extAttrs": []
@@ -146,27 +158,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "any"
+                    "idlType": "any",
+                    "extAttrs": []
                 },
                 "name": "get",
+                "escapedName": "get",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "name"
+                        "name": "name",
+                        "escapedName": "name"
                     }
                 ],
                 "extAttrs": []
@@ -180,41 +195,46 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "set",
+                "escapedName": "set",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "name"
+                        "name": "name",
+                        "escapedName": "name"
                     },
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "any"
+                            "idlType": "any",
+                            "extAttrs": []
                         },
-                        "name": "value"
+                        "name": "value",
+                        "escapedName": "value"
                     }
                 ],
                 "extAttrs": []
@@ -228,27 +248,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "remove",
+                "escapedName": "remove",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "name"
+                        "name": "name",
+                        "escapedName": "name"
                     }
                 ],
                 "extAttrs": []

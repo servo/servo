@@ -1,5 +1,5 @@
 interface Foo {
-  Promise<ResponsePromise<sequence<DOMString?>>> bar();
+  Promise<Promise<sequence<DOMString?>>> bar();
   readonly attribute Promise<DOMString> baz;
 };
 
@@ -13,5 +13,5 @@ interface ServiceWorkerClients {
 // Extracted from https://slightlyoff.github.io/ServiceWorker/spec/service_worker/ on 2014-05-13
 
 interface FetchEvent : Event {
-  ResponsePromise<any> default();
+  Promise<any> default();
 };

@@ -1,7 +1,7 @@
 {
   "name": "webidl2",
   "description": "A WebIDL Parser",
-  "version": "10.2.1",
+  "version": "13.0.3",
   "contributors": [
     "Robin Berjon <robin@berjon.com> (https://berjon.com)",
     "Marcos Caceres <marcos@marcosc.com> (https://marcosc.com)",
@@ -20,5 +20,8 @@
     "acquire": "node test/util/acquire.js"
   },
   "repository": "git://github.com/w3c/webidl2.js",
-  "main": "index"
+  "main": "index.js",
+  "files": [
+    "lib/*"
+  ]
 }

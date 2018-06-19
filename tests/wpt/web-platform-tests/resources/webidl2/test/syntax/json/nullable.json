@@ -9,7 +9,11 @@
                 "nullable": true,
                 "idlType": {
                     "type": "const-type",
-                    "idlType": "boolean"
+                    "generic": null,
+                    "nullable": false,
+                    "union": false,
+                    "idlType": "boolean",
+                    "extAttrs": []
                 },
                 "name": "ARE_WE_THERE_YET",
                 "value": {
@@ -35,13 +39,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": true,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": "namespaceURI",
+                "escapedName": "namespaceURI",
                 "extAttrs": []
             }
         ],

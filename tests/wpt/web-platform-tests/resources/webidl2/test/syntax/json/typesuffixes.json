@@ -13,34 +13,37 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
                 "name": "test",
+                "escapedName": "test",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": true,
                             "generic": "sequence",
                             "nullable": true,
                             "union": false,
                             "idlType": {
                                 "type": "argument-type",
-                                "sequence": false,
                                 "generic": null,
                                 "nullable": true,
                                 "union": false,
-                                "idlType": "DOMString"
-                            }
+                                "idlType": "DOMString",
+                                "extAttrs": []
+                            },
+                            "extAttrs": []
                         },
-                        "name": "foo"
+                        "name": "foo",
+                        "escapedName": "foo"
                     }
                 ],
                 "extAttrs": []

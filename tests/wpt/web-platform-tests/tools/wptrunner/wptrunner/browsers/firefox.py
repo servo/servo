@@ -54,6 +54,8 @@ def get_timeout_multiplier(test_type, run_info_data, **kwargs):
             return 4
         else:
             return 3
+    elif run_info_data["os"] == "android":
+        return 4
     return 1
 
 
@@ -369,7 +371,7 @@ class FirefoxBrowser(Browser):
         # local copy of certutil
         # TODO: Maybe only set this if certutil won't launch?
         env = os.environ.copy()
-        certutil_dir = os.path.dirname(self.binary)
+        certutil_dir = os.path.dirname(self.binary or self.certutil_binary)
         if mozinfo.isMac:
             env_var = "DYLD_LIBRARY_PATH"
         elif mozinfo.isUnix:

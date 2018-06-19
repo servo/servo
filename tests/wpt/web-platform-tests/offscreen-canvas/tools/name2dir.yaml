@@ -13,6 +13,7 @@
 2d.imageData:                         "pixel-manipulation"
 2d.line:                              "line-styles"
 2d.path:                              "path-objects"
+2d.text:                              "text"
 2d.coordinatespace:                   "conformance-requirements"
 2d.missingargs:                       "conformance-requirements"
 2d.voidreturn:                        "conformance-requirements"

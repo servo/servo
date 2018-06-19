@@ -9,11 +9,11 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "long"
+                        "idlType": "long",
+                        "extAttrs": []
                     }
                 ],
                 "readonly": false,
@@ -33,11 +33,11 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "long"
+                        "idlType": "long",
+                        "extAttrs": []
                     }
                 ],
                 "readonly": true,
@@ -57,7 +57,6 @@
                 "idlType": [
                     {
                         "type": null,
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,

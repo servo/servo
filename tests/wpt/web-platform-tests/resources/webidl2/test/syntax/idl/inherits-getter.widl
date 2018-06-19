@@ -14,3 +14,9 @@ interface Person : Animal {
   // the description of Person.
   inherit attribute DOMString name;
 };
+
+interface Ghost : Person {
+
+  // An attribute that only inherits the getter behavior
+  inherit readonly attribute DOMString name;
+};

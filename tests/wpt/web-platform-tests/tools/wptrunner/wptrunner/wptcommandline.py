@@ -169,7 +169,7 @@ scheme host and port.""")
 
     config_group = parser.add_argument_group("Configuration")
     config_group.add_argument("--binary", action="store",
-                              type=abs_path, help="Binary to run tests against")
+                              type=abs_path, help="Desktop binary to run tests against")
     config_group.add_argument('--binary-arg',
                               default=[], action="append", dest="binary_args",
                               help="Extra argument for the binary")
@@ -178,7 +178,10 @@ scheme host and port.""")
     config_group.add_argument('--webdriver-arg',
                               default=[], action="append", dest="webdriver_args",
                               help="Extra argument for the WebDriver binary")
-
+    config_group.add_argument("--package-name", action="store",
+                              help="Android package name to run tests against")
+    config_group.add_argument("--device-serial", action="store",
+                              help="Running Android instance to connect to, if not emulator-5554")
     config_group.add_argument("--metadata", action="store", type=abs_path, dest="metadata_root",
                               help="Path to root directory containing test metadata"),
     config_group.add_argument("--tests", action="store", type=abs_path, dest="tests_root",

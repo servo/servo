@@ -27,6 +27,7 @@
       attribute DOMString? _value;
     };
 
-interface Foo {
- void op(object interface);
+interface FooEventTarget {
+  // Argument names allow some selected keywords
+  void addEventListener(EventListener? callback);
 };

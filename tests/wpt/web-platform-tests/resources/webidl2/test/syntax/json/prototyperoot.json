@@ -12,13 +12,14 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "unsigned short"
+                    "idlType": "unsigned short",
+                    "extAttrs": []
                 },
                 "name": "nodeType",
+                "escapedName": "nodeType",
                 "extAttrs": []
             }
         ],

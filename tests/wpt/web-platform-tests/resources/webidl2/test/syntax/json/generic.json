@@ -13,34 +13,35 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
                         "type": "return-type",
-                        "sequence": false,
-                        "generic": "ResponsePromise",
+                        "generic": "Promise",
                         "nullable": false,
                         "union": false,
                         "idlType": {
                             "type": "return-type",
-                            "sequence": true,
                             "generic": "sequence",
                             "nullable": false,
                             "union": false,
                             "idlType": {
                                 "type": "return-type",
-                                "sequence": false,
                                 "generic": null,
                                 "nullable": true,
                                 "union": false,
-                                "idlType": "DOMString"
-                            }
-                        }
-                    }
+                                "idlType": "DOMString",
+                                "extAttrs": []
+                            },
+                            "extAttrs": []
+                        },
+                        "extAttrs": []
+                    },
+                    "extAttrs": []
                 },
                 "name": "bar",
+                "escapedName": "bar",
                 "arguments": [],
                 "extAttrs": []
             },
@@ -52,20 +53,21 @@
                 "readonly": true,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
                         "type": "attribute-type",
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "DOMString"
-                    }
+                        "idlType": "DOMString",
+                        "extAttrs": []
+                    },
+                    "extAttrs": []
                 },
                 "name": "baz",
+                "escapedName": "baz",
                 "extAttrs": []
             }
         ],
@@ -86,20 +88,21 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
                         "type": "return-type",
-                        "sequence": false,
                         "generic": null,
                         "nullable": true,
                         "union": false,
-                        "idlType": "Client"
-                    }
+                        "idlType": "Client",
+                        "extAttrs": []
+                    },
+                    "extAttrs": []
                 },
                 "name": "getServiced",
+                "escapedName": "getServiced",
                 "arguments": [],
                 "extAttrs": []
             },
@@ -112,20 +115,21 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
                         "type": "return-type",
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "any"
-                    }
+                        "idlType": "any",
+                        "extAttrs": []
+                    },
+                    "extAttrs": []
                 },
                 "name": "reloadAll",
+                "escapedName": "reloadAll",
                 "arguments": [],
                 "extAttrs": []
             }
@@ -147,20 +151,21 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
-                    "generic": "ResponsePromise",
+                    "generic": "Promise",
                     "nullable": false,
                     "union": false,
                     "idlType": {
                         "type": "return-type",
-                        "sequence": false,
                         "generic": null,
                         "nullable": false,
                         "union": false,
-                        "idlType": "any"
-                    }
+                        "idlType": "any",
+                        "extAttrs": []
+                    },
+                    "extAttrs": []
                 },
                 "name": "default",
+                "escapedName": "default",
                 "arguments": [],
                 "extAttrs": []
             }

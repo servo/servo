@@ -3,11 +3,11 @@
         "type": "typedef",
         "idlType": {
             "type": "typedef-type",
-            "sequence": false,
             "generic": null,
             "nullable": false,
             "union": false,
-            "idlType": "float"
+            "idlType": "float",
+            "extAttrs": []
         },
         "name": "number",
         "extAttrs": []
@@ -26,27 +26,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "object"
+                    "idlType": "object",
+                    "extAttrs": []
                 },
                 "name": "createObject",
+                "escapedName": "createObject",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "interface"
+                        "name": "interface",
+                        "escapedName": "_interface"
                     }
                 ],
                 "extAttrs": []
@@ -60,27 +63,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": null,
+                "escapedName": null,
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
                             "nullable": false,
                             "union": false,
-                            "idlType": "DOMString"
+                            "idlType": "DOMString",
+                            "extAttrs": []
                         },
-                        "name": "keyName"
+                        "name": "keyName",
+                        "escapedName": "keyName"
                     }
                 ],
                 "extAttrs": []
@@ -102,13 +108,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "boolean"
+                    "idlType": "boolean",
+                    "extAttrs": []
                 },
                 "name": "const",
+                "escapedName": "_const",
                 "extAttrs": []
             },
             {
@@ -119,13 +126,14 @@
                 "readonly": false,
                 "idlType": {
                     "type": "attribute-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": true,
                     "union": false,
-                    "idlType": "DOMString"
+                    "idlType": "DOMString",
+                    "extAttrs": []
                 },
                 "name": "value",
+                "escapedName": "_value",
                 "extAttrs": []
             }
         ],
@@ -134,7 +142,7 @@
     },
     {
         "type": "interface",
-        "name": "Foo",
+        "name": "FooEventTarget",
         "partial": false,
         "members": [
             {
@@ -146,27 +154,30 @@
                 "stringifier": false,
                 "idlType": {
                     "type": "return-type",
-                    "sequence": false,
                     "generic": null,
                     "nullable": false,
                     "union": false,
-                    "idlType": "void"
+                    "idlType": "void",
+                    "extAttrs": []
                 },
-                "name": "op",
+                "name": "addEventListener",
+                "escapedName": "addEventListener",
                 "arguments": [
                     {
                         "optional": false,
                         "variadic": false,
+                        "default": null,
                         "extAttrs": [],
                         "idlType": {
                             "type": "argument-type",
-                            "sequence": false,
                             "generic": null,
-                            "nullable": false,
+                            "nullable": true,
                             "union": false,
-                            "idlType": "object"
+                            "idlType": "EventListener",
+                            "extAttrs": []
                         },
-                        "name": "interface"
+                        "name": "callback",
+                        "escapedName": "callback"
                     }
                 ],
                 "extAttrs": []

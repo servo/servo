@@ -35,22 +35,11 @@ interface MouseEvent {
 };
 
 </pre>
-
-<pre id='idl'>
-dictionary PointerEventInit : MouseEventInit {
-    sequence<PointerEvent> coalescedEvents;
-};
-
-[Constructor(DOMString type, optional PointerEventInit eventInitDict)]
-interface PointerEvent : MouseEvent {
-    sequence<PointerEvent> getCoalescedEvents();
-};
-
-</pre>
 <script>
 promise_test(async function () {
   const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
   const uievents = await fetch('/interfaces/uievents.idl').then(r => r.text());
+  const idl = await fetch('/interfaces/pointerevents-extension.idl').then(r => r.text());
 
   const idl_array = new IdlArray();
   idl_array.add_untested_idls(dom, { only: ['EventInit'] });
@@ -61,7 +50,7 @@ promise_test(async function () {
   });
   idl_array.add_untested_idls(
       document.getElementById("untested_idl").textContent);
-  idl_array.add_idls(document.getElementById("idl").textContent);
+  idl_array.add_idls(idl);
   idl_array.test();
 }, 'pointerevents extension interfaces');
 </script>
