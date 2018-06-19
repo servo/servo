@@ -20,11 +20,16 @@ use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 #[cfg(feature = "gecko")]
-fn moz_display_values_enabled(context: &ParserContext) -> bool {
-    use gecko_bindings::structs;
+fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
     use stylesheets::Origin;
     context.stylesheet_origin == Origin::UserAgent ||
-    context.chrome_rules_enabled() ||
+    context.chrome_rules_enabled()
+}
+
+#[cfg(feature = "gecko")]
+fn moz_display_values_enabled(context: &ParserContext) -> bool {
+    use gecko_bindings::structs;
+    in_ua_or_chrome_sheet(context) ||
     unsafe {
         structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled
     }
@@ -33,9 +38,7 @@ fn moz_display_values_enabled(context: &ParserContext) -> bool {
 #[cfg(feature = "gecko")]
 fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
     use gecko_bindings::structs;
-    use stylesheets::Origin;
-    context.stylesheet_origin == Origin::UserAgent ||
-    context.chrome_rules_enabled() ||
+    in_ua_or_chrome_sheet(context) ||
     unsafe {
         structs::StaticPrefs_sVarCache_layout_css_xul_box_display_values_content_enabled
     }
@@ -948,6 +951,9 @@ pub enum Appearance {
     Meterbar,
     /// The meter bar's meter indicator.
     Meterchunk,
+    /// The "arrowed" part of the dropdown button that open up a dropdown list.
+    #[parse(condition = "in_ua_or_chrome_sheet")]
+    MozMenulistButton,
     /// For HTML's <input type=number>
     NumberInput,
     /// A horizontal progress bar.

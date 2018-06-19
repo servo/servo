@@ -515,7 +515,6 @@ ${helpers.predefined_type(
     products="gecko",
     alias="-webkit-appearance:layout.css.webkit-appearance.enabled",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance)",
-    needs_context=False,
     animation_value_type="discrete",
 )}
 
