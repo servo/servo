@@ -98,7 +98,7 @@ macro_rules! expanded {
 #[allow(missing_docs)]
 pub mod longhands {
     % for style_struct in data.style_structs:
-    include!("${os.path.join(OUT_DIR, 'longhands/{}.rs'.format(style_struct.name_lower))}");
+    include!("${repr(os.path.join(OUT_DIR, 'longhands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
     % endfor
 }
 
@@ -144,7 +144,7 @@ pub mod shorthands {
     }
 
     % for style_struct in data.style_structs:
-    include!("${os.path.join(OUT_DIR, 'shorthands/{}.rs'.format(style_struct.name_lower))}");
+    include!("${repr(os.path.join(OUT_DIR, 'shorthands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
     % endfor
 
     // We didn't define the 'all' shorthand using the regular helpers:shorthand
