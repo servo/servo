@@ -4,12 +4,14 @@
 #![allow(unused)]
 
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
-use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::NavigationType;
+use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{self, NavigationType};
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;
 use dom::bindings::num::Finite;
-use dom::bindings::root::Dom;
+use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
+use dom::globalscope::GlobalScope;
 use dom::performanceresourcetiming::PerformanceResourceTiming;
 use dom_struct::dom_struct;
 
@@ -23,7 +25,6 @@ pub struct PerformanceNavigationTiming {
     navigation_start_precise: u64,
     document: Dom<Document>,
     nav_type: NavigationType,
-    redirect_count: u32,
 }
 
 impl PerformanceNavigationTiming {
@@ -41,12 +42,22 @@ impl PerformanceNavigationTiming {
             navigation_start_precise: nav_start_precise,
             document: Dom::from_ref(document),
             nav_type: NavigationType::Navigate,
-            redirect_count: 0,
         }
     }
 
     pub fn set_type(&mut self, nav_type: NavigationType) {
         self.nav_type = nav_type
+    }
+
+    pub fn new(global: &GlobalScope,
+               nav_start: u64,
+               nav_start_precise: u64,
+               document: &Document)
+                         -> DomRoot<PerformanceNavigationTiming> {
+        reflect_dom_object(
+            Box::new(PerformanceNavigationTiming::new_inherited(
+                nav_start, nav_start_precise, document)),
+            global, PerformanceNavigationTimingBinding::Wrap)
     }
 }
 
