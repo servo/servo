@@ -57,11 +57,11 @@ use js::typedarray::ArrayBufferView;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use ref_filter_map::ref_filter_map;
 use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
 use std::cmp;
-use std::iter::FromIterator;
 use std::ptr::NonNull;
 use webrender_api;
 
@@ -192,7 +192,7 @@ pub struct WebGLRenderingContext {
     bound_texture_unit: Cell<u32>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
-    bound_attrib_buffers: DomRefCell<FnvHashMap<u32, Dom<WebGLBuffer>>>,
+    bound_attrib_buffers: BoundAttribBuffers,
     current_program: MutNullableDom<WebGLProgram>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
@@ -243,7 +243,7 @@ impl WebGLRenderingContext {
                 bound_texture_unit: Cell::new(constants::TEXTURE0),
                 bound_buffer_array: MutNullableDom::new(None),
                 bound_buffer_element_array: MutNullableDom::new(None),
-                bound_attrib_buffers: DomRefCell::new(Default::default()),
+                bound_attrib_buffers: Default::default(),
                 bound_renderbuffer: MutNullableDom::new(None),
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
@@ -311,12 +311,8 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn borrow_bound_attrib_buffers(&self) -> Ref<FnvHashMap<u32, Dom<WebGLBuffer>>> {
-        self.bound_attrib_buffers.borrow()
-    }
-
-    pub fn set_bound_attrib_buffers<'a, T>(&self, iter: T) where T: Iterator<Item=(u32, &'a WebGLBuffer)> {
-        *self.bound_attrib_buffers.borrow_mut() = FnvHashMap::from_iter(iter.map(|(k,v)| (k, Dom::from_ref(v))));
+    pub fn bound_attrib_buffers(&self) -> &BoundAttribBuffers {
+        &self.bound_attrib_buffers
     }
 
     pub fn bound_buffer_element_array(&self) -> Option<DomRoot<WebGLBuffer>> {
@@ -2079,13 +2075,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
 
             // Remove deleted buffer from bound attrib buffers.
-            let attrib_ids: Vec<_> = self.bound_attrib_buffers.borrow().iter()
-                                                              .filter(|&(_, v)| v.id() == buffer.id())
-                                                              .map(|(&k, _)| k)
-                                                              .collect();
-            for id in attrib_ids {
-                self.bound_attrib_buffers.borrow_mut().remove(&id);
-            }
+            self.bound_attrib_buffers.remove_buffer(buffer);
 
             // Delete buffer.
             handle_object_deletion!(self, self.bound_buffer_array, buffer,
@@ -2211,6 +2201,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return self.webgl_error(InvalidOperation);
             }
         }
+
+        {
+            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
+            let buffers = self.bound_attrib_buffers.borrow();
+            if buffers.iter().any(|(_, &(enabled, ref buffer))| enabled && buffer.is_none()) {
+                return self.webgl_error(InvalidOperation);
+            }
+        }
+
         if !self.validate_framebuffer_complete() {
             return;
         }
@@ -2278,6 +2277,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
+        {
+            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
+            let buffers = self.bound_attrib_buffers.borrow();
+            if buffers.iter().any(|(_, &(enabled, ref buffer))| enabled && buffer.is_none()) {
+                return self.webgl_error(InvalidOperation);
+            }
+        }
+
         if !self.validate_framebuffer_complete() {
             return;
         }
@@ -2292,6 +2299,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
+        self.bound_attrib_buffers.enabled(attrib_id, true);
         self.send_command(WebGLCommand::EnableVertexAttribArray(attrib_id));
     }
 
@@ -2301,6 +2309,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
+        self.bound_attrib_buffers.enabled(attrib_id, false);
         self.send_command(WebGLCommand::DisableVertexAttribArray(attrib_id));
     }
 
@@ -2592,7 +2601,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if param == constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING {
             rooted!(in(cx) let mut jsval = NullValue());
-            if let Some(buffer) =  self.bound_attrib_buffers.borrow().get(&index) {
+            if let Some(buffer) = self.bound_attrib_buffers.get(index) {
                 buffer.to_jsval(cx, jsval.handle_mut());
             }
             return jsval.get();
@@ -3358,7 +3367,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         }
 
-        self.bound_attrib_buffers.borrow_mut().insert(attrib_id, Dom::from_ref(&*buffer_array));
+        self.bound_attrib_buffers.bind_buffer(attrib_id, &buffer_array);
 
         let msg = WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32);
         self.send_command(msg);
@@ -3793,5 +3802,51 @@ impl UniformSetterType {
             UniformSetterType::FloatMat3 => 9,
             UniformSetterType::FloatMat4 => 16,
         }
+    }
+}
+
+#[derive(Default, JSTraceable, MallocSizeOf)]
+#[must_root]
+pub struct BoundAttribBuffers {
+    elements: DomRefCell<FnvHashMap<u32, (bool, Option<Dom<WebGLBuffer>>)>>,
+}
+
+impl BoundAttribBuffers {
+    pub fn clear(&self) {
+        self.elements.borrow_mut().clear()
+    }
+
+    pub fn set_from(&self, other: &BoundAttribBuffers) {
+        *self.elements.borrow_mut() = other.elements.borrow().clone();
+    }
+
+    pub fn borrow(&self) -> Ref<FnvHashMap<u32, (bool, Option<Dom<WebGLBuffer>>)>> {
+        self.elements.borrow()
+    }
+
+    fn remove_buffer(&self, buffer: &WebGLBuffer) {
+        self.elements.borrow_mut().retain(|_, v| {
+            v.1.as_ref().map_or(true, |b| b.id() != buffer.id())
+        })
+    }
+
+    fn get(&self, index: u32) -> Option<Ref<WebGLBuffer>> {
+        ref_filter_map(self.elements.borrow(), |elements| {
+            elements.get(&index).and_then(|&(_, ref buffer)| {
+                buffer.as_ref().map(|b| &**b)
+            })
+        })
+    }
+
+    fn enabled(&self, index: u32, value: bool) {
+        let mut elements = self.elements.borrow_mut();
+        let pair = elements.entry(index).or_insert((false, None));
+        pair.0 = value;
+    }
+
+    fn bind_buffer(&self, index: u32, buffer: &WebGLBuffer) {
+        let mut elements = self.elements.borrow_mut();
+        let pair = elements.entry(index).or_insert((false, None));
+        pair.1 = Some(Dom::from_ref(buffer));
     }
 }
