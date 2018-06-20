@@ -24,10 +24,9 @@ pub mod supports_rule;
 pub mod viewport_rule;
 
 use cssparser::{parse_one_rule, Parser, ParserInput};
-use error_reporting::NullReporter;
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
-use parser::{ParserContext, ParserErrorContext};
+use parser::ParserContext;
 use servo_arc::Arc;
 use shared_lock::{DeepCloneParams, DeepCloneWithLock, Locked};
 use shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
@@ -228,13 +227,13 @@ impl CssRule {
         loader: Option<&StylesheetLoader>,
     ) -> Result<Self, RulesMutateError> {
         let url_data = parent_stylesheet_contents.url_data.read();
-        let error_reporter = NullReporter;
         let context = ParserContext::new(
             parent_stylesheet_contents.origin,
             &url_data,
             None,
             ParsingMode::DEFAULT,
             parent_stylesheet_contents.quirks_mode,
+            None,
         );
 
         let mut input = ParserInput::new(css);
@@ -246,9 +245,6 @@ impl CssRule {
         let mut rule_parser = TopLevelRuleParser {
             stylesheet_origin: parent_stylesheet_contents.origin,
             context,
-            error_context: ParserErrorContext {
-                error_reporter: &error_reporter,
-            },
             shared_lock: &shared_lock,
             loader,
             state,

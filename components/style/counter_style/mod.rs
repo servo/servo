@@ -9,8 +9,8 @@
 use Atom;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser};
 use cssparser::{CowRcStr, Parser, SourceLocation, Token};
-use error_reporting::{ContextualParseError, ParseErrorReporter};
-use parser::{Parse, ParserContext, ParserErrorContext};
+use error_reporting::ContextualParseError;
+use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
@@ -73,16 +73,12 @@ pub fn parse_counter_style_name_definition<'i, 't>(
 }
 
 /// Parse the body (inside `{}`) of an @counter-style rule
-pub fn parse_counter_style_body<'i, 't, R>(
+pub fn parse_counter_style_body<'i, 't>(
     name: CustomIdent,
     context: &ParserContext,
-    error_context: &ParserErrorContext<R>,
     input: &mut Parser<'i, 't>,
     location: SourceLocation,
-) -> Result<CounterStyleRuleData, ParseError<'i>>
-where
-    R: ParseErrorReporter,
-{
+) -> Result<CounterStyleRuleData, ParseError<'i>> {
     let start = input.current_source_location();
     let mut rule = CounterStyleRuleData::empty(name, location);
     {
@@ -98,7 +94,7 @@ where
                     slice,
                     error,
                 );
-                context.log_css_error(error_context, location, error)
+                context.log_css_error(location, error)
             }
         }
     }
@@ -134,7 +130,7 @@ where
         _ => None,
     };
     if let Some(error) = error {
-        context.log_css_error(error_context, start, error);
+        context.log_css_error(start, error);
         Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     } else {
         Ok(rule)

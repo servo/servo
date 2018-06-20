@@ -9,8 +9,8 @@
 use context::QuirksMode;
 use cssparser::{Delimiter, Parser};
 use cssparser::{ParserInput, Token};
-use error_reporting::{ContextualParseError, ParseErrorReporter};
-use parser::{ParserContext, ParserErrorContext};
+use error_reporting::ContextualParseError;
+use parser::ParserContext;
 use super::{Device, MediaQuery, Qualifier};
 
 /// A type that encapsulates a media query list.
@@ -30,14 +30,10 @@ impl MediaList {
     /// "not all", see:
     ///
     /// <https://drafts.csswg.org/mediaqueries/#error-handling>
-    pub fn parse<R>(
+    pub fn parse(
         context: &ParserContext,
         input: &mut Parser,
-        error_reporter: &R,
-    ) -> MediaList
-    where
-        R: ParseErrorReporter,
-    {
+    ) -> Self {
         if input.is_exhausted() {
             return Self::empty();
         }
@@ -54,8 +50,7 @@ impl MediaList {
                     let location = err.location;
                     let error =
                         ContextualParseError::InvalidMediaRule(input.slice_from(start_position), err);
-                    let error_context = ParserErrorContext { error_reporter };
-                    context.log_css_error(&error_context, location, error);
+                    context.log_css_error(location, error);
                 },
             }
 
