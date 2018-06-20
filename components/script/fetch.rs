@@ -186,7 +186,6 @@ impl FetchResponseListener for FetchContext {
 
     #[allow(unrooted_must_root)]
     fn process_response(&mut self, fetch_metadata: Result<FetchMetadata, NetworkError>) {
-        println!("fetch process response");
         let promise = self.fetch_promise.take().expect("fetch promise is missing").root();
 
         // JSAutoCompartment needs to be manually made.
