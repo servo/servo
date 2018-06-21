@@ -78,15 +78,6 @@ impl<T: RefCounted> RefPtr<T> {
         ret
     }
 
-    /// Create a reference to RefPtr from a reference to pointer.
-    ///
-    /// The pointer must be valid and non null.
-    ///
-    /// This method doesn't touch refcount.
-    pub unsafe fn from_ptr_ref(ptr: &*mut T) -> &Self {
-        mem::transmute(ptr)
-    }
-
     /// Produces an FFI-compatible RefPtr that can be stored in style structs.
     ///
     /// structs::RefPtr does not have a destructor, so this may leak

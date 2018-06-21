@@ -176,7 +176,7 @@ macro_rules! rule_filter {
 }
 
 /// A trait to represent a given stylesheet in a document.
-pub trait StylesheetInDocument {
+pub trait StylesheetInDocument : ::std::fmt::Debug {
     /// Get the stylesheet origin.
     fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin;
 
@@ -263,7 +263,7 @@ impl StylesheetInDocument for Stylesheet {
 
 /// A simple wrapper over an `Arc<Stylesheet>`, with pointer comparison, and
 /// suitable for its use in a `StylesheetSet`.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub struct DocumentStyleSheet(
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")] pub Arc<Stylesheet>,
