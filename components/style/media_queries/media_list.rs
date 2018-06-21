@@ -14,8 +14,8 @@ use parser::ParserContext;
 use super::{Device, MediaQuery, Qualifier};
 
 /// A type that encapsulates a media query list.
-#[css(comma)]
-#[derive(Clone, Debug, MallocSizeOf, ToCss)]
+#[css(comma, derive_debug)]
+#[derive(Clone, MallocSizeOf, ToCss)]
 pub struct MediaList {
     /// The list of media queries.
     #[css(iterable)]
