@@ -2,6 +2,7 @@
 /.cargo/*
 !/.cargo/config.*
 /.servobuild
+/android-toolchains
 /target
 /ports/android/bin
 /ports/android/libs

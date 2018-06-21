@@ -9,6 +9,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import hashlib
 import os
 import os.path
 import platform
@@ -165,3 +166,15 @@ def extract(src, dst, movedir=None):
         os.rmdir(movedir)
 
     os.remove(src)
+
+def check_hash(filename, expected, algorithm):
+    hasher = hashlib.new(algorithm)
+    with open(filename, "rb") as f:
+        while True:
+            block = f.read(16 * 1024)
+            if len(block) == 0:
+                break
+            hasher.update(block)
+    if hasher.hexdigest() != expected:
+        print("Incorrect {} hash for {}".format(algorithm, filename))
+        sys.exit(1)
