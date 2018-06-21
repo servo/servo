@@ -137,7 +137,7 @@ impl DeepCloneWithLock for StylesheetContents {
             url_data: RwLock::new((*self.url_data.read()).clone()),
             namespaces: RwLock::new((*self.namespaces.read()).clone()),
             source_map_url: RwLock::new((*self.source_map_url.read()).clone()),
-            source_url: RwLock::new((*self.source_map_url.read()).clone()),
+            source_url: RwLock::new((*self.source_url.read()).clone()),
         }
     }
 }
