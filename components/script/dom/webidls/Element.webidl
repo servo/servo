@@ -41,6 +41,8 @@ interface Element : Node {
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
   [CEReactions, Throws]
+  boolean toggleAttribute(DOMString name, optional boolean force);
+  [CEReactions, Throws]
   void setAttribute(DOMString name, DOMString value);
   [CEReactions, Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
