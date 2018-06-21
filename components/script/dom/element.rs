@@ -1680,6 +1680,43 @@ impl ElementMethods for Element {
         self.get_attribute(namespace, &LocalName::from(local_name))
     }
 
+    // https://dom.spec.whatwg.org/#dom-element-toggleattribute
+    fn ToggleAttribute(&self, name: DOMString, force: Option<bool>) -> Fallible<bool> {
+        // Step 1.
+        if xml_name_type(&name) == InvalidXMLName {
+            return Err(Error::InvalidCharacter);
+        }
+
+        // Step 3.
+        let attribute = self.GetAttribute(name.clone());
+
+        // Step 2.
+        let name = self.parsed_name(name);
+        match attribute {
+            // Step 4
+            None => match force {
+                // Step 4.1.
+                None | Some(true) => {
+                    self.set_first_matching_attribute(
+                        name.clone(), AttrValue::String(String::new()), name.clone(), ns!(), None,
+                        |attr| *attr.name() == name);
+                    Ok(true)
+                },
+                // Step 4.2.
+                Some(false) => Ok(false),
+            },
+            Some(_index) => match force {
+                // Step 5.
+                None | Some(false) => {
+                    self.remove_attribute_by_name(&name);
+                    Ok(false)
+                },
+                // Step 6.
+                Some(true) => Ok(true),
+            },
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-element-setattribute
     fn SetAttribute(&self, name: DOMString, value: DOMString) -> ErrorResult {
         // Step 1.
