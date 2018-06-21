@@ -17,13 +17,14 @@ use dom::oscillatornode::OscillatorNode;
 use dom_struct::dom_struct;
 use servo_media::ServoMedia;
 use servo_media::audio::graph::AudioGraph;
+use servo_media::audio::graph_impl::NodeId;
 use servo_media::audio::node::AudioNodeType;
 use std::rc::Rc;
 
 #[dom_struct]
 pub struct BaseAudioContext {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "XXX"]
+    #[ignore_malloc_size_of = "servo_media"]
     audio_graph: AudioGraph,
     destination: Option<DomRoot<AudioDestinationNode>>,
     sample_rate: f32,
@@ -58,7 +59,7 @@ impl BaseAudioContext {
         context
     }
 
-    pub fn create_node_engine(&self, node_type: AudioNodeType) -> usize {
+    pub fn create_node_engine(&self, node_type: AudioNodeType) -> NodeId {
         self.audio_graph.create_node(node_type)
     }
 }

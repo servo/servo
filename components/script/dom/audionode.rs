@@ -10,10 +10,11 @@ use dom::bindings::reflector::Reflector;
 use dom::bindings::root::DomRoot;
 use dom::audioparam::AudioParam;
 use dom_struct::dom_struct;
+use servo_media::audio::graph_impl::NodeId;
 use servo_media::audio::node::AudioNodeType;
 use std::cell::Cell;
 
-// 32 is the minimum required by the spec for createBuffer() and
+// 32 is the minimum required by the spec for createBuffer() and the deprecated
 // createScriptProcessor() and matches what is used by Blink and Gecko.
 // The limit protects against large memory allocations.
 pub static MAX_CHANNEL_COUNT: u32 = 32;
@@ -21,7 +22,8 @@ pub static MAX_CHANNEL_COUNT: u32 = 32;
 #[dom_struct]
 pub struct AudioNode {
     reflector_: Reflector,
-    engine_id: usize,
+    #[ignore_malloc_size_of = "servo_media"]
+    node_id: NodeId,
     context: DomRoot<BaseAudioContext>,
     number_of_inputs: u32,
     number_of_outputs: u32,
@@ -38,7 +40,7 @@ impl AudioNode {
                          number_of_outputs: u32) -> AudioNode {
         AudioNode {
             reflector_: Reflector::new(),
-            engine_id: context.create_node_engine(node_type),
+            node_id: context.create_node_engine(node_type),
             context: DomRoot::from_ref(context),
             number_of_inputs,
             number_of_outputs,

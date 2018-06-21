@@ -81,6 +81,7 @@ use parking_lot::RwLock;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use servo_media::audio::graph::AudioGraph;
+use servo_media::audio::graph_impl::NodeId;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
@@ -431,6 +432,7 @@ unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(AudioGraph);
+unsafe_no_jsmanaged_fields!(NodeId);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
