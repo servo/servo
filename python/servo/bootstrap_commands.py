@@ -82,20 +82,15 @@ class MachCommands(CommandBase):
             filename = name + ".zip"
             url = base_url + filename
             archive = path.join(directory, filename)
-            extract_to = final + ".tmp"
 
             if not path.isdir(directory):
                 os.makedirs(directory)
-            download_file(filename, url, archive)
+            if not path.isfile(archive):
+                download_file(filename, url, archive)
             check_hash(archive, sha512, "sha512")
             print("Extracting " + filename)
-            extract(archive, extract_to)
-            contents = os.listdir(extract_to)
-            assert len(contents) == 1
-            extracted_dir = path.join(extract_to, contents[0])
-            assert path.isdir(extracted_dir)
-            os.rename(extracted_dir, final)
-            os.rmdir(extract_to)
+            remove = True  # Set to False to avoid repeated downloads while debugging this script
+            extract(archive, final, remove=remove)
             return final
 
         system = platform.system().lower()
@@ -104,6 +99,22 @@ class MachCommands(CommandBase):
         arch = {"i386": "x86"}.get(machine, machine)
         ndk = download("ndk", "android-ndk-%s-%s-%s" % (ndk_version, system, arch), ndk_sha512)
         sdk = download("sdk", "tools_%s-%s" % (sdk_version, os_), sdk_sha512)
+
+        if not path.isdir(path.join(sdk, "platform-tools")):
+            subprocess.check_call([
+                path.join(sdk, "tools", "android"),
+                "update", "sdk", "--no-ui", "--all", "--filter",
+                "platform-tools,android-%s,build-tools-%s" % (sdk_platform, sdk_build_tools),
+            ])
+
+        contents = os.listdir(ndk)
+        assert len(contents) == 1
+        ndk = path.join(ndk, contents[0])
+
+        print("")
+        print("export ANDROID_SDK=\"%s\"" % sdk)
+        print("export ANDROID_NDK=\"%s\"" % ndk)
+        print("export PATH=\"%s:$PATH\"" % path.join(sdk, "platform-tools"))
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
