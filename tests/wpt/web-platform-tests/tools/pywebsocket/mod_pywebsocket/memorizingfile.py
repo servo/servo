@@ -36,9 +36,6 @@ A memorizing file wraps a file and memorizes lines read by readline.
 """
 
 
-import sys
-
-
 class MemorizingFile(object):
 
     """MemorizingFile wraps a file and memorizes lines read by readline.
@@ -48,7 +45,7 @@ class MemorizingFile(object):
     the control reaches WebSocketRequestHandler.
     """
 
-    def __init__(self, file_, max_memorized_lines=sys.maxint):
+    def __init__(self, file_, max_memorized_lines=0x7FFFFFFF):
         """Construct an instance.
 
         Args:

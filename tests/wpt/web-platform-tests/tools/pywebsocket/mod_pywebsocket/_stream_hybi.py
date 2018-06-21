@@ -538,7 +538,7 @@ class Stream(StreamBase):
                 # at least one frame is sent.
                 if len(message) <= bytes_written:
                     break
-        except ValueError, e:
+        except ValueError as e:
             raise BadOperationException(e)
 
     def _get_message_from_frame(self, frame):
@@ -677,7 +677,7 @@ class Stream(StreamBase):
             if handler:
                 handler(self._request, message)
                 return
-        except AttributeError, e:
+        except AttributeError as e:
             pass
         self._send_pong(message)
 
@@ -704,7 +704,7 @@ class Stream(StreamBase):
                     break
                 else:
                     inflight_pings.append(expected_body)
-            except IndexError, e:
+            except IndexError as e:
                 # The received pong was unsolicited pong. Keep the
                 # ping queue as is.
                 self._ping_queue = inflight_pings
@@ -715,7 +715,7 @@ class Stream(StreamBase):
             handler = self._request.on_pong_handler
             if handler:
                 handler(self._request, message)
-        except AttributeError, e:
+        except AttributeError as e:
             pass
 
     def receive_message(self):
@@ -780,7 +780,7 @@ class Stream(StreamBase):
                 # CHARACTER.
                 try:
                     return message.decode('utf-8')
-                except UnicodeDecodeError, e:
+                except UnicodeDecodeError as e:
                     raise InvalidUTF8Exception(e)
             elif self._original_opcode == common.OPCODE_BINARY:
                 return message

@@ -1,0 +1,33 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Scroll-linked Animations" spec.
+// See: https://wicg.github.io/scroll-animations/
+
+enum ScrollDirection {
+  "auto",
+  "block",
+  "inline",
+  "horizontal",
+  "vertical"
+};
+
+enum ScrollTimelineAutoKeyword { "auto" };
+
+dictionary ScrollTimelineOptions {
+  Element scrollSource;
+  ScrollDirection orientation = "auto";
+  DOMString startScrollOffset = "auto";
+  DOMString endScrollOffset = "auto";
+  (double or ScrollTimelineAutoKeyword) timeRange = "auto";
+  FillMode fill = "none";
+};
+
+[Constructor(optional ScrollTimelineOptions options)]
+interface ScrollTimeline : AnimationTimeline {
+  readonly attribute Element scrollSource;
+  readonly attribute ScrollDirection orientation;
+  readonly attribute DOMString startScrollOffset;
+  readonly attribute DOMString endScrollOffset;
+  readonly attribute (double or ScrollTimelineAutoKeyword) timeRange;
+  readonly attribute FillMode fill;
+};

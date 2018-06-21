@@ -20,31 +20,18 @@
     <div id='log'></div>
 
     <script>
-        setup(function() {
+      'use strict';
 
-            fetch( '/interfaces/encrypted-media.idl' )
-            .then( function( response ) {
-                if ( !response.ok ) throw new Error( 'IDL fetch failed' );
-                return response.text();
-            } )
-            .then( function( idls ) {
-
-                var idl_array = new IdlArray();
-                idl_array.add_untested_idls("interface Navigator {};");
-                idl_array.add_untested_idls("interface HTMLMediaElement {};");
-                idl_array.add_untested_idls("interface Event {};");
-                idl_array.add_untested_idls("dictionary EventInit {};");
-                idl_array.add_untested_idls("interface EventTarget {};");
-
-                idl_array.add_idls(idls);
-
-                idl_array.test();
-
-                done();
-
-            } );
-
-        }, {explicit_done: true});
+      promise_test(async () => {
+        const idls = await fetch('/interfaces/encrypted-media.idl').then(r => r.text());
+        const html = await fetch('/interfaces/html.idl').then(r => r.text());
+        const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+        var idl_array = new IdlArray();
+        idl_array.add_idls(idls);
+        idl_array.add_dependency_idls(html);
+        idl_array.add_dependency_idls(dom);
+        idl_array.test();
+      }, 'Test encrypted-media IDL');
     </script>
   </body>
 </html>
