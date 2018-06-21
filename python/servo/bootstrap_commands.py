@@ -13,6 +13,7 @@ import base64
 import json
 import os
 import os.path as path
+import platform
 import re
 import subprocess
 import sys
@@ -28,7 +29,7 @@ from mach.decorators import (
 
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes
+from servo.util import delete, download_bytes, download_file, check_hash, extract
 
 
 @CommandProvider
@@ -53,6 +54,56 @@ class MachCommands(CommandBase):
                      help='Boostrap without confirmation')
     def bootstrap(self, force=False):
         return bootstrap.bootstrap(self.context, force=force)
+
+    @Command('bootstrap-android',
+             description='Install the Android SDK and NDK.',
+             category='bootstrap')
+    def bootstrap_android(self):
+
+        ndk_version = "r12b"
+        ndk_sha512 = "2d85b476436ca50896e4b7c5d0f15547fd14a6ebec7e0081022b28f791709af7" \
+                     "8ea5ebddcdf4722b5e94daeac288d509bd5f240b0280167edef8e199da3d0501"
+
+        sdk_version = "r25.2.3"
+        sdk_sha512 = "dfc30ee3e2714cf8008ab1f99757deded002d21b23a8d2ab07952e1afd1c9312" \
+                     "4ddec06660babf6a46c54e5e7e135c8c0cb4cc512378a8509da074dbf7e253d7"
+        sdk_platform = "25"
+        sdk_build_tools = "25.0.2"
+
+
+        def download(kind, name, sha512):
+            toolchains = path.join(self.context.topdir, "android-toolchains")
+            directory = path.join(toolchains, kind)
+            final = path.join(directory, name)
+            if path.isdir(final):
+                return final
+
+            base_url = "https://dl.google.com/android/repository/"
+            filename = name + ".zip"
+            url = base_url + filename
+            archive = path.join(directory, filename)
+            extract_to = final + ".tmp"
+
+            if not path.isdir(directory):
+                os.makedirs(directory)
+            download_file(filename, url, archive)
+            check_hash(archive, sha512, "sha512")
+            print("Extracting " + filename)
+            extract(archive, extract_to)
+            contents = os.listdir(extract_to)
+            assert len(contents) == 1
+            extracted_dir = path.join(extract_to, contents[0])
+            assert path.isdir(extracted_dir)
+            os.rename(extracted_dir, final)
+            os.rmdir(extract_to)
+            return final
+
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        os_ = {"darwin": "macosx"}.get(system, system)
+        arch = {"i386": "x86"}.get(machine, machine)
+        ndk = download("ndk", "android-ndk-%s-%s-%s" % (ndk_version, system, arch), ndk_sha512)
+        sdk = download("sdk", "tools_%s-%s" % (sdk_version, os_), sdk_sha512)
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
