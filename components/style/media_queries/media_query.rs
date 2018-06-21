@@ -9,7 +9,6 @@
 use Atom;
 use cssparser::Parser;
 use parser::ParserContext;
-use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Write};
 use str::string_as_ascii_lowercase;
 use style_traits::{CssWriter, ParseError, ToCss};
@@ -125,34 +124,23 @@ impl MediaQuery {
     pub fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Result<MediaQuery, ParseError<'i>> {
-        if let Ok(condition) = input.try(|i| MediaCondition::parse(context, i)) {
-            return Ok(Self {
-                qualifier: None,
-                media_type: MediaQueryType::All,
-                condition: Some(condition),
-            })
-        }
+    ) -> Result<Self, ParseError<'i>> {
+        let (qualifier, explicit_media_type) = input.try(|input| -> Result<_, ()> {
+            let qualifier = input.try(Qualifier::parse).ok();
+            let ident = input.expect_ident().map_err(|_| ())?;
+            let media_type = MediaQueryType::parse(&ident)?;
+            Ok((qualifier, Some(media_type)))
+        }).unwrap_or_default();
 
-        let qualifier = input.try(Qualifier::parse).ok();
-        let media_type = {
-            let location = input.current_source_location();
-            let ident = input.expect_ident()?;
-            match MediaQueryType::parse(&ident) {
-                Ok(t) => t,
-                Err(..) => return Err(location.new_custom_error(
-                    SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                ))
-            }
+        let condition = if explicit_media_type.is_none() {
+            Some(MediaCondition::parse(context, input)?)
+        } else if input.try(|i| i.expect_ident_matching("and")).is_ok() {
+            Some(MediaCondition::parse_disallow_or(context, input)?)
+        } else {
+            None
         };
 
-        let condition =
-            if input.try(|i| i.expect_ident_matching("and")).is_ok() {
-                Some(MediaCondition::parse_disallow_or(context, input)?)
-            } else {
-                None
-            };
-
+        let media_type = explicit_media_type.unwrap_or(MediaQueryType::All);
         Ok(Self { qualifier, media_type, condition })
     }
 }

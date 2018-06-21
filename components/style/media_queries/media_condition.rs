@@ -163,12 +163,11 @@ impl MediaCondition {
     ) -> Result<Self, ParseError<'i>> {
         input.parse_nested_block(|input| {
             // Base case.
-            if let Ok(expr) = input.try(|i| MediaFeatureExpression::parse_in_parenthesis_block(context, i)) {
-                return Ok(MediaCondition::Feature(expr));
+            if let Ok(inner) = input.try(|i| Self::parse(context, i)) {
+                return Ok(MediaCondition::InParens(Box::new(inner)))
             }
-
-            let inner = Self::parse(context, input)?;
-            Ok(MediaCondition::InParens(Box::new(inner)))
+            let expr = MediaFeatureExpression::parse_in_parenthesis_block(context, input)?;
+            Ok(MediaCondition::Feature(expr))
         })
     }
 
