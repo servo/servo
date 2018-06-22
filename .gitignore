@@ -2,7 +2,7 @@
 /.cargo/*
 !/.cargo/config.*
 /.servobuild
-/target
+**/target
 /ports/android/bin
 /ports/android/libs
 /ports/android/local.properties
