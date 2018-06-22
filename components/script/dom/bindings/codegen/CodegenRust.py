@@ -2501,7 +2501,7 @@ class CGConstructorEnabled(CGAbstractMethod):
     def __init__(self, descriptor):
         CGAbstractMethod.__init__(self, descriptor,
                                   'ConstructorEnabled', 'bool',
-                                  [Argument("*mut JSContext", "aCx"),
+                                  [Argument("JSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
                                   unsafe=True)
 
@@ -2621,7 +2621,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument('&GlobalScope', 'scope'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
@@ -2656,7 +2656,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'DomRoot<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -2800,7 +2800,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor, properties, haveUnscopables):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
+        args = [Argument('JSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
@@ -3042,7 +3042,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix="", pub=False):
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
@@ -3180,7 +3180,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfaceObject()
         args = [
-            Argument('*mut JSContext', 'cx'),
+            Argument('JSContext', 'cx'),
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
@@ -3477,7 +3477,7 @@ class CGAbstractStaticBindingMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor, name):
         args = [
-            Argument('*mut JSContext', 'cx'),
+            Argument('JSContext', 'cx'),
             Argument('libc::c_uint', 'argc'),
             Argument('*mut JSVal', 'vp'),
         ]
@@ -3504,7 +3504,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
     def __init__(self, descriptor, method):
         self.method = method
         name = method.identifier.name
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_obj'),
+        args = [Argument('JSContext', 'cx'), Argument('HandleObject', '_obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('*const JSJitMethodCallArgs', 'args')]
         CGAbstractExternMethod.__init__(self, descriptor, name, 'bool', args)
@@ -3552,7 +3552,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'get_' + descriptor.internalNameFor(attr.identifier.name)
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument('HandleObject', '_obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('JSJitGetterCallArgs', 'args')]
@@ -3607,7 +3607,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = 'set_' + descriptor.internalNameFor(attr.identifier.name)
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument('HandleObject', 'obj'),
                 Argument('*const %s' % descriptor.concreteType, 'this'),
                 Argument('JSJitSetterCallArgs', 'args')]
@@ -4101,7 +4101,7 @@ impl Default for super::${ident} {
 }
 
 impl ToJSValConvertible for super::${ident} {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
         pairs[*self as usize].0.to_jsval(cx, rval);
     }
 }
@@ -4244,7 +4244,7 @@ pub enum %s {
 }
 
 impl ToJSValConvertible for %s {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
         match *self {
 %s
         }
@@ -4398,7 +4398,7 @@ class CGUnionConversionStruct(CGThing):
             "Err(())" % ", ".join(names)))
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
-            pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
+            pre="unsafe fn from_jsval(cx: JSContext,\n"
                 "                     value: HandleValue,\n"
                 "                     _option: ())\n"
                 "                     -> Result<ConversionResult<%s>, ()> {\n" % self.type,
@@ -4421,7 +4421,7 @@ class CGUnionConversionStruct(CGThing):
 
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            pre="unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n"
+            pre="unsafe fn TryConvertTo%s(cx: JSContext, value: HandleValue) -> %s {\n"
                 % (t.name, returnType),
             post="\n}")
 
@@ -4917,7 +4917,7 @@ return box_;""" % self.descriptor.concreteType)
 
 class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+        args = [Argument('JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('RawMutableHandle<PropertyDescriptor>', 'desc')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
@@ -5019,7 +5019,7 @@ return true;"""
 
 class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+        args = [Argument('JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('RawHandle<PropertyDescriptor>', 'desc'),
                 Argument('*mut ObjectOpResult', 'opresult')]
@@ -5068,7 +5068,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
 
 class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+        args = [Argument('JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
                 Argument('*mut ObjectOpResult', 'res')]
         CGAbstractExternMethod.__init__(self, descriptor, "delete", "bool", args)
@@ -5090,7 +5090,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
 
 class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
                 Argument('*mut AutoIdVector', 'props')]
         CGAbstractExternMethod.__init__(self, descriptor, "own_property_keys", "bool", args)
@@ -5145,7 +5145,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
     def __init__(self, descriptor):
         assert (descriptor.operations["IndexedGetter"] and
                 descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"))
-        args = [Argument('*mut JSContext', 'cx'),
+        args = [Argument('JSContext', 'cx'),
                 Argument('RawHandleObject', 'proxy'),
                 Argument('*mut AutoIdVector', 'props')]
         CGAbstractExternMethod.__init__(self, descriptor,
@@ -5186,7 +5186,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
 
 class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+        args = [Argument('JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'), Argument('*mut bool', 'bp')]
         CGAbstractExternMethod.__init__(self, descriptor, "hasOwn", "bool", args)
         self.descriptor = descriptor
@@ -5248,7 +5248,7 @@ return true;"""
 
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
+        args = [Argument('JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleValue', 'receiver'), Argument('RawHandleId', 'id'),
                 Argument('RawMutableHandleValue', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
@@ -5334,7 +5334,7 @@ return true;""" % (getIndexedOrExpando, getNamed)
 
 class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', '_proxy')]
+        args = [Argument('JSContext', 'cx'), Argument('RawHandleObject', '_proxy')]
         CGAbstractExternMethod.__init__(self, descriptor, "className", "*const i8", args, doesNotPanic=True)
         self.descriptor = descriptor
 
@@ -5426,7 +5426,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
     JS-visible constructor for our objects
     """
     def __init__(self, descriptor, constructor=None):
-        args = [Argument('*mut JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
+        args = [Argument('JSContext', 'cx'), Argument('u32', 'argc'), Argument('*mut JSVal', 'vp')]
         name = CONSTRUCT_HOOK_NAME
         if constructor:
             name += "_" + constructor.identifier.name
@@ -5553,7 +5553,7 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(needCx, argument=None):
             if needCx:
-                yield "cx", "*mut JSContext"
+                yield "cx", "JSContext"
 
             if argument:
                 yield "value", argument_type(descriptor, argument)
@@ -5617,7 +5617,7 @@ class CGInterfaceTrait(CGThing):
         def contains_unsafe_arg(arguments):
             if not arguments or len(arguments) == 0:
                 return False
-            return reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
+            return reduce((lambda x, y: x or y[1] == 'JSContext'), arguments, False)
 
         methods = []
         for name, arguments, rettype in members():
@@ -6224,13 +6224,13 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl ${selfName} {\n"
-            "    pub unsafe fn empty(cx: *mut JSContext) -> ${actualType} {\n"
+            "    pub unsafe fn empty(cx: JSContext) -> ${actualType} {\n"
             "        match ${selfName}::new(cx, HandleValue::null()) {\n"
             "            Ok(ConversionResult::Success(v)) => v,\n"
             "            _ => unreachable!(),\n"
             "        }\n"
             "    }\n"
-            "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) \n"
+            "    pub unsafe fn new(cx: JSContext, val: HandleValue) \n"
             "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
             "            ptr::null_mut()\n"
@@ -6250,14 +6250,14 @@ class CGDictionary(CGThing):
             "\n"
             "impl FromJSValConvertible for ${actualType} {\n"
             "    type Config = ();\n"
-            "    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())\n"
+            "    unsafe fn from_jsval(cx: JSContext, value: HandleValue, _option: ())\n"
             "                         -> Result<ConversionResult<${actualType}>, ()> {\n"
             "        ${selfName}::new(cx, value)\n"
             "    }\n"
             "}\n"
             "\n"
             "impl ToJSValConvertible for ${selfName} {\n"
-            "    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {\n"
+            "    unsafe fn to_jsval(&self, cx: JSContext, mut rval: MutableHandleValue) {\n"
             "        rooted!(in(cx) let obj = JS_NewObject(cx, ptr::null()));\n"
             "${insertMembers}"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
@@ -6555,7 +6555,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
 
 def method_arguments(descriptorProvider, returnType, arguments, passJSBits=True, trailing=None):
     if needCx(returnType, arguments, passJSBits):
-        yield "cx", "*mut JSContext"
+        yield "cx", "JSContext"
 
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
@@ -6635,7 +6635,7 @@ class CGCallback(CGClass):
 
     def getConstructors(self):
         return [ClassConstructor(
-            [Argument("*mut JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
+            [Argument("JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -6648,7 +6648,7 @@ class CGCallback(CGClass):
         args = list(method.args)
         # Strip out the JSContext*/JSObject* args
         # that got added.
-        assert args[0].name == "cx" and args[0].argType == "*mut JSContext"
+        assert args[0].name == "cx" and args[0].argType == "JSContext"
         assert args[1].name == "aThisObj" and args[1].argType == "HandleObject"
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
@@ -6731,7 +6731,7 @@ class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
         impl = string.Template("""\
 impl CallbackContainer for ${type} {
-    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<${type}> {
+    unsafe fn new(cx: JSContext, callback: *mut JSObject) -> Rc<${type}> {
         ${type}::new(cx, callback)
     }
 
@@ -6741,7 +6741,7 @@ impl CallbackContainer for ${type} {
 }
 
 impl ToJSValConvertible for ${type} {
-    unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
+    unsafe fn to_jsval(&self, cx: JSContext, rval: MutableHandleValue) {
         self.callback().to_jsval(cx, rval);
     }
 }\
@@ -6935,7 +6935,7 @@ class CallbackMember(CGNativeMember):
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
-        return [Argument("*mut JSContext", "cx"),
+        return [Argument("JSContext", "cx"),
                 Argument("HandleObject", "aThisObj")] + args
 
     def getCallSetup(self):
