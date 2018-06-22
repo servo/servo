@@ -624,6 +624,23 @@ impl HttpCache {
         let entry_key = CacheKey::new(request.clone());
         if let Some(cached_resources) = self.entries.get_mut(&entry_key) {
             for cached_resource in cached_resources.iter_mut() {
+                // done_chan will have been set to Some(..) by http_network_fetch.
+                // If the body is not receiving data, set the done_chan back to None.
+                // Otherwise, create a new dedicated channel to update the consumer.
+                // The response constructed here will replace the 304 one from the network.
+                let in_progress_channel = match *cached_resource.body.lock().unwrap() {
+                    ResponseBody::Receiving(..) => {
+                        Some(channel())
+                    },
+                    ResponseBody::Empty | ResponseBody::Done(..) => None
+                };
+                match in_progress_channel {
+                    Some((done_sender, done_receiver)) => {
+                        *done_chan = Some((done_sender.clone(), done_receiver));
+                        cached_resource.awaiting_body.lock().unwrap().push(done_sender);
+                    },
+                    None => *done_chan = None
+                }
                 // Received a response with 304 status code, in response to a request that matches a cached resource.
                 // 1. update the headers of the cached resource.
                 // 2. return a response, constructed from the cached resource.
@@ -635,9 +652,6 @@ impl HttpCache {
                 constructed_response.referrer_policy = request.referrer_policy.clone();
                 constructed_response.raw_status = cached_resource.data.raw_status.clone();
                 constructed_response.url_list = cached_resource.data.url_list.clone();
-                // done_chan will have been set to Some by http_network_fetch,
-                // set it back to None since the response returned here replaces the 304 one from the network.
-                *done_chan = None;
                 cached_resource.data.expires = get_response_expiry(&constructed_response);
                 let mut stored_headers = cached_resource.data.metadata.headers.lock().unwrap();
                 stored_headers.extend(response.headers.iter());

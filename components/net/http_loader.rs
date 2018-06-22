@@ -905,26 +905,30 @@ fn http_network_or_cache_fetch(request: &mut Request,
         }
     }
 
-    if let Some(ref ch) = *done_chan {
-        // The cache constructed a response with a body of ResponseBody::Receiving.
-        // We wait for the response in the cache to "finish",
-        // with a body of either Done or Cancelled.
-        loop {
-            match ch.1.recv()
-                    .expect("HTTP cache should always send Done or Cancelled") {
-                Data::Payload(_) => {},
-                Data::Done => break, // Return the full response as if it was initially cached as such.
-                Data::Cancelled => {
-                    // The response was cancelled while the fetch was ongoing.
-                    // Set response to None, which will trigger a network fetch below.
-                    response = None;
-                    break;
+    fn wait_for_cached_response(done_chan: &mut DoneChannel, response: &mut Option<Response>) {
+        if let Some(ref ch) = *done_chan {
+            // The cache constructed a response with a body of ResponseBody::Receiving.
+            // We wait for the response in the cache to "finish",
+            // with a body of either Done or Cancelled.
+            loop {
+                match ch.1.recv()
+                        .expect("HTTP cache should always send Done or Cancelled") {
+                    Data::Payload(_) => {},
+                    Data::Done => break, // Return the full response as if it was initially cached as such.
+                    Data::Cancelled => {
+                        // The response was cancelled while the fetch was ongoing.
+                        // Set response to None, which will trigger a network fetch below.
+                        *response = None;
+                        break;
+                    }
                 }
             }
         }
+        // Set done_chan back to None, it's cache-related usefulness ends here.
+        *done_chan = None;
     }
-    // Set done_chan back to None, it's cache-related usefulness ends here.
-    *done_chan = None;
+
+    wait_for_cached_response(done_chan, &mut response);
 
     // Step 22
     if response.is_none() {
@@ -951,6 +955,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
         if revalidating_flag && forward_response.status.map_or(false, |s| s == StatusCode::NotModified) {
             if let Ok(mut http_cache) = context.state.http_cache.write() {
                 response = http_cache.refresh(&http_request, forward_response.clone(), done_chan);
+                wait_for_cached_response(done_chan, &mut response);
             }
         }
 
