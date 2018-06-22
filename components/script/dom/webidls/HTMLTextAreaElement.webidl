@@ -11,8 +11,8 @@ interface HTMLTextAreaElement : HTMLElement {
   //          attribute boolean autofocus;
   [CEReactions, SetterThrows]
            attribute unsigned long cols;
-  // [CEReactions]
-  //          attribute DOMString dirName;
+  [CEReactions]
+           attribute DOMString dirName;
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;

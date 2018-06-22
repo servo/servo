@@ -477,10 +477,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_setter!(SetAlt, "alt");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
+    // https://html.spec.whatwg.org/multipage/#attr-fe-dirname
     make_getter!(DirName, "dirname");
 
-    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
+    // https://html.spec.whatwg.org/multipage/#attr-fe-dirname
     make_setter!(SetDirName, "dirname");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
