@@ -49,7 +49,9 @@ impl BaseAudioContext {
             BaseAudioContextOptions::AudioContext(options) => options,
             BaseAudioContextOptions::OfflineAudioContext(_) => unimplemented!(),
         };
+
         let sample_rate = options.sample_rate;
+
         let mut context = BaseAudioContext {
             reflector_: Reflector::new(),
             audio_graph: ServoMedia::get().unwrap().create_audio_graph(Some(options.into())),
@@ -83,6 +85,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
     fn CurrentTime(&self) -> Finite<f64> {
         Finite::wrap(self.current_time)
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
+    fn State(&self) -> AudioContextState {
+        self.state
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
