@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::baseaudiocontext::BaseAudioContext;
+use dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use dom::bindings::codegen::Bindings::AudioContextBinding;
-use dom::bindings::codegen::Bindings::AudioContextBinding::AudioContextMethods;
-use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextOptions, AudioTimestamp};
+use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextMethods, AudioContextOptions};
+use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextLatencyCategory, AudioTimestamp};
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
@@ -15,6 +15,7 @@ use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_media::audio::graph::{LatencyCategory, RealTimeAudioGraphOptions};
 use std::rc::Rc;
 
 #[dom_struct]
@@ -25,9 +26,9 @@ pub struct AudioContext {
 }
 
 impl AudioContext {
-    fn new_inherited(global: &GlobalScope, sample_rate: f32) -> AudioContext {
+    fn new_inherited(global: &GlobalScope, options: &AudioContextOptions) -> AudioContext {
         AudioContext {
-            context: BaseAudioContext::new_inherited(global, 2 /* channel_count */, sample_rate),
+            context: BaseAudioContext::new_inherited(global, BaseAudioContextOptions::AudioContext(options.into())),
             base_latency: 0., // TODO
             output_latency: 0., // TODO
         }
@@ -38,7 +39,7 @@ impl AudioContext {
                options: &AudioContextOptions) -> DomRoot<AudioContext> {
         let context = AudioContext::new_inherited(
             global,
-            *options.sampleRate.unwrap_or(Finite::wrap(0.)),
+            options,
             ); // TODO
         reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap)
     }
@@ -77,5 +78,24 @@ impl AudioContextMethods for AudioContext {
     fn Close(&self) -> Rc<Promise> {
         // TODO
         Promise::new(&self.global())
+    }
+}
+
+impl From<AudioContextLatencyCategory> for LatencyCategory {
+    fn from(category: AudioContextLatencyCategory) -> Self {
+        match category {
+            AudioContextLatencyCategory::Balanced => LatencyCategory::Balanced,
+            AudioContextLatencyCategory::Interactive => LatencyCategory::Interactive,
+            AudioContextLatencyCategory::Playback => LatencyCategory::Playback,
+        }
+    }
+}
+
+impl<'a> From<&'a AudioContextOptions> for RealTimeAudioGraphOptions {
+    fn from(options: &AudioContextOptions) -> Self {
+        Self {
+            sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(48000.)),
+            latency_hint: options.latencyHint.into(),
+        }
     }
 }

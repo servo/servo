@@ -17,9 +17,15 @@ use dom::oscillatornode::OscillatorNode;
 use dom_struct::dom_struct;
 use servo_media::ServoMedia;
 use servo_media::audio::graph::AudioGraph;
+use servo_media::audio::graph::{OfflineAudioGraphOptions, RealTimeAudioGraphOptions};
 use servo_media::audio::graph_impl::NodeId;
 use servo_media::audio::node::AudioNodeType;
 use std::rc::Rc;
+
+pub enum BaseAudioContextOptions {
+    AudioContext(RealTimeAudioGraphOptions),
+    OfflineAudioContext(OfflineAudioGraphOptions),
+}
 
 #[dom_struct]
 pub struct BaseAudioContext {
@@ -37,12 +43,16 @@ impl BaseAudioContext {
     #[allow(unsafe_code)]
     pub fn new_inherited(
         global: &GlobalScope,
-        channel_count: u32,
-        sample_rate: f32,
-    ) -> BaseAudioContext {
+        options: BaseAudioContextOptions,
+        ) -> BaseAudioContext {
+        let options = match options {
+            BaseAudioContextOptions::AudioContext(options) => options,
+            BaseAudioContextOptions::OfflineAudioContext(_) => unimplemented!(),
+        };
+        let sample_rate = options.sample_rate;
         let mut context = BaseAudioContext {
             reflector_: Reflector::new(),
-            audio_graph: ServoMedia::get().unwrap().create_audio_graph(),
+            audio_graph: ServoMedia::get().unwrap().create_audio_graph(Some(options.into())),
             destination: None,
             current_time: 0.,
             sample_rate,
@@ -50,7 +60,7 @@ impl BaseAudioContext {
         };
 
         let mut options = unsafe { AudioNodeOptions::empty(global.get_cx()) };
-        options.channelCount = Some(channel_count);
+        options.channelCount = Some(2);
         options.channelCountMode = Some(ChannelCountMode::Explicit);
         options.channelInterpretation = Some(ChannelInterpretation::Speakers);
 
