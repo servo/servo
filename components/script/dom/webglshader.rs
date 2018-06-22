@@ -12,6 +12,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::webgl_extensions::WebGLExtensions;
+use dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
@@ -117,6 +118,7 @@ impl WebGLShader {
         let mut params = BuiltInResources::default();
         params.FragmentPrecisionHigh = 1;
         params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
+        params.EXT_shader_texture_lod = ext.is_enabled::<EXTShaderTextureLod>() as i32;
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
                 let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
