@@ -5,6 +5,7 @@
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use super::{ext_constants, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
+pub mod extblendminmax;
 pub mod extshadertexturelod;
 pub mod exttexturefilteranisotropic;
 pub mod oeselementindexuint;

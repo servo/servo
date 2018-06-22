@@ -12,6 +12,7 @@ use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
 use canvas_traits::webgl::{WebVRCommand, webgl_channel};
 use canvas_traits::webgl::WebGLError::*;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -1193,6 +1194,21 @@ impl WebGLRenderingContext {
             _ => Err(WebGLError::InvalidEnum),
         }
     }
+
+    fn validate_blend_mode(&self, mode: u32) -> WebGLResult<()> {
+        match mode {
+            constants::FUNC_ADD |
+            constants::FUNC_SUBTRACT |
+            constants::FUNC_REVERSE_SUBTRACT => {
+                Ok(())
+            }
+            EXTBlendMinmaxConstants::MIN_EXT |
+            EXTBlendMinmaxConstants::MAX_EXT if self.extension_manager.is_blend_minmax_enabled() => {
+                Ok(())
+            }
+            _ => Err(InvalidEnum),
+        }
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1547,30 +1563,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquation(&self, mode: u32) {
-        match mode {
-            constants::FUNC_ADD |
-            constants::FUNC_SUBTRACT |
-            constants::FUNC_REVERSE_SUBTRACT => {
-                self.send_command(WebGLCommand::BlendEquation(mode))
-            }
-            _ => self.webgl_error(InvalidEnum),
-        }
+        handle_potential_webgl_error!(self, self.validate_blend_mode(mode), return);
+        self.send_command(WebGLCommand::BlendEquation(mode))
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
-        match mode_rgb {
-            constants::FUNC_ADD |
-            constants::FUNC_SUBTRACT |
-            constants::FUNC_REVERSE_SUBTRACT => {},
-            _ => return self.webgl_error(InvalidEnum),
-        }
-        match mode_alpha {
-            constants::FUNC_ADD |
-            constants::FUNC_SUBTRACT |
-            constants::FUNC_REVERSE_SUBTRACT => {},
-            _ => return self.webgl_error(InvalidEnum),
-        }
+        handle_potential_webgl_error!(self, self.validate_blend_mode(mode_rgb), return);
+        handle_potential_webgl_error!(self, self.validate_blend_mode(mode_alpha), return);
         self.send_command(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha));
     }
 

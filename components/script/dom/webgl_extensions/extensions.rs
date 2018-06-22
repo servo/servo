@@ -70,6 +70,8 @@ struct WebGLExtensionFeatures {
     disabled_get_tex_parameter_names: FnvHashSet<GLenum>,
     /// WebGL OES_element_index_uint extension.
     element_index_uint_enabled: bool,
+    /// WebGL EXT_blend_minmax extension.
+    blend_minmax_enabled: bool,
 }
 
 impl WebGLExtensionFeatures {
@@ -79,6 +81,7 @@ impl WebGLExtensionFeatures {
             disabled_get_parameter_names,
             disabled_get_tex_parameter_names,
             element_index_uint_enabled,
+            blend_minmax_enabled,
         ) = match webgl_version {
             WebGLVersion::WebGL1 => {
                 (
@@ -86,10 +89,11 @@ impl WebGLExtensionFeatures {
                     DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
                     DEFAULT_DISABLED_GET_TEX_PARAMETER_NAMES_WEBGL1.iter().cloned().collect(),
                     false,
+                    false,
                 )
             },
             WebGLVersion::WebGL2 => {
-                (Default::default(), Default::default(), Default::default(), true)
+                (Default::default(), Default::default(), Default::default(), true, true)
             }
         };
         Self {
@@ -102,6 +106,7 @@ impl WebGLExtensionFeatures {
             disabled_get_parameter_names,
             disabled_get_tex_parameter_names,
             element_index_uint_enabled,
+            blend_minmax_enabled,
         }
     }
 }
@@ -265,6 +270,7 @@ impl WebGLExtensions {
     }
 
     fn register_all_extensions(&self) {
+        self.register::<ext::extblendminmax::EXTBlendMinmax>();
         self.register::<ext::extshadertexturelod::EXTShaderTextureLod>();
         self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
         self.register::<ext::oeselementindexuint::OESElementIndexUint>();
@@ -282,6 +288,14 @@ impl WebGLExtensions {
 
     pub fn is_element_index_uint_enabled(&self) -> bool {
         self.features.borrow().element_index_uint_enabled
+    }
+
+    pub fn enable_blend_minmax(&self) {
+        self.features.borrow_mut().blend_minmax_enabled = true;
+    }
+
+    pub fn is_blend_minmax_enabled(&self) -> bool {
+        self.features.borrow().blend_minmax_enabled
     }
 }
 
