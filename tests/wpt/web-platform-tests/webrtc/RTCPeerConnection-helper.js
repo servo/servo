@@ -357,10 +357,7 @@ function generateMediaStreamTrack(kind) {
 function getTrackFromUserMedia(kind) {
   return navigator.mediaDevices.getUserMedia({ [kind]: true })
   .then(mediaStream => {
-    const tracks = mediaStream.getTracks();
-    assert_greater_than(tracks.length, 0,
-      `Expect getUserMedia to return at least one track of kind ${kind}`);
-    const [ track ] = tracks;
+    const [track] = mediaStream.getTracks();
     return [track, mediaStream];
   });
 }

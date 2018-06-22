@@ -185,7 +185,7 @@ class DeflateFrameExtensionProcessor(ExtensionProcessorInterface):
                 self._WINDOW_BITS_PARAM)
             try:
                 window_bits = _parse_window_bits(window_bits)
-            except ValueError, e:
+            except ValueError as e:
                 return None
 
         no_context_takeover = self._request.has_parameter(
@@ -368,7 +368,7 @@ class PerMessageDeflateExtensionProcessor(ExtensionProcessorInterface):
             try:
                 server_max_window_bits = _parse_window_bits(
                     server_max_window_bits)
-            except ValueError, e:
+            except ValueError as e:
                 self._logger.debug('Bad %s parameter: %r',
                                    self._SERVER_MAX_WINDOW_BITS_PARAM,
                                    e)
@@ -703,7 +703,7 @@ class MuxExtensionProcessor(ExtensionProcessorInterface):
         if quota is not None:
             try:
                 quota = int(quota)
-            except ValueError, e:
+            except ValueError as e:
                 return None
             if quota < 0 or quota >= 2 ** 32:
                 return None

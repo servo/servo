@@ -53,11 +53,7 @@
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
-
-      const track = tracks[0];
+      const [track] = mediaStream.getTracks();
       const sender = pc.addTrack(track, mediaStream);
 
       pc.close();
@@ -84,11 +80,7 @@
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
-
-      const track = tracks[0];
+      const [track] = mediaStream.getTracks();
       const sender = pc.addTrack(track, mediaStream);
 
       const pc2 = new RTCPeerConnection();
@@ -119,11 +111,7 @@
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
-
-      const track = tracks[0];
+      const [track] = mediaStream.getTracks();
       const sender = pc.addTrack(track, mediaStream);
 
       const pc2 = new RTCPeerConnection();
@@ -158,11 +146,7 @@
 
     return navigator.mediaDevices.getUserMedia({ audio: true })
     .then(mediaStream => {
-      const tracks = mediaStream.getTracks();
-      assert_greater_than(tracks.length, 0,
-        'Expect getUserMedia to return at least one audio track');
-
-      const track = tracks[0];
+      const [track] = mediaStream.getTracks();
       const sender = pc.addTrack(track, mediaStream);
 
       assert_equals(sender.track, track);

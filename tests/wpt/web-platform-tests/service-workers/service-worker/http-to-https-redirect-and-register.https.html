@@ -42,7 +42,7 @@ promise_test(function(t) {
 
     return redirect_and_register(target_url)
       .then(result => {
-          assert_equals(result, 'FAIL: SecurityError');
+          assert_equals(result, 'FAIL: navigator.serviceWorker is undefined');
         });
   }, 'register on a non-secure page after redirect from an non-secure url');
 </script>
