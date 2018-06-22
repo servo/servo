@@ -79,8 +79,13 @@ use webrender_api::StickyOffsetBounds;
 fn establishes_containing_block_for_absolute(
     flags: StackingContextCollectionFlags,
     positioning: StylePosition,
+    established_reference_frame: bool,
 ) -> bool {
-    !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) &&
+    if established_reference_frame {
+        return true;
+    }
+
+    !flags.contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK) &&
         StylePosition::Static != positioning
 }
 
@@ -2125,7 +2130,7 @@ impl FragmentDisplayListBuilding for Fragment {
 bitflags! {
     pub struct StackingContextCollectionFlags: u8 {
         /// This flow never establishes a containing block.
-        const NEVER_CREATES_CONTAINING_BLOCK = 0b001;
+        const POSITION_NEVER_CREATES_CONTAINING_BLOCK = 0b001;
         /// This flow never creates a ClipScrollNode.
         const NEVER_CREATES_CLIP_SCROLL_NODE = 0b010;
         /// This flow never creates a stacking context.
@@ -2403,7 +2408,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             flags,
         );
 
-        if establishes_containing_block_for_absolute(flags, self.positioning()) {
+        if establishes_containing_block_for_absolute(
+            flags,
+            self.positioning(),
+            established_reference_frame.is_some()
+        ) {
             state.containing_block_clipping_and_scrolling = state.current_clipping_and_scrolling;
         }
 
@@ -2492,7 +2501,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         // We keep track of our position so that any stickily positioned elements can
         // properly determine the extent of their movement relative to scrolling containers.
-        if !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) {
+        if !flags.contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK) {
             let border_box = if self.fragment.establishes_stacking_context() {
                 stacking_relative_border_box
             } else {
@@ -2866,6 +2875,7 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
             if establishes_containing_block_for_absolute(
                 StackingContextCollectionFlags::empty(),
                 fragment.style.get_box().position,
+                false,
             ) {
                 state.containing_block_clipping_and_scrolling =
                     state.current_clipping_and_scrolling;
