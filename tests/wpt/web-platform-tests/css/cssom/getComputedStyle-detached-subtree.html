@@ -12,10 +12,10 @@
 </div>
 <iframe srcdoc="<html></html>" style="display: none"></iframe>
 <script>
-function testNoComputedStyle(element, description) {
+function testNoComputedStyle(element, description, global) {
   test(function() {
     assert_true(!!element);
-    let style = getComputedStyle(element);
+    let style = (global ? global : window).getComputedStyle(element);
     assert_true(!!style);
     assert_true(style.length === 0);
     assert_equals(style.color, "");
@@ -27,6 +27,10 @@ testNoComputedStyle(detached, "detached element");
 
 testNoComputedStyle(document.querySelector('iframe').contentDocument.documentElement,
                     "element in non-rendered iframe (display: none)");
+
+testNoComputedStyle(document.querySelector('iframe').contentDocument.documentElement,
+                    "element in non-rendered iframe (display: none) from iframe's window",
+                    document.querySelector('iframe').contentWindow);
 
 host.attachShadow({ mode: "open" });
 testNoComputedStyle(document.getElementById('non-slotted'),

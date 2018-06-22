@@ -1,0 +1,60 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the MediaStream Recording spec.
+// See https://w3c.github.io/mediacapture-record/
+
+[Exposed=Window,
+ Constructor(MediaStream stream, optional MediaRecorderOptions options)]
+interface MediaRecorder : EventTarget {
+  readonly attribute MediaStream stream;
+  readonly attribute DOMString mimeType;
+  readonly attribute RecordingState state;
+  attribute EventHandler onstart;
+  attribute EventHandler onstop;
+  attribute EventHandler ondataavailable;
+  attribute EventHandler onpause;
+  attribute EventHandler onresume;
+  attribute EventHandler onerror;
+  readonly attribute unsigned long videoBitsPerSecond;
+  readonly attribute unsigned long audioBitsPerSecond;
+
+  void start(optional long timeslice);
+  void stop();
+  void pause();
+  void resume();
+  void requestData();
+
+  static boolean isTypeSupported(DOMString type);
+};
+
+dictionary MediaRecorderOptions {
+  DOMString mimeType;
+  unsigned long audioBitsPerSecond;
+  unsigned long videoBitsPerSecond;
+  unsigned long bitsPerSecond;
+};
+
+enum RecordingState {
+  "inactive",
+  "recording",
+  "paused"
+};
+
+[Exposed=Window, Constructor(DOMString type, BlobEventInit eventInitDict)]
+interface BlobEvent : Event {
+  [SameObject] readonly attribute Blob data;
+  readonly attribute DOMHighResTimeStamp timecode;
+};
+
+dictionary BlobEventInit {
+  required Blob data;
+  DOMHighResTimeStamp timecode;
+};
+
+dictionary MediaRecorderErrorEventInit : EventInit {
+  required DOMException error;
+};
+
+[Exposed=Window, Constructor(DOMString type, MediaRecorderErrorEventInit eventInitDict)]
+interface MediaRecorderErrorEvent : Event {
+  [SameObject] readonly attribute DOMException error;
+};

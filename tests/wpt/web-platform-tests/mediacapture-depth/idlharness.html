@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>Media Capture Depth Stream Extensions IDL test</title>
+  <link rel="help" href="See https://w3c.github.io/mediacapture-depth/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+  <script>
+    'use strict';
+
+    promise_test(async () => {
+      const idl = await fetch('/interfaces/mediacapture-depth.idl').then(r => r.text());
+      const main = await fetch('/interfaces/mediacapture-main.idl').then(r => r.text());
+
+      var idl_array = new IdlArray();
+      idl_array.add_idls(idl);
+      idl_array.add_dependency_idls(main);
+      idl_array.test();
+    }, 'mediacapture-depth interfaces');
+  </script>
+  <div id="log"></div>
+</body>
+
+</html>

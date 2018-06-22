@@ -65,7 +65,8 @@ class WrapperHandler(object):
         if query:
             query = "?" + query
         meta = "\n".join(self._get_meta(request))
-        response.content = self.wrapper % {"meta": meta, "path": path, "query": query}
+        script = "\n".join(self._get_script(request))
+        response.content = self.wrapper % {"meta": meta, "script": script, "path": path, "query": query}
         wrap_pipeline(path, request, response)
 
     def _get_path(self, path, resource_path):
@@ -93,7 +94,7 @@ class WrapperHandler(object):
         return path
 
     def _get_metadata(self, request):
-        """Get an iterator over script metadata based on //META comments in the
+        """Get an iterator over script metadata based on // META comments in the
         associated js file.
 
         :param request: The Request being processed.
@@ -105,12 +106,23 @@ class WrapperHandler(object):
 
     def _get_meta(self, request):
         """Get an iterator over strings to inject into the wrapper document
-        based on //META comments in the associated js file.
+        based on // META comments in the associated js file.
 
         :param request: The Request being processed.
         """
         for key, value in self._get_metadata(request):
             replacement = self._meta_replacement(key, value)
+            if replacement:
+                yield replacement
+
+    def _get_script(self, request):
+        """Get an iterator over strings to inject into the wrapper document
+        based on // META comments in the associated js file.
+
+        :param request: The Request being processed.
+        """
+        for key, value in self._get_metadata(request):
+            replacement = self._script_replacement(key, value)
             if replacement:
                 yield replacement
 
@@ -159,12 +171,15 @@ class HtmlWrapperHandler(WrapperHandler):
         if key == b"timeout":
             if value == b"long":
                 return '<meta name="timeout" content="long">'
-        if key == b"script":
-            attribute = value.decode('utf-8').replace("&", "&amp;").replace('"', "&quot;")
-            return '<script src="%s"></script>' % attribute
         if key == b"title":
             value = value.decode('utf-8').replace("&", "&amp;").replace("<", "&lt;")
             return '<title>%s</title>' % value
+        return None
+
+    def _script_replacement(self, key, value):
+        if key == b"script":
+            attribute = value.decode('utf-8').replace("&", "&amp;").replace('"', "&quot;")
+            return '<script src="%s"></script>' % attribute
         return None
 
 
@@ -191,6 +206,7 @@ class WindowHandler(HtmlWrapperHandler):
 %(meta)s
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+%(script)s
 <div id=log></div>
 <script src="%(path)s"></script>
 """
@@ -210,6 +226,7 @@ self.GLOBAL = {
 </script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+%(script)s
 <div id=log></div>
 <script src="%(path)s"></script>
 """
@@ -260,11 +277,15 @@ self.GLOBAL = {
   isWorker: function() { return true; },
 };
 importScripts("/resources/testharness.js");
+%(script)s
 importScripts("%(path)s");
 done();
 """
 
     def _meta_replacement(self, key, value):
+        return None
+
+    def _script_replacement(self, key, value):
         if key == b"script":
             attribute = value.decode('utf-8').replace("\\", "\\\\").replace('"', '\\"')
             return 'importScripts("%s")' % attribute

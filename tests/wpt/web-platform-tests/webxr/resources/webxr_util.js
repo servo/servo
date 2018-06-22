@@ -12,7 +12,7 @@ function forEachWebxrObject(callback) {
   callback(window.XRSessionCreationOptions, 'XRSessionCreationOptions');
   callback(window.XRFrameRequestCallback, 'XRFrameRequestCallback');
   callback(window.XRPresentationContext, 'XRPresentationContext');
-  callback(window.XRPresentationFrame, 'XRPresentationFrame');
+  callback(window.XRFrame, 'XRFrame');
   callback(window.XRView, 'XRView');
   callback(window.XRViewport, 'XRViewport');
   callback(window.XRDevicePose, 'XRDevicePose');

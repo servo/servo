@@ -126,9 +126,12 @@ promise_test(async t => {
 
 function manualTest1(elem){
   elem.disabled = true;
+
+  // NB: request.show has to be called outside of promise_test to ensure the
+  // user's click is still visible to PaymentRequest.show.
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const acceptPromise = request.show(); // Sets state to "interactive"
   promise_test(async t => {
-    const request = new PaymentRequest(defaultMethods, defaultDetails);
-    const acceptPromise = request.show(); // Sets state to "interactive"
     const canMakePaymentPromise = request.canMakePayment();
     try {
       const result = await canMakePaymentPromise;
@@ -148,11 +151,14 @@ function manualTest1(elem){
 }
 
 function manualTest2(elem){
- elem.disabled = true;
+  elem.disabled = true;
+
+  // See above for why it's important for these lines to be outside of
+  // promise_test.
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const acceptPromise = request.show(); // The state is now "interactive"
+  acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
   promise_test(async t => {
-    const request = new PaymentRequest(defaultMethods, defaultDetails);
-    const acceptPromise = request.show(); // The state is now "interactive"
-    acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
     await request.abort(); // The state is now "closed"
     await promise_rejects(t, "InvalidStateError", request.canMakePayment());
     try {

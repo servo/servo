@@ -1,0 +1,14 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "CORS and RFC1918" spec.
+// See: https://wicg.github.io/cors-rfc1918/
+
+enum AddressSpace { "local", "private", "public" };
+
+partial interface Document {
+  readonly attribute AddressSpace addressSpace;
+};
+
+partial interface WorkerGlobalScope {
+  readonly attribute AddressSpace addressSpace;
+};

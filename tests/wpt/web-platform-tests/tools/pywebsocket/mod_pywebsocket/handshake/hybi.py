@@ -112,7 +112,7 @@ class Handshaker(object):
 
         try:
             connection_tokens = parse_token_list(connection)
-        except HandshakeException, e:
+        except HandshakeException as e:
             raise HandshakeException(
                 'Failed to parse %s: %s' % (common.CONNECTION_HEADER, e))
 
@@ -273,7 +273,7 @@ class Handshaker(object):
                         'request any subprotocol')
 
             self._send_handshake(accept)
-        except HandshakeException, e:
+        except HandshakeException as e:
             if not e.status:
                 # Fallback to 400 bad request by default.
                 e.status = common.HTTP_STATUS_BAD_REQUEST
@@ -327,7 +327,7 @@ class Handshaker(object):
         try:
             self._request.ws_requested_extensions = common.parse_extensions(
                 extensions_header)
-        except common.ExtensionParsingException, e:
+        except common.ExtensionParsingException as e:
             raise HandshakeException(
                 'Failed to parse Sec-WebSocket-Extensions header: %r' % e)
 
@@ -353,7 +353,7 @@ class Handshaker(object):
                 decoded_key = base64.b64decode(key)
                 if len(decoded_key) == 16:
                     key_is_valid = True
-        except TypeError, e:
+        except TypeError as e:
             pass
 
         if not key_is_valid:

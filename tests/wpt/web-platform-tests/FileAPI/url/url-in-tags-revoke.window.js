@@ -97,3 +97,18 @@ async_test(t => {
   document.body.appendChild(e);
   URL.revokeObjectURL(url);
 }, 'Fetching a blob URL immediately before revoking it works in <script> tags.');
+
+async_test(t => {
+  const channel_name = 'a-click-test';
+  const blob = new Blob([window_contents_for_channel(channel_name)], {type: 'text/html'});
+  receive_message_on_channel(t, channel_name).then(t.step_func_done(t => {
+    assert_equals(t, 'foobar');
+  }));
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.target = '_blank';
+  document.body.appendChild(anchor);
+  anchor.click();
+  URL.revokeObjectURL(url);
+}, 'Opening a blob URL in a new window by clicking an <a> tag works immediately before revoking the URL.');

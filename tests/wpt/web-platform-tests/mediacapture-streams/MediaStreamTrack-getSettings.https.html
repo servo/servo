@@ -75,4 +75,36 @@
       }
     });
   }, 'groupId is correctly reported by getSettings() for all devices');
+
+  promise_test(t => {
+    return navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+      let settings = stream.getAudioTracks()[0].getSettings();
+      assert_equals(typeof(settings.deviceId), "string",
+                    "deviceId should exist and it should be a string.");
+      assert_equals(typeof(settings.groupId), "string",
+                    "groupId should exist and it should be a string.");
+      assert_equals(typeof(settings.volume), "number",
+                    "volume should exist and it should be a number.");
+      assert_true(settings.volume >= 0.0 && settings.volume <= 1.0,
+                  "volume should be a number in the range [0.0, 1.0].");
+      assert_equals(typeof(settings.sampleRate), "number",
+                    "sampleRate should exist and it should be a number.");
+      assert_true(settings.sampleRate > 0, "sampleRate should be positive.");
+      assert_equals(typeof(settings.sampleSize), "number",
+                    "sampleSize should exist and it should be a number.");
+      assert_true(settings.sampleSize > 0, "sampleSize should be positive.");
+      assert_equals(typeof(settings.echoCancellation), "boolean",
+                    "echoCancellation should exist and it should be a boolean.");
+      assert_equals(typeof(settings.autoGainControl), "boolean",
+                    "autoGainControl should exist and it should be a boolean.");
+      assert_equals(typeof(settings.noiseSuppression), "boolean",
+                    "noiseSuppression should exist and it should be a boolean.");
+      assert_equals(typeof(settings.latency), "number",
+                    "latency should exist and it should be a number.");
+      assert_true(settings.latency >= 0, "latency should not be negative.");
+      assert_equals(typeof(settings.channelCount), "number",
+                    "channelCount should exist and it should be a number.");
+      assert_true(settings.channelCount > 0, "channelCount should be positive.");
+    });
+  }, 'audio properties are reported by getSettings()');
 </script>

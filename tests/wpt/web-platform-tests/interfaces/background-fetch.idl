@@ -1,4 +1,7 @@
-// 4.1. Extensions to ServiceWorkerGlobalScope
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Background Fetch" spec.
+// See: https://wicg.github.io/background-fetch/
 
 partial interface ServiceWorkerGlobalScope {
   attribute EventHandler onbackgroundfetched;
@@ -7,13 +10,9 @@ partial interface ServiceWorkerGlobalScope {
   attribute EventHandler onbackgroundfetchclick;
 };
 
-// 4.2. Extensions to ServiceWorkerRegistration
-
 partial interface ServiceWorkerRegistration {
   readonly attribute BackgroundFetchManager backgroundFetch;
 };
-
-// 4.3. BackgroundFetchManager
 
 [Exposed=(Window,Worker)]
 interface BackgroundFetchManager {
@@ -24,20 +23,18 @@ interface BackgroundFetchManager {
 };
 
 dictionary BackgroundFetchOptions {
-  sequence<IconDefinition> icons;
-  DOMString title;
-  unsigned long long downloadTotal;
+  sequence<IconDefinition> icons = [];
+  DOMString title = "";
+  unsigned long long downloadTotal = 0;
 };
 
 // This is taken from https://w3c.github.io/manifest/#icons-member.
 // This definition should probably be moved somewhere more general.
 dictionary IconDefinition {
   DOMString src;
-  DOMString sizes;
-  DOMString type;
+  DOMString sizes = "";
+  DOMString type = "";
 };
-
-// 4.4. BackgroundFetchRegistration
 
 [Exposed=(Window,Worker)]
 interface BackgroundFetchRegistration : EventTarget {
@@ -70,8 +67,6 @@ interface BackgroundFetchActiveFetch : BackgroundFetchFetch {
   // In future this will include a fetch observer
 };
 
-// 4.4.3. BackgroundFetchEvent
-
 [Constructor(DOMString type, BackgroundFetchEventInit init), Exposed=ServiceWorker]
 interface BackgroundFetchEvent : ExtendableEvent {
   readonly attribute DOMString id;
@@ -80,8 +75,6 @@ interface BackgroundFetchEvent : ExtendableEvent {
 dictionary BackgroundFetchEventInit : ExtendableEventInit {
   required DOMString id;
 };
-
-// 4.4.4. BackgroundFetchSettledEvent
 
 [Constructor(DOMString type, BackgroundFetchSettledEventInit init), Exposed=ServiceWorker]
 interface BackgroundFetchSettledEvent : BackgroundFetchEvent {
@@ -103,14 +96,10 @@ interface BackgroundFetchSettledFetch : BackgroundFetchFetch {
   readonly attribute Response? response;
 };
 
-// 4.4.5. BackgroundFetchUpdateEvent
-
 [Constructor(DOMString type, BackgroundFetchSettledEventInit init), Exposed=ServiceWorker]
 interface BackgroundFetchUpdateEvent : BackgroundFetchSettledEvent {
   Promise<void> updateUI(DOMString title);
 };
-
-// 4.4.6. BackgroundFetchClickEvent
 
 [Constructor(DOMString type, BackgroundFetchClickEventInit init), Exposed=ServiceWorker]
 interface BackgroundFetchClickEvent : BackgroundFetchEvent {

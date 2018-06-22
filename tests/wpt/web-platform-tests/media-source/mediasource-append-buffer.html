@@ -425,11 +425,11 @@
                  loadedmetadataCalled = true;
                  e.target.removeEventListener(e.type, metadata);
               });
-              sourceBuffer.addEventListener("updateend", function updateend(e) {
+              sourceBuffer.addEventListener("updateend", test.step_func(function updateend(e) {
                  assert_true(loadedmetadataCalled);
                  assert_equals(mediaElement.readyState, mediaElement.HAVE_METADATA);
                  e.target.removeEventListener(e.type, updateend);
-              });
+              }));
               test.expectEvent(sourceBuffer, "updateend", "remainingInitSegment append ended.");
               test.expectEvent(mediaElement, "loadedmetadata", "loadedmetadata event received.");
               sourceBuffer.appendBuffer(initSegment);
@@ -444,11 +444,11 @@
                       loadeddataCalled = true;
                       e.target.removeEventListener(e.type, loadeddata);
                   });
-                  sourceBuffer.addEventListener("updateend", function updateend(e) {
+                  sourceBuffer.addEventListener("updateend", test.step_func(function updateend(e) {
                       assert_true(loadeddataCalled);
                       assert_greater_than_equal(mediaElement.readyState, mediaElement.HAVE_CURRENT_DATA);
                       e.target.removeEventListener(e.type, updateend);
-                  });
+                  }));
                   test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
                   test.expectEvent(mediaElement, "loadeddata", "loadeddata fired.");
                   sourceBuffer.appendBuffer(mediaSegment);
