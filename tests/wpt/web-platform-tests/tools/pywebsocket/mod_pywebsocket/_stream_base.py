@@ -118,7 +118,7 @@ class StreamBase(object):
                     'Receiving %d byte failed. Peer (%r) closed connection' %
                     (length, (self._request.connection.remote_addr,)))
             return read_bytes
-        except socket.error, e:
+        except socket.error as e:
             # Catch a socket.error. Because it's not a child class of the
             # IOError prior to Python 2.6, we cannot omit this except clause.
             # Use %s rather than %r for the exception to use human friendly
@@ -126,7 +126,7 @@ class StreamBase(object):
             raise ConnectionTerminatedException(
                 'Receiving %d byte failed. socket.error (%s) occurred' %
                 (length, e))
-        except IOError, e:
+        except IOError as e:
             # Also catch an IOError because mod_python throws it.
             raise ConnectionTerminatedException(
                 'Receiving %d byte failed. IOError (%s) occurred' %
@@ -139,7 +139,7 @@ class StreamBase(object):
 
         try:
             self._request.connection.write(bytes_to_write)
-        except Exception, e:
+        except Exception as e:
             util.prepend_message_to_exception(
                     'Failed to send message to %r: ' %
                             (self._request.connection.remote_addr,),

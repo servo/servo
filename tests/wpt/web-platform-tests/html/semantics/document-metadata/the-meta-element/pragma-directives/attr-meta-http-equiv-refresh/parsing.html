@@ -1,9 +1,23 @@
 <!doctype html>
 <meta charset=utf-8>
-<meta name=timeout content=long>
+<meta name="variant" content="?1-10">
+<meta name="variant" content="?11-20">
+<meta name="variant" content="?21-30">
+<meta name="variant" content="?31-40">
+<meta name="variant" content="?41-50">
+<meta name="variant" content="?51-60">
+<meta name="variant" content="?61-70">
+<meta name="variant" content="?71-80">
+<meta name="variant" content="?81-90">
+<meta name="variant" content="?91-100">
+<meta name="variant" content="?101-110">
+<meta name="variant" content="?111-120">
+<meta name="variant" content="?121-130">
+<meta name="variant" content="?131-last">
 <title>Parsing of meta refresh</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
+<script src=/common/subset-tests.js></script>
 <style>
 iframe { display:none }
 </style>
@@ -95,7 +109,7 @@ tests_arr.forEach(function(test_obj) {
       return;
     }
     const filename = type === "<meta>" ? "refresh.sub.html" : "refresh.py";
-    async_test(function(t) {
+    subsetTest(async_test, function(t) {
       var iframe = document.createElement('iframe');
       t.add_cleanup(function() {
         document.body.removeChild(iframe);

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>scroll-animations IDL tests</title>
+  <link rel="help" href="https://wicg.github.io/scroll-animations/">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+
+<body>
+
+  <script>
+    'use strict';
+
+    promise_test(async () => {
+      const idl = await fetch('/interfaces/scroll-animations.idl').then(r => r.text());
+      const web = await fetch('/interfaces/web-animations.idl').then(r => r.text());
+      const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+
+      const idl_array = new IdlArray();
+      idl_array.add_idls(idl);
+      idl_array.add_dependency_idls(web);
+      idl_array.add_dependency_idls(dom);
+      idl_array.add_objects({
+        ScrollTimeline: ['new ScrollTimeline()'],
+      });
+      idl_array.test();
+    }, 'Test scroll-animations IDL implementation');
+  </script>
+
+  <div id="log"></div>
+</body>
+
+</html>

@@ -8,134 +8,35 @@
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 
-<script id="untested_idl" type="text/plain">
-interface Navigator {
-};
-interface EventTarget {
-};
-interface EventHandler {
-};
-interface Event {
-};
-dictionary EventInit {
-};
-</script>
-
-<script id='idl' type="text/plain">
-partial interface Navigator {
-    [SecureContext,
-     SameObject]
-    readonly attribute Presentation presentation;
-};
-
-[SecureContext,
- Exposed=Window]
-interface Presentation {
-};
-
-partial interface Presentation {
-    attribute PresentationRequest? defaultRequest;
-};
-
-[Constructor(USVString url),
- Constructor(sequence<USVString> urls),
- SecureContext,
- Exposed=Window]
-interface PresentationRequest : EventTarget {
-    Promise<PresentationConnection>   start();
-    Promise<PresentationConnection>   reconnect(USVString presentationId);
-    Promise<PresentationAvailability> getAvailability();
-
-    attribute EventHandler onconnectionavailable;
-};
-
-[SecureContext,
- Exposed=Window]
-interface PresentationAvailability : EventTarget {
-    readonly attribute boolean      value;
-             attribute EventHandler onchange;
-};
-
-[Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict),
- SecureContext,
- Exposed=Window]
-interface PresentationConnectionAvailableEvent : Event {
-    [SameObject]
-    readonly attribute PresentationConnection connection;
-};
-
-dictionary PresentationConnectionAvailableEventInit : EventInit {
-    required PresentationConnection connection;
-};
-
-enum PresentationConnectionState {
-    "connecting",
-    "connected",
-    "closed",
-    "terminated"
-};
-
-enum BinaryType {
-    "blob",
-    "arraybuffer"
-};
-
-[SecureContext,
- Exposed=Window]
-interface PresentationConnection : EventTarget {
-    readonly attribute USVString                   id;
-    readonly attribute USVString                   url;
-    readonly attribute PresentationConnectionState state;
-    void close();
-    void terminate();
-             attribute EventHandler                onconnect;
-             attribute EventHandler                onclose;
-             attribute EventHandler                onterminate;
-
-    // Communication
-             attribute BinaryType                  binaryType;
-             attribute EventHandler                onmessage;
-    void send(DOMString message);
-    void send(Blob data);
-    void send(ArrayBuffer data);
-    void send(ArrayBufferView data);
-};
-
-enum PresentationConnectionCloseReason {
-    "error",
-    "closed",
-    "wentaway"
-};
-
-[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict),
- SecureContext,
- Exposed=Window]
-interface PresentationConnectionCloseEvent : Event {
-    readonly attribute PresentationConnectionCloseReason reason;
-    readonly attribute DOMString                         message;
-};
-
-dictionary PresentationConnectionCloseEventInit : EventInit {
-    required PresentationConnectionCloseReason reason;
-             DOMString                         message = "";
-};
-</script>
-
 <script>
-    (function() {
-        "use strict";
-        var idl_array = new IdlArray();
-        var idls = document.getElementById('idl').textContent;
-        idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
-        idl_array.add_idls(idls);
-        window.presentation_request = new PresentationRequest("/presentation-api/receiving-ua/idlharness.html");
-        window.presentation_request_urls = new PresentationRequest(["/presentation-api/receiving-ua/idlharness.html",
-            "https://www.example.com/presentation.html"]);
-        navigator.presentation.defaultRequest = presentation_request;
-        idl_array.add_objects({
-            Presentation: ['navigator.presentation'],
-            PresentationRequest: ['navigator.presentation.defaultRequest', 'presentation_request', 'presentation_request_urls']
-        });
-        idl_array.test();
-    })();
+  "use strict";
+
+  promise_test(async () => {
+    const srcs = ['presentation-api', 'dom', 'html'];
+    const [idl, dom, html] = await Promise.all(
+      srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
+
+    const idl_array = new IdlArray();
+    idl_array.add_idls(idl, {
+      except: [
+        'PresentationReceiver',
+        'PresentationConnectionList'
+      ]
+    });
+    idl_array.add_dependency_idls(dom);
+    idl_array.add_dependency_idls(html);
+
+    window.presentation_request = new PresentationRequest("/presentation-api/receiving-ua/idlharness.html");
+    window.presentation_request_urls = new PresentationRequest([
+      "/presentation-api/receiving-ua/idlharness.html",
+      "https://www.example.com/presentation.html"
+    ]);
+    navigator.presentation.defaultRequest = presentation_request;
+
+    idl_array.add_objects({
+        Presentation: ['navigator.presentation'],
+        PresentationRequest: ['navigator.presentation.defaultRequest', 'presentation_request', 'presentation_request_urls']
+    });
+    idl_array.test();
+  }, "Test IDL implementation of Presentation API");
 </script>

@@ -1,6 +1,5 @@
 <!doctype html>
 <title>WebSockets: serialize establish a connection</title>
-<meta name=timeout content=long>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=../constants.js?pipe=sub></script>
@@ -14,7 +13,7 @@ async_test(function(t) {
   var events = 0;
   var prevDate;
   var date;
-  for (var i = 0; i < 4; ++i) {
+  for (var i = 0; i < 2; ++i) {
     ws[i] = new WebSocket(SCHEME_DOMAIN_PORT+'/handshake_sleep_2');
     ws[i].id = i;
     ws[i].onopen = t.step_func(function(e) {
@@ -28,7 +27,7 @@ async_test(function(t) {
     }.bind(ws[i]))
     ws[i].onclose = t.step_func(function() {
       events++;
-      if (events == 8) {
+      if (events == 4) {
         t.done();
       }
       this.onclose = t.step_func(function() {assert_unreached()});

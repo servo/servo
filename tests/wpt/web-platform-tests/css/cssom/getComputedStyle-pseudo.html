@@ -44,6 +44,16 @@
   content: "foo";
   position: absolute;
 }
+#contents-pseudos-dynamic::before,
+#contents-pseudos-dynamic::after {
+  display: block;
+  content: "foo";
+  position: absolute;
+}
+#contents-pseudos-dynamic.contents::before,
+#contents-pseudos-dynamic.contents::after {
+  display: contents;
+}
 </style>
 <div id="test">
   <div id="contents"></div>
@@ -51,6 +61,7 @@
   <div id="flex"></div>
   <div id="flex-no-pseudo"></div>
   <div id="contents-pseudos"></div>
+  <div id="contents-pseudos-dynamic"></div>
 </div>
 <script>
 test(function() {
@@ -109,6 +120,22 @@ test(function() {
                   "display: contents in " + pseudo + " should reflect other non-inherited properties in CSSOM");
   });
 }, "display: contents on pseudo-elements");
+test(function() {
+  var contentsPseudosDynamic = document.getElementById('contents-pseudos-dynamic');
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).display, "block",
+                  "Check that display for " + pseudo + " is block before change");
+  });
+  contentsPseudosDynamic.className = "contents";
+  [":before", ":after"].forEach(function(pseudo) {
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).display, "contents",
+                  "display: contents in " + pseudo + " should get reflected on CSSOM");
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).width, "auto",
+                  pseudo + " with display: contents should have no box");
+    assert_equals(getComputedStyle(contentsPseudosDynamic, pseudo).position, "absolute",
+                  "display: contents in " + pseudo + " should reflect other non-inherited properties in CSSOM");
+  });
+}, "Dynamically change to display: contents on pseudo-elements");
 test(function() {
   var div = document.getElementById('test');
   assert_throws(new TypeError(), () => getComputedStyle(div, "totallynotapseudo"),

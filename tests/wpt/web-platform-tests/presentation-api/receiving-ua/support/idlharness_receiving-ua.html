@@ -11,120 +11,22 @@
 <script src="../common.js"></script>
 <script src="stash.js"></script>
 
-<script id="untested_idl" type="text/plain">
-interface Navigator {
-};
-interface EventTarget {
-};
-interface EventHandler {
-};
-interface Event {
-};
-dictionary EventInit {
-};
-</script>
-
-<script id='idl' type="text/plain">
-partial interface Navigator {
-    [SecureContext,
-     SameObject]
-    readonly attribute Presentation presentation;
-};
-
-[SecureContext,
- Exposed=Window]
-interface Presentation {
-};
-
-partial interface Presentation {
-    readonly attribute PresentationReceiver? receiver;
-};
-
-[Constructor(DOMString type, PresentationConnectionAvailableEventInit eventInitDict),
- SecureContext,
- Exposed=Window]
-interface PresentationConnectionAvailableEvent : Event {
-    [SameObject]
-    readonly attribute PresentationConnection connection;
-};
-
-dictionary PresentationConnectionAvailableEventInit : EventInit {
-    required PresentationConnection connection;
-};
-
-enum PresentationConnectionState {
-    "connecting",
-    "connected",
-    "closed",
-    "terminated"
-};
-
-enum BinaryType {
-    "blob",
-    "arraybuffer"
-};
-
-[SecureContext,
- Exposed=Window]
-interface PresentationConnection : EventTarget {
-    readonly attribute USVString                   id;
-    readonly attribute USVString                   url;
-    readonly attribute PresentationConnectionState state;
-    void close();
-    void terminate();
-             attribute EventHandler                onconnect;
-             attribute EventHandler                onclose;
-             attribute EventHandler                onterminate;
-
-    // Communication
-             attribute BinaryType                  binaryType;
-             attribute EventHandler                onmessage;
-    void send(DOMString message);
-    void send(Blob data);
-    void send(ArrayBuffer data);
-    void send(ArrayBufferView data);
-};
-
-enum PresentationConnectionCloseReason {
-    "error",
-    "closed",
-    "wentaway"
-};
-
-[Constructor(DOMString type, PresentationConnectionCloseEventInit eventInitDict),
- SecureContext,
- Exposed=Window]
-interface PresentationConnectionCloseEvent : Event {
-    readonly attribute PresentationConnectionCloseReason reason;
-    readonly attribute DOMString                         message;
-};
-
-dictionary PresentationConnectionCloseEventInit : EventInit {
-    required PresentationConnectionCloseReason reason;
-             DOMString                         message = "";
-};
-
-[SecureContext,
- Exposed=Window]
-interface PresentationReceiver {
-    readonly attribute Promise<PresentationConnectionList> connectionList;
-};
-
-[SecureContext,
- Exposed=Window]
-interface PresentationConnectionList : EventTarget {
-    readonly attribute FrozenArray<PresentationConnection> connections;
-             attribute EventHandler                        onconnectionavailable;
-};
-</script>
-
 <script>
-    (() => {
-        'use strict';
+    'use strict';
+    (async () => {
+        const srcs = ['presentation-api', 'dom', 'html'];
+        const [idl, dom, html] = await Promise.all(
+            srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
+
         const idl_array = new IdlArray();
-        const idls = document.getElementById('idl').textContent;
-        idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
-        idl_array.add_idls(idls);
+        idl_array.add_idls(idl, {
+            except: [
+                'PresentationRequest',
+                'PresentationAvailability',
+            ]
+        });
+        idl_array.add_dependency_idls(dom);
+        idl_array.add_dependency_idls(html);
         idl_array.add_objects({
             Presentation: ['navigator.presentation'],
             PresentationReceiver: ['navigator.presentation.receiver']

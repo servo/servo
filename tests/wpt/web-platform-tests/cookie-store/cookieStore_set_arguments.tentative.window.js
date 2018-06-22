@@ -129,38 +129,51 @@ promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentDomain = currentUrl.hostname;
   const subDomain = `sub.${currentDomain}`;
-  await cookieStore.delete('cookie-name', { domain: currentDomain });
-  await cookieStore.delete('cookie-name', { domain: subDomain });
 
-  await cookieStore.set(
-      'cookie-name', 'cookie-value', { domain: subDomain });
+  await promise_rejects(testCase, new TypeError(), cookieStore.set(
+      'cookie-name', 'cookie-value', { domain: subDomain }));
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
-
-  await async_cleanup(async () => {
-    await cookieStore.delete('cookie-name', { domain: subDomain });
-  });
 }, 'cookieStore.set with domain set to a subdomain of the current hostname');
+
+promise_test(async testCase => {
+  const currentUrl = new URL(self.location.href);
+  const currentDomain = currentUrl.hostname;
+  assert_not_equals(currentDomain[0] === '.',
+      'this test assumes that the current hostname does not start with .');
+  const domainSuffix = currentDomain.substr(1);
+
+  await promise_rejects(testCase, new TypeError(), cookieStore.set(
+      'cookie-name', 'cookie-value', { domain: domainSuffix }));
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie, null);
+}, 'cookieStore.set with domain set to a non-domain-matching suffix of the ' +
+   'current hostname');
 
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentDomain = currentUrl.hostname;
   await cookieStore.delete('cookie-name');
 
-  await cookieStore.set('cookie-name', 'cookie-old-value');
-  await cookieStore.set(
-      'cookie-name', 'cookie-new-value', { domain: currentDomain });
+  await cookieStore.set('cookie-name', 'cookie-value1');
+  await cookieStore.set('cookie-name', 'cookie-value2',
+                        { domain: currentDomain });
 
   const cookies = await cookieStore.getAll('cookie-name');
-  assert_equals(cookies.length, 1);
+  assert_equals(cookies.length, 2);
+
   assert_equals(cookies[0].name, 'cookie-name');
-  assert_equals(cookies[0].value, 'cookie-new-value');
+  assert_equals(cookies[1].name, 'cookie-name');
+
+  const values = cookies.map((cookie) => cookie.value);
+  values.sort();
+  assert_array_equals(values, ['cookie-value1', 'cookie-value2']);
 
   await async_cleanup(async () => {
     await cookieStore.delete('cookie-name');
     await cookieStore.delete('cookie-name', { domain: currentDomain });
   });
-}, 'cookieStore.set default domain is current hostname');
+}, 'cookieStore.set default domain is null and differs from current hostname');
 
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
