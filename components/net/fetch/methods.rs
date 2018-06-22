@@ -17,7 +17,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime_guess::guess_mime_type;
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
+use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
@@ -458,7 +458,7 @@ fn scheme_fetch(request: &mut Request,
 
     match url.scheme() {
         "about" if url.path() == "blank" => {
-            let mut response = Response::new(url);
+            let mut response = Response::new(url, ResourceFetchTiming::new());
             response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
             response
@@ -471,7 +471,7 @@ fn scheme_fetch(request: &mut Request,
         "data" => {
             match decode(&url) {
                 Ok((mime, bytes)) => {
-                    let mut response = Response::new(url);
+                    let mut response = Response::new(url, ResourceFetchTiming::new());
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response.headers.set(ContentType(mime));
                     response
@@ -490,7 +490,7 @@ fn scheme_fetch(request: &mut Request,
                                 let _ = file.read_to_end(&mut bytes);
                                 let mime = guess_mime_type(file_path);
 
-                                let mut response = Response::new(url);
+                                let mut response = Response::new(url, ResourceFetchTiming::new());
                                 *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                                 response.headers.set(ContentType(mime));
                                 response
@@ -514,7 +514,7 @@ fn scheme_fetch(request: &mut Request,
 
             match load_blob_sync(url.clone(), context.filemanager.clone()) {
                 Ok((headers, bytes)) => {
-                    let mut response = Response::new(url);
+                    let mut response = Response::new(url, ResourceFetchTiming::new());
                     response.headers = headers;
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response

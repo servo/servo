@@ -575,7 +575,7 @@ pub fn http_fetch(request: &mut Request,
         resource_timing.set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
-            request, authentication_fetch_flag, cors_flag, done_chan, context);
+            request, authentication_fetch_flag, cors_flag, done_chan, context, &mut resource_timing);
 
         // Substep 4
         if cors_flag && cors_check(&request, &fetch_result).is_err() {
@@ -624,7 +624,7 @@ pub fn http_fetch(request: &mut Request,
     response.return_internal = true;
     resource_timing.set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
 
-    response.get_resource_timing_mut().update(&resource_timing);
+    *response.get_resource_timing_mut() = resource_timing;
 
     // Step 6
     response
@@ -730,7 +730,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
                                authentication_fetch_flag: bool,
                                cors_flag: bool,
                                done_chan: &mut DoneChannel,
-                               context: &mut FetchContext)
+                               context: &mut FetchContext,
+                               mut resource_timing: &mut ResourceFetchTiming)
                                -> Response {
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
@@ -955,7 +956,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     if response.is_none() {
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
-                                                  done_chan, context);
+                                                  done_chan, context, &mut resource_timing);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.safe() {
@@ -1010,7 +1011,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 4
         response = http_network_or_cache_fetch(http_request,
                                                true /* authentication flag */,
-                                               cors_flag, done_chan, context);
+                                               cors_flag, done_chan, context,
+                                               &mut resource_timing);
     }
 
     // Step 24
@@ -1049,7 +1051,8 @@ fn http_network_or_cache_fetch(request: &mut Request,
 fn http_network_fetch(request: &Request,
                       credentials_flag: bool,
                       done_chan: &mut DoneChannel,
-                      context: &mut FetchContext)
+                      context: &mut FetchContext,
+                      resource_timing: &mut ResourceFetchTiming)
                       -> Response {
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
@@ -1095,7 +1098,7 @@ fn http_network_fetch(request: &Request,
         }
     }
 
-    let mut response = Response::new(url.clone());
+    let mut response = Response::new(url.clone(), resource_timing.to_owned());
     response.status = Some(res.status);
     response.raw_status = Some((res.status_raw().0,
                                 res.status_raw().1.as_bytes().to_vec()));
@@ -1266,7 +1269,8 @@ fn cors_preflight_fetch(request: &Request,
     }
 
     // Step 5
-    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
+    let mut resource_timing = ResourceFetchTiming::new();
+    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context, &mut resource_timing);
 
     // Step 6
     if cors_check(&request, &response).is_ok() &&

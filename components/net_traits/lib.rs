@@ -255,10 +255,9 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseEOF(data) => {
                 match data {
                     Ok(ref response_resource_timing) => {
-                        // update the resource timing
-                        listener.resource_timing().update(response_resource_timing);
+                        *listener.resource_timing() = response_resource_timing.clone();
                         listener.process_response_eof(Ok(()));
-                        // TODO timing check
+                        // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
                         listener.submit_resource_timing();
                     },
                     Err(e) => listener.process_response_eof(Err(e)),
@@ -418,7 +417,6 @@ pub struct ResourceCorsData {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceFetchTiming {
     /// Number of redirects until final resource (currently limited to 20)
-    /// webidl requires a short
     pub redirect_count: u16,
     pub request_start: u64,
     pub response_start: u64,
@@ -444,19 +442,14 @@ impl ResourceFetchTiming {
         }
     }
 
-    // TODO need to set like in Performance::now
+    // TODO currently this is being set with precise time ns when it should be time since
+    // time origin (as described in Performance::now)
     pub fn set_attribute(&mut self, attribute: ResourceAttribute) {
         match attribute {
             ResourceAttribute::RedirectCount(count) => self.redirect_count = count,
             ResourceAttribute::RequestStart => self.request_start = precise_time_ns(),
             ResourceAttribute::ResponseStart => self.response_start = precise_time_ns(),
         }
-    }
-
-    pub fn update(&mut self, other: &ResourceFetchTiming) {
-        self.redirect_count = other.redirect_count;
-        self.request_start = other.request_start;
-        self.response_start = other.response_start;
     }
 }
 
@@ -491,7 +484,6 @@ pub struct Metadata {
 
     /// Referrer Policy of the Request used to obtain Response
     pub referrer_policy: Option<ReferrerPolicy>,
-
 }
 
 impl Metadata {
@@ -560,6 +552,7 @@ pub fn load_whole_resource(request: RequestInit,
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
+            //TODO return timing information
             FetchResponseMsg::ProcessResponseEOF(Ok(_)) => return Ok((metadata.unwrap(), buf)),
             FetchResponseMsg::ProcessResponse(Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),

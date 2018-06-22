@@ -32,7 +32,7 @@ use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
@@ -159,12 +159,10 @@ impl FetchResponseListener for ImageContext {
             self.id,
             FetchResponseMsg::ProcessResponse(metadata.clone()));
 
-        let metadata = metadata.ok().map(|m| {
-            match m {
-                FetchMetadata::Unfiltered(m) => {
-                    m },
-                FetchMetadata::Filtered { unsafe_, .. } => {
-                    unsafe_ },
+        let metadata = metadata.ok().map(|meta| {
+            match meta {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
             }
         });
 
@@ -199,10 +197,9 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn submit_resource_timing(&self) {
-        let local_name = DOMString::from("img");
         let global = self.doc.root().global();
         let entry = PerformanceResourceTiming::new(
-            &global, self.url.clone(), local_name, None, &self.resource_timing);
+            &global, self.url.clone(), InitiatorType::LocalName("img".to_string()), None, &self.resource_timing);
         global.performance().queue_entry(entry.upcast::<PerformanceEntry>(), false);
     }
 }

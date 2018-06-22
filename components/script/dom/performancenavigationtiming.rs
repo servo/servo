@@ -1,7 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#![allow(unused)]
+
 
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{self, NavigationType};
@@ -9,12 +9,10 @@ use dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::Perfor
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::globalscope::GlobalScope;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom_struct::dom_struct;
-
 
 #[dom_struct]
 // https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming
@@ -35,7 +33,7 @@ impl PerformanceNavigationTiming {
         PerformanceNavigationTiming {
             performanceresourcetiming: PerformanceResourceTiming::new_inherited(
                 document.url(),
-                DOMString::from("navigation"),
+                InitiatorType::Navigation,
                 None,
                 nav_start_precise as f64),
             navigation_start: nav_start,
@@ -45,6 +43,7 @@ impl PerformanceNavigationTiming {
         }
     }
 
+    #[allow(unused)]
     pub fn set_type(&mut self, nav_type: NavigationType) {
         self.nav_type = nav_type
     }
@@ -103,13 +102,6 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
         Finite::wrap(self.document.get_load_event_end() as f64)
     }
 
-    // check-tidy: no specs after this line
-    // Servo-only timing for when top-level content (not iframes) is complete
-    fn TopLevelDomComplete(&self) -> DOMHighResTimeStamp {
-        Finite::wrap(self.document.get_top_level_dom_complete() as f64)
-    }
-
-    // TODO type
     fn Type(&self) -> NavigationType {
         self.nav_type.clone()
     }
@@ -117,10 +109,10 @@ impl PerformanceNavigationTimingMethods for PerformanceNavigationTiming {
     fn RedirectCount(&self) -> u16 {
         self.document.get_redirect_count()
     }
-}
 
-impl PerformanceNavigationTiming {
-    pub fn navigation_start_precise(&self) -> u64 {
-        self.navigation_start_precise
+    // check-tidy: no specs after this line
+    // Servo-only timing for when top-level content (not iframes) is complete
+    fn TopLevelDomComplete(&self) -> DOMHighResTimeStamp {
+        Finite::wrap(self.document.get_top_level_dom_complete() as f64)
     }
 }

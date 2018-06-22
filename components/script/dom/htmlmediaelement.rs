@@ -29,7 +29,7 @@ use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -1106,7 +1106,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
         let url = ServoUrl::parse(&elem.current_src.borrow()).unwrap();
 
-        let local_name = DOMString::from(&**elem.upcast::<Element>().local_name());
+        let local_name = InitiatorType::LocalName(elem.upcast::<Element>().local_name().to_string());
         let performance_entry = PerformanceResourceTiming::new(
            &document.global(), url, local_name, None, &self.resource_timing);
         document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);

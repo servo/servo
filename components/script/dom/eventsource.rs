@@ -15,7 +15,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom_struct::dom_struct;
 use euclid::Length;
 use hyper::header::{Accept, qitem};
@@ -92,7 +92,6 @@ struct EventSourceContext {
     last_event_id: String,
 
     resource_timing: ResourceFetchTiming,
-    global: Trusted<GlobalScope>,
 }
 
 impl EventSourceContext {
@@ -401,10 +400,10 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn submit_resource_timing(&self) {
-        let local_name = DOMString::from("other");
-        let global = self.global.root();
+        let global = self.event_source.root().global();
+        let url = self.event_source.root().url().clone();
         let performance_entry = PerformanceResourceTiming::new(
-            &global, global.get_url().clone(), local_name, None, &self.resource_timing);
+            &global, url, InitiatorType::Other, None, &self.resource_timing);
         global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
     }
 }
@@ -438,6 +437,10 @@ impl EventSource {
 
     pub fn request(&self) -> RequestInit {
         self.request.borrow().clone().unwrap()
+    }
+
+    pub fn url(&self) -> &ServoUrl {
+        &self.url
     }
 
     pub fn Constructor(global: &GlobalScope,
@@ -499,7 +502,6 @@ impl EventSource {
             data: String::new(),
             last_event_id: String::new(),
             resource_timing: ResourceFetchTiming::new(),
-            global: Trusted::new(global),
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),

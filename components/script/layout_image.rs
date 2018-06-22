@@ -10,11 +10,10 @@
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::node::{Node, document_from_node};
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError, ResourceFetchTiming};
@@ -58,10 +57,9 @@ impl FetchResponseListener for LayoutImageContext {
     }
 
     fn submit_resource_timing(&self) {
-        let local_name = DOMString::from("other");
         let global = self.doc.root().global();
         let entry = PerformanceResourceTiming::new(
-            &global, global.get_url().clone(), local_name, None, &self.resource_timing);
+            &global, global.get_url().clone(), InitiatorType::Other, None, &self.resource_timing);
         global.performance().queue_entry(entry.upcast::<PerformanceEntry>(), false);
     }
 }

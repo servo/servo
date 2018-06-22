@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unused)]
-
 use dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::{self, PerformanceResourceTimingMethods};
 use dom::bindings::num::Finite;
@@ -23,11 +21,23 @@ use servo_url::ServoUrl;
 // TODO Cross origin resources MUST BE INCLUDED as PerformanceResourceTiming objects
 // https://w3c.github.io/resource-timing/#sec-cross-origin-resources
 
+// TODO remove this allow statement when CSS and Beacon are used
+#[allow(dead_code)]
+pub enum InitiatorType {
+    LocalName(String),
+    CSS,
+    Navigation,
+    XMLHttpRequest,
+    Fetch,
+    Beacon,
+    Other,
+}
 
 #[dom_struct]
 pub struct PerformanceResourceTiming {
     entry: PerformanceEntry,
-    initiator_type: DOMString,
+    #[ignore_malloc_size_of = ""]
+    initiator_type: InitiatorType,
     next_hop: Option<DOMString>,
     worker_start: f64,
     redirect_start: f64,
@@ -46,12 +56,9 @@ pub struct PerformanceResourceTiming {
     // decoded_body_size: f64, //size in octets
 }
 
-#[allow(unsafe_code)]
-unsafe impl Send for PerformanceResourceTiming {}
-
 impl PerformanceResourceTiming {
     pub fn new_inherited(url: ServoUrl,
-                     initiator_type: DOMString,
+                     initiator_type: InitiatorType,
                      next_hop: Option<DOMString>,
                      fetch_start: f64)
                          -> PerformanceResourceTiming {
@@ -81,7 +88,7 @@ impl PerformanceResourceTiming {
     //TODO fetch start should be in RFT
     #[allow(unrooted_must_root)]
     pub fn from_resource_timing(url: ServoUrl,
-                     initiator_type: DOMString,
+                     initiator_type: InitiatorType,
                      next_hop: Option<DOMString>,
                      resource_timing: &ResourceFetchTiming)
                      -> PerformanceResourceTiming {
@@ -110,7 +117,7 @@ impl PerformanceResourceTiming {
 
     pub fn new(global: &GlobalScope,
                 url: ServoUrl,
-                     initiator_type: DOMString,
+                     initiator_type: InitiatorType,
                      next_hop: Option<DOMString>,
                      resource_timing: &ResourceFetchTiming)
                          -> DomRoot<PerformanceResourceTiming> {
@@ -119,63 +126,21 @@ impl PerformanceResourceTiming {
                 url, initiator_type, next_hop, resource_timing)),
             global, PerformanceResourceTimingBinding::Wrap)
     }
-
-
-    // TODO prevent setting start if it's already been set?
-    pub fn set_worker_start(&mut self, start_time: f64) {
-        self.worker_start = start_time;
-    }
-
-    pub fn set_redirect_start(&mut self, start_time: f64) {
-        self.redirect_start = start_time;
-    }
-
-    pub fn set_fetch_start(&mut self, start_time: f64) {
-        self.fetch_start = start_time;
-    }
-
-    pub fn set_domain_lookup_start(&mut self, start_time: f64) {
-        self.domain_lookup_start = start_time;
-    }
-
-    pub fn set_connect_start(&mut self, start_time: f64) {
-        self.connect_start = start_time;
-    }
-
-    pub fn set_secure_connection_start(&mut self, start_time: f64) {
-        self.secure_connection_start = start_time;
-    }
-
-    pub fn set_request_start(&mut self, start_time: f64) {
-        self.request_start = start_time;
-    }
-
-    pub fn set_response_start(&mut self, start_time: f64) {
-        self.response_start = start_time;
-    }
-
-    pub fn set_response_end(&mut self, end_time: f64) {
-        self.response_end = end_time;
-    }
-
-    pub fn set_redirect_end(&mut self, end_time: f64) {
-        self.redirect_end = end_time;
-    }
-
-    pub fn set_domain_lookup_end(&mut self, end_time: f64) {
-        self.domain_lookup_end = end_time;
-    }
-
-    pub fn set_connect_end(&mut self, end_time: f64) {
-        self.connect_end = end_time;
-    }
 }
 
 // https://w3c.github.io/resource-timing/
 impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype
     fn InitiatorType(&self) -> DOMString {
-        DOMString::from(self.initiator_type.clone())
+        match self.initiator_type {
+            InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
+            InitiatorType::CSS => DOMString::from("css"),
+            InitiatorType::Navigation => DOMString::from("navigation"),
+            InitiatorType::XMLHttpRequest => DOMString::from("xmlhttprequest"),
+            InitiatorType::Fetch => DOMString::from("fetch"),
+            InitiatorType::Beacon => DOMString::from("beacon"),
+            InitiatorType::Other => DOMString::from("other"),
+        }
     }
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-nexthopprotocol

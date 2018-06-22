@@ -22,7 +22,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -234,7 +234,7 @@ impl FetchResponseListener for ScriptContext {
         let elem = self.elem.root();
         let document = document_from_node(&*elem);
 
-        let local_name = DOMString::from(&**elem.upcast::<Element>().local_name());
+        let local_name = InitiatorType::LocalName(elem.upcast::<Element>().local_name().to_string());
         let performance_entry = PerformanceResourceTiming::new(
             &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
         document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);

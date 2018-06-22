@@ -122,7 +122,7 @@ pub struct Response {
 }
 
 impl Response {
-    pub fn new(url: ServoUrl) -> Response {
+    pub fn new(url: ServoUrl, resource_timing: ResourceFetchTiming) -> Response {
         Response {
             response_type: ResponseType::Default,
             termination_reason: None,
@@ -141,12 +141,12 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
-            resource_timing: ResourceFetchTiming::new(),    // TODO is there a way to initialize this?
+            resource_timing: resource_timing,
         }
     }
 
     pub fn from_init(init: ResponseInit) -> Response {
-        let mut res = Response::new(init.url);
+        let mut res = Response::new(init.url, ResourceFetchTiming::new());
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;

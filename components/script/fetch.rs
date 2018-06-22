@@ -11,12 +11,11 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
-use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom::promise::Promise;
 use dom::request::Request;
 use dom::response::Response;
@@ -248,10 +247,9 @@ impl FetchResponseListener for FetchContext {
     }
 
     fn submit_resource_timing(&self) {
-        let local_name = DOMString::from("fetch");
         let global = self.global.root();
         let performance_entry = PerformanceResourceTiming::new(
-            &global, global.get_url().clone(), local_name, None, &self.resource_timing);
+            &global, global.get_url().clone(), InitiatorType::Fetch, None, &self.resource_timing);
         global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
     }
 }

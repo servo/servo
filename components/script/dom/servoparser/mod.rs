@@ -27,7 +27,7 @@ use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
@@ -751,9 +751,8 @@ impl FetchResponseListener for ParserContext {
         match self.parser {
             Some(ref parser) => {
                 let document = &*parser.root().document;
-                let local_name = DOMString::from("other");
                 let performance_entry = PerformanceResourceTiming::new(
-                    &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
+                    &document.global(), self.url.clone(), InitiatorType::Other, None, &self.resource_timing);
                 document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
             },
             None => ()

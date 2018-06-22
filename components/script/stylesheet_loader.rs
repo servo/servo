@@ -7,7 +7,6 @@ use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
@@ -15,7 +14,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
 use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::PerformanceResourceTiming;
+use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -207,7 +206,7 @@ impl FetchResponseListener for StylesheetContext {
         let elem = self.elem.root();
         let document = document_from_node(&*elem);
 
-        let local_name = DOMString::from(&**elem.upcast::<Element>().local_name());
+        let local_name = InitiatorType::LocalName(elem.upcast::<Element>().local_name().to_string());
         let performance_entry = PerformanceResourceTiming::new(
             &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
         document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
