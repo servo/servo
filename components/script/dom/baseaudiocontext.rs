@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, Chann
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
+use dom::bindings::error::Error;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
@@ -84,8 +85,7 @@ impl BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
     pub fn is_allowed_to_start(&self) -> bool {
-        let state: AudioContextState = self.audio_graph.state().into();
-        state == AudioContextState::Suspended
+        self.audio_graph.state() == ProcessingState::Suspended
     }
 
     pub fn resume(&self) {
@@ -128,8 +128,33 @@ impl BaseAudioContextMethods for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
     #[allow(unrooted_must_root)]
     fn Resume(&self) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.global())
+        // Step 1.
+        let promise = Promise::new(&self.global());
+
+        // Step 2.
+        let state = self.audio_graph.state();
+        if state == ProcessingState::Closed {
+            promise.reject_error(Error::InvalidState);
+            return promise;
+        }
+
+        // Step 3.
+        if state == ProcessingState::Running {
+            promise.resolve_native(&());
+            return promise;
+        }
+
+        // Step 4.
+        if !self.is_allowed_to_start() {
+            self.pending_resume_promises.borrow_mut().push(promise.clone());
+            return promise;
+        }
+
+        // Steps 5 and 6.
+        self.resume();
+
+        // Step 7.
+        promise
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
