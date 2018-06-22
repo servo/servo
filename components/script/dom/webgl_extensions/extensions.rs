@@ -265,6 +265,7 @@ impl WebGLExtensions {
     }
 
     fn register_all_extensions(&self) {
+        self.register::<ext::extshadertexturelod::EXTShaderTextureLod>();
         self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
         self.register::<ext::oeselementindexuint::OESElementIndexUint>();
         self.register::<ext::oesstandardderivatives::OESStandardDerivatives>();

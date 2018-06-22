@@ -37,7 +37,11 @@ impl WebGLExtension for EXTShaderTextureLod {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        ext.supports_gl_extension("GL_EXT_shader_texture_lod")
+        if cfg!(any(target_os = "android", target_os = "ios")) {
+            return ext.supports_gl_extension("GL_EXT_shader_texture_lod");
+        }
+        // This extension is always available on desktop GL.
+        true
     }
 
     fn enable(_ext: &WebGLExtensions) {}
