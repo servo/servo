@@ -235,6 +235,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                     info.rect.origin = LayoutPoint::zero();
                     info.clip_rect.origin = LayoutPoint::zero();
+                    builder.push_clip_id(clip_id);
                 }
 
                 builder.push_stacking_context(
@@ -245,6 +246,10 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     stacking_context.filters.clone(),
                     GlyphRasterSpace::Screen,
                 );
+
+                if stacking_context.established_reference_frame.is_some() {
+                    builder.pop_clip_id();
+                }
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::DefineClipScrollNode(ref item) => {
