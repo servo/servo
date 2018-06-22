@@ -21,14 +21,36 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct AudioContext {
     context: BaseAudioContext,
+    latency_hint: AudioContextLatencyCategory,
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency
     base_latency: f64,
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-outputlatency
     output_latency: f64,
 }
 
 impl AudioContext {
+    #[allow(unrooted_must_root)]
+    // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     fn new_inherited(global: &GlobalScope, options: &AudioContextOptions) -> AudioContext {
+        // Steps 1-3.
+        let context = BaseAudioContext::new_inherited(global, BaseAudioContextOptions::AudioContext(options.into()));
+
+        // Step 4.1.
+        let latency_hint = options.latencyHint;
+
+        // Step 4.2. The sample rate is set during the creation of the BaseAudioContext.
+        // servo-media takes care of setting the default sample rate of the output device
+        // and of resampling the audio output if needed.
+
+        // Step 5.
+        if context.is_allowed_to_start() {
+            // Step 6.
+            context.resume();
+        }
+
         AudioContext {
-            context: BaseAudioContext::new_inherited(global, BaseAudioContextOptions::AudioContext(options.into())),
+            context,
+            latency_hint,
             base_latency: 0., // TODO
             output_latency: 0., // TODO
         }
@@ -44,6 +66,7 @@ impl AudioContext {
         reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap)
     }
 
+    // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     pub fn Constructor(window: &Window,
                        options: &AudioContextOptions) -> Fallible<DomRoot<AudioContext>> {
         let global = window.upcast::<GlobalScope>();
