@@ -20,11 +20,10 @@ use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::ServoMedia;
-use servo_media::audio::graph::AudioGraph;
+use servo_media::audio::graph::{AudioGraph, ProcessingState};
 use servo_media::audio::graph::{OfflineAudioGraphOptions, RealTimeAudioGraphOptions};
 use servo_media::audio::graph_impl::NodeId;
 use servo_media::audio::node::AudioNodeType;
-use std::cell::Cell;
 use std::rc::Rc;
 use task_source::TaskSource;
 
@@ -42,8 +41,6 @@ pub struct BaseAudioContext {
     destination: Option<DomRoot<AudioDestinationNode>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
     sample_rate: f32,
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
-    state: Cell<AudioContextState>,
     /// https://webaudio.github.io/web-audio-api/#pendingresumepromises
     #[ignore_malloc_size_of = "promises are hard"]
     pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
@@ -68,7 +65,6 @@ impl BaseAudioContext {
             audio_graph: ServoMedia::get().unwrap().create_audio_graph(Some(options.into())),
             destination: None,
             sample_rate,
-            state: Cell::new(AudioContextState::Suspended),
             pending_resume_promises: Default::default(),
         };
 
@@ -88,18 +84,19 @@ impl BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
     pub fn is_allowed_to_start(&self) -> bool {
-        self.state.get() == AudioContextState::Suspended
+        let state: AudioContextState = self.audio_graph.state().into();
+        state == AudioContextState::Suspended
     }
 
     pub fn resume(&self) {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.dom_manipulation_task_source();
 
-        // Set the state attribute to `running`.
+        // Set the state attribute to `running` and start rendering audio.
         let this = Trusted::new(self);
-        task_source.queue(task!(set_state: move || {
+        task_source.queue(task!(resume: move || {
             let this = this.root();
-            this.state.set(AudioContextState::Running);
+            this.audio_graph.resume();
         }), window.upcast()).unwrap();
 
         // Queue a task to fire a simple event named `statechange` at the AudioContext.
@@ -125,7 +122,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
     fn State(&self) -> AudioContextState {
-        self.state.get()
+        self.audio_graph.state().into()
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
@@ -149,5 +146,15 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let window = global.as_window();
         let options = unsafe { OscillatorOptions::empty(window.get_cx()) };
         OscillatorNode::new(&window, &self, &options)
+    }
+}
+
+impl From<ProcessingState> for AudioContextState {
+    fn from(state: ProcessingState) -> Self {
+        match state {
+            ProcessingState::Suspended => AudioContextState::Suspended,
+            ProcessingState::Running => AudioContextState::Running,
+            ProcessingState::Closed => AudioContextState::Closed,
+        }
     }
 }
