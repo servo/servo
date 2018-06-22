@@ -24,12 +24,12 @@ use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
 use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -40,7 +40,7 @@ use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -593,7 +593,7 @@ impl HTMLMediaElement {
                     HTMLMediaElementTypeId::HTMLVideoElement => Destination::Video,
                 };
                 let request = RequestInit {
-                    url,
+                    url: url.clone(),
                     destination,
                     credentials_mode: CredentialsMode::Include,
                     use_url_credentials: true,
@@ -604,7 +604,7 @@ impl HTMLMediaElement {
                     .. RequestInit::default()
                 };
 
-                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
+                let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self, url)));
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let window = window_from_node(self);
                 let listener = NetworkListener {
@@ -992,6 +992,8 @@ struct HTMLMediaElementContext {
     ignore_response: bool,
     /// timing data for this resource
     resource_timing: ResourceFetchTiming,
+    /// url for the resource
+    url: ServoUrl,
 }
 
 // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
@@ -1099,17 +1101,20 @@ impl FetchResponseListener for HTMLMediaElementContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let elem = self.elem.root();
-        let document = document_from_node(&*elem);
-        // TODO this isn't always a url
-        // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
-        let url = ServoUrl::parse(&elem.current_src.borrow()).unwrap();
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
 
-        let local_name = InitiatorType::LocalName(elem.upcast::<Element>().local_name().to_string());
-        let performance_entry = PerformanceResourceTiming::new(
-           &document.global(), url, local_name, None, &self.resource_timing);
-        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+impl ResourceTimingListener for HTMLMediaElementContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        (document_from_node(&*self.elem.root()).global())
     }
 }
 
@@ -1121,7 +1126,7 @@ impl PreInvoke for HTMLMediaElementContext {
 }
 
 impl HTMLMediaElementContext {
-    fn new(elem: &HTMLMediaElement) -> HTMLMediaElementContext {
+    fn new(elem: &HTMLMediaElement, url: ServoUrl) -> HTMLMediaElementContext {
         HTMLMediaElementContext {
             elem: Trusted::new(elem),
             data: vec![],
@@ -1131,6 +1136,7 @@ impl HTMLMediaElementContext {
             have_metadata: false,
             ignore_response: false,
             resource_timing: ResourceFetchTiming::new(),
+            url: url,
         }
     }
 

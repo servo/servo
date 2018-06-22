@@ -7,19 +7,19 @@
 //! no guarantee that the responsible nodes will still exist in the future if the
 //! layout thread holds on to them during asynchronous operations.
 
-use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
+use dom::globalscope::GlobalScope;
 use dom::node::{Node, document_from_node};
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError, ResourceFetchTiming};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestInit as FetchRequestInit};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 
@@ -56,11 +56,18 @@ impl FetchResponseListener for LayoutImageContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let global = self.doc.root().global();
-        let entry = PerformanceResourceTiming::new(
-            &global, global.get_url().clone(), InitiatorType::Other, None, &self.resource_timing);
-        global.performance().queue_entry(entry.upcast::<PerformanceEntry>(), false);
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for LayoutImageContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Other, self.resource_timing_global().get_url().clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.doc.root().global()
     }
 }
 

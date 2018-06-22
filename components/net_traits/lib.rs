@@ -210,7 +210,7 @@ pub trait FetchResponseListener {
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
     fn process_response_eof(&mut self, response: Result<(), NetworkError>);
     fn resource_timing(&mut self) -> &mut ResourceFetchTiming;
-    fn submit_resource_timing(&self);
+    fn submit_resource_timing(&mut self);
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
@@ -258,6 +258,9 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
                         *listener.resource_timing() = response_resource_timing.clone();
                         listener.process_response_eof(Ok(()));
                         // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
+
+                        // TODO submit_resource_timing methods contain a lot of code duplication, but we can't easily move
+                        // the functionality here without causing a cyclic dependency
                         listener.submit_resource_timing();
                     },
                     Err(e) => listener.process_response_eof(Err(e)),

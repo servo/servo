@@ -7,14 +7,15 @@ use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::root::DomRoot;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use encoding_rs::UTF_8;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
@@ -24,7 +25,7 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::ResourceFetchTiming;
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -202,14 +203,20 @@ impl FetchResponseListener for StylesheetContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let elem = self.elem.root();
-        let document = document_from_node(&*elem);
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
 
-        let local_name = InitiatorType::LocalName(elem.upcast::<Element>().local_name().to_string());
-        let performance_entry = PerformanceResourceTiming::new(
-            &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
-        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+impl ResourceTimingListener for StylesheetContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        document_from_node(&*self.elem.root()).global()
     }
 }
 

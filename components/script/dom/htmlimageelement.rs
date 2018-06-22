@@ -25,14 +25,14 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
@@ -49,7 +49,7 @@ use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvail
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
 use net_traits::image_cache::UsePlaceholder;
 use net_traits::request::RequestInit;
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use num_traits::ToPrimitive;
 use script_thread::ScriptThread;
 use servo_url::ServoUrl;
@@ -196,11 +196,18 @@ impl FetchResponseListener for ImageContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let global = self.doc.root().global();
-        let entry = PerformanceResourceTiming::new(
-            &global, self.url.clone(), InitiatorType::LocalName("img".to_string()), None, &self.resource_timing);
-        global.performance().queue_entry(entry.upcast::<PerformanceEntry>(), false);
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for ImageContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::LocalName("img".to_string()), self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.doc.root().global()
     }
 }
 

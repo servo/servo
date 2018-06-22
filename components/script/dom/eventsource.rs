@@ -14,8 +14,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use dom_struct::dom_struct;
 use euclid::Length;
 use hyper::header::{Accept, qitem};
@@ -29,7 +28,7 @@ use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -399,12 +398,18 @@ impl FetchResponseListener for EventSourceContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let global = self.event_source.root().global();
-        let url = self.event_source.root().url().clone();
-        let performance_entry = PerformanceResourceTiming::new(
-            &global, url, InitiatorType::Other, None, &self.resource_timing);
-        global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for EventSourceContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+         (InitiatorType::Other, self.event_source.root().url().clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.event_source.root().global()
     }
 }
 

@@ -21,8 +21,7 @@ use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -32,7 +31,7 @@ use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::ServoUrl;
@@ -230,14 +229,20 @@ impl FetchResponseListener for ScriptContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let elem = self.elem.root();
-        let document = document_from_node(&*elem);
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
 
-        let local_name = InitiatorType::LocalName(elem.upcast::<Element>().local_name().to_string());
-        let performance_entry = PerformanceResourceTiming::new(
-            &document.global(), self.url.clone(), local_name, None, &self.resource_timing);
-        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+impl ResourceTimingListener for ScriptContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        let initiator_type = InitiatorType::LocalName(
+            self.elem.root().upcast::<Element>().local_name().to_string());
+        (initiator_type, self.url.clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        (document_from_node(&*self.elem.root()).global())
     }
 }
 

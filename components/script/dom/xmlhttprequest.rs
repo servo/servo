@@ -28,8 +28,7 @@ use dom::globalscope::GlobalScope;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
 use dom::node::Node;
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::progressevent::ProgressEvent;
 use dom::servoparser::ServoParser;
 use dom::urlsearchparams::URLSearchParams;
@@ -60,7 +59,7 @@ use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFe
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -266,11 +265,20 @@ impl XMLHttpRequest {
                 &mut self.resource_timing
             }
 
-            fn submit_resource_timing(&self) {
-                let global = self.global.root();
-                let performance_entry = PerformanceResourceTiming::new(
-                    &global, global.get_url().clone(), InitiatorType::XMLHttpRequest, None, &self.resource_timing);
-                global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+            
+
+            fn submit_resource_timing(&mut self) {
+                network_listener::submit_timing(self)
+            }
+        }
+
+        impl ResourceTimingListener for XHRContext {
+            fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+                (InitiatorType::XMLHttpRequest, self.resource_timing_global().get_url().clone())
+            }
+
+            fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+                self.global.root()
             }
         }
 

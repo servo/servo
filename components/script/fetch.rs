@@ -14,8 +14,7 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use dom::performanceresourcetiming::InitiatorType;
 use dom::promise::Promise;
 use dom::request::Request;
 use dom::response::Response;
@@ -28,7 +27,7 @@ use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::request::RequestInit as NetTraitsRequestInit;
-use network_listener::{NetworkListener, PreInvoke};
+use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
@@ -246,11 +245,18 @@ impl FetchResponseListener for FetchContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        let global = self.global.root();
-        let performance_entry = PerformanceResourceTiming::new(
-            &global, global.get_url().clone(), InitiatorType::Fetch, None, &self.resource_timing);
-        global.performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
+    fn submit_resource_timing(&mut self) {
+        network_listener::submit_timing(self)
+    }
+}
+
+impl ResourceTimingListener for FetchContext {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (InitiatorType::Fetch, self.resource_timing_global().get_url().clone())
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.global.root()
     }
 }
 

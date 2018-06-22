@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::settings_stack::is_execution_stack_empty;
 use dom::bindings::str::DOMString;
@@ -26,8 +26,6 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
-use dom::performanceentry::PerformanceEntry;
-use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
@@ -747,17 +745,8 @@ impl FetchResponseListener for ParserContext {
         &mut self.resource_timing
     }
 
-    fn submit_resource_timing(&self) {
-        match self.parser {
-            Some(ref parser) => {
-                let document = &*parser.root().document;
-                let performance_entry = PerformanceResourceTiming::new(
-                    &document.global(), self.url.clone(), InitiatorType::Other, None, &self.resource_timing);
-                document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), false);
-            },
-            None => ()
-        }
-    }
+    // Don't submit a resource timing for this
+    fn submit_resource_timing(&mut self) {}
 }
 
 impl PreInvoke for ParserContext {}
