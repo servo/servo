@@ -42,8 +42,6 @@ pub struct BaseAudioContext {
     destination: Option<DomRoot<AudioDestinationNode>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
     sample_rate: f32,
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
-    current_time: f64,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
     state: Cell<AudioContextState>,
     /// https://webaudio.github.io/web-audio-api/#pendingresumepromises
@@ -69,7 +67,6 @@ impl BaseAudioContext {
             reflector_: Reflector::new(),
             audio_graph: ServoMedia::get().unwrap().create_audio_graph(Some(options.into())),
             destination: None,
-            current_time: 0.,
             sample_rate,
             state: Cell::new(AudioContextState::Suspended),
             pending_resume_promises: Default::default(),
@@ -122,7 +119,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
     fn CurrentTime(&self) -> Finite<f64> {
-        Finite::wrap(self.current_time)
+        let current_time = self.audio_graph.current_time();
+        Finite::wrap(current_time)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
