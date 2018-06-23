@@ -69,16 +69,16 @@ def main():
                 continue
             files[kind][struct] = render(
                 file_name,
-                product = product,
-                data = properties,
+                product=product,
+                data=properties,
             )
     properties_template = os.path.join(BASE, "properties.mako.rs")
     files["properties"] = render(
         properties_template,
-        product = product,
-        data = properties,
-        __file__ = properties_template,
-        OUT_DIR = OUT_DIR,
+        product=product,
+        data=properties,
+        __file__=properties_template,
+        OUT_DIR=OUT_DIR,
     )
     if output == "style-crate":
         write(OUT_DIR, "properties.rs", files["properties"])

@@ -17,8 +17,8 @@ use parser::{Parse, ParserContext};
 use servo_arc::{Arc, RawOffsetArc};
 use std::fmt::{self, Write};
 use std::mem;
-use stylesheets::UrlExtraData;
 use style_traits::{CssWriter, ParseError, ToCss};
+use stylesheets::UrlExtraData;
 use values::computed::{Context, ToComputedValue};
 
 /// A CSS url() value for gecko.

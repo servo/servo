@@ -17,8 +17,8 @@ use media_queries::{Device, MediaList};
 use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use servo_arc::Arc;
-use std::fmt;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use std::fmt;
 use stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
 use stylist::Stylist;
 

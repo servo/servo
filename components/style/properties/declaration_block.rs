@@ -12,7 +12,7 @@ use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKi
 use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
 use parser::ParserContext;
-use properties::animated_properties::AnimationValue;
+use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
@@ -24,7 +24,6 @@ use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCs
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
-use properties::animated_properties::AnimationValueMap;
 
 /// The animation rules.
 ///
