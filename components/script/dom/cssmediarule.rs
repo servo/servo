@@ -75,15 +75,15 @@ impl CSSMediaRule {
         let window = global.as_window();
         let url = window.get_url();
         let quirks_mode = window.Document().quirks_mode();
-        let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                   ParsingMode::DEFAULT,
-                                                   quirks_mode);
-
-        let new_medialist = StyleMediaList::parse(
-            &context,
-            &mut input,
+        let context = ParserContext::new_for_cssom(
+            &url,
+            Some(CssRuleType::Media),
+            ParsingMode::DEFAULT,
+            quirks_mode,
             window.css_error_reporter(),
         );
+
+        let new_medialist = StyleMediaList::parse(&context, &mut input);
         let mut guard = self.cssconditionrule.shared_lock().write();
 
         // Clone an Arc because we can’t borrow `guard` twice at the same time.

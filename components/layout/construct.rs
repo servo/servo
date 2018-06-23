@@ -1095,7 +1095,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         kid_flow.as_block()
                                 .fragment
                                 .style()
-                                .get_inheritedtable()
+                                .get_inherited_table()
                                 .caption_side == side {
                         table_wrapper_flow.add_new_child(kid_flow);
                     }
@@ -1256,7 +1256,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // Determine if the table cell should be hidden. Per CSS 2.1 § 17.6.1.1, this will be true
         // if the cell has any in-flow elements (even empty ones!) and has `empty-cells` set to
         // `hide`.
-        let hide = node.style(self.style_context()).get_inheritedtable().empty_cells == EmptyCells::Hide &&
+        let hide = node.style(self.style_context()).get_inherited_table().empty_cells == EmptyCells::Hide &&
             node.children().all(|kid| {
                 let position = kid.style(self.style_context()).get_box().position;
                 !kid.is_content() ||
@@ -1871,7 +1871,7 @@ fn bidi_control_chars(style: &ServoArc<ComputedValues>) -> Option<(&'static str,
     use style::computed_values::unicode_bidi::T::*;
 
     let unicode_bidi = style.get_text().unicode_bidi;
-    let direction = style.get_inheritedbox().direction;
+    let direction = style.get_inherited_box().direction;
 
     // See the table in http://dev.w3.org/csswg/css-writing-modes/#unicode-bidi
     match (unicode_bidi, direction) {

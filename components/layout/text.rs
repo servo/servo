@@ -170,7 +170,7 @@ impl TextRunScanner {
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().clone_font();
-                let inherited_text_style = in_fragment.style().get_inheritedtext();
+                let inherited_text_style = in_fragment.style().get_inherited_text();
                 font_group = font_context.font_group(font_style);
                 compression = match in_fragment.white_space() {
                     WhiteSpace::Normal |
@@ -477,7 +477,7 @@ pub fn font_metrics_for_style(mut font_context: &mut LayoutFontContext, style: :
 /// Returns the line block-size needed by the given computed style and font size.
 pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
     let font_size = style.get_font().font_size.size();
-    match style.get_inheritedtext().line_height {
+    match style.get_inherited_text().line_height {
         LineHeight::Normal => Au::from(metrics.line_gap),
         LineHeight::Number(l) => font_size.scale_by(l.0),
         LineHeight::Length(l) => Au::from(l)

@@ -84,25 +84,32 @@ impl HTMLStyleElement {
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let url = window.get_url();
-        let context = CssParserContext::new_for_cssom(&url,
-                                                      Some(CssRuleType::Media),
-                                                      ParsingMode::DEFAULT,
-                                                      doc.quirks_mode());
+        let css_error_reporter = window.css_error_reporter();
+        let context = CssParserContext::new_for_cssom(
+            &url,
+            Some(CssRuleType::Media),
+            ParsingMode::DEFAULT,
+            doc.quirks_mode(),
+            css_error_reporter,
+        );
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mut input = ParserInput::new(&mq_str);
-        let css_error_reporter = window.css_error_reporter();
         let mq = Arc::new(shared_lock.wrap(MediaList::parse(
             &context,
             &mut CssParser::new(&mut input),
-            css_error_reporter),
-        ));
+        )));
         let loader = StylesheetLoader::for_element(self.upcast());
-        let sheet = Stylesheet::from_str(&data, window.get_url(),
-                                         Origin::Author, mq,
-                                         shared_lock, Some(&loader),
-                                         css_error_reporter,
-                                         doc.quirks_mode(),
-                                         self.line_number as u32);
+        let sheet = Stylesheet::from_str(
+            &data,
+            window.get_url(),
+            Origin::Author,
+            mq,
+            shared_lock,
+            Some(&loader),
+            css_error_reporter,
+            doc.quirks_mode(),
+            self.line_number as u32,
+        );
 
         let sheet = Arc::new(sheet);
 

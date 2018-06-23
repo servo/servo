@@ -1013,7 +1013,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 id: webrender_image.key.unwrap(),
                 stretch_size: placement.tile_size.to_layout(),
                 tile_spacing: placement.tile_spacing.to_layout(),
-                image_rendering: style.get_inheritedbox().image_rendering.to_layout(),
+                image_rendering: style.get_inherited_box().image_rendering.to_layout(),
             })));
         });
     }
@@ -1581,7 +1581,7 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
     ) {
-        if self.style().get_inheritedbox().visibility != Visibility::Visible {
+        if self.style().get_inherited_box().visibility != Visibility::Visible {
             return;
         }
 
@@ -1744,7 +1744,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     state,
                     &text_fragment,
                     stacking_relative_content_box,
-                    &self.style.get_inheritedtext().text_shadow.0,
+                    &self.style.get_inherited_text().text_shadow.0,
                     clip,
                 );
 
@@ -1765,7 +1765,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     state,
                     &text_fragment,
                     stacking_relative_content_box,
-                    &self.style.get_inheritedtext().text_shadow.0,
+                    &self.style.get_inherited_text().text_shadow.0,
                     clip,
                 );
 
@@ -1837,7 +1837,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             stretch_size: stacking_relative_content_box.size.to_layout(),
                             tile_spacing: LayoutSize::zero(),
                             image_rendering: self.style
-                                .get_inheritedbox()
+                                .get_inherited_box()
                                 .image_rendering
                                 .to_layout(),
                         })));
@@ -2005,7 +2005,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         // Create display items for text decorations.
-        let text_decorations = self.style().get_inheritedtext().text_decorations_in_effect;
+        let text_decorations = self.style().get_inherited_text().text_decorations_in_effect;
 
         let logical_stacking_relative_content_box = LogicalRect::from_physical(
             self.style.writing_mode,
@@ -3048,8 +3048,8 @@ impl ComputedValuesCursorUtility for ComputedValues {
     #[inline]
     fn get_cursor(&self, default_cursor: CursorKind) -> Option<CursorKind> {
         match (
-            self.get_inheritedui().pointer_events,
-            &self.get_inheritedui().cursor,
+            self.get_inherited_ui().pointer_events,
+            &self.get_inherited_ui().cursor,
         ) {
             (PointerEvents::None, _) => None,
             (

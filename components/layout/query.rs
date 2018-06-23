@@ -959,7 +959,7 @@ fn inner_text_collection_steps<N: LayoutNode>(node: N,
         };
 
         // Step 2.
-        if style.get_inheritedbox().visibility != Visibility::Visible {
+        if style.get_inherited_box().visibility != Visibility::Visible {
             continue;
         }
 

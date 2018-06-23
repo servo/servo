@@ -934,7 +934,7 @@ impl InlineFlow {
         if fragments.fragments.is_empty() {
             return
         }
-        let text_justify = fragments.fragments[0].style().get_inheritedtext().text_justify;
+        let text_justify = fragments.fragments[0].style().get_inherited_text().text_justify;
 
         // Translate `left` and `right` to logical directions.
         let is_ltr = fragments.fragments[0].style().writing_mode.is_bidi_ltr();
@@ -1341,7 +1341,7 @@ impl Flow for InlineFlow {
         let mut intrinsic_sizes_for_nonbroken_run = IntrinsicISizesContribution::new();
         for fragment in &mut self.fragments.fragments {
             let intrinsic_sizes_for_fragment = fragment.compute_intrinsic_inline_sizes().finish();
-            match fragment.style.get_inheritedtext().white_space {
+            match fragment.style.get_inherited_text().white_space {
                 WhiteSpace::Nowrap => {
                     intrinsic_sizes_for_nonbroken_run.union_nonbreaking_inline(
                         &intrinsic_sizes_for_fragment)

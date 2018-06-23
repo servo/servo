@@ -100,6 +100,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
+use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
 use style::properties::{ComputedValues, PropertyId};
@@ -389,8 +390,8 @@ impl Window {
          &self.bluetooth_extra_permission_data
     }
 
-    pub fn css_error_reporter(&self) -> &CSSErrorReporter {
-        &self.error_reporter
+    pub fn css_error_reporter(&self) -> Option<&ParseErrorReporter> {
+        Some(&self.error_reporter)
     }
 
     /// Sets a new list of scroll offsets.
@@ -1017,14 +1018,15 @@ impl WindowMethods for Window {
         let mut parser = Parser::new(&mut input);
         let url = self.get_url();
         let quirks_mode = self.Document().quirks_mode();
-        let context = CssParserContext::new_for_cssom(&url, Some(CssRuleType::Media),
-                                                      ParsingMode::DEFAULT,
-                                                      quirks_mode);
-        let media_query_list = media_queries::MediaList::parse(
-            &context,
-            &mut parser,
+        let context = CssParserContext::new_for_cssom(
+            &url,
+            Some(CssRuleType::Media),
+            ParsingMode::DEFAULT,
+            quirks_mode,
             self.css_error_reporter(),
         );
+        let media_query_list =
+            media_queries::MediaList::parse(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);
         self.media_query_lists.push(&*mql);

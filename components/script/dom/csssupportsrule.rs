@@ -63,9 +63,13 @@ impl CSSSupportsRule {
             let win = global.as_window();
             let url = win.Document().url();
             let quirks_mode = win.Document().quirks_mode();
-            let context = ParserContext::new_for_cssom(&url, Some(CssRuleType::Supports),
-                                                       ParsingMode::DEFAULT,
-                                                       quirks_mode);
+            let context = ParserContext::new_for_cssom(
+                &url,
+                Some(CssRuleType::Supports),
+                ParsingMode::DEFAULT,
+                quirks_mode,
+                None,
+            );
             let enabled = cond.eval(&context);
             let mut guard = self.cssconditionrule.shared_lock().write();
             let rule = self.supportsrule.write_with(&mut guard);

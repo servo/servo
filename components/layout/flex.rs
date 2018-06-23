@@ -561,7 +561,7 @@ impl FlexFlow {
                                     .explicit_block_size(parent_container_size)
                                     .map(|x| max(x - box_border, Au(0)));
         let containing_block_text_align =
-            self.block_flow.fragment.style().get_inheritedtext().text_align;
+            self.block_flow.fragment.style().get_inherited_text().text_align;
 
         while let Some(mut line) = self.get_flex_line(inline_size) {
             let items = &mut self.items[line.range.clone()];

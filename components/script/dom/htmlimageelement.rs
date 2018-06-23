@@ -770,10 +770,13 @@ pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size
         }
         let mut input = ParserInput::new(&trimmed);
         let url = ServoUrl::parse("about:blank").unwrap();
-        let context = ParserContext::new_for_cssom(&url,
-                                                   None,
-                                                   ParsingMode::empty(),
-                                                   QuirksMode::NoQuirks);
+        let context = ParserContext::new_for_cssom(
+            &url,
+            None,
+            ParsingMode::empty(),
+            QuirksMode::NoQuirks,
+            None,
+        );
         let mut parser = Parser::new(&mut input);
         let length = parser.try(|i| Length::parse_non_negative(&context, i));
         match length {

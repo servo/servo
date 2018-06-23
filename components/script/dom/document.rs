@@ -127,6 +127,7 @@ use std::cell::{Cell, Ref, RefMut};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
+use std::fmt;
 use std::mem;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -211,6 +212,12 @@ struct StyleSheetInDocument {
     #[ignore_malloc_size_of = "Arc"]
     sheet: Arc<Stylesheet>,
     owner: Dom<Element>,
+}
+
+impl fmt::Debug for StyleSheetInDocument {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.sheet.fmt(formatter)
+    }
 }
 
 impl PartialEq for StyleSheetInDocument {

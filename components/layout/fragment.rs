@@ -818,7 +818,7 @@ impl Fragment {
             SpecificFragmentInfo::TableCell => {
                 let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
                     QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
-                if self.style.get_inheritedtable().border_collapse ==
+                if self.style.get_inherited_table().border_collapse ==
                         BorderCollapse::Separate {
                     base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
@@ -828,7 +828,7 @@ impl Fragment {
             SpecificFragmentInfo::TableWrapper => {
                 let base_quantities = QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS |
                     QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
-                if self.style.get_inheritedtable().border_collapse ==
+                if self.style.get_inherited_table().border_collapse ==
                         BorderCollapse::Separate {
                     base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
@@ -838,7 +838,7 @@ impl Fragment {
             SpecificFragmentInfo::TableRow => {
                 let base_quantities =
                     QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED;
-                if self.style.get_inheritedtable().border_collapse ==
+                if self.style.get_inherited_table().border_collapse ==
                         BorderCollapse::Separate {
                     base_quantities | QuantitiesIncludedInIntrinsicInlineSizes::INTRINSIC_INLINE_SIZE_INCLUDES_BORDER
                 } else {
@@ -1272,7 +1272,7 @@ impl Fragment {
     pub fn compute_border_and_padding(&mut self,
                                       containing_block_inline_size: Au) {
         // Compute border.
-        let border = match self.style.get_inheritedtable().border_collapse {
+        let border = match self.style.get_inherited_table().border_collapse {
             BorderCollapse::Separate => self.border_width(),
             BorderCollapse::Collapse => LogicalMargin::zero(self.style.writing_mode),
         };
@@ -1377,7 +1377,7 @@ impl Fragment {
     }
 
     pub fn white_space(&self) -> WhiteSpace {
-        self.style().get_inheritedtext().white_space
+        self.style().get_inherited_text().white_space
     }
 
     pub fn color(&self) -> Color {
@@ -1625,12 +1625,12 @@ impl Fragment {
         let mut flags = SplitOptions::empty();
         if starts_line {
             flags.insert(SplitOptions::STARTS_LINE);
-            if self.style().get_inheritedtext().overflow_wrap == OverflowWrap::BreakWord {
+            if self.style().get_inherited_text().overflow_wrap == OverflowWrap::BreakWord {
                 flags.insert(SplitOptions::RETRY_AT_CHARACTER_BOUNDARIES)
             }
         }
 
-        match self.style().get_inheritedtext().word_break {
+        match self.style().get_inherited_text().word_break {
             WordBreak::Normal | WordBreak::KeepAll => {
                 // Break at normal word boundaries. keep-all forbids soft wrap opportunities.
                 let natural_word_breaking_strategy =
