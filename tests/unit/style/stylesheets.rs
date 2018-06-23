@@ -4,7 +4,6 @@
 
 use cssparser::{self, SourceLocation};
 use html5ever::{Namespace as NsAtom};
-use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
 use selectors::attr::*;
 use selectors::parser::*;
@@ -71,7 +70,7 @@ fn test_parse_stylesheet() {
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
-                                          None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0);
+                                          None, None, QuirksMode::NoQuirks, 0);
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
@@ -345,7 +344,7 @@ fn test_report_error_stylesheet() {
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, media, lock,
-                         None, &error_reporter, QuirksMode::NoQuirks, 5);
+                         None, Some(&error_reporter), QuirksMode::NoQuirks, 5);
 
     error_reporter.assert_messages_contain(&[
         (8, 18, "Unsupported property declaration: 'display: invalid;'"),
@@ -387,7 +386,7 @@ fn test_no_report_unrecognized_vendor_properties() {
     let lock = SharedRwLock::new();
     let media = Arc::new(lock.wrap(MediaList::empty()));
     Stylesheet::from_str(css, url, Origin::UserAgent, media, lock,
-                         None, &error_reporter, QuirksMode::NoQuirks, 0);
+                         None, Some(&error_reporter), QuirksMode::NoQuirks, 0);
 
     error_reporter.assert_messages_contain(&[
         (4, 31, "Unsupported property declaration: '-moz-background-color: red;'"),
@@ -406,7 +405,7 @@ fn test_source_map_url() {
         let lock = SharedRwLock::new();
         let media = Arc::new(lock.wrap(MediaList::empty()));
         let stylesheet = Stylesheet::from_str(test.0, url.clone(), Origin::UserAgent, media, lock,
-                                              None, &CSSErrorReporterTest, QuirksMode::NoQuirks,
+                                              None, None, QuirksMode::NoQuirks,
                                               0);
         let url_opt = stylesheet.contents.source_map_url.read();
         assert_eq!(*url_opt, test.1);
@@ -425,7 +424,7 @@ fn test_source_url() {
         let lock = SharedRwLock::new();
         let media = Arc::new(lock.wrap(MediaList::empty()));
         let stylesheet = Stylesheet::from_str(test.0, url.clone(), Origin::UserAgent, media, lock,
-                                              None, &CSSErrorReporterTest, QuirksMode::NoQuirks,
+                                              None, None, QuirksMode::NoQuirks,
                                               0);
         let url_opt = stylesheet.contents.source_url.read();
         assert_eq!(*url_opt, test.1);

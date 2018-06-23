@@ -55,7 +55,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  media,
                                  lock,
                                  None,
-                                 &ErrorringErrorReporter,
+                                 Some(&ErrorringErrorReporter),
                                  QuirksMode::NoQuirks,
                                  0);
     let guard = s.shared_lock.read();

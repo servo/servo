@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::SourceLocation;
 use euclid::TypedScale;
 use euclid::TypedSize2D;
 use servo_arc::Arc;
@@ -10,7 +9,6 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use style::Atom;
 use style::context::QuirksMode;
-use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::*;
 use style::servo::media_queries::*;
 use style::shared_lock::SharedRwLock;
@@ -18,18 +16,9 @@ use style::stylesheets::{AllRules, Stylesheet, StylesheetInDocument, Origin, Css
 use style::values::{CustomIdent, specified};
 use style_traits::ToCss;
 
-pub struct CSSErrorReporterTest;
-
-impl ParseErrorReporter for CSSErrorReporterTest {
-    fn report_error(&self,
-                    _url: &ServoUrl,
-                    _location: SourceLocation,
-                    _error: ContextualParseError) {
-    }
-}
-
 fn test_media_rule<F>(css: &str, callback: F)
-    where F: Fn(&MediaList, &str),
+where
+    F: Fn(&MediaList, &str),
 {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let css_str = css.to_owned();
@@ -37,7 +26,7 @@ fn test_media_rule<F>(css: &str, callback: F)
     let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
-        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0);
+        None, None, QuirksMode::NoQuirks, 0);
     let dummy = Device::new(MediaType::screen(), TypedSize2D::new(200.0, 100.0), TypedScale::new(1.0));
     let mut rule_count = 0;
     let guard = stylesheet.shared_lock.read();
@@ -56,7 +45,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let media_list = Arc::new(lock.wrap(MediaList::empty()));
     let ss = Stylesheet::from_str(
         css, url, Origin::Author, media_list, lock,
-        None, &CSSErrorReporterTest, QuirksMode::NoQuirks, 0);
+        None, None, QuirksMode::NoQuirks, 0);
     let mut rule_count = 0;
     ss.effective_style_rules(device, &ss.shared_lock.read(), |_| rule_count += 1);
     assert!(rule_count == expected_rule_count, css.to_owned());
