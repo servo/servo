@@ -20,13 +20,15 @@
 <script>
   "use strict";
 
-  function doIdlTest([dom, idlText]) {
-    const MDI_idl = new IdlArray();
+  promise_test(async () => {
+    const idl = await fetch(`/interfaces/mediacapture-main.idl`).then(r => r.text());
+    const dom = await fetch(`/interfaces/dom.idl`).then(r => r.text());
+    const html = await fetch(`/interfaces/html.idl`).then(r => r.text());
 
-    MDI_idl.add_untested_idls(dom, { only: ['Event', 'EventInit'] });
-    MDI_idl.add_untested_idls("interface EventTarget {};");
-    MDI_idl.add_untested_idls("interface Navigator {};");
-    MDI_idl.add_idls(idlText);
+    const MDI_idl = new IdlArray();
+    MDI_idl.add_idls(idl);
+    MDI_idl.add_dependency_idls(html);
+    MDI_idl.add_dependency_idls(dom);
 
     assert_true(undefined !== navigator.mediaDevices.enumerateDevices,
       "navigator.mediaDevices.enumerateDevices exists");
@@ -56,16 +58,6 @@
 
       MDI_idl.test();
     });
-  }
-
-  promise_test(() => {
-      return Promise.all(
-        [
-          '/interfaces/dom.idl',
-          '/interfaces/mediacapture-main.idl',
-        ].map(url => fetch(url).then(r => r.text())))
-      .then(doIdlTest);
-
   }, "Test MediaDevices.enumerateDevices call and result. Types only.");
 </script>
 </body>

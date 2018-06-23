@@ -20,6 +20,122 @@
 var XML = "http://www.w3.org/XML/1998/namespace"
 var XMLNS = "http://www.w3.org/2000/xmlns/"
 
+// toggleAttribute exhaustive tests
+// Step 1
+test(function() {
+  var el = document.createElement("foo")
+  for (var i = 0; i < invalid_names.length; i++) {
+    assert_throws("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i], true) })
+  }
+  for (var i = 0; i < invalid_names.length; i++) {
+    assert_throws("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i]) })
+  }
+  for (var i = 0; i < invalid_names.length; i++) {
+    assert_throws("INVALID_CHARACTER_ERR", function() { el.toggleAttribute(invalid_names[i], false) })
+  }
+}, "When qualifiedName does not match the Name production, an " +
+   "INVALID_CHARACTER_ERR exception is to be thrown. (toggleAttribute)")
+test(function() {
+  var el = document.getElementById("test2")
+  for (var i = 0; i < el.children.length; i++) {
+    assert_throws("INVALID_CHARACTER_ERR", function() {
+      el.children[i].toggleAttribute("~", false)
+    })
+  }
+  for (var i = 0; i < el.children.length; i++) {
+    assert_throws("INVALID_CHARACTER_ERR", function() {
+      el.children[i].toggleAttribute("~")
+    })
+  }
+  for (var i = 0; i < el.children.length; i++) {
+    assert_throws("INVALID_CHARACTER_ERR", function() {
+      el.children[i].toggleAttribute("~", true)
+    })
+  }
+}, "When qualifiedName does not match the Name production, an " +
+   "INVALID_CHARACTER_ERR exception is to be thrown, even if the attribute " +
+   "is already present. (toggleAttribute)")
+
+// Step 2
+test(function() {
+  var el = document.createElement("div")
+  assert_true(el.toggleAttribute("ALIGN"))
+  assert_true(!el.hasAttributeNS("", "ALIGN"))
+  assert_true(el.hasAttributeNS("", "align"))
+  assert_true(el.hasAttribute("align"))
+  assert_true(!el.toggleAttribute("ALIGN"))
+  assert_true(!el.hasAttributeNS("", "ALIGN"))
+  assert_true(!el.hasAttributeNS("", "align"))
+  assert_true(!el.hasAttribute("align"))
+}, "toggleAttribute should lowercase its name argument (upper case attribute)")
+test(function() {
+  var el = document.createElement("div")
+  assert_true(el.toggleAttribute("CHEEseCaKe"))
+  assert_true(!el.hasAttributeNS("", "CHEEseCaKe"))
+  assert_true(el.hasAttributeNS("", "cheesecake"))
+  assert_true(el.hasAttribute("cheesecake"))
+}, "toggleAttribute should lowercase its name argument (mixed case attribute)")
+
+// Step 3
+test(function() {
+  var el = document.createElement("foo")
+  var tests = ["xmlns", "xmlns:a", "xmlnsx", "xmlns0"]
+  for (var i = 0; i < tests.length; i++) {
+    assert_true(el.toggleAttribute(tests[i]));
+    assert_true(el.hasAttribute(tests[i]));
+  }
+}, "toggleAttribute should not throw even when qualifiedName starts with 'xmlns'")
+
+// Step 4
+test(function() {
+  var el = document.createElement("foo")
+  for (var i = 0; i < valid_names.length; i++) {
+    assert_true(el.toggleAttribute(valid_names[i]))
+    assert_true(el.hasAttribute(valid_names[i]))
+    assert_true(!el.toggleAttribute(valid_names[i]))
+    assert_true(!el.hasAttribute(valid_names[i]))
+    // Check using force attr
+    assert_true(el.toggleAttribute(valid_names[i], true))
+    assert_true(el.hasAttribute(valid_names[i]))
+    assert_true(el.toggleAttribute(valid_names[i], true))
+    assert_true(el.hasAttribute(valid_names[i]))
+    assert_true(!el.toggleAttribute(valid_names[i], false))
+    assert_true(!el.hasAttribute(valid_names[i]))
+  }
+}, "Basic functionality should be intact. (toggleAttribute)")
+
+// Step 5
+test(function() {
+  var el = document.createElement("foo")
+  el.toggleAttribute("a")
+  el.toggleAttribute("b")
+  el.setAttribute("a", "thing")
+  el.toggleAttribute("c")
+  attributes_are(el, [["a", "thing"],
+                      ["b", ""],
+                      ["c", ""]])
+}, "toggleAttribute should not change the order of previously set attributes.")
+test(function() {
+  var el = document.createElement("baz")
+  el.setAttributeNS("ab", "attr", "fail")
+  el.setAttributeNS("kl", "attr", "pass")
+  el.toggleAttribute("attr")
+  attributes_are(el, [["attr", "pass", "kl"]])
+}, "toggleAttribute should set the first attribute with the given name")
+test(function() {
+  // Based on a test by David Flanagan.
+  var el = document.createElement("baz")
+  el.setAttributeNS("foo", "foo:bar", "1");
+  el.setAttributeNS("foo", "foo:bat", "2");
+  assert_equals(el.getAttribute("foo:bar"), "1")
+  assert_equals(el.getAttribute("foo:bat"), "2")
+  attr_is(el.attributes[0], "1", "bar", "foo", "foo", "foo:bar")
+  attr_is(el.attributes[1], "2", "bat", "foo", "foo", "foo:bat")
+  el.toggleAttribute("foo:bar");
+  assert_true(!el.hasAttribute("foo:bar"))
+  attr_is(el.attributes[0], "2", "bat", "foo", "foo", "foo:bat")
+}, "toggleAttribute should set the attribute with the given qualified name")
+
 // setAttribute exhaustive tests
 // Step 1
 test(function() {

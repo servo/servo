@@ -8,8 +8,12 @@
 <script>
 
 indexeddb_test(
-  (t, db, txn) => {
+  (t, db, txn, rq) => {
     db.createObjectStore('s');
+
+    // Acknowledge the error, to prevent window.error from firing in
+    // browsers that implement that.
+    rq.onerror = e => { e.preventDefault(); };
 
     txn.onabort = () => {
       setTimeout(t.step_func(() => {

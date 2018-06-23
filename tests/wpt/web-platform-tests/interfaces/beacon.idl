@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Beacon" spec.
+// See: https://w3c.github.io/beacon/
+
+partial interface Navigator {
+    boolean sendBeacon(USVString url, optional BodyInit? data = null);
+};

@@ -1,75 +1,72 @@
-// Encrypted Media Extensions WebIDL
-//
-// NOTE: Please update the link below to the specification version from
-//       which this IDL was extracted.
-//
-// https://www.w3.org/TR/2016/WD-encrypted-media-20160610/
-//  + commit 5499821932391ae2c2e53756ae7ab9fae89d5863
-//
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Encrypted Media Extensions" spec.
+// See: https://w3c.github.io/encrypted-media/
 
+[Exposed=Window]
 partial interface Navigator {
-    Promise<MediaKeySystemAccess> requestMediaKeySystemAccess (DOMString keySystem, sequence<MediaKeySystemConfiguration> supportedConfigurations);
+    [SecureContext] Promise<MediaKeySystemAccess> requestMediaKeySystemAccess(DOMString keySystem,
+                                                                              sequence<MediaKeySystemConfiguration> supportedConfigurations);
 };
-
 enum MediaKeysRequirement {
     "required",
     "optional",
     "not-allowed"
 };
-
 dictionary MediaKeySystemConfiguration {
-             DOMString                               label = "";
-             sequence<DOMString>                     initDataTypes = [];
-             sequence<MediaKeySystemMediaCapability> audioCapabilities = [];
-             sequence<MediaKeySystemMediaCapability> videoCapabilities = [];
-             MediaKeysRequirement                    distinctiveIdentifier = "optional";
-             MediaKeysRequirement                    persistentState = "optional";
-             sequence<DOMString>                     sessionTypes;
+    DOMString                               label = "";
+    sequence<DOMString>                     initDataTypes = [];
+    sequence<MediaKeySystemMediaCapability> audioCapabilities = [];
+    sequence<MediaKeySystemMediaCapability> videoCapabilities = [];
+    MediaKeysRequirement                    distinctiveIdentifier = "optional";
+    MediaKeysRequirement                    persistentState = "optional";
+    sequence<DOMString>                     sessionTypes;
 };
-
 dictionary MediaKeySystemMediaCapability {
-             DOMString contentType = "";
-             DOMString robustness = "";
+    DOMString contentType = "";
+    DOMString robustness = "";
 };
-
+[Exposed=Window,
+ SecureContext]
 interface MediaKeySystemAccess {
-    readonly        attribute DOMString keySystem;
-    MediaKeySystemConfiguration getConfiguration ();
-    Promise<MediaKeys>          createMediaKeys ();
+    readonly attribute DOMString keySystem;
+    MediaKeySystemConfiguration getConfiguration();
+    Promise<MediaKeys>          createMediaKeys();
 };
-
 enum MediaKeySessionType {
     "temporary",
-    "persistent-usage-record",
     "persistent-license"
 };
-
+[Exposed=Window,
+ SecureContext]
 interface MediaKeys {
-    MediaKeySession  createSession (optional MediaKeySessionType sessionType = "temporary");
-    Promise<boolean> setServerCertificate (BufferSource serverCertificate);
+    MediaKeySession  createSession(optional MediaKeySessionType sessionType = "temporary");
+    Promise<boolean> setServerCertificate(BufferSource serverCertificate);
 };
-
+[Exposed=Window,
+ SecureContext]
 interface MediaKeySession : EventTarget {
-    readonly        attribute DOMString           sessionId;
-    readonly        attribute unrestricted double expiration;
-    readonly        attribute Promise<void>       closed;
-    readonly        attribute MediaKeyStatusMap   keyStatuses;
-                    attribute EventHandler        onkeystatuseschange;
-                    attribute EventHandler        onmessage;
-    Promise<void>    generateRequest (DOMString initDataType, BufferSource initData);
-    Promise<boolean> load (DOMString sessionId);
-    Promise<void>    update (BufferSource response);
-    Promise<void>    close ();
-    Promise<void>    remove ();
+    readonly attribute DOMString           sessionId;
+    readonly attribute unrestricted double expiration;
+    readonly attribute Promise<void>       closed;
+    readonly attribute MediaKeyStatusMap   keyStatuses;
+             attribute EventHandler        onkeystatuseschange;
+             attribute EventHandler        onmessage;
+    Promise<void>    generateRequest(DOMString initDataType,
+                                     BufferSource initData);
+    Promise<boolean> load(DOMString sessionId);
+    Promise<void>    update(BufferSource response);
+    Promise<void>    close();
+    Promise<void>    remove();
 };
-
+[Exposed=Window,
+ SecureContext]
 interface MediaKeyStatusMap {
-    iterable<BufferSource,MediaKeyStatus>;
-    readonly        attribute unsigned long size;
-    boolean has (BufferSource keyId);
-    any     get (BufferSource keyId);
+    iterable<BufferSource, MediaKeyStatus>;
+    readonly attribute unsigned long size;
+    boolean has(BufferSource keyId);
+    any     get(BufferSource keyId);
 };
-
 enum MediaKeyStatus {
     "usable",
     "expired",
@@ -79,41 +76,38 @@ enum MediaKeyStatus {
     "status-pending",
     "internal-error"
 };
-
 enum MediaKeyMessageType {
     "license-request",
     "license-renewal",
     "license-release",
     "individualization-request"
 };
-
-[Constructor(DOMString type, MediaKeyMessageEventInit eventInitDict)]
+[Exposed=Window,
+ SecureContext,
+ Constructor(DOMString type, MediaKeyMessageEventInit eventInitDict)]
 interface MediaKeyMessageEvent : Event {
-    readonly        attribute MediaKeyMessageType messageType;
-    readonly        attribute ArrayBuffer         message;
+    readonly attribute MediaKeyMessageType messageType;
+    readonly attribute ArrayBuffer         message;
 };
-
 dictionary MediaKeyMessageEventInit : EventInit {
-             required MediaKeyMessageType messageType;
-             required ArrayBuffer         message;
+    required MediaKeyMessageType messageType;
+    required ArrayBuffer         message;
 };
-
-// partial interface HTMLMediaElement : EventTarget {
+[Exposed=Window]
 partial interface HTMLMediaElement {
-    readonly        attribute MediaKeys?   mediaKeys;
-                    attribute EventHandler onencrypted;
-                    attribute EventHandler onwaitingforkey;
-    Promise<void> setMediaKeys (MediaKeys? mediaKeys);
+    [SecureContext]
+    readonly attribute MediaKeys?   mediaKeys;
+             attribute EventHandler onencrypted;
+             attribute EventHandler onwaitingforkey;
+    [SecureContext] Promise<void> setMediaKeys(MediaKeys? mediaKeys);
 };
-
-[Constructor(DOMString type, optional MediaEncryptedEventInit eventInitDict)]
+[Exposed=Window,
+ Constructor(DOMString type, optional MediaEncryptedEventInit eventInitDict)]
 interface MediaEncryptedEvent : Event {
-    readonly        attribute DOMString    initDataType;
-    readonly        attribute ArrayBuffer? initData;
+    readonly attribute DOMString    initDataType;
+    readonly attribute ArrayBuffer? initData;
 };
-
 dictionary MediaEncryptedEventInit : EventInit {
-             DOMString    initDataType = "";
-             ArrayBuffer? initData = null;
+    DOMString    initDataType = "";
+    ArrayBuffer? initData = null;
 };
-
