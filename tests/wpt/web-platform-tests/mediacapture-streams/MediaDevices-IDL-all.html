@@ -19,29 +19,20 @@
     <script>
       'use strict';
 
-      function doIdlTest([dom, idlText]) {
+      promise_test(async () => {
+        const main = await fetch('/interfaces/mediacapture-main.idl').then(r => r.text());
+        const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+        const html = await fetch('/interfaces/html.idl').then(r => r.text());
+
         var idl_array = new IdlArray();
-
-        // dummies
-        idl_array.add_untested_idls(dom, { only: ['Event', 'EventInit']});
-        idl_array.add_untested_idls("interface Navigator {};");
-        idl_array.add_untested_idls("interface EventTarget {};");
-        idl_array.add_untested_idls("interface EventHandler {};");
-
-        idl_array.add_idls(idlText);
-
-        idl_array.add_objects({"Navigator": ["navigator"]});
-        idl_array.add_objects({"MediaDevices":["navigator.mediaDevices"]});
+        idl_array.add_idls(main);
+        idl_array.add_dependency_idls(html);
+        idl_array.add_dependency_idls(dom);
+        idl_array.add_objects({
+          Navigator: ["navigator"],
+          MediaDevices: ["navigator.mediaDevices"]
+        });
         idl_array.test();
-      }
-
-      promise_test(() => {
-        return Promise.all(
-          [
-            '/interfaces/dom.idl',
-            '/interfaces/mediacapture-main.idl',
-          ].map(url => fetch(url).then(r => r.text())))
-            .then(doIdlTest);
       }, 'Test driver')
     </script>
   </body>

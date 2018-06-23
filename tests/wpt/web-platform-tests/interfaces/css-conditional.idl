@@ -1,0 +1,33 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the CSS Conditional Rules spec.
+// See https://drafts.csswg.org/css-conditional/
+
+partial interface CSSRule {
+    const unsigned short SUPPORTS_RULE = 12;
+};
+
+[Exposed=Window]
+interface CSSGroupingRule : CSSRule {
+    readonly attribute CSSRuleList cssRules;
+    unsigned long insertRule (CSSOMString rule, unsigned long index);
+    void deleteRule (unsigned long index);
+};
+
+[Exposed=Window]
+interface CSSConditionRule : CSSGroupingRule {
+    attribute CSSOMString conditionText;
+};
+
+[Exposed=Window]
+interface CSSMediaRule : CSSConditionRule {
+    [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
+};
+
+[Exposed=Window]
+interface CSSSupportsRule : CSSConditionRule {
+};
+
+partial interface CSS {
+  static boolean supports(CSSOMString property, CSSOMString value);
+  static boolean supports(CSSOMString conditionText);
+};

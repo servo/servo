@@ -31,10 +31,10 @@ for example:
 
 The test can then do different things based on the URL.
 
-There is a utility script in `/common/subset-tests.js` that works
-well together with variants, where a test that would otherwise have
-too many tests to be useful can be split up in ranges of subtests.
-For example:
+There are two utility scripts in that work well together with variants,
+`/common /subset-tests.js` and `/common/subset-tests-by- key.js`, where
+a test that would otherwise have too many tests to be useful can be
+split up in ranges of subtests. For example:
 
 ```
 <!doctype html>
@@ -56,6 +56,24 @@ For example:
 </script>
 ```
 
+With `subsetTestByKey`, the key is given as the first argument, and the
+query string can include or exclude a key (will be matched as a regular
+expression).
+
+```
+<!doctype html>
+<title>Testing variants by key</title>
+<meta name="variant" content="?include=Foo">
+<meta name="variant" content="?include=Bar">
+<meta name="variant" content="?exclude=(Foo|Bar)">
+<script src="/resources/testharness.js">
+<script src="/resources/testharnessreport.js">
+<script src="/common/subset-tests-by-key.js">
+<script>
+   subsetTestByKey("Foo", async_test, () => { ... }, "Testing foo");
+   ...
+</script>
+```
 
 ## Auto-generated test boilerplate
 

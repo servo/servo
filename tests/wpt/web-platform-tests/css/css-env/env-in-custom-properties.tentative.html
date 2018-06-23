@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="help" href="https://drafts.csswg.org/css-env-1/">
+    <title>Test env() will work in custom properties</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+      body {
+        --my-width: env(test, 100px);
+        width: var(--my-width);
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+    test(() => {
+      const style = window.getComputedStyle(document.body);
+      assert_equals(style.getPropertyValue("width"), "100px");
+    });
+    </script>
+  </body>
+</html>

@@ -9,7 +9,7 @@
         .then(j => {
           assert_header_equals(j.header, {
             "cause": undefined,
-            "destination": "\"\"",
+            "destination": "",
             "target": "subresource",
             "site": "same-origin"
           });
@@ -22,7 +22,7 @@
         .then(j => {
           assert_header_equals(j.header, {
             "cause": undefined,
-            "destination": "\"\"",
+            "destination": "",
             "target": "subresource",
             "site": "same-site"
           });
@@ -35,7 +35,7 @@
         .then(j => {
           assert_header_equals(j.header, {
             "cause": undefined,
-            "destination": "\"\"",
+            "destination": "",
             "target": "subresource",
             "site": "cross-site"
           });

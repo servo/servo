@@ -363,6 +363,31 @@ test(function () {
 
 }, 'document.createElement must report an exception thrown by a custom element constructor');
 
+test(function () {
+    var exceptionToThrow = {name: 'exception thrown by a custom constructor'};
+    class ThrowCustomBuiltinElement extends HTMLDivElement {
+        constructor()
+        {
+            super();
+            if (exceptionToThrow)
+                throw exceptionToThrow;
+        }
+    };
+    customElements.define('throw-custom-builtin-element', ThrowCustomBuiltinElement, { extends: 'div' });
+
+    assert_throws(exceptionToThrow, function () { new ThrowCustomBuiltinElement; });
+    var instance;
+    assert_reports(exceptionToThrow, function () { instance = document.createElement('div', { is: 'throw-custom-builtin-element' }); });
+    assert_equals(instance.localName, 'div');
+    assert_true(instance instanceof HTMLDivElement);
+
+    exceptionToThrow = false;
+    var instance = document.createElement('div', { is: 'throw-custom-builtin-element' });
+    assert_true(instance instanceof ThrowCustomBuiltinElement);
+    assert_equals(instance.localName, 'div');
+
+}, 'document.createElement must report an exception thrown by a custom built-in element constructor');
+
 test(() => {
   class MyElement extends HTMLDivElement {}
 

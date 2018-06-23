@@ -59,6 +59,7 @@ interface SourceBuffer : EventTarget {
              attribute EventHandler        onabort;
     void appendBuffer(BufferSource data);
     void abort();
+    void changeType(DOMString type);
     void remove(double start, unrestricted double end);
 };
 

@@ -3,7 +3,7 @@
 <title>import() inside compiled strings uses the appropriate nonce inside a module script</title>
 <link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
 
-<meta http-equiv="content-security-policy" content="script-src 'nonce-correct' 'unsafe-eval' 'unsafe-hashed-attributes' 'sha256-cAMzxBL19bKt4KwKGbxy/ZOFIIjH5AmRjlVbsD5pvNw=' 'sha256-3VjoJYNK/9HJMS8rrZHlqSZgUssDY+GPyc7AU8lNM3k='">
+<meta http-equiv="content-security-policy" content="script-src 'nonce-correct' 'unsafe-eval' 'unsafe-hashes' 'sha256-cAMzxBL19bKt4KwKGbxy/ZOFIIjH5AmRjlVbsD5pvNw=' 'sha256-3VjoJYNK/9HJMS8rrZHlqSZgUssDY+GPyc7AU8lNM3k='">
 
 <script nonce="correct" src="/resources/testharness.js"></script>
 <script nonce="correct" src="/resources/testharnessreport.js"></script>
@@ -73,7 +73,7 @@ promise_test(t => {
 
   const promise = createTestPromise(t);
 
-  // This only works because of the 'unsafe-hashed-attributes' and the hash in the CSP policy
+  // This only works because of the 'unsafe-hashes' and the hash in the CSP policy
   dummyDiv.setAttribute(
     "onclick",
     `import('../imports-a.js?label=reflected inline event handlers').then(window.continueTest, window.errorTest)`
@@ -90,7 +90,7 @@ promise_test(t => {
 
   const promise = createTestPromise(t);
 
-  // This only works because of the 'unsafe-hashed-attributes' and the hash in the CSP policy
+  // This only works because of the 'unsafe-hashes' and the hash in the CSP policy
   dummyDiv.setAttribute(
     "onclick",
     `import('../imports-a.js?label=inline event handlers triggered via UA code').then(window.continueTest, window.errorTest)`

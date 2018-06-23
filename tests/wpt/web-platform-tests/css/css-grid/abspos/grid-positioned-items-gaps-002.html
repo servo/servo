@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Grid positioned items percentage and calc() gaps</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#gutters">
+<meta name="assert" content="This test checks the behavior of the positioned items in a grid container with percentage and calc() gaps.">
+<link rel="stylesheet" href="support/grid.css">
+<style>
+
+.grid {
+  grid-template-columns: 100px 100px 100px 100px;
+  grid-template-rows: 50px 50px 50px 50px;
+  width: 800px;
+  height: 600px;
+  border: 5px solid black;
+  margin: 30px;
+  padding: 15px;
+  /* Ensures that the grid container is the containing block of the absolutely positioned grid children. */
+  position: relative;
+}
+
+.grid > div {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: lime;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<div class="grid" style="gap: 10%;">
+  <div style="grid-column: 2 / 4; grid-row: 2 / 4;"
+    data-offset-x="195" data-offset-y="125" data-expected-width="280" data-expected-height="160">
+  </div>
+</div>
+
+<div class="grid" style="gap: calc(10% + 25px);">
+  <div style="grid-column: 2 / 4; grid-row: 2 / 4;"
+    data-offset-x="220" data-offset-y="150" data-expected-width="305" data-expected-height="185">
+  </div>
+</div>
+
+</body>

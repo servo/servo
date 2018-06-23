@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Compositing and Blending Level 1: parsing background-blend-mode with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/compositing-1/#propdef-background-blend-mode">
+<meta name="assert" content="background-blend-mode supports the full grammar '<blend-mode>#'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("background-blend-mode", "normal");
+test_valid_value("background-blend-mode", "multiply");
+test_valid_value("background-blend-mode", "screen");
+test_valid_value("background-blend-mode", "overlay");
+test_valid_value("background-blend-mode", "darken");
+test_valid_value("background-blend-mode", "lighten");
+test_valid_value("background-blend-mode", "color-dodge");
+test_valid_value("background-blend-mode", "color-burn");
+test_valid_value("background-blend-mode", "hard-light");
+test_valid_value("background-blend-mode", "soft-light");
+test_valid_value("background-blend-mode", "difference");
+test_valid_value("background-blend-mode", "exclusion");
+test_valid_value("background-blend-mode", "hue");
+test_valid_value("background-blend-mode", "saturation");
+test_valid_value("background-blend-mode", "color");
+test_valid_value("background-blend-mode", "luminosity");
+
+test_valid_value("background-blend-mode", "normal, luminosity");
+</script>
+</body>
+</html>

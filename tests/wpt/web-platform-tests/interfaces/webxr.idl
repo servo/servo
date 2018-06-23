@@ -47,9 +47,9 @@ dictionary XRSessionCreationOptions {
   attribute EventHandler onend;
 };
 
-callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRPresentationFrame frame);
+callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
 
-[SecureContext, Exposed=Window] interface XRPresentationFrame {
+[SecureContext, Exposed=Window] interface XRFrame {
   readonly attribute FrozenArray<XRView> views;
 
   XRDevicePose? getDevicePose(XRCoordinateSystem coordinateSystem);

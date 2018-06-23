@@ -38,7 +38,7 @@ bytes writing/reading.
 """
 
 
-import Queue
+from six.moves import queue
 import threading
 
 
@@ -124,7 +124,7 @@ class MessageReceiver(threading.Thread):
 
         threading.Thread.__init__(self)
         self._request = request
-        self._queue = Queue.Queue()
+        self._queue = queue.Queue()
         self._onmessage = onmessage
         self._stop_requested = False
         self.setDaemon(True)
@@ -157,7 +157,7 @@ class MessageReceiver(threading.Thread):
         """
         try:
             message = self._queue.get_nowait()
-        except Queue.Empty:
+        except queue.Empty:
             message = None
         return message
 
@@ -190,7 +190,7 @@ class MessageSender(threading.Thread):
         """
         threading.Thread.__init__(self)
         self._request = request
-        self._queue = Queue.Queue()
+        self._queue = queue.Queue()
         self.setDaemon(True)
         self.start()
 

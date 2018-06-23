@@ -1,0 +1,18 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="{{GET[csp]}}">
+</head>
+
+<body>
+  <script nonce='abc'>
+    window.addEventListener('securitypolicyviolation', function(e) {
+      opener.postMessage('fail', '*');
+    });
+
+    window.location.href = "{{GET[url]}}";
+  </script>
+</body>
+
+</html>

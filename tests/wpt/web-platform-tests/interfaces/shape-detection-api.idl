@@ -1,0 +1,67 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Accelerated Shape Detection in Images" spec.
+// See: https://wicg.github.io/shape-detection-api/
+
+[Exposed=(Window,Worker),
+ Constructor(optional FaceDetectorOptions faceDetectorOptions)]
+interface FaceDetector {
+  Promise<sequence<DetectedFace>> detect(ImageBitmapSource image);
+};
+
+dictionary FaceDetectorOptions {
+  unsigned short maxDetectedFaces;
+  boolean fastMode;
+};
+
+interface DetectedFace {
+  [SameObject] readonly attribute DOMRectReadOnly boundingBox;
+  [SameObject] readonly attribute FrozenArray<Landmark>? landmarks;
+};
+
+dictionary Landmark {
+  required FrozenArray<Point2D> locations;
+  LandmarkType type;
+};
+
+enum LandmarkType {
+  "mouth",
+  "eye",
+  "nose"
+};
+
+[Exposed=(Window,Worker),
+ Constructor(optional BarcodeDetectorOptions barcodeDetectorOptions)]
+interface BarcodeDetector {
+  readonly attribute FrozenArray<BarcodeFormat> supportedFormats;
+
+  Promise<sequence<DetectedBarcode>> detect(ImageBitmapSource image);
+};
+
+dictionary BarcodeDetectorOptions {
+  sequence<BarcodeFormat> formats;
+};
+
+interface DetectedBarcode {
+  [SameObject] readonly attribute DOMRectReadOnly boundingBox;
+  [SameObject] readonly attribute DOMString rawValue;
+  [SameObject] readonly attribute BarcodeFormat format;
+  [SameObject] readonly attribute FrozenArray<Point2D> cornerPoints;
+};
+
+enum BarcodeFormat {
+  "aztec",
+  "code_128",
+  "code_39",
+  "code_93",
+  "codabar",
+  "data_matrix",
+  "ean_13",
+  "ean_8",
+  "itf",
+  "pdf417",
+  "qr_code",
+  "unknown",
+  "upc_a",
+  "upc_e"
+};

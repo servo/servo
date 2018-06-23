@@ -213,12 +213,9 @@ policies and contribution forms [3].
     }
 
     WindowTestEnvironment.prototype.next_default_test_name = function() {
-        //Don't use document.title to work around an Opera bug in XHTML documents
-        var title = document.getElementsByTagName("title")[0];
-        var prefix = (title && title.firstChild && title.firstChild.data) || "Untitled";
         var suffix = this.name_counter > 0 ? " " + this.name_counter : "";
         this.name_counter++;
-        return prefix + suffix;
+        return get_title() + suffix;
     };
 
     WindowTestEnvironment.prototype.on_new_harness_properties = function(properties) {
@@ -288,7 +285,7 @@ policies and contribution forms [3].
     WorkerTestEnvironment.prototype.next_default_test_name = function() {
         var suffix = this.name_counter > 0 ? " " + this.name_counter : "";
         this.name_counter++;
-        return "Untitled" + suffix;
+        return get_title() + suffix;
     };
 
     WorkerTestEnvironment.prototype.on_new_harness_properties = function() {};
@@ -2915,6 +2912,25 @@ policies and contribution forms [3].
             }
         }
         return undefined;
+    }
+
+    /** Returns the <title> or filename or "Untitled" */
+    function get_title()
+    {
+        if ('document' in global_scope) {
+            //Don't use document.title to work around an Opera bug in XHTML documents
+            var title = document.getElementsByTagName("title")[0];
+            if (title && title.firstChild && title.firstChild.data) {
+                return title.firstChild.data;
+            }
+        }
+        if ('META_TITLE' in global_scope && META_TITLE) {
+            return META_TITLE;
+        }
+        if ('location' in global_scope) {
+            return location.pathname.substring(location.pathname.lastIndexOf('/') + 1, location.pathname.indexOf('.'));
+        }
+        return "Untitled";
     }
 
     function supports_post_message(w)
