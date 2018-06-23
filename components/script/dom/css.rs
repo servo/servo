@@ -42,7 +42,8 @@ impl CSS {
             &url,
             Some(CssRuleType::Style),
             ParsingMode::DEFAULT,
-            QuirksMode::NoQuirks
+            QuirksMode::NoQuirks,
+            None,
         );
         decl.eval(&context)
     }
@@ -58,7 +59,8 @@ impl CSS {
                 &url,
                 Some(CssRuleType::Style),
                 ParsingMode::DEFAULT,
-                QuirksMode::NoQuirks
+                QuirksMode::NoQuirks,
+                None,
             );
             cond.eval(&context)
         } else {

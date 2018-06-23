@@ -38,6 +38,10 @@ def to_rust_ident(name):
     return name
 
 
+def to_snake_case(ident):
+    return re.sub("([A-Z]+)", lambda m: "_" + m.group(1).lower(), ident).strip("_")
+
+
 def to_camel_case(ident):
     return re.sub("(^|_|-)([a-z0-9])", lambda m: m.group(2).upper(), ident.strip("_").strip("-"))
 
@@ -451,7 +455,7 @@ class StyleStruct(object):
     def __init__(self, name, inherited, gecko_name=None, additional_methods=None):
         self.gecko_struct_name = "Gecko" + name
         self.name = name
-        self.name_lower = name.lower()
+        self.name_lower = to_snake_case(name)
         self.ident = to_rust_ident(self.name_lower)
         self.longhands = []
         self.inherited = inherited

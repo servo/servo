@@ -19,6 +19,34 @@ import data
 
 RE_PYTHON_ADDR = re.compile(r'<.+? object at 0x[0-9a-fA-F]+>')
 
+OUT_DIR = os.environ.get("OUT_DIR", "")
+
+STYLE_STRUCT_LIST = [
+    "background",
+    "border",
+    "box",
+    "color",
+    "column",
+    "counters",
+    "effects",
+    "font",
+    "inherited_box",
+    "inherited_table",
+    "inherited_text",
+    "inherited_ui",
+    "inherited_svg",
+    "list",
+    "margin",
+    "outline",
+    "padding",
+    "position",
+    "table",
+    "text",
+    "ui",
+    "svg",
+    "xul",
+]
+
 
 def main():
     usage = "Usage: %s [ servo | gecko ] [ style-crate | geckolib <template> | html ]" % sys.argv[0]
@@ -31,14 +59,41 @@ def main():
         abort(usage)
 
     properties = data.PropertiesData(product=product)
-    template = os.path.join(BASE, "properties.mako.rs")
-    rust = render(template, product=product, data=properties, __file__=template)
+    files = {}
+    for kind in ["longhands", "shorthands"]:
+        files[kind] = {}
+        for struct in STYLE_STRUCT_LIST:
+            file_name = os.path.join(BASE, kind, "{}.mako.rs".format(struct))
+            if kind == "shorthands" and not os.path.exists(file_name):
+                files[kind][struct] = ""
+                continue
+            files[kind][struct] = render(
+                file_name,
+                product=product,
+                data=properties,
+            )
+    properties_template = os.path.join(BASE, "properties.mako.rs")
+    files["properties"] = render(
+        properties_template,
+        product=product,
+        data=properties,
+        __file__=properties_template,
+        OUT_DIR=OUT_DIR,
+    )
     if output == "style-crate":
-        write(os.environ["OUT_DIR"], "properties.rs", rust)
+        write(OUT_DIR, "properties.rs", files["properties"])
+        for kind in ["longhands", "shorthands"]:
+            for struct in files[kind]:
+                write(
+                    os.path.join(OUT_DIR, kind),
+                    "{}.rs".format(struct),
+                    files[kind][struct],
+                )
+
         if product == "gecko":
             template = os.path.join(BASE, "gecko.mako.rs")
             rust = render(template, data=properties)
-            write(os.environ["OUT_DIR"], "gecko_properties.rs", rust)
+            write(OUT_DIR, "gecko_properties.rs", rust)
     elif output == "geckolib":
         if len(sys.argv) < 4:
             abort(usage)

@@ -107,7 +107,7 @@ impl TextDecorationsInEffect {
         let mut result = match style.get_box().clone_display() {
             Display::InlineBlock | Display::InlineTable => Self::default(),
             _ => style
-                .get_parent_inheritedtext()
+                .get_parent_inherited_text()
                 .text_decorations_in_effect
                 .clone(),
         };

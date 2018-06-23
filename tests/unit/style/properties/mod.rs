@@ -3,34 +3,32 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{Parser, ParserInput};
-use media_queries::CSSErrorReporterTest;
 use style::context::QuirksMode;
-use style::parser::{ParserContext, ParserErrorContext};
+use style::parser::ParserContext;
 use style::stylesheets::{CssRuleType, Origin};
 use style_traits::{ParsingMode, ParseError};
 
 fn parse<T, F>(f: F, s: &'static str) -> Result<T, ParseError<'static>>
-    where F: for<'t> Fn(&ParserContext,
-                        &ParserErrorContext<CSSErrorReporterTest>,
-                        &mut Parser<'static, 't>) -> Result<T, ParseError<'static>>
+where
+    F: for<'t> Fn(
+        &ParserContext,
+        &mut Parser<'static, 't>,
+    ) -> Result<T, ParseError<'static>>
 {
     let mut input = ParserInput::new(s);
     parse_input(f, &mut input)
 }
 
 fn parse_input<'i: 't, 't, T, F>(f: F, input: &'t mut ParserInput<'i>) -> Result<T, ParseError<'i>>
-    where F: Fn(&ParserContext,
-                &ParserErrorContext<CSSErrorReporterTest>,
-                &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>
+where
+    F: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
 {
     let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Style),
                                      ParsingMode::DEFAULT,
-                                     QuirksMode::NoQuirks);
-    let reporter = CSSErrorReporterTest;
-    let error_context = ParserErrorContext { error_reporter: &reporter };
+                                     QuirksMode::NoQuirks, None);
     let mut parser = Parser::new(input);
-    f(&context, &error_context, &mut parser)
+    f(&context, &mut parser)
 }
 
 macro_rules! assert_roundtrip_with_context {
@@ -38,7 +36,7 @@ macro_rules! assert_roundtrip_with_context {
         assert_roundtrip_with_context!($fun, $string, $string);
     };
     ($fun:expr, $input:expr, $output:expr) => {{
-        let serialized = parse(|context, _, i| {
+        let serialized = parse(|context, i| {
             let parsed = $fun(context, i)
                          .expect(&format!("Failed to parse {}", $input));
             let serialized = ToCss::to_css_string(&parsed);
@@ -47,7 +45,7 @@ macro_rules! assert_roundtrip_with_context {
         }, $input).unwrap();
 
         let mut input = ::cssparser::ParserInput::new(&serialized);
-        let unwrapped = parse_input(|context, _, i| {
+        let unwrapped = parse_input(|context, i| {
             let re_parsed = $fun(context, i)
                             .expect(&format!("Failed to parse serialization {}", $input));
             let re_serialized = ToCss::to_css_string(&re_parsed);
@@ -58,6 +56,5 @@ macro_rules! assert_roundtrip_with_context {
     }}
 }
 
-mod background;
 mod scaffolding;
 mod serialization;

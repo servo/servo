@@ -10,8 +10,8 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{CowRcStr, SourceLocation};
 #[cfg(feature = "gecko")]
 use cssparser::UnicodeRange;
-use error_reporting::{ContextualParseError, ParseErrorReporter};
-use parser::{Parse, ParserContext, ParserErrorContext};
+use error_reporting::ContextualParseError;
+use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use properties::longhands::font_language_override;
 use selectors::parser::SelectorParseErrorKind;
@@ -186,15 +186,11 @@ impl ToCss for FontStyle {
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
-pub fn parse_font_face_block<R>(
+pub fn parse_font_face_block(
     context: &ParserContext,
-    error_context: &ParserErrorContext<R>,
     input: &mut Parser,
     location: SourceLocation,
-) -> FontFaceRuleData
-where
-    R: ParseErrorReporter,
-{
+) -> FontFaceRuleData {
     let mut rule = FontFaceRuleData::empty(location);
     {
         let parser = FontFaceRuleParser {
@@ -206,7 +202,7 @@ where
             if let Err((error, slice)) = declaration {
                 let location = error.location;
                 let error = ContextualParseError::UnsupportedFontFaceDescriptor(slice, error);
-                context.log_css_error(error_context, location, error)
+                context.log_css_error(location, error)
             }
         }
     }

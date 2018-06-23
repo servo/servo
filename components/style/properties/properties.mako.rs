@@ -97,29 +97,9 @@ macro_rules! expanded {
 /// A module with all the code for longhand properties.
 #[allow(missing_docs)]
 pub mod longhands {
-    <%include file="/longhand/background.mako.rs" />
-    <%include file="/longhand/border.mako.rs" />
-    <%include file="/longhand/box.mako.rs" />
-    <%include file="/longhand/color.mako.rs" />
-    <%include file="/longhand/column.mako.rs" />
-    <%include file="/longhand/counters.mako.rs" />
-    <%include file="/longhand/effects.mako.rs" />
-    <%include file="/longhand/font.mako.rs" />
-    <%include file="/longhand/inherited_box.mako.rs" />
-    <%include file="/longhand/inherited_table.mako.rs" />
-    <%include file="/longhand/inherited_text.mako.rs" />
-    <%include file="/longhand/inherited_ui.mako.rs" />
-    <%include file="/longhand/list.mako.rs" />
-    <%include file="/longhand/margin.mako.rs" />
-    <%include file="/longhand/outline.mako.rs" />
-    <%include file="/longhand/padding.mako.rs" />
-    <%include file="/longhand/position.mako.rs" />
-    <%include file="/longhand/table.mako.rs" />
-    <%include file="/longhand/text.mako.rs" />
-    <%include file="/longhand/ui.mako.rs" />
-    <%include file="/longhand/inherited_svg.mako.rs" />
-    <%include file="/longhand/svg.mako.rs" />
-    <%include file="/longhand/xul.mako.rs" />
+    % for style_struct in data.style_structs:
+    include!("${repr(os.path.join(OUT_DIR, 'longhands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
+    % endfor
 }
 
 macro_rules! unwrap_or_initial {
@@ -137,23 +117,37 @@ pub mod shorthands {
     use style_traits::{ParseError, StyleParseErrorKind};
     use values::specified;
 
-    <%include file="/shorthand/serialize.mako.rs" />
-    <%include file="/shorthand/background.mako.rs" />
-    <%include file="/shorthand/border.mako.rs" />
-    <%include file="/shorthand/box.mako.rs" />
-    <%include file="/shorthand/column.mako.rs" />
-    <%include file="/shorthand/font.mako.rs" />
-    <%include file="/shorthand/inherited_text.mako.rs" />
-    <%include file="/shorthand/list.mako.rs" />
-    <%include file="/shorthand/margin.mako.rs" />
-    <%include file="/shorthand/mask.mako.rs" />
-    <%include file="/shorthand/outline.mako.rs" />
-    <%include file="/shorthand/padding.mako.rs" />
-    <%include file="/shorthand/position.mako.rs" />
-    <%include file="/shorthand/inherited_svg.mako.rs" />
-    <%include file="/shorthand/text.mako.rs" />
+    use style_traits::{CssWriter, ToCss};
+    use values::specified::{BorderStyle, Color};
+    use std::fmt::{self, Write};
 
-    // We don't defined the 'all' shorthand using the regular helpers:shorthand
+    fn serialize_directional_border<W, I,>(
+        dest: &mut CssWriter<W>,
+        width: &I,
+        style: &BorderStyle,
+        color: &Color,
+    ) -> fmt::Result
+    where
+        W: Write,
+        I: ToCss,
+    {
+        width.to_css(dest)?;
+        // FIXME(emilio): Should we really serialize the border style if it's
+        // `solid`?
+        dest.write_str(" ")?;
+        style.to_css(dest)?;
+        if *color != Color::CurrentColor {
+            dest.write_str(" ")?;
+            color.to_css(dest)?;
+        }
+        Ok(())
+    }
+
+    % for style_struct in data.style_structs:
+    include!("${repr(os.path.join(OUT_DIR, 'shorthands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
+    % endfor
+
+    // We didn't define the 'all' shorthand using the regular helpers:shorthand
     // mechanism, since it causes some very large types to be generated.
     //
     // Also, make sure logical properties appear before its physical
@@ -1448,6 +1442,7 @@ impl UnparsedValue {
                 None,
                 ParsingMode::DEFAULT,
                 quirks_mode,
+                None,
             );
 
             let mut input = ParserInput::new(&css);
@@ -3852,7 +3847,7 @@ where
         }
         % if category_to_cascade_now == "early":
             let writing_mode =
-                WritingMode::new(context.builder.get_inheritedbox());
+                WritingMode::new(context.builder.get_inherited_box());
             context.builder.writing_mode = writing_mode;
 
             let mut _skip_font_family = false;

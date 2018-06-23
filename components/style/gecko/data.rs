@@ -18,12 +18,23 @@ use properties::ComputedValues;
 use selector_parser::SnapshotMap;
 use servo_arc::Arc;
 use shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
+use std::fmt;
 use stylesheets::{CssRule, Origin, StylesheetContents, StylesheetInDocument};
 use stylist::Stylist;
 
 /// Little wrapper to a Gecko style sheet.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub struct GeckoStyleSheet(*const DomStyleSheet);
+
+impl fmt::Debug for GeckoStyleSheet {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let contents = self.contents();
+        formatter.debug_struct("GeckoStyleSheet")
+            .field("origin", &contents.origin)
+            .field("url_data", &*contents.url_data.read())
+            .finish()
+    }
+}
 
 impl ToMediaListKey for ::gecko::data::GeckoStyleSheet {
     fn to_media_list_key(&self) -> MediaListKey {

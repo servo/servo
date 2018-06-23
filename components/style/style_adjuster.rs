@@ -19,6 +19,14 @@ use properties::longhands::position::computed_value::T as Position;
 /// NOTE(emilio): If new adjustments are introduced that depend on reset
 /// properties of the parent, you may need tweaking the
 /// `ChildCascadeRequirement` code in `matching.rs`.
+///
+/// NOTE(emilio): Also, if new adjustments are introduced that break the
+/// following invariant:
+///
+///   Given same tag name, namespace, rules and parent style, two elements would
+///   end up with exactly the same style.
+///
+/// Then you need to adjust the lookup_by_rules conditions in the sharing cache.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
 }
@@ -248,8 +256,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use computed_values::text_combine_upright::T as TextCombineUpright;
         use computed_values::writing_mode::T as WritingMode;
 
-        let writing_mode = self.style.get_inheritedbox().clone_writing_mode();
-        let text_combine_upright = self.style.get_inheritedtext().clone_text_combine_upright();
+        let writing_mode = self.style.get_inherited_box().clone_writing_mode();
+        let text_combine_upright = self.style.get_inherited_text().clone_text_combine_upright();
 
         if writing_mode != WritingMode::HorizontalTb &&
             text_combine_upright == TextCombineUpright::All
@@ -258,7 +266,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 .flags
                 .insert(ComputedValueFlags::IS_TEXT_COMBINED);
             self.style
-                .mutate_inheritedbox()
+                .mutate_inherited_box()
                 .set_writing_mode(WritingMode::HorizontalTb);
         }
     }
@@ -297,8 +305,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// <https://lists.w3.org/Archives/Public/www-style/2017Mar/0045.html>
     /// <https://github.com/servo/servo/issues/15754>
     fn adjust_for_writing_mode(&mut self, layout_parent_style: &ComputedValues) {
-        let our_writing_mode = self.style.get_inheritedbox().clone_writing_mode();
-        let parent_writing_mode = layout_parent_style.get_inheritedbox().clone_writing_mode();
+        let our_writing_mode = self.style.get_inherited_box().clone_writing_mode();
+        let parent_writing_mode = layout_parent_style.get_inherited_box().clone_writing_mode();
 
         if our_writing_mode != parent_writing_mode &&
             self.style.get_box().clone_display() == Display::Inline
@@ -488,13 +496,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             return;
         }
 
-        match self.style.get_inheritedtext().clone_text_align() {
+        match self.style.get_inherited_text().clone_text_align() {
             TextAlign::MozLeft | TextAlign::MozCenter | TextAlign::MozRight => {},
             _ => return,
         }
 
         self.style
-            .mutate_inheritedtext()
+            .mutate_inherited_text()
             .set_text_align(TextAlign::Start)
     }
 
@@ -508,8 +516,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         use values::computed::text::TextDecorationsInEffect;
 
         let decorations_in_effect = TextDecorationsInEffect::from_style(&self.style);
-        if self.style.get_inheritedtext().text_decorations_in_effect != decorations_in_effect {
-            self.style.mutate_inheritedtext().text_decorations_in_effect = decorations_in_effect;
+        if self.style.get_inherited_text().text_decorations_in_effect != decorations_in_effect {
+            self.style.mutate_inherited_text().text_decorations_in_effect = decorations_in_effect;
         }
     }
 

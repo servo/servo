@@ -979,7 +979,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             //
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
-            !self.style(context).get_inheritedtext().white_space.preserve_newlines()
+            !self.style(context).get_inherited_text().white_space.preserve_newlines()
         }
     }
 

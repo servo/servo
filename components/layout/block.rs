@@ -1417,7 +1417,7 @@ impl BlockFlow {
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //
             // TODO(#2265, pcwalton): Do this in the cascade instead.
-            let containing_block_text_align = self.fragment.style().get_inheritedtext().text_align;
+            let containing_block_text_align = self.fragment.style().get_inherited_text().text_align;
             kid.mut_base().flags.set_text_align(containing_block_text_align);
 
             // Handle `text-indent` on behalf of any inline children that we have. This is
@@ -1425,7 +1425,7 @@ impl BlockFlow {
             // we know.
             if kid.is_inline_flow() {
                 kid.as_mut_inline().first_line_indentation =
-                    self.fragment.style().get_inheritedtext().text_indent
+                    self.fragment.style().get_inherited_text().text_indent
                         .to_used_value(containing_block_size);
             }
         }
@@ -2340,7 +2340,7 @@ pub trait ISizeAndMarginsComputer {
                                                         containing_block_inline_size),
                                   MaybeAuto::from_style(position.inline_end,
                                                         containing_block_inline_size),
-                                  style.get_inheritedtext().text_align,
+                                  style.get_inherited_text().text_align,
                                   available_inline_size)
     }
 

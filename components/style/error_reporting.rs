@@ -7,7 +7,6 @@
 #![deny(missing_docs)]
 
 use cssparser::{BasicParseErrorKind, ParseErrorKind, SourceLocation, Token};
-use log;
 use std::fmt;
 use style_traits::ParseError;
 use stylesheets::UrlExtraData;
@@ -229,8 +228,10 @@ pub trait ParseErrorReporter {
 /// This logging is silent by default, and can be enabled with a `RUST_LOG=style=info`
 /// environment variable.
 /// (See [`env_logger`](https://rust-lang-nursery.github.io/log/env_logger/).)
+#[cfg(feature = "servo")]
 pub struct RustLogReporter;
 
+#[cfg(feature = "servo")]
 impl ParseErrorReporter for RustLogReporter {
     fn report_error(
         &self,
@@ -238,6 +239,7 @@ impl ParseErrorReporter for RustLogReporter {
         location: SourceLocation,
         error: ContextualParseError,
     ) {
+        use log;
         if log_enabled!(log::Level::Info) {
             info!(
                 "Url:\t{}\n{}:{} {}",
@@ -247,19 +249,5 @@ impl ParseErrorReporter for RustLogReporter {
                 error
             )
         }
-    }
-}
-
-/// Error reporter which silently forgets errors
-pub struct NullReporter;
-
-impl ParseErrorReporter for NullReporter {
-    fn report_error(
-        &self,
-        _url: &UrlExtraData,
-        _location: SourceLocation,
-        _error: ContextualParseError,
-    ) {
-        // do nothing
     }
 }

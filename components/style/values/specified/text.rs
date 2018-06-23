@@ -514,7 +514,7 @@ impl ToComputedValue for TextAlign {
                 }
                 let parent = _context
                     .builder
-                    .get_parent_inheritedtext()
+                    .get_parent_inherited_text()
                     .clone_text_align();
                 let ltr = _context.builder.inherited_writing_mode().is_bidi_ltr();
                 match (parent, ltr) {
@@ -529,7 +529,7 @@ impl ToComputedValue for TextAlign {
             TextAlign::MozCenterOrInherit => {
                 let parent = _context
                     .builder
-                    .get_parent_inheritedtext()
+                    .get_parent_inherited_text()
                     .clone_text_align();
                 if parent == TextAlignKeyword::Start {
                     TextAlignKeyword::Center
@@ -653,7 +653,7 @@ impl ToComputedValue for TextEmphasisStyle {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         match *self {
             TextEmphasisStyle::Keyword(ref keyword) => {
-                let default_shape = if context.style().get_inheritedbox().clone_writing_mode() ==
+                let default_shape = if context.style().get_inherited_box().clone_writing_mode() ==
                     SpecifiedWritingMode::HorizontalTb
                 {
                     TextEmphasisShapeKeyword::Circle

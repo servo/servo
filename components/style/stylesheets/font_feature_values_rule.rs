@@ -10,12 +10,12 @@ use Atom;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, Parser};
 use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, Token};
-use error_reporting::{ContextualParseError, ParseErrorReporter};
+use error_reporting::ContextualParseError;
 #[cfg(feature = "gecko")]
 use gecko_bindings::bindings::Gecko_AppendFeatureValueHashEntry;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::{self, gfxFontFeatureValueSet, nsTArray};
-use parser::{Parse, ParserContext, ParserErrorContext};
+use parser::{Parse, ParserContext};
 use shared_lock::{SharedRwLockReadGuard, ToCssWithGuard};
 use std::fmt::{self, Write};
 use str::CssStringWriter;
@@ -267,27 +267,24 @@ macro_rules! font_feature_values_blocks {
             }
 
             /// Parses a `FontFeatureValuesRule`.
-            pub fn parse<R>(context: &ParserContext,
-                            error_context: &ParserErrorContext<R>,
-                            input: &mut Parser,
-                            family_names: Vec<FamilyName>,
-                            location: SourceLocation)
-                            -> FontFeatureValuesRule
-                where R: ParseErrorReporter
-            {
+            pub fn parse(
+                context: &ParserContext,
+                input: &mut Parser,
+                family_names: Vec<FamilyName>,
+                location: SourceLocation,
+            ) -> Self {
                 let mut rule = FontFeatureValuesRule::new(family_names, location);
 
                 {
                     let mut iter = RuleListParser::new_for_nested_rule(input, FontFeatureValuesRuleParser {
                         context: context,
-                        error_context: error_context,
                         rule: &mut rule,
                     });
                     while let Some(result) = iter.next() {
                         if let Err((error, slice)) = result {
                             let location = error.location;
                             let error = ContextualParseError::UnsupportedRule(slice, error);
-                            context.log_css_error(error_context, location, error);
+                            context.log_css_error(location, error);
                         }
                     }
                 }
@@ -398,20 +395,19 @@ macro_rules! font_feature_values_blocks {
         /// }
         /// <feature-type> = @stylistic | @historical-forms | @styleset |
         /// @character-variant | @swash | @ornaments | @annotation
-        struct FontFeatureValuesRuleParser<'a, R: 'a> {
+        struct FontFeatureValuesRuleParser<'a> {
             context: &'a ParserContext<'a>,
-            error_context: &'a ParserErrorContext<'a, R>,
             rule: &'a mut FontFeatureValuesRule,
         }
 
         /// Default methods reject all qualified rules.
-        impl<'a, 'i, R: ParseErrorReporter> QualifiedRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
+        impl<'a, 'i> QualifiedRuleParser<'i> for FontFeatureValuesRuleParser<'a> {
             type Prelude = ();
             type QualifiedRule = ();
             type Error = StyleParseErrorKind<'i>;
         }
 
-        impl<'a, 'i, R: ParseErrorReporter> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a, R> {
+        impl<'a, 'i> AtRuleParser<'i> for FontFeatureValuesRuleParser<'a> {
             type PreludeNoBlock = ();
             type PreludeBlock = BlockType;
             type AtRule = ();
@@ -450,7 +446,7 @@ macro_rules! font_feature_values_blocks {
                                     let error = ContextualParseError::UnsupportedKeyframePropertyDeclaration(
                                         slice, error
                                     );
-                                    self.context.log_css_error(self.error_context, location, error);
+                                    self.context.log_css_error(location, error);
                                 }
                             }
                         },

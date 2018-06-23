@@ -6,7 +6,7 @@
 
 use cssparser::Parser;
 use gecko_bindings::bindings;
-use gecko_bindings::structs::{ServoBundledURI, URLExtraData};
+use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::mozilla::css::URLValueData;
 use gecko_bindings::structs::root::{RustString, nsStyleImageRequest};
 use gecko_bindings::structs::root::mozilla::css::{ImageValue, URLValue};
@@ -18,6 +18,7 @@ use servo_arc::{Arc, RawOffsetArc};
 use std::fmt::{self, Write};
 use std::mem;
 use style_traits::{CssWriter, ParseError, ToCss};
+use stylesheets::UrlExtraData;
 use values::computed::{Context, ToComputedValue};
 
 /// A CSS url() value for gecko.
@@ -32,7 +33,7 @@ pub struct CssUrl {
 
     /// The URL extra data.
     #[css(skip)]
-    pub extra_data: RefPtr<URLExtraData>,
+    pub extra_data: UrlExtraData,
 }
 
 impl CssUrl {
@@ -58,7 +59,7 @@ impl CssUrl {
             &url.mString as *const _ as *const RawOffsetArc<String>;
         CssUrl {
             serialization: Arc::from_raw_offset((*arc_type).clone()),
-            extra_data: url.mExtraData.to_safe(),
+            extra_data: UrlExtraData(url.mExtraData.to_safe()),
         }
     }
 
@@ -88,7 +89,7 @@ impl CssUrl {
         let arc_offset = Arc::into_raw_offset(self.serialization.clone());
         ServoBundledURI {
             mURLString: unsafe { mem::transmute::<_, RawOffsetArc<RustString>>(arc_offset) },
-            mExtraData: self.extra_data.get(),
+            mExtraData: self.extra_data.0.get(),
         }
     }
 }

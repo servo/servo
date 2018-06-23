@@ -277,6 +277,7 @@ impl HTMLLinkElement {
         let mut input = ParserInput::new(&mq_str);
         let mut css_parser = CssParser::new(&mut input);
         let doc_url = document.url();
+        let window = document.window();
         // FIXME(emilio): This looks somewhat fishy, since we use the context
         // only to parse the media query list, CssRuleType::Media doesn't make
         // much sense.
@@ -285,13 +286,9 @@ impl HTMLLinkElement {
             Some(CssRuleType::Media),
             ParsingMode::DEFAULT,
             document.quirks_mode(),
-        );
-        let window = document.window();
-        let media = MediaList::parse(
-            &context,
-            &mut css_parser,
             window.css_error_reporter(),
         );
+        let media = MediaList::parse(&context, &mut css_parser);
 
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.r().map(|a| a.value());

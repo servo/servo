@@ -24,7 +24,7 @@ use values::computed::font::FontSize;
 /// is displayed in.
 ///
 /// This is the struct against which media queries are evaluated.
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub struct Device {
     /// The current media type used by de device.
     media_type: MediaType,

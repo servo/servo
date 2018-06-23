@@ -36,12 +36,6 @@ pub fn assert_parsing_mode_match() {
     }
 }
 
-/// The context required to report a parse error.
-pub struct ParserErrorContext<'a, R: 'a> {
-    /// An error reporter to report syntax errors.
-    pub error_reporter: &'a R,
-}
-
 /// The data that the parser needs from outside in order to parse a stylesheet.
 pub struct ParserContext<'a> {
     /// The `Origin` of the stylesheet, whether it's a user, author or
@@ -55,6 +49,8 @@ pub struct ParserContext<'a> {
     pub parsing_mode: ParsingMode,
     /// The quirks mode of this stylesheet.
     pub quirks_mode: QuirksMode,
+    /// The active error reporter, or none if error reporting is disabled.
+    error_reporter: Option<&'a ParseErrorReporter>,
     /// The currently active namespaces.
     pub namespaces: Option<&'a Namespaces>,
 }
@@ -68,6 +64,7 @@ impl<'a> ParserContext<'a> {
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
+        error_reporter: Option<&'a ParseErrorReporter>,
     ) -> Self {
         ParserContext {
             stylesheet_origin,
@@ -75,6 +72,7 @@ impl<'a> ParserContext<'a> {
             rule_type,
             parsing_mode,
             quirks_mode,
+            error_reporter,
             namespaces: None,
         }
     }
@@ -86,6 +84,7 @@ impl<'a> ParserContext<'a> {
         rule_type: Option<CssRuleType>,
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
+        error_reporter: Option<&'a ParseErrorReporter>,
     ) -> Self {
         Self::new(
             Origin::Author,
@@ -93,6 +92,7 @@ impl<'a> ParserContext<'a> {
             rule_type,
             parsing_mode,
             quirks_mode,
+            error_reporter,
         )
     }
 
@@ -110,6 +110,7 @@ impl<'a> ParserContext<'a> {
             parsing_mode: context.parsing_mode,
             quirks_mode: context.quirks_mode,
             namespaces: Some(namespaces),
+            error_reporter: context.error_reporter,
         }
     }
 
@@ -127,21 +128,17 @@ impl<'a> ParserContext<'a> {
     }
 
     /// Record a CSS parse error with this context’s error reporting.
-    pub fn log_css_error<R>(
+    pub fn log_css_error(
         &self,
-        context: &ParserErrorContext<R>,
         location: SourceLocation,
         error: ContextualParseError,
-    ) where
-        R: ParseErrorReporter,
-    {
-        let location = SourceLocation {
-            line: location.line,
-            column: location.column,
+    ) {
+        let error_reporter = match self.error_reporter {
+            Some(r) => r,
+            None => return,
         };
-        context
-            .error_reporter
-            .report_error(self.url_data, location, error)
+
+        error_reporter.report_error(self.url_data, location, error)
     }
 
     /// Returns whether chrome-only rules should be parsed.

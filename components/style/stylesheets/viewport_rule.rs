@@ -11,11 +11,11 @@ use app_units::Au;
 use context::QuirksMode;
 use cssparser::{parse_important, AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use cssparser::CowRcStr;
-use error_reporting::{ContextualParseError, ParseErrorReporter};
+use error_reporting::ContextualParseError;
 use euclid::TypedSize2D;
 use font_metrics::get_metrics_provider_for_product;
 use media_queries::Device;
-use parser::{ParserContext, ParserErrorContext};
+use parser::ParserContext;
 use properties::StyleBuilder;
 use rule_cache::RuleCacheConditions;
 use selectors::parser::SelectorParseErrorKind;
@@ -355,15 +355,13 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
 
 impl ViewportRule {
     /// Parse a single @viewport rule.
-    pub fn parse<'i, 't, R>(
+    ///
+    /// TODO(emilio): This could use the `Parse` trait now.
+    pub fn parse<'i, 't>(
         context: &ParserContext,
-        error_context: &ParserErrorContext<R>,
         input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>>
-    where
-        R: ParseErrorReporter,
-    {
-        let parser = ViewportRuleParser { context: context };
+    ) -> Result<Self, ParseError<'i>> {
+        let parser = ViewportRuleParser { context };
 
         let mut cascade = Cascade::new();
         let mut parser = DeclarationListParser::new(input, parser);
@@ -380,7 +378,7 @@ impl ViewportRule {
                         slice,
                         error,
                     );
-                    context.log_css_error(error_context, location, error);
+                    context.log_css_error(location, error);
                 },
             }
         }

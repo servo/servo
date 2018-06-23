@@ -64,6 +64,27 @@ pub struct Device {
     used_viewport_size: AtomicBool,
 }
 
+impl fmt::Debug for Device {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use nsstring::nsCString;
+
+        let mut doc_uri = nsCString::new();
+        unsafe {
+            let doc =
+                &*self.pres_context().mDocument.raw::<structs::nsIDocument>();
+
+            bindings::Gecko_nsIURI_Debug(
+                doc.mDocumentURI.raw::<structs::nsIURI>(),
+                &mut doc_uri,
+            )
+        };
+
+        f.debug_struct("Device")
+            .field("document_url", &doc_uri)
+            .finish()
+    }
+}
+
 unsafe impl Sync for Device {}
 unsafe impl Send for Device {}
 

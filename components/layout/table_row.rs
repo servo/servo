@@ -353,7 +353,7 @@ impl Flow for TableRowFlow {
         let collapsing_borders = self.block_flow
                                      .fragment
                                      .style()
-                                     .get_inheritedtable()
+                                     .get_inherited_table()
                                      .border_collapse == BorderCollapse::Collapse;
         let row_style = &*self.block_flow.fragment.style;
         self.preliminary_collapsed_borders.reset(
@@ -500,7 +500,7 @@ impl Flow for TableRowFlow {
 
         // Set up border collapse info.
         let border_collapse_info =
-            match self.block_flow.fragment.style().get_inheritedtable().border_collapse {
+            match self.block_flow.fragment.style().get_inherited_table().border_collapse {
                 BorderCollapse::Collapse => {
                     Some(BorderCollapseInfoForChildTableCell {
                         collapsed_borders_for_row: &self.final_collapsed_borders,

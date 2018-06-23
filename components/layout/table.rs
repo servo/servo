@@ -191,8 +191,8 @@ impl TableFlow {
     /// Returns the effective spacing per cell, taking the value of `border-collapse` into account.
     pub fn spacing(&self) -> border_spacing::T {
         let style = self.block_flow.fragment.style();
-        match style.get_inheritedtable().border_collapse {
-            border_collapse::T::Separate => style.get_inheritedtable().border_spacing,
+        match style.get_inherited_table().border_collapse {
+            border_collapse::T::Separate => style.get_inherited_table().border_spacing,
             border_collapse::T::Collapse => border_spacing::T::zero(),
         }
     }
@@ -298,7 +298,7 @@ impl Flow for TableFlow {
         let collapsing_borders = self.block_flow
                                      .fragment
                                      .style
-                                     .get_inheritedtable()
+                                     .get_inherited_table()
                                      .border_collapse == border_collapse::T::Collapse;
         let table_inline_collapsed_borders = if collapsing_borders {
             Some(TableInlineCollapsedBorders {
@@ -522,7 +522,7 @@ impl Flow for TableFlow {
         let border_painting_mode = match self.block_flow
                                              .fragment
                                              .style
-                                             .get_inheritedtable()
+                                             .get_inherited_table()
                                              .border_collapse {
             border_collapse::T::Separate => BorderPaintingMode::Separate,
             border_collapse::T::Collapse => BorderPaintingMode::Hidden,
@@ -771,12 +771,12 @@ pub trait TableLikeFlow {
 impl TableLikeFlow for BlockFlow {
     fn assign_block_size_for_table_like_flow(&mut self, block_direction_spacing: Au,
                                              layout_context: &LayoutContext) {
-        debug_assert!(self.fragment.style.get_inheritedtable().border_collapse ==
+        debug_assert!(self.fragment.style.get_inherited_table().border_collapse ==
                       border_collapse::T::Separate || block_direction_spacing == Au(0));
 
         fn border_spacing_for_row(fragment: &Fragment, row: &TableRowFlow,
                                   block_direction_spacing: Au) -> Au {
-            match fragment.style.get_inheritedtable().border_collapse {
+            match fragment.style.get_inherited_table().border_collapse {
                 border_collapse::T::Separate => block_direction_spacing,
                 border_collapse::T::Collapse => {
                     row.collapsed_border_spacing.block_start
@@ -1204,13 +1204,13 @@ impl<'table> TableCellStyleInfo<'table> {
         use style::computed_values::visibility::T as Visibility;
 
         if !self.cell.visible || self.cell.block_flow.fragment.style()
-                                     .get_inheritedbox().visibility != Visibility::Visible {
+                                     .get_inherited_box().visibility != Visibility::Visible {
             return
         }
         let border_painting_mode = match self.cell.block_flow
                                              .fragment
                                              .style
-                                             .get_inheritedtable()
+                                             .get_inherited_table()
                                              .border_collapse {
             border_collapse::T::Separate => BorderPaintingMode::Separate,
             border_collapse::T::Collapse => BorderPaintingMode::Collapse(&self.cell.collapsed_borders),

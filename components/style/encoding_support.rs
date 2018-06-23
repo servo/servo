@@ -55,7 +55,7 @@ impl Stylesheet {
     ///
     /// Takes care of decoding the network bytes and forwards the resulting
     /// string to `Stylesheet::from_str`.
-    pub fn from_bytes<R>(
+    pub fn from_bytes(
         bytes: &[u8],
         url_data: UrlExtraData,
         protocol_encoding_label: Option<&str>,
@@ -64,12 +64,9 @@ impl Stylesheet {
         media: MediaList,
         shared_lock: SharedRwLock,
         stylesheet_loader: Option<&StylesheetLoader>,
-        error_reporter: &R,
+        error_reporter: Option<&ParseErrorReporter>,
         quirks_mode: QuirksMode,
-    ) -> Stylesheet
-    where
-        R: ParseErrorReporter,
-    {
+    ) -> Stylesheet {
         let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
         Stylesheet::from_str(
             &string,
@@ -86,17 +83,15 @@ impl Stylesheet {
 
     /// Updates an empty stylesheet with a set of bytes that reached over the
     /// network.
-    pub fn update_from_bytes<R>(
+    pub fn update_from_bytes(
         existing: &Stylesheet,
         bytes: &[u8],
         protocol_encoding_label: Option<&str>,
         environment_encoding: Option<&'static encoding_rs::Encoding>,
         url_data: UrlExtraData,
         stylesheet_loader: Option<&StylesheetLoader>,
-        error_reporter: &R,
-    ) where
-        R: ParseErrorReporter,
-    {
+        error_reporter: Option<&ParseErrorReporter>,
+    ) {
         let string = decode_stylesheet_bytes(bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(
             existing,

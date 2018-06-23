@@ -181,6 +181,19 @@ macro_rules! css_properties(
     );
 );
 
+fn remove_property(
+    decls: &mut PropertyDeclarationBlock,
+    id: &PropertyId,
+) -> bool {
+    let first_declaration = decls.first_declaration_to_remove(id);
+    let first_declaration = match first_declaration {
+        Some(i) => i,
+        None => return false,
+    };
+    decls.remove_property(id, first_declaration);
+    true
+}
+
 impl CSSStyleDeclaration {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(owner: CSSStyleOwner,
@@ -253,7 +266,7 @@ impl CSSStyleDeclaration {
         self.owner.mutate_associated_block(|pdb, changed| {
             if value.is_empty() {
                 // Step 3
-                *changed = pdb.remove_property(&id, |_| {});
+                *changed = remove_property(pdb, &id);
                 return Ok(());
             }
 
@@ -365,7 +378,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let mut string = String::new();
         self.owner.mutate_associated_block(|pdb, changed| {
             pdb.property_value_to_css(&id, &mut string).unwrap();
-            *changed = pdb.remove_property(&id, |_| {});
+            *changed = remove_property(pdb, &id);
         });
 
         // Step 6

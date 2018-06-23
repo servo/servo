@@ -128,7 +128,7 @@ use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpecula
 use style::context::{SharedStyleContext, StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::driver;
-use style::error_reporting::{NullReporter, RustLogReporter};
+use style::error_reporting::RustLogReporter;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
@@ -1754,7 +1754,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             MediaList::empty(),
             shared_lock.clone(),
             None,
-            &NullReporter,
+            None,
             QuirksMode::NoQuirks,
         ))))
     }
@@ -1782,7 +1782,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
                 MediaList::empty(),
                 shared_lock.clone(),
                 None,
-                &RustLogReporter,
+                Some(&RustLogReporter),
                 QuirksMode::NoQuirks,
             )))
         );

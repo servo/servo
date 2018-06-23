@@ -11,8 +11,8 @@ use cssparser::{DeclarationListParser, parse_important, ParserInput, CowRcStr};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter, ParseErrorKind};
 use custom_properties::CustomPropertiesBuilder;
 use error_reporting::{ParseErrorReporter, ContextualParseError};
-use parser::{ParserContext, ParserErrorContext};
-use properties::animated_properties::AnimationValue;
+use parser::ParserContext;
+use properties::animated_properties::{AnimationValue, AnimationValueMap};
 use shared_lock::Locked;
 use smallbitvec::{self, SmallBitVec};
 use smallvec::SmallVec;
@@ -24,7 +24,6 @@ use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCs
 use stylesheets::{CssRuleType, Origin, UrlExtraData};
 use super::*;
 use values::computed::Context;
-#[cfg(feature = "gecko")] use properties::animated_properties::AnimationValueMap;
 
 /// The animation rules.
 ///
@@ -564,51 +563,71 @@ impl PropertyDeclarationBlock {
         true
     }
 
+    /// Returns the first declaration that would be removed by removing
+    /// `property`.
+    #[inline]
+    pub fn first_declaration_to_remove(
+        &self,
+        property: &PropertyId,
+    ) -> Option<usize> {
+        if let Some(id) = property.longhand_id() {
+            if !self.longhands.contains(id) {
+                return None;
+            }
+        }
+
+        self.declarations.iter().position(|declaration| {
+            declaration.id().is_or_is_longhand_of(property)
+        })
+    }
+
+    /// Removes a given declaration at a given index.
+    #[inline]
+    fn remove_declaration_at(&mut self, i: usize) {
+        {
+            let id = self.declarations[i].id();
+            if let PropertyDeclarationId::Longhand(id) = id {
+                self.longhands.remove(id);
+            }
+            self.declarations_importance.remove(i);
+        }
+        self.declarations.remove(i);
+    }
+
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-removeproperty>
     ///
-    /// Returns whether any declaration was actually removed.
-    pub fn remove_property<C>(
+    /// `first_declaration` needs to be the result of
+    /// `first_declaration_to_remove`.
+    #[inline]
+    pub fn remove_property(
         &mut self,
         property: &PropertyId,
-        mut before_change_callback: C,
-    ) -> bool
-    where
-        C: FnMut(&Self),
-    {
-        let longhand_id = property.longhand_id();
-        if let Some(id) = longhand_id {
-            if !self.longhands.contains(id) {
-                return false
-            }
-        }
-        let mut removed_at_least_one = false;
-        let mut i = 0;
+        first_declaration: usize,
+    ) {
+        debug_assert_eq!(
+            Some(first_declaration),
+            self.first_declaration_to_remove(property)
+        );
+        debug_assert!(self.declarations[first_declaration].id().is_or_is_longhand_of(property));
+
+        self.remove_declaration_at(first_declaration);
+
+        let shorthand = match property.as_shorthand() {
+            Ok(s) => s,
+            Err(_longhand_or_custom) => return,
+        };
+
+        let mut i = first_declaration;
         let mut len = self.len();
         while i < len {
-            {
-                let id = self.declarations[i].id();
-                if !id.is_or_is_longhand_of(property) {
-                    i += 1;
-                    continue;
-                }
-
-                if !removed_at_least_one {
-                    before_change_callback(&*self);
-                }
-                removed_at_least_one = true;
-                if let PropertyDeclarationId::Longhand(id) = id {
-                    self.longhands.remove(id);
-                }
-                self.declarations_importance.remove(i);
+            if !self.declarations[i].id().is_longhand_of(shorthand) {
+                i += 1;
+                continue;
             }
-            self.declarations.remove(i);
+
+            self.remove_declaration_at(i);
             len -= 1;
         }
-
-        if longhand_id.is_some() {
-            debug_assert!(removed_at_least_one);
-        }
-        removed_at_least_one
     }
 
     /// Take a declaration block known to contain a single property and serialize it.
@@ -667,7 +686,6 @@ impl PropertyDeclarationBlock {
     }
 
     /// Convert AnimationValueMap to PropertyDeclarationBlock.
-    #[cfg(feature = "gecko")]
     pub fn from_animation_value_map(animation_value_map: &AnimationValueMap) -> Self {
         let len = animation_value_map.len();
         let mut declarations = Vec::with_capacity(len);
@@ -687,7 +705,6 @@ impl PropertyDeclarationBlock {
 
     /// Returns true if the declaration block has a CSSWideKeyword for the given
     /// property.
-    #[cfg(feature = "gecko")]
     pub fn has_css_wide_keyword(&self, property: &PropertyId) -> bool {
         if let Some(id) = property.longhand_id() {
             if !self.longhands.contains(id) {
@@ -727,9 +744,7 @@ impl PropertyDeclarationBlock {
 
         builder.build()
     }
-}
 
-impl PropertyDeclarationBlock {
     /// Like the method on ToCss, but without the type parameter to avoid
     /// accidentally monomorphizing this large function multiple times for
     /// different writers.
@@ -1061,50 +1076,49 @@ where
 
 /// A helper to parse the style attribute of an element, in order for this to be
 /// shared between Servo and Gecko.
-pub fn parse_style_attribute<R>(
+///
+/// Inline because we call this cross-crate.
+#[inline]
+pub fn parse_style_attribute(
     input: &str,
     url_data: &UrlExtraData,
-    error_reporter: &R,
+    error_reporter: Option<&ParseErrorReporter>,
     quirks_mode: QuirksMode,
-) -> PropertyDeclarationBlock
-where
-    R: ParseErrorReporter
-{
+) -> PropertyDeclarationBlock {
     let context = ParserContext::new(
         Origin::Author,
         url_data,
         Some(CssRuleType::Style),
         ParsingMode::DEFAULT,
         quirks_mode,
+        error_reporter,
     );
 
-    let error_context = ParserErrorContext { error_reporter: error_reporter };
     let mut input = ParserInput::new(input);
-    parse_property_declaration_list(&context, &error_context, &mut Parser::new(&mut input))
+    parse_property_declaration_list(&context, &mut Parser::new(&mut input))
 }
 
 /// Parse a given property declaration. Can result in multiple
 /// `PropertyDeclaration`s when expanding a shorthand, for example.
 ///
 /// This does not attempt to parse !important at all.
-pub fn parse_one_declaration_into<R>(
+#[inline]
+pub fn parse_one_declaration_into(
     declarations: &mut SourcePropertyDeclaration,
     id: PropertyId,
     input: &str,
     url_data: &UrlExtraData,
-    error_reporter: &R,
+    error_reporter: Option<&ParseErrorReporter>,
     parsing_mode: ParsingMode,
     quirks_mode: QuirksMode
-) -> Result<(), ()>
-where
-    R: ParseErrorReporter
-{
+) -> Result<(), ()> {
     let context = ParserContext::new(
         Origin::Author,
         url_data,
         Some(CssRuleType::Style),
         parsing_mode,
         quirks_mode,
+        error_reporter,
     );
 
     let mut input = ParserInput::new(input);
@@ -1115,9 +1129,10 @@ where
     }).map_err(|err| {
         let location = err.location;
         let error = ContextualParseError::UnsupportedPropertyDeclaration(
-            parser.slice_from(start_position), err);
-        let error_context = ParserErrorContext { error_reporter: error_reporter };
-        context.log_css_error(&error_context, location, error);
+            parser.slice_from(start_position),
+            err,
+        );
+        context.log_css_error(location, error);
     })
 }
 
@@ -1177,14 +1192,10 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for PropertyDeclarationParser<'a, 'b> {
 
 /// Parse a list of property declarations and return a property declaration
 /// block.
-pub fn parse_property_declaration_list<R>(
+pub fn parse_property_declaration_list(
     context: &ParserContext,
-    error_context: &ParserErrorContext<R>,
     input: &mut Parser,
-) -> PropertyDeclarationBlock
-where
-    R: ParseErrorReporter
-{
+) -> PropertyDeclarationBlock {
     let mut declarations = SourcePropertyDeclaration::new();
     let mut block = PropertyDeclarationBlock::new();
     let parser = PropertyDeclarationParser {
@@ -1212,7 +1223,7 @@ where
 
                 let location = error.location;
                 let error = ContextualParseError::UnsupportedPropertyDeclaration(slice, error);
-                context.log_css_error(error_context, location, error);
+                context.log_css_error(location, error);
             }
         }
     }

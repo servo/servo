@@ -45,7 +45,7 @@ mod writing_modes {
     #[test]
     fn initial_writing_mode_is_empty() {
         assert_eq!(
-            WritingMode::new(INITIAL_SERVO_VALUES.get_inheritedbox()),
+            WritingMode::new(INITIAL_SERVO_VALUES.get_inherited_box()),
             WritingMode::empty(),
         )
     }
