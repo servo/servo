@@ -7,7 +7,7 @@ use rustc::hir::intravisit as visit;
 use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
-use syntax::{ast, codemap};
+use syntax::{ast, codemap, symbol::Ident};
 use utils::{match_def_path, in_derive_expn};
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
@@ -133,8 +133,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                 span: codemap::Span,
                 id: ast::NodeId) {
         let in_new_function = match kind {
-            visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
-            visit::FnKind::Method(n, _, _, _) => {
+            visit::FnKind::ItemFn(n, _, _, _, _) |
+            visit::FnKind::Method(Ident { name: n, .. }, _, _, _) => {
                 &*n.as_str() == "new" || n.as_str().starts_with("new_")
             }
             visit::FnKind::Closure(_) => return,
