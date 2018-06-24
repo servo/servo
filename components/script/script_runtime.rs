@@ -256,6 +256,13 @@ pub fn notify_about_rejected_promises(global: &GlobalScope) {
                 global.upcast(),
             ).unwrap();
         }
+
+        if global.get_consumed_rejections().borrow().len() > 0 {
+            // FIXME(cybai): Implement `rejectionhandled` event instead of clearing the whole
+            //               consumed rejections
+            // https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation
+            global.get_consumed_rejections().borrow_mut().clear();
+        }
     }
 }
 
