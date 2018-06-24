@@ -186,7 +186,7 @@ impl Flow for TableRowGroupFlow {
 
     fn collect_stacking_contexts(&mut self, state: &mut StackingContextCollectionState) {
         self.block_flow.collect_stacking_contexts_for_block(state,
-            StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK);
+            StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK);
     }
 
     fn repair_style(&mut self, new_style: &::ServoArc<ComputedValues>) {
