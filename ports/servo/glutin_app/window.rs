@@ -201,6 +201,13 @@ impl Window {
                 .with_visibility(visible)
                 .with_multitouch();
 
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            {
+                let icon_bytes = include_bytes!("../../../resources/servo64.png");
+                let icon = Some(winit::Icon::from_bytes(icon_bytes).expect("Failed to open icon"));
+                window_builder = window_builder.with_window_icon(icon);
+            }
+
             window_builder = builder_with_platform_options(window_builder);
 
             let mut context_builder = ContextBuilder::new()
@@ -525,7 +532,7 @@ impl Window {
                 ..
             } => self.event_queue.borrow_mut().push(WindowEvent::Refresh),
             Event::WindowEvent {
-                event: winit::WindowEvent::Closed,
+                event: winit::WindowEvent::CloseRequested,
                 ..
             } => {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);

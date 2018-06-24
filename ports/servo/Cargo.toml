@@ -43,7 +43,7 @@ lazy_static = "1"
 libservo = {path = "../../components/servo"}
 log = "0.4"
 tinyfiledialogs = "3.0"
-winit = "0.15"
+winit = {version = "0.15", features = ["icon_loading"]}
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"
