@@ -995,8 +995,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
 
         let mut combinators = self.iter_raw_match_order()
             .rev()
-            .filter(|x| x.is_combinator())
-            .peekable();
+            .filter_map(|x| x.as_combinator());
         let compound_selectors = self.iter_raw_match_order()
             .as_slice()
             .split(|x| x.is_combinator())
@@ -1029,8 +1028,9 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                 _ => (true, 0),
             };
             let mut perform_step_2 = true;
+            let next_combinator = combinators.next();
             if first_non_namespace == compound.len() - 1 {
-                match (combinators.peek(), &compound[first_non_namespace]) {
+                match (next_combinator, &compound[first_non_namespace]) {
                     // We have to be careful here, because if there is a
                     // pseudo element "combinator" there isn't really just
                     // the one simple selector. Technically this compound
@@ -1038,8 +1038,8 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                     // -- Combinator::PseudoElement, just like
                     // Combinator::SlotAssignment, don't exist in the
                     // spec.
-                    (Some(&&Component::Combinator(Combinator::PseudoElement)), _) |
-                    (Some(&&Component::Combinator(Combinator::SlotAssignment)), _) => (),
+                    (Some(Combinator::PseudoElement), _) |
+                    (Some(Combinator::SlotAssignment), _) => (),
                     (_, &Component::ExplicitUniversalType) => {
                         // Iterate over everything so we serialize the namespace
                         // too.
@@ -1049,7 +1049,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
                         // Skip step 2, which is an "otherwise".
                         perform_step_2 = false;
                     },
-                    (_, _) => (),
+                    _ => (),
                 }
             }
 
@@ -1082,7 +1082,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
             //    ">", "+", "~", ">>", "||", as appropriate, followed by another
             //    single SPACE (U+0020) if the combinator was not whitespace, to
             //    s.
-            match combinators.next() {
+            match next_combinator {
                 Some(c) => c.to_css(dest)?,
                 None => combinators_exhausted = true,
             };
