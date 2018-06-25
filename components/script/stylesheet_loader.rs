@@ -30,7 +30,7 @@ use parking_lot::RwLock;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::mem;
-use std::sync:: Mutex;
+use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use style::media_queries::MediaList;
 use style::parser::ParserContext;
@@ -105,11 +105,10 @@ impl FetchResponseListener for StylesheetContext {
 
         self.metadata = metadata.ok().map(|m| {
             match m {
-                FetchMetadata::Unfiltered(m)  => m,
+                FetchMetadata::Unfiltered(m) => m,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
             }
         });
-
     }
 
     fn process_response_chunk(&mut self, mut payload: Vec<u8>) {

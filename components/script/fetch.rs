@@ -38,7 +38,6 @@ struct FetchContext {
     response_object: Trusted<Response>,
     body: Vec<u8>,
     resource_timing: ResourceFetchTiming,
-    global: Trusted<GlobalScope>,
 }
 
 /// RAII fetch canceller object. By default initialized to not having a canceller
@@ -154,7 +153,6 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
         response_object: Trusted::new(&*response),
         body: vec![],
         resource_timing: ResourceFetchTiming::new(),
-        global: Trusted::new(global),
     }));
     let listener = NetworkListener {
         context: fetch_context,
@@ -256,7 +254,7 @@ impl ResourceTimingListener for FetchContext {
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.global.root()
+        self.response_object.root().global()
     }
 }
 

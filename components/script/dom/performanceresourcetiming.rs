@@ -58,10 +58,10 @@ pub struct PerformanceResourceTiming {
 
 impl PerformanceResourceTiming {
     pub fn new_inherited(url: ServoUrl,
-                     initiator_type: InitiatorType,
-                     next_hop: Option<DOMString>,
-                     fetch_start: f64)
-                         -> PerformanceResourceTiming {
+        initiator_type: InitiatorType,
+        next_hop: Option<DOMString>,
+        fetch_start: f64)
+        -> PerformanceResourceTiming {
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
@@ -87,11 +87,11 @@ impl PerformanceResourceTiming {
 
     //TODO fetch start should be in RFT
     #[allow(unrooted_must_root)]
-    pub fn from_resource_timing(url: ServoUrl,
-                     initiator_type: InitiatorType,
-                     next_hop: Option<DOMString>,
-                     resource_timing: &ResourceFetchTiming)
-                     -> PerformanceResourceTiming {
+    fn from_resource_timing(url: ServoUrl,
+        initiator_type: InitiatorType,
+        next_hop: Option<DOMString>,
+        resource_timing: &ResourceFetchTiming)
+        -> PerformanceResourceTiming {
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
@@ -116,11 +116,11 @@ impl PerformanceResourceTiming {
     }
 
     pub fn new(global: &GlobalScope,
-                url: ServoUrl,
-                     initiator_type: InitiatorType,
-                     next_hop: Option<DOMString>,
-                     resource_timing: &ResourceFetchTiming)
-                         -> DomRoot<PerformanceResourceTiming> {
+        url: ServoUrl,
+        initiator_type: InitiatorType,
+        next_hop: Option<DOMString>,
+        resource_timing: &ResourceFetchTiming)
+        -> DomRoot<PerformanceResourceTiming> {
         reflect_dom_object(
             Box::new(PerformanceResourceTiming::from_resource_timing(
                 url, initiator_type, next_hop, resource_timing)),
@@ -145,7 +145,7 @@ impl PerformanceResourceTimingMethods for PerformanceResourceTiming {
 
     // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-nexthopprotocol
     // returns the ALPN protocol ID of the network protocol used to fetch the resource
-    // when a proxy is configured TODO
+    // when a proxy is configured
     fn NextHopProtocol(&self) -> DOMString {
         // TODO
         match self.next_hop {

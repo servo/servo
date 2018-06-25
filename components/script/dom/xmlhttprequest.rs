@@ -96,7 +96,6 @@ struct XHRContext {
     buf: DomRefCell<Vec<u8>>,
     sync_status: DomRefCell<Option<ErrorResult>>,
     resource_timing: ResourceFetchTiming,
-    global: Trusted<GlobalScope>,
 }
 
 #[derive(Clone)]
@@ -247,8 +246,6 @@ impl XMLHttpRequest {
                 if rv.is_err() {
                     *self.sync_status.borrow_mut() = Some(rv);
                 }
-
-                // TODO process network metadata
             }
 
             fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
@@ -265,8 +262,6 @@ impl XMLHttpRequest {
                 &mut self.resource_timing
             }
 
-            
-
             fn submit_resource_timing(&mut self) {
                 network_listener::submit_timing(self)
             }
@@ -278,7 +273,7 @@ impl XMLHttpRequest {
             }
 
             fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-                self.global.root()
+                self.xhr.root().global()
             }
         }
 
@@ -1343,7 +1338,6 @@ impl XMLHttpRequest {
             buf: DomRefCell::new(vec!()),
             sync_status: DomRefCell::new(None),
             resource_timing: ResourceFetchTiming::new(),
-            global: Trusted::new(global),
         }));
 
         let (task_source, script_port) = if self.sync.get() {

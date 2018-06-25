@@ -71,8 +71,6 @@ use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
-use dom::performanceentry::PerformanceEntry;
-use dom::performancenavigationtiming::PerformanceNavigationTiming;
 use dom::popstateevent::PopStateEvent;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
@@ -2521,10 +2519,6 @@ impl Document {
             let node = document.upcast::<Node>();
             node.set_owner_doc(&document);
         }
-
-        // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
-        let performance_entry = PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
-        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
 
         document
     }

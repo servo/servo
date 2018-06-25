@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot, MutNullableDom, RootedReference};
 use dom::bindings::settings_stack::is_execution_stack_empty;
 use dom::bindings::str::DOMString;
@@ -26,6 +26,8 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
+use dom::performanceentry::PerformanceEntry;
+use dom::performancenavigationtiming::PerformanceNavigationTiming;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use dom::virtualmethods::vtable_for;
@@ -350,6 +352,10 @@ impl ServoParser {
                      last_chunk_state: LastChunkState,
                      kind: ParserKind)
                      -> Self {
+        // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
+        let performance_entry = PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
+
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
