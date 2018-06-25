@@ -7,7 +7,7 @@ default-members = [
     "ports/servo",
     "tests/unit/*",
 ]
-exclude = [".cargo"]
+exclude = [".cargo", "support/android/egl-configs"]
 
 [profile.release]
 opt-level = 3

@@ -1,0 +1,6 @@
+[build]
+target = "armv7-linux-androideabi"
+
+[target.armv7-linux-androideabi]
+linker = "./ld.sh"
+runner = "./run.sh"
