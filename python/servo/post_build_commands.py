@@ -91,6 +91,8 @@ class PostBuildCommands(CommandBase):
                 ]
             script += [
                 "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
+                "sleep 0.5",
+                "echo Servo PID: $(pidof com.mozilla.servo)",
                 "exit"
             ]
             shell = subprocess.Popen([self.android_adb_path(env), "shell"], stdin=subprocess.PIPE)
