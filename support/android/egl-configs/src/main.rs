@@ -78,7 +78,11 @@ unsafe fn run() {
         ] {
             let mut value = -1;
             check!(GetConfigAttrib(display, config, attr as i32, &mut value));
-            println!("    {} = {}", attr_name, value)
+            if value < 10 {
+                println!("    {}\t = {}", attr_name, value)
+            } else {
+                println!("    {}\t= {} = 0x{:x}", attr_name, value, value)
+            }
         }
     }
 }
