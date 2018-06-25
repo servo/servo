@@ -2947,12 +2947,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn LinkProgram(&self, program: Option<&WebGLProgram>) {
-        if let Some(program) = program {
-            if let Err(e) = program.link() {
-                self.webgl_error(e);
-            }
-        }
+    fn LinkProgram(&self, program: &WebGLProgram) {
+        // FIXME(nox): INVALID_OPERATION if program comes from a different context.
+        handle_potential_webgl_error!(self, program.link());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9

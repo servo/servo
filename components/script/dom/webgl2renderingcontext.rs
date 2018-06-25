@@ -594,7 +594,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn LinkProgram(&self, program: Option<&WebGLProgram>) {
+    fn LinkProgram(&self, program: &WebGLProgram) {
         self.base.LinkProgram(program)
     }
 
