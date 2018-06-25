@@ -70,6 +70,7 @@ class MachCommands(CommandBase):
         api_level = "25"
         sdk_build_tools = "25.0.2"
         system_image = "google_apis;armeabi-v7a"
+        avd_name = "servo-armv7"
 
 
         toolchains = path.join(self.context.topdir, "android-toolchains")
@@ -108,6 +109,14 @@ class MachCommands(CommandBase):
                 "build-tools;" + sdk_build_tools,
                 "emulator",
                 image,
+            ])
+            subprocess.check_call([
+                path.join(tools_path, "tools", "bin", "avdmanager"),
+                "create", "avd",
+                "--path", path.join(toolchains, "avd", avd_name),
+                "--name", avd_name,
+                "--package", image,
+                "--force",
             ])
 
         contents = os.listdir(ndk_path)
