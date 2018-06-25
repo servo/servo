@@ -6,9 +6,12 @@ use dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use dom::bindings::codegen::Bindings::AudioContextBinding;
 use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextMethods, AudioContextOptions};
 use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextLatencyCategory, AudioTimestamp};
-use dom::bindings::error::Fallible;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
@@ -17,6 +20,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::{LatencyCategory, RealTimeAudioGraphOptions};
 use std::rc::Rc;
+use task_source::TaskSource;
 
 #[dom_struct]
 pub struct AudioContext {
@@ -59,10 +63,7 @@ impl AudioContext {
     #[allow(unrooted_must_root)]
     pub fn new(global: &GlobalScope,
                options: &AudioContextOptions) -> DomRoot<AudioContext> {
-        let context = AudioContext::new_inherited(
-            global,
-            options,
-            ); // TODO
+        let context = AudioContext::new_inherited(global, options);
         reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap)
     }
 
@@ -91,10 +92,43 @@ impl AudioContextMethods for AudioContext {
         }
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
     #[allow(unrooted_must_root)]
     fn Suspend(&self) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.global())
+        // Step 1.
+        let promise = Promise::new(&self.global());
+
+        // Step 2.
+        let state = self.context.State();
+        if state == AudioContextState::Closed {
+            promise.reject_error(Error::InvalidState);
+            return promise;
+        }
+
+        // Step 3.
+        if state == AudioContextState::Suspended {
+            promise.resolve_native(&());
+            return promise;
+        }
+
+        // Steps 4 and 5.
+        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
+        let task_source = window.dom_manipulation_task_source();
+
+        let this = Trusted::new(self);
+        task_source.queue(task!(suspend: move || {
+            let this = this.root();
+            this.context.audio_graph().suspend();
+        }), window.upcast()).unwrap();
+
+        task_source.queue_simple_event(
+            self.upcast(),
+            atom!("statechange"),
+            &window
+            );
+
+        // Step 6.
+        promise
     }
 
     #[allow(unrooted_must_root)]
