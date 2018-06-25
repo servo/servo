@@ -45,6 +45,12 @@ class PostBuildCommands(CommandBase):
                      help='Run the dev build')
     @CommandArgument('--android', action='store_true', default=None,
                      help='Run on an Android device through `adb shell`')
+    @CommandArgument('--emulator',
+                     action='store_true',
+                     help='For Android, intall to the only emulated device')
+    @CommandArgument('--usb',
+                     action='store_true',
+                     help='For Android, intall to the only USB device')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
                           '--debugger option will result in the default '
@@ -64,7 +70,7 @@ class PostBuildCommands(CommandBase):
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
-            headless=False, software=False, bin=None, nightly=None):
+            headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -95,7 +101,15 @@ class PostBuildCommands(CommandBase):
                 "echo Servo PID: $(pidof com.mozilla.servo)",
                 "exit"
             ]
-            shell = subprocess.Popen([self.android_adb_path(env), "shell"], stdin=subprocess.PIPE)
+            args = [self.android_adb_path(env)]
+            if emulator and usb:
+                print("Cannot install to both emulator and USB at the same time.")
+                return 1
+            if emulator:
+                args += ["-e"]
+            if usb:
+                args += ["-d"]
+            shell = subprocess.Popen(args + ["shell"], stdin=subprocess.PIPE)
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
