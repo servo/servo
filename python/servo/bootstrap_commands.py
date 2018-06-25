@@ -29,7 +29,7 @@ from mach.decorators import (
 
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes, download_file, check_hash, extract
+from servo.util import delete, download_bytes, download_file, extract
 
 
 @CommandProvider
@@ -58,36 +58,36 @@ class MachCommands(CommandBase):
     @Command('bootstrap-android',
              description='Install the Android SDK and NDK.',
              category='bootstrap')
-    def bootstrap_android(self):
+    @CommandArgument('--update',
+                     action='store_true',
+                     help='Run "android sdk update" again')
+    def bootstrap_android(self, update=False):
 
-        ndk_version = "r12b"
-        ndk_sha512 = "2d85b476436ca50896e4b7c5d0f15547fd14a6ebec7e0081022b28f791709af7" \
-                     "8ea5ebddcdf4722b5e94daeac288d509bd5f240b0280167edef8e199da3d0501"
+        # Available filenames: see https://dl.google.com/android/repository/repository2-1.xml
+        ndk = "android-ndk-r12b-{system}-{arch}"
+        tools = "sdk-tools-{system}-4333796"
 
-        sdk_version = "r25.2.3"
-        sdk_sha512 = "dfc30ee3e2714cf8008ab1f99757deded002d21b23a8d2ab07952e1afd1c9312" \
-                     "4ddec06660babf6a46c54e5e7e135c8c0cb4cc512378a8509da074dbf7e253d7"
-        sdk_platform = "25"
+        api_level = "25"
         sdk_build_tools = "25.0.2"
+        system_image = "google_apis;armeabi-v7a"
 
 
-        def download(kind, name, sha512):
-            toolchains = path.join(self.context.topdir, "android-toolchains")
-            directory = path.join(toolchains, kind)
-            final = path.join(directory, name)
+        toolchains = path.join(self.context.topdir, "android-toolchains")
+        if not path.isdir(toolchains):
+            os.makedirs(toolchains)
+
+        def download(name):
+            final = path.join(toolchains, name)
             if path.isdir(final):
                 return final
 
             base_url = "https://dl.google.com/android/repository/"
             filename = name + ".zip"
             url = base_url + filename
-            archive = path.join(directory, filename)
+            archive = path.join(toolchains, filename)
 
-            if not path.isdir(directory):
-                os.makedirs(directory)
             if not path.isfile(archive):
                 download_file(filename, url, archive)
-            check_hash(archive, sha512, "sha512")
             print("Extracting " + filename)
             remove = True  # Set to False to avoid repeated downloads while debugging this script
             extract(archive, final, remove=remove)
@@ -95,26 +95,29 @@ class MachCommands(CommandBase):
 
         system = platform.system().lower()
         machine = platform.machine().lower()
-        os_ = {"darwin": "macosx"}.get(system, system)
         arch = {"i386": "x86"}.get(machine, machine)
-        ndk = download("ndk", "android-ndk-%s-%s-%s" % (ndk_version, system, arch), ndk_sha512)
-        sdk = download("sdk", "tools_%s-%s" % (sdk_version, os_), sdk_sha512)
+        ndk_path = download(ndk.format(system=system, arch=arch))
+        tools_path = download(tools.format(system=system))
 
-        if not path.isdir(path.join(sdk, "platform-tools")):
+        if update or not path.isdir(path.join(tools_path, "platform-tools")):
+            image = "system-images;android-%s;%s" % (api_level, system_image)
             subprocess.check_call([
-                path.join(sdk, "tools", "android"),
-                "update", "sdk", "--no-ui", "--all", "--filter",
-                "platform-tools,android-%s,build-tools-%s" % (sdk_platform, sdk_build_tools),
+                path.join(tools_path, "tools", "bin", "sdkmanager"),
+                "platform-tools",
+                "platforms;android-" + api_level,
+                "build-tools;" + sdk_build_tools,
+                "emulator",
+                image,
             ])
 
-        contents = os.listdir(ndk)
+        contents = os.listdir(ndk_path)
         assert len(contents) == 1
-        ndk = path.join(ndk, contents[0])
+        ndk_path = path.join(ndk_path, contents[0])
 
         print("")
-        print("export ANDROID_SDK=\"%s\"" % sdk)
-        print("export ANDROID_NDK=\"%s\"" % ndk)
-        print("export PATH=\"%s:$PATH\"" % path.join(sdk, "platform-tools"))
+        print("export ANDROID_SDK=\"%s\"" % tools_path)
+        print("export ANDROID_NDK=\"%s\"" % ndk_path)
+        print("export PATH=\"%s:$PATH\"" % path.join(tools_path, "platform-tools"))
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
