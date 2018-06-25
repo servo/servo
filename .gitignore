@@ -4,6 +4,7 @@
 /.servobuild
 /android-toolchains
 /target
+/support/android/egl-configs/target
 /ports/android/bin
 /ports/android/libs
 /ports/android/local.properties
