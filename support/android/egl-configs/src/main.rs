@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use ffi::*;
 use ffi::types::*;
 use std::ptr::null_mut;
@@ -11,8 +15,8 @@ fn main() {
 }
 
 macro_rules! check {
-    ($name: ident ( $($arg: expr),* )) => {
-        check($name( $($arg),* ), stringify!($name))
+    ($name: ident($($arg: expr),*)) => {
+        check($name($($arg),*), stringify!($name))
     }
 }
 

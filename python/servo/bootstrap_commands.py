@@ -72,7 +72,6 @@ class MachCommands(CommandBase):
         system_image = "google_apis;armeabi-v7a"
         avd_name = "servo-armv7"
 
-
         toolchains = path.join(self.context.topdir, "android-toolchains")
         if not path.isdir(toolchains):
             os.makedirs(toolchains)
