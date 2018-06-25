@@ -100,6 +100,7 @@ pub mod longhands {
     % for style_struct in data.style_structs:
     include!("${repr(os.path.join(OUT_DIR, 'longhands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
     % endfor
+    pub const ANIMATABLE_PROPERTY_COUNT: usize = ${sum(1 for prop in data.longhands if prop.animatable)};
 }
 
 macro_rules! unwrap_or_initial {
