@@ -79,6 +79,10 @@ impl BaseAudioContext {
         context
     }
 
+    pub fn audio_graph(&self) -> &AudioGraph {
+        &self.audio_graph
+    }
+
     pub fn create_node_engine(&self, node_type: AudioNodeType) -> NodeId {
         self.audio_graph.create_node(node_type)
     }
@@ -103,7 +107,7 @@ impl BaseAudioContext {
         task_source.queue_simple_event(
             self.upcast(),
             atom!("statechange"),
-            &window,
+            &window
             );
     }
 }
