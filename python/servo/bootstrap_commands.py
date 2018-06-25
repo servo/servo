@@ -118,6 +118,8 @@ class MachCommands(CommandBase):
                 "--package", image,
                 "--force",
             ])
+            with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
+                f.write("disk.dataPartition.size=1G\n")
 
         contents = os.listdir(ndk_path)
         assert len(contents) == 1
@@ -127,6 +129,10 @@ class MachCommands(CommandBase):
         print("export ANDROID_SDK=\"%s\"" % tools_path)
         print("export ANDROID_NDK=\"%s\"" % ndk_path)
         print("export PATH=\"%s:$PATH\"" % path.join(tools_path, "platform-tools"))
+        print("")
+        # https://developer.android.com/studio/run/emulator-acceleration#command-gpu
+        print(path.join(tools_path, "tools", "emulator") +
+              " @servo-armv7 -gpu swiftshader_indirect [ -no-window ]")
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
