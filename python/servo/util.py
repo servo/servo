@@ -153,6 +153,7 @@ def download_file(desc, src, dst):
             download(desc, src, fd)
     os.rename(tmp_path, dst)
 
+
 # https://stackoverflow.com/questions/39296101/python-zipfile-removes-execute-permissions-from-binaries
 # In particular, we want the executable bit for executable files.
 class ZipFileWithUnixPermissions(zipfile.ZipFile):
@@ -169,6 +170,7 @@ class ZipFileWithUnixPermissions(zipfile.ZipFile):
         os.chmod(extracted, mode)
         return extracted
 
+
 def extract(src, dst, movedir=None, remove=True):
     assert src.endswith(".zip")
     ZipFileWithUnixPermissions(src).extractall(dst)
@@ -182,6 +184,7 @@ def extract(src, dst, movedir=None, remove=True):
 
     if remove:
         os.remove(src)
+
 
 def check_hash(filename, expected, algorithm):
     hasher = hashlib.new(algorithm)
