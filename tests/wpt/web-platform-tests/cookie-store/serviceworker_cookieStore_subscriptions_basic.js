@@ -40,7 +40,7 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
 
-  cookie_change_received_promise = new Promise((resolve) => {
+  const cookie_change_received_promise = new Promise((resolve) => {
     self.addEventListener('cookiechange', (event) => {
       resolve(event);
     });
