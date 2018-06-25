@@ -576,7 +576,7 @@ where
             _ => {},
         }
 
-        if element.is_link() || combinator.is_sibling() {
+        if element.is_link() {
             visited_handling = VisitedHandlingMode::AllLinksUnvisited;
         }
 
