@@ -1,6 +1,12 @@
+mod ffi;
+use ffi::*;
+
 fn main() {
-    println!("Hello, world!");
-    for arg in std::env::args() {
-        println!("{}", arg);
+    unsafe {
+        run()
     }
+}
+
+unsafe fn run() {
+    let _display = GetDisplay(DEFAULT_DISPLAY as *mut _);
 }
