@@ -11,14 +11,14 @@ use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextB
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
-use dom::bindings::refcounted::Trusted;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::graph::{LatencyCategory, RealTimeAudioGraphOptions};
+use servo_media::audio::context::{LatencyCategory, ProcessingState, RealTimeAudioContextOptions};
 use std::rc::Rc;
 use task_source::TaskSource;
 
@@ -99,14 +99,13 @@ impl AudioContextMethods for AudioContext {
         let promise = Promise::new(&self.global());
 
         // Step 2.
-        let state = self.context.State();
-        if state == AudioContextState::Closed {
+        if self.context.control_thread_state() == ProcessingState::Closed {
             promise.reject_error(Error::InvalidState);
             return promise;
         }
 
         // Step 3.
-        if state == AudioContextState::Suspended {
+        if self.context.State() == AudioContextState::Suspended {
             promise.resolve_native(&());
             return promise;
         }
@@ -114,18 +113,36 @@ impl AudioContextMethods for AudioContext {
         // Steps 4 and 5.
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.dom_manipulation_task_source();
-
-        let this = Trusted::new(self);
-        task_source.queue(task!(suspend: move || {
-            let this = this.root();
-            this.context.audio_graph().suspend();
-        }), window.upcast()).unwrap();
-
-        task_source.queue_simple_event(
-            self.upcast(),
-            atom!("statechange"),
-            &window
-            );
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        match self.context.audio_context_impl().suspend() {
+            Ok(_) => {
+                let base_context = Trusted::new(&self.context);
+                let context = Trusted::new(self);
+                let _ = task_source.queue(task!(suspend_ok: move || {
+                    let base_context = base_context.root();
+                    let context = context.root();
+                    let promise = trusted_promise.root();
+                    promise.resolve_native(&());
+                    if base_context.State() != AudioContextState::Suspended {
+                        base_context.set_state_attribute(AudioContextState::Suspended);
+                        let window = DomRoot::downcast::<Window>(context.global()).unwrap();
+                        window.dom_manipulation_task_source().queue_simple_event(
+                            context.upcast(),
+                            atom!("statechange"),
+                            &window
+                            );
+                    }
+                }), window.upcast());
+            },
+            Err(_) => {
+                // The spec does not define the error case and `suspend` should
+                // never fail, but we handle the case here for completion.
+                let _ = task_source.queue(task!(suspend_error: move || {
+                    let promise = trusted_promise.root();
+                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                }), window.upcast());
+            },
+        };
 
         // Step 6.
         promise
@@ -133,8 +150,58 @@ impl AudioContextMethods for AudioContext {
 
     #[allow(unrooted_must_root)]
     fn Close(&self) -> Rc<Promise> {
-        // TODO
-        Promise::new(&self.global())
+        // Step 1.
+        let promise = Promise::new(&self.global());
+
+        // Step 2.
+        if self.context.control_thread_state() == ProcessingState::Closed {
+            promise.reject_error(Error::InvalidState);
+            return promise;
+        }
+
+        // Step 3.
+        if self.context.State() == AudioContextState::Closed {
+            promise.resolve_native(&());
+            return promise;
+        }
+
+        // Steps 4 and 5.
+        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
+        let task_source = window.dom_manipulation_task_source();
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        match self.context.audio_context_impl().close() {
+            Ok(_) => {
+                let base_context = Trusted::new(&self.context);
+                let context = Trusted::new(self);
+                let _ = task_source.queue(task!(suspend_ok: move || {
+                    let base_context = base_context.root();
+                    let context = context.root();
+                    let promise = trusted_promise.root();
+                    promise.resolve_native(&());
+                    if base_context.State() != AudioContextState::Closed {
+                        base_context.set_state_attribute(AudioContextState::Closed);
+                        let window = DomRoot::downcast::<Window>(context.global()).unwrap();
+                        window.dom_manipulation_task_source().queue_simple_event(
+                            context.upcast(),
+                            atom!("statechange"),
+                            &window
+                            );
+                    }
+                }), window.upcast());
+            },
+            Err(_) => {
+                // The spec does not define the error case and `suspend` should
+                // never fail, but we handle the case here for completion.
+                let _ = task_source.queue(task!(suspend_error: move || {
+                    let promise = trusted_promise.root();
+                    promise.reject_error(Error::Type("Something went wrong".to_owned()));
+                }), window.upcast());
+            },
+        };
+
+
+        // Step 6.
+        promise
     }
 }
 
@@ -148,7 +215,7 @@ impl From<AudioContextLatencyCategory> for LatencyCategory {
     }
 }
 
-impl<'a> From<&'a AudioContextOptions> for RealTimeAudioGraphOptions {
+impl<'a> From<&'a AudioContextOptions> for RealTimeAudioContextOptions {
     fn from(options: &AudioContextOptions) -> Self {
         Self {
             sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(48000.)),
