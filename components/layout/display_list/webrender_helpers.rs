@@ -7,11 +7,11 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use display_list::items::{BorderDetails, ClipScrollNode};
-use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, DisplayItem};
-use display_list::items::{DisplayList, StackingContextType};
+use display_list::items::{BorderDetails, ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
+use display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
+use webrender_api::LayoutPoint;
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -213,29 +213,42 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 builder.pop_all_shadows();
             },
             DisplayItem::Iframe(ref item) => {
-                builder.push_iframe(&self.prim_info(), item.iframe.to_webrender());
+                builder.push_iframe(&self.prim_info(), item.iframe.to_webrender(), true);
             },
             DisplayItem::PushStackingContext(ref item) => {
                 let stacking_context = &item.stacking_context;
                 debug_assert_eq!(stacking_context.context_type, StackingContextType::Real);
 
-                let reference_frame_clip_id = builder.push_stacking_context(
-                    &webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds),
+                let mut info = webrender_api::LayoutPrimitiveInfo::new(stacking_context.bounds);
+                if let Some(frame_index) = stacking_context.established_reference_frame {
+                    debug_assert!(
+                        stacking_context.transform.is_some() ||
+                        stacking_context.perspective.is_some()
+                    );
+
+                    let clip_id = builder.push_reference_frame(
+                        &info.clone(),
+                        stacking_context.transform.map(Into::into),
+                        stacking_context.perspective,
+                    );
+                    clip_ids[frame_index.to_index()] = Some(clip_id);
+
+                    info.rect.origin = LayoutPoint::zero();
+                    info.clip_rect.origin = LayoutPoint::zero();
+                    builder.push_clip_id(clip_id);
+                }
+
+                builder.push_stacking_context(
+                    &info,
                     None,
-                    stacking_context.scroll_policy,
-                    stacking_context.transform.map(Into::into),
                     stacking_context.transform_style,
-                    stacking_context.perspective,
                     stacking_context.mix_blend_mode,
                     stacking_context.filters.clone(),
                     GlyphRasterSpace::Screen,
                 );
 
-                match (reference_frame_clip_id, stacking_context.established_reference_frame) {
-                    (Some(webrender_id), Some(frame_index)) =>
-                        clip_ids[frame_index.to_index()] = Some(webrender_id),
-                    (None, None) => {},
-                    _ => warn!("Mismatch between reference frame establishment!"),
+                if stacking_context.established_reference_frame.is_some() {
+                    builder.pop_clip_id();
                 }
             },
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),

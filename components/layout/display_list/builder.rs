@@ -73,14 +73,19 @@ use style_traits::cursor::CursorKind;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{self, BorderRadius, BorderSide, BoxShadowClipMode, ColorF, ExternalScrollId};
 use webrender_api::{FilterOp, GlyphInstance, ImageRendering, LayoutRect, LayoutSize};
-use webrender_api::{LayoutTransform, LayoutVector2D, LineStyle, NormalBorder, ScrollPolicy};
-use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
+use webrender_api::{LayoutTransform, LayoutVector2D, LineStyle, NormalBorder, ScrollSensitivity};
+use webrender_api::StickyOffsetBounds;
 
 fn establishes_containing_block_for_absolute(
     flags: StackingContextCollectionFlags,
     positioning: StylePosition,
+    established_reference_frame: bool,
 ) -> bool {
-    !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) &&
+    if established_reference_frame {
+        return true;
+    }
+
+    !flags.contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK) &&
         StylePosition::Static != positioning
 }
 
@@ -576,6 +581,12 @@ pub trait FragmentDisplayListBuilding {
         state: &mut StackingContextCollectionState,
     ) -> bool;
 
+    fn create_stacking_context_for_inline_block(
+        &mut self,
+        base: &BaseFlow,
+        state: &mut StackingContextCollectionState,
+    ) -> bool;
+
     /// Adds the display items necessary to paint the background of this fragment to the display
     /// list if necessary.
     fn build_display_list_for_background_if_applicable(
@@ -760,7 +771,6 @@ pub trait FragmentDisplayListBuilding {
         &self,
         id: StackingContextId,
         base_flow: &BaseFlow,
-        scroll_policy: ScrollPolicy,
         context_type: StackingContextType,
         established_reference_frame: Option<ClipScrollNodeIndex>,
         parent_clipping_and_scrolling: ClippingAndScrolling,
@@ -815,6 +825,35 @@ impl FragmentDisplayListBuilding for Fragment {
                 .collect_stacking_contexts_for_blocklike_fragment(state),
             _ => false,
         }
+    }
+
+    fn create_stacking_context_for_inline_block(
+        &mut self,
+        base: &BaseFlow,
+        state: &mut StackingContextCollectionState,
+    ) -> bool {
+        self.stacking_context_id = state.allocate_stacking_context_info(StackingContextType::Real);
+
+        let established_reference_frame = if self.can_establish_reference_frame() {
+            // WebRender currently creates reference frames automatically, so just add
+            // a placeholder node to allocate a ClipScrollNodeIndex for this reference frame.
+            self.established_reference_frame =
+                Some(state.add_clip_scroll_node(ClipScrollNode::placeholder()));
+            self.established_reference_frame
+        } else {
+            None
+        };
+
+        let current_stacking_context_id = state.current_stacking_context_id;
+        let stacking_context = self.create_stacking_context(
+            self.stacking_context_id,
+            &base,
+            StackingContextType::Real,
+            established_reference_frame,
+            state.current_clipping_and_scrolling,
+        );
+        state.add_stacking_context(current_stacking_context_id, stacking_context);
+        true
     }
 
     fn build_display_list_for_background_if_applicable(
@@ -1563,6 +1602,11 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
     ) {
+        let previous_clipping_and_scrolling = state.current_clipping_and_scrolling;
+        if let Some(index) = self.established_reference_frame {
+            state.current_clipping_and_scrolling = ClippingAndScrolling::simple(index);
+        }
+
         self.restyle_damage.remove(ServoRestyleDamage::REPAINT);
         self.build_display_list_no_damage(
             state,
@@ -1570,7 +1614,9 @@ impl FragmentDisplayListBuilding for Fragment {
             border_painting_mode,
             display_list_section,
             clip,
-        )
+        );
+
+        state.current_clipping_and_scrolling = previous_clipping_and_scrolling;
     }
 
     fn build_display_list_no_damage(
@@ -1887,7 +1933,6 @@ impl FragmentDisplayListBuilding for Fragment {
         &self,
         id: StackingContextId,
         base_flow: &BaseFlow,
-        scroll_policy: ScrollPolicy,
         context_type: StackingContextType,
         established_reference_frame: Option<ClipScrollNodeIndex>,
         parent_clipping_and_scrolling: ClippingAndScrolling,
@@ -1931,7 +1976,6 @@ impl FragmentDisplayListBuilding for Fragment {
             self.transform_matrix(&border_box),
             self.style().get_used_transform_style().to_layout(),
             self.perspective_matrix(&border_box),
-            scroll_policy,
             parent_clipping_and_scrolling,
             established_reference_frame,
         )
@@ -2128,7 +2172,7 @@ impl FragmentDisplayListBuilding for Fragment {
 bitflags! {
     pub struct StackingContextCollectionFlags: u8 {
         /// This flow never establishes a containing block.
-        const NEVER_CREATES_CONTAINING_BLOCK = 0b001;
+        const POSITION_NEVER_CREATES_CONTAINING_BLOCK = 0b001;
         /// This flow never creates a ClipScrollNode.
         const NEVER_CREATES_CLIP_SCROLL_NODE = 0b010;
         /// This flow never creates a stacking context.
@@ -2406,7 +2450,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             flags,
         );
 
-        if establishes_containing_block_for_absolute(flags, self.positioning()) {
+        if establishes_containing_block_for_absolute(
+            flags,
+            self.positioning(),
+            established_reference_frame.is_some()
+        ) {
             state.containing_block_clipping_and_scrolling = state.current_clipping_and_scrolling;
         }
 
@@ -2495,7 +2543,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         // We keep track of our position so that any stickily positioned elements can
         // properly determine the extent of their movement relative to scrolling containers.
-        if !flags.contains(StackingContextCollectionFlags::NEVER_CREATES_CONTAINING_BLOCK) {
+        if !flags.contains(StackingContextCollectionFlags::POSITION_NEVER_CREATES_CONTAINING_BLOCK) {
             let border_box = if self.fragment.establishes_stacking_context() {
                 stacking_relative_border_box
             } else {
@@ -2713,7 +2761,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let new_context = self.fragment.create_stacking_context(
             self.base.stacking_context_id,
             &self.base,
-            ScrollPolicy::Scrollable,
             stacking_context_type,
             None,
             parent_clipping_and_scrolling,
@@ -2747,7 +2794,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let stacking_context = self.fragment.create_stacking_context(
             self.base.stacking_context_id,
             &self.base,
-            ScrollPolicy::Scrollable,
             StackingContextType::Real,
             established_reference_frame,
             parent_clipping_and_scrolling,
@@ -2866,37 +2912,34 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
             .cloned()
             .unwrap_or_else(Rect::max_rect);
 
+        let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
+
         for fragment in self.fragments.fragments.iter_mut() {
-            let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
+            state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
+
             if establishes_containing_block_for_absolute(
                 StackingContextCollectionFlags::empty(),
                 fragment.style.get_box().position,
+                false,
             ) {
                 state.containing_block_clipping_and_scrolling =
                     state.current_clipping_and_scrolling;
             }
 
+            // We clear this here, but it might be set again if we create a stacking context for
+            // this fragment.
+            fragment.established_reference_frame = None;
+
             if !fragment.collect_stacking_contexts_for_blocklike_fragment(state) {
-                if fragment.establishes_stacking_context() {
-                    fragment.stacking_context_id =
-                        state.allocate_stacking_context_info(StackingContextType::Real);
-
-                    let current_stacking_context_id = state.current_stacking_context_id;
-                    let stacking_context = fragment.create_stacking_context(
-                        fragment.stacking_context_id,
-                        &self.base,
-                        ScrollPolicy::Scrollable,
-                        StackingContextType::Real,
-                        None,
-                        state.current_clipping_and_scrolling,
-                    );
-
-                    state.add_stacking_context(current_stacking_context_id, stacking_context);
-                } else {
+                if !fragment.establishes_stacking_context() {
                     fragment.stacking_context_id = state.current_stacking_context_id;
+                } else {
+                    fragment.create_stacking_context_for_inline_block(&self.base, state);
                 }
             }
 
+            // Reset the containing block clipping and scrolling before each loop iteration,
+            // so we don't pollute subsequent fragments.
             state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
         }
     }

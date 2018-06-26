@@ -11,7 +11,7 @@ use app_units::Au;
 use canvas_traits::canvas::{CanvasMsg, CanvasId};
 use context::{LayoutContext, with_thread_local_font_context};
 use display_list::ToLayout;
-use display_list::items::{BLUR_INFLATION_FACTOR, OpaqueNode};
+use display_list::items::{BLUR_INFLATION_FACTOR, ClipScrollNodeIndex, OpaqueNode};
 use euclid::{Point2D, Vector2D, Rect, Size2D};
 use floats::ClearType;
 use flow::{GetBaseFlow, ImmutableFlowUtils};
@@ -152,6 +152,11 @@ pub struct Fragment {
     /// to 0, but it assigned during the collect_stacking_contexts phase of display
     /// list construction.
     pub stacking_context_id: StackingContextId,
+
+    /// The indices of this Fragment's ClipScrollNode. If this fragment doesn't have a
+    /// `established_reference_frame` assigned, it will use the `clipping_and_scrolling` of the
+    /// parent block.
+    pub established_reference_frame: Option<ClipScrollNodeIndex>,
 }
 
 impl Serialize for Fragment {
@@ -633,6 +638,7 @@ impl Fragment {
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::root(),
+            established_reference_frame: None,
         }
     }
 
@@ -662,6 +668,7 @@ impl Fragment {
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::root(),
+            established_reference_frame: None,
         }
     }
 
@@ -687,6 +694,7 @@ impl Fragment {
             flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::root(),
+            established_reference_frame: None,
         }
     }
 
@@ -715,6 +723,7 @@ impl Fragment {
             flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::root(),
+            established_reference_frame: None,
         }
     }
 
