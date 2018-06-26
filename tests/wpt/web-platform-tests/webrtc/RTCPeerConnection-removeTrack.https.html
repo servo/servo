@@ -46,19 +46,16 @@
 
   }, 'addTransceiver - Calling removeTrack when connection is closed should throw InvalidStateError');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const [track] = mediaStream.getTracks();
-      const sender = pc.addTrack(track, mediaStream);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
+    const sender = pc.addTrack(track, stream);
 
-      pc.close();
-      assert_throws('InvalidStateError', () => pc.removeTrack(sender));
-    });
+    pc.close();
+    assert_throws('InvalidStateError', () => pc.removeTrack(sender));
   }, 'addTrack - Calling removeTrack when connection is closed should throw InvalidStateError');
 
   test(t => {
@@ -73,20 +70,17 @@
 
   }, 'addTransceiver - Calling removeTrack on different connection that is closed should throw InvalidStateError');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const [track] = mediaStream.getTracks();
-      const sender = pc.addTrack(track, mediaStream);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
+    const sender = pc.addTrack(track, stream);
 
-      const pc2 = new RTCPeerConnection();
-      pc2.close();
-      assert_throws('InvalidStateError', () => pc2.removeTrack(sender));
-    });
+    const pc2 = new RTCPeerConnection();
+    pc2.close();
+    assert_throws('InvalidStateError', () => pc2.removeTrack(sender));
   }, 'addTrack - Calling removeTrack on different connection that is closed should throw InvalidStateError');
 
   /*
@@ -104,19 +98,16 @@
 
   }, 'addTransceiver - Calling removeTrack on different connection should throw InvalidAccessError');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const [track] = mediaStream.getTracks();
-      const sender = pc.addTrack(track, mediaStream);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
+    const sender = pc.addTrack(track, stream);
 
-      const pc2 = new RTCPeerConnection();
-      assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
-    });
+    const pc2 = new RTCPeerConnection();
+    assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
   }, 'addTrack - Calling removeTrack on different connection should throw InvalidAccessError')
 
   /*
@@ -139,21 +130,18 @@
 
   }, 'addTransceiver - Calling removeTrack with valid sender should set sender.track to null');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-
     t.add_cleanup(() => pc.close());
 
-    return navigator.mediaDevices.getUserMedia({ audio: true })
-    .then(mediaStream => {
-      const [track] = mediaStream.getTracks();
-      const sender = pc.addTrack(track, mediaStream);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const [track] = stream.getTracks();
+    const sender = pc.addTrack(track, stream);
 
-      assert_equals(sender.track, track);
+    assert_equals(sender.track, track);
 
-      pc.removeTrack(sender);
-      assert_equals(sender.track, null);
-    });
+    pc.removeTrack(sender);
+    assert_equals(sender.track, null);
   }, 'addTrack - Calling removeTrack with valid sender should set sender.track to null');
 
   /*

@@ -40,9 +40,9 @@
       null,
       'get with ${prefix} prefix name option should not reject');
     assert_equals(
-      await cookieStore.get({name: prefix, matchType: 'startsWith'}),
+      await cookieStore.get({name: prefix, matchType: 'starts-with'}),
       null,
-      'get with ${prefix} name and startsWith options should not reject');
+      'get with ${prefix} name and starts-with options should not reject');
   }, `cookieStore.get with ${prefix} name on non-secure origin`);
 
   promise_test(async testCase => {
@@ -55,9 +55,9 @@
       [],
       'getAll with ${prefix} prefix name option should not reject');
     assert_array_equals(
-      await cookieStore.getAll({name: prefix, matchType: 'startsWith'}),
+      await cookieStore.getAll({name: prefix, matchType: 'starts-with'}),
       [],
-      'getAll with ${prefix} name and startsWith options should not reject');
+      'getAll with ${prefix} name and starts-with options should not reject');
   }, `cookieStore.getAll with ${prefix} name on non-secure origin`);
 
   promise_test(async testCase => {
