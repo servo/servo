@@ -436,7 +436,6 @@ pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
     where F: FnMut(String)
 {
-    println!("Variatioooon {:?}", family_name);
     if let Some(family) = FONT_LIST.find_family(family_name) {
         for font in &family.fonts {
             callback(FontList::font_absolute_path(&font.filename));
