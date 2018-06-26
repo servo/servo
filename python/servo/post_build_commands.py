@@ -103,7 +103,7 @@ class PostBuildCommands(CommandBase):
             ]
             args = [self.android_adb_path(env)]
             if emulator and usb:
-                print("Cannot install to both emulator and USB at the same time.")
+                print("Cannot run in both emulator and USB at the same time.")
                 return 1
             if emulator:
                 args += ["-e"]
