@@ -10,7 +10,7 @@ use dom::bindings::reflector::Reflector;
 use dom::bindings::root::DomRoot;
 use dom::audioparam::AudioParam;
 use dom_struct::dom_struct;
-use servo_media::audio::graph_impl::NodeId;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::AudioNodeType;
 use std::cell::Cell;
 

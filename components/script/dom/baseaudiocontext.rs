@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, Chann
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
-use dom::bindings::error::Error;
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
@@ -21,30 +21,42 @@ use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::ServoMedia;
-use servo_media::audio::graph::{AudioGraph, ProcessingState};
-use servo_media::audio::graph::{OfflineAudioGraphOptions, RealTimeAudioGraphOptions};
-use servo_media::audio::graph_impl::NodeId;
+use servo_media::audio::context::{AudioContext, ProcessingState};
+use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::AudioNodeType;
+use std::cell::Cell;
+use std::collections::VecDeque;
+use std::mem;
 use std::rc::Rc;
 use task_source::TaskSource;
 
 pub enum BaseAudioContextOptions {
-    AudioContext(RealTimeAudioGraphOptions),
-    OfflineAudioContext(OfflineAudioGraphOptions),
+    AudioContext(RealTimeAudioContextOptions),
+    OfflineAudioContext(OfflineAudioContextOptions),
 }
 
 #[dom_struct]
 pub struct BaseAudioContext {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_graph: AudioGraph,
+    audio_context_impl: AudioContext,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: Option<DomRoot<AudioDestinationNode>>,
-    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
-    sample_rate: f32,
+    /// Resume promises which are soon to be fulfilled by a queued task.
+    #[ignore_malloc_size_of = "promises are hard"]
+    in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
     /// https://webaudio.github.io/web-audio-api/#pendingresumepromises
     #[ignore_malloc_size_of = "promises are hard"]
     pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
+    sample_rate: f32,
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
+    /// Although servo-media already keeps track of the control thread state,
+    /// we keep a state flag here as well. This is so that we can synchronously
+    /// throw when trying to do things on the context when the context has just
+    /// been "closed()".
+    state: Cell<AudioContextState>,
 }
 
 impl BaseAudioContext {
@@ -63,10 +75,12 @@ impl BaseAudioContext {
 
         let mut context = BaseAudioContext {
             reflector_: Reflector::new(),
-            audio_graph: ServoMedia::get().unwrap().create_audio_graph(Some(options.into())),
+            audio_context_impl: ServoMedia::get().unwrap().create_audio_context(options.into()),
             destination: None,
-            sample_rate,
+            in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
+            sample_rate,
+            state: Cell::new(AudioContextState::Suspended),
         };
 
         let mut options = unsafe { AudioNodeOptions::empty(global.get_cx()) };
@@ -79,36 +93,110 @@ impl BaseAudioContext {
         context
     }
 
-    pub fn audio_graph(&self) -> &AudioGraph {
-        &self.audio_graph
+    pub fn audio_context_impl(&self) -> &AudioContext {
+        &self.audio_context_impl
     }
 
     pub fn create_node_engine(&self, node_type: AudioNodeType) -> NodeId {
-        self.audio_graph.create_node(node_type)
+        self.audio_context_impl.create_node(node_type)
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
     pub fn is_allowed_to_start(&self) -> bool {
-        self.audio_graph.state() == ProcessingState::Suspended
+        self.state.get() == AudioContextState::Suspended
+    }
+
+    /// Takes the pending resume promises.
+    ///
+    /// The result with which these promises will be fulfilled is passed here
+    /// and this method returns nothing because we actually just move the
+    /// current list of pending resume promises to the
+    /// `in_flight_resume_promises_queue` field.
+    ///
+    /// Each call to this method must be followed by a call to
+    /// `fulfill_in_flight_resume_promises`, to actually fulfill the promises
+    /// which were taken and moved to the in-flight queue.
+    #[allow(unrooted_must_root)]
+    fn take_pending_resume_promises(&self, result: ErrorResult) {
+        let pending_resume_promises = mem::replace(
+            &mut *self.pending_resume_promises.borrow_mut(),
+            vec![],
+            );
+        self.in_flight_resume_promises_queue.borrow_mut().push_back((
+                pending_resume_promises.into(),
+                result,
+                ));
+    }
+
+    /// Fulfills the next in-flight resume promises queue after running a closure.
+    ///
+    /// See the comment on `take_pending_resume_promises` for why this method
+    /// does not take a list of promises to fulfill. Callers cannot just pop
+    /// the front list off of `in_flight_resume_promises_queue` and later fulfill
+    /// the promises because that would mean putting
+    /// `#[allow(unrooted_must_root)]` on even more functions, potentially
+    /// hiding actual safety bugs.
+    #[allow(unrooted_must_root)]
+    fn fulfill_in_flight_resume_promises<F>(&self, f: F)
+        where
+            F: FnOnce(),
+        {
+            let (promises, result) = self.in_flight_resume_promises_queue
+                .borrow_mut()
+                .pop_front()
+                .expect("there should be at least one list of in flight resume promises");
+            f();
+            for promise in &*promises {
+                match result {
+                    Ok(ref value) => promise.resolve_native(value),
+                    Err(ref error) => promise.reject_error(error.clone()),
+                }
+            }
+        }
+
+    /// Control thread processing state
+    pub fn control_thread_state(&self) -> ProcessingState {
+        self.audio_context_impl.state()
+    }
+
+    /// Set audio context state
+    pub fn set_state_attribute(&self, state: AudioContextState) {
+        self.state.set(state);
     }
 
     pub fn resume(&self) {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.dom_manipulation_task_source();
-
-        // Set the state attribute to `running` and start rendering audio.
         let this = Trusted::new(self);
-        task_source.queue(task!(resume: move || {
-            let this = this.root();
-            this.audio_graph.resume();
-        }), window.upcast()).unwrap();
 
-        // Queue a task to fire a simple event named `statechange` at the AudioContext.
-        task_source.queue_simple_event(
-            self.upcast(),
-            atom!("statechange"),
-            &window
-            );
+        // Set the rendering thread state to 'running' and start
+        // rendering the audio graph.
+        match self.audio_context_impl.resume() {
+            Ok(()) => {
+                self.take_pending_resume_promises(Ok(()));
+                let _ = task_source.queue(task!(resume_success: move || {
+                    let this = this.root();
+                    this.fulfill_in_flight_resume_promises(|| {
+                        if this.state.get() != AudioContextState::Running {
+                            this.state.set(AudioContextState::Running);
+                            let window = DomRoot::downcast::<Window>(this.global()).unwrap();
+                            window.dom_manipulation_task_source().queue_simple_event(
+                                this.upcast(),
+                                atom!("statechange"),
+                                &window
+                                );
+                        }
+                    });
+                }), window.upcast());
+            },
+            Err(()) => {
+                self.take_pending_resume_promises(Err(Error::Type("Something went wrong".to_owned())));
+                let _ = task_source.queue(task!(resume_error: move || {
+                    let this = this.root();
+                    this.fulfill_in_flight_resume_promises(|| {});
+                }), window.upcast());
+            }
+        }
     }
 }
 
@@ -120,13 +208,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
     fn CurrentTime(&self) -> Finite<f64> {
-        let current_time = self.audio_graph.current_time();
+        let current_time = self.audio_context_impl.current_time();
         Finite::wrap(current_time)
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
     fn State(&self) -> AudioContextState {
-        self.audio_graph.state().into()
+        self.state.get()
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
@@ -136,21 +224,23 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let promise = Promise::new(&self.global());
 
         // Step 2.
-        let state = self.audio_graph.state();
-        if state == ProcessingState::Closed {
+        if self.audio_context_impl.state() == ProcessingState::Closed {
             promise.reject_error(Error::InvalidState);
             return promise;
         }
 
         // Step 3.
-        if state == ProcessingState::Running {
+        if self.state.get() == AudioContextState::Running {
             promise.resolve_native(&());
             return promise;
         }
 
+        // Push the promise into the queue to avoid passing a reference to
+        // `resume()`. This way we limit the usage of #[allow(unrooted_must_root)]
+        self.pending_resume_promises.borrow_mut().push(promise.clone());
+
         // Step 4.
         if !self.is_allowed_to_start() {
-            self.pending_resume_promises.borrow_mut().push(promise.clone());
             return promise;
         }
 
