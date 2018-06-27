@@ -11,7 +11,7 @@ use dom::bindings::root::DomRoot;
 use dom::audioparam::AudioParam;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::AudioNodeType;
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
 use std::cell::Cell;
 
 // 32 is the minimum required by the spec for createBuffer() and the deprecated
@@ -40,7 +40,7 @@ impl AudioNode {
                          number_of_outputs: u32) -> AudioNode {
         AudioNode {
             reflector_: Reflector::new(),
-            node_id: context.create_node_engine(node_type),
+            node_id: context.audio_context_impl().create_node(node_type),
             context: DomRoot::from_ref(context),
             number_of_inputs,
             number_of_outputs,
@@ -49,15 +49,35 @@ impl AudioNode {
             channel_interpretation: Cell::new(options.channelInterpretation.unwrap_or_default()),
         }
     }
+
+    pub fn message(&self, message: AudioNodeMessage) {
+        self.context.audio_context_impl().message_node(self.node_id, message);
+    }
+
+    pub fn node(&self) -> NodeId {
+        self.node_id
+    }
 }
 
 impl AudioNodeMethods for AudioNode {
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
     fn Connect(&self,
                destination: &AudioNode,
-               _output: u32,
-               _input: u32) -> Fallible<DomRoot<AudioNode>> {
-        // TODO
+               output: u32,
+               input: u32) -> Fallible<DomRoot<AudioNode>> {
+        if self.context != destination.Context() {
+            return Err(Error::InvalidAccess);
+        }
+
+        if output >= self.NumberOfOutputs() ||
+            input >= destination.NumberOfInputs() {
+                return Err(Error::IndexSize);
+            }
+
+        self.context.audio_context_impl().connect_ports(
+            self.node().output(output), destination.node().input(input)
+            );
+
         Ok(DomRoot::from_ref(destination))
     }
 
