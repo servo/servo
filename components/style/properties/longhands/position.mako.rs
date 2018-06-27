@@ -29,7 +29,7 @@
         "computed::LengthOrPercentageOrAuto::Auto",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
-        alias="offset-%s" % side,
+        alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
         animation_value_type="ComputedValue",
         logical=True,
     )}
