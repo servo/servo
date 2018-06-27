@@ -23,8 +23,6 @@ use dom_struct::dom_struct;
 use servo_media::ServoMedia;
 use servo_media::audio::context::{AudioContext, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
-use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::AudioNodeType;
 use std::cell::Cell;
 use std::collections::VecDeque;
 use std::mem;
@@ -95,10 +93,6 @@ impl BaseAudioContext {
 
     pub fn audio_context_impl(&self) -> &AudioContext {
         &self.audio_context_impl
-    }
-
-    pub fn create_node_engine(&self, node_type: AudioNodeType) -> NodeId {
-        self.audio_context_impl.create_node(node_type)
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
