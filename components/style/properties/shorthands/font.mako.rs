@@ -285,6 +285,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="font-variant"
+                    flags="SHORTHAND_IN_GETCS"
                     sub_properties="font-variant-caps
                                     ${'font-variant-alternates' if product == 'gecko' else ''}
                                     ${'font-variant-east-asian' if product == 'gecko' else ''}

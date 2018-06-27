@@ -6,6 +6,7 @@
 
 <%helpers:shorthand
     name="overflow"
+    flags="SHORTHAND_IN_GETCS"
     sub_properties="overflow-x overflow-y"
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow"
 >

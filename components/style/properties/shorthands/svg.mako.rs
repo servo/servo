@@ -5,6 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="mask" products="gecko" extra_prefixes="webkit"
+                    flags="SHORTHAND_IN_GETCS"
                     sub_properties="mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x
                                     mask-position-y mask-size mask-image"
                     spec="https://drafts.fxtf.org/css-masking/#propdef-mask">
@@ -182,6 +183,7 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="mask-position" products="gecko" extra_prefixes="webkit"
+                    flags="SHORTHAND_IN_GETCS"
                     sub_properties="mask-position-x mask-position-y"
                     spec="https://drafts.csswg.org/css-masks-4/#the-mask-position">
     use properties::longhands::{mask_position_x,mask_position_y};
