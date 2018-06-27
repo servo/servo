@@ -391,10 +391,10 @@ class PackageCommands(CommandBase):
                      help='Install on Android')
     @CommandArgument('--emulator',
                      action='store_true',
-                     help='For Android, intall to the only emulated device')
+                     help='For Android, install to the only emulated device')
     @CommandArgument('--usb',
                      action='store_true',
-                     help='For Android, intall to the only USB device')
+                     help='For Android, install to the only USB device')
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Install the given target platform')
