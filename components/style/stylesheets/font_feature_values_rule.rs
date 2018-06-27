@@ -428,6 +428,7 @@ macro_rules! font_feature_values_blocks {
             fn parse_block<'t>(
                 &mut self,
                 prelude: BlockType,
+                _location: SourceLocation,
                 input: &mut Parser<'i, 't>
             ) -> Result<Self::AtRule, ParseError<'i>> {
                 debug_assert_eq!(self.context.rule_type(), CssRuleType::FontFeatureValues);
