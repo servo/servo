@@ -47,10 +47,10 @@ class PostBuildCommands(CommandBase):
                      help='Run on an Android device through `adb shell`')
     @CommandArgument('--emulator',
                      action='store_true',
-                     help='For Android, intall to the only emulated device')
+                     help='For Android, run in the only emulated device')
     @CommandArgument('--usb',
                      action='store_true',
-                     help='For Android, intall to the only USB device')
+                     help='For Android, run in the only USB device')
     @CommandArgument('--debug', action='store_true',
                      help='Enable the debugger. Not specifying a '
                           '--debugger option will result in the default '
