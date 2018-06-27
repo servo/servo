@@ -29,7 +29,7 @@ use hash::FnvHashMap;
 use super::ComputedValues;
 use values::CSSFloat;
 use values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
-use values::animated::color::RGBA as AnimatedRGBA;
+use values::animated::color::Color as AnimatedColor;
 use values::animated::effects::Filter as AnimatedFilter;
 #[cfg(feature = "gecko")] use values::computed::TransitionProperty;
 use values::computed::{Angle, CalcLengthOrPercentage};
@@ -2674,10 +2674,10 @@ impl ComputeSquaredDistance for ComputedTransform {
 }
 
 /// Animated SVGPaint
-pub type IntermediateSVGPaint = SVGPaint<AnimatedRGBA, ComputedUrl>;
+pub type IntermediateSVGPaint = SVGPaint<AnimatedColor, ComputedUrl>;
 
 /// Animated SVGPaintKind
-pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedRGBA, ComputedUrl>;
+pub type IntermediateSVGPaintKind = SVGPaintKind<AnimatedColor, ComputedUrl>;
 
 impl ToAnimatedZero for IntermediateSVGPaint {
     #[inline]
