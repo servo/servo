@@ -1867,13 +1867,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if !replacement_enabled {
-            let session_history = self.get_joint_session_history(top_level_browsing_context_id);
             let diff = SessionHistoryDiff::HashDiff {
                 pipeline_reloader: NeedsToReload::No(pipeline_id),
                 new_url,
                 old_url,
             };
-            session_history.push_diff(diff);
+            self.get_joint_session_history(top_level_browsing_context_id).push_diff(diff);
+            self.notify_history_changed(top_level_browsing_context_id);
         }
     }
 
@@ -2104,7 +2104,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Push history state {} for closed pipeline {}", history_state_id, pipeline_id),
         };
 
-        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
         let diff = SessionHistoryDiff::PipelineDiff {
             pipeline_reloader: NeedsToReload::No(pipeline_id),
             new_history_state_id: history_state_id,
@@ -2112,7 +2111,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             old_history_state_id: old_state_id,
             old_url: old_url,
         };
-        session_history.push_diff(diff);
+        self.get_joint_session_history(top_level_browsing_context_id).push_diff(diff);
+        self.notify_history_changed(top_level_browsing_context_id);
     }
 
     fn handle_replace_history_state_msg(
