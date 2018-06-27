@@ -167,23 +167,13 @@ var GenericSensorTest = (() => {
               initParams: initParams};
     }
 
-    async reset() {
+    reset() {
       if (this.activeSensor_ !== null) {
         this.activeSensor_.reset();
         this.activeSensor_ = null;
       }
-      // Wait for an event loop iteration to let
-      // the pending mojo commands pass.
-      function schedule(func) {
-        return new Promise(resolve => {
-          setTimeout(() => {
-            func();
-            resolve();
-          }, 0);
-        });
-      }
-      await schedule(this.binding_.close.bind(this.binding_));
-      await schedule(this.interceptor_.stop.bind(this.interceptor_));
+      this.binding_.close();
+      this.interceptor_.stop();
     }
   }
 
@@ -216,9 +206,13 @@ var GenericSensorTest = (() => {
     async reset() {
       if (!testInternal.initialized)
         throw new Error('Call initialize() before reset().');
-      await testInternal.sensorProvider.reset();
+      testInternal.sensorProvider.reset();
       testInternal.sensorProvider = null;
       testInternal.initialized = false;
+
+      // Wait for an event loop iteration to let any pending mojo commands in
+      // the sensor provider finish.
+      await new Promise(resolve => setTimeout(resolve, 0));
     }
   }
 

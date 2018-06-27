@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the MediaStream Image Capture spec.
-// See https://w3c.github.io/mediacapture-image/
+// Content of this file was automatically extracted from the
+// "MediaStream Image Capture" spec.
+// See: https://w3c.github.io/mediacapture-image/
 
 [Exposed=Window, Constructor(MediaStreamTrack videoTrack)]
 interface ImageCapture {
