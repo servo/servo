@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioSche
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::num::Finite;
 use dom_struct::dom_struct;
-use servo_media::audio::node::AudioNodeType;
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeType, AudioScheduledSourceNodeMessage};
 
 #[dom_struct]
 pub struct AudioScheduledSourceNode {
@@ -31,10 +31,16 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
     event_handler!(ended, GetOnended, SetOnended);
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-start
-    fn Start(&self, _when: Finite<f64>) {
+    fn Start(&self, when: Finite<f64>) {
+        self.node.message(
+            AudioNodeMessage::AudioScheduledSourceNode(AudioScheduledSourceNodeMessage::Start(*when))
+            );
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-stop
-    fn Stop(&self, _when: Finite<f64>) {
+    fn Stop(&self, when: Finite<f64>) {
+        self.node.message(
+            AudioNodeMessage::AudioScheduledSourceNode(AudioScheduledSourceNodeMessage::Stop(*when))
+            );
     }
 }
