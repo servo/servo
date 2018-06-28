@@ -69,7 +69,7 @@ class MachCommands(CommandBase):
 
         sdk_build_tools = "25.0.2"
         emulator_images = [
-            ("servo-armv7", "25", "google_apis;armeabi-v7a"),
+            ("servo-arm", "25", "google_apis;armeabi-v7a"),
             ("servo-x86", "28", "google_apis;x86"),
         ]
 

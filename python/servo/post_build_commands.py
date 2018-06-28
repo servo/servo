@@ -169,6 +169,20 @@ class PostBuildCommands(CommandBase):
             else:
                 raise e
 
+    @Command('android-emulator',
+             description='Run the Android emulator',
+             category='post-build')
+    @CommandArgument(
+        'args', nargs='...',
+        help="Command-line arguments to be passed through to the emulator")
+    def android_emulator(self, args=None):
+        if not args:
+            print("Pass at least an AVD name such as @servo-arm or @servo-x86")
+            return 1
+        env = self.build_env()
+        emulator = path.join(env["ANDROID_SDK"], "emulator", "emulator")
+        check_call([emulator] + args)
+
     @Command('rr-record',
              description='Run Servo whilst recording execution with rr',
              category='post-build')
