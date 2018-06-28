@@ -46,11 +46,8 @@ impl AudioContext {
         // servo-media takes care of setting the default sample rate of the output device
         // and of resampling the audio output if needed.
 
-        // Step 5.
-        if context.is_allowed_to_start() {
-            // Step 6.
-            context.resume();
-        }
+        // Steps 5 and 6 of the construction algorithm will happen in `resume`,
+        // after reflecting dom object.
 
         AudioContext {
             context,
@@ -64,7 +61,9 @@ impl AudioContext {
     pub fn new(global: &GlobalScope,
                options: &AudioContextOptions) -> DomRoot<AudioContext> {
         let context = AudioContext::new_inherited(global, options);
-        reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap)
+        let context = reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap);
+        context.resume();
+        context
     }
 
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
@@ -72,6 +71,14 @@ impl AudioContext {
                        options: &AudioContextOptions) -> Fallible<DomRoot<AudioContext>> {
         let global = window.upcast::<GlobalScope>();
         Ok(AudioContext::new(global, options))
+    }
+
+    fn resume(&self) {
+        // Step 5.
+        if self.context.is_allowed_to_start() {
+            // Step 6.
+            self.context.resume();
+        }
     }
 }
 

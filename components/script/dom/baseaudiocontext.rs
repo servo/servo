@@ -15,6 +15,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::root::DomRoot;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::oscillatornode::OscillatorNode;
 use dom::promise::Promise;
@@ -100,6 +101,11 @@ impl BaseAudioContext {
         self.state.get() == AudioContextState::Suspended
     }
 
+    #[allow(unrooted_must_root)]
+    fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
+        self.pending_resume_promises.borrow_mut().push(promise.clone());
+    }
+
     /// Takes the pending resume promises.
     ///
     /// The result with which these promises will be fulfilled is passed here
@@ -162,7 +168,6 @@ impl BaseAudioContext {
         let window = DomRoot::downcast::<Window>(self.global()).unwrap();
         let task_source = window.dom_manipulation_task_source();
         let this = Trusted::new(self);
-
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
         match self.audio_context_impl.resume() {
@@ -173,21 +178,16 @@ impl BaseAudioContext {
                     this.fulfill_in_flight_resume_promises(|| {
                         if this.state.get() != AudioContextState::Running {
                             this.state.set(AudioContextState::Running);
-                            let window = DomRoot::downcast::<Window>(this.global()).unwrap();
-                            window.dom_manipulation_task_source().queue_simple_event(
-                                this.upcast(),
-                                atom!("statechange"),
-                                &window
-                                );
+                            //XXX this.upcast::<EventTarget>().fire_event(atom!("statechange"));
                         }
+
                     });
                 }), window.upcast());
             },
             Err(()) => {
                 self.take_pending_resume_promises(Err(Error::Type("Something went wrong".to_owned())));
                 let _ = task_source.queue(task!(resume_error: move || {
-                    let this = this.root();
-                    this.fulfill_in_flight_resume_promises(|| {});
+                    this.root().fulfill_in_flight_resume_promises(|| {})
                 }), window.upcast());
             }
         }
@@ -229,9 +229,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
             return promise;
         }
 
-        // Push the promise into the queue to avoid passing a reference to
-        // `resume()`. This way we limit the usage of #[allow(unrooted_must_root)]
-        self.pending_resume_promises.borrow_mut().push(promise.clone());
+        self.push_pending_resume_promise(&promise);
 
         // Step 4.
         if !self.is_allowed_to_start() {
