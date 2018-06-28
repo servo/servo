@@ -2124,6 +2124,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     {
         use selectors::matching::*;
         match *pseudo_class {
+            NonTSPseudoClass::Defined |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
