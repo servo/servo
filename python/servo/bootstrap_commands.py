@@ -108,46 +108,45 @@ class MachCommands(CommandBase):
         ndk_path = download(ndk.format(system=system, arch=arch), "ndk", flatten=True)
         tools_path = download(tools.format(system=system), "sdk")
 
-        if update or not path.isdir(path.join(tools_path, "platform-tools")):
-            subprocess.check_call([
-                path.join(tools_path, "tools", "bin", "sdkmanager"),
-                "platform-tools",
-                "build-tools;" + sdk_build_tools,
-                "emulator",
-            ] + [
-                arg
-                for avd_name, api_level, system_image in emulator_images
-                for arg in [
-                    "platforms;android-" + api_level,
-                    "system-images;android-%s;%s" % (api_level, system_image),
-                ]
+        subprocess.check_call([
+            path.join(tools_path, "tools", "bin", "sdkmanager"),
+            "platform-tools",
+            "build-tools;" + sdk_build_tools,
+            "emulator",
+        ] + [
+            arg
+            for avd_name, api_level, system_image in emulator_images
+            for arg in [
+                "platforms;android-" + api_level,
+                "system-images;android-%s;%s" % (api_level, system_image),
+            ]
+        ])
+        for avd_name, api_level, system_image in emulator_images:
+            process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
+                path.join(tools_path, "tools", "bin", "avdmanager"),
+                "create", "avd",
+                "--path", path.join(toolchains, "avd", avd_name),
+                "--name", avd_name,
+                "--package", "system-images;android-%s;%s" % (api_level, system_image),
+                "--force",
             ])
-            for avd_name, api_level, system_image in emulator_images:
-                process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
-                    path.join(tools_path, "tools", "bin", "avdmanager"),
-                    "create", "avd",
-                    "--path", path.join(toolchains, "avd", avd_name),
-                    "--name", avd_name,
-                    "--package", "system-images;android-%s;%s" % (api_level, system_image),
-                    "--force",
-                ])
-                output = b""
-                while 1:
-                    # Read one byte at a time because in Python:
-                    # * readline() blocks until "\n", which doesn't come before the prompt
-                    # * read() blocks until EOF, which doesn't come before the prompt
-                    # * read(n) keeps reading until it gets n bytes or EOF,
-                    #   but we don't know reliably how many bytes to read until the prompt
-                    byte = process.stdout.read(1)
-                    if len(byte) == 0:
-                        break
-                    output += byte
-                    # There seems to be no way to disable this prompt:
-                    if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
-                        process.stdin.write("no\n")
-                assert process.wait() == 0
-                with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
-                    f.write("disk.dataPartition.size=1G\n")
+            output = b""
+            while 1:
+                # Read one byte at a time because in Python:
+                # * readline() blocks until "\n", which doesn't come before the prompt
+                # * read() blocks until EOF, which doesn't come before the prompt
+                # * read(n) keeps reading until it gets n bytes or EOF,
+                #   but we don't know reliably how many bytes to read until the prompt
+                byte = process.stdout.read(1)
+                if len(byte) == 0:
+                    break
+                output += byte
+                # There seems to be no way to disable this prompt:
+                if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
+                    process.stdin.write("no\n")
+            assert process.wait() == 0
+            with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
+                f.write("disk.dataPartition.size=1G\n")
 
         print("")
         print("export ANDROID_SDK=\"%s\"" % tools_path)
