@@ -12,12 +12,14 @@ from .base import TestUsingServer, doc_root
 
 
 class TestFileHandler(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_GET(self):
         resp = self.request("/document.txt")
         self.assertEqual(200, resp.getcode())
         self.assertEqual("text/plain", resp.info()["Content-Type"])
         self.assertEqual(open(os.path.join(doc_root, "document.txt"), 'rb').read(), resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_headers(self):
         resp = self.request("/with_headers.txt")
         self.assertEqual(200, resp.getcode())
@@ -29,6 +31,7 @@ class TestFileHandler(TestUsingServer):
         self.assertEqual(resp.info()["Double-Header"], "PA, SS")
 
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_range(self):
         resp = self.request("/document.txt", headers={"Range":"bytes=10-19"})
         self.assertEqual(206, resp.getcode())
@@ -39,6 +42,7 @@ class TestFileHandler(TestUsingServer):
         self.assertEqual("10", resp.info()['Content-Length'])
         self.assertEqual(expected[10:20], data)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_range_no_end(self):
         resp = self.request("/document.txt", headers={"Range":"bytes=10-"})
         self.assertEqual(206, resp.getcode())
@@ -48,6 +52,7 @@ class TestFileHandler(TestUsingServer):
         self.assertEqual("bytes 10-%i/%i" % (len(expected) - 1, len(expected)), resp.info()['Content-Range'])
         self.assertEqual(expected[10:], data)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_range_no_start(self):
         resp = self.request("/document.txt", headers={"Range":"bytes=-10"})
         self.assertEqual(206, resp.getcode())
@@ -58,6 +63,7 @@ class TestFileHandler(TestUsingServer):
                          resp.info()['Content-Range'])
         self.assertEqual(expected[-10:], data)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_multiple_ranges(self):
         resp = self.request("/document.txt", headers={"Range":"bytes=1-2,5-7,6-10"})
         self.assertEqual(206, resp.getcode())
@@ -76,6 +82,7 @@ class TestFileHandler(TestUsingServer):
             self.assertEqual(headers["Content-Range"], "bytes %s/%i" % (expected_part[0], len(expected)))
             self.assertEqual(expected_part[1] + "\r\n", body)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_range_invalid(self):
         with self.assertRaises(HTTPError) as cm:
             self.request("/document.txt", headers={"Range":"bytes=11-10"})
@@ -86,16 +93,19 @@ class TestFileHandler(TestUsingServer):
             self.request("/document.txt", headers={"Range":"bytes=%i-%i" % (len(expected), len(expected) + 10)})
         self.assertEqual(cm.exception.code, 416)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_config(self):
         resp = self.request("/sub.sub.txt")
         expected = b"localhost localhost %i" % self.server.port
         assert resp.read().rstrip() == expected
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_headers(self):
         resp = self.request("/sub_headers.sub.txt", headers={"X-Test": "PASS"})
         expected = b"PASS"
         assert resp.read().rstrip() == expected
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_params(self):
         resp = self.request("/sub_params.sub.txt", query="test=PASS")
         expected = b"PASS"
@@ -103,6 +113,7 @@ class TestFileHandler(TestUsingServer):
 
 
 class TestFunctionHandler(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_string_rv(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -115,6 +126,7 @@ class TestFunctionHandler(TestUsingServer):
         self.assertEqual("9", resp.info()["Content-Length"])
         self.assertEqual("test data", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_1_rv(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -128,6 +140,7 @@ class TestFunctionHandler(TestUsingServer):
 
         assert cm.value.code == 500
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_2_rv(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -141,6 +154,7 @@ class TestFunctionHandler(TestUsingServer):
         self.assertEqual("test-value", resp.info()["test-header"])
         self.assertEqual("test", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_3_rv(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -153,6 +167,7 @@ class TestFunctionHandler(TestUsingServer):
         self.assertEqual("test-value", resp.info()["test-header"])
         self.assertEqual("test data", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_3_rv_1(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -166,6 +181,7 @@ class TestFunctionHandler(TestUsingServer):
         self.assertEqual("test-value", resp.info()["test-header"])
         self.assertEqual("test data", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_4_rv(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -179,6 +195,7 @@ class TestFunctionHandler(TestUsingServer):
 
         assert cm.value.code == 500
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_none_rv(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -193,6 +210,7 @@ class TestFunctionHandler(TestUsingServer):
 
 
 class TestJSONHandler(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_json_0(self):
         @wptserve.handlers.json_handler
         def handler(request, response):
@@ -204,6 +222,7 @@ class TestJSONHandler(TestUsingServer):
         self.assertEqual(200, resp.getcode())
         self.assertEqual({"data": "test data"}, json.load(resp))
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_json_tuple_2(self):
         @wptserve.handlers.json_handler
         def handler(request, response):
@@ -216,6 +235,7 @@ class TestJSONHandler(TestUsingServer):
         self.assertEqual("test-value", resp.info()["test-header"])
         self.assertEqual({"data": "test data"}, json.load(resp))
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_json_tuple_3(self):
         @wptserve.handlers.json_handler
         def handler(request, response):
@@ -231,12 +251,14 @@ class TestJSONHandler(TestUsingServer):
 
 
 class TestPythonHandler(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_string(self):
         resp = self.request("/test_string.py")
         self.assertEqual(200, resp.getcode())
         self.assertEqual("text/plain", resp.info()["Content-Type"])
         self.assertEqual("PASS", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_2(self):
         resp = self.request("/test_tuple_2.py")
         self.assertEqual(200, resp.getcode())
@@ -244,6 +266,7 @@ class TestPythonHandler(TestUsingServer):
         self.assertEqual("PASS", resp.info()["X-Test"])
         self.assertEqual("PASS", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_tuple_3(self):
         resp = self.request("/test_tuple_3.py")
         self.assertEqual(202, resp.getcode())
@@ -252,6 +275,7 @@ class TestPythonHandler(TestUsingServer):
         self.assertEqual("PASS", resp.info()["X-Test"])
         self.assertEqual("PASS", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_import(self):
         dir_name = os.path.join(doc_root, "subdir")
         assert dir_name not in sys.path
@@ -263,18 +287,21 @@ class TestPythonHandler(TestUsingServer):
         self.assertEqual("text/plain", resp.info()["Content-Type"])
         self.assertEqual("PASS", resp.read())
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_no_main(self):
         with pytest.raises(HTTPError) as cm:
             self.request("/no_main.py")
 
         assert cm.value.code == 500
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_invalid(self):
         with pytest.raises(HTTPError) as cm:
             self.request("/invalid.py")
 
         assert cm.value.code == 500
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_missing(self):
         with pytest.raises(HTTPError) as cm:
             self.request("/missing.py")
@@ -283,17 +310,20 @@ class TestPythonHandler(TestUsingServer):
 
 
 class TestDirectoryHandler(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_directory(self):
         resp = self.request("/")
         self.assertEqual(200, resp.getcode())
         self.assertEqual("text/html", resp.info()["Content-Type"])
         #Add a check that the response is actually sane
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_subdirectory_trailing_slash(self):
         resp = self.request("/subdir/")
         assert resp.getcode() == 200
         assert resp.info()["Content-Type"] == "text/html"
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_subdirectory_no_trailing_slash(self):
         # This seems to resolve the 301 transparently, so test for 200
         resp = self.request("/subdir")
@@ -302,6 +332,7 @@ class TestDirectoryHandler(TestUsingServer):
 
 
 class TestAsIsHandler(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_as_is(self):
         resp = self.request("/test.asis")
         self.assertEqual(202, resp.getcode())

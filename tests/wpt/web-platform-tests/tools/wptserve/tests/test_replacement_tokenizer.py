@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from wptserve.pipes import ReplacementTokenizer
@@ -10,10 +12,26 @@ from wptserve.pipes import ReplacementTokenizer
         ["$ccc:ddd", [('var', '$ccc'), ('ident', 'ddd')]],
         ["$eee", [('ident', '$eee')]],
         ["fff[0]", [('ident', 'fff'), ('index', 0)]],
-        ["ggg[hhh]", [('ident', 'ggg'), ('index', u'hhh')]],
-        ["[iii]", [('index', u'iii')]],
-        ["jjj['kkk']", [('ident', 'jjj'), ('index', u"'kkk'")]],
-        ["lll[]", [('ident', 'lll'), ('index', u"")]],
+        pytest.param(
+            "ggg[hhh]", [('ident', 'ggg'), ('index', u'hhh')],
+            marks=pytest.mark.xfail(sys.version_info >= (3,),
+                                    reason="wptserve only works on Py2")
+        ),
+        pytest.param(
+            "[iii]", [('index', u'iii')],
+            marks=pytest.mark.xfail(sys.version_info >= (3,),
+                                    reason="wptserve only works on Py2")
+        ),
+        pytest.param(
+            "jjj['kkk']", [('ident', 'jjj'), ('index', u"'kkk'")],
+            marks=pytest.mark.xfail(sys.version_info >= (3,),
+                                    reason="wptserve only works on Py2")
+        ),
+        pytest.param(
+            "lll[]", [('ident', 'lll'), ('index', u"")],
+            marks=pytest.mark.xfail(sys.version_info >= (3,),
+                                    reason="wptserve only works on Py2")
+        ),
         ["111", [('ident', u'111')]],
         ["$111", [('ident', u'$111')]],
     ]

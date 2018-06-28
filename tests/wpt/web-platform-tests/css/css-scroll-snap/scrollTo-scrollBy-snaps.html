@@ -8,41 +8,55 @@ body {
   overflow: scroll;
   scroll-snap-type: both mandatory;
 }
+div {
+  position: absolute;
+}
 .scroller {
   overflow: scroll;
   scroll-snap-type: both mandatory;
 }
-#div-scroller {
+#inner-scroller {
+  top: 3000px;
   width: 800px;
   height: 800px;
 }
-.content {
+.space {
+  left: 0px;
+  top: 0px;
   width: 2100px;
   height: 2100px;
 }
 .target {
-  width: 1000px;
-  height: 1000px;
+  width: 600px;
+  height: 600px;
   scroll-snap-align: start;
-  float: left;
+}
+
+.left {
+  left: 0px;
+}
+.right {
+  left: 1000px;
+}
+.top {
+  top: 0px;
+}
+.bottom {
+  top: 1000px;
 }
 </style>
-
 <body class="scroller">
-  <div class="content" id="content">
-    <div class="target"></div>
-    <div class="target"></div>
-    <div class="target"></div>
-    <div class="target"></div>
-  </div>
-
-  <div class="scroller" id="div-scroller">
-    <div class="content">
-      <div class="target"></div>
-      <div class="target"></div>
-      <div class="target"></div>
-      <div class="target"></div>
-    </div>
+  <div class="space"></div>
+  <div class="target left top"></div>
+  <div class="target right top"></div>
+  <div class="target left bottom"></div>
+  <div class="target right bottom"></div>
+  <div class="scroller" id="inner-scroller">
+    <div class="space"></div>
+    <div class="target left top"></div>
+    <div class="target right top"></div>
+    <div class="target left bottom"></div>
+    <div class="target right bottom"></div>
   </div>
 </body>
 
@@ -55,7 +69,7 @@ function format_dict(dict) {
   return `{${props.join(', ')}}`;
 }
 
-var divScroller = document.getElementById("div-scroller");
+var divScroller = document.getElementById("inner-scroller");
 var viewport = document.scrollingElement;
 [
   [{left: 800}, 1000, 0],
@@ -140,6 +154,4 @@ var viewport = document.scrollingElement;
     assert_equals(window.scrollY, expectedY);
   }, `scrollBy(${format_dict(input)}) on window lands on (${expectedX}, ${expectedY})`);
 });
-
-document.body.removeChild(document.getElementById("content"));
 </script>

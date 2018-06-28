@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing padding with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-padding">
+<meta name="assert" content="padding supports only the grammar '<length>{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("padding", "auto");
+test_invalid_value("padding", "available");
+test_invalid_value("padding", "10px border-box");
+test_invalid_value("padding", "calc(2em + 3ex) auto");
+test_invalid_value("padding", "10px 20px 30px 40px 50px");
+
+test_invalid_value("padding-top", "auto");
+test_invalid_value("padding-bottom", "10px 20px calc(2em + 3ex) auto");
+test_invalid_value("padding-bottom-left", "10px 20px");
+
+test_invalid_value("padding-top", "-10px");
+
+// The following are not yet rejected by browsers:
+test_invalid_value("padding", "20%");
+test_invalid_value("padding", "10px 20% 30% 40px");
+test_invalid_value("padding-right", "20%");
+test_invalid_value("padding-right", "calc(2em + 3%)");
+</script>
+</body>
+</html>

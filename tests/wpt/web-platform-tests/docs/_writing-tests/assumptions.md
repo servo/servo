@@ -16,8 +16,13 @@ tests can freely rely on these assumptions being true:
  * The user stylesheet is empty (except where indicated by the tests).
  * The device is interactive and uses scroll bars.
  * The device has the Ahem font installed.
- * The HTML `div` element is assigned `display: block;` and no other
-   property declaration.
+ * The HTML `div` element is assigned `display: block;`, the
+   `unicode-bidi` property may be declared, and no other property
+   declarations.
+   <!-- unicode-bidi: isolate should be required; we currently don't
+   assume this because Chrome and Safari are yet to ship this: see
+   https://bugs.chromium.org/p/chromium/issues/detail?id=296863 and
+   https://bugs.webkit.org/show_bug.cgi?id=65617 -->
  * The HTML `span` element is assigned `display: inline;` and no other
    property declaration.
  * The HTML `p` element is assigned `display: block;`

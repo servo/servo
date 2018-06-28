@@ -42,6 +42,7 @@
     t.add_cleanup(() => pc.close());
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
     pc.close();
@@ -64,6 +65,7 @@
     t.add_cleanup(() => pc.close());
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
     const sender = pc.addTrack(track);
@@ -95,6 +97,7 @@
     t.add_cleanup(() => pc.close());
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
     const sender = pc.addTrack(track, stream);
@@ -111,6 +114,7 @@
     t.add_cleanup(() => pc.close());
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
     const stream2 = new MediaStream([track]);
@@ -134,6 +138,7 @@
     t.add_cleanup(() => pc.close());
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
 
     pc.addTrack(track, stream);

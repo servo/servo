@@ -19,9 +19,10 @@
         should(timestamp.contextTime, 'timestamp.contextTime').exist();
         should(timestamp.performanceTime, 'timestamp.performanceTime').exist();
 
-        should(timestamp.contextTime, 'timestamp.contextTime').beEqualTo(0);
+        should(timestamp.contextTime, 'timestamp.contextTime')
+            .beGreaterThanOrEqualTo(0);
         should(timestamp.performanceTime, 'timestamp.performanceTime')
-            .beEqualTo(0);
+            .beGreaterThanOrEqualTo(0);
 
         task.done();
       });
