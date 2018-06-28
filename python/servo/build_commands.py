@@ -260,10 +260,10 @@ class MachCommands(CommandBase):
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C debug_assertions"
 
         if android:
-            if "ANDROID_NDK" not in os.environ:
+            if "ANDROID_NDK" not in env:
                 print("Please set the ANDROID_NDK environment variable.")
                 sys.exit(1)
-            if "ANDROID_SDK" not in os.environ:
+            if "ANDROID_SDK" not in env:
                 print("Please set the ANDROID_SDK environment variable.")
                 sys.exit(1)
 

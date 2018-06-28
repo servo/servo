@@ -77,10 +77,10 @@ class MachCommands(CommandBase):
         if not path.isdir(toolchains):
             os.makedirs(toolchains)
 
-        def download(name, target_dir, flatten=False):
+        def download(target_dir, name, flatten=False):
             final = path.join(toolchains, target_dir)
             if path.isdir(final):
-                return final
+                return
 
             base_url = "https://dl.google.com/android/repository/"
             filename = name + ".zip"
@@ -100,16 +100,15 @@ class MachCommands(CommandBase):
                 os.rmdir(extracted)
             else:
                 extract(archive, final, remove=remove)
-            return final
 
         system = platform.system().lower()
         machine = platform.machine().lower()
         arch = {"i386": "x86"}.get(machine, machine)
-        ndk_path = download(ndk.format(system=system, arch=arch), "ndk", flatten=True)
-        tools_path = download(tools.format(system=system), "sdk")
+        download("ndk", ndk.format(system=system, arch=arch), flatten=True)
+        download("sdk", tools.format(system=system))
 
         subprocess.check_call([
-            path.join(tools_path, "tools", "bin", "sdkmanager"),
+            path.join(toolchains, "sdk", "tools", "bin", "sdkmanager"),
             "platform-tools",
             "build-tools;" + sdk_build_tools,
             "emulator",
@@ -123,7 +122,7 @@ class MachCommands(CommandBase):
         ])
         for avd_name, api_level, system_image in emulator_images:
             process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
-                path.join(tools_path, "tools", "bin", "avdmanager"),
+                path.join(toolchains, "sdk", "tools", "bin", "avdmanager"),
                 "create", "avd",
                 "--path", path.join(toolchains, "avd", avd_name),
                 "--name", avd_name,
@@ -147,15 +146,6 @@ class MachCommands(CommandBase):
             assert process.wait() == 0
             with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
                 f.write("disk.dataPartition.size=1G\n")
-
-        print("")
-        print("export ANDROID_SDK=\"%s\"" % tools_path)
-        print("export ANDROID_NDK=\"%s\"" % ndk_path)
-        print("export PATH=\"%s:$PATH\"" % path.join(tools_path, "platform-tools"))
-        print("")
-        # https://developer.android.com/studio/run/emulator-acceleration#command-gpu
-        print(path.join(tools_path, "tools", "emulator") +
-              " @servo-armv7 -gpu swiftshader_indirect [ -no-window ]")
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
