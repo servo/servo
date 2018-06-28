@@ -109,14 +109,17 @@ class MachCommands(CommandBase):
                 "emulator",
                 image,
             ])
-            subprocess.check_call([
-                path.join(tools_path, "tools", "bin", "avdmanager"),
-                "create", "avd",
-                "--path", path.join(toolchains, "avd", avd_name),
-                "--name", avd_name,
-                "--package", image,
-                "--force",
-            ])
+            subprocess.Popen(
+                stdin=subprocess.PIPE, args=[
+                    path.join(tools_path, "tools", "bin", "avdmanager"),
+                    "create", "avd",
+                    "--path", path.join(toolchains, "avd", avd_name),
+                    "--name", avd_name,
+                    "--package", image,
+                    "--force",
+                ]
+                # This command always prompts "Do you wish to create a custom hardware profile?"
+                ).communicate("no\n")
             with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
                 f.write("disk.dataPartition.size=1G\n")
 
@@ -124,6 +127,7 @@ class MachCommands(CommandBase):
         assert len(contents) == 1
         ndk_path = path.join(ndk_path, contents[0])
 
+        print("")
         print("")
         print("export ANDROID_SDK=\"%s\"" % tools_path)
         print("export ANDROID_NDK=\"%s\"" % ndk_path)
