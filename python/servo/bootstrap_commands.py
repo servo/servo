@@ -77,8 +77,8 @@ class MachCommands(CommandBase):
         if not path.isdir(toolchains):
             os.makedirs(toolchains)
 
-        def download(name):
-            final = path.join(toolchains, name)
+        def download(name, target_dir, flatten=False):
+            final = path.join(toolchains, target_dir)
             if path.isdir(final):
                 return final
 
@@ -90,15 +90,23 @@ class MachCommands(CommandBase):
             if not path.isfile(archive):
                 download_file(filename, url, archive)
             print("Extracting " + filename)
-            remove = True  # Set to False to avoid repeated downloads while debugging this script
-            extract(archive, final, remove=remove)
+            remove = False  # Set to False to avoid repeated downloads while debugging this script
+            if flatten:
+                extracted = final + "_"
+                extract(archive, extracted, remove=remove)
+                contents = os.listdir(extracted)
+                assert len(contents) == 1
+                os.rename(path.join(extracted, contents[0]), final)
+                os.rmdir(extracted)
+            else:
+                extract(archive, final, remove=remove)
             return final
 
         system = platform.system().lower()
         machine = platform.machine().lower()
         arch = {"i386": "x86"}.get(machine, machine)
-        ndk_path = download(ndk.format(system=system, arch=arch))
-        tools_path = download(tools.format(system=system))
+        ndk_path = download(ndk.format(system=system, arch=arch), "ndk", flatten=True)
+        tools_path = download(tools.format(system=system), "sdk")
 
         if update or not path.isdir(path.join(tools_path, "platform-tools")):
             subprocess.check_call([
@@ -140,10 +148,6 @@ class MachCommands(CommandBase):
                 assert process.wait() == 0
                 with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
                     f.write("disk.dataPartition.size=1G\n")
-
-        contents = os.listdir(ndk_path)
-        assert len(contents) == 1
-        ndk_path = path.join(ndk_path, contents[0])
 
         print("")
         print("export ANDROID_SDK=\"%s\"" % tools_path)
