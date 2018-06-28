@@ -60,17 +60,18 @@ class MachCommands(CommandBase):
              category='bootstrap')
     @CommandArgument('--update',
                      action='store_true',
-                     help='Run "android sdk update" again')
+                     help='Run SDK component install and emulator image creation again')
     def bootstrap_android(self, update=False):
 
         # Available filenames: see https://dl.google.com/android/repository/repository2-1.xml
         ndk = "android-ndk-r12b-{system}-{arch}"
         tools = "sdk-tools-{system}-4333796"
 
-        api_level = "25"
         sdk_build_tools = "25.0.2"
-        system_image = "google_apis;armeabi-v7a"
-        avd_name = "servo-armv7"
+        emulator_images = [
+            ("servo-armv7", "25", "google_apis;armeabi-v7a"),
+            ("servo-x86", "28", "google_apis;x86"),
+        ]
 
         toolchains = path.join(self.context.topdir, "android-toolchains")
         if not path.isdir(toolchains):
@@ -100,34 +101,50 @@ class MachCommands(CommandBase):
         tools_path = download(tools.format(system=system))
 
         if update or not path.isdir(path.join(tools_path, "platform-tools")):
-            image = "system-images;android-%s;%s" % (api_level, system_image)
             subprocess.check_call([
                 path.join(tools_path, "tools", "bin", "sdkmanager"),
                 "platform-tools",
-                "platforms;android-" + api_level,
                 "build-tools;" + sdk_build_tools,
                 "emulator",
-                image,
+            ] + [
+                arg
+                for avd_name, api_level, system_image in emulator_images
+                for arg in [
+                    "platforms;android-" + api_level,
+                    "system-images;android-%s;%s" % (api_level, system_image),
+                ]
             ])
-            subprocess.Popen(
-                stdin=subprocess.PIPE, args=[
+            for avd_name, api_level, system_image in emulator_images:
+                process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
                     path.join(tools_path, "tools", "bin", "avdmanager"),
                     "create", "avd",
                     "--path", path.join(toolchains, "avd", avd_name),
                     "--name", avd_name,
-                    "--package", image,
+                    "--package", "system-images;android-%s;%s" % (api_level, system_image),
                     "--force",
-                ]
-                # This command always prompts "Do you wish to create a custom hardware profile?"
-                ).communicate("no\n")
-            with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
-                f.write("disk.dataPartition.size=1G\n")
+                ])
+                output = b""
+                while 1:
+                    # Read one byte at a time because in Python:
+                    # * readline() blocks until "\n", which doesn't come before the prompt
+                    # * read() blocks until EOF, which doesn't come before the prompt
+                    # * read(n) keeps reading until it gets n bytes or EOF,
+                    #   but we don't know reliably how many bytes to read until the prompt
+                    byte = process.stdout.read(1)
+                    if len(byte) == 0:
+                        break
+                    output += byte
+                    # There seems to be no way to disable this prompt:
+                    if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
+                        process.stdin.write("no\n")
+                assert process.wait() == 0
+                with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
+                    f.write("disk.dataPartition.size=1G\n")
 
         contents = os.listdir(ndk_path)
         assert len(contents) == 1
         ndk_path = path.join(ndk_path, contents[0])
 
-        print("")
         print("")
         print("export ANDROID_SDK=\"%s\"" % tools_path)
         print("export ANDROID_NDK=\"%s\"" % ndk_path)
