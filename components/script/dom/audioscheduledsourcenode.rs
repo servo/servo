@@ -21,7 +21,8 @@ impl AudioScheduledSourceNode {
                          number_of_inputs: u32,
                          number_of_outputs: u32) -> AudioScheduledSourceNode {
         AudioScheduledSourceNode {
-            node: AudioNode::new_inherited(node_type, context, options, number_of_inputs, number_of_outputs),
+            node: AudioNode::new_inherited(node_type, None /* node_id */,
+                                           context, options, number_of_inputs, number_of_outputs),
         }
     }
 }

@@ -21,7 +21,9 @@ impl AudioDestinationNode {
     fn new_inherited(context: &BaseAudioContext,
                      options: &AudioNodeOptions) -> AudioDestinationNode {
         AudioDestinationNode {
-            node: AudioNode::new_inherited(AudioNodeType::DestinationNode, context, options, 1, 1),
+            node: AudioNode::new_inherited(AudioNodeType::DestinationNode,
+                                           Some(context.destination_node()),
+                                           context, options, 1, 1),
         }
     }
 
