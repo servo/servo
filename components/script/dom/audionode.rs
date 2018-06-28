@@ -34,13 +34,17 @@ pub struct AudioNode {
 
 impl AudioNode {
     pub fn new_inherited(node_type: AudioNodeType,
+                         node_id: Option<NodeId>,
                          context: &BaseAudioContext,
                          options: &AudioNodeOptions,
                          number_of_inputs: u32,
                          number_of_outputs: u32) -> AudioNode {
+        let node_id = node_id.unwrap_or_else(|| {
+            context.audio_context_impl().create_node(node_type)
+        });
         AudioNode {
             reflector_: Reflector::new(),
-            node_id: context.audio_context_impl().create_node(node_type),
+            node_id,
             context: DomRoot::from_ref(context),
             number_of_inputs,
             number_of_outputs,
