@@ -19,6 +19,8 @@ pub trait AudioParamImpl: JSTraceable + MallocSizeOf {
     fn set_value_at_time(&self, value: f32, start_time: f64);
     fn ramp_to_value_at_time(&self, ramp_kind: RampKind, value: f32, end_time: f64);
     fn set_target_at_time(&self, value: f32, start_time: f64, time_constant: f32);
+    fn cancel_scheduled_values(&self, cancel_time: f64);
+    fn cancel_and_hold_at_time(&self, cancel_time: f64);
 }
 
 #[dom_struct]
@@ -116,6 +118,16 @@ impl AudioParamMethods for AudioParam {
         -> DomRoot<AudioParam>
     {
         self.param_impl.set_target_at_time(*target, *start_time, *time_constant);
+        DomRoot::from_ref(self)
+    }
+
+    fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
+        self.param_impl.cancel_scheduled_values(*cancel_time);
+        DomRoot::from_ref(self)
+    }
+
+    fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
+        self.param_impl.cancel_and_hold_at_time(*cancel_time);
         DomRoot::from_ref(self)
     }
 }
