@@ -41,3 +41,8 @@ pub trait Castable: IDLInterface + DomObject + Sized {
         }
     }
 }
+
+pub trait HasParent {
+    type Parent;
+    fn as_parent(&self) -> &Self::Parent;
+}
