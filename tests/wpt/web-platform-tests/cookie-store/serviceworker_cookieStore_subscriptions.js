@@ -13,7 +13,7 @@ self.addEventListener('install', (event) => {
       { name: 'cookie-name1', matchType: 'equals', url: '/scope/path1' }]);
     await cookieStore.subscribeToChanges([
       { },  // Test the default values for subscription properties.
-      { name: 'cookie-prefix', matchType: 'startsWith' },
+      { name: 'cookie-prefix', matchType: 'starts-with' },
     ]);
   })());
 });
@@ -54,10 +54,10 @@ promise_test(async testCase => {
   assert_equals('equals', subscriptions[0].matchType);
 
   assert_equals(subscriptions[1].name, 'cookie-prefix');
-  assert_equals('startsWith', subscriptions[1].matchType);
+  assert_equals('starts-with', subscriptions[1].matchType);
 
   assert_false('name' in subscriptions[2]);
-  assert_equals('startsWith', subscriptions[2].matchType);
+  assert_equals('starts-with', subscriptions[2].matchType);
 }, 'getChangeSubscriptions returns subscriptions passed to subscribeToChanges');
 
 promise_test(async testCase => {

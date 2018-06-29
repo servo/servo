@@ -249,16 +249,21 @@ class FirefoxBrowser(Browser):
         prefs = Preferences()
 
         pref_paths = []
-        prefs_general = os.path.join(self.prefs_root, 'prefs_general.js')
-        if os.path.isfile(prefs_general):
-            # Old preference file used in Firefox 60 and earlier (remove when no longer supported)
-            pref_paths.append(prefs_general)
 
         profiles = os.path.join(self.prefs_root, 'profiles.json')
         if os.path.isfile(profiles):
             with open(profiles, 'r') as fh:
                 for name in json.load(fh)['web-platform-tests']:
                     pref_paths.append(os.path.join(self.prefs_root, name, 'user.js'))
+        else:
+            # Old preference files used before the creation of profiles.json (remove when no longer supported)
+            legacy_pref_paths = (
+                os.path.join(self.prefs_root, 'prefs_general.js'),   # Used in Firefox 60 and below
+                os.path.join(self.prefs_root, 'common', 'user.js'),  # Used in Firefox 61
+            )
+            for path in legacy_pref_paths:
+                if os.path.isfile(path):
+                    pref_paths.append(path)
 
         for path in pref_paths:
             if os.path.exists(path):
