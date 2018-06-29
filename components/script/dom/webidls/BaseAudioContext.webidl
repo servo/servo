@@ -36,7 +36,7 @@ interface BaseAudioContext : EventTarget {
   //                                              optional unsigned long numberOfInputChannels = 2,
   //                                             optional unsigned long numberOfOutputChannels = 2);
   // AnalyserNode           createAnalyser();
-  // GainNode               createGain();
+  GainNode               createGain();
   // DelayNode              createDelay(optional double maxDelayTime = 1);
   // BiquadFilterNode       createBiquadFilter();
   // IIRFilterNode          createIIRFilter(sequence<double> feedforward,
