@@ -2116,6 +2116,10 @@ class CGDOMJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
+        parentName = self.descriptor.getParentName()
+        if not parentName:
+            parentName = "::dom::bindings::reflector::Reflector"
+
         args = {
             "domClass": DOMClass(self.descriptor),
             "enumerateHook": "None",
@@ -2161,8 +2165,47 @@ static Class: DOMJSClass = DOMJSClass {
         reserved: [0 as *mut _; 3],
     },
     dom_class: %(domClass)s
-};""" % args
+};
+""" % args
 
+class CGAssertInheritance(CGThing):
+    """
+    Generate a type assertion for inheritance
+    """
+    def __init__(self, descriptor):
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+
+    def define(self):
+        parent = self.descriptor.interface.parent
+        parentName = ""
+        if parent:
+            parentName = parent.identifier.name
+        else:
+            parentName = "::dom::bindings::reflector::Reflector"
+
+        selfName = self.descriptor.interface.identifier.name
+
+        if selfName == "PaintRenderingContext2D":
+            # PaintRenderingContext2D embeds a CanvasRenderingContext2D
+            # instead of a Reflector as an optimization,
+            # but this is fine since CanvasRenderingContext2D
+            # also has a reflector
+            parentName = "::dom::canvasrenderingcontext2d::CanvasRenderingContext2D"
+        args = {
+            "parentName": parentName,
+            "selfName": selfName,
+        }
+
+        return """\
+impl %(selfName)s {
+    fn __assert_parent_type(&self) {
+        // If this type assertion fails, make sure the first field of your
+        // DOM struct is of the correct type -- it must be the parent class.
+        let _: &%(parentName)s = self.__get_parent();
+    }
+}
+""" % args
 
 def str_to_const_array(s):
     return "b\"%s\\0\"" % s
@@ -6011,6 +6054,8 @@ class CGDescriptor(CGThing):
                 pass
             else:
                 cgThings.append(CGDOMJSClass(descriptor))
+                if not descriptor.interface.isIteratorInterface():
+                    cgThings.append(CGAssertInheritance(descriptor))
                 pass
 
             if descriptor.isGlobal():

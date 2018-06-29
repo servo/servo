@@ -5,11 +5,10 @@
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::FileReaderSyncBinding::{FileReaderSyncBinding, FileReaderSyncMethods};
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::blob::Blob;
-use dom::eventtarget::EventTarget;
 use dom::filereader::FileReaderSharedFunctionality;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
@@ -20,13 +19,13 @@ use std::ptr::NonNull;
 
 #[dom_struct]
 pub struct FileReaderSync {
-    eventtarget: EventTarget,
+    reflector: Reflector,
 }
 
 impl FileReaderSync {
     pub fn new_inherited() -> FileReaderSync {
         FileReaderSync {
-            eventtarget: EventTarget::new_inherited(),
+            reflector: Reflector::new(),
         }
     }
 
