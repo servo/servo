@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
+use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
@@ -16,6 +17,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::eventtarget::EventTarget;
+use dom::gainnode::GainNode;
 use dom::globalscope::GlobalScope;
 use dom::oscillatornode::OscillatorNode;
 use dom::promise::Promise;
@@ -266,6 +268,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let window = global.as_window();
         let options = unsafe { OscillatorOptions::empty(window.get_cx()) };
         OscillatorNode::new(&window, &self, &options)
+    }
+
+    #[allow(unsafe_code)]
+    fn CreateGain(&self) -> DomRoot<GainNode> {
+        let global = self.global();
+        let window = global.as_window();
+        let options = unsafe { GainOptions::empty(window.get_cx()) };
+        GainNode::new(&window, &self, &options)
     }
 }
 
