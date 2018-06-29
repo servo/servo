@@ -26,14 +26,14 @@ use std::f32;
 use std::rc::Rc;
 
 audio_param_impl!(Frequency, OscillatorNode, OscillatorNodeMessage, SetFrequency);
-//XXX audio_param_impl!(Detune, OscillatorNode, OscillatorNodeMessage, SetDetune);
+audio_param_impl!(Detune, OscillatorNode, OscillatorNodeMessage, SetDetune);
 
 #[dom_struct]
 pub struct OscillatorNode {
     node: AudioScheduledSourceNode,
     oscillator_type: OscillatorType,
     frequency: DomRoot<AudioParam>,
-    //XXX detune: DomRoot<AudioParam>,
+    detune: DomRoot<AudioParam>,
 }
 
 impl OscillatorNode {
@@ -60,17 +60,17 @@ impl OscillatorNode {
                                         Box::new(frequency),
                                         AutomationRate::A_rate,
                                         440., f32::MIN, f32::MAX);
-        /*XXX let detune = Detune::new(context.audio_context_impl(), node.node_id());
+        let detune = Detune::new(context.audio_context_impl(), node.node_id());
         let detune = AudioParam::new(window,
                                      Box::new(detune),
                                      AutomationRate::A_rate,
-                                     0., -440. / 2., 440. / 2.);*/
+                                     0., -440. / 2., 440. / 2.);
 
         OscillatorNode {
             node,
             oscillator_type: oscillator_options.type_,
             frequency,
-            //XXX detune,
+            detune,
         }
     }
 
@@ -96,6 +96,10 @@ impl OscillatorNode {
 impl OscillatorNodeMethods for OscillatorNode {
     fn Frequency(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.frequency)
+    }
+
+    fn Detune(&self) -> DomRoot<AudioParam> {
+        DomRoot::from_ref(&self.detune)
     }
 }
 
