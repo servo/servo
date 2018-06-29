@@ -6,9 +6,9 @@ use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{AudioNodeMethods, AudioNodeOptions};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::reflector::Reflector;
 use dom::bindings::root::DomRoot;
 use dom::audioparam::AudioParam;
+use dom::eventtarget::EventTarget;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
@@ -21,7 +21,7 @@ pub static MAX_CHANNEL_COUNT: u32 = 32;
 
 #[dom_struct]
 pub struct AudioNode {
-    reflector_: Reflector,
+    eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
     node_id: NodeId,
     context: DomRoot<BaseAudioContext>,
@@ -43,7 +43,7 @@ impl AudioNode {
             context.audio_context_impl().create_node(node_type)
         });
         AudioNode {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new_inherited(),
             node_id,
             context: DomRoot::from_ref(context),
             number_of_inputs,
