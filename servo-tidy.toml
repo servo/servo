@@ -58,7 +58,6 @@ files = [
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./support/android/openssl.sh",
-  "./support/android/egl-configs/Cargo.lock",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/mozilla/tests/webgl",
   # Ignore those files since the issues reported are on purpose

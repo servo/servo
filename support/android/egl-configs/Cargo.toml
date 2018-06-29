@@ -1,7 +1,0 @@
-[package]
-name = "egl-configs"
-version = "0.1.0"
-license = "MPL-2.0"
-
-[build-dependencies]
-gl_generator = "0.9"
