@@ -629,3 +629,56 @@ macro_rules! handle_potential_webgl_error {
         handle_potential_webgl_error!($context, $call, ());
     };
 }
+
+macro_rules! audio_param_impl(
+    ($struct:ident, $node_type:ident, $message_type:ident, $setter:ident) => (
+        #[derive(JSTraceable, MallocSizeOf)]
+        struct $struct {
+            #[ignore_malloc_size_of = "Rc"]
+            context: Rc<AudioContext>,
+            #[ignore_malloc_size_of = "servo_media"]
+            node: NodeId,
+        }
+
+        impl $struct {
+            pub fn new(context: Rc<AudioContext>,
+                       node: NodeId) -> Self {
+                Self {
+                    context,
+                    node,
+                }
+            }
+        }
+
+        impl AudioParamImpl for $struct {
+            fn set_value(&self, _value: f32) {}
+
+            fn set_value_at_time(&self, value: f32, start_time: f64) {
+                self.context.message_node(
+                    self.node,
+                    AudioNodeMessage::$node_type($message_type::$setter(
+                        UserAutomationEvent::SetValueAtTime(value, start_time),
+                    )),
+                );
+            }
+
+            fn ramp_to_value_at_time(&self, ramp_kind: RampKind, value: f32, end_time: f64) {
+                self.context.message_node(
+                    self.node,
+                    AudioNodeMessage::$node_type($message_type::$setter(
+                        UserAutomationEvent::RampToValueAtTime(ramp_kind, value, end_time),
+                    )),
+                );
+            }
+
+            fn set_target_at_time(&self, target: f32, start_time: f64, time_constant: f32) {
+                self.context.message_node(
+                    self.node,
+                    AudioNodeMessage::$node_type($message_type::$setter(
+                        UserAutomationEvent::SetTargetAtTime(target, start_time, time_constant.into()),
+                    )),
+                );
+            }
+        }
+    );
+);

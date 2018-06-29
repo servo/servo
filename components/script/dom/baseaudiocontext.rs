@@ -40,7 +40,7 @@ pub enum BaseAudioContextOptions {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_context_impl: AudioContext,
+    audio_context_impl: Rc<AudioContext>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: Option<DomRoot<AudioDestinationNode>>,
     /// Resume promises which are soon to be fulfilled by a queued task.
@@ -75,7 +75,7 @@ impl BaseAudioContext {
 
         let mut context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
-            audio_context_impl: ServoMedia::get().unwrap().create_audio_context(options.into()),
+            audio_context_impl: Rc::new(ServoMedia::get().unwrap().create_audio_context(options.into())),
             destination: None,
             in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
@@ -93,8 +93,8 @@ impl BaseAudioContext {
         context
     }
 
-    pub fn audio_context_impl(&self) -> &AudioContext {
-        &self.audio_context_impl
+    pub fn audio_context_impl(&self) -> Rc<AudioContext> {
+        self.audio_context_impl.clone()
     }
 
     pub fn destination_node(&self) -> NodeId {
@@ -183,9 +183,8 @@ impl BaseAudioContext {
                     this.fulfill_in_flight_resume_promises(|| {
                         if this.state.get() != AudioContextState::Running {
                             this.state.set(AudioContextState::Running);
-                            //XXX this.upcast::<EventTarget>().fire_event(atom!("statechange"));
+                            this.upcast::<EventTarget>().fire_event(atom!("statechange"));
                         }
-
                     });
                 }), window.upcast());
             },

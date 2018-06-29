@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioSche
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::num::Finite;
 use dom_struct::dom_struct;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeType, AudioScheduledSourceNodeMessage};
 
 #[dom_struct]
@@ -24,6 +25,10 @@ impl AudioScheduledSourceNode {
             node: AudioNode::new_inherited(node_type, None /* node_id */,
                                            context, options, number_of_inputs, number_of_outputs),
         }
+    }
+
+    pub fn node_id(&self) -> NodeId {
+        self.node.node_id()
     }
 }
 
