@@ -29,7 +29,7 @@ from mach.decorators import (
 
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes, download_file, extract
+from servo.util import delete, download_bytes, download_file, extract, check_hash
 
 
 @CommandProvider
@@ -63,7 +63,6 @@ class MachCommands(CommandBase):
                      help='Run SDK component install and emulator image creation again')
     def bootstrap_android(self, update=False):
 
-        # Available filenames: see https://dl.google.com/android/repository/repository2-1.xml
         ndk = "android-ndk-r12b-{system}-{arch}"
         tools = "sdk-tools-{system}-4333796"
 
@@ -72,6 +71,19 @@ class MachCommands(CommandBase):
             ("servo-arm", "25", "google_apis;armeabi-v7a"),
             ("servo-x86", "28", "google_apis;x86"),
         ]
+
+        known_sha1 = {
+            # https://dl.google.com/android/repository/repository2-1.xml
+            "sdk-tools-darwin-4333796.zip": "ed85ea7b59bc3483ce0af4c198523ba044e083ad",
+            "sdk-tools-linux-4333796.zip": "8c7c28554a32318461802c1291d76fccfafde054",
+            "sdk-tools-windows-4333796.zip": "aa298b5346ee0d63940d13609fe6bec621384510",
+
+            # https://developer.android.com/ndk/downloads/older_releases
+            "android-ndk-r12b-windows-x86.zip": "8e6eef0091dac2f3c7a1ecbb7070d4fa22212c04",
+            "android-ndk-r12b-windows-x86_64.zip": "337746d8579a1c65e8a69bf9cbdc9849bcacf7f5",
+            "android-ndk-r12b-darwin-x86_64.zip": "e257fe12f8947be9f79c10c3fffe87fb9406118a",
+            "android-ndk-r12b-linux-x86_64.zip": "170a119bfa0f0ce5dc932405eaa3a7cc61b27694",
+        }
 
         toolchains = path.join(self.context.topdir, "android-toolchains")
         if not path.isdir(toolchains):
@@ -89,8 +101,9 @@ class MachCommands(CommandBase):
 
             if not path.isfile(archive):
                 download_file(filename, url, archive)
+            check_hash(archive, known_sha1[filename], "sha1")
             print("Extracting " + filename)
-            remove = False  # Set to False to avoid repeated downloads while debugging this script
+            remove = True  # Set to False to avoid repeated downloads while debugging this script
             if flatten:
                 extracted = final + "_"
                 extract(archive, extracted, remove=remove)
