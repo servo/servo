@@ -58,7 +58,7 @@ impl AudioNode {
         self.context.audio_context_impl().message_node(self.node_id, message);
     }
 
-    pub fn node(&self) -> NodeId {
+    pub fn node_id(&self) -> NodeId {
         self.node_id
     }
 }
@@ -81,7 +81,7 @@ impl AudioNodeMethods for AudioNode {
         // XXX Check previous connections.
 
         self.context.audio_context_impl().connect_ports(
-            self.node().output(output), destination.node().input(input)
+            self.node_id().output(output), destination.node_id().input(input)
             );
 
         Ok(DomRoot::from_ref(destination))

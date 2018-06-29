@@ -2,26 +2,38 @@
  * License, v.2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::audioparam::{AudioParam, AudioParamImpl};
 use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
+use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::{self, OscillatorOptions, OscillatorType};
+use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNodeMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::node::AudioNodeType;
+use servo_media::audio::context::AudioContext;
+use servo_media::audio::graph::NodeId;
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
 use servo_media::audio::oscillator_node::OscillatorNodeOptions as ServoMediaOscillatorOptions;
 use servo_media::audio::oscillator_node::OscillatorType as ServoMediaOscillatorType;
+use servo_media::audio::oscillator_node::OscillatorNodeMessage;
+use servo_media::audio::param::{UserAutomationEvent, RampKind};
+use std::f32;
+use std::rc::Rc;
+
+audio_param_impl!(Frequency, OscillatorNode, OscillatorNodeMessage, SetFrequency);
+//XXX audio_param_impl!(Detune, OscillatorNode, OscillatorNodeMessage, SetDetune);
 
 #[dom_struct]
 pub struct OscillatorNode {
     node: AudioScheduledSourceNode,
     oscillator_type: OscillatorType,
-    //    frequency: AudioParam,
-    //    detune: AudioParam,
+    frequency: DomRoot<AudioParam>,
+    //XXX detune: DomRoot<AudioParam>,
 }
 
 impl OscillatorNode {
@@ -36,15 +48,29 @@ impl OscillatorNode {
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+        let node = AudioScheduledSourceNode::new_inherited(
+            AudioNodeType::OscillatorNode(oscillator_options.into()),
+            context,
+            &node_options,
+            0, /* inputs */
+            1, /* outputs */
+            );
+        let frequency = Frequency::new(context.audio_context_impl(), node.node_id());
+        let frequency = AudioParam::new(window,
+                                        Box::new(frequency),
+                                        AutomationRate::A_rate,
+                                        440., f32::MIN, f32::MAX);
+        /*XXX let detune = Detune::new(context.audio_context_impl(), node.node_id());
+        let detune = AudioParam::new(window,
+                                     Box::new(detune),
+                                     AutomationRate::A_rate,
+                                     0., -440. / 2., 440. / 2.);*/
+
         OscillatorNode {
-            node: AudioScheduledSourceNode::new_inherited(
-                      AudioNodeType::OscillatorNode(oscillator_options.into()),
-                      context,
-                      &node_options,
-                      0, /* inputs */
-                      1, /* outputs */
-                      ),
-                      oscillator_type: oscillator_options.type_,
+            node,
+            oscillator_type: oscillator_options.type_,
+            frequency,
+            //XXX detune,
         }
     }
 
@@ -67,23 +93,11 @@ impl OscillatorNode {
     }
 }
 
-/*impl OscillatorNodeMethods for OscillatorNode {
-  fn SetPeriodicWave(&self, periodic_wave: PeriodicWave) {
-// XXX
+impl OscillatorNodeMethods for OscillatorNode {
+    fn Frequency(&self) -> DomRoot<AudioParam> {
+        DomRoot::from_ref(&self.frequency)
+    }
 }
-
-fn Type(&self) -> OscillatorType {
-self.oscillator_type
-}
-
-fn Frequency(&self) -> DomRoot<AudioParam> {
-DomRoot::from_ref(&self.frequency)
-}
-
-fn Detune(&self) -> DomRoot<AudioParam> {
-DomRoot::from_ref(&self.detune)
-}
-}*/
 
 impl<'a> From<&'a OscillatorOptions> for ServoMediaOscillatorOptions {
     fn from(options: &'a OscillatorOptions) -> Self {
