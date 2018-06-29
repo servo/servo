@@ -177,10 +177,8 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to the emulator")
     def android_emulator(self, args=None):
         if not args:
-            print("Pass at least an AVD name such as @servo-arm or @servo-x86")
-            return 1
-        env = self.build_env()
-        emulator = path.join(env["ANDROID_SDK"], "emulator", "emulator")
+            print("AVDs created by `./mach bootstrap-android` are servo-arm and servo-x86.")
+        emulator = self.android_emulator_path(self.build_env())
         return subprocess.call([emulator] + args)
 
     @Command('rr-record',

@@ -623,6 +623,13 @@ class CommandBase(object):
                 return sdk_adb
         return "adb"
 
+    def android_emulator_path(self, env):
+        if "ANDROID_SDK" in env:
+            sdk_adb = path.join(env["ANDROID_SDK"], "emulator", "emulator")
+            if path.exists(sdk_adb):
+                return sdk_adb
+        return "emulator"
+
     def handle_android_target(self, target):
         if target == "arm-linux-androideabi":
             self.config["android"]["platform"] = "android-18"
