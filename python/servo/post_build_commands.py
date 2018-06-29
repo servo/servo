@@ -181,7 +181,7 @@ class PostBuildCommands(CommandBase):
             return 1
         env = self.build_env()
         emulator = path.join(env["ANDROID_SDK"], "emulator", "emulator")
-        check_call([emulator] + args)
+        return subprocess.call([emulator] + args)
 
     @Command('rr-record',
              description='Run Servo whilst recording execution with rr',
