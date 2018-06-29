@@ -296,6 +296,7 @@ pub mod filereader;
 pub mod filereadersync;
 pub mod focusevent;
 pub mod formdata;
+pub mod gainnode;
 pub mod gamepad;
 pub mod gamepadbutton;
 pub mod gamepadbuttonlist;
