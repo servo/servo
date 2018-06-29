@@ -28,7 +28,7 @@ interface OscillatorNode : AudioScheduledSourceNode {
 //  attribute OscillatorType type;
 
   readonly attribute AudioParam frequency;
-//  readonly attribute AudioParam detune;
+  readonly attribute AudioParam detune;
 
 //  void setPeriodicWave (PeriodicWave periodicWave);
 };
