@@ -13,7 +13,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{DomObject, Reflector};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
@@ -38,7 +38,7 @@ pub enum BaseAudioContextOptions {
 
 #[dom_struct]
 pub struct BaseAudioContext {
-    reflector_: Reflector,
+    eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
     audio_context_impl: AudioContext,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
@@ -74,7 +74,7 @@ impl BaseAudioContext {
         let sample_rate = options.sample_rate;
 
         let mut context = BaseAudioContext {
-            reflector_: Reflector::new(),
+            eventtarget: EventTarget::new_inherited(),
             audio_context_impl: ServoMedia::get().unwrap().create_audio_context(options.into()),
             destination: None,
             in_flight_resume_promises_queue: Default::default(),
