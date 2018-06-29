@@ -183,7 +183,12 @@ impl BaseAudioContext {
                     this.fulfill_in_flight_resume_promises(|| {
                         if this.state.get() != AudioContextState::Running {
                             this.state.set(AudioContextState::Running);
-                            this.upcast::<EventTarget>().fire_event(atom!("statechange"));
+                            let window = DomRoot::downcast::<Window>(this.global()).unwrap();
+                            window.dom_manipulation_task_source().queue_simple_event(
+                                this.upcast(),
+                                atom!("statechange"),
+                                &window
+                                );
                         }
                     });
                 }), window.upcast());
