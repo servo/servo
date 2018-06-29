@@ -27,6 +27,6 @@ interface AudioParam {
 //    AudioParam setValueCurveAtTime(sequence<float> values,
 //                                   double startTime,
 //                                   double duration);
-//    AudioParam cancelScheduledValues(double cancelTime);
-//    AudioParam cancelAndHoldAtTime(double cancelTime);
+    AudioParam cancelScheduledValues(double cancelTime);
+    AudioParam cancelAndHoldAtTime(double cancelTime);
 };

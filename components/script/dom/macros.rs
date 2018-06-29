@@ -651,7 +651,9 @@ macro_rules! audio_param_impl(
         }
 
         impl AudioParamImpl for $struct {
-            fn set_value(&self, _value: f32) {}
+            fn set_value(&self, value: f32) {
+                self.set_value_at_time(value, self.context.current_time());
+            }
 
             fn set_value_at_time(&self, value: f32, start_time: f64) {
                 self.context.message_node(
@@ -676,6 +678,24 @@ macro_rules! audio_param_impl(
                     self.node,
                     AudioNodeMessage::$node_type($message_type::$setter(
                         UserAutomationEvent::SetTargetAtTime(target, start_time, time_constant.into()),
+                    )),
+                );
+            }
+
+            fn cancel_scheduled_values(&self, cancel_time: f64) {
+                self.context.message_node(
+                    self.node,
+                    AudioNodeMessage::$node_type($message_type::$setter(
+                        UserAutomationEvent::CancelScheduledValues(cancel_time),
+                    )),
+                );
+            }
+
+            fn cancel_and_hold_at_time(&self, cancel_time: f64) {
+                self.context.message_node(
+                    self.node,
+                    AudioNodeMessage::$node_type($message_type::$setter(
+                        UserAutomationEvent::CancelAndHoldAtTime(cancel_time),
                     )),
                 );
             }
