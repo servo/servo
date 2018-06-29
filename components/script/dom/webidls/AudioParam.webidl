@@ -6,18 +6,24 @@
  * https://webaudio.github.io/web-audio-api/#dom-audioparam
  */
 
+enum AutomationRate {
+  "a-rate",
+  "k-rate"
+};
+
 [Exposed=Window]
 interface AudioParam {
              attribute float value;
+             attribute AutomationRate automationRate;
     readonly attribute float defaultValue;
     readonly attribute float minValue;
     readonly attribute float maxValue;
-//    AudioParam setValueAtTime(float value, double startTime);
-//    AudioParam linearRampToValueAtTime(float value, double endTime);
-//    AudioParam exponentialRampToValueAtTime(float value, double endTime);
-//    AudioParam setTargetAtTime(float target,
-//                               double startTime,
-//                               float timeConstant);
+    AudioParam setValueAtTime(float value, double startTime);
+    AudioParam linearRampToValueAtTime(float value, double endTime);
+    AudioParam exponentialRampToValueAtTime(float value, double endTime);
+    AudioParam setTargetAtTime(float target,
+                               double startTime,
+                               float timeConstant);
 //    AudioParam setValueCurveAtTime(sequence<float> values,
 //                                   double startTime,
 //                                   double duration);
