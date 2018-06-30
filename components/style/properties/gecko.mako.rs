@@ -5489,8 +5489,7 @@ clip-path
         use values::generics::CounterStyleOrNone;
         use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentAttr;
-        use gecko_bindings::structs::nsStyleContentType;
-        use gecko_bindings::structs::nsStyleContentType::*;
+        use gecko_bindings::structs::StyleContentType;
         use gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
 
         // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
@@ -5505,19 +5504,19 @@ clip-path
 
         fn set_counter_function(
             data: &mut nsStyleContentData,
-            content_type: nsStyleContentType,
+            content_type: StyleContentType,
             name: &CustomIdent,
             sep: &str,
             style: CounterStyleOrNone,
             device: &Device,
         ) {
-            debug_assert!(content_type == eStyleContentType_Counter ||
-                          content_type == eStyleContentType_Counters);
+            debug_assert!(content_type == StyleContentType::Counter ||
+                          content_type == StyleContentType::Counters);
             let counter_func = unsafe {
                 bindings::Gecko_SetCounterFunction(data, content_type).as_mut().unwrap()
             };
             counter_func.mIdent.assign(name.0.as_slice());
-            if content_type == eStyleContentType_Counters {
+            if content_type == StyleContentType::Counters {
                 counter_func.mSeparator.assign_utf8(sep);
             }
             style.to_gecko_value(&mut counter_func.mCounterStyle, device);
@@ -5538,7 +5537,7 @@ clip-path
                     Gecko_ClearAndResizeStyleContents(&mut self.gecko, 1);
                     *self.gecko.mContents[0].mContent.mString.as_mut() = ptr::null_mut();
                 }
-                self.gecko.mContents[0].mType = eStyleContentType_AltContent;
+                self.gecko.mContents[0].mType = StyleContentType::AltContent;
             },
             Content::Items(items) => {
                 unsafe {
@@ -5554,7 +5553,7 @@ clip-path
                     }
                     match *item {
                         ContentItem::String(ref value) => {
-                            self.gecko.mContents[i].mType = eStyleContentType_String;
+                            self.gecko.mContents[i].mType = StyleContentType::String;
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
                                 *self.gecko.mContents[i].mContent.mString.as_mut() =
@@ -5562,7 +5561,7 @@ clip-path
                             }
                         }
                         ContentItem::Attr(ref attr) => {
-                            self.gecko.mContents[i].mType = eStyleContentType_Attr;
+                            self.gecko.mContents[i].mType = StyleContentType::Attr;
                             unsafe {
                                 // NB: we share allocators, so doing this is fine.
                                 let maybe_ns = attr.namespace.clone();
@@ -5581,17 +5580,17 @@ clip-path
                             }
                         }
                         ContentItem::OpenQuote
-                            => self.gecko.mContents[i].mType = eStyleContentType_OpenQuote,
+                            => self.gecko.mContents[i].mType = StyleContentType::OpenQuote,
                         ContentItem::CloseQuote
-                            => self.gecko.mContents[i].mType = eStyleContentType_CloseQuote,
+                            => self.gecko.mContents[i].mType = StyleContentType::CloseQuote,
                         ContentItem::NoOpenQuote
-                            => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
+                            => self.gecko.mContents[i].mType = StyleContentType::NoOpenQuote,
                         ContentItem::NoCloseQuote
-                            => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
+                            => self.gecko.mContents[i].mType = StyleContentType::NoCloseQuote,
                         ContentItem::Counter(ref name, ref style) => {
                             set_counter_function(
                                 &mut self.gecko.mContents[i],
-                                eStyleContentType_Counter,
+                                StyleContentType::Counter,
                                 &name,
                                 "",
                                 style.clone(),
@@ -5601,7 +5600,7 @@ clip-path
                         ContentItem::Counters(ref name, ref sep, ref style) => {
                             set_counter_function(
                                 &mut self.gecko.mContents[i],
-                                eStyleContentType_Counters,
+                                StyleContentType::Counters,
                                 &name,
                                 &sep,
                                 style.clone(),
@@ -5636,7 +5635,7 @@ clip-path
     pub fn clone_content(&self) -> longhands::content::computed_value::T {
         use {Atom, Namespace};
         use gecko::conversions::string_from_chars_pointer;
-        use gecko_bindings::structs::nsStyleContentType::*;
+        use gecko_bindings::structs::StyleContentType;
         use values::generics::counters::{Content, ContentItem};
         use values::computed::url::ComputedImageUrl;
         use values::{CustomIdent, Either};
@@ -5648,23 +5647,23 @@ clip-path
         }
 
         if self.gecko.mContents.len() == 1 &&
-           self.gecko.mContents[0].mType == eStyleContentType_AltContent {
+           self.gecko.mContents[0].mType == StyleContentType::AltContent {
             return Content::MozAltContent;
         }
 
         Content::Items(
             self.gecko.mContents.iter().map(|gecko_content| {
                 match gecko_content.mType {
-                    eStyleContentType_OpenQuote => ContentItem::OpenQuote,
-                    eStyleContentType_CloseQuote => ContentItem::CloseQuote,
-                    eStyleContentType_NoOpenQuote => ContentItem::NoOpenQuote,
-                    eStyleContentType_NoCloseQuote => ContentItem::NoCloseQuote,
-                    eStyleContentType_String => {
+                    StyleContentType::OpenQuote => ContentItem::OpenQuote,
+                    StyleContentType::CloseQuote => ContentItem::CloseQuote,
+                    StyleContentType::NoOpenQuote => ContentItem::NoOpenQuote,
+                    StyleContentType::NoCloseQuote => ContentItem::NoCloseQuote,
+                    StyleContentType::String => {
                         let gecko_chars = unsafe { gecko_content.mContent.mString.as_ref() };
                         let string = unsafe { string_from_chars_pointer(*gecko_chars) };
                         ContentItem::String(string.into_boxed_str())
                     },
-                    eStyleContentType_Attr => {
+                    StyleContentType::Attr => {
                         let (namespace, attribute) = unsafe {
                             let s = &**gecko_content.mContent.mAttr.as_ref();
                             let ns = if s.mNamespaceURL.mRawPtr.is_null() {
@@ -5678,7 +5677,7 @@ clip-path
                         };
                         ContentItem::Attr(Attr { namespace, attribute })
                     },
-                    eStyleContentType_Counter | eStyleContentType_Counters => {
+                    StyleContentType::Counter | StyleContentType::Counters => {
                         let gecko_function =
                             unsafe { &**gecko_content.mContent.mCounters.as_ref() };
                         let ident = CustomIdent(Atom::from(&*gecko_function.mIdent));
@@ -5689,14 +5688,14 @@ clip-path
                             Either::Second(_) =>
                                 unreachable!("counter function shouldn't have single string type"),
                         };
-                        if gecko_content.mType == eStyleContentType_Counter {
+                        if gecko_content.mType == StyleContentType::Counter {
                             ContentItem::Counter(ident, style)
                         } else {
                             let separator = gecko_function.mSeparator.to_string();
                             ContentItem::Counters(ident, separator.into_boxed_str(), style)
                         }
                     },
-                    eStyleContentType_Image => {
+                    StyleContentType::Image => {
                         unsafe {
                             let gecko_image_request =
                                 &**gecko_content.mContent.mImage.as_ref();
