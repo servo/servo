@@ -1,3 +1,4 @@
+import sys
 import unittest
 from types import MethodType
 
@@ -15,6 +16,7 @@ def send_body_as_header(self):
     self._headers_complete = True
 
 class TestResponse(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_head_without_body(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -30,6 +32,7 @@ class TestResponse(TestUsingServer):
         self.assertEqual("TEST", resp.info()['x-Test'])
         self.assertEqual("", resp.info()['x-body'])
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_head_with_body(self):
         @wptserve.handlers.handler
         def handler(request, response):

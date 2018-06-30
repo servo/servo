@@ -48,47 +48,30 @@ function isDestinationCrossOrigin(fetchType, scriptOrigins) {
   assert_unreached('fetchType has an invalid value.');
 }
 
-function createExpectedReferrer(
-    importerURL, fetchType, referrerPolicy, scriptOrigins) {
-  if (referrerPolicy === 'no-referrer')
-    return "";
-  if (referrerPolicy === 'same-origin') {
-    if (isDestinationCrossOrigin(fetchType, scriptOrigins))
-      return "";
-    // Delete query params to make it easier to match with an actual referrer in
-    // the referrer-checker.py.
-    const expectedReferrer = new URL(importerURL);
-    for (var key of expectedReferrer.searchParams.keys())
-      expectedReferrer.searchParams.delete(key);
-    return expectedReferrer;
-  }
-  if (referrerPolicy === 'origin')
-    return (new URL(importerURL)).origin + '/';
-  assert_unreached('referrerPolicy has an invalid value.');
-}
-
 window.onmessage = e => {
   const workletType = e.data.workletType;
   const fetchType = e.data.fetchType;
-  const referrerPolicy = e.data.referrerPolicy;
   const scriptOrigins = e.data.scriptOrigins;
 
   let scriptURL;
   let expectedReferrer;
   if (fetchType === 'top-level') {
     scriptURL = createScriptURLForTopLevel(scriptOrigins.topLevel);
-    expectedReferrer = createExpectedReferrer(
-        location.href, fetchType, referrerPolicy, scriptOrigins);
+    // The referrer of the top-level script should be this file.
+    // Delete query params to make it easier to match with an actual referrer in
+    // the referrer-checker.py.
+    expectedReferrer = new URL(location.href);
+    for (var key of expectedReferrer.searchParams.keys())
+      expectedReferrer.searchParams.delete(key);
   } else if (fetchType === 'descendant') {
     scriptURL = createScriptURLForDecendant(scriptOrigins);
-    expectedReferrer = createExpectedReferrer(
-        scriptURL, fetchType, referrerPolicy, scriptOrigins);
+    // The referrer of the imported script should be the importer script.
+    expectedReferrer = scriptURL;
   } else {
     assert_unreached('fetchType should be \'top-level\' or \'descendant\'');
   }
 
   const params = new URLSearchParams;
-  params.append('referrer_policy', referrerPolicy);
   params.append('expected_referrer', expectedReferrer);
 
   get_worklet(workletType).addModule(scriptURL + '?' + params)

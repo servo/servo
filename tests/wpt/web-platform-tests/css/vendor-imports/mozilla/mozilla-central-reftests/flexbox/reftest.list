@@ -98,6 +98,10 @@
 == flexbox-collapsed-item-horiz-002.html flexbox-collapsed-item-horiz-002-ref.html
 == flexbox-collapsed-item-horiz-003.html flexbox-collapsed-item-horiz-003-ref.html
 
+# Tests for "row gap" and "column gap"
+== flexbox-column-row-gap-001.html flexbox-column-row-gap-001-ref.html
+== flexbox-column-row-gap-002.html flexbox-column-row-gap-002-ref.html
+
 # Tests for "flex-basis: content"
 == flexbox-flex-basis-content-001a.html flexbox-flex-basis-content-001-ref.html
 == flexbox-flex-basis-content-001b.html flexbox-flex-basis-content-001-ref.html

@@ -1,5 +1,6 @@
 (function() {
     "use strict";
+    var idCounter = 0;
 
     function getInViewCenterPoint(rect) {
         var left = Math.max(0, rect.left);
@@ -46,6 +47,41 @@
      * @namespace
      */
     window.test_driver = {
+        /**
+         * Trigger user interaction in order to grant additional privileges to
+         * a provided function.
+         *
+         * https://html.spec.whatwg.org/#triggered-by-user-activation
+         *
+         * @param {String} intent - a description of the action which much be
+         *                          triggered by user interaction
+         * @param {Function} action - code requiring escalated privileges
+         *
+         * @returns {Promise} fulfilled following user interaction and
+         *                    execution of the provided `action` function;
+         *                    rejected if interaction fails or the provided
+         *                    function throws an error
+         */
+        bless: function(intent, action) {
+            var button = document.createElement("button");
+            button.innerHTML = "This test requires user interaction.<br />" +
+                "Please click here to allow " + intent + ".";
+            button.id = "wpt-test-driver-bless-" + (idCounter += 1);
+            document.body.appendChild(button);
+
+            return new Promise(function(resolve, reject) {
+                    button.addEventListener("click", resolve);
+
+                    test_driver.click(button).catch(reject);
+                }).then(function() {
+                    button.remove();
+
+                    if (typeof action === "function") {
+                        return action();
+                    }
+                });
+        };
+
         /**
          * Triggers a user-initiated click
          *
