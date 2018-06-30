@@ -17,7 +17,7 @@ use std::cell::Cell;
 // 32 is the minimum required by the spec for createBuffer() and the deprecated
 // createScriptProcessor() and matches what is used by Blink and Gecko.
 // The limit protects against large memory allocations.
-pub static MAX_CHANNEL_COUNT: u32 = 32;
+pub const MAX_CHANNEL_COUNT: u32 = 32;
 
 #[dom_struct]
 pub struct AudioNode {
