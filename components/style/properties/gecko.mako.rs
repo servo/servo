@@ -5643,7 +5643,7 @@ clip-path
         use values::specified::Attr;
 
         if self.gecko.mContents.is_empty() {
-            return Content::Normal;
+            return Content::None;
         }
 
         if self.gecko.mContents.len() == 1 &&
