@@ -410,6 +410,7 @@ pub struct NonCustomPropertyId(usize);
 
 impl NonCustomPropertyId {
     #[cfg(feature = "gecko")]
+    #[inline]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
         static MAP: [nsCSSPropertyID; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
             % for property in data.longhands + data.shorthands + data.all_aliases():
@@ -1710,6 +1711,9 @@ impl PropertyId {
     }
 
     /// Returns a property id from Gecko's nsCSSPropertyID.
+    ///
+    /// TODO(emilio): We should be able to make this a single integer cast to
+    /// `NonCustomPropertyId`.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
