@@ -1219,11 +1219,7 @@ impl FragmentDisplayListBuilding for Fragment {
             state.add_display_item(DisplayItem::BoxShadow(Box::new(BoxShadowDisplayItem {
                 base: base,
                 box_bounds: absolute_bounds.to_layout(),
-                color: box_shadow
-                    .base
-                    .color
-                    .unwrap_or(style.get_color().color)
-                    .to_layout(),
+                color: style.resolve_color(box_shadow.base.color).to_layout(),
                 offset: LayoutVector2D::new(
                     box_shadow.base.horizontal.px(),
                     box_shadow.base.vertical.px(),
@@ -2038,10 +2034,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     base: base.clone(),
                     shadow: webrender_api::Shadow {
                         offset: LayoutVector2D::new(shadow.horizontal.px(), shadow.vertical.px()),
-                        color: shadow
-                            .color
-                            .unwrap_or(self.style().get_color().color)
-                            .to_layout(),
+                        color: self.style.resolve_color(shadow.color).to_layout(),
                         blur_radius: shadow.blur.px(),
                     },
                 },
