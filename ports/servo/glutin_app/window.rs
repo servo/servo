@@ -620,28 +620,16 @@ impl Window {
             Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => TypedScale::new(1.0),
-                None => self.platform_hidpi_factor()
+                None => match self.kind {
+                    WindowKind::Window(ref window, ..) => {
+                        TypedScale::new(window.get_hidpi_factor() as f32)
+                    }
+                    WindowKind::Headless(..) => {
+                        TypedScale::new(1.0)
+                    }
+                }
             }
         }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                TypedScale::new(window.get_hidpi_factor() as f32)
-            }
-            WindowKind::Headless(..) => {
-                TypedScale::new(1.0)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        TypedScale::new(ppi as f32 / 96.0)
     }
 
     /// Has no effect on Android.
