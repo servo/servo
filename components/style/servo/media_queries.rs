@@ -216,7 +216,7 @@ impl MediaFeatureExpression {
             "width" => {
                 ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
             },
-            _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name)))
+            _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
         }))
     }
 
