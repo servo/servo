@@ -71,7 +71,7 @@ bitflags! {
         const IN_OPTIONAL_STATE = 1 << 22;
         /// <https://html.spec.whatwg.org/multipage/#selector-read-write>
         const IN_READ_WRITE_STATE = 1 << 22;
-        /// <https://html.spec.whatwg.org/multipage/semantics-other.html#selector-defined>
+        /// <https://html.spec.whatwg.org/multipage/#selector-defined>
         const IN_DEFINED_STATE = 1 << 23;
         /// <https://html.spec.whatwg.org/multipage/#selector-visited>
         const IN_VISITED_STATE = 1 << 24;

@@ -6,17 +6,16 @@
 //!
 //! https://drafts.csswg.org/mediaqueries-4/#typedef-media-condition
 
-use cssparser::{Parser, Token};
 use context::QuirksMode;
+use cssparser::{Parser, Token};
 use parser::ParserContext;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-
 use super::{Device, MediaFeatureExpression};
 
 
 /// A binary `and` or `or` operator.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
 #[allow(missing_docs)]
 pub enum Operator {
     And,
@@ -24,7 +23,7 @@ pub enum Operator {
 }
 
 /// Whether to allow an `or` condition or not during parsing.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, Parse, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss)]
 enum AllowOr {
     Yes,
     No,
