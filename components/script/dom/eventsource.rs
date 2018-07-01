@@ -16,6 +16,7 @@ use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use euclid::Length;
+use fetch::FetchCanceller;
 use hyper::header::{Accept, qitem};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -64,6 +65,7 @@ pub struct EventSource {
 
     ready_state: Cell<ReadyState>,
     with_credentials: bool,
+    canceller: DomRefCell<FetchCanceller>,
 }
 
 enum ParserState {
@@ -410,6 +412,7 @@ impl EventSource {
 
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials: with_credentials,
+            canceller: DomRefCell::new(Default::default())
         }
     }
 
@@ -491,8 +494,9 @@ impl EventSource {
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
         }));
+        let cancel_receiver = self.canceller.borrow_mut().initialize();
         global.core_resource_thread().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)))).unwrap();
         // Step 13
         Ok(ev)
     }
@@ -527,6 +531,7 @@ impl EventSourceMethods for EventSource {
     fn Close(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
+        self.canceller.borrow_mut().cancel();
         self.ready_state.set(ReadyState::Closed);
     }
 }
