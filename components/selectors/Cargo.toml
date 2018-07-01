@@ -22,7 +22,7 @@ bench = []
 [dependencies]
 bitflags = "1.0"
 matches = "0.1"
-cssparser = "0.23.0"
+cssparser = "0.24.0"
 log = "0.4"
 fnv = "1.0"
 phf = "0.7.18"

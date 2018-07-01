@@ -8,7 +8,7 @@ use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
-use media_queries::{Device, Expression as MediaExpression};
+use media_queries::{Device, MediaCondition};
 use parser::{Parse, ParserContext};
 use selectors::context::QuirksMode;
 use style_traits::ParseError;
@@ -19,9 +19,7 @@ use values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 ///
 /// https://html.spec.whatwg.org/multipage/#source-size
 pub struct SourceSize {
-    // FIXME(emilio): This should be a `MediaCondition`, and support `and` and
-    // `or`.
-    condition: MediaExpression,
+    condition: MediaCondition,
     value: Length,
 }
 
@@ -30,7 +28,7 @@ impl Parse for SourceSize {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let condition = MediaExpression::parse(context, input)?;
+        let condition = MediaCondition::parse(context, input)?;
         let value = Length::parse_non_negative(context, input)?;
 
         Ok(Self { condition, value })

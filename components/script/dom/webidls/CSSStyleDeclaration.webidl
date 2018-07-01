@@ -350,6 +350,14 @@ partial interface CSSStyleDeclaration {
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString offsetInlineStart;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString offset-inline-end;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString offsetInlineEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-block-start;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetBlockStart;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-block-end;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetBlockEnd;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-inline-start;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetInlineStart;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString inset-inline-end;
+  [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString insetInlineEnd;
 
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString height;
   [CEReactions, SetterThrows, TreatNullAs=EmptyString] attribute DOMString minHeight;

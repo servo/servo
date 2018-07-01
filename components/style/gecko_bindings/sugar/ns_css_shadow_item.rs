@@ -5,9 +5,7 @@
 //! Rust helpers for Gecko's `nsCSSShadowItem`.
 
 use app_units::Au;
-use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::nsCSSShadowItem;
-use values::computed::RGBAColor;
 use values::computed::effects::{BoxShadow, SimpleShadow};
 
 impl nsCSSShadowItem {
@@ -37,31 +35,14 @@ impl nsCSSShadowItem {
         self.mRadius = shadow.blur.0.to_i32_au();
         self.mSpread = 0;
         self.mInset = false;
-        if let Some(color) = shadow.color {
-            self.mHasColor = true;
-            self.mColor = convert_rgba_to_nscolor(&color);
-        } else {
-            // TODO handle currentColor
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=760345
-            self.mHasColor = false;
-            self.mColor = 0;
-        }
-    }
-
-    #[inline]
-    fn extract_color(&self) -> Option<RGBAColor> {
-        if self.mHasColor {
-            Some(convert_nscolor_to_rgba(self.mColor))
-        } else {
-            None
-        }
+        self.mColor = shadow.color.into();
     }
 
     /// Gets a simple shadow from this item.
     #[inline]
     fn extract_simple_shadow(&self) -> SimpleShadow {
         SimpleShadow {
-            color: self.extract_color(),
+            color: self.mColor.into(),
             horizontal: Au(self.mXOffset).into(),
             vertical: Au(self.mYOffset).into(),
             blur: Au(self.mRadius).into(),

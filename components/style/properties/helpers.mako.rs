@@ -856,7 +856,7 @@
         elif len(maybe_size) == 1:
             size = maybe_size[0]
         def phys_ident(side, phy_side):
-            return to_rust_ident(name.replace(side, phy_side).replace("offset-", ""))
+            return to_rust_ident(name.replace(side, phy_side).replace("inset-", ""))
     %>
     % if side is not None:
         use logical_geometry::PhysicalSide;

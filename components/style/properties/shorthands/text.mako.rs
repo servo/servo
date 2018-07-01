@@ -5,6 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="text-decoration"
+                    flags="SHORTHAND_IN_GETCS"
                     sub_properties="text-decoration-line
                     ${' text-decoration-style text-decoration-color' if product == 'gecko' else ''}"
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">

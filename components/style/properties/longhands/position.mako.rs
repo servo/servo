@@ -21,14 +21,15 @@
         servo_restyle_damage="reflow_out_of_flow"
     )}
 % endfor
-// offset-* logical properties, map to "top" / "left" / "bottom" / "right"
+// inset-* logical properties, map to "top" / "left" / "bottom" / "right"
 % for side in LOGICAL_SIDES:
     ${helpers.predefined_type(
-        "offset-%s" % side,
+        "inset-%s" % side,
         "LengthOrPercentageOrAuto",
         "computed::LengthOrPercentageOrAuto::Auto",
-        spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
+        spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
+        alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
         animation_value_type="ComputedValue",
         logical=True,
     )}

@@ -182,14 +182,21 @@ mod bindings {
             // Disable rust unions, because we replace some types inside of
             // them.
             let mut builder = Builder::default().rust_target(RustTarget::Stable_1_0);
-            let rustfmt_path = env::var_os("MOZ_AUTOMATION")
-                .and_then(|_| env::var_os("TOOLTOOL_DIR").or_else(|| env::var_os("MOZ_SRC")))
-                .map(PathBuf::from);
 
-            builder = match rustfmt_path {
-                Some(path) => builder.with_rustfmt(path.join("rustc").join("bin").join("rustfmt")),
-                None => builder.rustfmt_bindings(env::var_os("STYLO_RUSTFMT_BINDINGS").is_some()),
-            };
+            let rustfmt_path = env::var_os("RUSTFMT")
+                // This can be replaced with
+                // > .filter(|p| !p.is_empty()).map(PathBuf::from)
+                // once we can use 1.27+.
+                .and_then(|p| {
+                    if p.is_empty() {
+                        None
+                    } else {
+                        Some(PathBuf::from(p))
+                    }
+                });
+            if let Some(path) = rustfmt_path {
+                builder = builder.with_rustfmt(path);
+            }
 
             for dir in SEARCH_PATHS.iter() {
                 builder = builder.clang_arg("-I").clang_arg(dir.to_str().unwrap());

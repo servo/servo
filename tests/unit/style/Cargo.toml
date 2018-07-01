@@ -12,7 +12,7 @@ doctest = false
 [dependencies]
 byteorder = "1.0"
 app_units = "0.6"
-cssparser = "0.23.0"
+cssparser = "0.24.0"
 euclid = "0.17"
 html5ever = "0.22"
 parking_lot = "0.5"

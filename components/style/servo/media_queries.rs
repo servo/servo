@@ -170,9 +170,9 @@ pub enum ExpressionKind {
 /// <http://dev.w3.org/csswg/mediaqueries-3/#media1>
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-pub struct Expression(pub ExpressionKind);
+pub struct MediaFeatureExpression(pub ExpressionKind);
 
-impl Expression {
+impl MediaFeatureExpression {
     /// The kind of expression we're, just for unit testing.
     ///
     /// Eventually this will become servo-only.
@@ -183,32 +183,41 @@ impl Expression {
     /// Parse a media expression of the form:
     ///
     /// ```
-    /// (media-feature: media-value)
+    /// media-feature: media-value
     /// ```
     ///
-    /// Only supports width and width ranges for now.
+    /// Only supports width ranges for now.
     pub fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
         input.parse_nested_block(|input| {
-            let name = input.expect_ident_cloned()?;
-            input.expect_colon()?;
-            // TODO: Handle other media features
-            Ok(Expression(match_ignore_ascii_case! { &name,
-                "min-width" => {
-                    ExpressionKind::Width(Range::Min(specified::Length::parse_non_negative(context, input)?))
-                },
-                "max-width" => {
-                    ExpressionKind::Width(Range::Max(specified::Length::parse_non_negative(context, input)?))
-                },
-                "width" => {
-                    ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
-                },
-                _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
-            }))
+            Self::parse_in_parenthesis_block(context, input)
         })
+    }
+
+    /// Parse a media range expression where we've already consumed the
+    /// parenthesis.
+    pub fn parse_in_parenthesis_block<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let name = input.expect_ident_cloned()?;
+        input.expect_colon()?;
+        // TODO: Handle other media features
+        Ok(MediaFeatureExpression(match_ignore_ascii_case! { &name,
+            "min-width" => {
+                ExpressionKind::Width(Range::Min(specified::Length::parse_non_negative(context, input)?))
+            },
+            "max-width" => {
+                ExpressionKind::Width(Range::Max(specified::Length::parse_non_negative(context, input)?))
+            },
+            "width" => {
+                ExpressionKind::Width(Range::Eq(specified::Length::parse_non_negative(context, input)?))
+            },
+            _ => return Err(input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone())))
+        }))
     }
 
     /// Evaluate this expression and return whether it matches the current
@@ -228,7 +237,7 @@ impl Expression {
     }
 }
 
-impl ToCss for Expression {
+impl ToCss for MediaFeatureExpression {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -246,8 +255,8 @@ impl ToCss for Expression {
 
 /// An enumeration that represents a ranged value.
 ///
-/// Only public for testing, implementation details of `Expression` may change
-/// for Stylo.
+/// Only public for testing, implementation details of `MediaFeatureExpression`
+/// may change for Stylo.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum Range<T> {

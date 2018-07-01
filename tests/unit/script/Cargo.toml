@@ -13,4 +13,3 @@ euclid = "0.17"
 msg = {path = "../../../components/msg"}
 script = {path = "../../../components/script"}
 servo_url = {path = "../../../components/url"}
-style = {path = "../../../components/style"}

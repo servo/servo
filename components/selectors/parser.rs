@@ -995,8 +995,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
 
         let mut combinators = self.iter_raw_match_order()
             .rev()
-            .filter(|x| x.is_combinator())
-            .peekable();
+            .filter_map(|x| x.as_combinator());
         let compound_selectors = self.iter_raw_match_order()
             .as_slice()
             .split(|x| x.is_combinator())
@@ -1007,72 +1006,74 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
             debug_assert!(!combinators_exhausted);
 
             // https://drafts.csswg.org/cssom/#serializing-selectors
+            if compound.is_empty() {
+                continue;
+            }
 
-            if !compound.is_empty() {
-                // 1. If there is only one simple selector in the compound selectors
-                //    which is a universal selector, append the result of
-                //    serializing the universal selector to s.
-                //
-                // Check if `!compound.empty()` first--this can happen if we have
-                // something like `... > ::before`, because we store `>` and `::`
-                // both as combinators internally.
-                //
-                // If we are in this case, after we have serialized the universal
-                // selector, we skip Step 2 and continue with the algorithm.
-                let (can_elide_namespace, first_non_namespace) = match &compound[0] {
-                    &Component::ExplicitAnyNamespace |
-                    &Component::ExplicitNoNamespace |
-                    &Component::Namespace(_, _) => (false, 1),
-                    &Component::DefaultNamespace(_) => (true, 1),
-                    _ => (true, 0),
-                };
-                let mut perform_step_2 = true;
-                if first_non_namespace == compound.len() - 1 {
-                    match (combinators.peek(), &compound[first_non_namespace]) {
-                        // We have to be careful here, because if there is a
-                        // pseudo element "combinator" there isn't really just
-                        // the one simple selector. Technically this compound
-                        // selector contains the pseudo element selector as well
-                        // -- Combinator::PseudoElement, just like
-                        // Combinator::SlotAssignment, don't exist in the
-                        // spec.
-                        (Some(&&Component::Combinator(Combinator::PseudoElement)), _) |
-                        (Some(&&Component::Combinator(Combinator::SlotAssignment)), _) => (),
-                        (_, &Component::ExplicitUniversalType) => {
-                            // Iterate over everything so we serialize the namespace
-                            // too.
-                            for simple in compound.iter() {
-                                simple.to_css(dest)?;
-                            }
-                            // Skip step 2, which is an "otherwise".
-                            perform_step_2 = false;
-                        },
-                        (_, _) => (),
-                    }
-                }
-
-                // 2. Otherwise, for each simple selector in the compound selectors
-                //    that is not a universal selector of which the namespace prefix
-                //    maps to a namespace that is not the default namespace
-                //    serialize the simple selector and append the result to s.
-                //
-                // See https://github.com/w3c/csswg-drafts/issues/1606, which is
-                // proposing to change this to match up with the behavior asserted
-                // in cssom/serialize-namespaced-type-selectors.html, which the
-                // following code tries to match.
-                if perform_step_2 {
-                    for simple in compound.iter() {
-                        if let Component::ExplicitUniversalType = *simple {
-                            // Can't have a namespace followed by a pseudo-element
-                            // selector followed by a universal selector in the same
-                            // compound selector, so we don't have to worry about the
-                            // real namespace being in a different `compound`.
-                            if can_elide_namespace {
-                                continue;
-                            }
+            // 1. If there is only one simple selector in the compound selectors
+            //    which is a universal selector, append the result of
+            //    serializing the universal selector to s.
+            //
+            // Check if `!compound.empty()` first--this can happen if we have
+            // something like `... > ::before`, because we store `>` and `::`
+            // both as combinators internally.
+            //
+            // If we are in this case, after we have serialized the universal
+            // selector, we skip Step 2 and continue with the algorithm.
+            let (can_elide_namespace, first_non_namespace) = match compound[0] {
+                Component::ExplicitAnyNamespace |
+                Component::ExplicitNoNamespace |
+                Component::Namespace(..) => (false, 1),
+                Component::DefaultNamespace(..) => (true, 1),
+                _ => (true, 0),
+            };
+            let mut perform_step_2 = true;
+            let next_combinator = combinators.next();
+            if first_non_namespace == compound.len() - 1 {
+                match (next_combinator, &compound[first_non_namespace]) {
+                    // We have to be careful here, because if there is a
+                    // pseudo element "combinator" there isn't really just
+                    // the one simple selector. Technically this compound
+                    // selector contains the pseudo element selector as well
+                    // -- Combinator::PseudoElement, just like
+                    // Combinator::SlotAssignment, don't exist in the
+                    // spec.
+                    (Some(Combinator::PseudoElement), _) |
+                    (Some(Combinator::SlotAssignment), _) => (),
+                    (_, &Component::ExplicitUniversalType) => {
+                        // Iterate over everything so we serialize the namespace
+                        // too.
+                        for simple in compound.iter() {
+                            simple.to_css(dest)?;
                         }
-                        simple.to_css(dest)?;
+                        // Skip step 2, which is an "otherwise".
+                        perform_step_2 = false;
+                    },
+                    _ => (),
+                }
+            }
+
+            // 2. Otherwise, for each simple selector in the compound selectors
+            //    that is not a universal selector of which the namespace prefix
+            //    maps to a namespace that is not the default namespace
+            //    serialize the simple selector and append the result to s.
+            //
+            // See https://github.com/w3c/csswg-drafts/issues/1606, which is
+            // proposing to change this to match up with the behavior asserted
+            // in cssom/serialize-namespaced-type-selectors.html, which the
+            // following code tries to match.
+            if perform_step_2 {
+                for simple in compound.iter() {
+                    if let Component::ExplicitUniversalType = *simple {
+                        // Can't have a namespace followed by a pseudo-element
+                        // selector followed by a universal selector in the same
+                        // compound selector, so we don't have to worry about the
+                        // real namespace being in a different `compound`.
+                        if can_elide_namespace {
+                            continue;
+                        }
                     }
+                    simple.to_css(dest)?;
                 }
             }
 
@@ -1081,7 +1082,7 @@ impl<Impl: SelectorImpl> ToCss for Selector<Impl> {
             //    ">", "+", "~", ">>", "||", as appropriate, followed by another
             //    single SPACE (U+0020) if the combinator was not whitespace, to
             //    s.
-            match combinators.next() {
+            match next_combinator {
                 Some(c) => c.to_css(dest)?,
                 None => combinators_exhausted = true,
             };

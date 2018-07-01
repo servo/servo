@@ -100,6 +100,7 @@ pub mod longhands {
     % for style_struct in data.style_structs:
     include!("${repr(os.path.join(OUT_DIR, 'longhands/{}.rs'.format(style_struct.name_lower)))[1:-1]}");
     % endfor
+    pub const ANIMATABLE_PROPERTY_COUNT: usize = ${sum(1 for prop in data.longhands if prop.animatable)};
 }
 
 macro_rules! unwrap_or_initial {
@@ -177,7 +178,6 @@ pub mod shorthands {
         data.declare_shorthand(
             "all",
             logical_longhands + other_longhands,
-            gecko_pref="layout.css.all-shorthand.enabled",
             spec="https://drafts.csswg.org/css-cascade-3/#all-shorthand"
         )
     %>
@@ -410,6 +410,7 @@ pub struct NonCustomPropertyId(usize);
 
 impl NonCustomPropertyId {
     #[cfg(feature = "gecko")]
+    #[inline]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
         static MAP: [nsCSSPropertyID; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
             % for property in data.longhands + data.shorthands + data.all_aliases():
@@ -835,6 +836,8 @@ bitflags! {
          * they can be checked in the C++ side via ServoCSSPropList.h. */
         /// This property can be animated on the compositor.
         const CAN_ANIMATE_ON_COMPOSITOR = 0;
+        /// This shorthand property is accessible from getComputedStyle.
+        const SHORTHAND_IN_GETCS = 0;
     }
 }
 
@@ -1708,6 +1711,9 @@ impl PropertyId {
     }
 
     /// Returns a property id from Gecko's nsCSSPropertyID.
+    ///
+    /// TODO(emilio): We should be able to make this a single integer cast to
+    /// `NonCustomPropertyId`.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {

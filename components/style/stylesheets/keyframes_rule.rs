@@ -509,14 +509,8 @@ impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
     type Error = StyleParseErrorKind<'i>;
 }
 
-/// A wrapper to wraps the KeyframeSelector with its source location
-struct KeyframeSelectorParserPrelude {
-    selector: KeyframeSelector,
-    source_location: SourceLocation,
-}
-
 impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
-    type Prelude = KeyframeSelectorParserPrelude;
+    type Prelude = KeyframeSelector;
     type QualifiedRule = Arc<Locked<Keyframe>>;
     type Error = StyleParseErrorKind<'i>;
 
@@ -525,27 +519,21 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::Prelude, ParseError<'i>> {
         let start_position = input.position();
-        let start_location = input.current_source_location();
-        match KeyframeSelector::parse(input) {
-            Ok(sel) => Ok(KeyframeSelectorParserPrelude {
-                selector: sel,
-                source_location: start_location,
-            }),
-            Err(e) => {
-                let location = e.location;
-                let error = ContextualParseError::InvalidKeyframeRule(
-                    input.slice_from(start_position),
-                    e.clone(),
+        KeyframeSelector::parse(input).map_err(|e| {
+            let location = e.location;
+            let error = ContextualParseError::InvalidKeyframeRule(
+                input.slice_from(start_position),
+                e.clone(),
                 );
-                self.context.log_css_error(location, error);
-                Err(e)
-            },
-        }
+            self.context.log_css_error(location, error);
+            e
+        })
     }
 
     fn parse_block<'t>(
         &mut self,
-        prelude: Self::Prelude,
+        selector: Self::Prelude,
+        source_location: SourceLocation,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::QualifiedRule, ParseError<'i>> {
         let context = ParserContext::new_with_rule_type(
@@ -580,9 +568,9 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
             // `parse_important` is not called here, `!important` is not allowed in keyframe blocks.
         }
         Ok(Arc::new(self.shared_lock.wrap(Keyframe {
-            selector: prelude.selector,
+            selector,
             block: Arc::new(self.shared_lock.wrap(block)),
-            source_location: prelude.source_location,
+            source_location,
         })))
     }
 }
