@@ -183,7 +183,10 @@ impl GlobalScope {
 
     pub fn close_event_sources(&self) -> bool {
         let mut canceled_any_fetch = false;
-        for event_source in self.event_sources.iter() {
+        let mut event_sources = self.event_sources.borrow_mut();
+        // Draining, because no need to keep a ref to closed ones.
+        // https://html.spec.whatwg.org/multipage/#garbage-collection-2
+        for event_source in event_sources.drain(0..) {
             match event_source.ReadyState() {
                 2 => {},
                 _ => {

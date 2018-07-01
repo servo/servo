@@ -503,6 +503,15 @@ impl EventSource {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#garbage-collection-2
+impl Drop for EventSource {
+    fn drop(&mut self) {
+        // If an EventSource object is garbage collected while its connection is still open,
+        // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
+        self.canceller.borrow_mut().cancel();
+    }
+}
+
 impl EventSourceMethods for EventSource {
     // https://html.spec.whatwg.org/multipage/#handler-eventsource-onopen
     event_handler!(open, GetOnopen, SetOnopen);
