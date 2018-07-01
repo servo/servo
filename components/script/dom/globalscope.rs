@@ -183,7 +183,7 @@ impl GlobalScope {
 
     pub fn close_event_sources(&self) -> bool {
         let mut canceled_any_fetch = false;
-        for event_source in self.event_sources.borrow_mut().iter() {
+        for event_source in self.event_sources.iter() {
             match event_source.ReadyState() {
                 2 => {},
                 _ => {

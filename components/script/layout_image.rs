@@ -78,5 +78,5 @@ pub fn fetch_image_for_layout(url: ServoUrl,
     };
 
     // Layout image loads do not delay the document load event.
-    document.loader().fetch_async_background(request, action_sender);
+    document.loader_mut().fetch_async_background(request, action_sender);
 }
