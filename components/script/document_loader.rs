@@ -6,7 +6,6 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-use dom::bindings::cell::DomRefCell;
 use dom::bindings::root::Dom;
 use dom::document::Document;
 use fetch::FetchCanceller;
@@ -112,6 +111,7 @@ impl DocumentLoader {
 
     pub fn cancel_all_loads(&mut self) -> bool {
         let canceled_any = !self.cancellers.is_empty();
+        // Associated fetches will be canceled when dropping the canceller.
         self.cancellers.clear();
         canceled_any
     }
