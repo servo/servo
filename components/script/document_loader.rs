@@ -132,12 +132,12 @@ impl DocumentLoader {
     }
 
     /// Initiate a new fetch that does not block the document load event.
-    pub fn fetch_async_background(&self,
+    pub fn fetch_async_background(&mut self,
                                   request: RequestInit,
                                   fetch_target: IpcSender<FetchResponseMsg>) {
-        let canceller = FetchCanceller::new();
-        self.cancellers.push(canceller);
+        let mut canceller = FetchCanceller::new();
         let cancel_receiver = canceller.initialize();
+        self.cancellers.push(canceller);
         self.resource_threads.sender().send(
             CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)))).unwrap();
     }

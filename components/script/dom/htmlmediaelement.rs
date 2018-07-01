@@ -613,7 +613,7 @@ impl HTMLMediaElement {
                 ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
                     listener.notify_fetch(message.to().unwrap());
                 }));
-                document.loader().fetch_async_background(request, action_sender);
+                document.loader_mut().fetch_async_background(request, action_sender);
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.
