@@ -4,6 +4,7 @@
 
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::conversions::root_from_object;
@@ -13,10 +14,12 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use dom::bindings::str::DOMString;
+use dom::bindings::weakref::DOMTracker;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
+use dom::eventsource::EventSource;
 use dom::eventtarget::EventTarget;
 use dom::performance::Performance;
 use dom::window::Window;
@@ -131,6 +134,9 @@ pub struct GlobalScope {
     /// Vector storing closing references of all workers
     #[ignore_malloc_size_of = "Arc"]
     list_auto_close_worker: DomRefCell<Vec<AutoCloseWorker>>,
+
+    /// Vector storing references of all eventsources.
+    event_source_tracker: DOMTracker<EventSource>,
 }
 
 impl GlobalScope {
@@ -164,11 +170,30 @@ impl GlobalScope {
             origin,
             microtask_queue,
             list_auto_close_worker: Default::default(),
+            event_source_tracker: DOMTracker::new(),
         }
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
        self.list_auto_close_worker.borrow_mut().push(AutoCloseWorker(closing_worker));
+    }
+
+    pub fn track_event_source(&self, event_source: &EventSource) {
+        self.event_source_tracker.track(event_source);
+    }
+
+    pub fn close_event_sources(&self) -> bool {
+        let mut canceled_any_fetch = false;
+        self.event_source_tracker.for_each(|event_source: DomRoot<EventSource>| {
+            match event_source.ReadyState() {
+                2 => {},
+                _ => {
+                    event_source.cancel();
+                    canceled_any_fetch = true;
+                }
+            }
+        });
+        canceled_any_fetch
     }
 
     /// Returns the global scope of the realm that the given DOM object's reflector

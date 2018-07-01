@@ -11,6 +11,7 @@
 //! slot. When all associated `WeakRef` values are dropped, the
 //! `WeakBox` itself is dropped too.
 
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
@@ -284,5 +285,36 @@ impl<'a, T: WeakReferenceable + 'a> Deref for WeakRefEntry<'a, T> {
 impl<'a, T: WeakReferenceable + 'a> Drop for WeakRefEntry<'a, T> {
     fn drop(&mut self) {
         *self.index += 1;
+    }
+}
+
+#[derive(MallocSizeOf)]
+pub struct DOMTracker<T: WeakReferenceable> {
+    dom_objects: DomRefCell<WeakRefVec<T>>
+}
+
+impl<T: WeakReferenceable> DOMTracker<T> {
+    pub fn new() -> Self {
+        Self {
+            dom_objects: DomRefCell::new(WeakRefVec::new())
+        }
+    }
+
+    pub fn track(&self, dom_object: &T) {
+        self.dom_objects.borrow_mut().push(WeakRef::new(dom_object));
+    }
+
+    pub fn for_each<F: FnMut(DomRoot<T>)>(&self, mut f: F) {
+        self.dom_objects.borrow_mut().update(|weak_ref| {
+            let root = weak_ref.root().unwrap();
+            f(root);
+        });
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe impl<T: WeakReferenceable> JSTraceable for DOMTracker<T> {
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        self.dom_objects.borrow_mut().retain_alive();
     }
 }
