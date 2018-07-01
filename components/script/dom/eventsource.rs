@@ -16,6 +16,7 @@ use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use euclid::Length;
+use fetch::FetchCanceller;
 use hyper::header::{Accept, qitem};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
@@ -64,6 +65,7 @@ pub struct EventSource {
 
     ready_state: Cell<ReadyState>,
     with_credentials: bool,
+    canceller: DomRefCell<FetchCanceller>,
 }
 
 enum ParserState {
@@ -391,8 +393,13 @@ impl FetchResponseListener for EventSourceContext {
         self.reestablish_the_connection();
     }
 
-    fn process_response_done(&mut self, _aborted: bool) {}
-
+    fn process_response_done(&mut self, aborted: bool) {
+        if aborted {
+            // https://html.spec.whatwg.org/multipage/
+            // #sse-processing-model:fail-the-connection-3
+            self.fail_the_connection();
+        }
+    }
 }
 
 impl PreInvoke for EventSourceContext {
@@ -413,6 +420,7 @@ impl EventSource {
 
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials: with_credentials,
+            canceller: DomRefCell::new(Default::default())
         }
     }
 
@@ -440,6 +448,7 @@ impl EventSource {
         };
         // Step 1, 5
         let ev = EventSource::new(global, url_record.clone(), event_source_init.withCredentials);
+        global.track_event_source(&ev);
         // Steps 6-7
         let cors_attribute_state = if event_source_init.withCredentials {
             CorsSettings::UseCredentials
@@ -494,10 +503,20 @@ impl EventSource {
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
         }));
+        let cancel_receiver = ev.canceller.borrow_mut().initialize();
         global.core_resource_thread().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, None))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)))).unwrap();
         // Step 13
         Ok(ev)
+    }
+}
+
+// https://html.spec.whatwg.org/multipage/#garbage-collection-2
+impl Drop for EventSource {
+    fn drop(&mut self) {
+        // If an EventSource object is garbage collected while its connection is still open,
+        // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
+        self.canceller.borrow_mut().cancel();
     }
 }
 
@@ -530,6 +549,7 @@ impl EventSourceMethods for EventSource {
     fn Close(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
+        self.canceller.borrow_mut().cancel();
         self.ready_state.set(ReadyState::Closed);
     }
 }
