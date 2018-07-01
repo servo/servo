@@ -2010,7 +2010,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#abort-a-document
-    fn abort(&self) {
+    pub fn abort(&self) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
@@ -2029,6 +2029,10 @@ impl Document {
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
+        if self.loader.borrow_mut().cancel_all_loads() {
+            // If any loads were canceled.
+            self.salvageable.set(false);
+        };
 
         // TODO: https://github.com/servo/servo/issues/15236
         self.window.cancel_all_tasks();
@@ -2036,7 +2040,7 @@ impl Document {
         // Step 3.
         if let Some(parser) = self.get_current_parser() {
             parser.abort();
-            // TODO: salvageable flag.
+            self.salvageable.set(false);
         }
     }
 
