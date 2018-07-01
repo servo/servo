@@ -440,6 +440,7 @@ impl EventSource {
         };
         // Step 1, 5
         let ev = EventSource::new(global, url_record.clone(), event_source_init.withCredentials);
+        global.track_event_source(&ev);
         // Steps 6-7
         let cors_attribute_state = if event_source_init.withCredentials {
             CorsSettings::UseCredentials
