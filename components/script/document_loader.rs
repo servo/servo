@@ -89,7 +89,7 @@ pub struct DocumentLoader {
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
-    canceller: DomRefCell<FetchCanceller>,
+    cancellers: Vec<FetchCanceller>,
 }
 
 impl DocumentLoader {
@@ -106,14 +106,13 @@ impl DocumentLoader {
             resource_threads: resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
-            canceller: DomRefCell::new(Default::default())
+            cancellers: Vec::new()
         }
     }
 
     pub fn cancel_all_loads(&mut self) -> bool {
-        self.canceller.borrow_mut().cancel();
-        let canceled_any = !self.blocking_loads.is_empty();
-        self.blocking_loads.clear();
+        let canceled_any = !self.cancellers.is_empty();
+        self.cancellers.clear();
         canceled_any
     }
 
@@ -136,7 +135,9 @@ impl DocumentLoader {
     pub fn fetch_async_background(&self,
                                   request: RequestInit,
                                   fetch_target: IpcSender<FetchResponseMsg>) {
-        let cancel_receiver = self.canceller.borrow_mut().initialize();
+        let canceller = FetchCanceller::new();
+        self.cancellers.push(canceller);
+        let cancel_receiver = canceller.initialize();
         self.resource_threads.sender().send(
             CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)))).unwrap();
     }
