@@ -552,6 +552,12 @@ impl WindowMethods for Window {
         receiver.recv().unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-stop
+    fn Stop(&self) {
+        let doc = self.Document();
+        doc.abort();
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
     fn Closed(&self) -> bool {
         self.window_proxy.get()

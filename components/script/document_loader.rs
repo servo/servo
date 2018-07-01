@@ -6,8 +6,10 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::root::Dom;
 use dom::document::Document;
+use fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{ResourceThreads, IpcSend};
@@ -87,6 +89,7 @@ pub struct DocumentLoader {
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
+    canceller: DomRefCell<FetchCanceller>,
 }
 
 impl DocumentLoader {
@@ -103,7 +106,15 @@ impl DocumentLoader {
             resource_threads: resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
+            canceller: DomRefCell::new(Default::default())
         }
+    }
+
+    pub fn cancel_all_loads(&mut self) -> bool {
+        self.canceller.borrow_mut().cancel();
+        let canceled_any = !self.blocking_loads.is_empty();
+        self.blocking_loads.clear();
+        canceled_any
     }
 
     /// Add a load to the list of blocking loads.
@@ -125,8 +136,9 @@ impl DocumentLoader {
     pub fn fetch_async_background(&self,
                                   request: RequestInit,
                                   fetch_target: IpcSender<FetchResponseMsg>) {
+        let cancel_receiver = self.canceller.borrow_mut().initialize();
         self.resource_threads.sender().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, None))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)))).unwrap();
     }
 
     /// Mark an in-progress network request complete.
