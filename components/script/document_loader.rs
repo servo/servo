@@ -8,6 +8,7 @@
 
 use dom::bindings::root::Dom;
 use dom::document::Document;
+use fetch::FetchCanceller;
 use ipc_channel::ipc::IpcSender;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseMsg};
 use net_traits::{ResourceThreads, IpcSend};
@@ -87,6 +88,7 @@ pub struct DocumentLoader {
     resource_threads: ResourceThreads,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
+    cancellers: Vec<FetchCanceller>,
 }
 
 impl DocumentLoader {
@@ -103,7 +105,15 @@ impl DocumentLoader {
             resource_threads: resource_threads,
             blocking_loads: initial_loads,
             events_inhibited: false,
+            cancellers: Vec::new()
         }
+    }
+
+    pub fn cancel_all_loads(&mut self) -> bool {
+        let canceled_any = !self.cancellers.is_empty();
+        // Associated fetches will be canceled when dropping the canceller.
+        self.cancellers.clear();
+        canceled_any
     }
 
     /// Add a load to the list of blocking loads.
@@ -122,11 +132,14 @@ impl DocumentLoader {
     }
 
     /// Initiate a new fetch that does not block the document load event.
-    pub fn fetch_async_background(&self,
+    pub fn fetch_async_background(&mut self,
                                   request: RequestInit,
                                   fetch_target: IpcSender<FetchResponseMsg>) {
+        let mut canceller = FetchCanceller::new();
+        let cancel_receiver = canceller.initialize();
+        self.cancellers.push(canceller);
         self.resource_threads.sender().send(
-            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, None))).unwrap();
+            CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(fetch_target, Some(cancel_receiver)))).unwrap();
     }
 
     /// Mark an in-progress network request complete.

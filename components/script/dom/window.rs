@@ -552,6 +552,13 @@ impl WindowMethods for Window {
         receiver.recv().unwrap();
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-window-stop
+    fn Stop(&self) {
+        // TODO: Cancel ongoing navigation.
+        let doc = self.Document();
+        doc.abort();
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
     fn Closed(&self) -> bool {
         self.window_proxy.get()
@@ -1108,6 +1115,16 @@ impl Window {
             let cancelled = mem::replace(&mut *flag, Default::default());
             cancelled.store(true, Ordering::Relaxed);
         }
+    }
+
+    /// Cancels all the tasks from a given task source.
+    /// This sets the current sentinel value to
+    /// `true` and replaces it with a brand new one for future tasks.
+    pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
+        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+        let cancelled = mem::replace(&mut *flag, Default::default());
+        cancelled.store(true, Ordering::Relaxed);
     }
 
     pub fn clear_js_runtime(&self) {

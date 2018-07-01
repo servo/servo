@@ -25,7 +25,7 @@
   attribute DOMString status;
   void close();
   readonly attribute boolean closed;
-  //void stop();
+  void stop();
   //void focus();
   //void blur();
 
