@@ -141,7 +141,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{CssRule, Stylesheet, Origin, OriginSet};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use time;
 use timers::OneshotTimerCallback;
 use url::Host;
@@ -2010,7 +2010,7 @@ impl Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#abort-a-document
-    fn abort(&self) {
+    pub fn abort(&self) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
@@ -2029,14 +2029,21 @@ impl Document {
         *self.asap_scripts_set.borrow_mut() = vec![];
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
+        if self.loader.borrow_mut().cancel_all_loads() {
+            // If any loads were canceled.
+            self.salvageable.set(false);
+        };
 
-        // TODO: https://github.com/servo/servo/issues/15236
-        self.window.cancel_all_tasks();
+        // Also Step 2.
+        // Note: the spec says to discard any tasks queued for fetch.
+        // This cancels all tasks on the networking task source, which might be too broad.
+        // See https://github.com/whatwg/html/issues/3837
+        self.window.cancel_all_tasks_from_source(TaskSourceName::Networking);
 
         // Step 3.
         if let Some(parser) = self.get_current_parser() {
             parser.abort();
-            // TODO: salvageable flag.
+            self.salvageable.set(false);
         }
     }
 
