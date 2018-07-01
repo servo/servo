@@ -494,7 +494,7 @@ impl EventSource {
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
         }));
-        let cancel_receiver = self.canceller.borrow_mut().initialize();
+        let cancel_receiver = ev.canceller.borrow_mut().initialize();
         global.core_resource_thread().send(
             CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)))).unwrap();
         // Step 13
