@@ -9,7 +9,7 @@ use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::globalscope::GlobalScope;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglobject::WebGLObject;
-use dom::webglrenderingcontext::BoundAttribBuffers;
+use dom::webglrenderingcontext::VertexAttribs;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -19,30 +19,36 @@ pub struct WebGLVertexArrayObjectOES {
     id: WebGLVertexArrayId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
-    bound_attrib_buffers: BoundAttribBuffers,
+    vertex_attribs: VertexAttribs,
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
 }
 
 impl WebGLVertexArrayObjectOES {
-    fn new_inherited(id: WebGLVertexArrayId) -> WebGLVertexArrayObjectOES {
+    fn new_inherited(id: WebGLVertexArrayId, max_vertex_attribs: u32) -> Self {
         Self {
             webgl_object_: WebGLObject::new_inherited(),
             id: id,
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
-            bound_attrib_buffers: Default::default(),
+            vertex_attribs: VertexAttribs::new(max_vertex_attribs),
             bound_buffer_element_array: MutNullableDom::new(None),
         }
     }
 
-    pub fn new(global: &GlobalScope, id: WebGLVertexArrayId) -> DomRoot<WebGLVertexArrayObjectOES> {
-        reflect_dom_object(Box::new(WebGLVertexArrayObjectOES::new_inherited(id)),
-                           global,
-                           WebGLVertexArrayObjectOESBinding::Wrap)
+    pub fn new(
+        global: &GlobalScope,
+        id: WebGLVertexArrayId,
+        max_vertex_attribs: u32,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLVertexArrayObjectOES::new_inherited(id, max_vertex_attribs)),
+            global,
+            WebGLVertexArrayObjectOESBinding::Wrap,
+        )
     }
 
-    pub fn bound_attrib_buffers(&self) -> &BoundAttribBuffers {
-        &self.bound_attrib_buffers
+    pub fn vertex_attribs(&self) -> &VertexAttribs {
+        &self.vertex_attribs
     }
 
     pub fn id(&self) -> WebGLVertexArrayId {
