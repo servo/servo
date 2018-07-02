@@ -18,5 +18,5 @@ MY_LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_PATH:= $(SERVO_TARGET_DIR)
 LOCAL_MODULE := servo
-LOCAL_SRC_FILES := libservo.so
+LOCAL_SRC_FILES := libsimpleservo.so
 include $(PREBUILT_SHARED_LIBRARY)
