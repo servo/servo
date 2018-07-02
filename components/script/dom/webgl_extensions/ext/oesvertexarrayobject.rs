@@ -75,8 +75,8 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
             }
 
             // Remove VAO references from buffers
-            for (_, ref buffer) in vao.vertex_attribs().borrow().iter() {
-                if let Some(ref buffer) = *buffer {
+            for attrib_data in &*vao.vertex_attribs().borrow() {
+                if let Some(buffer) = attrib_data.buffer() {
                     buffer.remove_vao_reference(vao.id());
                 }
             }
@@ -101,8 +101,8 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
         if let Some(bound_vao) = self.bound_vao.get() {
             // Store buffers attached to attrib pointers
             bound_vao.vertex_attribs().set_from(&self.ctx.vertex_attribs());
-            for (_, ref buffer) in bound_vao.vertex_attribs().borrow().iter() {
-                if let Some(ref buffer) = *buffer {
+            for attrib_data in &*bound_vao.vertex_attribs().borrow() {
+                if let Some(buffer) = attrib_data.buffer() {
                     buffer.add_vao_reference(bound_vao.id());
                 }
             }

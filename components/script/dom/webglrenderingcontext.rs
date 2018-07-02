@@ -2205,7 +2205,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         {
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
             let buffers = self.vertex_attribs.borrow();
-            if buffers.iter().any(|&(enabled, ref buffer)| enabled && buffer.is_none()) {
+            if buffers.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
                 return self.webgl_error(InvalidOperation);
             }
         }
@@ -2280,7 +2280,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         {
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
             let buffers = self.vertex_attribs.borrow();
-            if buffers.iter().any(|&(enabled, ref buffer)| enabled && buffer.is_none()) {
+            if buffers.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
                 return self.webgl_error(InvalidOperation);
             }
         }
@@ -3808,7 +3808,7 @@ impl UniformSetterType {
 #[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
 pub struct VertexAttribs {
-    attribs: DomRefCell<Box<[(bool, Option<Dom<WebGLBuffer>>)]>>,
+    attribs: DomRefCell<Box<[VertexAttribData]>>,
 }
 
 impl VertexAttribs {
@@ -3827,29 +3827,42 @@ impl VertexAttribs {
         self.attribs.borrow_mut().clone_from_slice(&other.attribs.borrow());
     }
 
-    pub fn borrow(&self) -> Ref<[(bool, Option<Dom<WebGLBuffer>>)]> {
+    pub fn borrow(&self) -> Ref<[VertexAttribData]> {
         Ref::map(self.attribs.borrow(), |attribs| &**attribs)
     }
 
     fn delete_buffer(&self, buffer: &WebGLBuffer) {
         for attrib in &mut **self.attribs.borrow_mut() {
-            if attrib.1.as_ref().map_or(false, |b| b.id() == buffer.id()) {
-                attrib.1 = None;
+            if attrib.buffer().map_or(false, |b| b.id() == buffer.id()) {
+                attrib.buffer = None;
             }
         }
     }
 
     fn get(&self, index: u32) -> Option<Ref<WebGLBuffer>> {
         ref_filter_map(self.attribs.borrow(), |attribs| {
-            attribs[index as usize].1.as_ref().map(|buffer| &**buffer)
+            attribs[index as usize].buffer.as_ref().map(|buffer| &**buffer)
         })
     }
 
     fn enabled_as_array(&self, index: u32, value: bool) {
-        self.attribs.borrow_mut()[index as usize].0 = value;
+        self.attribs.borrow_mut()[index as usize].enabled_as_array = value;
     }
 
     fn bind_buffer(&self, index: u32, buffer: &WebGLBuffer) {
-        self.attribs.borrow_mut()[index as usize].1 = Some(Dom::from_ref(buffer));
+        self.attribs.borrow_mut()[index as usize].buffer = Some(Dom::from_ref(buffer));
+    }
+}
+
+#[derive(Clone, Default, JSTraceable, MallocSizeOf)]
+#[must_root]
+pub struct VertexAttribData {
+    enabled_as_array: bool,
+    buffer: Option<Dom<WebGLBuffer>>,
+}
+
+impl VertexAttribData {
+    pub fn buffer(&self) -> Option<&WebGLBuffer> {
+        self.buffer.as_ref().map(|b| &**b)
     }
 }
