@@ -389,10 +389,16 @@ class PackageCommands(CommandBase):
     @CommandArgument('--android',
                      action='store_true',
                      help='Install on Android')
+    @CommandArgument('--emulator',
+                     action='store_true',
+                     help='For Android, install to the only emulated device')
+    @CommandArgument('--usb',
+                     action='store_true',
+                     help='For Android, install to the only USB device')
     @CommandArgument('--target', '-t',
                      default=None,
                      help='Install the given target platform')
-    def install(self, release=False, dev=False, android=False, target=None):
+    def install(self, release=False, dev=False, android=False, emulator=False, usb=False, target=None):
         env = self.build_env()
         if target and android:
             print("Please specify either --target or --android.")
@@ -416,7 +422,15 @@ class PackageCommands(CommandBase):
 
         if android:
             pkg_path = binary_path + ".apk"
-            exec_command = [self.android_adb_path(env), "install", "-r", pkg_path]
+            exec_command = [self.android_adb_path(env)]
+            if emulator and usb:
+                print("Cannot install to both emulator and USB at the same time.")
+                return 1
+            if emulator:
+                exec_command += ["-e"]
+            if usb:
+                exec_command += ["-d"]
+            exec_command += ["install", "-r", pkg_path]
         elif is_windows():
             pkg_path = path.join(path.dirname(binary_path), 'msi', 'Servo.msi')
             exec_command = ["msiexec", "/i", pkg_path]

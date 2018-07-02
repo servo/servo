@@ -9,6 +9,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import hashlib
 import os
 import os.path
 import platform
@@ -153,9 +154,26 @@ def download_file(desc, src, dst):
     os.rename(tmp_path, dst)
 
 
-def extract(src, dst, movedir=None):
+# https://stackoverflow.com/questions/39296101/python-zipfile-removes-execute-permissions-from-binaries
+# In particular, we want the executable bit for executable files.
+class ZipFileWithUnixPermissions(zipfile.ZipFile):
+    def extract(self, member, path=None, pwd=None):
+        if not isinstance(member, zipfile.ZipInfo):
+            member = self.getinfo(member)
+
+        if path is None:
+            path = os.getcwd()
+
+        extracted = self._extract_member(member, path, pwd)
+        mode = os.stat(extracted).st_mode
+        mode |= (member.external_attr >> 16)
+        os.chmod(extracted, mode)
+        return extracted
+
+
+def extract(src, dst, movedir=None, remove=True):
     assert src.endswith(".zip")
-    zipfile.ZipFile(src).extractall(dst)
+    ZipFileWithUnixPermissions(src).extractall(dst)
 
     if movedir:
         for f in os.listdir(movedir):
@@ -164,4 +182,18 @@ def extract(src, dst, movedir=None):
             os.rename(frm, to)
         os.rmdir(movedir)
 
-    os.remove(src)
+    if remove:
+        os.remove(src)
+
+
+def check_hash(filename, expected, algorithm):
+    hasher = hashlib.new(algorithm)
+    with open(filename, "rb") as f:
+        while True:
+            block = f.read(16 * 1024)
+            if len(block) == 0:
+                break
+            hasher.update(block)
+    if hasher.hexdigest() != expected:
+        print("Incorrect {} hash for {}".format(algorithm, filename))
+        sys.exit(1)

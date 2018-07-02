@@ -525,6 +525,16 @@ class CommandBase(object):
         if self.config["android"]["platform"]:
             env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
 
+        toolchains = path.join(self.context.topdir, "android-toolchains")
+        for kind in ["sdk", "ndk"]:
+            default = os.path.join(toolchains, kind)
+            if os.path.isdir(default):
+                env.setdefault("ANDROID_" + kind.upper(), default)
+
+        tools = os.path.join(toolchains, "sdk", "platform-tools")
+        if os.path.isdir(tools):
+            env["PATH"] = "%s%s%s" % (tools, os.pathsep, env["PATH"])
+
         # These are set because they are the variable names that build-apk
         # expects. However, other submodules have makefiles that reference
         # the env var names above. Once glutin is enabled and set as the
@@ -612,6 +622,13 @@ class CommandBase(object):
             if path.exists(sdk_adb):
                 return sdk_adb
         return "adb"
+
+    def android_emulator_path(self, env):
+        if "ANDROID_SDK" in env:
+            sdk_adb = path.join(env["ANDROID_SDK"], "emulator", "emulator")
+            if path.exists(sdk_adb):
+                return sdk_adb
+        return "emulator"
 
     def handle_android_target(self, target):
         if target == "arm-linux-androideabi":

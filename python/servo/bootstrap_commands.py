@@ -13,6 +13,7 @@ import base64
 import json
 import os
 import os.path as path
+import platform
 import re
 import subprocess
 import sys
@@ -28,7 +29,7 @@ from mach.decorators import (
 
 import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, cd, check_call
-from servo.util import delete, download_bytes
+from servo.util import delete, download_bytes, download_file, extract, check_hash
 
 
 @CommandProvider
@@ -53,6 +54,111 @@ class MachCommands(CommandBase):
                      help='Boostrap without confirmation')
     def bootstrap(self, force=False):
         return bootstrap.bootstrap(self.context, force=force)
+
+    @Command('bootstrap-android',
+             description='Install the Android SDK and NDK.',
+             category='bootstrap')
+    @CommandArgument('--update',
+                     action='store_true',
+                     help='Run SDK component install and emulator image creation again')
+    def bootstrap_android(self, update=False):
+
+        ndk = "android-ndk-r12b-{system}-{arch}"
+        tools = "sdk-tools-{system}-4333796"
+
+        sdk_build_tools = "25.0.2"
+        emulator_images = [
+            ("servo-arm", "25", "google_apis;armeabi-v7a"),
+            ("servo-x86", "28", "google_apis;x86"),
+        ]
+
+        known_sha1 = {
+            # https://dl.google.com/android/repository/repository2-1.xml
+            "sdk-tools-darwin-4333796.zip": "ed85ea7b59bc3483ce0af4c198523ba044e083ad",
+            "sdk-tools-linux-4333796.zip": "8c7c28554a32318461802c1291d76fccfafde054",
+            "sdk-tools-windows-4333796.zip": "aa298b5346ee0d63940d13609fe6bec621384510",
+
+            # https://developer.android.com/ndk/downloads/older_releases
+            "android-ndk-r12b-windows-x86.zip": "8e6eef0091dac2f3c7a1ecbb7070d4fa22212c04",
+            "android-ndk-r12b-windows-x86_64.zip": "337746d8579a1c65e8a69bf9cbdc9849bcacf7f5",
+            "android-ndk-r12b-darwin-x86_64.zip": "e257fe12f8947be9f79c10c3fffe87fb9406118a",
+            "android-ndk-r12b-linux-x86_64.zip": "170a119bfa0f0ce5dc932405eaa3a7cc61b27694",
+        }
+
+        toolchains = path.join(self.context.topdir, "android-toolchains")
+        if not path.isdir(toolchains):
+            os.makedirs(toolchains)
+
+        def download(target_dir, name, flatten=False):
+            final = path.join(toolchains, target_dir)
+            if path.isdir(final):
+                return
+
+            base_url = "https://dl.google.com/android/repository/"
+            filename = name + ".zip"
+            url = base_url + filename
+            archive = path.join(toolchains, filename)
+
+            if not path.isfile(archive):
+                download_file(filename, url, archive)
+            check_hash(archive, known_sha1[filename], "sha1")
+            print("Extracting " + filename)
+            remove = True  # Set to False to avoid repeated downloads while debugging this script
+            if flatten:
+                extracted = final + "_"
+                extract(archive, extracted, remove=remove)
+                contents = os.listdir(extracted)
+                assert len(contents) == 1
+                os.rename(path.join(extracted, contents[0]), final)
+                os.rmdir(extracted)
+            else:
+                extract(archive, final, remove=remove)
+
+        system = platform.system().lower()
+        machine = platform.machine().lower()
+        arch = {"i386": "x86"}.get(machine, machine)
+        download("ndk", ndk.format(system=system, arch=arch), flatten=True)
+        download("sdk", tools.format(system=system))
+
+        subprocess.check_call([
+            path.join(toolchains, "sdk", "tools", "bin", "sdkmanager"),
+            "platform-tools",
+            "build-tools;" + sdk_build_tools,
+            "emulator",
+        ] + [
+            arg
+            for avd_name, api_level, system_image in emulator_images
+            for arg in [
+                "platforms;android-" + api_level,
+                "system-images;android-%s;%s" % (api_level, system_image),
+            ]
+        ])
+        for avd_name, api_level, system_image in emulator_images:
+            process = subprocess.Popen(stdin=subprocess.PIPE, stdout=subprocess.PIPE, args=[
+                path.join(toolchains, "sdk", "tools", "bin", "avdmanager"),
+                "create", "avd",
+                "--path", path.join(toolchains, "avd", avd_name),
+                "--name", avd_name,
+                "--package", "system-images;android-%s;%s" % (api_level, system_image),
+                "--force",
+            ])
+            output = b""
+            while 1:
+                # Read one byte at a time because in Python:
+                # * readline() blocks until "\n", which doesn't come before the prompt
+                # * read() blocks until EOF, which doesn't come before the prompt
+                # * read(n) keeps reading until it gets n bytes or EOF,
+                #   but we don't know reliably how many bytes to read until the prompt
+                byte = process.stdout.read(1)
+                if len(byte) == 0:
+                    break
+                output += byte
+                # There seems to be no way to disable this prompt:
+                if output.endswith(b"Do you wish to create a custom hardware profile? [no]"):
+                    process.stdin.write("no\n")
+            assert process.wait() == 0
+            with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
+                f.write("disk.dataPartition.size=2G\n")
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
