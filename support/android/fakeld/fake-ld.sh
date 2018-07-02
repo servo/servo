@@ -33,6 +33,5 @@ call_gcc()
   echo "targetdir: ${ANDROID_CXX_LIBS}"
 
   "${ANDROID_TOOLCHAIN}/$5-gcc" \
-    --sysroot="${ANDROID_SYSROOT}" -L "${ANDROID_CXX_LIBS}" ${_GCC_PARAMS} -lc++ \
-    -o "${TARGET_DIR}/libservo.so" -shared && touch "${TARGET_DIR}/servo"
+    --sysroot="${ANDROID_SYSROOT}" -L "${ANDROID_CXX_LIBS}" ${_GCC_PARAMS} -lc++
 }
