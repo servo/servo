@@ -211,6 +211,9 @@ dependencies {
     googlevrCompile 'com.google.vr:sdk-base:1.70.0'
     googlevrCompile(name:'GVRService', ext:'aar')
     oculusvrCompile(name:'OVRService', ext:'aar')
+
+    // compile is deprecated. Will become "implementation" once we upgrade graddle.
+    compile 'com.android.support.constraint:constraint-layout:1.0.0'
 }
 
 // Utility methods
