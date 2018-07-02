@@ -158,7 +158,7 @@ class MachCommands(CommandBase):
                     process.stdin.write("no\n")
             assert process.wait() == 0
             with open(path.join(toolchains, "avd", avd_name, "config.ini"), "a") as f:
-                f.write("disk.dataPartition.size=1G\n")
+                f.write("disk.dataPartition.size=2G\n")
 
     @Command('update-hsts-preload',
              description='Download the HSTS preload list',
