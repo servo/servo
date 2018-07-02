@@ -1,17 +1,17 @@
 [target.arm-linux-androideabi]
-linker = "./ports/servo/fake-ld-arm.sh"
+linker = "./support/android/fakeld/fake-ld-arm.sh"
 ar = "arm-linux-androideabi-ar"
 
 [target.armv7-linux-androideabi]
-linker = "./ports/servo/fake-ld-armv7.sh"
+linker = "./support/android/fakeld/fake-ld-armv7.sh"
 ar = "arm-linux-androideabi-ar"
 
 [target.aarch64-linux-android]
-linker = "./ports/servo/fake-ld-arm64.sh"
+linker = "./support/android/fakeld/fake-ld-arm64.sh"
 ar = "aarch64-linux-android-ar"
 
 [target.i686-linux-android]
-linker = "./ports/servo/fake-ld-x86.sh"
+linker = "./support/android/fakeld/fake-ld-x86.sh"
 ar = "i686-linux-android-ar"
 
 [target.arm-unknown-linux-gnueabihf]
@@ -23,4 +23,4 @@ linker = "aarch64-linux-gnu-gcc"
 ar = "aarch64-linux-gnu-ar"
 
 [target.'cfg(target_os=windows)']
-linker = "./ports/servo/fake-ld.cmd"
+linker = "./support/android/fakeld/fake-ld.cmd"

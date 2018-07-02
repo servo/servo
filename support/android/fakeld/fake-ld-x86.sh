@@ -8,8 +8,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source ./ports/servo/fake-ld.sh
+source ./support/android/fakeld/fake-ld.sh
 
 export _GCC_PARAMS="${@}"
-call_gcc "arch-arm" "arm-linux-androideabi" "android-18" "armeabi" \
-         "arm-linux-androideabi"
+call_gcc "arch-x86" "x86" "android-18" "x86" "i686-linux-android"
