@@ -2202,13 +2202,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
-        {
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-            let buffers = self.vertex_attribs.borrow();
-            if buffers.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
-                return self.webgl_error(InvalidOperation);
-            }
-        }
+        handle_potential_webgl_error!(self, self.vertex_attribs.validate_for_draw(), return);
 
         if !self.validate_framebuffer_complete() {
             return;
@@ -2277,13 +2271,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
-        {
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-            let buffers = self.vertex_attribs.borrow();
-            if buffers.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
-                return self.webgl_error(InvalidOperation);
-            }
-        }
+        handle_potential_webgl_error!(self, self.vertex_attribs.validate_for_draw(), return);
 
         if !self.validate_framebuffer_complete() {
             return;
@@ -3851,6 +3839,14 @@ impl VertexAttribs {
 
     fn bind_buffer(&self, index: u32, buffer: &WebGLBuffer) {
         self.attribs.borrow_mut()[index as usize].buffer = Some(Dom::from_ref(buffer));
+    }
+
+    fn validate_for_draw(&self) -> WebGLResult<()> {
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
+        if self.borrow().iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
+            return Err(InvalidOperation);
+        }
+        Ok(())
     }
 }
 
