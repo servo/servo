@@ -18,6 +18,7 @@ use values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 /// A value for a `<source-size>`:
 ///
 /// https://html.spec.whatwg.org/multipage/#source-size
+#[derive(Debug)]
 pub struct SourceSize {
     condition: MediaCondition,
     value: Length,
@@ -38,6 +39,7 @@ impl Parse for SourceSize {
 /// A value for a `<source-size-list>`:
 ///
 /// https://html.spec.whatwg.org/multipage/#source-size-list
+#[derive(Debug)]
 pub struct SourceSizeList {
     source_sizes: Vec<SourceSize>,
     value: Option<Length>,
@@ -50,6 +52,11 @@ impl SourceSizeList {
             source_sizes: vec![],
             value: None,
         }
+    }
+
+    /// Set content of `value`, which can be used as fall-back during evaluate.
+    pub fn set_fallback_value(&mut self, width: Option<Length>) {
+        self.value = width;
     }
 
     /// Evaluate this <source-size-list> to get the final viewport length.
