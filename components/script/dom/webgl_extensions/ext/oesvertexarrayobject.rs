@@ -100,7 +100,7 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
     fn BindVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
         if let Some(bound_vao) = self.bound_vao.get() {
             // Store buffers attached to attrib pointers
-            bound_vao.vertex_attribs().set_from(&self.ctx.vertex_attribs());
+            bound_vao.vertex_attribs().clone_from(&self.ctx.vertex_attribs());
             for attrib_data in &*bound_vao.vertex_attribs().borrow() {
                 if let Some(buffer) = attrib_data.buffer() {
                     buffer.add_vao_reference(bound_vao.id());
@@ -125,7 +125,7 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
             self.bound_vao.set(Some(&vao));
 
             // Restore WebGLRenderingContext current bindings
-            self.ctx.vertex_attribs().set_from(&vao.vertex_attribs());
+            self.ctx.vertex_attribs().clone_from(&vao.vertex_attribs());
             let element_array = vao.bound_buffer_element_array();
             self.ctx.set_bound_buffer_element_array(element_array.as_ref().map(|buffer| &**buffer));
         } else {

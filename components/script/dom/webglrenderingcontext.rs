@@ -3811,7 +3811,7 @@ impl VertexAttribs {
         }
     }
 
-    pub fn set_from(&self, other: &Self) {
+    pub fn clone_from(&self, other: &Self) {
         self.attribs.borrow_mut().clone_from_slice(&other.attribs.borrow());
     }
 
