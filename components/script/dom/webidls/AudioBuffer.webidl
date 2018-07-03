@@ -19,11 +19,11 @@ interface AudioBuffer {
   readonly attribute unsigned long length;
   readonly attribute double duration;
   readonly attribute unsigned long numberOfChannels;
-//  Float32Array getChannelData(unsigned long channel);
-//  void copyFromChannel(Float32Array destination,
-//                       unsigned long channelNumber,
-//                       optional unsigned long startInChannel = 0);
-//  void copyToChannel (Float32Array source,
-//                      unsigned long channelNumber,
-//                     optional unsigned long startInChannel = 0);
+  [Throws] Float32Array getChannelData(unsigned long channel);
+//[Throws] void copyFromChannel(Float32Array destination,
+//                              unsigned long channelNumber,
+//                              optional unsigned long startInChannel = 0);
+//[Throws] void copyToChannel(Float32Array source,
+//                            unsigned long channelNumber,
+//                            optional unsigned long startInChannel = 0);
 };
