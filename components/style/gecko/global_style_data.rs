@@ -65,7 +65,12 @@ lazy_static! {
             .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
         let mut num_threads = match stylo_threads {
             Ok(num) => num,
-            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
+            // The default heuristic is num_virtual_cores * .75. This gives us
+            // three threads on a hyper-threaded dual core, and six threads on
+            // a hyper-threaded quad core. The performance benefit of additional
+            // threads seems to level off at around six, so we cap it there on
+            // many-core machines (see bug 1431285 comment 14).
+            _ => cmp::min(cmp::max(num_cpus::get() * 3 / 4, 1), 6),
         };
 
         // If num_threads is one, there's no point in creating a thread pool, so
