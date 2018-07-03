@@ -43,12 +43,13 @@ def test_modifier_click(session, test_actions_page, key_chain, mouse_chain, modi
 
 def test_many_modifiers_click(session, test_actions_page, key_chain, mouse_chain):
     outer = session.find.css("#outer", all=False)
+    dblclick_timeout = 800
     key_chain \
         .pause(0) \
-        .key_down(Keys.CONTROL) \
+        .key_down(Keys.ALT) \
         .key_down(Keys.SHIFT) \
-        .pause(0) \
-        .key_up(Keys.CONTROL) \
+        .pause(dblclick_timeout) \
+        .key_up(Keys.ALT) \
         .key_up(Keys.SHIFT)
     mouse_chain \
         .pointer_move(0, 0, origin=outer) \
@@ -61,7 +62,7 @@ def test_many_modifiers_click(session, test_actions_page, key_chain, mouse_chain
     session.actions.perform([key_chain.dict, mouse_chain.dict])
     expected = [
         {"type": "mousemove"},
-        # shift and ctrl presses
+        # shift and alt pressed
         {"type": "mousedown"},
         {"type": "mouseup"},
         {"type": "click"},
@@ -78,6 +79,6 @@ def test_many_modifiers_click(session, test_actions_page, key_chain, mouse_chain
         e.update(defaults)
     for e in expected[1:4]:
         e["shiftKey"] = True
-        e["ctrlKey"] = True
+        e["altKey"] = True
     events = [filter_dict(e, expected[0]) for e in get_events(session)]
     assert events == expected
