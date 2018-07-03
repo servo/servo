@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
+use cssparser::{Parser, ParserInput};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
 use dom::attr::Attr;
@@ -12,6 +13,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMet
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
@@ -28,6 +30,8 @@ use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
+use dom::htmlpictureelement::HTMLPictureElement;
+use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::progressevent::ProgressEvent;
@@ -53,12 +57,21 @@ use servo_url::ServoUrl;
 use servo_url::origin::ImmutableOrigin;
 use std::cell::{Cell, RefMut};
 use std::char;
+use std::collections::HashSet;
 use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
-use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_unsigned_integer};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_length, parse_unsigned_integer};
+use style::context::QuirksMode;
+use style::media_queries::MediaList;
+use style::parser::ParserContext;
 use style::str::is_ascii_digit;
+use style::stylesheets::{CssRuleType, Origin};
+use style::values::specified::{AbsoluteLength, source_size_list::SourceSizeList};
+use style::values::specified::length::{Length, NoCalcLength};
+use style_traits::ParsingMode;
 use task_source::{TaskSource, TaskSourceName};
+
 
 enum ParseState {
     InDescriptor,
@@ -66,13 +79,27 @@ enum ParseState {
     AfterDescriptor,
 }
 
-#[derive(Debug, PartialEq)]
+pub struct SourceSet {
+    image_sources: Vec<ImageSource>,
+    source_size: SourceSizeList,
+}
+
+impl SourceSet {
+    fn new() -> SourceSet {
+        SourceSet {
+            image_sources: Vec::new(),
+            source_size: SourceSizeList::empty(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ImageSource {
     pub url: String,
     pub descriptor: Descriptor,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Descriptor {
     pub wid: Option<u32>,
     pub den: Option<f64>,
@@ -112,6 +139,8 @@ pub struct HTMLImageElement {
     pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
     generation: Cell<u32>,
+    #[ignore_malloc_size_of = "SourceSet"]
+    source_set: DomRefCell<SourceSet>,
 }
 
 impl HTMLImageElement {
@@ -356,20 +385,218 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
-    fn update_source_set(&self) -> Vec<DOMString> {
+    fn update_source_set(&self) {
+        // Step 1
+        *self.source_set.borrow_mut() = SourceSet::new();
+
+        // Step 2
         let elem = self.upcast::<Element>();
-        // TODO: follow the algorithm
-        let src = elem.get_string_attribute(&local_name!("src"));
-        if src.is_empty() {
-            return vec![]
+        let parent = elem.upcast::<Node>().GetParentElement();
+        let nodes;
+        let elements = match parent.as_ref() {
+            Some(p) => {
+                if p.is::<HTMLPictureElement>() {
+                    nodes = p.upcast::<Node>().ChildNodes();
+                    nodes.iter().filter_map(DomRoot::downcast::<Element>)
+                        .map(|n| DomRoot::from_ref(&*n)).collect()
+                } else {
+                    vec![DomRoot::from_ref(&*elem)]
+                }
+            }
+            None => {
+                vec![DomRoot::from_ref(&*elem)]
+            }
+        };
+
+        // Step 3
+        let width = match elem.get_attribute(&ns!(), &local_name!("width")) {
+            Some(x) => {
+                match parse_length(&x.value()) {
+                    LengthOrPercentageOrAuto::Length(x) =>{
+                        let abs_length = AbsoluteLength::Px(x.to_f32_px());
+                        Some(Length::NoCalc(NoCalcLength::Absolute(abs_length)))
+                    },
+                    _ => None
+                }
+            },
+            None => None
+        };
+
+        // Step 4
+        for element in &elements {
+            // Step 4.1
+            if *element == DomRoot::from_ref(&*elem) {
+                let mut source_set = SourceSet::new();
+                // Step 4.1.1
+                if let Some(x) = element.get_attribute(&ns!(), &local_name!("srcset")) {
+                    source_set.image_sources = parse_a_srcset_attribute(&x.value());
+                }
+
+                // Step 4.1.2
+                if let Some(x) = element.get_attribute(&ns!(), &local_name!("sizes")) {
+                    source_set.source_size =
+                        parse_a_sizes_attribute(DOMString::from_string(x.value().to_string()));
+                }
+
+                // Step 4.1.3
+                let src_attribute = element.get_string_attribute(&local_name!("src"));
+                let is_src_empty = src_attribute.is_empty();
+                let no_density_source_of_1 = source_set.image_sources.iter()
+                                                .all(|source| source.descriptor.den != Some(1.));
+                let no_width_descriptor = source_set.image_sources.iter()
+                                            .all(|source| source.descriptor.wid.is_none());
+                if !is_src_empty && no_density_source_of_1 && no_width_descriptor {
+                    source_set.image_sources.push(ImageSource {
+                        url: src_attribute.to_string(),
+                        descriptor: Descriptor { wid: None, den: None }
+                    })
+                }
+
+                // Step 4.1.4
+                self.normalise_source_densities(&mut source_set, width);
+
+                // Step 4.1.5
+                *self.source_set.borrow_mut() = source_set;
+
+                // Step 4.1.6
+                return;
+            }
+            // Step 4.2
+            if !element.is::<HTMLSourceElement>() {
+                continue;
+            }
+
+            // Step 4.3 - 4.4
+            let mut source_set = SourceSet::new();
+            match element.get_attribute(&ns!(), &local_name!("srcset")) {
+                Some(x) => {
+                    source_set.image_sources = parse_a_srcset_attribute(&x.value());
+                }
+                _ => continue
+            }
+
+            // Step 4.5
+            if source_set.image_sources.is_empty() {
+                continue;
+            }
+
+            // Step 4.6
+            if let Some(x) = element.get_attribute(&ns!(), &local_name!("media")) {
+                if !self.matches_environment(x.value().to_string()) {
+                    continue;
+                }
+            }
+
+            // Step 4.7
+            if let Some(x) = element.get_attribute(&ns!(), &local_name!("sizes")) {
+                source_set.source_size =
+                    parse_a_sizes_attribute(DOMString::from_string(x.value().to_string()));
+            }
+
+            // Step 4.8
+            if let Some(_x) = element.get_attribute(&ns!(), &local_name!("type")) {
+                // TODO Handle unsupported mime type
+            }
+
+            // Step 4.9
+            self.normalise_source_densities(&mut source_set, width);
+
+            // Step 4.10
+            *self.source_set.borrow_mut() = source_set;
+            return;
         }
-        vec![src]
+    }
+
+    fn evaluate_source_size_list(&self, source_size_list: &mut SourceSizeList, width: Option<Length>) -> Au {
+        let document = document_from_node(self);
+        let device = document.device().unwrap();
+        let quirks_mode = document.quirks_mode();
+        source_size_list.set_fallback_value(width);
+        source_size_list.evaluate(&device, quirks_mode)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#matches-the-environment
+    fn matches_environment(&self, media_query: String) -> bool {
+        let document = document_from_node(self);
+        let device = document.device().unwrap();
+        let quirks_mode = document.quirks_mode();
+        let document_url = &document.url();
+        let context = ParserContext::new(
+            Origin::Author,
+            document_url,
+            Some(CssRuleType::Style),
+            ParsingMode::all(),
+            quirks_mode,
+            None,
+        );
+        let mut parserInput = ParserInput::new(&media_query);
+        let mut parser = Parser::new(&mut parserInput);
+        let media_list = MediaList::parse(&context, &mut parser);
+        media_list.evaluate(&device, quirks_mode)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
+    fn normalise_source_densities(&self, source_set: &mut SourceSet, width: Option<Length>) {
+        // Step 1
+        let mut source_size = &mut source_set.source_size;
+
+        // Find source_size_length for Step 2.2
+        let source_size_length = self.evaluate_source_size_list(&mut source_size, width);
+
+        // Step 2
+        for imgsource in &mut source_set.image_sources {
+            // Step 2.1
+            if imgsource.descriptor.den.is_some() {
+                continue;
+            }
+            // Step 2.2
+            if imgsource.descriptor.wid.is_some() {
+                let wid = imgsource.descriptor.wid.unwrap();
+                imgsource.descriptor.den = Some(wid as f64 / source_size_length.to_f64_px());
+            } else {
+                //Step 2.3
+                imgsource.descriptor.den = Some(1 as f64);
+            }
+        };
     }
 
     /// <https://html.spec.whatwg.org/multipage/#select-an-image-source>
-    fn select_image_source(&self) -> Option<DOMString> {
-        // TODO: select an image source from source set
-        self.update_source_set().first().cloned()
+    fn select_image_source(&self) -> Option<(DOMString, f32)> {
+        // Step 1, 3
+        self.update_source_set();
+        let source_set = &*self.source_set.borrow_mut();
+        let len = source_set.image_sources.len();
+
+        // Step 2
+        if len == 0 {
+            return None;
+        }
+
+        // Step 4
+        let mut repeat_indices = HashSet::new();
+        for outer_index in 0..len {
+            if repeat_indices.contains(&outer_index) {
+                continue;
+            }
+            let imgsource = &source_set.image_sources[outer_index];
+            let pixel_density = imgsource.descriptor.den.unwrap();
+            for inner_index in (outer_index + 1)..len {
+                let imgsource2 = &source_set.image_sources[inner_index];
+                if pixel_density == imgsource2.descriptor.den.unwrap() {
+                    repeat_indices.insert(inner_index);
+                }
+            }
+        }
+        let img_sources = &mut vec![];
+        for outer_index in 0..len {
+            if !repeat_indices.contains(&outer_index) {
+                img_sources.push(&source_set.image_sources[outer_index]);
+            }
+        }
+
+        // TODO Step 5 - select source based on pixel density
+        let selected_source = img_sources.remove(0).clone();
+        Some((DOMString::from_string(selected_source.url), selected_source.descriptor.den.unwrap() as f32))
     }
 
     fn init_image_request(&self,
@@ -439,7 +666,7 @@ impl HTMLImageElement {
             Some(src) => {
                 // Step 8.
                 // TODO: Handle pixel density.
-                src
+                src.0
             },
             None => {
                 // Step 9.
@@ -619,6 +846,7 @@ impl HTMLImageElement {
             }),
             form_owner: Default::default(),
             generation: Default::default(),
+            source_set: DomRefCell::new(SourceSet::new()),
         }
     }
 
@@ -743,6 +971,22 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
                 .unwrap_or(LengthOrPercentageOrAuto::Auto)
         }
     }
+}
+
+//https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute
+pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    let url = ServoUrl::parse("about:blank").unwrap();
+    let context = ParserContext::new(
+        Origin::Author,
+        &url,
+        Some(CssRuleType::Style),
+        ParsingMode::empty(),
+        QuirksMode::NoQuirks,
+        None,
+    );
+    SourceSizeList::parse(&context, &mut parser)
 }
 
 impl HTMLImageElementMethods for HTMLImageElement {
