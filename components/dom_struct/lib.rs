@@ -7,7 +7,12 @@
 
 extern crate proc_macro;
 
-use proc_macro::{TokenStream, quote};
+#[macro_use]
+extern crate quote;
+extern crate syn;
+
+use proc_macro::TokenStream;
+use syn::*;
 
 #[proc_macro_attribute]
 pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
@@ -23,5 +28,38 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     // Work around https://github.com/rust-lang/rust/issues/46489
     let attributes: TokenStream = attributes.to_string().parse().unwrap();
 
-    attributes.into_iter().chain(input.into_iter()).collect()
+
+    let output: TokenStream = attributes.into_iter().chain(input.into_iter()).collect();
+
+    let item: Item = syn::parse(output).unwrap();
+
+    if let Item::Struct(s) = item {
+        let s2 = s.clone();
+        if s.generics.params.len() > 0 {
+            return quote!(#s2).into();
+        }
+        if let Fields::Named(ref f) = s.fields {
+            let f = f.named.first().expect("Must have at least one field").into_value();
+            let ident = f.ident.as_ref().expect("Must have named fields");
+            let name = &s.ident;
+            let ty = &f.ty;
+
+            quote! (
+                #s2
+
+                impl ::dom::bindings::inheritance::HasParent for #name {
+                    type Parent = #ty;
+                    /// This is used in a type assertion to ensure that
+                    /// the source and webidls agree as to what the parent type is
+                    fn as_parent(&self) -> &#ty {
+                        &self.#ident
+                    }
+                }
+            ).into()
+        } else {
+            panic!("#[dom_struct] only applies to structs with named fields");
+        }
+    } else {
+        panic!("#[dom_struct] only applies to structs");
+    }
 }
