@@ -1268,7 +1268,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                             Ok(mut file) => {
                                 let img = gl::draw_img(gl, rt_info, width, height);
                                 let dynamic_image = DynamicImage::ImageRgb8(img);
-                                if let Err(e) = dynamic_image.save(&mut file, ImageFormat::PNG) {
+                                if let Err(e) = dynamic_image.write_to(&mut file, ImageFormat::PNG) {
                                     error!("Failed to save {} ({}).", path, e);
                                 }
                             },
