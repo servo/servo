@@ -211,7 +211,6 @@ pub enum WebGLCommand {
     GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetAttribLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
     GetUniformLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
-    GetVertexAttribOffset(u32, u32, WebGLSender<isize>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
@@ -278,9 +277,7 @@ pub enum WebGLCommand {
     GetProgramParameterInt(WebGLProgramId, ProgramParameterInt, WebGLSender<i32>),
     GetShaderParameterBool(WebGLShaderId, ShaderParameterBool, WebGLSender<bool>),
     GetShaderParameterInt(WebGLShaderId, ShaderParameterInt, WebGLSender<i32>),
-    GetVertexAttribBool(u32, VertexAttribBool, WebGLSender<WebGLResult<bool>>),
-    GetVertexAttribInt(u32, VertexAttribInt, WebGLSender<WebGLResult<i32>>),
-    GetVertexAttribFloat4(u32, VertexAttribFloat4, WebGLSender<WebGLResult<[f32; 4]>>),
+    GetCurrentVertexAttrib(u32, WebGLSender<[f32; 4]>),
     GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
     TexParameteri(u32, TexParameterInt, i32),
@@ -565,23 +562,6 @@ parameters! {
             TextureMinFilter = gl::TEXTURE_MIN_FILTER,
             TextureWrapS = gl::TEXTURE_WRAP_S,
             TextureWrapT = gl::TEXTURE_WRAP_T,
-        }),
-    }
-}
-
-parameters! {
-    VertexAttrib {
-        Bool(VertexAttribBool {
-            VertexAttribArrayEnabled = gl::VERTEX_ATTRIB_ARRAY_ENABLED,
-            VertexAttribArrayNormalized = gl::VERTEX_ATTRIB_ARRAY_NORMALIZED,
-        }),
-        Int(VertexAttribInt {
-            VertexAttribArraySize = gl::VERTEX_ATTRIB_ARRAY_SIZE,
-            VertexAttribArrayStride = gl::VERTEX_ATTRIB_ARRAY_STRIDE,
-            VertexAttribArrayType = gl::VERTEX_ATTRIB_ARRAY_TYPE,
-        }),
-        Float4(VertexAttribFloat4 {
-            CurrentVertexAttrib = gl::CURRENT_VERTEX_ATTRIB,
         }),
     }
 }

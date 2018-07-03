@@ -746,8 +746,6 @@ impl WebGLImpl {
                 Self::get_renderbuffer_parameter(ctx.gl(), target, pname, chan),
             WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, ref chan) =>
                 Self::get_framebuffer_attachment_parameter(ctx.gl(), target, attachment, pname, chan),
-            WebGLCommand::GetVertexAttribOffset(index, pname, ref chan) =>
-                Self::vertex_attrib_offset(ctx.gl(), index, pname, chan),
             WebGLCommand::GetShaderPrecisionFormat(shader_type, precision_type, ref chan) =>
                 Self::shader_precision_format(ctx.gl(), shader_type, precision_type, chan),
             WebGLCommand::GetExtensions(ref chan) =>
@@ -949,56 +947,12 @@ impl WebGLImpl {
                 }
                 sender.send(value[0]).unwrap()
             }
-            WebGLCommand::GetVertexAttribBool(index, param, ref sender) => {
-                // FIXME(nox): https://github.com/servo/servo/issues/20608
-                let mut max = [0];
+            WebGLCommand::GetCurrentVertexAttrib(index, ref sender) => {
+                let mut value = [0.; 4];
                 unsafe {
-                    ctx.gl().get_integer_v(gl::MAX_VERTEX_ATTRIBS, &mut max);
+                    ctx.gl().get_vertex_attrib_fv(index, gl::CURRENT_VERTEX_ATTRIB, &mut value);
                 }
-                let result = if index >= max[0] as u32 {
-                    Err(WebGLError::InvalidValue)
-                } else {
-                    let mut value = [0];
-                    unsafe {
-                        ctx.gl().get_vertex_attrib_iv(index, param as u32, &mut value);
-                    }
-                    Ok(value[0] != 0)
-                };
-                sender.send(result).unwrap();
-            }
-            WebGLCommand::GetVertexAttribInt(index, param, ref sender) => {
-                // FIXME(nox): https://github.com/servo/servo/issues/20608
-                let mut max = [0];
-                unsafe {
-                    ctx.gl().get_integer_v(gl::MAX_VERTEX_ATTRIBS, &mut max);
-                }
-                let result = if index >= max[0] as u32 {
-                    Err(WebGLError::InvalidValue)
-                } else {
-                    let mut value = [0];
-                    unsafe {
-                        ctx.gl().get_vertex_attrib_iv(index, param as u32, &mut value);
-                    }
-                    Ok(value[0])
-                };
-                sender.send(result).unwrap();
-            }
-            WebGLCommand::GetVertexAttribFloat4(index, param, ref sender) => {
-                // FIXME(nox): https://github.com/servo/servo/issues/20608
-                let mut max = [0];
-                unsafe {
-                    ctx.gl().get_integer_v(gl::MAX_VERTEX_ATTRIBS, &mut max);
-                }
-                let result = if index >= max[0] as u32 {
-                    Err(WebGLError::InvalidValue)
-                } else {
-                    let mut value = [0.; 4];
-                    unsafe {
-                        ctx.gl().get_vertex_attrib_fv(index, param as u32, &mut value);
-                    }
-                    Ok(value)
-                };
-                sender.send(result).unwrap();
+                sender.send(value).unwrap();
             }
             WebGLCommand::GetTexParameterFloat(target, param, ref sender) => {
                 sender.send(ctx.gl().get_tex_parameter_fv(target, param as u32)).unwrap();
@@ -1090,14 +1044,6 @@ impl WebGLImpl {
     fn finish(gl: &gl::Gl, chan: &WebGLSender<()>) {
         gl.finish();
         chan.send(()).unwrap();
-    }
-
-    fn vertex_attrib_offset(gl: &gl::Gl,
-                            index: u32,
-                            pname: u32,
-                            chan: &WebGLSender<isize>) {
-        let result = gl.get_vertex_attrib_pointer_v(index, pname);
-        chan.send(result).unwrap();
     }
 
     fn shader_precision_format(gl: &gl::Gl,
