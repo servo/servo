@@ -47,6 +47,14 @@ packages = [
   "syn",
   "quote",
   "proc-macro2",
+
+  "core-foundation",
+  "core-foundation-sys",
+  "core-graphics",
+  "inflate",
+  "image",
+  "gif",
+  "png",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

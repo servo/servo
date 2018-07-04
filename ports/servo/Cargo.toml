@@ -38,12 +38,12 @@ backtrace = "0.3"
 bitflags = "1.0"
 euclid = "0.17"
 gleam = "0.5"
-glutin = "0.13"
+glutin = "0.17"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
 log = "0.4"
 tinyfiledialogs = "3.0"
-winit = "0.11.2"
+winit = {version = "0.16", features = ["icon_loading"]}
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sig = "0.1"

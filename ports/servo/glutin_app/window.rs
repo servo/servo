@@ -38,6 +38,7 @@ use user32;
 use winapi;
 use winit;
 use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
 
@@ -173,8 +174,10 @@ fn window_creation_scale_factor() -> TypedScale<f32, DeviceIndependentPixel, Dev
 
 
 impl Window {
-    pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<u32, DeviceIndependentPixel>) -> Rc<Window> {
+    pub fn new(
+        is_foreground: bool,
+        window_size: TypedSize2D<u32, DeviceIndependentPixel>,
+    ) -> Rc<Window> {
         let win_size: DeviceUintSize = (window_size.to_f32() * window_creation_scale_factor()).to_u32();
         let width = win_size.to_untyped().width;
         let height = win_size.to_untyped().height;
@@ -197,9 +200,16 @@ impl Window {
                 .with_title("Servo".to_string())
                 .with_decorations(!opts::get().no_native_titlebar)
                 .with_transparency(opts::get().no_native_titlebar)
-                .with_dimensions(width, height)
+                .with_dimensions(LogicalSize::new(width as f64, height as f64))
                 .with_visibility(visible)
                 .with_multitouch();
+
+            #[cfg(any(target_os = "linux", target_os = "windows"))]
+            {
+                let icon_bytes = include_bytes!("../../../resources/servo64.png");
+                let icon = Some(winit::Icon::from_bytes(icon_bytes).expect("Failed to open icon"));
+                window_builder = window_builder.with_window_icon(icon);
+            }
 
             window_builder = builder_with_platform_options(window_builder);
 
@@ -218,11 +228,15 @@ impl Window {
                 glutin_window.context().make_current().expect("Couldn't make window current");
             }
 
-            let (screen_width, screen_height) = events_loop.get_primary_monitor().get_dimensions();
-            screen_size = TypedSize2D::new(screen_width, screen_height);
+            let PhysicalSize {
+                width: screen_width,
+                height: screen_height,
+            } = events_loop.get_primary_monitor().get_dimensions();
+            screen_size = TypedSize2D::new(screen_width as u32, screen_height as u32);
             // TODO(ajeffrey): can this fail?
-            let (width, height) = glutin_window.get_inner_size().expect("Failed to get window inner size.");
-            inner_size = TypedSize2D::new(width, height);
+            let LogicalSize { width, height } =
+                glutin_window.get_inner_size().expect("Failed to get window inner size.");
+            inner_size = TypedSize2D::new(width as u32, height as u32);
 
             glutin_window.show();
 
@@ -294,8 +308,8 @@ impl Window {
         let dpr = self.hidpi_factor();
         match self.kind {
             WindowKind::Window(ref window, _) => {
-                let (_, height) = window.get_inner_size().expect("Failed to get window inner size.");
-                height as f32 * dpr.get()
+                let size = window.get_inner_size().expect("Failed to get window inner size.");
+                size.height as f32 * dpr.get()
             },
             WindowKind::Headless(ref context) => {
                 context.height as f32 * dpr.get()
@@ -312,14 +326,14 @@ impl Window {
     pub fn set_inner_size(&self, size: DeviceUintSize) {
         if let WindowKind::Window(ref window, _) = self.kind {
             let size = size.to_f32() / self.hidpi_factor();
-            window.set_inner_size(size.width as u32, size.height as u32)
+            window.set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
         }
     }
 
     pub fn set_position(&self, point: DeviceIntPoint) {
         if let WindowKind::Window(ref window, _) = self.kind {
             let point = point.to_f32() / self.hidpi_factor();
-            window.set_position(point.x as i32, point.y as i32)
+            window.set_position(LogicalPosition::new(point.x.into(), point.y.into()))
         }
     }
 
@@ -479,7 +493,7 @@ impl Window {
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::CursorMoved {
-                    position: (x, y),
+                    position: LogicalPosition { x, y },
                     ..
                 },
                 ..
@@ -494,7 +508,7 @@ impl Window {
             } => {
                 let (mut dx, mut dy) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
-                    MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
+                    MouseScrollDelta::PixelDelta(LogicalPosition { x: dx, y: dy }) => (dx as f32, dy as f32),
                 };
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -517,7 +531,7 @@ impl Window {
 
                 let phase = winit_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
-                let point = TypedPoint2D::new(touch.location.0 as f32, touch.location.1 as f32);
+                let point = TypedPoint2D::new(touch.location.x as f32, touch.location.y as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
             }
             Event::WindowEvent {
@@ -525,19 +539,19 @@ impl Window {
                 ..
             } => self.event_queue.borrow_mut().push(WindowEvent::Refresh),
             Event::WindowEvent {
-                event: winit::WindowEvent::Closed,
+                event: winit::WindowEvent::CloseRequested,
                 ..
             } => {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
             Event::WindowEvent {
-                event: winit::WindowEvent::Resized(width, height),
+                event: winit::WindowEvent::Resized(LogicalSize { width, height }),
                 ..
             } => {
                 // width and height are DevicePixel.
                 // window.resize() takes DevicePixel.
                 if let WindowKind::Window(ref window, _) = self.kind {
-                    window.resize(width, height);
+                    window.resize(PhysicalSize { width, height });
                 }
                 // window.set_inner_size() takes DeviceIndependentPixel.
                 let new_size = TypedSize2D::new(width as f32, height as f32);
@@ -606,28 +620,16 @@ impl Window {
             Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => TypedScale::new(1.0),
-                None => self.platform_hidpi_factor()
+                None => match self.kind {
+                    WindowKind::Window(ref window, ..) => {
+                        TypedScale::new(window.get_hidpi_factor() as f32)
+                    }
+                    WindowKind::Headless(..) => {
+                        TypedScale::new(1.0)
+                    }
+                }
             }
         }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        match self.kind {
-            WindowKind::Window(ref window, ..) => {
-                TypedScale::new(window.hidpi_factor())
-            }
-            WindowKind::Headless(..) => {
-                TypedScale::new(1.0)
-            }
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn platform_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
-        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
-        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
-        TypedScale::new(ppi as f32 / 96.0)
     }
 
     /// Has no effect on Android.
@@ -638,7 +640,6 @@ impl Window {
 
                 let winit_cursor = match cursor {
                     CursorKind::Auto => MouseCursor::Default,
-                    CursorKind::None => MouseCursor::NoneCursor,
                     CursorKind::Default => MouseCursor::Default,
                     CursorKind::Pointer => MouseCursor::Hand,
                     CursorKind::ContextMenu => MouseCursor::ContextMenu,
@@ -673,6 +674,7 @@ impl Window {
                     CursorKind::AllScroll => MouseCursor::AllScroll,
                     CursorKind::ZoomIn => MouseCursor::ZoomIn,
                     CursorKind::ZoomOut => MouseCursor::ZoomOut,
+                    _ => MouseCursor::Default
                 };
                 window.set_cursor(winit_cursor);
             }
@@ -691,13 +693,13 @@ impl WindowMethods for Window {
         match self.kind {
             WindowKind::Window(ref window, _) => {
                 // TODO(ajeffrey): can this fail?
-                let (width, height) = window.get_outer_size().expect("Failed to get window outer size.");
-                let (x, y) = window.get_position().unwrap_or((0, 0));
+                let LogicalSize { width, height } = window.get_outer_size().expect("Failed to get window outer size.");
+                let LogicalPosition { x, y } = window.get_position().unwrap_or(LogicalPosition::new(0., 0.));
                 let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
                 let win_origin = (TypedPoint2D::new(x as f32, y as f32) * dpr).to_i32();
                 let screen = (self.screen_size.to_f32() * dpr).to_u32();
 
-                let (width, height) = window.get_inner_size().expect("Failed to get window inner size.");
+                let LogicalSize { width, height } = window.get_inner_size().expect("Failed to get window inner size.");
                 let inner_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
 
                 let viewport = DeviceUintRect::new(TypedPoint2D::zero(), inner_size);

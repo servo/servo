@@ -295,7 +295,6 @@ pub fn is_printable(key_code: VirtualKeyCode) -> bool {
         Back |
         LAlt |
         LControl |
-        LMenu |
         LShift |
         LWin |
         Mail |
@@ -312,7 +311,6 @@ pub fn is_printable(key_code: VirtualKeyCode) -> bool {
         PrevTrack |
         RAlt |
         RControl |
-        RMenu |
         RShift |
         RWin |
         Sleep |
