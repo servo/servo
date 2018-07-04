@@ -590,9 +590,9 @@ unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
     }
 }
 
-unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing.
+unsafe impl<T: JSTraceable> JSTraceable for Mutex<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        self.lock().unwrap().trace(trc);
     }
 }
 
