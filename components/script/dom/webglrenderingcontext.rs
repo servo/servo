@@ -4,7 +4,7 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
+use canvas_traits::webgl::{DOMToTextureCommand, Parameter};
 use canvas_traits::webgl::{ShaderParameter, TexParameter, WebGLCommand};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
@@ -2314,18 +2314,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
-        match program.get_active_attrib(index) {
-            Ok(ret) => Some(ret),
-            Err(e) => {
-                self.webgl_error(e);
-                return None;
-            }
-        }
+        handle_potential_webgl_error!(self, program.get_active_attrib(index), None)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
-        handle_potential_webgl_error!(self, program.get_attrib_location(name), None).unwrap_or(-1)
+        handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
 
     #[allow(unsafe_code)]
@@ -2497,16 +2491,31 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param: u32) -> JSVal {
-        match handle_potential_webgl_error!(self, ProgramParameter::from_u32(param), return NullValue()) {
-            ProgramParameter::Bool(param) => {
+        // FIXME(nox): INVALID_OPERATION if program comes from a different context.
+        match param {
+            constants::DELETE_STATUS => BooleanValue(program.is_deleted()),
+            constants::LINK_STATUS => BooleanValue(program.is_linked()),
+            constants::VALIDATE_STATUS => {
+                // FIXME(nox): This could be cached on the DOM side when we call validateProgram
+                // but I'm not sure when the value should be reset.
                 let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetProgramParameterBool(program.id(), param, sender));
+                self.send_command(WebGLCommand::GetProgramValidateStatus(program.id(), sender));
                 BooleanValue(receiver.recv().unwrap())
             }
-            ProgramParameter::Int(param) => {
+            constants::ATTACHED_SHADERS => {
+                // FIXME(nox): This allocates a vector and roots a couple of shaders for nothing.
+                Int32Value(program.attached_shaders().map(|shaders| shaders.len() as i32).unwrap_or(0))
+            }
+            constants::ACTIVE_ATTRIBUTES => Int32Value(program.active_attribs().len() as i32),
+            constants::ACTIVE_UNIFORMS => {
+                // FIXME(nox): We'll need to cache that on the DOM side at some point.
                 let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetProgramParameterInt(program.id(), param, sender));
+                self.send_command(WebGLCommand::GetProgramActiveUniforms(program.id(), sender));
                 Int32Value(receiver.recv().unwrap())
+            }
+            _ => {
+                self.webgl_error(InvalidEnum);
+                NullValue()
             }
         }
     }

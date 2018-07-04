@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLProgramId, WebGLResult};
-use canvas_traits::webgl::webgl_channel;
+use canvas_traits::webgl::{ActiveAttribInfo, WebGLCommand, WebGLError, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLProgramId, WebGLResult, from_name_in_compiled_shader};
+use canvas_traits::webgl::{to_name_in_compiled_shader, webgl_channel};
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -16,7 +18,7 @@ use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 
 #[dom_struct]
 pub struct WebGLProgram {
@@ -29,46 +31,7 @@ pub struct WebGLProgram {
     vertex_shader: MutNullableDom<WebGLShader>,
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
-}
-
-/// ANGLE adds a `_u` prefix to variable names:
-///
-/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
-///
-/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
-/// API to look up the `x.name` and `x.mappedName` members,
-/// then build a data structure for bi-directional lookup (so either linear scan or two hashmaps).
-/// Even then, this would probably only support plain variable names like "foo".
-/// Strings passed to e.g. `GetUniformLocation` can be expressions like "foo[0].bar",
-/// with the mapping for that "bar" name in yet another part of ANGLE’s API.
-const ANGLE_NAME_PREFIX: &'static str = "_u";
-
-fn to_name_in_compiled_shader(s: &str) -> String {
-    map_dot_separated(s, |s, mapped| {
-        mapped.push_str(ANGLE_NAME_PREFIX);
-        mapped.push_str(s);
-    })
-}
-
-fn from_name_in_compiled_shader(s: &str) -> String {
-    map_dot_separated(s, |s, mapped| {
-        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
-            &s[ANGLE_NAME_PREFIX.len()..]
-        } else {
-            s
-        })
-    })
-}
-
-fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
-    let mut iter = s.split('.');
-    let mut mapped = String::new();
-    f(iter.next().unwrap(), &mut mapped);
-    for s in iter {
-        mapped.push('.');
-        f(s, &mut mapped);
-    }
-    mapped
+    active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
 }
 
 impl WebGLProgram {
@@ -84,6 +47,7 @@ impl WebGLProgram {
             fragment_shader: Default::default(),
             vertex_shader: Default::default(),
             renderer: renderer,
+            active_attribs: DomRefCell::new(vec![].into()),
         }
     }
 
@@ -142,7 +106,7 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
         self.linked.set(false);
-        self.link_called.set(true);
+        *self.active_attribs.borrow_mut() = vec![].into();
 
         match self.fragment_shader.get() {
             Some(ref shader) if shader.successfully_compiled() => {},
@@ -154,9 +118,16 @@ impl WebGLProgram {
             _ => return Ok(()), // callers use gl.LINK_STATUS to check link errors
         }
 
-        self.linked.set(true);
-        self.renderer.send(WebGLCommand::LinkProgram(self.id)).unwrap();
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.renderer.send(WebGLCommand::LinkProgram(self.id, sender)).unwrap();
+        let link_info = receiver.recv().unwrap();
+        self.linked.set(link_info.linked);
+        *self.active_attribs.borrow_mut() = link_info.active_attribs;
         Ok(())
+    }
+
+    pub fn active_attribs(&self) -> Ref<[ActiveAttribInfo]> {
+        Ref::map(self.active_attribs.borrow(), |attribs| &**attribs)
     }
 
     /// glUseProgram
@@ -281,19 +252,18 @@ impl WebGLProgram {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.renderer
-            .send(WebGLCommand::GetActiveAttrib(self.id, index, sender))
-            .unwrap();
-
-        receiver.recv().unwrap().map(|(size, ty, name)| {
-            let name = DOMString::from(from_name_in_compiled_shader(&name));
-            WebGLActiveInfo::new(self.global().as_window(), size, ty, name)
-        })
+        let attribs = self.active_attribs.borrow();
+        let data = attribs.get(index as usize).ok_or(WebGLError::InvalidValue)?;
+        Ok(WebGLActiveInfo::new(
+            self.global().as_window(),
+            data.size,
+            data.type_,
+            data.name.clone().into(),
+        ))
     }
 
     /// glGetAttribLocation
-    pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
+    pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<i32> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -303,21 +273,20 @@ impl WebGLProgram {
 
         // Check if the name is reserved
         if name.starts_with("gl_") {
-            return Ok(None);
+            return Ok(-1);
         }
 
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#GLSL_CONSTRUCTS
         if name.starts_with("webgl_") || name.starts_with("_webgl_") {
-            return Ok(None);
+            return Ok(-1);
         }
 
-        let name = to_name_in_compiled_shader(&name);
-
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.renderer
-            .send(WebGLCommand::GetAttribLocation(self.id, name, sender))
-            .unwrap();
-        Ok(receiver.recv().unwrap())
+        let location = self.active_attribs
+            .borrow()
+            .iter()
+            .find(|attrib| attrib.name == &*name)
+            .map_or(-1, |attrib| attrib.location);
+        Ok(location)
     }
 
     /// glGetUniformLocation

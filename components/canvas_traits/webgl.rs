@@ -209,7 +209,6 @@ pub enum WebGLCommand {
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
     GetActiveAttrib(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
-    GetAttribLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
     GetUniformLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
@@ -230,7 +229,7 @@ pub enum WebGLCommand {
     IsEnabled(u32, WebGLSender<bool>),
     LineWidth(f32),
     PixelStorei(u32, i32),
-    LinkProgram(WebGLProgramId),
+    LinkProgram(WebGLProgramId, WebGLSender<ProgramLinkInfo>),
     Uniform1f(i32, f32),
     Uniform1fv(i32, Vec<f32>),
     Uniform1i(i32, i32),
@@ -273,8 +272,8 @@ pub enum WebGLCommand {
     GetParameterFloat(ParameterFloat, WebGLSender<f32>),
     GetParameterFloat2(ParameterFloat2, WebGLSender<[f32; 2]>),
     GetParameterFloat4(ParameterFloat4, WebGLSender<[f32; 4]>),
-    GetProgramParameterBool(WebGLProgramId, ProgramParameterBool, WebGLSender<bool>),
-    GetProgramParameterInt(WebGLProgramId, ProgramParameterInt, WebGLSender<i32>),
+    GetProgramValidateStatus(WebGLProgramId, WebGLSender<bool>),
+    GetProgramActiveUniforms(WebGLProgramId, WebGLSender<i32>),
     GetShaderParameterBool(WebGLShaderId, ShaderParameterBool, WebGLSender<bool>),
     GetShaderParameterInt(WebGLShaderId, ShaderParameterInt, WebGLSender<i32>),
     GetCurrentVertexAttrib(u32, WebGLSender<[f32; 4]>),
@@ -415,6 +414,28 @@ pub enum DOMToTextureCommand {
     Lock(PipelineId, usize, WebGLSender<Option<(u32, Size2D<i32>)>>),
 }
 
+/// Information about a WebGL program linking operation.
+#[derive(Clone, Deserialize, Serialize)]
+pub struct ProgramLinkInfo {
+    /// Whether the program was linked successfully.
+    pub linked: bool,
+    /// The list of active attributes.
+    pub active_attribs: Box<[ActiveAttribInfo]>,
+}
+
+/// Description of a single active attribute.
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ActiveAttribInfo {
+    /// The name of the attribute.
+    pub name: String,
+    /// The size of the attribute.
+    pub size: i32,
+    /// The type of the attribute.
+    pub type_: u32,
+    /// The location of the attribute.
+    pub location: i32,
+}
+
 macro_rules! parameters {
     ($name:ident { $(
         $variant:ident($kind:ident { $(
@@ -526,21 +547,6 @@ parameters! {
 }
 
 parameters! {
-    ProgramParameter {
-        Bool(ProgramParameterBool {
-            DeleteStatus = gl::DELETE_STATUS,
-            LinkStatus = gl::LINK_STATUS,
-            ValidateStatus = gl::VALIDATE_STATUS,
-        }),
-        Int(ProgramParameterInt {
-            AttachedShaders = gl::ATTACHED_SHADERS,
-            ActiveAttributes = gl::ACTIVE_ATTRIBUTES,
-            ActiveUniforms = gl::ACTIVE_UNIFORMS,
-        }),
-    }
-}
-
-parameters! {
     ShaderParameter {
         Bool(ShaderParameterBool {
             DeleteStatus = gl::DELETE_STATUS,
@@ -564,4 +570,40 @@ parameters! {
             TextureWrapT = gl::TEXTURE_WRAP_T,
         }),
     }
+}
+
+/// ANGLE adds a `_u` prefix to variable names:
+///
+/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
+///
+/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
+/// API to look up the `x.name` and `x.mappedName` members.
+const ANGLE_NAME_PREFIX: &'static str = "_u";
+
+pub fn to_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(ANGLE_NAME_PREFIX);
+        mapped.push_str(s);
+    })
+}
+
+pub fn from_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
+            &s[ANGLE_NAME_PREFIX.len()..]
+        } else {
+            s
+        })
+    })
+}
+
+fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
+    let mut iter = s.split('.');
+    let mut mapped = String::new();
+    f(iter.next().unwrap(), &mut mapped);
+    for s in iter {
+        mapped.push('.');
+        f(s, &mut mapped);
+    }
+    mapped
 }
