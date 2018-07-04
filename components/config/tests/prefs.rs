@@ -48,6 +48,7 @@ fn test_get_set_reset_extend() {
     assert_eq!(*PREFS.get("extra.stuff"), PrefValue::Boolean(false));
 }
 
+#[cfg(not(target_os = "android"))]
 #[test]
 fn test_default_config_dir_create_read_write() {
   let json_str = "{\
@@ -56,7 +57,7 @@ fn test_default_config_dir_create_read_write() {
   \"shell.homepage\": \"https://google.com\"\
 }";
     let mut expected_json = String::new();
-    let config_path = basedir::default_config_dir();
+    let config_path = basedir::default_config_dir().unwrap();
 
     if !config_path.exists() {
       fs::create_dir_all(&config_path).unwrap();
