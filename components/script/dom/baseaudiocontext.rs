@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::audiobuffer::AudioBuffer;
 use dom::audiodestinationnode::AudioDestinationNode;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
@@ -276,6 +277,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let window = global.as_window();
         let options = unsafe { GainOptions::empty(window.get_cx()) };
         GainNode::new(&window, &self, &options)
+    }
+
+    fn CreateBuffer(&self,
+                    number_of_channels: u32,
+                    length: u32,
+                    sample_rate: Finite<f32>) -> DomRoot<AudioBuffer> {
+        let global = self.global();
+        AudioBuffer::new(&global.as_window(), number_of_channels, length, *sample_rate)
     }
 }
 
