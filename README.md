@@ -183,8 +183,8 @@ list of installed components. It is not on by default. Visual Studio 2017 MUST i
 
 #### Cross-compilation for Android
 
-Pre-installed Android tools are needed. See wiki for
-[details](https://github.com/servo/servo/wiki/Building-for-Android)
+Run `./mach bootstrap-android` to get Android-specific tools. See wiki for
+[details](https://github.com/servo/servo/wiki/Building-for-Android).
 
 ## The Rust compiler
 
@@ -240,26 +240,18 @@ though of course it doesn’t produce a binary you can run.
 
 ### Building for Android target
 
+For ARM (`armv7-linux-androideabi`, most phones):
+
 ``` sh
-git clone https://github.com/servo/servo
-cd servo
-
-export ANDROID_SDK="/path/to/sdk"
-export ANDROID_NDK="/path/to/ndk"
-export ANDROID_TOOLCHAIN="/path/to/toolchain"
-export PATH="$PATH:/path/to/toolchain/bin"
-
 ./mach build --release --android
 ./mach package --release --android
 ```
 
-Rather than setting the `ANDROID_*` environment variables every time, you can
-also create a `.servobuild` file and then edit it to contain the correct paths
-to the Android SDK/NDK tools:
+For x86 (typically for the emulator):
 
-```
-cp servobuild.example .servobuild
-# edit .servobuild
+```sh
+./mach build --release --target i686-linux-android
+./mach package --release --target i686-linux-android
 ```
 
 ## Running
