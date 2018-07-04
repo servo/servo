@@ -1,15 +1,14 @@
 from collections import OrderedDict
 from datetime import datetime, timedelta
-import Cookie
+from six.moves.http_cookies import BaseCookie, Morsel
 import json
-import types
 import uuid
 import socket
 
 from .constants import response_codes
 from .logger import get_logger
 
-from six import string_types, binary_type, text_type
+from six import binary_type, text_type, itervalues
 
 missing = object()
 
@@ -134,7 +133,7 @@ class Response(object):
                 max_age = int(max_age.total_seconds())
             max_age = "%.0d" % max_age
 
-        m = Cookie.Morsel()
+        m = Morsel()
 
         def maybe_set(key, value):
             if value is not None and value is not False:
@@ -154,7 +153,7 @@ class Response(object):
     def unset_cookie(self, name):
         """Remove a cookie from those that are being sent with the response"""
         cookies = self.headers.get("Set-Cookie")
-        parser = Cookie.BaseCookie()
+        parser = BaseCookie()
         for cookie in cookies:
             parser.load(cookie)
 
@@ -182,7 +181,7 @@ class Response(object):
         True, the entire content of the file will be returned as a string facilitating
         non-streaming operations like template substitution.
         """
-        if isinstance(self.content, types.StringTypes):
+        if isinstance(self.content, (binary_type, text_type)):
             yield self.content
         elif hasattr(self.content, "read"):
             if read_file:
@@ -337,7 +336,7 @@ class ResponseHeaders(object):
         self.set(key, value)
 
     def __iter__(self):
-        for key, values in self.data.itervalues():
+        for key, values in itervalues(self.data):
             for value in values:
                 yield key, value
 
@@ -402,7 +401,7 @@ class ResponseWriter(object):
             if name.lower() not in self._headers_seen:
                 self.write_header(name, f())
 
-        if (isinstance(self._response.content, string_types) and
+        if (isinstance(self._response.content, (binary_type, text_type)) and
             "content-length" not in self._headers_seen):
             #Would be nice to avoid double-encoding here
             self.write_header("Content-Length", len(self.encode(self._response.content)))
@@ -426,7 +425,8 @@ class ResponseWriter(object):
 
     def write_content(self, data):
         """Write the body of the response."""
-        if isinstance(data, types.StringTypes):
+        if isinstance(data, (text_type, binary_type)):
+            # Deliberately allows both text and binary types. See `self.encode`.
             self.write(data)
         else:
             self.write_content_file(data)

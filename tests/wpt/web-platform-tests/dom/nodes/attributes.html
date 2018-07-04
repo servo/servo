@@ -136,6 +136,12 @@ test(function() {
   attr_is(el.attributes[0], "2", "bat", "foo", "foo", "foo:bat")
 }, "toggleAttribute should set the attribute with the given qualified name")
 
+test(function() {
+  var el = document.createElement("foo")
+  el.style = "color: red; background-color: green"
+  assert_equals(el.toggleAttribute("style"), false)
+}, "Toggling element with inline style should make inline style disappear")
+
 // setAttribute exhaustive tests
 // Step 1
 test(function() {

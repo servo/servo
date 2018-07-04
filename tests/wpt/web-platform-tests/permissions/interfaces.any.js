@@ -11,18 +11,20 @@ if (self.importScripts) {
 // https://w3c.github.io/permissions/#idl-index
 
 promise_test(async () => {
+  const idl = await fetch("/interfaces/permissions.idl").then(r => r.text());
+  const dom = await fetch("/interfaces/dom.idl").then(r => r.text());
+  const html = await fetch("/interfaces/html.idl").then(r => r.text());
 
-  const permissions_idl = await fetch("/interfaces/permissions.idl")
-      .then(response => response.text());
   const idl_array = new IdlArray();
+  idl_array.add_idls(idl);
+  idl_array.add_dependency_idls(dom);
+  idl_array.add_dependency_idls(html);
 
-  idl_array.add_untested_idls('interface Navigator {};');
-  idl_array.add_untested_idls('[Exposed=(Window,Worker)] interface EventTarget {};');
-  idl_array.add_untested_idls('interface EventHandler {};');
-  idl_array.add_untested_idls('interface WorkerNavigator {};');
-  idl_array.add_idls(permissions_idl);
-
-  self.permissionStatus = await navigator.permissions.query({ name: "geolocation" });
+  try {
+    self.permissionStatus = await navigator.permissions.query({ name: "geolocation" });
+  } catch (e) {
+    // Will be surfaced in idlharness.js's test_object below.
+  }
 
   if (self.GLOBAL.isWorker()) {
     idl_array.add_objects({ WorkerNavigator: ['navigator'] });

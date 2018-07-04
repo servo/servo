@@ -230,9 +230,10 @@ function queryAreaLink(url, callback, referrer_policy) {
   queryNavigable(area, url, callback, referrer_policy)
 }
 
-function queryScript(url, callback) {
+function queryScript(url, callback, attributes, referrer_policy) {
   var script = document.createElement("script");
   script.src = url;
+  script.referrerPolicy = referrer_policy;
 
   var listener = function(event) {
     var server_data = event.data;
