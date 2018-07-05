@@ -4533,64 +4533,7 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="InheritedBox"
-                  skip_longhands="image-orientation">
-    // FIXME: Gecko uses a tricky way to store computed value of image-orientation
-    //        within an u8. We could inline following glue codes by implementing all
-    //        those tricky parts for Servo as well. But, it's not done yet just for
-    //        convenience.
-    pub fn set_image_orientation(&mut self, v: longhands::image_orientation::computed_value::T) {
-        use properties::longhands::image_orientation::computed_value::T;
-        match v {
-            T::FromImage => {
-                unsafe {
-                    bindings::Gecko_SetImageOrientationAsFromImage(&mut self.gecko);
-                }
-            },
-            T::AngleWithFlipped(ref orientation, flipped) => {
-                unsafe {
-                    bindings::Gecko_SetImageOrientation(&mut self.gecko, *orientation as u8, flipped);
-                }
-            }
-        }
-    }
-
-    pub fn copy_image_orientation_from(&mut self, other: &Self) {
-        unsafe {
-            bindings::Gecko_CopyImageOrientationFrom(&mut self.gecko, &other.gecko);
-        }
-    }
-
-    pub fn reset_image_orientation(&mut self, other: &Self) {
-        self.copy_image_orientation_from(other)
-    }
-
-    pub fn clone_image_orientation(&self) -> longhands::image_orientation::computed_value::T {
-        use gecko_bindings::structs::nsStyleImageOrientation_Angles;
-        use properties::longhands::image_orientation::computed_value::T;
-        use values::computed::Orientation;
-
-        let gecko_orientation = self.gecko.mImageOrientation.mOrientation;
-        if gecko_orientation & structs::nsStyleImageOrientation_Bits_FROM_IMAGE_MASK as u8 != 0 {
-            T::FromImage
-        } else {
-            const ANGLE0: u8 = nsStyleImageOrientation_Angles::ANGLE_0 as u8;
-            const ANGLE90: u8 = nsStyleImageOrientation_Angles::ANGLE_90 as u8;
-            const ANGLE180: u8 = nsStyleImageOrientation_Angles::ANGLE_180 as u8;
-            const ANGLE270: u8 = nsStyleImageOrientation_Angles::ANGLE_270 as u8;
-
-            let flip = gecko_orientation & structs::nsStyleImageOrientation_Bits_FLIP_MASK as u8 != 0;
-            let orientation =
-                match gecko_orientation & structs::nsStyleImageOrientation_Bits_ORIENTATION_MASK as u8 {
-                    ANGLE0 => Orientation::Angle0,
-                    ANGLE90 => Orientation::Angle90,
-                    ANGLE180 => Orientation::Angle180,
-                    ANGLE270 => Orientation::Angle270,
-                    _ => unreachable!()
-                };
-            T::AngleWithFlipped(orientation, flip)
-        }
-    }
+<%self:impl_trait style_struct_name="InheritedBox">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedTable"

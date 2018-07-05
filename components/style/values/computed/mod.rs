@@ -52,7 +52,6 @@ pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};
 pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
-pub use self::inherited_box::{ImageOrientation, Orientation};
 #[cfg(feature = "gecko")]
 pub use self::gecko::ScrollSnapPoint;
 pub use self::rect::LengthOrNumberRect;
@@ -99,7 +98,6 @@ pub mod font;
 #[cfg(feature = "gecko")]
 pub mod gecko;
 pub mod image;
-pub mod inherited_box;
 pub mod length;
 pub mod list;
 pub mod outline;
