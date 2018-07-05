@@ -6,7 +6,7 @@ use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
 use canvas_traits::webgl::{ShaderParameter, TexParameter, VertexAttrib, WebGLCommand};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{WebGLContextShareMode, WebGLError, UniformType};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
 use canvas_traits::webgl::{WebVRCommand, webgl_channel};
@@ -2586,6 +2586,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         handle_potential_webgl_error!(self, program.get_uniform_location(name), None).map(|location| {
             WebGLUniformLocation::new(self.global().as_window(), location, program.id())
         })
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    unsafe fn GetUniform(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        location: &WebGLUniformLocation
+    ) -> JSVal {
+        let uniform = match program.get_uniform(location) {
+            Ok(uniform) => uniform,
+            Err(e) => {
+                self.webgl_error(e);
+                return NullValue();
+            }
+        };
+
+        match uniform {
+            UniformType::Int(value) => Int32Value(value),
+            UniformType::Bool(value) => BooleanValue(value),
+            UniformType::Float(value) => DoubleValue(value as f64),
+            UniformType::IntVec(values) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                values.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            UniformType::BoolVec(values) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                values.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+            UniformType::FloatVec(values) => {
+                rooted!(in(cx) let mut result = UndefinedValue());
+                values.to_jsval(cx, result.handle_mut());
+                result.get()
+            },
+        }
     }
 
     #[allow(unsafe_code)]

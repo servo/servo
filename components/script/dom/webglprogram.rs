@@ -4,7 +4,9 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender, WebGLProgramId, WebGLResult};
+use canvas_traits::webgl::UniformType;
 use canvas_traits::webgl::webgl_channel;
+use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -14,8 +16,10 @@ use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
+use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use gleam::gl;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -373,6 +377,50 @@ impl WebGLProgram {
             (Some(shader), None) | (None, Some(shader)) => vec![shader],
             (None, None) => vec![]
         })
+    }
+
+    /// glGetUniform
+    pub fn get_uniform(
+        &self,
+        location: &WebGLUniformLocation
+    ) -> WebGLResult<UniformType> {
+        let is_location_valid = location.program_id().get() == self.id().get();
+        if !self.is_linked() || !is_location_valid {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        // TODO: Alternatively use ANGLE to obtain uniform type.
+        let uniform_type = self.get_active_uniform(0)?.Type();
+        let uniform_type = match uniform_type {
+            gl::FLOAT_VEC2 |
+            gl::FLOAT_VEC3 |
+            gl::FLOAT_VEC4 |
+            gl::FLOAT_MAT2 |
+            gl::FLOAT_MAT3 |
+            gl::FLOAT_MAT4 => UniformType::FloatVec(vec![]),
+
+            gl::INT_VEC2 |
+            gl::INT_VEC3 |
+            gl::INT_VEC4 => UniformType::IntVec(vec![]),
+
+            gl::BOOL_VEC2 |
+            gl::BOOL_VEC3 |
+            gl::BOOL_VEC4 => UniformType::BoolVec(vec![]),
+
+            gl::INT |
+            gl::SAMPLER_2D |
+            gl::SAMPLER_CUBE => UniformType::Int(0),
+
+            gl::BOOL => UniformType::Bool(false),
+
+            gl::FLOAT => UniformType::Float(0.),
+
+            _ => return Err(WebGLError::InvalidOperation),
+        };
+
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.renderer.send(WebGLCommand::GetUniform(self.id().get(), location.id(), uniform_type, sender)).unwrap();
+        Ok(receiver.recv().unwrap())
     }
 }
 
