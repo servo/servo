@@ -24,13 +24,13 @@ interface BaseAudioContext : EventTarget {
   readonly attribute AudioContextState  state;
   Promise<void> resume();
   attribute EventHandler onstatechange;
-  AudioBuffer createBuffer(unsigned long numberOfChannels,
-                           unsigned long length,
-                           float sampleRate);
+  [Throws] AudioBuffer createBuffer(unsigned long numberOfChannels,
+                                    unsigned long length,
+                                    float sampleRate);
   // Promise<AudioBuffer> decodeAudioData(ArrayBuffer audioData,
   //                                      optional DecodeSuccessCallback successCallback,
   //                                      optional DecodeErrorCallback errorCallback);
-  // AudioBufferSourceNode createBufferSource();
+  AudioBufferSourceNode createBufferSource();
   // ConstantSourceNode createConstantSource();
   // ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
   //                                           optional unsigned long numberOfInputChannels = 2,

@@ -12,10 +12,12 @@ use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferS
 use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::error::Fallible;
+use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
+use dom::bindings::error::{Error, Fallible};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeMessage;
@@ -33,8 +35,8 @@ audio_param_impl!(Detune, AudioBufferSourceNode, AudioBufferSourceNodeMessage, S
 
 #[dom_struct]
 pub struct AudioBufferSourceNode {
-    node: AudioScheduledSourceNode,
-    //    buffer: Option<DomRoot<AudioBuffer>>,
+    source_node: AudioScheduledSourceNode,
+    buffer: MutNullableDom<AudioBuffer>,
     playback_rate: DomRoot<AudioParam>,
     detune: DomRoot<AudioParam>,
     loop_enabled: Cell<bool>,
@@ -54,28 +56,29 @@ impl AudioBufferSourceNode {
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-        let node = AudioScheduledSourceNode::new_inherited(
+        let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeType::AudioBufferSourceNode(options.into()),
             context,
             &node_options,
             0 /* inputs */,
             1 /* outputs */,
             );
-        let playback_rate = PlaybackRate::new(context.audio_context_impl(), node.node_id());
+        let node_id = source_node.node().node_id();
+        let playback_rate = PlaybackRate::new(context.audio_context_impl(), node_id);
         let playback_rate = AudioParam::new(&window,
                                             Box::new(playback_rate),
                                             AutomationRate::K_rate,
                                             *options.playbackRate,
                                             f32::MIN, f32::MAX);
-        let detune = Detune::new(context.audio_context_impl(), node.node_id());
+        let detune = Detune::new(context.audio_context_impl(), node_id);
         let detune = AudioParam::new(&window,
                                      Box::new(detune),
                                      AutomationRate::K_rate,
                                      *options.detune,
                                      f32::MIN, f32::MAX);
         AudioBufferSourceNode {
-            node,
-            // buffer: options.buffer,
+            source_node,
+            buffer: Default::default(),
             playback_rate,
             detune,
             loop_enabled: Cell::new(options.loop_),
@@ -104,6 +107,31 @@ impl AudioBufferSourceNode {
 }
 
 impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
+    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer>>> {
+        Ok(self.buffer.get())
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    fn SetBuffer(&self, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
+        if new_buffer.is_some() && self.buffer.get().is_some() {
+            return Err(Error::InvalidState);
+        }
+
+        self.buffer.set(new_buffer);
+
+        if self.source_node.started() {
+            if let Some(buffer) = self.buffer.get() {
+                let buffer = buffer.acquire_contents();
+                self.source_node.node().message(
+                    AudioNodeMessage::AudioBufferSourceNode(
+                        AudioBufferSourceNodeMessage::SetBuffer(buffer)));
+            }
+        }
+
+        Ok(())
+    }
+
     fn PlaybackRate(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.playback_rate)
     }
@@ -136,8 +164,17 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         self.loop_end.set(*loop_end)
     }
 
-    fn Start(&self, when: Finite<f64>, offset: Option<Finite<f64>>, duration: Option<Finite<f64>>) {
-        // XXX
+    fn Start(&self,
+             when: Finite<f64>,
+             _offset: Option<Finite<f64>>,
+             _duration: Option<Finite<f64>>) -> Fallible<()> {
+        if let Some(buffer) = self.buffer.get() {
+            let buffer = buffer.acquire_contents();
+            self.source_node.node().message(
+                AudioNodeMessage::AudioBufferSourceNode(
+                    AudioBufferSourceNodeMessage::SetBuffer(buffer)));
+        }
+        self.source_node.upcast::<AudioScheduledSourceNode>().Start(when)
     }
 }
 
