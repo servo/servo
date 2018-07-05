@@ -50,7 +50,13 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
         self.ctx.send_command(WebGLCommand::CreateVertexArray(sender));
 
         let result = receiver.recv().unwrap();
-        result.map(|vao_id| WebGLVertexArrayObjectOES::new(&self.global(), vao_id))
+        result.map(|vao_id| {
+            WebGLVertexArrayObjectOES::new(
+                &self.global(),
+                vao_id,
+                self.ctx.limits().max_vertex_attribs,
+            )
+        })
     }
 
     // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/
@@ -69,8 +75,8 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
             }
 
             // Remove VAO references from buffers
-            for (_, &(_, ref buffer)) in vao.bound_attrib_buffers().borrow().iter() {
-                if let Some(ref buffer) = *buffer {
+            for attrib_data in &*vao.vertex_attribs().borrow() {
+                if let Some(buffer) = attrib_data.buffer() {
                     buffer.remove_vao_reference(vao.id());
                 }
             }
@@ -94,9 +100,9 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
     fn BindVertexArrayOES(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
         if let Some(bound_vao) = self.bound_vao.get() {
             // Store buffers attached to attrib pointers
-            bound_vao.bound_attrib_buffers().set_from(&self.ctx.bound_attrib_buffers());
-            for (_, (_, ref buffer)) in bound_vao.bound_attrib_buffers().borrow().iter() {
-                if let Some(ref buffer) = *buffer {
+            bound_vao.vertex_attribs().clone_from(&self.ctx.vertex_attribs());
+            for attrib_data in &*bound_vao.vertex_attribs().borrow() {
+                if let Some(buffer) = attrib_data.buffer() {
                     buffer.add_vao_reference(bound_vao.id());
                 }
             }
@@ -119,13 +125,13 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
             self.bound_vao.set(Some(&vao));
 
             // Restore WebGLRenderingContext current bindings
-            self.ctx.bound_attrib_buffers().set_from(&vao.bound_attrib_buffers());
+            self.ctx.vertex_attribs().clone_from(&vao.vertex_attribs());
             let element_array = vao.bound_buffer_element_array();
             self.ctx.set_bound_buffer_element_array(element_array.as_ref().map(|buffer| &**buffer));
         } else {
             self.ctx.send_command(WebGLCommand::BindVertexArray(None));
             self.bound_vao.set(None);
-            self.ctx.bound_attrib_buffers().clear();
+            self.ctx.vertex_attribs().clear();
         }
     }
 }

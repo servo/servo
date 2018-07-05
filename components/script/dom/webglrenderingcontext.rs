@@ -4,8 +4,8 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{DOMToTextureCommand, Parameter, ProgramParameter};
-use canvas_traits::webgl::{ShaderParameter, TexParameter, VertexAttrib, WebGLCommand};
+use canvas_traits::webgl::{DOMToTextureCommand, Parameter};
+use canvas_traits::webgl::{ShaderParameter, TexParameter, WebGLCommand};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
@@ -193,7 +193,7 @@ pub struct WebGLRenderingContext {
     bound_texture_unit: Cell<u32>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
     bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
-    bound_attrib_buffers: BoundAttribBuffers,
+    vertex_attribs: VertexAttribs,
     current_program: MutNullableDom<WebGLProgram>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
@@ -234,6 +234,7 @@ impl WebGLRenderingContext {
                 share_mode: ctx_data.share_mode,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
+                vertex_attribs: VertexAttribs::new(ctx_data.limits.max_vertex_attribs),
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -244,7 +245,6 @@ impl WebGLRenderingContext {
                 bound_texture_unit: Cell::new(constants::TEXTURE0),
                 bound_buffer_array: MutNullableDom::new(None),
                 bound_buffer_element_array: MutNullableDom::new(None),
-                bound_attrib_buffers: Default::default(),
                 bound_renderbuffer: MutNullableDom::new(None),
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
@@ -312,8 +312,8 @@ impl WebGLRenderingContext {
         })
     }
 
-    pub fn bound_attrib_buffers(&self) -> &BoundAttribBuffers {
-        &self.bound_attrib_buffers
+    pub fn vertex_attribs(&self) -> &VertexAttribs {
+        &self.vertex_attribs
     }
 
     pub fn bound_buffer_element_array(&self) -> Option<DomRoot<WebGLBuffer>> {
@@ -2075,7 +2075,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
 
             // Remove deleted buffer from bound attrib buffers.
-            self.bound_attrib_buffers.remove_buffer(buffer);
+            self.vertex_attribs.delete_buffer(buffer);
 
             // Delete buffer.
             handle_object_deletion!(self, self.bound_buffer_array, buffer,
@@ -2202,13 +2202,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
-        {
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-            let buffers = self.bound_attrib_buffers.borrow();
-            if buffers.iter().any(|(_, &(enabled, ref buffer))| enabled && buffer.is_none()) {
-                return self.webgl_error(InvalidOperation);
-            }
-        }
+        handle_potential_webgl_error!(self, self.vertex_attribs.validate_for_draw(), return);
 
         if !self.validate_framebuffer_complete() {
             return;
@@ -2277,13 +2271,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
-        {
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-            let buffers = self.bound_attrib_buffers.borrow();
-            if buffers.iter().any(|(_, &(enabled, ref buffer))| enabled && buffer.is_none()) {
-                return self.webgl_error(InvalidOperation);
-            }
-        }
+        handle_potential_webgl_error!(self, self.vertex_attribs.validate_for_draw(), return);
 
         if !self.validate_framebuffer_complete() {
             return;
@@ -2299,7 +2287,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.bound_attrib_buffers.enabled(attrib_id, true);
+        self.vertex_attribs.enabled_as_array(attrib_id, true);
         self.send_command(WebGLCommand::EnableVertexAttribArray(attrib_id));
     }
 
@@ -2309,7 +2297,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.bound_attrib_buffers.enabled(attrib_id, false);
+        self.vertex_attribs.enabled_as_array(attrib_id, false);
         self.send_command(WebGLCommand::DisableVertexAttribArray(attrib_id));
     }
 
@@ -2326,18 +2314,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
-        match program.get_active_attrib(index) {
-            Ok(ret) => Some(ret),
-            Err(e) => {
-                self.webgl_error(e);
-                return None;
-            }
-        }
+        handle_potential_webgl_error!(self, program.get_active_attrib(index).map(Some), None)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
-        handle_potential_webgl_error!(self, program.get_attrib_location(name), None).unwrap_or(-1)
+        handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
 
     #[allow(unsafe_code)]
@@ -2509,16 +2491,31 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param: u32) -> JSVal {
-        match handle_potential_webgl_error!(self, ProgramParameter::from_u32(param), return NullValue()) {
-            ProgramParameter::Bool(param) => {
+        // FIXME(nox): INVALID_OPERATION if program comes from a different context.
+        match param {
+            constants::DELETE_STATUS => BooleanValue(program.is_deleted()),
+            constants::LINK_STATUS => BooleanValue(program.is_linked()),
+            constants::VALIDATE_STATUS => {
+                // FIXME(nox): This could be cached on the DOM side when we call validateProgram
+                // but I'm not sure when the value should be reset.
                 let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetProgramParameterBool(program.id(), param, sender));
+                self.send_command(WebGLCommand::GetProgramValidateStatus(program.id(), sender));
                 BooleanValue(receiver.recv().unwrap())
             }
-            ProgramParameter::Int(param) => {
+            constants::ATTACHED_SHADERS => {
+                // FIXME(nox): This allocates a vector and roots a couple of shaders for nothing.
+                Int32Value(program.attached_shaders().map(|shaders| shaders.len() as i32).unwrap_or(0))
+            }
+            constants::ACTIVE_ATTRIBUTES => Int32Value(program.active_attribs().len() as i32),
+            constants::ACTIVE_UNIFORMS => {
+                // FIXME(nox): We'll need to cache that on the DOM side at some point.
                 let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetProgramParameterInt(program.id(), param, sender));
+                self.send_command(WebGLCommand::GetProgramActiveUniforms(program.id(), sender));
                 Int32Value(receiver.recv().unwrap())
+            }
+            _ => {
+                self.webgl_error(InvalidEnum);
+                NullValue()
             }
         }
     }
@@ -2591,43 +2588,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, param: u32) -> JSVal {
-        if index == 0 && param == constants::CURRENT_VERTEX_ATTRIB {
+        let data = handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.get(index).ok_or(InvalidValue),
+            return NullValue()
+        );
+        if param == constants::CURRENT_VERTEX_ATTRIB {
+            let value = if index == 0 {
+                let (x, y, z, w) = self.current_vertex_attrib_0.get();
+                [x, y, z, w]
+            } else {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetCurrentVertexAttrib(index, sender));
+                receiver.recv().unwrap()
+            };
+            // FIXME(nox): https://github.com/servo/servo/issues/20655
             rooted!(in(cx) let mut result = UndefinedValue());
-            let (x, y, z, w) = self.current_vertex_attrib_0.get();
-            let attrib = vec![x, y, z, w];
-            attrib.to_jsval(cx, result.handle_mut());
-            return result.get()
+            value.to_jsval(cx, result.handle_mut());
+            return result.get();
         }
 
-        if param == constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING {
-            rooted!(in(cx) let mut jsval = NullValue());
-            if let Some(buffer) = self.bound_attrib_buffers.get(index) {
-                buffer.to_jsval(cx, jsval.handle_mut());
+        match param {
+            constants::VERTEX_ATTRIB_ARRAY_ENABLED => BooleanValue(data.enabled_as_array),
+            constants::VERTEX_ATTRIB_ARRAY_SIZE => Int32Value(data.size as i32),
+            constants::VERTEX_ATTRIB_ARRAY_TYPE => Int32Value(data.type_ as i32),
+            constants::VERTEX_ATTRIB_ARRAY_NORMALIZED => BooleanValue(data.normalized),
+            constants::VERTEX_ATTRIB_ARRAY_STRIDE => Int32Value(data.stride as i32),
+            constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
+                rooted!(in(cx) let mut jsval = NullValue());
+                if let Some(data) = self.vertex_attribs.get(index) {
+                    if let Some(buffer) = data.buffer() {
+                        buffer.to_jsval(cx, jsval.handle_mut());
+                    }
+                }
+                jsval.get()
             }
-            return jsval.get();
-        }
-
-        match handle_potential_webgl_error!(self, VertexAttrib::from_u32(param), return NullValue()) {
-            VertexAttrib::Bool(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetVertexAttribBool(index, param, sender));
-                let value = handle_potential_webgl_error!(self, receiver.recv().unwrap(), return NullValue());
-                BooleanValue(value)
-            }
-            VertexAttrib::Int(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetVertexAttribInt(index, param, sender));
-                let value = handle_potential_webgl_error!(self, receiver.recv().unwrap(), return NullValue());
-                Int32Value(value)
-            }
-            VertexAttrib::Float4(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetVertexAttribFloat4(index, param, sender));
-                let value = handle_potential_webgl_error!(self, receiver.recv().unwrap(), return NullValue());
-                // FIXME(nox): https://github.com/servo/servo/issues/20655
-                rooted!(in(cx) let mut result = UndefinedValue());
-                value.to_jsval(cx, result.handle_mut());
-                result.get()
+            _ => {
+                self.webgl_error(InvalidEnum);
+                NullValue()
             }
         }
     }
@@ -2638,10 +2636,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.webgl_error(InvalidEnum);
             return 0;
         }
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetVertexAttribOffset(index, pname, sender));
-
-        receiver.recv().unwrap() as i64
+        let data = handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.get(index).ok_or(InvalidValue),
+            return 0
+        );
+        data.offset as i64
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -2956,12 +2956,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn LinkProgram(&self, program: Option<&WebGLProgram>) {
-        if let Some(program) = program {
-            if let Err(e) = program.link() {
-                self.webgl_error(e);
-            }
-        }
+    fn LinkProgram(&self, program: &WebGLProgram) {
+        // FIXME(nox): INVALID_OPERATION if program comes from a different context.
+        handle_potential_webgl_error!(self, program.link());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -3245,11 +3242,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            match program.use_program() {
-                Ok(()) => self.current_program.set(Some(program)),
-                Err(e) => self.webgl_error(e),
+            if program.is_deleted() || !program.is_linked() {
+                return self.webgl_error(InvalidOperation);
             }
         }
+        self.send_command(WebGLCommand::UseProgram(program.map(|p| p.id())));
+        self.current_program.set(program);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -3328,49 +3326,30 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttribPointer(&self, attrib_id: u32, size: i32, data_type: u32,
-                           normalized: bool, stride: i32, offset: i64) {
-        if attrib_id >= self.limits.max_vertex_attribs {
-            return self.webgl_error(InvalidValue);
-        }
+    fn VertexAttribPointer(
+        &self,
+        index: u32,
+        size: i32,
+        type_: u32,
+        normalized: bool,
+        stride: i32,
+        offset: i64,
+    ) {
+        handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.set_pointer(
+                index,
+                size,
+                type_,
+                normalized,
+                stride,
+                offset,
+                self.bound_buffer_array.get().as_ref().map(|buffer| &**buffer),
+            ),
+            return
+        );
 
-        // GLES spec: If offset or stride  is negative, an INVALID_VALUE error will be generated
-        // WebGL spec: the maximum supported stride is 255
-        if stride < 0 || stride > 255 || offset < 0 {
-            return self.webgl_error(InvalidValue);
-        }
-        if size < 1 || size > 4 {
-            return self.webgl_error(InvalidValue);
-        }
-
-        let buffer_array = match self.bound_buffer_array.get() {
-            Some(buffer) => buffer,
-            None => {
-                return self.webgl_error(InvalidOperation);
-            }
-        };
-
-        // stride and offset must be multiple of data_type
-        match data_type {
-            constants::BYTE | constants::UNSIGNED_BYTE => {},
-            constants::SHORT | constants::UNSIGNED_SHORT => {
-                if offset % 2 > 0 || stride % 2 > 0 {
-                    return self.webgl_error(InvalidOperation);
-                }
-            },
-            constants::FLOAT => {
-                if offset % 4 > 0 || stride % 4 > 0 {
-                    return self.webgl_error(InvalidOperation);
-                }
-            },
-            _ => return self.webgl_error(InvalidEnum),
-
-        }
-
-        self.bound_attrib_buffers.bind_buffer(attrib_id, &buffer_array);
-
-        let msg = WebGLCommand::VertexAttribPointer(attrib_id, size, data_type, normalized, stride, offset as u32);
-        self.send_command(msg);
+        self.send_command(WebGLCommand::VertexAttribPointer(index, size, type_, normalized, stride, offset as u32));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -3805,48 +3784,137 @@ impl UniformSetterType {
     }
 }
 
-#[derive(Default, JSTraceable, MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[must_root]
-pub struct BoundAttribBuffers {
-    elements: DomRefCell<FnvHashMap<u32, (bool, Option<Dom<WebGLBuffer>>)>>,
+pub struct VertexAttribs {
+    attribs: DomRefCell<Box<[VertexAttribData]>>,
 }
 
-impl BoundAttribBuffers {
+impl VertexAttribs {
+    pub fn new(max: u32) -> Self {
+        // High-end GPUs have 16 of those, let's just use a boxed slice.
+        Self { attribs: DomRefCell::new(vec![Default::default(); max as usize].into()) }
+    }
+
     pub fn clear(&self) {
-        self.elements.borrow_mut().clear()
+        for attrib in &mut **self.attribs.borrow_mut() {
+            *attrib = Default::default();
+        }
     }
 
-    pub fn set_from(&self, other: &BoundAttribBuffers) {
-        *self.elements.borrow_mut() = other.elements.borrow().clone();
+    pub fn clone_from(&self, other: &Self) {
+        self.attribs.borrow_mut().clone_from_slice(&other.attribs.borrow());
     }
 
-    pub fn borrow(&self) -> Ref<FnvHashMap<u32, (bool, Option<Dom<WebGLBuffer>>)>> {
-        self.elements.borrow()
+    pub fn set_pointer(
+        &self,
+        index: u32,
+        size: i32,
+        type_: u32,
+        normalized: bool,
+        stride: i32,
+        offset: i64,
+        buffer: Option<&WebGLBuffer>,
+    ) -> WebGLResult<()> {
+        let mut attribs = self.attribs.borrow_mut();
+        let data = attribs.get_mut(index as usize).ok_or(InvalidValue)?;
+
+        if size < 1 || size > 4 {
+            return Err(InvalidValue);
+        }
+
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#BUFFER_OFFSET_AND_STRIDE
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#VERTEX_STRIDE
+        if stride < 0 || stride > 255 || offset < 0 {
+            return Err(InvalidValue);
+        }
+        match type_ {
+            constants::BYTE | constants::UNSIGNED_BYTE => {},
+            constants::SHORT | constants::UNSIGNED_SHORT => {
+                if offset % 2 > 0 || stride % 2 > 0 {
+                    return Err(InvalidOperation);
+                }
+            },
+            constants::FLOAT => {
+                if offset % 4 > 0 || stride % 4 > 0 {
+                    return Err(InvalidOperation);
+                }
+            },
+            _ => return Err(InvalidEnum),
+        }
+
+        let buffer = buffer.ok_or(InvalidOperation)?;
+
+        *data = VertexAttribData {
+            enabled_as_array: data.enabled_as_array,
+            size: size as u8,
+            type_,
+            normalized,
+            stride: stride as u8,
+            offset: offset as u32,
+            buffer: Some(Dom::from_ref(buffer)),
+        };
+        Ok(())
     }
 
-    fn remove_buffer(&self, buffer: &WebGLBuffer) {
-        self.elements.borrow_mut().retain(|_, v| {
-            v.1.as_ref().map_or(true, |b| b.id() != buffer.id())
-        })
+    pub fn borrow(&self) -> Ref<[VertexAttribData]> {
+        Ref::map(self.attribs.borrow(), |attribs| &**attribs)
     }
 
-    fn get(&self, index: u32) -> Option<Ref<WebGLBuffer>> {
-        ref_filter_map(self.elements.borrow(), |elements| {
-            elements.get(&index).and_then(|&(_, ref buffer)| {
-                buffer.as_ref().map(|b| &**b)
-            })
-        })
+    fn delete_buffer(&self, buffer: &WebGLBuffer) {
+        for attrib in &mut **self.attribs.borrow_mut() {
+            if attrib.buffer().map_or(false, |b| b.id() == buffer.id()) {
+                attrib.buffer = None;
+            }
+        }
     }
 
-    fn enabled(&self, index: u32, value: bool) {
-        let mut elements = self.elements.borrow_mut();
-        let pair = elements.entry(index).or_insert((false, None));
-        pair.0 = value;
+    fn get(&self, index: u32) -> Option<Ref<VertexAttribData>> {
+        ref_filter_map(self.attribs.borrow(), |attribs| attribs.get(index as usize))
     }
 
-    fn bind_buffer(&self, index: u32, buffer: &WebGLBuffer) {
-        let mut elements = self.elements.borrow_mut();
-        let pair = elements.entry(index).or_insert((false, None));
-        pair.1 = Some(Dom::from_ref(buffer));
+    fn enabled_as_array(&self, index: u32, value: bool) {
+        self.attribs.borrow_mut()[index as usize].enabled_as_array = value;
+    }
+
+    fn validate_for_draw(&self) -> WebGLResult<()> {
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
+        if self.borrow().iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
+            return Err(InvalidOperation);
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[must_root]
+pub struct VertexAttribData {
+    enabled_as_array: bool,
+    size: u8,
+    type_: u32,
+    normalized: bool,
+    stride: u8,
+    offset: u32,
+    buffer: Option<Dom<WebGLBuffer>>,
+}
+
+impl Default for VertexAttribData {
+    #[allow(unrooted_must_root)]
+    fn default() -> Self {
+        Self {
+            enabled_as_array: false,
+            size: 4,
+            type_: constants::FLOAT,
+            normalized: false,
+            stride: 0,
+            offset: 0,
+            buffer: None,
+        }
+    }
+}
+
+impl VertexAttribData {
+    pub fn buffer(&self) -> Option<&WebGLBuffer> {
+        self.buffer.as_ref().map(|b| &**b)
     }
 }
