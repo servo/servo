@@ -13,7 +13,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use std::fmt;
 use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable)]
 pub struct PerformanceTimelineTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
@@ -31,6 +31,10 @@ impl fmt::Debug for PerformanceTimelineTaskSource {
 }
 
 impl TaskSource for PerformanceTimelineTaskSource {
+    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
+        global.task_canceller(TaskSourceName::PerformanceTimeline)
+    }
+
     fn queue_with_canceller<T>(
         &self,
         task: T,

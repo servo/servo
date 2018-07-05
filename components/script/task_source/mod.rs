@@ -13,6 +13,35 @@ use dom::globalscope::GlobalScope;
 use std::result::Result;
 use task::{TaskCanceller, TaskOnce};
 
+// The names of all task sources, used to differentiate TaskCancellers.
+// Note: When adding a task source, update this enum.
+// Note: The HistoryTraversalTaskSource is not part of this,
+// because it doesn't implement TaskSource.
+#[derive(Eq, Hash, JSTraceable, PartialEq)]
+pub enum TaskSourceName {
+    DOMManipulation,
+    FileReading,
+    HistoryTraversal,
+    Networking,
+    PerformanceTimeline,
+    UserInteraction
+}
+
+impl TaskSourceName {
+    // Retuns a vec of variants of TaskSourceName.
+    // Note: When adding a variant, update the vec.
+    pub fn all() -> Vec<TaskSourceName> {
+        vec![
+            TaskSourceName::DOMManipulation,
+            TaskSourceName::FileReading,
+            TaskSourceName::HistoryTraversal,
+            TaskSourceName::Networking,
+            TaskSourceName::PerformanceTimeline,
+            TaskSourceName::UserInteraction
+        ]
+    }
+}
+
 pub trait TaskSource {
     fn queue_with_canceller<T>(
         &self,
@@ -22,10 +51,13 @@ pub trait TaskSource {
     where
         T: TaskOnce + 'static;
 
+    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller;
+
     fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {
-        self.queue_with_canceller(task, &global.task_canceller())
+        let canceller = self.choose_canceller(global);
+        self.queue_with_canceller(task, &canceller)
     }
 }

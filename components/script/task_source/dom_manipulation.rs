@@ -6,6 +6,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventTask, SimpleEventTask};
 use dom::eventtarget::EventTarget;
+use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
@@ -15,7 +16,7 @@ use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use task::{TaskCanceller, TaskOnce};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 
 #[derive(Clone, JSTraceable)]
 pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
@@ -41,6 +42,10 @@ impl TaskSource for DOMManipulationTaskSource {
             Some(self.1)
         ));
         self.0.send(msg).map_err(|_| ())
+    }
+
+    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
+        global.task_canceller(TaskSourceName::DOMManipulation)
     }
 }
 

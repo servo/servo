@@ -109,6 +109,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
 use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use task::TaskCanceller;
+use task_source::TaskSourceName;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -246,9 +247,9 @@ pub struct Window {
 
     current_viewport: Cell<Rect<Au>>,
 
-    /// A flag to prevent async events from attempting to interact with this window.
+    /// A map of flags to prevent events from a given task source from attempting to interact with this window.
     #[ignore_malloc_size_of = "defined in std"]
-    ignore_further_async_events: DomRefCell<Arc<AtomicBool>>,
+    ignore_further_async_events: DomRefCell<HashMap<TaskSourceName, Arc<AtomicBool>>>,
 
     error_reporter: CSSErrorReporter,
 
@@ -308,7 +309,15 @@ impl Window {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.window_proxy.set(None);
             self.current_state.set(WindowState::Zombie);
-            self.ignore_further_async_events.borrow().store(true, Ordering::Relaxed);
+            self.ignore_all_events();
+        }
+    }
+
+    fn ignore_all_events(&self) {
+        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        for task_source_name in TaskSourceName::all() {
+            let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+            flag.store(true, Ordering::Relaxed);
         }
     }
 
@@ -1065,9 +1074,11 @@ impl Window {
         self.paint_worklet.or_init(|| self.new_paint_worklet())
     }
 
-    pub fn task_canceller(&self) -> TaskCanceller {
+    pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
+        let mut flags = self.ignore_further_async_events.borrow_mut();
+        let cancel_flag = flags.entry(name).or_insert(Default::default());
         TaskCanceller {
-            cancelled: Some(self.ignore_further_async_events.borrow().clone()),
+            cancelled: Some(cancel_flag.clone()),
         }
     }
 
@@ -1084,8 +1095,12 @@ impl Window {
     /// This sets the current `ignore_further_async_events` sentinel value to
     /// `true` and replaces it with a brand new one for future tasks.
     pub fn cancel_all_tasks(&self) {
-        let cancelled = mem::replace(&mut *self.ignore_further_async_events.borrow_mut(), Default::default());
-        cancelled.store(true, Ordering::Relaxed);
+        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        for task_source_name in TaskSourceName::all() {
+            let mut flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+            let cancelled = mem::replace(&mut *flag, Default::default());
+            cancelled.store(true, Ordering::Relaxed);
+        }
     }
 
     pub fn clear_js_runtime(&self) {
@@ -1117,7 +1132,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.window_proxy.set(None);
-        self.ignore_further_async_events.borrow().store(true, Ordering::SeqCst);
+        self.ignore_all_events();
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-scroll>
@@ -1998,9 +2013,10 @@ impl Window {
         });
         // FIXME(nox): Why are errors silenced here?
         // TODO(#12718): Use the "posted message task source".
+        // TODO: When switching to the right task source, update the task_canceller call too.
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
-            Box::new(self.task_canceller().wrap_task(task)),
+            Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
             self.pipeline_id()
         ));
     }

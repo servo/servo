@@ -35,7 +35,7 @@ use std::ptr;
 use std::sync::Arc;
 use std::thread;
 use task::TaskCanceller;
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use task_source::file_reading::{FileReadingTask, FileReadingTaskSource};
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -452,7 +452,7 @@ impl FileReader {
         let gen_id = self.generation_id.get();
 
         let global = self.global();
-        let canceller = global.task_canceller();
+        let canceller = global.task_canceller(TaskSourceName::FileReading);
         let task_source = global.file_reading_task_source();
 
         thread::Builder::new()

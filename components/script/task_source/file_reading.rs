@@ -4,11 +4,12 @@
 
 use dom::domexception::DOMErrorName;
 use dom::filereader::{FileReader, TrustedFileReader, GenerationId, ReadMetaData};
+use dom::globalscope::GlobalScope;
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory, ScriptChan};
 use std::sync::Arc;
 use task::{TaskCanceller, TaskOnce};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable)]
 pub struct FileReadingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
@@ -20,6 +21,10 @@ impl Clone for FileReadingTaskSource {
 }
 
 impl TaskSource for FileReadingTaskSource {
+    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
+        global.task_canceller(TaskSourceName::FileReading)
+    }
+
     fn queue_with_canceller<T>(
         &self,
         task: T,

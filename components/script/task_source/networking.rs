@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::globalscope::GlobalScope;
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use task::{TaskCanceller, TaskOnce};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 
 #[derive(JSTraceable)]
 pub struct NetworkingTaskSource(pub Box<ScriptChan + Send + 'static>, pub PipelineId);
@@ -17,6 +18,10 @@ impl Clone for NetworkingTaskSource {
 }
 
 impl TaskSource for NetworkingTaskSource {
+    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
+        global.task_canceller(TaskSourceName::Networking)
+    }
+
     fn queue_with_canceller<T>(
         &self,
         task: T,

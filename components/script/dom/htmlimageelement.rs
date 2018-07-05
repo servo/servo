@@ -58,7 +58,7 @@ use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_unsigned_integer};
 use style::str::is_ascii_digit;
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 
 enum ParseState {
     InDescriptor,
@@ -185,7 +185,7 @@ impl HTMLImageElement {
 
             let window = window_from_node(elem);
             let task_source = window.networking_task_source();
-            let task_canceller = window.task_canceller();
+            let task_canceller = window.task_canceller(TaskSourceName::Networking);
             let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
                 debug!("Got image {:?}", message);
@@ -253,7 +253,7 @@ impl HTMLImageElement {
         let listener = NetworkListener {
             context: context,
             task_source: window.networking_task_source(),
-            canceller: Some(window.task_canceller()),
+            canceller: Some(window.task_canceller(TaskSourceName::Networking)),
         };
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
