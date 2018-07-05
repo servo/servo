@@ -3768,14 +3768,6 @@ where
                 PropertyDeclarationId::Custom(..) => continue,
             };
 
-            // Only a few properties are allowed to depend on the visited state
-            // of links.  When cascading visited styles, we can save time by
-            // only processing these properties.
-            if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) &&
-               !longhand_id.is_visited_dependent() {
-                continue
-            }
-
             if !apply_reset && !longhand_id.inherited() {
                 continue;
             }
@@ -3792,6 +3784,14 @@ where
             <% maybe_to_physical = ".to_physical(writing_mode)" if category_to_cascade_now != "early" else "" %>
             let physical_longhand_id = longhand_id ${maybe_to_physical};
             if seen.contains(physical_longhand_id) {
+                continue
+            }
+
+            // Only a few properties are allowed to depend on the visited state
+            // of links.  When cascading visited styles, we can save time by
+            // only processing these properties.
+            if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) &&
+               !physical_longhand_id.is_visited_dependent() {
                 continue
             }
 
