@@ -2314,7 +2314,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
-        handle_potential_webgl_error!(self, program.get_active_attrib(index), None)
+        handle_potential_webgl_error!(self, program.get_active_attrib(index).map(Some), None)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3242,11 +3242,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
-            match program.use_program() {
-                Ok(()) => self.current_program.set(Some(program)),
-                Err(e) => self.webgl_error(e),
+            if program.is_deleted() || !program.is_linked() {
+                return self.webgl_error(InvalidOperation);
             }
         }
+        self.send_command(WebGLCommand::UseProgram(program.map(|p| p.id())));
+        self.current_program.set(program);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9

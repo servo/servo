@@ -826,8 +826,6 @@ impl WebGLImpl {
                 ctx.gl().uniform_matrix_3fv(uniform_id, transpose, v),
             WebGLCommand::UniformMatrix4fv(uniform_id, transpose,  ref v) =>
                 ctx.gl().uniform_matrix_4fv(uniform_id, transpose, v),
-            WebGLCommand::UseProgram(program_id) =>
-                ctx.gl().use_program(program_id.get()),
             WebGLCommand::ValidateProgram(program_id) =>
                 ctx.gl().validate_program(program_id.get()),
             WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) =>
@@ -964,6 +962,9 @@ impl WebGLImpl {
             }
             WebGLCommand::LinkProgram(program_id, ref sender) => {
                 return sender.send(Self::link_program(ctx.gl(), program_id)).unwrap();
+            }
+            WebGLCommand::UseProgram(program_id) => {
+                ctx.gl().use_program(program_id.map_or(0, |p| p.get()))
             }
         }
 

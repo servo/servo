@@ -130,19 +130,6 @@ impl WebGLProgram {
         Ref::map(self.active_attribs.borrow(), |attribs| &**attribs)
     }
 
-    /// glUseProgram
-    pub fn use_program(&self) -> WebGLResult<()> {
-        if self.is_deleted() {
-            return Err(WebGLError::InvalidOperation);
-        }
-        if !self.linked.get() {
-            return Err(WebGLError::InvalidOperation);
-        }
-
-        self.renderer.send(WebGLCommand::UseProgram(self.id)).unwrap();
-        Ok(())
-    }
-
     /// glValidateProgram
     pub fn validate(&self) -> WebGLResult<()> {
         if self.is_deleted() {

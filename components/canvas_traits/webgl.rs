@@ -249,7 +249,7 @@ pub enum WebGLCommand {
     UniformMatrix2fv(i32, bool, Vec<f32>),
     UniformMatrix3fv(i32, bool, Vec<f32>),
     UniformMatrix4fv(i32, bool, Vec<f32>),
-    UseProgram(WebGLProgramId),
+    UseProgram(Option<WebGLProgramId>),
     ValidateProgram(WebGLProgramId),
     VertexAttrib(u32, f32, f32, f32, f32),
     VertexAttribPointer(u32, i32, u32, bool, i32, u32),
