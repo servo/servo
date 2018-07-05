@@ -31,6 +31,7 @@ use servo_url::ServoUrl;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use task_source::TaskSourceName;
 
 struct FetchContext {
     fetch_promise: Option<TrustedPromise>,
@@ -154,7 +155,7 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<
     let listener = NetworkListener {
         context: fetch_context,
         task_source: global.networking_task_source(),
-        canceller: Some(global.task_canceller())
+        canceller: Some(global.task_canceller(TaskSourceName::Networking))
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {

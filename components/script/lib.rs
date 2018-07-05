@@ -37,6 +37,7 @@ extern crate dom_struct;
 extern crate domobject_derive;
 extern crate embedder_traits;
 extern crate encoding_rs;
+#[macro_use] extern crate enum_iterator;
 extern crate euclid;
 extern crate fnv;
 extern crate gleam;

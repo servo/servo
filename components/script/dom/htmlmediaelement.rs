@@ -46,7 +46,7 @@ use std::collections::VecDeque;
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use time::{self, Timespec, Duration};
 
 #[dom_struct]
@@ -608,7 +608,7 @@ impl HTMLMediaElement {
                 let listener = NetworkListener {
                     context: context,
                     task_source: window.networking_task_source(),
-                    canceller: Some(window.task_canceller())
+                    canceller: Some(window.task_canceller(TaskSourceName::Networking))
                 };
                 ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
                     listener.notify_fetch(message.to().unwrap());

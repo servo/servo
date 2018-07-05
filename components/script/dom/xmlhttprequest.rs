@@ -70,6 +70,7 @@ use std::ptr::NonNull;
 use std::slice;
 use std::str;
 use std::sync::{Arc, Mutex};
+use task_source::TaskSourceName;
 use task_source::networking::NetworkingTaskSource;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
@@ -268,7 +269,7 @@ impl XMLHttpRequest {
         let listener = NetworkListener {
             context: context,
             task_source: task_source,
-            canceller: Some(global.task_canceller())
+            canceller: Some(global.task_canceller(TaskSourceName::Networking))
         };
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());

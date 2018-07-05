@@ -35,6 +35,7 @@ use style::stylesheets::{CssRules, ImportRule, Namespaces, Stylesheet, Styleshee
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
+use task_source::TaskSourceName;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -228,7 +229,7 @@ impl<'a> StylesheetLoader<'a> {
         let listener = NetworkListener {
             context: context,
             task_source: document.window().networking_task_source(),
-            canceller: Some(document.window().task_canceller())
+            canceller: Some(document.window().task_canceller(TaskSourceName::Networking))
         };
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());

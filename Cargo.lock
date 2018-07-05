@@ -862,6 +862,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "enum-iterator"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "enum-iterator-derive 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "enum-iterator-derive"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "proc-macro2 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "enum_primitive"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2587,6 +2605,7 @@ dependencies = [
  "domobject_derive 0.0.1",
  "embedder_traits 0.0.1",
  "encoding_rs 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enum-iterator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3893,6 +3912,8 @@ dependencies = [
 "checksum energymon-builder 0.3.0 (git+https://github.com/energymon/energymon-sys.git)" = "<none>"
 "checksum energymon-default-sys 0.3.0 (git+https://github.com/energymon/energymon-sys.git)" = "<none>"
 "checksum energymon-sys 0.3.0 (git+https://github.com/energymon/energymon-sys.git)" = "<none>"
+"checksum enum-iterator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "85012092e543e198a02f3ac3d587798253e8ec374bc9c3d7da5319cf579ea4c6"
+"checksum enum-iterator-derive 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "719423964c7a03e4ce4c67115d6e44a5b2dd9b51789a575dfbad68b490b0f0a0"
 "checksum enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
 "checksum env_logger 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0561146661ae44c579e993456bc76d11ce1e0c7d745e57b2fa7146b6e49fa2ad"
 "checksum error-chain 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ff511d5dc435d703f4971bc399647c9bc38e20cb41452e3b9feb4765419ed3f3"
