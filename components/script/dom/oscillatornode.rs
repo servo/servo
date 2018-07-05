@@ -30,7 +30,7 @@ audio_param_impl!(Detune, OscillatorNode, OscillatorNodeMessage, SetDetune);
 
 #[dom_struct]
 pub struct OscillatorNode {
-    node: AudioScheduledSourceNode,
+    source_node: AudioScheduledSourceNode,
     oscillator_type: OscillatorType,
     frequency: DomRoot<AudioParam>,
     detune: DomRoot<AudioParam>,
@@ -48,26 +48,27 @@ impl OscillatorNode {
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-        let node = AudioScheduledSourceNode::new_inherited(
+        let source_node = AudioScheduledSourceNode::new_inherited(
             AudioNodeType::OscillatorNode(oscillator_options.into()),
             context,
             &node_options,
             0, /* inputs */
             1, /* outputs */
             );
-        let frequency = Frequency::new(context.audio_context_impl(), node.node_id());
+        let node_id = source_node.node().node_id();
+        let frequency = Frequency::new(context.audio_context_impl(), node_id);
         let frequency = AudioParam::new(window,
                                         Box::new(frequency),
                                         AutomationRate::A_rate,
                                         440., f32::MIN, f32::MAX);
-        let detune = Detune::new(context.audio_context_impl(), node.node_id());
+        let detune = Detune::new(context.audio_context_impl(), node_id);
         let detune = AudioParam::new(window,
                                      Box::new(detune),
                                      AutomationRate::A_rate,
                                      0., -440. / 2., 440. / 2.);
 
         OscillatorNode {
-            node,
+            source_node,
             oscillator_type: oscillator_options.type_,
             frequency,
             detune,

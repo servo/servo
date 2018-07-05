@@ -18,13 +18,13 @@ dictionary AudioBufferSourceOptions {
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional AudioBufferSourceOptions options)]
 interface AudioBufferSourceNode : AudioScheduledSourceNode {
-  // attribute AudioBuffer? buffer;
+  [Throws] attribute AudioBuffer? buffer;
   readonly attribute AudioParam playbackRate;
   readonly attribute AudioParam detune;
   attribute boolean loop;
   attribute double loopStart;
   attribute double loopEnd;
-  void start(optional double when = 0,
-             optional double offset,
-             optional double duration);
+  [Throws] void start(optional double when = 0,
+                      optional double offset,
+                      optional double duration);
 };

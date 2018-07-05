@@ -3,15 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::audiobuffer::AudioBuffer;
+use dom::audiobuffersourcenode::AudioBufferSourceNode;
 use dom::audiodestinationnode::AudioDestinationNode;
+use dom::audionode::MAX_CHANNEL_COUNT;
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
@@ -207,23 +210,23 @@ impl BaseAudioContext {
 }
 
 impl BaseAudioContextMethods for BaseAudioContext {
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
     fn SampleRate(&self) -> Finite<f32> {
         Finite::wrap(self.sample_rate)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-currenttime
     fn CurrentTime(&self) -> Finite<f64> {
         let current_time = self.audio_context_impl.current_time();
         Finite::wrap(current_time)
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
     fn State(&self) -> AudioContextState {
         self.state.get()
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-resume
     #[allow(unrooted_must_root)]
     fn Resume(&self) -> Rc<Promise> {
         // Step 1.
@@ -255,14 +258,15 @@ impl BaseAudioContextMethods for BaseAudioContext {
         promise
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     fn Destination(&self) -> DomRoot<AudioDestinationNode> {
         DomRoot::from_ref(self.destination.as_ref().unwrap())
     }
 
-    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
     #[allow(unsafe_code)]
     fn CreateOscillator(&self) -> DomRoot<OscillatorNode> {
         let global = self.global();
@@ -271,6 +275,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         OscillatorNode::new(&window, &self, &options)
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain
     #[allow(unsafe_code)]
     fn CreateGain(&self) -> DomRoot<GainNode> {
         let global = self.global();
@@ -279,12 +284,27 @@ impl BaseAudioContextMethods for BaseAudioContext {
         GainNode::new(&window, &self, &options)
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
     fn CreateBuffer(&self,
                     number_of_channels: u32,
                     length: u32,
-                    sample_rate: Finite<f32>) -> DomRoot<AudioBuffer> {
+                    sample_rate: Finite<f32>) -> Fallible<DomRoot<AudioBuffer>> {
+        if number_of_channels <= 0 ||
+           number_of_channels > MAX_CHANNEL_COUNT ||
+           length <= 0 ||
+           *sample_rate <= 0. {
+            return Err(Error::NotSupported);
+        }
         let global = self.global();
-        AudioBuffer::new(&global.as_window(), number_of_channels, length, *sample_rate)
+        Ok(AudioBuffer::new(&global.as_window(), number_of_channels, length, *sample_rate))
+    }
+
+    #[allow(unsafe_code)]
+    fn CreateBufferSource(&self) -> DomRoot<AudioBufferSourceNode> {
+        let global = self.global();
+        // XXX Can we do this implementing Default?
+        let options = unsafe { AudioBufferSourceOptions::empty(global.get_cx()) };
+        AudioBufferSourceNode::new(&global.as_window(), &self, &options)
     }
 }
 

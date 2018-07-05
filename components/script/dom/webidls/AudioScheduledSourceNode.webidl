@@ -9,6 +9,6 @@
 [Exposed=Window]
 interface AudioScheduledSourceNode : AudioNode {
   attribute EventHandler onended;
-  void start(optional double when = 0);
-  void stop(optional double when = 0);
+  [Throws] void start(optional double when = 0);
+  [Throws] void stop(optional double when = 0);
 };
