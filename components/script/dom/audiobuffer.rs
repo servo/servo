@@ -14,8 +14,8 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject, JS_StealArrayBufferContents};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
+use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::ptr::{self, NonNull};
-use std::slice;
 use std::sync::{Arc, Mutex};
 
 type JSAudioChannel = Heap<*mut JSObject>;
@@ -25,7 +25,7 @@ pub struct AudioBuffer {
     reflector_: Reflector,
     js_channels: DomRefCell<Vec<JSAudioChannel>>,
     #[ignore_malloc_size_of = "Arc"]
-    shared_channels: Arc<Mutex<Vec<Vec<f32>>>>,
+    shared_channels: Arc<Mutex<ServoMediaAudioBuffer>>,
     sample_rate: f32,
     length: u32,
     duration: f64,
@@ -53,11 +53,12 @@ impl AudioBuffer {
         AudioBuffer {
             reflector_: Reflector::new(),
             js_channels: DomRefCell::new(js_channels),
-            shared_channels: Arc::new(Mutex::new(vec![vec![0.; length as usize]; number_of_channels as usize])),
-            sample_rate: sample_rate,
-            length: length,
-            duration: length as f64 / sample_rate as f64,
-            number_of_channels: number_of_channels,
+            shared_channels: Arc::new(Mutex::new(
+                    ServoMediaAudioBuffer::new(number_of_channels as u8, length as usize))),
+                    sample_rate: sample_rate,
+                    length: length,
+                    duration: length as f64 / sample_rate as f64,
+                    number_of_channels: number_of_channels,
         }
     }
 
@@ -88,7 +89,7 @@ impl AudioBuffer {
 
             // Move the channel data from shared_channels to js_channels.
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            let shared_channel = (*self.shared_channels.lock().unwrap()).remove(i);
+            let shared_channel = (*self.shared_channels.lock().unwrap()).buffers.remove(i);
             if unsafe {
                 Float32Array::create(cx, CreateWith::Slice(&shared_channel), array.handle_mut())
             }.is_err() {
@@ -102,7 +103,7 @@ impl AudioBuffer {
 
     /// https://webaudio.github.io/web-audio-api/#acquire-the-content
     #[allow(unsafe_code)]
-    pub fn acquire_contents(&self) -> Option<Arc<Mutex<Vec<Vec<f32>>>>> {
+    pub fn acquire_contents(&self) -> Option<Arc<Mutex<ServoMediaAudioBuffer>>> {
         let cx = self.global().get_cx();
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             // Step 1.
@@ -112,17 +113,25 @@ impl AudioBuffer {
 
             // Step 2.
             let channel_data = unsafe {
-                slice::from_raw_parts(
-                    JS_StealArrayBufferContents(cx, channel.handle()) as *mut f32,
-                    self.length as usize
-                    ).to_vec()
+                typedarray!(in(cx) let array: Float32Array = channel.get());
+                if let Ok(array) = array {
+                    // XXX TypedArrays API does not expose a way to steal the buffer's
+                    //     content.
+                    let data = array.to_vec();
+                    let _ = JS_StealArrayBufferContents(cx, channel.handle());
+                    data
+                } else {
+                    return None;
+                }
             };
 
             channel.set(ptr::null_mut());
 
-            // Step 3 and part of 4 (which will complete turning shared_channels
-            // data into js_channels ArrayBuffers in restore_js_channel_data).
-            (*self.shared_channels.lock().unwrap())[i] = channel_data;
+            // Step 3.
+            (*self.shared_channels.lock().unwrap()).buffers[i] = channel_data;
+
+            // Step 4 will complete turning shared_channels
+            // data into js_channels ArrayBuffers in restore_js_channel_data.
         }
 
         self.js_channels.borrow_mut().clear();
@@ -167,16 +176,18 @@ impl AudioBufferMethods for AudioBuffer {
     }
 
     fn CopyFromChannel(&self,
-                       destination: CustomAutoRooterGuard<Float32Array>,
-                       channel_number: u32,
-                       start_in_channel: u32) -> Fallible<()> {
+                       _destination: CustomAutoRooterGuard<Float32Array>,
+                       _channel_number: u32,
+                       _start_in_channel: u32) -> Fallible<()> {
+        // XXX
         Ok(())
     }
 
     fn CopyToChannel(&self,
-                     source: CustomAutoRooterGuard<Float32Array>,
-                     channel_number: u32,
-                     start_in_channel: u32) -> Fallible<()> {
+                     _source: CustomAutoRooterGuard<Float32Array>,
+                     _channel_number: u32,
+                     _start_in_channel: u32) -> Fallible<()> {
+        // XXX
         Ok(())
     }
 }

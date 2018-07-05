@@ -78,6 +78,7 @@ use offscreen_gl_context::GLLimits;
 use parking_lot::RwLock;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use servo_media::audio::buffer_source_node::AudioBuffer;
 use servo_media::audio::context::AudioContext;
 use servo_media::audio::graph::NodeId;
 use script_layout_interface::OpaqueStyleAndLayoutData;
@@ -427,6 +428,7 @@ unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
+unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext);
 unsafe_no_jsmanaged_fields!(NodeId);
 
