@@ -27,7 +27,7 @@ time = "0.1.12"
 task_info = {path = "../../support/rust-task_info"}
 
 [target.'cfg(target_os = "linux")'.dependencies]
-regex = "0.2"
+regex = "1.0"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 libc = "0.2"
