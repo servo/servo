@@ -49,8 +49,7 @@ use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::computed_value_flags::*;
-use properties::{longhands, Importance, LonghandId};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
+use properties::longhands;
 use rule_tree::StrongRuleNode;
 use selector_parser::PseudoElement;
 use servo_arc::{Arc, RawOffsetArc};
@@ -58,7 +57,7 @@ use std::marker::PhantomData;
 use std::mem::{forget, uninitialized, transmute, zeroed};
 use std::{cmp, ops, ptr};
 use values::{self, CustomIdent, Either, KeyframesName, None_};
-use values::computed::{NonNegativeLength, ToComputedValue, Percentage, TransitionProperty};
+use values::computed::{NonNegativeLength, Percentage, TransitionProperty};
 use values::computed::font::FontSize;
 use values::computed::effects::{BoxShadow, Filter, SimpleShadow};
 use values::computed::outline::OutlineStyle;
@@ -306,30 +305,6 @@ impl ComputedValuesInner {
     #[allow(non_snake_case)]
     pub fn has_moz_binding(&self) -> bool {
         !self.get_box().gecko.mBinding.mRawPtr.is_null()
-    }
-
-    pub fn to_declaration_block(&self, property: PropertyDeclarationId) -> PropertyDeclarationBlock {
-        let value = match property {
-            % for prop in data.longhands:
-                % if prop.animatable:
-                    PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}) => {
-                        PropertyDeclaration::${prop.camel_case}(
-                            % if prop.boxed:
-                                Box::new(
-                            % endif
-                            longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                              &self.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
-                            % if prop.boxed:
-                                )
-                            % endif
-                        )
-                    },
-                % endif
-            % endfor
-            PropertyDeclarationId::Custom(_name) => unimplemented!(),
-            _ => unimplemented!()
-        };
-        PropertyDeclarationBlock::with_one(value, Importance::Normal)
     }
 }
 
