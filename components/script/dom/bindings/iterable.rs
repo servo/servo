@@ -115,7 +115,7 @@ fn dict_return(cx: *mut JSContext,
                mut result: MutableHandleObject,
                done: bool,
                value: HandleValue) -> Fallible<()> {
-    let mut dict = unsafe { IterableKeyOrValueResult::empty(cx) };
+    let mut dict = IterableKeyOrValueResult::empty();
     dict.done = done;
     dict.value.set(value.get());
     rooted!(in(cx) let mut dict_value = UndefinedValue());
@@ -130,7 +130,7 @@ fn key_and_value_return(cx: *mut JSContext,
                         mut result: MutableHandleObject,
                         key: HandleValue,
                         value: HandleValue) -> Fallible<()> {
-    let mut dict = unsafe { IterableKeyAndValueResult::empty(cx) };
+    let mut dict = IterableKeyAndValueResult::empty();
     dict.done = false;
     dict.value = Some(vec![key, value]
         .into_iter()
