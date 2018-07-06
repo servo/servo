@@ -2124,7 +2124,7 @@ fn static_assert() {
         };
 
         for (servo, gecko) in v.0.areas.into_iter().zip(refptr.mNamedAreas.iter_mut()) {
-            gecko.mName.assign_utf8(&*servo.name);
+            gecko.mName.assign_str(&*servo.name);
             gecko.mColumnStart = servo.columns.start;
             gecko.mColumnEnd = servo.columns.end;
             gecko.mRowStart = servo.rows.start;
@@ -2132,7 +2132,7 @@ fn static_assert() {
         }
 
         for (servo, gecko) in v.0.strings.into_iter().zip(refptr.mTemplates.iter_mut()) {
-            gecko.assign_utf8(&*servo);
+            gecko.assign_str(&*servo);
         }
 
         self.gecko.mGridTemplateAreas.set_move(refptr.get())
@@ -4189,8 +4189,8 @@ fn static_assert() {
         };
 
         for (servo, gecko) in other.0.into_iter().zip(refptr.mQuotePairs.iter_mut()) {
-            gecko.first.assign_utf8(&servo.0);
-            gecko.second.assign_utf8(&servo.1);
+            gecko.first.assign_str(&servo.0);
+            gecko.second.assign_str(&servo.1);
         }
 
         self.gecko.mQuotes.set_move(refptr.get())
@@ -4728,7 +4728,7 @@ fn static_assert() {
                 (structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING, &**s)
             },
         };
-        self.gecko.mTextEmphasisStyleString.assign_utf8(s);
+        self.gecko.mTextEmphasisStyleString.assign_str(s);
         self.gecko.mTextEmphasisStyle = te as u8;
     }
 
@@ -4829,7 +4829,7 @@ fn static_assert() {
                 TextOverflowSide::Clip => structs::NS_STYLE_TEXT_OVERFLOW_CLIP,
                 TextOverflowSide::Ellipsis => structs::NS_STYLE_TEXT_OVERFLOW_ELLIPSIS,
                 TextOverflowSide::String(ref s) => {
-                    side.mString.assign_utf8(s);
+                    side.mString.assign_str(s);
                     structs::NS_STYLE_TEXT_OVERFLOW_STRING
                 }
             };
@@ -5461,7 +5461,7 @@ clip-path
             };
             counter_func.mIdent.assign(name.0.as_slice());
             if content_type == StyleContentType::Counters {
-                counter_func.mSeparator.assign_utf8(sep);
+                counter_func.mSeparator.assign_str(sep);
             }
             style.to_gecko_value(&mut counter_func.mCounterStyle, device);
         }
