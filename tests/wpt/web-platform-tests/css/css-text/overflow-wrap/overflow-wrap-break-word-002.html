@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Text Test: overflow-wrap: break-word+break-spaces</title>
+<title>CSS Text Test: overflow-wrap: break-word + white-space:break-spaces</title>
 <link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-word">
-<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-spaces">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
 <meta name="flags" content="ahem">
 <link rel="match" href="reference/overflow-wrap-break-word-002-ref.html">
 <meta name="assert" content="break-word + break-spaces do not allow a break
@@ -11,8 +11,8 @@ between the last character of a word and the first space of a sequence of preser
 if there are other wrapping opportunities earlier in the line">
 <style>
 div {
-  white-space: pre-wrap;
-  overflow-wrap: break-word break-spaces;
+  white-space: break-spaces;
+  overflow-wrap: break-word;
   font-family: monospace;
   width: 5ch;
   line-height: 1;
@@ -24,7 +24,7 @@ div {
 <p>This test passes if there is nothing below this sentence.
 <div> FAIL <div>
 <!--
-white-space:pre-wrap + overflow:break-spaces should cause the spaces at the end of the line to be preserved.
+white-space:break-spaces should cause the spaces at the end of the line to be preserved.
 Since there is an allowed break point between the first space and the F,
 that's where the line should wrap,
 not between the L and the subsequent space.

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <style>
+    rect {
+      fill: cyan;
+    }
+  </style>
+  <rect x="169" y="141" width="40" height="10" />
+</svg>

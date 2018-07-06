@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/html/issues/3739
+
+-->
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>Clicking in iframe has activation state in child</h1>
+  <ol id="instructions">
+    <li>Click inside the red area.
+  </ol>
+  <iframe id="child" width="200" height="200"></iframe>
+  <script>
+    async_test(function(t) {
+      var child = document.getElementById("child");
+      assert_false(navigator.userActivation.isActive);
+      assert_false(navigator.userActivation.hasBeenActive);
+      window.addEventListener("message", t.step_func(event => {
+        var msg = JSON.parse(event.data);
+        if (msg.type == 'child-one-loaded') {
+          // values have false after load
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+          test_driver.click(child);
+        } else if (msg.type == 'child-one-clicked') {
+          // values have activation state on click
+          assert_true(navigator.userActivation.isActive);
+          assert_true(navigator.userActivation.hasBeenActive);
+          assert_true(msg.isActive);
+          assert_true(msg.hasBeenActive);
+          child.src = "resources/child-two.html";
+        } else if (msg.type == 'child-two-loaded') {
+          // values are reset after navigation
+          assert_true(navigator.userActivation.isActive);
+          assert_true(navigator.userActivation.hasBeenActive);
+          assert_false(msg.isActive);
+          assert_false(msg.hasBeenActive);
+          t.done();
+        }
+      }));
+      child.src = "resources/child-one.html";
+    }, "Values adjust on activity");
+  </script>
+</body>
+</html>

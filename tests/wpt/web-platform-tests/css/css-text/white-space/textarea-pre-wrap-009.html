@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>CSS Text level 3 Test: single preserved white space at the end of with white-space:pre-wrap overflow-wrap:break-spaces in a textarea</title>
+<title>CSS Text level 3 Test: single preserved white space at the end of with white-space:break-spaces in a textarea</title>
 <link rel="author" title="Florian Rivoal" href="http://florian.rivoal.net/">
 <link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
-<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-overflow-wrap-break-spaces">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#valdef-white-space-break-spaces">
 <link rel="match" href="reference/textarea-pre-wrap-001-ref.html">
 <meta name="assert" content="a single preserved white space at the end of the line is not wrapped when the white-space property is set to pre-wrap and overflow-wrap is break-spaces in a textarea.">
 <style>
@@ -22,13 +22,12 @@ textarea {
   font-size: 20px;
   font-family: Ahem;
   line-height: 1em;
-  white-space: pre-wrap;
+  white-space: break-spaces;
   color: green;
 
   background: linear-gradient(red, red) 0 0/2ch 2ch no-repeat;
 
   width: 2ch;
-  overflow-wrap: break-spaces;
 }
 
 </style>

@@ -10,7 +10,7 @@ async_test(t => {
   const iframeDoc = iframe.contentDocument;
 
   // Enter fullscreen for the iframe's body element.
-  trusted_request(t, iframeDoc.body, document.body);
+  trusted_request(t, iframeDoc.body, iframeDoc.body);
   document.onfullscreenchange = t.step_func(() => {
     assert_equals(document.fullscreenElement, iframe, "document's initial fullscreen element");
     assert_equals(iframeDoc.fullscreenElement, iframeDoc.body, "iframe's initial fullscreen element");

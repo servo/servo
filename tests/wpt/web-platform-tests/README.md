@@ -133,11 +133,11 @@ And on macOS with homebrew using:
 brew install nss
 ```
 
-On other platforms, download the firefox archive and common.tests.zip
+On other platforms, download the firefox archive and common.tests.tar.gz
 archive for your platform from
 [Mozilla CI](https://archive.mozilla.org/pub/firefox/nightly/latest-mozilla-central/).
 
-Then extract `certutil[.exe]` from the tests.zip package and
+Then extract `certutil[.exe]` from the tests.tar.gz package and
 `libnss3[.so|.dll|.dynlib]` and put the former on your path and the latter on
 your library path.
 

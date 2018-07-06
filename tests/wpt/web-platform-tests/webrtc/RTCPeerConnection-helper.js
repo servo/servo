@@ -93,12 +93,12 @@ function isSimilarSessionDescription(sessionDesc1, sessionDesc2) {
   }
 }
 
-function assert_session_desc_equals(sessionDesc1, sessionDesc2) {
+function assert_session_desc_similar(sessionDesc1, sessionDesc2) {
   assert_true(isSimilarSessionDescription(sessionDesc1, sessionDesc2),
     'Expect both session descriptions to have the same count of media lines');
 }
 
-function assert_session_desc_not_equals(sessionDesc1, sessionDesc2) {
+function assert_session_desc_not_similar(sessionDesc1, sessionDesc2) {
   assert_false(isSimilarSessionDescription(sessionDesc1, sessionDesc2),
     'Expect both session descriptions to have different count of media lines');
 }
