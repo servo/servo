@@ -882,6 +882,7 @@ impl<'le> GeckoElement<'le> {
                 .expect("AnimationValue not found in ElementTransitions");
 
             let property = end_value.id();
+            debug_assert!(!property.is_logical());
             map.insert(property, end_value.clone_arc());
         }
         map
@@ -896,6 +897,7 @@ impl<'le> GeckoElement<'le> {
         existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>,
     ) -> bool {
         use values::animated::{Animate, Procedure};
+        debug_assert!(!longhand_id.is_logical());
 
         // If there is an existing transition, update only if the end value
         // differs.
@@ -1657,6 +1659,8 @@ impl<'le> TElement for GeckoElement<'le> {
             let transition_property: TransitionProperty = property.into();
 
             let mut property_check_helper = |property: LonghandId| -> bool {
+                let property =
+                    property.to_physical(after_change_style.writing_mode);
                 transitions_to_keep.insert(property);
                 self.needs_transitions_update_per_property(
                     property,

@@ -131,12 +131,15 @@ impl<'a> DoubleEndedIterator for DeclarationImportanceIterator<'a> {
 }
 
 /// Iterator over `PropertyDeclaration` for Importance::Normal.
+///
+/// TODO(emilio): This should be replaced by `impl Trait`, returning a
+/// filter()ed iterator when available instead, and all the boilerplate below
+/// should go.
 pub struct NormalDeclarationIterator<'a>(DeclarationImportanceIterator<'a>);
 
 impl<'a> NormalDeclarationIterator<'a> {
-    /// Constructor.
     #[inline]
-    pub fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
+    fn new(declarations: &'a [PropertyDeclaration], important: &'a SmallBitVec) -> Self {
         NormalDeclarationIterator(
             DeclarationImportanceIterator::new(declarations, important)
         )
@@ -146,6 +149,7 @@ impl<'a> NormalDeclarationIterator<'a> {
 impl<'a> Iterator for NormalDeclarationIterator<'a> {
     type Item = &'a PropertyDeclaration;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let (decl, importance) = self.0.iter.next()?;
@@ -155,8 +159,21 @@ impl<'a> Iterator for NormalDeclarationIterator<'a> {
         }
     }
 
+    #[inline]
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.0.iter.size_hint()
+    }
+}
+
+impl<'a> DoubleEndedIterator for NormalDeclarationIterator<'a> {
+    #[inline]
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            let (decl, importance) = self.0.iter.next_back()?;
+            if !importance {
+                return Some(decl);
+            }
+        }
     }
 }
 

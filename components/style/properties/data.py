@@ -223,12 +223,6 @@ class Longhand(object):
             and animation_value_type != "discrete"
         self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
             or animation_value_type == "discrete"
-        if self.logical:
-            # Logical properties will be animatable (i.e. the animation type is
-            # discrete). For now, it is still non-animatable.
-            self.animatable = False
-            self.transitionable = False
-            self.animation_value_type = None
 
         # See compute_damage for the various values this can take
         self.servo_restyle_damage = servo_restyle_damage
