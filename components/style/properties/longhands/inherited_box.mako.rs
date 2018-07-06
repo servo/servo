@@ -27,6 +27,7 @@ ${helpers.single_keyword(
                          tb=vertical-rl   tb-rl=vertical-rl",
     servo_pref="layout.writing-mode.enabled",
     animation_value_type="none",
+    animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
     servo_restyle_damage="rebuild_and_reflow",
 )}
