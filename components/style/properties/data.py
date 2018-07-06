@@ -237,6 +237,21 @@ class Longhand(object):
     def type():
         return "longhand"
 
+    # For a given logical property return all the physical
+    # property names corresponding to it.
+    def all_physical_mapped_properties(self):
+        assert self.logical
+        logical_side = None
+        for s in LOGICAL_SIDES + LOGICAL_SIZES:
+            if s in self.name:
+                assert not logical_side
+                logical_side = s
+        assert logical_side
+        physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES else PHYSICAL_SIZES
+        return [self.name.replace(logical_side, physical_side).replace("inset-", "") \
+            for physical_side in physical]
+
+
     def experimental(self, product):
         if product == "gecko":
             return bool(self.gecko_pref)

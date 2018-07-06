@@ -1497,7 +1497,7 @@ impl UnparsedValue {
 
 /// An identifier for a given property declaration, which can be either a
 /// longhand or a custom property.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 pub enum PropertyDeclarationId<'a> {
     /// A longhand.
@@ -1903,7 +1903,7 @@ impl PropertyDeclaration {
             }
             _ => {}
         }
-        // This is just fine because PropertyDeclarationId and LonghandId
+        // This is just fine because PropertyDeclaration and LonghandId
         // have corresponding discriminants.
         let id = unsafe { *(self as *const _ as *const LonghandId) };
         debug_assert_eq!(id, match *self {
@@ -1913,6 +1913,68 @@ impl PropertyDeclaration {
             _ => id,
         });
         PropertyDeclarationId::Longhand(id)
+    }
+
+    /// Given a declaration, convert it into a declaration for a corresponding
+    /// physical property.
+    #[inline]
+    pub fn to_physical(&self, wm: WritingMode) -> Self {
+        match *self {
+            PropertyDeclaration::WithVariables(VariableDeclaration {
+                id,
+                ref value,
+            }) => {
+                return PropertyDeclaration::WithVariables(VariableDeclaration {
+                    id: id.to_physical(wm),
+                    value: value.clone(),
+                })
+            }
+            PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
+                id,
+                keyword,
+            }) => {
+                return PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
+                    id: id.to_physical(wm),
+                    keyword,
+                })
+            }
+            PropertyDeclaration::Custom(..) => return self.clone(),
+            % for prop in data.longhands:
+            PropertyDeclaration::${prop.camel_case}(..) => {},
+            % endfor
+        }
+
+        let mut ret = self.clone();
+
+        % for prop in data.longhands:
+        % if prop.logical:
+        % for physical_property in prop.all_physical_mapped_properties():
+        % if data.longhands_by_name[physical_property].specified_type() != prop.specified_type():
+            <% raise "Logical property %s should share specified value with physical property %s" % (prop.name, physical_property) %>
+        % endif
+        % endfor
+        % endif
+        % endfor
+
+        unsafe {
+            let longhand_id = *(&mut ret as *mut _ as *mut LonghandId);
+
+            debug_assert_eq!(
+                PropertyDeclarationId::Longhand(longhand_id),
+                ret.id()
+            );
+
+            // This is just fine because PropertyDeclaration and LonghandId
+            // have corresponding discriminants.
+            *(&mut ret as *mut _ as *mut LonghandId) = longhand_id.to_physical(wm);
+
+            debug_assert_eq!(
+                PropertyDeclarationId::Longhand(longhand_id.to_physical(wm)),
+                ret.id()
+            );
+        }
+
+        ret
     }
 
     fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
