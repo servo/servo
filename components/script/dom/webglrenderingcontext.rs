@@ -4,7 +4,7 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{DOMToTextureCommand, Parameter};
+use canvas_traits::webgl::{ActiveAttribInfo, DOMToTextureCommand, Parameter};
 use canvas_traits::webgl::{ShaderParameter, TexParameter, WebGLCommand};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
@@ -2229,16 +2229,28 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if first < 0 || count < 0 {
             return self.webgl_error(InvalidValue);
         }
-        if self.current_program.get().is_none() {
-            return self.webgl_error(InvalidOperation);
-        }
-        if let Some(array_buffer) = self.bound_buffer_array.get() {
-            if count > 0 && (first as u64 + count as u64 > array_buffer.capacity() as u64) {
-                return self.webgl_error(InvalidOperation);
-            }
-        }
 
-        handle_potential_webgl_error!(self, self.vertex_attribs.validate_for_draw(), return);
+        let current_program = handle_potential_webgl_error!(
+            self,
+            self.current_program.get().ok_or(InvalidOperation),
+            return
+        );
+
+        let required_len = if count > 0 {
+            handle_potential_webgl_error!(
+                self,
+                first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation),
+                return
+            )
+        } else {
+            0
+        };
+
+        handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.validate_for_draw(required_len, &current_program.active_attribs()),
+            return
+        );
 
         if !self.validate_framebuffer_complete() {
             return;
@@ -2280,15 +2292,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        if self.current_program.get().is_none() {
-            // From the WebGL spec
-            //
-            //     If the CURRENT_PROGRAM is null, an INVALID_OPERATION error will be generated.
-            //     WebGL performs additional error checking beyond that specified
-            //     in OpenGL ES 2.0 during calls to drawArrays and drawElements.
-            //
-            return self.webgl_error(InvalidOperation);
-        }
+        let current_program = handle_potential_webgl_error!(
+            self,
+            self.current_program.get().ok_or(InvalidOperation),
+            return
+        );
 
         if count > 0 {
             if let Some(array_buffer) = self.bound_buffer_element_array.get() {
@@ -2307,7 +2315,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             }
         }
 
-        handle_potential_webgl_error!(self, self.vertex_attribs.validate_for_draw(), return);
+        // TODO(nox): Pass the correct number of vertices required.
+        handle_potential_webgl_error!(
+            self,
+            self.vertex_attribs.validate_for_draw(0, &current_program.active_attribs()),
+            return
+        );
 
         if !self.validate_framebuffer_complete() {
             return;
@@ -3869,19 +3882,14 @@ impl VertexAttribs {
         if stride < 0 || stride > 255 || offset < 0 {
             return Err(InvalidValue);
         }
-        match type_ {
-            constants::BYTE | constants::UNSIGNED_BYTE => {},
-            constants::SHORT | constants::UNSIGNED_SHORT => {
-                if offset % 2 > 0 || stride % 2 > 0 {
-                    return Err(InvalidOperation);
-                }
-            },
-            constants::FLOAT => {
-                if offset % 4 > 0 || stride % 4 > 0 {
-                    return Err(InvalidOperation);
-                }
-            },
+        let bytes_per_component: i32 = match type_ {
+            constants::BYTE | constants::UNSIGNED_BYTE => 1,
+            constants::SHORT | constants::UNSIGNED_SHORT => 2,
+            constants::FLOAT => 4,
             _ => return Err(InvalidEnum),
+        };
+        if offset % bytes_per_component as i64 > 0 || stride % bytes_per_component > 0 {
+            return Err(InvalidOperation);
         }
 
         let buffer = buffer.ok_or(InvalidOperation)?;
@@ -3890,6 +3898,7 @@ impl VertexAttribs {
             enabled_as_array: data.enabled_as_array,
             size: size as u8,
             type_,
+            bytes_per_vertex: size as u8 * bytes_per_component as u8,
             normalized,
             stride: stride as u8,
             offset: offset as u32,
@@ -3918,10 +3927,32 @@ impl VertexAttribs {
         self.attribs.borrow_mut()[index as usize].enabled_as_array = value;
     }
 
-    fn validate_for_draw(&self) -> WebGLResult<()> {
+    fn validate_for_draw(
+        &self,
+        required_len: u32,
+        active_attribs: &[ActiveAttribInfo],
+    ) -> WebGLResult<()> {
+        let attribs = self.attribs.borrow();
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-        if self.borrow().iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
+        if attribs.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
             return Err(InvalidOperation);
+        }
+        if required_len == 0 {
+            return Ok(());
+        }
+        // TODO(nox): Cache that per VAO.
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.6
+        for active_info in active_attribs {
+            if active_info.location < 0 {
+                continue;
+            }
+            let attrib = &attribs[active_info.location as usize];
+            if !attrib.enabled_as_array {
+                continue;
+            }
+            if attrib.max_vertices() < required_len {
+                return Err(InvalidOperation);
+            }
         }
         Ok(())
     }
@@ -3933,6 +3964,7 @@ pub struct VertexAttribData {
     enabled_as_array: bool,
     size: u8,
     type_: u32,
+    bytes_per_vertex: u8,
     normalized: bool,
     stride: u8,
     offset: u32,
@@ -3946,6 +3978,7 @@ impl Default for VertexAttribData {
             enabled_as_array: false,
             size: 4,
             type_: constants::FLOAT,
+            bytes_per_vertex: 16,
             normalized: false,
             stride: 0,
             offset: 0,
@@ -3957,5 +3990,22 @@ impl Default for VertexAttribData {
 impl VertexAttribData {
     pub fn buffer(&self) -> Option<&WebGLBuffer> {
         self.buffer.as_ref().map(|b| &**b)
+    }
+
+    fn max_vertices(&self) -> u32 {
+        let capacity = (self.buffer().unwrap().capacity() as u32).saturating_sub(self.offset);
+        if capacity < self.bytes_per_vertex as u32 {
+            0
+        } else if self.stride == 0 {
+            capacity / self.bytes_per_vertex as u32
+        } else if self.stride < self.bytes_per_vertex {
+            (capacity - (self.bytes_per_vertex - self.stride) as u32) / self.stride as u32
+        } else {
+            let mut max = capacity / self.stride as u32;
+            if capacity % self.stride as u32 >= self.bytes_per_vertex as u32 {
+                max += 1;
+            }
+            max
+        }
     }
 }
