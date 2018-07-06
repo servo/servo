@@ -26,7 +26,7 @@ ${helpers.single_keyword(
                          rl=horizontal-tb rl-tb=horizontal-tb \
                          tb=vertical-rl   tb-rl=vertical-rl",
     servo_pref="layout.writing-mode.enabled",
-    animation_value_type="discrete",
+    animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
     servo_restyle_damage="rebuild_and_reflow",
 )}
@@ -34,12 +34,15 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "direction",
     "ltr rtl",
-    animation_value_type="discrete",
+    animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction",
     needs_conversion=True,
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
+// TODO(emilio): Should text-orientation be non-animatable? It affects the
+// WritingMode value, but not the logical -> physical mapping of properties,
+// which is the reason direction / writing-mode are non-animatable.
 ${helpers.single_keyword(
     "text-orientation",
     "mixed upright sideways",
