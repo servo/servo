@@ -744,7 +744,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             if defaultValue:
                 assert isinstance(defaultValue, IDLNullValue)
                 dictionary, = dictionaries
-                default = "%s::%s(%s::%s::empty(cx))" % (
+                default = "%s::%s(%s::%s::empty())" % (
                     union_native_type(type),
                     dictionary.name,
                     CGDictionary.makeModuleName(dictionary.inner),
@@ -1148,7 +1148,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         typeName = "%s::%s" % (CGDictionary.makeModuleName(type.inner),
                                CGDictionary.makeDictionaryName(type.inner))
         declType = CGGeneric(typeName)
-        empty = "%s::empty(cx)" % typeName
+        empty = "%s::empty()" % typeName
 
         if type_needs_tracing(type):
             declType = CGTemplatedType("RootedTraceableBox", declType)
@@ -6274,12 +6274,7 @@ class CGDictionary(CGThing):
 
         return string.Template(
             "impl ${selfName} {\n"
-            "    pub unsafe fn empty(cx: *mut JSContext) -> ${actualType} {\n"
-            "        match ${selfName}::new(cx, HandleValue::null()) {\n"
-            "            Ok(ConversionResult::Success(v)) => v,\n"
-            "            _ => unreachable!(),\n"
-            "        }\n"
-            "    }\n"
+            "${empty}\n"
             "    pub unsafe fn new(cx: *mut JSContext, val: HandleValue) \n"
             "                      -> Result<ConversionResult<${actualType}>, ()> {\n"
             "        let object = if val.get().is_null_or_undefined() {\n"
@@ -6315,6 +6310,7 @@ class CGDictionary(CGThing):
             "}\n").substitute({
                 "selfName": selfName,
                 "actualType": actualType,
+                "empty": CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define(),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
                 "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
@@ -6379,6 +6375,50 @@ class CGDictionary(CGThing):
             "}") % (member.identifier.name, indent(conversion), indent(default))
 
         return CGGeneric(conversion)
+
+    def makeEmpty(self):
+        if self.hasRequiredFields(self.dictionary):
+            return ""
+        parentTemplate = "parent: %s::%s::empty(),\n"
+        fieldTemplate = "%s: %s,\n"
+        functionTemplate = (
+            "pub fn empty() -> Self {\n"
+            "    Self {\n"
+            "%s"
+            "    }\n"
+            "}"
+        )
+        if self.membersNeedTracing():
+            parentTemplate = "dictionary.parent = %s::%s::empty();\n"
+            fieldTemplate = "dictionary.%s = %s;\n"
+            functionTemplate = (
+                "pub fn empty() -> RootedTraceableBox<Self> {\n"
+                "    let mut dictionary = RootedTraceableBox::new(Self::default());\n"
+                "%s"
+                "    dictionary\n"
+                "}"
+            )
+        s = ""
+        if self.dictionary.parent:
+            s += parentTemplate % (self.makeModuleName(self.dictionary.parent),
+                                   self.makeClassName(self.dictionary.parent))
+        for member, info in self.memberInfo:
+            if not member.optional:
+                return ""
+            default = info.default
+            if not default:
+                default = "None"
+            s += fieldTemplate % (self.makeMemberName(member.identifier.name), default)
+        return functionTemplate % CGIndenter(CGGeneric(s), 12).define()
+
+    def hasRequiredFields(self, dictionary):
+        if dictionary.parent:
+            if self.hasRequiredFields(dictionary.parent):
+                return True
+        for member in dictionary.members:
+            if not member.optional:
+                return True
+        return False
 
     @staticmethod
     def makeMemberName(name):
