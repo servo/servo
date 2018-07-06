@@ -2615,6 +2615,22 @@ impl ComputedValues {
         self.custom_properties.as_ref()
     }
 
+% for prop in data.longhands:
+    /// Gets the computed value of a given property.
+    #[inline(always)]
+    #[allow(non_snake_case)]
+    pub fn clone_${prop.ident}(
+        &self,
+    ) -> longhands::${prop.ident}::computed_value::T {
+        self.get_${prop.style_struct.ident.strip("_")}()
+        % if prop.logical:
+            .clone_${prop.ident}(self.writing_mode)
+        % else:
+            .clone_${prop.ident}()
+        % endif
+    }
+% endfor
+
     /// Writes the value of the given longhand as a string in `dest`.
     ///
     /// Note that the value will usually be the computed value, except for
@@ -2635,20 +2651,10 @@ impl ComputedValues {
         match property_id {
             % for prop in data.longhands:
             LonghandId::${prop.camel_case} => {
-                let style_struct =
-                    self.get_${prop.style_struct.ident.strip("_")}();
-                let value =
-                    style_struct
-                    % if prop.logical:
-                    .clone_${prop.ident}(self.writing_mode);
-                    % else:
-                    .clone_${prop.ident}();
-                    % endif
-
+                let value = self.clone_${prop.ident}();
                 % if prop.predefined_type == "Color":
                 let value = self.resolve_color(value);
                 % endif
-
                 value.to_css(dest)
             }
             % endfor
