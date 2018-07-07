@@ -17,7 +17,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeMessage;
@@ -37,8 +37,8 @@ audio_param_impl!(Detune, AudioBufferSourceNode, AudioBufferSourceNodeMessage, S
 pub struct AudioBufferSourceNode {
     source_node: AudioScheduledSourceNode,
     buffer: MutNullableDom<AudioBuffer>,
-    playback_rate: DomRoot<AudioParam>,
-    detune: DomRoot<AudioParam>,
+    playback_rate: Dom<AudioParam>,
+    detune: Dom<AudioParam>,
     loop_enabled: Cell<bool>,
     loop_start: Cell<f64>,
     loop_end: Cell<f64>,
@@ -79,8 +79,8 @@ impl AudioBufferSourceNode {
         AudioBufferSourceNode {
             source_node,
             buffer: Default::default(),
-            playback_rate,
-            detune,
+            playback_rate: Dom::from_ref(&playback_rate),
+            detune: Dom::from_ref(&detune),
             loop_enabled: Cell::new(options.loop_),
             loop_start: Cell::new(*options.loopStart),
             loop_end: Cell::new(*options.loopEnd),
