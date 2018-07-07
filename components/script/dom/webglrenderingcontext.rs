@@ -52,9 +52,10 @@ use euclid::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use js::jsapi::{JSContext, JSObject, Type};
-use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal, NullValue, UndefinedValue};
+use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
+use js::jsval::{ObjectValue, NullValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::ArrayBufferView;
+use js::typedarray::{ArrayBufferView, CreateWith, Float32Array, Int32Array};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -63,7 +64,7 @@ use script_layout_interface::HTMLCanvasDataSource;
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
 use std::cmp;
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 use webrender_api;
 
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
@@ -1425,10 +1426,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Parameter::Int4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt4(param, sender));
-                // FIXME(nox): https://github.com/servo/servo/issues/20655
-                rooted!(in(cx) let mut rval = UndefinedValue());
-                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
-                rval.get()
+                rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+                let _ = Int32Array::create(
+                    cx,
+                    CreateWith::Slice(&receiver.recv().unwrap()),
+                    rval.handle_mut(),
+                ).unwrap();
+                ObjectValue(rval.get())
             }
             Parameter::Float(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -1438,18 +1442,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Parameter::Float2(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat2(param, sender));
-                // FIXME(nox): https://github.com/servo/servo/issues/20655
-                rooted!(in(cx) let mut rval = UndefinedValue());
-                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
-                rval.get()
+                rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+                let _ = Float32Array::create(
+                    cx,
+                    CreateWith::Slice(&receiver.recv().unwrap()),
+                    rval.handle_mut(),
+                ).unwrap();
+                ObjectValue(rval.get())
             }
             Parameter::Float4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterFloat4(param, sender));
-                // FIXME(nox): https://github.com/servo/servo/issues/20655
-                rooted!(in(cx) let mut rval = UndefinedValue());
-                receiver.recv().unwrap().to_jsval(cx, rval.handle_mut());
-                rval.get()
+                rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+                let _ = Float32Array::create(
+                    cx,
+                    CreateWith::Slice(&receiver.recv().unwrap()),
+                    rval.handle_mut(),
+                ).unwrap();
+                ObjectValue(rval.get())
             }
         }
     }
@@ -2608,10 +2618,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 self.send_command(WebGLCommand::GetCurrentVertexAttrib(index, sender));
                 receiver.recv().unwrap()
             };
-            // FIXME(nox): https://github.com/servo/servo/issues/20655
-            rooted!(in(cx) let mut result = UndefinedValue());
-            value.to_jsval(cx, result.handle_mut());
-            return result.get();
+            rooted!(in(cx) let mut result = ptr::null_mut::<JSObject>());
+            let _ = Float32Array::create(
+                cx,
+                CreateWith::Slice(&value),
+                result.handle_mut(),
+            ).unwrap();
+            return ObjectValue(result.get());
         }
 
         match param {
