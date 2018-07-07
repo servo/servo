@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, Chann
 use dom::bindings::codegen::Bindings::GainNodeBinding::{self, GainNodeMethods, GainOptions};
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::context::AudioContext;
@@ -27,7 +27,7 @@ audio_param_impl!(Gain, GainNode, GainNodeMessage, SetGain);
 #[dom_struct]
 pub struct GainNode {
     node: AudioNode,
-    gain: DomRoot<AudioParam>,
+    gain: Dom<AudioParam>,
 }
 
 impl GainNode {
@@ -60,7 +60,7 @@ impl GainNode {
                                   );
         GainNode {
             node,
-            gain
+            gain: Dom::from_ref(&gain),
         }
     }
 

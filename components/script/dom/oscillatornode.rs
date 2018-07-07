@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::OscillatorNodeBinding::{self, OscillatorOp
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNodeMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::context::AudioContext;
@@ -32,8 +32,8 @@ audio_param_impl!(Detune, OscillatorNode, OscillatorNodeMessage, SetDetune);
 pub struct OscillatorNode {
     source_node: AudioScheduledSourceNode,
     oscillator_type: OscillatorType,
-    frequency: DomRoot<AudioParam>,
-    detune: DomRoot<AudioParam>,
+    frequency: Dom<AudioParam>,
+    detune: Dom<AudioParam>,
 }
 
 impl OscillatorNode {
@@ -70,8 +70,8 @@ impl OscillatorNode {
         OscillatorNode {
             source_node,
             oscillator_type: oscillator_options.type_,
-            frequency,
-            detune,
+            frequency: Dom::from_ref(&frequency),
+            detune: Dom::from_ref(&detune),
         }
     }
 
