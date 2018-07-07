@@ -2527,7 +2527,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<DOMString> {
-        shader.info_log().map(DOMString::from)
+        // TODO(nox): https://github.com/servo/servo/issues/21133
+        Some(shader.info_log())
     }
 
     #[allow(unsafe_code)]
@@ -2973,7 +2974,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderSource(&self, shader: &WebGLShader) -> Option<DOMString> {
-        shader.source()
+        // TODO(nox): https://github.com/servo/servo/issues/21133
+        Some(shader.source())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
