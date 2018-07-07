@@ -18,7 +18,9 @@ use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
+use offscreen_gl_context::GLLimits;
 use std::cell::Cell;
+use std::os::raw::c_int;
 use std::sync::{ONCE_INIT, Once};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -100,6 +102,7 @@ impl WebGLShader {
         &self,
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
+        limits: &GLLimits,
         ext: &WebGLExtensions,
     ) -> WebGLResult<()> {
         if self.is_deleted.get() && !self.is_attached() {
@@ -115,10 +118,19 @@ impl WebGLShader {
             None => return Ok(()),
         };
 
-        let mut params = BuiltInResources::default();
-        params.FragmentPrecisionHigh = 1;
-        params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
-        params.EXT_shader_texture_lod = ext.is_enabled::<EXTShaderTextureLod>() as i32;
+        let params = BuiltInResources {
+            MaxVertexAttribs: limits.max_vertex_attribs as c_int,
+            MaxVertexUniformVectors: limits.max_vertex_uniform_vectors as c_int,
+            MaxVaryingVectors: limits.max_varying_vectors as c_int,
+            MaxVertexTextureImageUnits: limits.max_vertex_texture_image_units as c_int,
+            MaxCombinedTextureImageUnits: limits.max_combined_texture_image_units as c_int,
+            MaxTextureImageUnits: limits.max_texture_image_units as c_int,
+            MaxFragmentUniformVectors: limits.max_fragment_uniform_vectors as c_int,
+            OES_standard_derivatives: ext.is_enabled::<OESStandardDerivatives>() as c_int,
+            EXT_shader_texture_lod: ext.is_enabled::<EXTShaderTextureLod>() as c_int,
+            FragmentPrecisionHigh: 1,
+            ..BuiltInResources::default()
+        };
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
                 let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
