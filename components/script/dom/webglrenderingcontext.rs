@@ -1423,6 +1423,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 self.send_command(WebGLCommand::GetParameterInt(param, sender));
                 Int32Value(receiver.recv().unwrap())
             }
+            Parameter::Int2(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetParameterInt2(param, sender));
+                rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+                let _ = Int32Array::create(
+                    cx,
+                    CreateWith::Slice(&receiver.recv().unwrap()),
+                    rval.handle_mut(),
+                ).unwrap();
+                ObjectValue(rval.get())
+            }
             Parameter::Int4(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetParameterInt4(param, sender));

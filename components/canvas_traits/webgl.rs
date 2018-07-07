@@ -268,6 +268,7 @@ pub enum WebGLCommand {
     GetParameterBool(ParameterBool, WebGLSender<bool>),
     GetParameterBool4(ParameterBool4, WebGLSender<[bool; 4]>),
     GetParameterInt(ParameterInt, WebGLSender<i32>),
+    GetParameterInt2(ParameterInt2, WebGLSender<[i32; 2]>),
     GetParameterInt4(ParameterInt4, WebGLSender<[i32; 4]>),
     GetParameterFloat(ParameterFloat, WebGLSender<f32>),
     GetParameterFloat2(ParameterFloat2, WebGLSender<[f32; 2]>),
@@ -521,6 +522,9 @@ parameters! {
             StencilWritemask = gl::STENCIL_WRITEMASK,
             SubpixelBits = gl::SUBPIXEL_BITS,
             UnpackAlignment = gl::UNPACK_ALIGNMENT,
+        }),
+        Int2(ParameterInt2 {
+            MaxViewportDims = gl::MAX_VIEWPORT_DIMS,
         }),
         Int4(ParameterInt4 {
             ScissorBox = gl::SCISSOR_BOX,

@@ -885,6 +885,13 @@ impl WebGLImpl {
                 }
                 sender.send(value[0]).unwrap()
             }
+            WebGLCommand::GetParameterInt2(param, ref sender) => {
+                let mut value = [0; 2];
+                unsafe {
+                    ctx.gl().get_integer_v(param as u32, &mut value);
+                }
+                sender.send(value).unwrap()
+            }
             WebGLCommand::GetParameterInt4(param, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
