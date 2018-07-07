@@ -7,7 +7,9 @@
 <iframe></iframe>
 <script>
 async_test(t => {
-  t.add_cleanup(() => document.exitFullscreen());
+  t.add_cleanup(() => {
+    Promise.resolve(document.exitFullscreen()).catch(() => {});
+  });
   const div = document.querySelector("div");
   const iframe = document.querySelector("iframe");
   document.onfullscreenchange = t.step_func(event => {

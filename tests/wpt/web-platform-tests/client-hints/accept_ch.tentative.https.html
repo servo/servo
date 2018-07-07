@@ -4,10 +4,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div id=test>
-    <p>Apart from this webpage, the test opens another html web page. One test
-    is run in this web page, and another in the second web page.
-</div>
+<!--
+Apart from this webpage, the test opens two more html web page. One test is run
+in this web page, and two in the other web pages.
+-->
 
 <script>
 
@@ -23,11 +23,11 @@
 // verifies that the user agent does not send the client hints in the request
 // headers.
 
-// Verify the initial state to make sure that the browser does not have client
-// hints preferences cached from a previous run of the test.
-
 // Test is marked as tentative until https://github.com/whatwg/fetch/issues/726
 // is resolved.
+
+// First, verify the initial state to make sure that the browser does not have
+// client hints preferences cached from a previous run of the test.
 promise_test(t => {
   return fetch("echo_client_hints_received.py").then(r => {
     assert_equals(r.status, 200)
@@ -35,25 +35,33 @@ promise_test(t => {
     // headers when fetching echo_client_hints_received.py.
     assert_false(r.headers.has("device-memory-received"), "device-memory-received");
   });
-}, "Test that the browser does not have client hints preferences cached");
-
-promise_test(t => {
-  return fetch("resources/accept_ch.html").then(r => {
-    assert_equals(r.status, 200)
-    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
-
-    // Open a new window.
-    window.open("resources/do_not_expect_client_hints_headers.html");
-  });
-}, "Test receiving Accept-CH header");
+}, "Precondition: Test that the browser does not have client hints preferences cached");
 
 async_test(t => {
-window.addEventListener('message', function(event) {
-  t.done();
-})
+  window.addEventListener('message', function(e) {
+    if(!e.source.location.pathname.includes("do_not_expect_client_hints_headers.html")) {
+      return;
+    }
+    if(typeof e.data != "string")
+      return;
+    assert_equals(e.data, "PASS");
+    t.done();
+  })
 }, "Loading of resources/do_not_expect_client_hints_headers.html did not finish.");
 
-</script>
+function acceptChLoaded() {
+  // Open a new window. Verify that the user agent does not attach the client
+  // hints.
+  var verify_win = window.open("do_not_expect_client_hints_headers.html");
+  assert_not_equals(verify_win, null, "Popup windows not allowed?");
+}
 
+// Fetching this webpage should NOT cause user-agent to persist client hint
+// preferences for the origin.
+var win = window.open("resources/accept_ch.html");
+assert_not_equals(win, null, "Popup windows not allowed?");
+win.addEventListener('load', acceptChLoaded, false);
+
+</script>
 </body>
 </html>

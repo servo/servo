@@ -6,10 +6,14 @@
 // https://wicg.github.io/BackgroundSync/spec/
 
 promise_test(async () => {
-  const idl = await fetch('/interfaces/BackgroundSync.idl').then(r => r.text());
-  const sw = await fetch('/interfaces/ServiceWorker.idl').then(r => r.text());
-  const html = await fetch('/interfaces/html.idl').then(r => r.text());
-  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  const srcs = [
+    'BackgroundSync',
+    'service-workers',
+    'html',
+    'dom'
+  ];
+  const [idl, sw, html, dom] = await Promise.all(
+    srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
 
   const idlArray = new IdlArray();
   idlArray.add_idls(idl);

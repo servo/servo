@@ -15,7 +15,7 @@
   //   generateAnswer()
   //   countAudioLine()
   //   countVideoLine()
-  //   assert_session_desc_equals()
+  //   assert_session_desc_similar()
 
   /*
    *  4.3.2.  createOffer()
@@ -54,8 +54,8 @@
       pc.setLocalDescription(offer)
       .then(() => {
         assert_equals(pc.signalingState, 'have-local-offer');
-        assert_session_desc_equals(pc.localDescription, offer);
-        assert_session_desc_equals(pc.pendingLocalDescription, offer);
+        assert_session_desc_similar(pc.localDescription, offer);
+        assert_session_desc_similar(pc.pendingLocalDescription, offer);
         assert_equals(pc.currentLocalDescription, null);
 
         assert_array_equals(states, ['have-local-offer']);

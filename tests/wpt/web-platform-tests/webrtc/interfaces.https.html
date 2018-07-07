@@ -79,7 +79,7 @@
 
   // Asynchoronously generate MediaStreamTrack from getUserMedia
   function asyncInitMediaStreamTrack() {
-    return navigator.mediaDevices.getUserMedia({ audio: true })
+    return getNoiseStream({ audio: true })
     .then(mediaStream => {
       idlTestObjects.mediaStreamTrack = mediaStream.getTracks()[0];
     });

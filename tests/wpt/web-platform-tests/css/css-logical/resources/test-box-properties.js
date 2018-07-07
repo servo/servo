@@ -90,14 +90,17 @@
    *   }, logical: {
    *     inlineStart: "margin-inline-start", inlineEnd: "margin-inline-end",
    *     blockStart: "margin-block-start", blockEnd: "margin-block-end",
-   *   }, type: "length", prerequisites: "...", property: "'margin-*'" }
+   *   }, shorthands: {
+   *     inline: ["margin-inline-start", "margin-inline-end"],
+   *     block: ["margin-block-start", "margin-block-end"],
+   *   }, type: ["length"], prerequisites: "...", property: "'margin-*'" }
    *
    * @param {string} property
    *        A string representing the property names, like "margin-*".
    * @param {Object} descriptor
-   * @param {string} descriptor.type
+   * @param {string|string[]} descriptor.type
    *        Describes the kind of values accepted by the property, like "length".
-   *        Must be a key from the `testValues` object.
+   *        Must be a key or a collection of keys from the `testValues` object.
    * @param {Object={}} descriptor.prerequisites
    *        Represents property declarations that are needed by `property` to work.
    *        For example, border-width properties require a border style.
@@ -105,9 +108,18 @@
   exports.createBoxPropertyGroup = function(property, descriptor) {
     const logical = {};
     const physical = {};
-    for (const logicalSide of ["inline-start", "inline-end", "block-start", "block-end"]) {
-      const camelCase = logicalSide.replace(/-(.)/g, (match, $1) => $1.toUpperCase());
-      logical[camelCase] = property.replace("*", logicalSide);
+    const shorthands = {};
+    for (const axis of ["inline", "block"]) {
+      const shorthand = property.replace("*", axis);
+      const longhands = [];
+      shorthands[shorthand] = longhands;
+      for (const side of ["start", "end"]) {
+        const logicalSide = axis + "-" + side;
+        const camelCase = logicalSide.replace(/-(.)/g, (match, $1) => $1.toUpperCase());
+        const longhand = property.replace("*", logicalSide);
+        logical[camelCase] = longhand;
+        longhands.push(longhand);
+      }
     }
     const isInset = property === "inset-*";
     let prerequisites = "";
@@ -115,7 +127,8 @@
       physical[physicalSide] = isInset ? physicalSide : property.replace("*", physicalSide);
       prerequisites += makeDeclaration(descriptor.prerequisites, physicalSide);
     }
-    return {name, logical, physical, type: descriptor.type, prerequisites, property};
+    const type = [].concat(descriptor.type);
+    return {name, logical, physical, shorthands, type, prerequisites, property};
   };
 
   /**
@@ -134,7 +147,7 @@
         horizontal: `${prefix}width`,
         vertical: `${prefix}height`,
       },
-      type: "length",
+      type: ["length"],
       prerequisites: makeDeclaration({display: "block"}),
       property: (prefix ? prefix.slice(0, -1) + " " : "") + "sizing",
     };
@@ -147,9 +160,12 @@
    *        An object returned by createBoxPropertyGroup or createSizingPropertyGroup.
    */
   exports.runTests = function(group) {
-    const values = testValues[group.type];
+    const values = testValues[group.type[0]].map(function(_, i) {
+      return group.type.map(type => testValues[type][i]).join(" ");
+    });
     const logicals = Object.values(group.logical);
     const physicals = Object.values(group.physical);
+    const shorthands = group.shorthands ? Object.entries(group.shorthands) : null;
 
     test(function() {
       const expected = [];
@@ -158,8 +174,8 @@
         expected.push([logicalProp, values[i]]);
       }
       testCSSValues("logical properties in inline style", testElement.style, expected);
-      testElement.style.cssText = "";
     }, `Test that logical ${group.property} properties are supported.`);
+    testElement.style.cssText = "";
 
     for (const writingMode of writingModes) {
       for (const style of writingMode.styles) {
@@ -192,6 +208,33 @@
                              expected);
         }, `Test that logical ${group.property} properties share computed values `
          + `with their physical associates, with '${writingModeDecl}'.`);
+
+
+        // Test logical shorthand properties.
+        if (shorthands) {
+          test(function() {
+            for (const [shorthand, longhands] of shorthands) {
+              let shorthandValues;
+              if (group.type.length > 1) {
+                shorthandValues = [values[0]];
+              } else {
+                shorthandValues = testValues[group.type].slice(0, longhands.length);
+              }
+              const decl = group.prerequisites + `${shorthand}: ${shorthandValues.join(" ")}; `;
+              const expected = [];
+              for (let [i, longhand] of longhands.entries()) {
+                const longhandValue = shorthandValues[group.type.length > 1 ? 0 : i];
+                expected.push([longhand, longhandValue]);
+                expected.push([associated[longhand], longhandValue]);
+              }
+              testComputedValues("shorthand properties on one declaration, writing " +
+                                 `mode properties on another, '${writingModeDecl}'`,
+                                 `.test { ${writingModeDecl} } .test { ${decl} }`,
+                                 expected);
+            }
+          }, `Test that ${group.property} shorthands set the computed value of both `
+           + `logical and physical longhands, with '${writingModeDecl}'.`);
+        }
 
         // Test that logical and physical properties are cascaded together,
         // honoring their relative order on a single declaration

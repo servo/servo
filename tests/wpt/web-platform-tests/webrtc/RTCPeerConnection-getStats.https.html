@@ -238,7 +238,7 @@
 
     const dataChannel = pc1.createDataChannel('test-channel');
 
-    return navigator.mediaDevices.getUserMedia({
+    return getNoiseStream({
       audio: true,
       video: true
     })

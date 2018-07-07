@@ -25,7 +25,7 @@ function assert_ends_with(input, endsWith) {
   test(t => {
     const elm = document.createElement(localName);
     document.body.appendChild(elm);
-    t.add_cleanup(() => document.body.removeChild(elm));
+    t.add_cleanup(() => { document.body.removeChild(elm); });
     elm.setAttribute("background", "?\u00FF");
     assert_ends_with(getComputedStyle(elm).backgroundImage, expected(document.characterSet) + "\")");
   }, "getComputedStyle <" + localName + " background>");

@@ -1,0 +1,71 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Web App Manifest" spec.
+// See: https://w3c.github.io/manifest/
+
+enum AppBannerPromptOutcome {
+  "accepted",
+  "dismissed"
+};
+[Constructor, Exposed=Window]
+interface BeforeInstallPromptEvent : Event {
+    Promise<PromptResponseObject> prompt();
+};
+dictionary PromptResponseObject {
+  AppBannerPromptOutcome userChoice;
+};
+partial interface Window {
+  attribute EventHandler onappinstalled;
+  attribute EventHandler onbeforeinstallprompt;
+};
+dictionary WebAppManifest {
+   TextDirectionType dir = "auto";
+   DOMString lang;
+   USVString name;
+   USVString short_name;
+   USVString description;
+   sequence<ImageResource> icons;
+   sequence<ImageResource> screenshots;
+   sequence<USVString> categories;
+   DOMString iarc_rating_id;
+   USVString start_url;
+   DisplayModeType display = "browser";
+   OrientationLockType orientation;
+   USVString theme_color;
+   USVString background_color;
+   USVString scope;
+   ServiceWorkerRegistrationObject serviceworker;
+   sequence<ExternalApplicationResource> related_applications;
+   boolean prefer_related_applications = "false";
+};
+enum TextDirectionType { "ltr", "rtl", "auto" };
+enum DisplayModeType {
+  "fullscreen",
+  "standalone",
+  "minimal-ui",
+  "browser"
+};
+dictionary ImageResource {
+  required USVString src;
+  DOMString sizes;
+  USVString type;
+  USVString purpose;
+  USVString platform;
+};
+dictionary ServiceWorkerRegistrationObject {
+  required USVString src;
+  USVString scope;
+  WorkerType type = "classic";
+  ServiceWorkerUpdateViaCache update_via_cache = "imports";
+};
+dictionary ExternalApplicationResource {
+  required USVString platform;
+  USVString url;
+  DOMString id;
+  USVString min_version;
+  sequence<Fingerprint> fingerprints;
+};
+dictionary Fingerprint {
+  USVString type;
+  USVString value;
+};

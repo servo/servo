@@ -16,27 +16,33 @@ test(function() {
 
 test(function() {
     // Valid property names, shouldn't throw
-    CSS.registerProperty({name: '--name1'});
-    CSS.registerProperty({name: '--name2, no need for escapes'});
-    CSS.registerProperty({name: ['--name', 3]});
+    CSS.registerProperty({name: '--name1', inherits: false});
+    CSS.registerProperty({name: '--name2, no need for escapes', inherits: false});
+    CSS.registerProperty({name: ['--name', 3], inherits: false});
 
     // Invalid property names
     assert_throws(new TypeError(), () => CSS.registerProperty({}));
-    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: 'no-leading-dash'}));
-    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: ''}));
-    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: '\\--name'}));
+    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: 'no-leading-dash', inherits: false}));
+    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: '', inherits: false}));
+    assert_throws(new SyntaxError(), () => CSS.registerProperty({name: '\\--name', inherits: false}));
 }, "registerProperty requires a name matching <custom-property-name>");
 
 test(function() {
-    CSS.registerProperty({name: '--syntax-test-1', syntax: '*'});
-    CSS.registerProperty({name: '--syntax-test-2', syntax: ' * '});
+    CSS.registerProperty({name: '--syntax-test-1', syntax: '*', inherits: false});
+    CSS.registerProperty({name: '--syntax-test-2', syntax: ' * ', inherits: false});
     assert_throws(new SyntaxError(),
-        () => CSS.registerProperty({name: '--syntax-test-3', syntax: 'length'}));
-}, "registerProperty only allows omitting initialValue is syntax is '*'");
+        () => CSS.registerProperty({name: '--syntax-test-3', syntax: 'length', inherits: false}));
+}, "registerProperty only allows omitting initialValue if syntax is '*'");
 
 test(function() {
-    CSS.registerProperty({name: '--re-register', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--re-register', syntax: '<length>', initialValue: '0px', inherits: false});
     assert_throws({name: 'InvalidModificationError'},
-        () => CSS.registerProperty({name: '--re-register', syntax: '<percentage>', initialValue: '0%'}));
+        () => CSS.registerProperty({name: '--re-register', syntax: '<percentage>', initialValue: '0%', inherits: false}));
 }, "registerProperty fails for an already registered property");
+
+test(function(){
+    CSS.registerProperty({name: '--inherit-test-1', syntax: '<length>', initialValue: '0px', inherits: true});
+    CSS.registerProperty({name: '--inherit-test-2', syntax: '<length>', initialValue: '0px', inherits: false});
+    assert_throws(new TypeError(), () => CSS.registerProperty({name: '--inherit-test-3', syntax: '<length>', initialValue: '0px'}));
+}, "registerProperty requires inherits");
 </script>

@@ -130,3 +130,6 @@
 == text-emphasis-line-height-004d.html text-emphasis-line-height-004-ref.html
 # END tests from support/generate-text-emphasis-line-height-tests.py
 == text-emphasis-line-height-001z.html text-emphasis-line-height-001-ref.html
+
+# text-shadow 'currentcolor' test cases
+== text-shadow-currentcolor.html text-shadow-currentcolor-ref.html

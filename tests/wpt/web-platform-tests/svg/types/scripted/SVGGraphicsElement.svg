@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVGGraphicsElement</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/types.html#InterfaceSVGGraphicsElement"/>
+  </metadata>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    var el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+
+    test(function() {
+        assert_true(el.getBBox() instanceof DOMRect);
+    }, 'getBBox() returns instance of DOMRect');
+
+    test(function() {
+        assert_true(el.getCTM() instanceof DOMMatrix);
+    }, 'getCTM() returns instance of DOMMatrix');
+
+    test(function() {
+        assert_true(el.getScreenCTM() instanceof DOMMatrix);
+    }, 'getScreenCTM() returns instance of DOMMatrix');
+  ]]></script>
+</svg>

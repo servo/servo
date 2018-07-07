@@ -5,11 +5,10 @@ import hashlib
 import os
 import re
 import time
-import types
 import uuid
-from cStringIO import StringIO
+from six.moves import StringIO
 
-from six import text_type
+from six import text_type, binary_type
 
 def resolve_content(response):
     return b"".join(item for item in response.iter_content(read_file=True))
@@ -281,31 +280,32 @@ def slice(request, response, start, end=None):
 
 class ReplacementTokenizer(object):
     def arguments(self, token):
-        unwrapped = token[1:-1]
-        return ("arguments", re.split(r",\s*", token[1:-1]) if unwrapped else [])
+        unwrapped = token[1:-1].decode('utf8')
+        return ("arguments", re.split(r",\s*", unwrapped) if unwrapped else [])
 
     def ident(self, token):
-        return ("ident", token)
+        return ("ident", token.decode('utf8'))
 
     def index(self, token):
-        token = token[1:-1]
+        token = token[1:-1].decode('utf8')
         try:
-            token = int(token)
+            index = int(token)
         except ValueError:
-            token = token.decode('utf8')
-        return ("index", token)
+            index = token
+        return ("index", index)
 
     def var(self, token):
-        token = token[:-1]
+        token = token[:-1].decode('utf8')
         return ("var", token)
 
     def tokenize(self, string):
+        assert isinstance(string, binary_type)
         return self.scanner.scan(string)[0]
 
-    scanner = re.Scanner([(r"\$\w+:", var),
-                          (r"\$?\w+", ident),
-                          (r"\[[^\]]*\]", index),
-                          (r"\([^)]*\)", arguments)])
+    scanner = re.Scanner([(br"\$\w+:", var),
+                          (br"\$?\w+", ident),
+                          (br"\[[^\]]*\]", index),
+                          (br"\([^)]*\)", arguments)])
 
 
 class FirstWrapper(object):
@@ -392,6 +392,7 @@ class SubFunctions(object):
 
     @staticmethod
     def file_hash(request, algorithm, path):
+        algorithm = algorithm.decode("ascii")
         if algorithm not in SubFunctions.supported_algorithms:
             raise ValueError("Unsupported encryption algorithm: '%s'" % algorithm)
 
@@ -424,6 +425,7 @@ def template(request, content, escape_type="html"):
         tokens = deque(tokens)
 
         token_type, field = tokens.popleft()
+        field = field.decode("ascii")
 
         if token_type == "var":
             variable = field
@@ -478,7 +480,7 @@ def template(request, content, escape_type="html"):
                     "unexpected token type %s (token '%r'), expected ident or arguments" % (ttype, field)
                 )
 
-        assert isinstance(value, (int,) + types.StringTypes), tokens
+        assert isinstance(value, (int, (binary_type, text_type))), tokens
 
         if variable is not None:
             variables[variable] = value
@@ -490,7 +492,7 @@ def template(request, content, escape_type="html"):
         #TODO: read the encoding of the response
         return escape_func(text_type(value)).encode("utf-8")
 
-    template_regexp = re.compile(r"{{([^}]*)}}")
+    template_regexp = re.compile(br"{{([^}]*)}}")
     new_content = template_regexp.sub(config_replacement, content)
 
     return new_content

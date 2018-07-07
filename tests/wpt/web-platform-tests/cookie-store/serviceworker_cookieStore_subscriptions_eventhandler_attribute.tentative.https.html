@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Cookies: oncookiechange event handler attribute in ServiceWorker</title>
+<link rel="help" href="https://github.com/WICG/cookie-store">
+<link rel="author" href="pwnall@chromium.org" title="Victor Costan">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+(async () => {
+  const scope = 'scope';
+
+  let registration = await navigator.serviceWorker.getRegistration(scope);
+  if (registration)
+    await registration.unregister();
+  registration = await navigator.serviceWorker.register(
+      'serviceworker_cookieStore_subscriptions_eventhandler_attribute.js', {scope});
+
+  fetch_tests_from_worker(registration.installing);
+})();
+</script>
