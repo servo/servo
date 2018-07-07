@@ -1490,7 +1490,7 @@ impl UnparsedValue {
             PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
                 id: longhand_id,
                 keyword,
-        })
+            })
         })
     }
 }
