@@ -55,7 +55,7 @@ use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
 use js::jsval::{ObjectValue, NullValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, CreateWith, Float32Array, Int32Array};
+use js::typedarray::{ArrayBufferView, CreateWith, Float32Array, Int32Array, Uint32Array};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -1331,6 +1331,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 } else {
                     return Int32Value(constants::UNSIGNED_BYTE as i32);
                 }
+            }
+            constants::COMPRESSED_TEXTURE_FORMATS => {
+                // FIXME(nox): https://github.com/servo/servo/issues/20594
+                rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+                let _ = Uint32Array::create(
+                    cx,
+                    CreateWith::Slice(&[]),
+                    rval.handle_mut(),
+                ).unwrap();
+                return ObjectValue(rval.get());
             }
             constants::VERSION => {
                 rooted!(in(cx) let mut rval = UndefinedValue());
