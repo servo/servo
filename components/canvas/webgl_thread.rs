@@ -885,6 +885,13 @@ impl WebGLImpl {
                 }
                 sender.send(value[0]).unwrap()
             }
+            WebGLCommand::GetParameterInt2(param, ref sender) => {
+                let mut value = [0; 2];
+                unsafe {
+                    ctx.gl().get_integer_v(param as u32, &mut value);
+                }
+                sender.send(value).unwrap()
+            }
             WebGLCommand::GetParameterInt4(param, ref sender) => {
                 let mut value = [0; 4];
                 unsafe {
@@ -965,6 +972,15 @@ impl WebGLImpl {
             }
             WebGLCommand::UseProgram(program_id) => {
                 ctx.gl().use_program(program_id.map_or(0, |p| p.get()))
+            }
+            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount } => {
+                ctx.gl().draw_arrays_instanced(mode, first, count, primcount)
+            }
+            WebGLCommand::DrawElementsInstanced { mode, count, type_, offset, primcount } => {
+                ctx.gl().draw_elements_instanced(mode, count, type_, offset, primcount)
+            }
+            WebGLCommand::VertexAttribDivisor { index, divisor } => {
+                ctx.gl().vertex_attrib_divisor(index, divisor)
             }
         }
 

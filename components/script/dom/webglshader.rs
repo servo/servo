@@ -18,7 +18,9 @@ use dom::webglobject::WebGLObject;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
+use offscreen_gl_context::GLLimits;
 use std::cell::Cell;
+use std::os::raw::c_int;
 use std::sync::{ONCE_INIT, Once};
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -33,8 +35,8 @@ pub struct WebGLShader {
     webgl_object: WebGLObject,
     id: WebGLShaderId,
     gl_type: u32,
-    source: DomRefCell<Option<DOMString>>,
-    info_log: DomRefCell<Option<String>>,
+    source: DomRefCell<DOMString>,
+    info_log: DomRefCell<DOMString>,
     is_deleted: Cell<bool>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
@@ -54,8 +56,8 @@ impl WebGLShader {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             gl_type: shader_type,
-            source: DomRefCell::new(None),
-            info_log: DomRefCell::new(None),
+            source: Default::default(),
+            info_log: Default::default(),
             is_deleted: Cell::new(false),
             attached_counter: Cell::new(0),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
@@ -100,6 +102,7 @@ impl WebGLShader {
         &self,
         webgl_version: WebGLVersion,
         glsl_version: WebGLSLVersion,
+        limits: &GLLimits,
         ext: &WebGLExtensions,
     ) -> WebGLResult<()> {
         if self.is_deleted.get() && !self.is_attached() {
@@ -110,15 +113,20 @@ impl WebGLShader {
         }
 
         let source = self.source.borrow();
-        let source = match source.as_ref() {
-            Some(source) => source,
-            None => return Ok(()),
-        };
 
-        let mut params = BuiltInResources::default();
-        params.FragmentPrecisionHigh = 1;
-        params.OES_standard_derivatives = ext.is_enabled::<OESStandardDerivatives>() as i32;
-        params.EXT_shader_texture_lod = ext.is_enabled::<EXTShaderTextureLod>() as i32;
+        let params = BuiltInResources {
+            MaxVertexAttribs: limits.max_vertex_attribs as c_int,
+            MaxVertexUniformVectors: limits.max_vertex_uniform_vectors as c_int,
+            MaxVaryingVectors: limits.max_varying_vectors as c_int,
+            MaxVertexTextureImageUnits: limits.max_vertex_texture_image_units as c_int,
+            MaxCombinedTextureImageUnits: limits.max_combined_texture_image_units as c_int,
+            MaxTextureImageUnits: limits.max_texture_image_units as c_int,
+            MaxFragmentUniformVectors: limits.max_fragment_uniform_vectors as c_int,
+            OES_standard_derivatives: ext.is_enabled::<OESStandardDerivatives>() as c_int,
+            EXT_shader_texture_lod: ext.is_enabled::<EXTShaderTextureLod>() as c_int,
+            FragmentPrecisionHigh: 1,
+            ..BuiltInResources::default()
+        };
         let validator = match webgl_version {
             WebGLVersion::WebGL1 => {
                 let output_format = if cfg!(any(target_os = "android", target_os = "ios")) {
@@ -154,7 +162,7 @@ impl WebGLShader {
             },
         };
 
-        match validator.compile_and_translate(&[source]) {
+        match validator.compile_and_translate(&[&source]) {
             Ok(translated_source) => {
                 debug!("Shader translated: {}", translated_source);
                 // NOTE: At this point we should be pretty sure that the compilation in the paint thread
@@ -170,7 +178,7 @@ impl WebGLShader {
             },
         }
 
-        *self.info_log.borrow_mut() = Some(validator.info_log());
+        *self.info_log.borrow_mut() = validator.info_log().into();
 
         // TODO(emilio): More data (like uniform data) should be collected
         // here to properly validate uniforms.
@@ -208,18 +216,18 @@ impl WebGLShader {
     }
 
     /// glGetShaderInfoLog
-    pub fn info_log(&self) -> Option<String> {
+    pub fn info_log(&self) -> DOMString {
         self.info_log.borrow().clone()
     }
 
     /// Get the shader source
-    pub fn source(&self) -> Option<DOMString> {
+    pub fn source(&self) -> DOMString {
         self.source.borrow().clone()
     }
 
     /// glShaderSource
     pub fn set_source(&self, source: DOMString) {
-        *self.source.borrow_mut() = Some(source);
+        *self.source.borrow_mut() = source;
     }
 
     pub fn successfully_compiled(&self) -> bool {

@@ -268,6 +268,7 @@ pub enum WebGLCommand {
     GetParameterBool(ParameterBool, WebGLSender<bool>),
     GetParameterBool4(ParameterBool4, WebGLSender<[bool; 4]>),
     GetParameterInt(ParameterInt, WebGLSender<i32>),
+    GetParameterInt2(ParameterInt2, WebGLSender<[i32; 2]>),
     GetParameterInt4(ParameterInt4, WebGLSender<[i32; 4]>),
     GetParameterFloat(ParameterFloat, WebGLSender<f32>),
     GetParameterFloat2(ParameterFloat2, WebGLSender<[f32; 2]>),
@@ -281,6 +282,9 @@ pub enum WebGLCommand {
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
     TexParameteri(u32, TexParameterInt, i32),
     TexParameterf(u32, TexParameterFloat, f32),
+    DrawArraysInstanced { mode: u32, first: i32, count: i32, primcount: i32 },
+    DrawElementsInstanced { mode: u32, count: i32, type_: u32, offset: u32, primcount: i32 },
+    VertexAttribDivisor { index: u32, divisor: u32 },
 }
 
 macro_rules! define_resource_id_struct {
@@ -521,6 +525,9 @@ parameters! {
             StencilWritemask = gl::STENCIL_WRITEMASK,
             SubpixelBits = gl::SUBPIXEL_BITS,
             UnpackAlignment = gl::UNPACK_ALIGNMENT,
+        }),
+        Int2(ParameterInt2 {
+            MaxViewportDims = gl::MAX_VIEWPORT_DIMS,
         }),
         Int4(ParameterInt4 {
             ScissorBox = gl::SCISSOR_BOX,
