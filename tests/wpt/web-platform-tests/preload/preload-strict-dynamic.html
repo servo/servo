@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<head>
+<script src="/resources/testharness.js" nonce="123"></script>
+<script src="/resources/testharnessreport.js" nonce="123"></script>
+<title>CSP strict-dynamic + preload</title>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-123' 'strict-dynamic'" />
+</head>
+<body>
+<link id="static-no-nonce" href="resources/dummy.js?static-no-nonce" rel=preload as=script>
+<link id="static-nonce" href="resources/dummy.js?static-nonce" rel=preload as=script nonce="123">
+<script nonce="123">
+  let counter = 0;
+  let cspViolation = false;
+  let isLoaded = (url) => {
+    let entries = performance.getEntriesByType("resource");
+    for (let entry of entries) {
+      if (entry.name.indexOf(url) != -1 ) {
+        return true;
+      }
+    }
+    return false;
+  }
+  window.addEventListener("securitypolicyviolation", (e) => {
+    counter++;
+    if (e.violatedDirective == "script-src" && e.blockedURI.includes("static-no-nonce")) {
+      cspViolation = true;
+    }
+  });
+  let link = document.createElement("link");
+  link.rel = "preload";
+  link.href = "resources/dummy.js?dynamic-nonce";
+  link.as = "script";
+  link.onload = () => { ++counter; };
+  document.head.appendChild(link);
+  link = document.getElementById("static-no-nonce");
+  link.addEventListener("error", () => { ++counter; });
+  link = document.getElementById("static-nonce");
+  link.addEventListener("load", () => { ++counter; });
+  let t = async_test('preload from nonced script should work with strict-dynamic. preloaded script from markup should not.');
+  let timerCounter = 0;
+  setInterval(t.step_func(() => {
+    if (counter >= 4 || timerCounter > 5) {
+      assert_true(isLoaded("dynamic-nonce"), "dynamic inserted preload script should have been loaded");
+      assert_true(isLoaded("static-nonce"), "preload tag with a nonce should have been loaded");
+      assert_false(isLoaded("static-no-nonce"), "preload tag without a nonce should not have been loaded");
+      assert_true(cspViolation, "CSP violation should have fired");
+      t.done();
+    }
+    ++timerCounter;
+  }), 100);
+
+</script>
+</body>
+</html>

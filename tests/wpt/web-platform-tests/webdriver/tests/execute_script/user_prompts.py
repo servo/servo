@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import pytest
 
 from webdriver import error

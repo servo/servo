@@ -22,7 +22,7 @@ function assert_feature_policy_supported() {
 //      attribute. "feature_name" is the feature name of a policy controlled
 //      feature (https://wicg.github.io/feature-policy/#features).
 //      See examples at:
-//      https://github.com/WICG/feature-policy/blob/gh-pages/features.md
+//      https://github.com/WICG/feature-policy/blob/master/features.md
 //    allow_attribute: Optional argument, only used for testing fullscreen or
 //      payment: either "allowfullscreen" or "allowpaymentrequest" is passed.
 function test_feature_availability(

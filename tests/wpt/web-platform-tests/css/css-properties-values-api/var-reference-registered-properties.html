@@ -27,19 +27,19 @@ div {
 <div id=element></div>
 <script>
 test(function() {
-    CSS.registerProperty({name: '--123px', syntax: '<length>', initialValue: '123px'});
+    CSS.registerProperty({name: '--123px', syntax: '<length>', initialValue: '123px', inherits: false});
 
-    CSS.registerProperty({name: '--registered-length-1', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-2', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-3', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-4', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-5', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-6', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-7', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--registered-length-invalid', syntax: '<length>', initialValue: '15px'});
+    CSS.registerProperty({name: '--registered-length-1', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-2', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-3', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-4', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-5', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-6', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-7', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--registered-length-invalid', syntax: '<length>', initialValue: '15px', inherits: false});
 
-    CSS.registerProperty({name: '--registered-token-stream-1', syntax: '*'});
-    CSS.registerProperty({name: '--registered-token-stream-2', syntax: '*'});
+    CSS.registerProperty({name: '--registered-token-stream-1', syntax: '*', inherits: false});
+    CSS.registerProperty({name: '--registered-token-stream-2', syntax: '*', inherits: false});
 
     computedStyle = getComputedStyle(element);
     assert_equals(computedStyle.getPropertyValue('--registered-length-1'), '10px');

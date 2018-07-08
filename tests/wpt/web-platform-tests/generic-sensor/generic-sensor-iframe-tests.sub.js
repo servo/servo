@@ -38,10 +38,10 @@ function run_generic_sensor_iframe_tests(sensorName) {
     await send_message_to_iframe(iframe, {command: 'create_sensor',
                                           type: sensorName});
 
-    // Focus on the main frame and test that sensor recieves readings.
+    // Focus on the main frame and test that sensor receives readings.
     window.focus();
     const sensor = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor, ['reading']);
+    const sensorWatcher = new EventWatcher(t, sensor, ['reading', 'error']);
     sensor.start();
 
     await sensorWatcher.wait_for('reading');
@@ -81,19 +81,30 @@ function run_generic_sensor_iframe_tests(sensorName) {
     await send_message_to_iframe(iframe, {command: 'create_sensor',
                                           type: sensorName});
 
-    // Focus on main frame and test that sensor recieves readings.
+    // Focus on main frame and test that sensor receives readings.
     window.focus();
-    const sensor = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor, ['reading']);
+    const sensor = new sensorType({
+      // generic_sensor_mocks.js uses a default frequency of 5Hz for sensors.
+      // We deliberately use a higher frequency here to make it easier to spot
+      // spurious, unexpected 'reading' events caused by the main frame's
+      // sensor not stopping early enough.
+      // TODO(rakuco): Create a constant with the 5Hz default frequency instead
+      // of using magic numbers.
+      frequency: 15
+    });
+    const sensorWatcher = new EventWatcher(t, sensor, ['reading', 'error']);
     sensor.start();
     await sensorWatcher.wait_for('reading');
     let cachedTimeStamp = sensor.timestamp;
 
     // Stop sensor in main frame, so that sensorWatcher would not receive
-    // readings while sensor in iframe is started. Sensors that are active
-    // and belong to the same-origin context are not suspended, therefore,
-    // we might get unexpeted 'reading' event, thus, failing the test.
+    // readings while sensor in iframe is started. Sensors that are active and
+    // belong to the same-origin context are not suspended automatically when
+    // focus changes to another same-origin iframe, so if we do not explicitly
+    // stop them we may receive extra 'reading' events that cause the test to
+    // fail (see e.g. https://crbug.com/857520).
     sensor.stop();
+
     iframe.contentWindow.focus();
     await send_message_to_iframe(iframe, {command: 'start_sensor'});
 
@@ -103,6 +114,7 @@ function run_generic_sensor_iframe_tests(sensorName) {
     await sensorWatcher.wait_for('reading');
     assert_greater_than(sensor.timestamp, cachedTimeStamp);
     cachedTimeStamp = sensor.timestamp;
+    sensor.stop();
 
     // Verify that sensor in nested browsing context is not suspended.
     await send_message_to_iframe(iframe, {command: 'is_sensor_suspended'}, false);

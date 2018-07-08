@@ -9,7 +9,11 @@ rtc {
   display: ruby-text-container;
   font-size: 1rem;
 }
+rtc::after {
+  content: "PASS";
+  position: absolute;
+}
 </style>
 
 <p>This test passes if you can see the word PASS below.
-<div><ruby><rtc>PASS</rtc></ruby></div>
+<div><ruby><rtc></rtc></ruby></div>

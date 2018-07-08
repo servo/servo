@@ -14,9 +14,9 @@
   <h:script src="/resources/testharness.js"/>
   <h:script src="/resources/testharnessreport.js"/>
   <script><![CDATA[
-  test(function() {
-    var box = document.getElementById('box');
+  var box = document.getElementById('box');
 
+  test(function() {
     assert_equals(box.pathLength.baseVal, 6);
 
     assert_equals(box.getTotalLength(), 600);
@@ -24,5 +24,9 @@
     assert_equals(box.getPointAtLength(210).x, 250);
     assert_equals(box.getPointAtLength(210).y, 60);
   }, 'getTotalLength and getPointAtLength do not take pathLength into account');
+
+  test(function() {
+    assert_true(box.getPointAtLength(210) instanceof DOMPoint);
+  }, 'getPointAtLength() returns instance of DOMPoint');
   ]]></script>
 </svg>

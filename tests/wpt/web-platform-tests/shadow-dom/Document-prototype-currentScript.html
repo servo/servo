@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset=utf-8>
 <title>HTML: Document.prototype.currentScript</title>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
 <meta name="assert" content="If the script element is in a document, then set the script element's node document's currentScript attribute to the script element.">
@@ -12,11 +13,16 @@
 <div id="log"></div>
 <script id="outerScriptElement">
 
+function assert_shadowdom_supported() {
+  assert_true('attachShadow' in document.createElement('div'), 'Shadow DOM is not supported');
+}
+
 var outerScriptElement = document.currentScript;
 
 function testInlineScript(mode)
 {
     test(function () {
+        assert_shadowdom_supported();
         var host = document.createElement('div');
         var shadowRoot = host.attachShadow({mode: mode});
         var scriptElement = document.createElement('script');
@@ -45,7 +51,11 @@ function executeNextTest()
 
     var mode = testCase.mode;
 
+    testCase.test.add_cleanup(() => {
+        setTimeout(executeNextTest, 1);
+    });
     testCase.test.step(function () {
+        assert_shadowdom_supported();
         testedScriptElement = document.createElement('script');
         testedScriptElement.src = 'resources/Document-prototype-currentScript-helper.js';
 
@@ -67,7 +77,6 @@ function executeNextTest()
             assert_equals(document.currentScript, testCase.expected());
         });
         testCase.test.done();
-        setTimeout(executeNextTest, 1);
     }
 }
 

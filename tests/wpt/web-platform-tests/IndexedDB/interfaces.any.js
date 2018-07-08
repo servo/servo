@@ -2,16 +2,14 @@
 // META: script=/resources/idlharness.js
 
 promise_test(async t => {
-  const [html, dom, indexeddb] = await Promise.all([
-    '/interfaces/html.idl',
-    '/interfaces/dom.idl',
-    '/interfaces/IndexedDB.idl',
-  ].map(url => fetch(url).then(response => response.text())));
+  const srcs = ['html', 'dom', 'IndexedDB'];
+  const [html, dom, indexeddb] = await Promise.all(
+    srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
 
   const idl_array = new IdlArray();
-  idl_array.add_untested_idls(html, { only: ['WindowOrWorkerGlobalScope'] });
-  idl_array.add_untested_idls(dom);
   idl_array.add_idls(indexeddb);
+  idl_array.add_dependency_idls(html);
+  idl_array.add_dependency_idls(dom);
   idl_array.add_objects({
     IDBCursor: [],
     IDBCursorWithValue: [],
@@ -23,7 +21,7 @@ promise_test(async t => {
     IDBOpenDBRequest: [],
     IDBRequest: [],
     IDBTransaction: [],
-    IDBVersionChangeEvent: [new IDBVersionChangeEvent('')],
+    IDBVersionChangeEvent: ['new IDBVersionChangeEvent("type")'],
     DOMStringList: [],
   });
 

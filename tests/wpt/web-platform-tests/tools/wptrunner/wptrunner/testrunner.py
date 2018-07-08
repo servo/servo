@@ -582,11 +582,20 @@ class TestRunnerManager(threading.Thread):
         if status == "CRASH":
             self.browser.log_crash(test.id)
 
+        if "assertion_count" in file_result.extra:
+            assertion_count = file_result.extra.pop("assertion_count")
+            if assertion_count > 0:
+                self.logger.assertion_count(test.id,
+                                            int(assertion_count),
+                                            test.min_assertion_count,
+                                            test.max_assertion_count)
+
         self.logger.test_end(test.id,
                              status,
                              message=file_result.message,
                              expected=expected,
-                             extra=file_result.extra)
+                             extra=file_result.extra,
+                             stack=file_result.stack)
 
         restart_before_next = (test.restart_after or
                                file_result.status in ("CRASH", "EXTERNAL-TIMEOUT", "INTERNAL-ERROR") or

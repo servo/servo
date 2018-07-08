@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Writing Modes Level 3: parsing text-combine-upright with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-3/#propdef-text-combine-upright">
+<meta name="assert" content="text-combine-upright supports the full grammar 'none | all'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("text-combine-upright", "none");
+test_valid_value("text-combine-upright", "all");
+</script>
+</body>
+</html>

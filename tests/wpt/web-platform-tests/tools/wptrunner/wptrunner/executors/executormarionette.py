@@ -20,7 +20,8 @@ from .base import (CallbackHandler,
                    WebDriverProtocol,
                    extra_timeout,
                    strip_server)
-from .protocol import (BaseProtocolPart,
+from .protocol import (AssertsProtocolPart,
+                       BaseProtocolPart,
                        TestharnessProtocolPart,
                        PrefsProtocolPart,
                        Protocol,
@@ -288,6 +289,50 @@ class MarionetteStorageProtocolPart(StorageProtocolPart):
             self.marionette.execute_script(script)
 
 
+class MarionetteAssertsProtocolPart(AssertsProtocolPart):
+    def setup(self):
+        self.assert_count = {"chrome": 0, "content": 0}
+        self.chrome_assert_count = 0
+        self.marionette = self.parent.marionette
+
+    def get(self):
+        script = """
+        debug = Cc["@mozilla.org/xpcom/debug;1"].getService(Ci.nsIDebug2);
+        if (debug.isDebugBuild) {
+          return debug.assertionCount;
+        }
+        return 0;
+        """
+
+        def get_count(context, **kwargs):
+            try:
+                context_count = self.marionette.execute_script(script, **kwargs)
+                if context_count:
+                    self.parent.logger.info("Got %s assert count %s" % (context, context_count))
+                    test_count = context_count - self.assert_count[context]
+                    self.assert_count[context] = context_count
+                    return test_count
+            except errors.NoSuchWindowException:
+                # If the window was already closed
+                self.parent.logger.warning("Failed to get assertion count; window was closed")
+            except (errors.MarionetteException, socket.error):
+                # This usually happens if the process crashed
+                pass
+
+        counts = []
+        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
+            counts.append(get_count("chrome"))
+        if self.parent.e10s:
+            counts.append(get_count("content", sandbox="system"))
+
+        counts = [item for item in counts if item is not None]
+
+        if not counts:
+            return None
+
+        return sum(counts)
+
+
 class MarionetteSelectorProtocolPart(SelectorProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
@@ -303,12 +348,14 @@ class MarionetteClickProtocolPart(ClickProtocolPart):
     def element(self, element):
         return element.click()
 
+
 class MarionetteSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
 
     def send_keys(self, element, keys):
         return element.send_keys(keys)
+
 
 class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
     def setup(self):
@@ -332,9 +379,10 @@ class MarionetteProtocol(Protocol):
                   MarionetteSelectorProtocolPart,
                   MarionetteClickProtocolPart,
                   MarionetteSendKeysProtocolPart,
-                  MarionetteTestDriverProtocolPart]
+                  MarionetteTestDriverProtocolPart,
+                  MarionetteAssertsProtocolPart]
 
-    def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1):
+    def __init__(self, executor, browser, capabilities=None, timeout_multiplier=1, e10s=True):
         do_delayed_imports()
 
         super(MarionetteProtocol, self).__init__(executor, browser)
@@ -343,6 +391,7 @@ class MarionetteProtocol(Protocol):
         self.capabilities = capabilities
         self.timeout_multiplier = timeout_multiplier
         self.runner_handle = None
+        self.e10s = e10s
 
     def connect(self):
         self.logger.debug("Connecting to Marionette on port %i" % self.marionette_port)
@@ -432,15 +481,18 @@ class ExecuteAsyncScriptRun(object):
             self.logger.error("Lost marionette connection before starting test")
             return Stop
 
-        executor = threading.Thread(target = self._run)
-        executor.start()
-
         if timeout is not None:
             wait_timeout = timeout + 2 * extra_timeout
         else:
             wait_timeout = None
 
-        self.result_flag.wait(wait_timeout)
+        timer = threading.Timer(wait_timeout, self._timeout)
+        timer.start()
+
+        self._run()
+
+        self.result_flag.wait()
+        timer.cancel()
 
         if self.result == (None, None):
             self.logger.debug("Timed out waiting for a result")
@@ -476,23 +528,27 @@ class ExecuteAsyncScriptRun(object):
         finally:
             self.result_flag.set()
 
+    def _timeout(self):
+        self.result = False, ("EXTERNAL-TIMEOUT", None)
+        self.result_flag.set()
+
 
 class MarionetteTestharnessExecutor(TestharnessExecutor):
     supports_testdriver = True
 
     def __init__(self, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, debug_info=None, capabilities=None,
-                 **kwargs):
+                 debug=False, **kwargs):
         """Marionette-based executor for testharness.js tests"""
         TestharnessExecutor.__init__(self, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
                                      debug_info=debug_info)
-
-        self.protocol = MarionetteProtocol(self, browser, capabilities, timeout_multiplier)
+        self.protocol = MarionetteProtocol(self, browser, capabilities, timeout_multiplier, kwargs["e10s"])
         self.script = open(os.path.join(here, "testharness_webdriver.js")).read()
         self.script_resume = open(os.path.join(here, "testharness_webdriver_resume.js")).read()
         self.close_after_done = close_after_done
         self.window_id = str(uuid.uuid4())
+        self.debug = debug
 
         self.original_pref_values = {}
 
@@ -517,10 +573,23 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
                                               self.protocol,
                                               self.test_url(test),
                                               timeout).run()
-        if success:
-            return self.convert_result(test, data)
+        # The format of data depends on whether the test ran to completion or not
+        # For asserts we only care about the fact that if it didn't complete, the
+        # status is in the first field.
+        status = None
+        if not success:
+            status = data[0]
 
-        return (test.result_cls(*data), [])
+        extra = None
+        if self.debug and (success or status not in ("CRASH", "INTERNAL-ERROR")):
+            assertion_count = self.protocol.asserts.get()
+            if assertion_count is not None:
+                extra = {"assertion_count": assertion_count}
+
+        if success:
+            return self.convert_result(test, data, extra=extra)
+
+        return (test.result_cls(extra=extra, *data), [])
 
     def do_testharness(self, protocol, url, timeout):
         protocol.base.execute_script("if (window.win) {window.win.close()}")
@@ -561,7 +630,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                  screenshot_cache=None, close_after_done=True,
                  debug_info=None, reftest_internal=False,
                  reftest_screenshot="unexpected",
-                 group_metadata=None, capabilities=None, **kwargs):
+                 group_metadata=None, capabilities=None, debug=False, **kwargs):
         """Marionette-based executor for reftests"""
         RefTestExecutor.__init__(self,
                                  browser,
@@ -570,7 +639,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                                  timeout_multiplier=timeout_multiplier,
                                  debug_info=debug_info)
         self.protocol = MarionetteProtocol(self, browser, capabilities,
-                                           timeout_multiplier)
+                                           timeout_multiplier, kwargs["e10s"])
         self.implementation = (InternalRefTestImplementation
                                if reftest_internal
                                else RefTestImplementation)(self)
@@ -581,6 +650,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         self.has_window = False
         self.original_pref_values = {}
         self.group_metadata = group_metadata
+        self.debug = debug
 
         with open(os.path.join(here, "reftest.js")) as f:
             self.script = f.read()
@@ -621,6 +691,13 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                 self.has_window = True
 
         result = self.implementation.run_test(test)
+
+        if self.debug:
+            assertion_count = self.protocol.asserts.get()
+            if "extra" not in result:
+                result["extra"] = {}
+            result["extra"]["assertion_count"] = assertion_count
+
         return self.convert_result(test, result)
 
     def screenshot(self, test, viewport_size, dpi):
