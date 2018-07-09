@@ -35,19 +35,22 @@
             }))
             .then(t.step_func(e => {
                 assert_equals(e.blockedURI, "inline");
-                assert_equals(e.lineNumber, 132);
+                assert_equals(e.lineNumber, 135);
+                assert_equals(e.columnNumber, 7);
                 assert_equals(e.target, document, "Disconnected elements target the document");
                 return watcher.wait_for('securitypolicyviolation');
             }))
             .then(t.step_func(e => {
                 assert_equals(e.blockedURI, "inline");
-                assert_equals(e.lineNumber, 143);
+                assert_equals(e.lineNumber, 146);
+                assert_equals(e.columnNumber, 7);
                 assert_equals(e.target, document, "Elements disconnected after triggering target the document.");
                 return watcher.wait_for('securitypolicyviolation');
             }))
             .then(t.step_func(e => {
                 assert_equals(e.blockedURI, "inline");
-                assert_equals(e.lineNumber, 157);
+                assert_equals(e.lineNumber, 160);
+                assert_equals(e.columnNumber, 7);
                 assert_equals(e.target, document, "Elements in DocumentFragments target the document");
             }))
             .then(t.step_func_done(_ => {

@@ -10,22 +10,26 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <style>
-    :root {
-      --focus-background: hsl(50, 94%, 72%);
-      --focus-ring-color: rgb(59, 153, 252);
+    [data-hadkeydown] :focus-visible {
+      outline: darkgreen dotted 1px; /* fallback for Edge */
+      outline: darkgreen auto 5px;
     }
 
-    :focus-visible {
-      outline: var(--focus-ring-color) auto 5px;
+    [data-hadmousedown] :focus-visible {
+      outline: red dotted 1px; /* fallback for Edge */
+      outline: red auto 5px;
     }
 
-    * {
-      outline-width: 0;
+    [data-hadkeydown] :focus:not(:focus-visible) {
+      outline: 0;
+      background-color: tomato;
     }
 
-    :focus {
-      background-color: var(--focus-background);
+    [data-hadmousedown] :focus:not(:focus-visible) {
+      outline: 0;
+      background-color: darkseagreen;
     }
+
   </style>
 </head>
 <body>
@@ -33,13 +37,11 @@
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Use the mouse to focus the element below that says "Click me first."</li>
-    <li>If the element has a blue outline, then the test result is FAILURE.</li>
+    <li>If the element has a red outline, then the test result is FAILURE.</li>
     <li>Press the SHIFT key.</li>
-    <li>If the element now DOES NOT have a blue outline, then the test result is FAILURE..</li>
-    <li>Use the mouse to click the element that says "Click me first." a second time</li>
-    <li>If the element now DOES NOT still have a blue outline, then the test result is FAILURE.</li>
+    <li>If the element now has a red background, then the test result is FAILURE.</li>
     <li>Use the mouse to click the element below that says "Click me second."</li>
-        <li>If the element does not have a blue outline then the test result is SUCCESS.</li>
+    <li>If the element has a green background, the test result is SUCCESS.</li>
   </ol>
 
   <div id="one" tabindex="0">Click me first.</div>
@@ -51,14 +53,8 @@
     }, true);
 
     document.body.addEventListener("mousedown", (e) => {
+      delete document.body.dataset.hadkeydown;
       document.body.dataset.hadmousedown = "";
-    }, true);
-
-    document.body.addEventListener("focus", (e) => {
-      if ("hadmousedown" in document.body.dataset) {
-        delete document.body.dataset.hadmousedown;
-        delete document.body.dataset.hadkeydown;
-      }
     }, true);
 
     async_test(async function(t) {
@@ -104,7 +100,7 @@
         test_driver.click(one);
       })).catch(t.step_func((e) => {
         // TODO(crbug.com/828858): Remove this check once bug is resolved.
-        assert_true(false, "send_keys not implmented yet");
+        assert_true(false, "send_keys not implemented yet");
         t.done();
       }));
     }, "Using keyboard while element is focused should trigger :focus-visible; using mouse without moving focus should not cancel it; moving focus using mouse should cancel it.");

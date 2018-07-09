@@ -8,21 +8,14 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    :root {
-      --focus-background: hsl(50, 94%, 72%);
-      --focus-ring-color: rgb(59, 153, 252);
-    }
-
     :focus-visible {
-      outline: var(--focus-ring-color) auto 5px;
+      outline: darkgreen dotted 1px; /* fallback for Edge */
+      outline: darkgreen auto 5px;
     }
 
-    * {
+    :focus:not(:focus-visible) {
       outline: 0;
-    }
-
-    :focus {
-      background-color: var(--focus-background);
+      background-color: tomato;
     }
   </style>
 </head>
@@ -31,7 +24,7 @@
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li><strong>Click</strong> each form element below to focus it.</li>
-    <li>If the element does not have a blue outline, then the test result is FAILURE. If the element has a blue outline, then the test result is SUCCESS.</li>
+    <li>If the element has a red background, then the test result is FAILURE. If the element has a green outline, then the test result is SUCCESS.</li>
   </ol>
   <br>
   <div>
@@ -86,7 +79,7 @@
     async_test(function(t) {
         function testNextTarget(e) {
             let el = e.target;
-            assert_equals(getComputedStyle(el).outlineColor, "rgb(59, 153, 252)");
+            assert_equals(getComputedStyle(el).outlineColor, "rgb(0, 100, 0)");
             el.dataset.tested = true;
             let nextTarget = document.querySelector("[data-tested=false]");
             if (nextTarget) {

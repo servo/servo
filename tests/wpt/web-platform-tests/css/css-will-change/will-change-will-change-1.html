@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>CSS Test: 'will-change: will-change' is invalid</title>
+<link rel="author" title="Cameron McCormack" href="mailto:cam@mcc.id.au">
+<link rel="help" href="https://drafts.csswg.org/css-will-change-1/#will-change">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="'will-change: will-change' is invalid and thus will not induce a stacking context.">
+<style>
+div { position: absolute; }
+div div { top: 0; left: 0; width: 100px; height: 100px; }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div>
+  <div style="will-change: will-change;">
+    <div style="background-color: green; z-index: 2;"></div>
+  </div>
+  <div style="background-color: red; z-index: 1;"></div>
+</div>

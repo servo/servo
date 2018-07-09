@@ -1,5 +1,13 @@
-# flake8: noqa (not ideal, but nicer than adding noqa: F401 to every line!)
-from client import Cookies, Element, Find, Session, Timeouts, Window
+# flake8: noqa
+
+from client import (
+    Cookies,
+    Element,
+    Find,
+    Frame,
+    Session,
+    Timeouts,
+    Window)
 from error import (
     ElementNotSelectableException,
     ElementNotVisibleException,

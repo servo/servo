@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Scrollable container with orthogonal writing-mode child with inline-end margin</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/CSS22/visufx.html#propdef-overflow">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container" style="writing-mode:vertical-rl; overflow:auto; width:100px; height:100px;">
+  <div style="writing-mode:horizontal-tb; width:100px; height:100px; margin-bottom:200px;"></div>
+</div>
+<script>
+  test(function() {
+    var container = document.getElementById("container");
+    assert_equals(container.scrollWidth, 100);
+    assert_equals(container.scrollHeight, 100);
+  }, "Only trailing *block* margins should affect overflow");
+</script>

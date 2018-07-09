@@ -1,3 +1,4 @@
+import sys
 import unittest
 
 import pytest
@@ -50,6 +51,7 @@ class TestResponseSetCookie(TestUsingServer):
         #Should also check that expires is in the past
 
 class TestRequestCookies(TestUsingServer):
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_set_cookie(self):
         @wptserve.handlers.handler
         def handler(request, response):

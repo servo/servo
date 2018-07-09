@@ -360,6 +360,7 @@ interface Element : Node {
   void setAttributeNS(DOMString? namespace, DOMString qualifiedName, DOMString value);
   void removeAttribute(DOMString qualifiedName);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
+  boolean toggleAttribute(DOMString qualifiedName, optional boolean force);
   boolean hasAttribute(DOMString qualifiedName);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
