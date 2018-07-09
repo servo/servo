@@ -123,7 +123,7 @@ function copytexsubimage3D_luma_format() {
             gl.copyTexSubImage3D(gl.TEXTURE_3D, 0, 0, 0, layer, 0, 0,width, height);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-            var program = wtu.setupProgram(gl, ["vshader", "fshader_luminance_alpha"]);
+            var program = wtu.setupProgram(gl, ["vshader", "fshader_luminance_alpha"], ["a_position", "a_coord"]);
             wtu.setupUnitQuad(gl, 0, 1);
             wtu.drawUnitQuad(gl);
 

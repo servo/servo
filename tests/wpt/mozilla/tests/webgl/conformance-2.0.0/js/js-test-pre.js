@@ -49,11 +49,6 @@
       window.console.log = function() { };
       window.console.error = function() { };
       window.internals.settings.setWebGLErrorsToConsoleEnabled(false);
-
-      // RAF doesn't work in LayoutTests. Disable it so the tests will
-      // use setTimeout instead.
-      window.requestAnimationFrame = undefined;
-      window.webkitRequestAnimationFrame = undefined;
     }
 
     /* -- end platform specific code --*/

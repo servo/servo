@@ -90,16 +90,6 @@ var testBindingFn = function(firstBindFn, secondBindFn, firstTarget, secondTarge
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, messagePrefix + "WORK");
   else
     wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, messagePrefix + "FAIL");
-
-  if ((firstTarget == gl.TRANSFORM_FEEDBACK_BUFFER && secondTarget != gl.TRANSFORM_FEEDBACK_BUFFER) ||
-      (firstTarget != gl.TRANSFORM_FEEDBACK_BUFFER && secondTarget == gl.TRANSFORM_FEEDBACK_BUFFER)) {
-    bind(firstBindFn, firstTarget, buffer);
-    bind(secondBindFn, secondTarget, buffer);
-
-    var message = "Binding buffer first with " + firstBindFn + " to gl." + firstTargetStr
-    + " and simultaneously binding buffer with " + secondBindFn + " to gl." + secondTargetStr + " should FAIL";
-    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, message);
-  }
 }
 
 var testBinding = function(firstTarget, secondTarget) {
