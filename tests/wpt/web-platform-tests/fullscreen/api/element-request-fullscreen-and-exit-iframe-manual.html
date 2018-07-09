@@ -37,6 +37,6 @@ async_test(t => {
   document.onfullscreenerror = t.unreached_func('fullscreenerror event');
   iframeDoc.onfullscreenerror = t.unreached_func('iframe fullscreenerror event');
 
-  trusted_request(t, iframeBody, document.body);
+  trusted_request(t, iframeBody, iframeBody);
 });
 </script>

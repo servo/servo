@@ -1,15 +1,25 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Payment Handler API" spec.
+// See: https://w3c.github.io/payment-handler/
+
+partial interface ServiceWorkerRegistration {
+    [SameObject]
+    readonly attribute PaymentManager paymentManager;
+};
 [SecureContext,
  Exposed=(Window,Worker)]
 interface PaymentManager {
     [SameObject]
     readonly attribute PaymentInstruments instruments;
     [Exposed=Window] static Promise<PermissionState> requestPermission();
+             attribute DOMString          userHint;
 };
 [SecureContext,
  Exposed=(Window,Worker)]
 interface PaymentInstruments {
     Promise<boolean>             delete(DOMString instrumentKey);
-    Promise<PaymentInstrument>   get(DOMString instrumentKey);
+    Promise<any>                 get(DOMString instrumentKey);
     Promise<sequence<DOMString>> keys();
     Promise<boolean>             has(DOMString instrumentKey);
     Promise<void>                set(DOMString instrumentKey,
@@ -27,25 +37,31 @@ dictionary ImageObject {
              DOMString sizes;
              DOMString type;
 };
+partial interface ServiceWorkerGlobalScope {
+    attribute EventHandler oncanmakepayment;
+};
 [Constructor(DOMString type, CanMakePaymentEventInit eventInitDict),
  Exposed=ServiceWorker]
 interface CanMakePaymentEvent : ExtendableEvent {
-    readonly attribute USVString                           topLevelOrigin;
+    readonly attribute USVString                           topOrigin;
     readonly attribute USVString                           paymentRequestOrigin;
     readonly attribute FrozenArray<PaymentMethodData>      methodData;
     readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
     void respondWith(Promise<boolean> canMakePaymentResponse);
 };
 dictionary CanMakePaymentEventInit : ExtendableEventInit {
-    USVString                        topLevelOrigin;
+    USVString                        topOrigin;
     USVString                        paymentRequestOrigin;
     sequence<PaymentMethodData>      methodData;
     sequence<PaymentDetailsModifier> modifiers;
 };
+partial interface ServiceWorkerGlobalScope {
+    attribute EventHandler onpaymentrequest;
+};
 [Constructor(DOMString type, PaymentRequestEventInit eventInitDict),
  Exposed=ServiceWorker]
 interface PaymentRequestEvent : ExtendableEvent {
-    readonly attribute USVString                           topLevelOrigin;
+    readonly attribute USVString                           topOrigin;
     readonly attribute USVString                           paymentRequestOrigin;
     readonly attribute DOMString                           paymentRequestId;
     readonly attribute FrozenArray<PaymentMethodData>      methodData;
@@ -53,10 +69,10 @@ interface PaymentRequestEvent : ExtendableEvent {
     readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
     readonly attribute DOMString                           instrumentKey;
     Promise<WindowClient?> openWindow(USVString url);
-    void                   respondWith(Promise<PaymentHandlerResponse> handlerResponse);
+    void                   respondWith(Promise<PaymentHandlerResponse> handlerResponsePromise);
 };
 dictionary PaymentRequestEventInit : ExtendableEventInit {
-    USVString                        topLevelOrigin;
+    USVString                        topOrigin;
     USVString                        paymentRequestOrigin;
     DOMString                        paymentRequestId;
     sequence<PaymentMethodData>      methodData;
