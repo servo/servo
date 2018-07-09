@@ -31,14 +31,13 @@ pub struct GainNode {
 }
 
 impl GainNode {
-    #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         gain_options: &GainOptions,
         ) -> GainNode {
-        let mut node_options = unsafe { AudioNodeOptions::empty(window.get_cx()) };
+        let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
