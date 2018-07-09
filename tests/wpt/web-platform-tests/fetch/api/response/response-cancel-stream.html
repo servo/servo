@@ -30,7 +30,9 @@ promise_test(function(test) {
     var closedPromise = reader.closed.then(function() {
         return reader.cancel();
     });
-    reader.read();
+    reader.read().then(function readMore({done, value}) {
+      if (!done) return reader.read().then(readMore);
+    });
     return closedPromise;
 }, "Cancelling a closed blob Response stream");
 

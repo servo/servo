@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the FileAPI spec.
-// See https://w3c.github.io/FileAPI/
+// Content of this file was automatically extracted from the
+// "File API" spec.
+// See: https://w3c.github.io/FileAPI/
 
 [Constructor(optional sequence<BlobPart> blobParts,
              optional BlobPropertyBag options),
@@ -59,6 +60,7 @@ interface FileReader: EventTarget {
   const unsigned short EMPTY = 0;
   const unsigned short LOADING = 1;
   const unsigned short DONE = 2;
+
 
   readonly attribute unsigned short readyState;
 

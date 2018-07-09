@@ -67,7 +67,9 @@ test(function() {
   for (var i = 0; i < a_styles.length; i++) {
     var property = a_styles[i];
     assert_equals(property, b_styles[i], "Same property on div.a and div.b");
-    assert_equals(a_styles[property], b_styles[property], "Different value for " + property);
+    if (property !== "unicode-bidi") {
+      assert_equals(a_styles[property], b_styles[property], "Different value for " + property);
+    }
   }
 }, "Compare CSS div definitions (only valid if pre-reqs pass)");
 

@@ -1,9 +1,10 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Vibration API spec.
-// See https://w3c.github.io/vibration/
+// Content of this file was automatically extracted from the
+// "Vibration API (Second Edition)" spec.
+// See: https://w3c.github.io/vibration/
 
 typedef (unsigned long or sequence<unsigned long>) VibratePattern;
 
 partial interface Navigator {
-    boolean vibrate (VibratePattern pattern);
+    boolean vibrate(VibratePattern pattern);
 };

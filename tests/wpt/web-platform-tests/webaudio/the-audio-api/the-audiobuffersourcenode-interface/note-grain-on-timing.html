@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>
+      note-grain-on-timing.html
+    </title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/webaudio/resources/audit-util.js"></script>
+    <script src="/webaudio/resources/audit.js"></script>
+    <script src="/webaudio/resources/note-grain-on-testing.js"></script>
+  </head>
+  <body>
+    <script id="layout-test-code">
+      let audit = Audit.createTaskRunner();
+
+      let squarePulseBuffer;
+
+      function checkResult(buffer, should) {
+        renderedData = buffer.getChannelData(0);
+        let nSamples = renderedData.length;
+        let startEndFrames = findStartAndEndSamples(renderedData);
+
+        verifyStartAndEndFrames(startEndFrames, should);
+      }
+
+      audit.define('Test timing of noteGrainOn', function(task, should) {
+        // Create offline audio context.
+        context =
+            new OfflineAudioContext(2, sampleRate * renderTime, sampleRate);
+
+        squarePulseBuffer = createSignalBuffer(context, function(k) {
+          return 1
+        });
+
+        playAllGrains(context, squarePulseBuffer, numberOfTests);
+
+        context.startRendering().then(function(audioBuffer) {
+          checkResult(audioBuffer, should);
+          task.done();
+        });
+      });
+
+      audit.run();
+    </script>
+  </body>
+</html>
