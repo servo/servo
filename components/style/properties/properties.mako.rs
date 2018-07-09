@@ -35,7 +35,7 @@ use logical_geometry::WritingMode;
 #[cfg(feature = "gecko")] use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media_queries::Device;
 use parser::ParserContext;
-#[cfg(feature = "gecko")] use properties::longhands::system_font::SystemFont;
+use properties::longhands::system_font::SystemFont;
 use rule_cache::{RuleCache, RuleCacheConditions};
 use selector_parser::PseudoElement;
 use selectors::parser::SelectorParseErrorKind;
