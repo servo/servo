@@ -1,23 +1,15 @@
 <!doctype html>
-<!--
-To run this test, you must have a webcam and a microphone or use
-fake devices by specifying
-  --use-fake-device-for-media-stream --use-fake-ui-for-media-stream
-for Chrome or by setting the
-  media.navigator.streams.fake
-property to true in Firefox.
--->
-
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>RTCPeerConnection Connection Test</title>
+  <script src="RTCPeerConnection-helper.js"></script>
 </head>
 <body>
   <div id="log"></div>
   <div>
-    <video id="local-view" autoplay="autoplay"></video>
-    <video id="remote-view" autoplay="autoplay"/>
+    <video id="local-view" muted autoplay="autoplay"></video>
+    <video id="remote-view" muted autoplay="autoplay"/>
     </video>
   </div>
 
@@ -38,7 +30,7 @@ property to true in Firefox.
     test.done();
   });
 
-  function getUserMediaOkCallback(localStream) {
+  function getNoiseStreamOkCallback(localStream) {
     gFirstConnection = new RTCPeerConnection(null);
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
     localStream.getTracks().forEach(function(track) {
@@ -111,8 +103,8 @@ property to true in Firefox.
 
   // This function starts the test.
   test.step(function() {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-      .then(test.step_func(getUserMediaOkCallback), failed('getUserMedia'));
+    getNoiseStream({ video: true, audio: true })
+      .then(test.step_func(getNoiseStreamOkCallback), failed('getNoiseStream'));
   });
 </script>
 

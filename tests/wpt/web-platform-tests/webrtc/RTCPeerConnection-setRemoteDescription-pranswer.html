@@ -13,7 +13,7 @@
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   generateOffer
   //   generateAnswer
-  //   assert_session_desc_equals
+  //   assert_session_desc_similar
 
   /*
     4.3.2.  Interface Definition
@@ -97,12 +97,12 @@
         .then(() => {
           assert_equals(pc.signalingState, 'have-remote-pranswer');
 
-          assert_session_desc_equals(pc.localDescription, offer);
-          assert_session_desc_equals(pc.pendingLocalDescription, offer);
+          assert_session_desc_similar(pc.localDescription, offer);
+          assert_session_desc_similar(pc.pendingLocalDescription, offer);
           assert_equals(pc.currentLocalDescription, null);
 
-          assert_session_desc_equals(pc.remoteDescription, pranswer);
-          assert_session_desc_equals(pc.pendingRemoteDescription, pranswer);
+          assert_session_desc_similar(pc.remoteDescription, pranswer);
+          assert_session_desc_similar(pc.pendingRemoteDescription, pranswer);
           assert_equals(pc.currentRemoteDescription, null);
 
           assert_array_equals(states, ['have-local-offer', 'have-remote-pranswer']);
@@ -151,12 +151,12 @@
         .then(() => {
           assert_equals(pc.signalingState, 'stable');
 
-          assert_session_desc_equals(pc.localDescription, offer);
-          assert_session_desc_equals(pc.currentLocalDescription, offer);
+          assert_session_desc_similar(pc.localDescription, offer);
+          assert_session_desc_similar(pc.currentLocalDescription, offer);
           assert_equals(pc.pendingLocalDescription, null);
 
-          assert_session_desc_equals(pc.remoteDescription, answer);
-          assert_session_desc_equals(pc.currentRemoteDescription, answer);
+          assert_session_desc_similar(pc.remoteDescription, answer);
+          assert_session_desc_similar(pc.currentRemoteDescription, answer);
           assert_equals(pc.pendingRemoteDescription, null);
 
           assert_array_equals(states, ['have-local-offer', 'have-remote-pranswer', 'stable']);

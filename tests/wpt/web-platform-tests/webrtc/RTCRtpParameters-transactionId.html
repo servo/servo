@@ -12,6 +12,7 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCRtpParameters-helper.js:
+  //   doOfferAnswerExchange
   //   validateSenderRtpParameters
 
   /*
@@ -60,9 +61,10 @@
       - transactionId is set to a new unique identifier, used to match this
         getParameters call to a setParameters call that may occur later.
    */
-  test(() => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
 
     const param1 = sender.getParameters();
     const param2 = sender.getParameters();
@@ -83,10 +85,11 @@
           with a newly created InvalidModificationError. Note that this also applies
           to transactionId.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
     validateSenderRtpParameters(param);
@@ -98,10 +101,11 @@
       sender.setParameters(param));
   }, `sender.setParameters() with transaction ID different from last getParameters() should reject with InvalidModificationError`);
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
     validateSenderRtpParameters(param);
@@ -112,24 +116,26 @@
       sender.setParameters(param));
   }, `sender.setParameters() with transaction ID unset should reject with InvalidModificationError`);
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
 
     const param = sender.getParameters();
     validateSenderRtpParameters(param);
 
     return sender.setParameters(param)
     .then(() =>
-      promise_rejects(t, 'InvalidModificationError',
+      promise_rejects(t, 'InvalidStateError',
         sender.setParameters(param)));
-  }, `setParameters() twice with the same parameters should reject with InvalidModificationError`);
+  }, `setParameters() twice with the same parameters should reject with InvalidStateError`);
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const { sender } = pc.addTransceiver('audio');
+    await doOfferAnswerExchange(t, pc);
 
     const param1 = sender.getParameters();
     const param2 = sender.getParameters();

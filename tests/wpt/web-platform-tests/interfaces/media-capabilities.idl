@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Media Capabilities" spec.
+// See: https://wicg.github.io/media-capabilities/
+
 dictionary MediaConfiguration {
   VideoConfiguration video;
   AudioConfiguration audio;
@@ -36,6 +41,7 @@ dictionary AudioConfiguration {
   unsigned long samplerate;
 };
 
+[Exposed=(Window, Worker)]
 interface MediaCapabilitiesInfo {
   readonly attribute boolean supported;
   readonly attribute boolean smooth;

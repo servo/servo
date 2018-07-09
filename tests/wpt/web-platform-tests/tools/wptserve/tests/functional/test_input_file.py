@@ -92,8 +92,8 @@ def test_readline():
 
 def test_readline_max_byte():
     line = test_file.readline()
-    assert input_file.readline(max_bytes=len(line)/2) == line[:len(line)/2]
-    assert input_file.readline(max_bytes=len(line)) == line[len(line)/2:]
+    assert input_file.readline(max_bytes=len(line)//2) == line[:len(line)//2]
+    assert input_file.readline(max_bytes=len(line)) == line[len(line)//2:]
 
 
 def test_readline_max_byte_longer_than_file():

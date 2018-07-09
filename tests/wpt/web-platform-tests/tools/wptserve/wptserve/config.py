@@ -2,8 +2,9 @@ import logging
 import os
 
 from collections import defaultdict, Mapping
+from six import iteritems, itervalues
 
-import sslutils
+from .sslutils import environments
 from .utils import get_port
 
 
@@ -17,7 +18,7 @@ _renamed_props = {
 
 def _merge_dict(base_dict, override_dict):
     rv = base_dict.copy()
-    for key, value in base_dict.iteritems():
+    for key, value in iteritems(base_dict):
         if key in override_dict:
             if isinstance(value, dict):
                 rv[key] = _merge_dict(value, override_dict[key])
@@ -73,13 +74,13 @@ class Config(Mapping):
                 self.log_level = level_name
             self._logger_name = logger.name
 
-        for k, v in self._default.iteritems():
+        for k, v in iteritems(self._default):
             setattr(self, k, kwargs.pop(k, v))
 
         self.subdomains = subdomains
         self.not_subdomains = not_subdomains
 
-        for k, new_k in _renamed_props.iteritems():
+        for k, new_k in iteritems(_renamed_props):
             if k in kwargs:
                 self.logger.warning(
                     "%s in config is deprecated; use %s instead" % (
@@ -114,7 +115,7 @@ class Config(Mapping):
             if k in override:
                 self._set_override(k, override.pop(k))
 
-        for k, new_k in _renamed_props.iteritems():
+        for k, new_k in iteritems(_renamed_props):
             if k in override:
                 self.logger.warning(
                     "%s in config is deprecated; use %s instead" % (
@@ -146,7 +147,7 @@ class Config(Mapping):
         except AttributeError:
             old_ports = {}
 
-        for scheme, ports in self._ports.iteritems():
+        for scheme, ports in iteritems(self._ports):
             for i, port in enumerate(ports):
                 if scheme in ["wss", "https"] and not self.ssl_env.ssl_enabled:
                     port = None
@@ -189,8 +190,8 @@ class Config(Mapping):
         hosts[""] = self.browser_host
 
         rv = {}
-        for name, host in hosts.iteritems():
-            rv[name] = {subdomain: (subdomain.encode("idna") + u"." + host)
+        for name, host in iteritems(hosts):
+            rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
                         for subdomain in self.subdomains}
             rv[name][""] = host
         return rv
@@ -202,8 +203,8 @@ class Config(Mapping):
         hosts[""] = self.browser_host
 
         rv = {}
-        for name, host in hosts.iteritems():
-            rv[name] = {subdomain: (subdomain.encode("idna") + u"." + host)
+        for name, host in iteritems(hosts):
+            rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
                         for subdomain in self.not_subdomains}
         return rv
 
@@ -218,14 +219,14 @@ class Config(Mapping):
     @property
     def domains_set(self):
         return {domain
-                for per_host_domains in self.domains.itervalues()
-                for domain in per_host_domains.itervalues()}
+                for per_host_domains in itervalues(self.domains)
+                for domain in itervalues(per_host_domains)}
 
     @property
     def not_domains_set(self):
         return {domain
-                for per_host_domains in self.not_domains.itervalues()
-                for domain in per_host_domains.itervalues()}
+                for per_host_domains in itervalues(self.not_domains)
+                for domain in itervalues(per_host_domains)}
 
     @property
     def all_domains_set(self):
@@ -246,7 +247,7 @@ class Config(Mapping):
         implementation_type = self.ssl["type"]
 
         try:
-            cls = sslutils.environments[implementation_type]
+            cls = environments[implementation_type]
         except KeyError:
             raise ValueError("%s is not a vaid ssl type." % implementation_type)
         kwargs = self.ssl.get(implementation_type, {}).copy()

@@ -24,9 +24,9 @@ test(function() {
     CSS.registerProperty({name: '--inherited-length-1', syntax: '<length>', initialValue: '1px', inherits: true});
     CSS.registerProperty({name: '--inherited-length-2', syntax: '<length>', initialValue: '2px', inherits: true});
     CSS.registerProperty({name: '--inherited-length-3', syntax: '<length>', initialValue: '3px', inherits: true});
-    CSS.registerProperty({name: '--non-inherited-length-1', syntax: '<length>', initialValue: '4px'});
-    CSS.registerProperty({name: '--non-inherited-length-2', syntax: '<length>', initialValue: '5px'});
-    CSS.registerProperty({name: '--non-inherited-length-3', syntax: '<length>', initialValue: '6px'});
+    CSS.registerProperty({name: '--non-inherited-length-1', syntax: '<length>', initialValue: '4px', inherits: false});
+    CSS.registerProperty({name: '--non-inherited-length-2', syntax: '<length>', initialValue: '5px', inherits: false});
+    CSS.registerProperty({name: '--non-inherited-length-3', syntax: '<length>', initialValue: '6px', inherits: false});
 
     outerComputedStyle = getComputedStyle(outer);
     assert_equals(outerComputedStyle.getPropertyValue('--inherited-length-1'), '10px');

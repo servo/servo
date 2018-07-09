@@ -12,12 +12,12 @@
   "use strict";
 
   promise_test(async () => {
-    const idl_array = new IdlArray();
-    const gamepad_idl = await fetch("/interfaces/gamepad.idl").then(r => r.text());
-    const dom = await fetch("/interfaces/dom.idl").then(r => r.text());
-    const html = await fetch("/interfaces/html.idl").then(r => r.text());
+    const srcs = ['gamepad', 'dom', 'html'];
+    const [idl, dom, html] = await Promise.all(
+      srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
 
-    idl_array.add_idls(gamepad_idl);
+    const idl_array = new IdlArray();
+    idl_array.add_idls(idl);
     idl_array.add_dependency_idls(dom);
     idl_array.add_dependency_idls(html);
 
