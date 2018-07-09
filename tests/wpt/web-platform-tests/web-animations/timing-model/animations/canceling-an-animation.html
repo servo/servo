@@ -106,5 +106,21 @@ promise_test(t => {
 }, 'The cancel event should NOT be fired if the animation is already'
    + ' idle');
 
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  div.remove();
+
+  const eventWatcher = new EventWatcher(t, animation, 'cancel');
+
+  await animation.ready;
+  animation.cancel();
+
+  await eventWatcher.wait_for('cancel');
+
+  assert_equals(animation.effect.target.parentNode, null,
+    'cancel event should be fired for the animation on an orphaned element');
+}, 'Canceling an animation should fire cancel event on orphaned element');
+
 </script>
 </body>

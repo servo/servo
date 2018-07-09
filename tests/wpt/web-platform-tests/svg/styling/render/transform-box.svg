@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="300" height="200" viewBox="0 0 300 200">
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/styling.html#RequiredProperties"/>
+    <h:link rel="match" href="transform-box-ref.svg"/>
+    <h:meta name="assert" content="The transform-box property impacts SVG rendering."/>
+  </metadata>
+
+  <style>
+    #r {
+      fill: cyan;
+      stroke: cyan;
+      stroke-width: 8px;
+      transform-box: fill-box;
+      transform-origin: 75% 100%;
+      transform: scale(2, 2);
+    }
+  </style>
+  <g transform="translate(140, 130)">
+    <rect id="r" x="0" y="0" width="40" height="10" />
+  </g>
+</svg>

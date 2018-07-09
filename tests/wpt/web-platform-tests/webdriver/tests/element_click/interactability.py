@@ -59,4 +59,4 @@ def test_element_not_visible_overflow_hidden(session):
 
     element = session.find.css("input", all=False)
     response = element_click(session, element)
-    assert_error(response, "element not visible")
+    assert_error(response, "element not interactable")

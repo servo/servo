@@ -13,7 +13,7 @@
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   generateOffer()
   //   generateAnswer()
-  //   assert_session_desc_equals()
+  //   assert_session_desc_similar()
 
   /*
     4.3.2.  Interface Definition
@@ -73,11 +73,11 @@
         .then(() => {
           assert_equals(pc.signalingState, 'stable');
 
-          assert_session_desc_equals(pc.localDescription, offer);
-          assert_session_desc_equals(pc.remoteDescription, answer);
+          assert_session_desc_similar(pc.localDescription, offer);
+          assert_session_desc_similar(pc.remoteDescription, answer);
 
-          assert_session_desc_equals(pc.currentLocalDescription, offer);
-          assert_session_desc_equals(pc.currentRemoteDescription, answer);
+          assert_session_desc_similar(pc.currentLocalDescription, offer);
+          assert_session_desc_similar(pc.currentRemoteDescription, answer);
 
           assert_equals(pc.pendingLocalDescription, null);
           assert_equals(pc.pendingRemoteDescription, null);

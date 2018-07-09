@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<body style="background: red;">
+<script>
+  window.parent.postMessage(JSON.stringify({"type": "child-two-loaded", "isActive": navigator.userActivation.isActive,
+                                            "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+</script>
+</body>

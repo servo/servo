@@ -1,7 +1,9 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Gamepad spec.
-// See https://w3c.github.io/gamepad/
+// Content of this file was automatically extracted from the
+// "Gamepad" spec.
+// See: https://w3c.github.io/gamepad/
 
+[Exposed=Window]
 interface Gamepad {
   readonly attribute DOMString id;
   readonly attribute long index;
@@ -12,6 +14,7 @@ interface Gamepad {
   readonly attribute FrozenArray<GamepadButton> buttons;
 };
 
+[Exposed=Window]
 interface GamepadButton {
   readonly attribute boolean pressed;
   readonly attribute boolean touched;
@@ -23,15 +26,17 @@ enum GamepadMappingType {
   "standard",
 };
 
+[Exposed=Window]
 partial interface Navigator {
   sequence<Gamepad?> getGamepads();
 };
 
-[Constructor(GamepadEventInit eventInitDict)]
-interface GamepadEvent: Event {
-  readonly attribute Gamepad gamepad;
+[Constructor(DOMString type, GamepadEventInit eventInitDict), Exposed=Window]
+
+interface GamepadEvent : Event {
+  [SameObject] readonly attribute Gamepad gamepad;
 };
 
-dictionary GamepadEventInit: EventInit {
+dictionary GamepadEventInit : EventInit {
   required Gamepad gamepad;
 };
