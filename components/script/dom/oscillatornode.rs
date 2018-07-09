@@ -38,13 +38,12 @@ pub struct OscillatorNode {
 
 impl OscillatorNode {
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         oscillator_options: &OscillatorOptions,
         ) -> OscillatorNode {
-        let mut node_options = unsafe { AudioNodeOptions::empty(window.get_cx()) };
+        let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);

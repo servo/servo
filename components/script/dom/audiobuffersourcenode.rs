@@ -7,12 +7,13 @@ use dom::audioparam::{AudioParam, AudioParamImpl};
 use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
-use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
+use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
+use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::
+    AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
@@ -46,13 +47,12 @@ pub struct AudioBufferSourceNode {
 
 impl AudioBufferSourceNode {
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
         ) -> AudioBufferSourceNode {
-        let mut node_options = unsafe { AudioNodeOptions::empty(window.get_cx()) };
+        let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
