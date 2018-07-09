@@ -12,7 +12,8 @@ KHRONOS_REPO_URL = "https://github.com/KhronosGroup/WebGL.git"
 # Patches for conformance tests 1.0.x
 PATCHES_1X = [
     ("js-test-pre.patch", "resources/js-test-pre.js"),
-    ("unit.patch", "conformance/more/unit.js")
+    ("unit.patch", "conformance/more/unit.js"),
+    ("timeout.patch", None)
 ]
 # Patches for conformance tests 2.0.x
 PATCHES_2X = [
@@ -134,7 +135,10 @@ def update_conformance(version, destination, existing_repo, patches_dir):
     for patch, file_name in patches:
         try:
             patch = os.path.join(patches_dir, patch)
-            subprocess.check_call(["patch", "-d", destination, file_name, patch])
+            if file_name is None:
+                subprocess.check_call(["patch", "-d", destination, "-p", "1"], stdin=open(patch))
+            else:
+                subprocess.check_call(["patch", "-x", "3", "-d", destination, file_name, patch])
         except subprocess.CalledProcessError:
             print("Automatic patch failed for {}".format(file_name))
             print("Please review the WPT integration and update {} accordingly".format(os.path.basename(patch)))

@@ -30429,6 +30429,11 @@
      {}
     ]
    ],
+   "webgl/tools/timeout.patch": [
+    [
+     {}
+    ]
+   ],
    "webgl/tools/unit.patch": [
     [
      {}
@@ -39429,7 +39434,9 @@
    "webgl/conformance-1.0.3/conformance/attribs/gl-vertex-attrib-zero-issues.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/attribs/gl-vertex-attrib-zero-issues.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/attribs/gl-vertex-attrib.html": [
@@ -39573,7 +39580,9 @@
    "webgl/conformance-1.0.3/conformance/canvas/rapid-resizing.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/canvas/rapid-resizing.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/canvas/texture-bindings-unaffected-on-resize.html": [
@@ -43425,7 +43434,9 @@
    "webgl/conformance-1.0.3/conformance/uniforms/out-of-bounds-uniform-array-access.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/uniforms/out-of-bounds-uniform-array-access.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/uniforms/uniform-default-values.html": [
@@ -71210,7 +71221,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/attribs/gl-vertex-attrib-zero-issues.html": [
-   "2db1eb69271fd2cdf1f23ed1aefe7ee04a409614",
+   "bb00d5648733c8b523093bba59a58eeda15c2dc9",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/attribs/gl-vertex-attrib.html": [
@@ -71314,7 +71325,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/canvas/rapid-resizing.html": [
-   "14e68235cfa7ed8d396e33bfea2b337308f300c0",
+   "14ade92783494631f0aa38c7b65ef27afa5d4a5a",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/canvas/texture-bindings-unaffected-on-resize.html": [
@@ -71346,15 +71357,15 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-creation-and-destruction.html": [
-   "5353020ebad3058be7c46d31205eb98afa4f40e4",
+   "6e329116409fae60838c3d4e63f84999b06cf1b5",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-creation.html": [
-   "08a7054a6bee4901dcb6636cf376c452e9004184",
+   "2a6ebdcb04a602ae7b73a7a0385533f72c89c212",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-eviction-with-garbage-collection.html": [
-   "63c2768e01d84a6344d08efa79bac5fdf9d545a7",
+   "9eac94ca3bc359985efc1ac0e7e7c37ec2599278",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-hidden-alpha.html": [
@@ -73046,7 +73057,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/acos/acos_001_to_006.html": [
-   "b4a53ad041367ac7a16a050098532b01fcd135dc",
+   "85555ba68d88a743a41b691e864f5e2305c03bc3",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/acos/acos_float_frag_xvary.frag": [
@@ -73214,7 +73225,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/asin/asin_001_to_006.html": [
-   "402a2259934781e8866ec3555282e2257a9963cb",
+   "5ddd8eac037ae86a0f82aaebcd05f1702b4598ce",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/asin/asin_float_frag_xvary.frag": [
@@ -76378,7 +76389,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_001_to_008.html": [
-   "4e72ddeef5f237b63fcdd8c49ee3c61dc16ae529",
+   "cadfc9c0ab49a1de7ee8ef91c49c20da40b405b4",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_009_to_012.html": [
@@ -80426,7 +80437,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/uniforms/out-of-bounds-uniform-array-access.html": [
-   "5471a14283e0a23cfab7f504529aec8bee5ee4c3",
+   "e6687ab849c63a7db2b855d5f0b4c4583132613f",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/uniforms/uniform-default-values.html": [
@@ -99086,7 +99097,7 @@
    "testharness"
   ],
   "webgl/tools/import-conformance-tests.py": [
-   "d3823f6646375ab6c48b77de8fb1c798d4132e3d",
+   "73e9fad27290f3f10246390fca47bfeb64bc86ec",
    "support"
   ],
   "webgl/tools/js-test-pre.patch": [
@@ -99095,6 +99106,10 @@
   ],
   "webgl/tools/js-test-pre2.patch": [
    "d1fc86aa99334ca252f0e9fdd48f5d85255f24a3",
+   "support"
+  ],
+  "webgl/tools/timeout.patch": [
+   "88da623430c6ab2c3738433604a5077a24a7a7a0",
    "support"
   ],
   "webgl/tools/unit.patch": [
