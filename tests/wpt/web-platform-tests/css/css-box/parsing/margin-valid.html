@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing margin with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-margin">
+<meta name="assert" content="margin supports the full grammar '[ <length> | <percentage> | auto]{1,4}'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("margin", "10px");
+test_valid_value("margin", "20%");
+test_valid_value("margin", "calc(2em + 3ex)");
+test_valid_value("margin", "auto");
+test_valid_value("margin", "-10px");
+test_valid_value("margin", "-20%");
+
+test_valid_value("margin", "calc(2em + 3ex) auto");
+test_valid_value("margin", "auto calc(2em + 3ex) 20%");
+test_valid_value("margin", "10px 20% calc(2em + 3ex) auto");
+
+test_valid_value("margin-top", "10px");
+test_valid_value("margin-right", "20%");
+test_valid_value("margin-bottom", "calc(2em + 3ex)");
+test_valid_value("margin-left", "auto");
+test_valid_value("margin-top", "-10px");
+test_valid_value("margin-right", "-20%");
+</script>
+</body>
+</html>

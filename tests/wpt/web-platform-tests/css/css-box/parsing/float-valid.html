@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing float with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-float">
+<meta name="assert" content="float supports the full grammar 'left | right | top | bottom | start | end | none | <page-floats>'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("float", "left");
+test_valid_value("float", "right");
+test_valid_value("float", "none");
+
+// The following are not yet supported by browsers:
+// test_valid_value("float", "top");
+// test_valid_value("float", "bottom");
+// test_valid_value("float", "start"); // not permitted in https://drafts.csswg.org/css-page-floats/#float-property
+// test_valid_value("float", "end"); // not permitted in https://drafts.csswg.org/css-page-floats/#float-property
+
+// Page floats are now defined in
+// https://drafts.csswg.org/css-page-floats/#float-property
+</script>
+</body>
+</html>
