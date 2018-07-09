@@ -72910,7 +72910,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/more/functions/texSubImage2DBadArgs.html": [
-   "925cff1fe7e1a27f9a1d809a06cb0b3b0fd2e409",
+   "d8f835e310803c6f2c83a010cf325973a870877e",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/more/functions/texSubImage2DHTML.html": [
@@ -80266,7 +80266,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/textures/tex-input-validation.html": [
-   "1b579c2798c69585cf8959c09fdc5845aa92526e",
+   "5c6cf39bcf8c2a5e71e894c7453de7359095b2b1",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/textures/tex-sub-image-2d-bad-args.html": [
@@ -80338,7 +80338,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/textures/texture-size-limit.html": [
-   "df9d9db523e8fc9e672b9478d4ed7539b0afb8bb",
+   "e58263e358ab36319fb894e0a5cdfaf635a800d0",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/textures/texture-size.html": [
@@ -80470,7 +80470,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/resources/js-test-pre.js": [
-   "c908f204f89f448526ad40357f7169cf5803e67d",
+   "e477a3121fd6086aa97343e395e8d8622c01d844",
    "support"
   ],
   "webgl/conformance-1.0.3/resources/js-test-style.css": [
@@ -80486,7 +80486,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/resources/webgl-test-harness.js": [
-   "1cb2adb8fb53fa658bbb73ef61c08bcb587b2c0a",
+   "98e8e7e62030796bf34285f5bcbac3bd8b77ddb3",
    "support"
   ],
   "webgl/conformance-1.0.3/test-guidelines.md": [
@@ -82470,7 +82470,7 @@
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance/more/functions/texSubImage2DBadArgs.html": [
-   "e0b233b82376bae960bc435ea2f390a3c892fb78",
+   "880919800fd7b68bfe97bcd8148fde5e41c1af5f",
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance/more/functions/texSubImage2DHTML.html": [
@@ -89858,7 +89858,7 @@
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance/textures/misc/texture-size-limit.html": [
-   "e2ddd9863e70ef2c74ba38007235d6f5332c3690",
+   "188327cf75f77ba75096e17a32e6182bd8d7966c",
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance/textures/misc/texture-size.html": [
@@ -90078,7 +90078,7 @@
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance2/buffers/buffer-type-restrictions.html": [
-   "0220d823c0e8190475b7f704e9f81b0f02c5fd01",
+   "5fc1eeb29286971424220ecd122e9b2b605ff06d",
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance2/buffers/get-buffer-sub-data.html": [
@@ -93218,7 +93218,7 @@
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance2/textures/misc/copy-texture-image-luma-format.html": [
-   "e95ff06a4d3f1a77011a7c306dd4e0afd38a1552",
+   "b6f306193a82e55a53dc436949d76776632960b9",
    "testharness"
   ],
   "webgl/conformance-2.0.0/conformance2/textures/misc/copy-texture-image-webgl-specific.html": [
@@ -98622,7 +98622,7 @@
    "support"
   ],
   "webgl/conformance-2.0.0/js/js-test-pre.js": [
-   "440f5f81367b9a376423601ab45960a5319b1b0b",
+   "8f199ed7f5cea4fa0750de009149ac48a27d5a10",
    "support"
   ],
   "webgl/conformance-2.0.0/js/pnglib.js": [
@@ -98682,7 +98682,7 @@
    "support"
   ],
   "webgl/conformance-2.0.0/js/tests/tex-image-and-sub-image-2d-with-image-bitmap-from-blob.js": [
-   "8505a329d65a627cfab08dcef9e384f499bd2fd7",
+   "699897b0a2ceea03ec7bc113fd9350e26805dd70",
    "support"
   ],
   "webgl/conformance-2.0.0/js/tests/tex-image-and-sub-image-2d-with-image-bitmap-from-canvas.js": [
@@ -98734,7 +98734,7 @@
    "support"
   ],
   "webgl/conformance-2.0.0/js/tests/tex-image-and-sub-image-3d-with-image-bitmap-from-blob.js": [
-   "34685e9545ac0f9fbb9665b9788b52a6ea656544",
+   "3691acb33bda464b05c21e6c0aea18d83a32ee7e",
    "support"
   ],
   "webgl/conformance-2.0.0/js/tests/tex-image-and-sub-image-3d-with-image-bitmap-from-canvas.js": [
@@ -98786,7 +98786,7 @@
    "support"
   ],
   "webgl/conformance-2.0.0/js/tests/tex-input-validation.js": [
-   "89befe095ced5482aa9788e1a4362cbc2771c462",
+   "d8b584d6ccc1d76239f412eca8360007c4a016c7",
    "support"
   ],
   "webgl/conformance-2.0.0/js/tests/typed-array-test-cases.js": [
@@ -98798,7 +98798,7 @@
    "support"
   ],
   "webgl/conformance-2.0.0/js/webgl-test-harness.js": [
-   "fd8879f1c8300d3ab3a3d9c15e49aa2b5fe25aca",
+   "c2c0b7c5660f9309682091150ef7e64e171a823d",
    "support"
   ],
   "webgl/conformance-2.0.0/js/webgl-test-utils.js": [

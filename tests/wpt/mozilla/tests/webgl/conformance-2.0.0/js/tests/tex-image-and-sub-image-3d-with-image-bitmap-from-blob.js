@@ -51,14 +51,14 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         var xhr = new XMLHttpRequest();
         xhr.open("GET", resourcePath + "red-green-semi-transparent.png");
         xhr.responseType = 'blob';
-        xhr.send();
         xhr.onload = function() {
             var blob = xhr.response;
             runImageBitmapTest(blob, 0.5, internalFormat, pixelFormat, pixelType, gl, tiu, wtu, true)
             .then(() => {
                 finishTest();
             });
-        }
+        };
+        xhr.send();
     }
 
     return init;
