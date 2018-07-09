@@ -613,7 +613,7 @@ TestHarness.prototype.reportResults = function(url, success, msg, skipped) {
   url = FilterURL(url);
   var test = this.getTest(url);
   this.clearTimeout(test);
-  log(success ? "PASS" : "FAIL", msg);
+  log((success ? "PASS" : "FAIL") + ": " + msg);
   this.reportFunc(TestHarness.reportType.TEST_RESULT, url, msg, success, skipped);
   // For each result we get, reset the timeout
   this.setTimeout(test);

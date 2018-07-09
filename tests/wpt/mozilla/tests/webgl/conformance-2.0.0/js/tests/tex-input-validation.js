@@ -358,11 +358,11 @@ if (contextVersion < 2) {
     { target: gl.TEXTURE_2D,
       format: 0x1903, // GL_RED
       type: gl.UNSIGNED_BYTE,
-      expectedError: gl.INVALID_ENUM },
+      expectedError: [gl.INVALID_ENUM, gl.INVALID_OPERATION] },
     { target: gl.TEXTURE_2D,
       format: gl.RGBA,
       type: gl.BYTE,
-      expectedError: gl.INVALID_ENUM }
+      expectedError: [gl.INVALID_ENUM, gl.INVALID_OPERATION] }
   ]);
 } else {
   testCases = testCases.concat([

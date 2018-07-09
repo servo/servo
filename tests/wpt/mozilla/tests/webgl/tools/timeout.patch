@@ -1,0 +1,108 @@
+diff --git i/conformance/attribs/gl-vertex-attrib-zero-issues.html w/conformance/attribs/gl-vertex-attrib-zero-issues.html
+index de45ce308c..11a83ac00a 100644
+--- i/conformance/attribs/gl-vertex-attrib-zero-issues.html
++++ w/conformance/attribs/gl-vertex-attrib-zero-issues.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL Enable Vertex Attrib Zero Test</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/canvas/rapid-resizing.html w/conformance/canvas/rapid-resizing.html
+index 1faa737222..89f9e1e3c2 100644
+--- i/conformance/canvas/rapid-resizing.html
++++ w/conformance/canvas/rapid-resizing.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL Rapid Resizing Test</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/context/context-creation-and-destruction.html w/conformance/context/context-creation-and-destruction.html
+index a02dd2d14c..47099e57bd 100644
+--- i/conformance/context/context-creation-and-destruction.html
++++ w/conformance/context/context-creation-and-destruction.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" value="content">
+ <title>Test that contexts are freed and garbage collected reasonably</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/context/context-creation.html w/conformance/context/context-creation.html
+index 04b138daf4..703bcfa8dc 100644
+--- i/conformance/context/context-creation.html
++++ w/conformance/context/context-creation.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" value="content">
+ <title>Test that you can create large numbers of WebGL contexts.</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/context/context-eviction-with-garbage-collection.html w/conformance/context/context-eviction-with-garbage-collection.html
+index 3989c7679a..b52e3a9e9f 100644
+--- i/conformance/context/context-eviction-with-garbage-collection.html
++++ w/conformance/context/context-eviction-with-garbage-collection.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" value="content">
+ <title>Test that context eviction and garbage collection do not interfere with each other</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
+diff --git i/conformance/ogles/GL/acos/acos_001_to_006.html w/conformance/ogles/GL/acos/acos_001_to_006.html
+index 99de4e0a79..71c8990638 100644
+--- i/conformance/ogles/GL/acos/acos_001_to_006.html
++++ w/conformance/ogles/GL/acos/acos_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" value="content">
+ <title>WebGL GLSL conformance test: acos_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/ogles/GL/asin/asin_001_to_006.html w/conformance/ogles/GL/asin/asin_001_to_006.html
+index 5af87433aa..79afd9f430 100644
+--- i/conformance/ogles/GL/asin/asin_001_to_006.html
++++ w/conformance/ogles/GL/asin/asin_001_to_006.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" value="content">
+ <title>WebGL GLSL conformance test: asin_001_to_006.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/ogles/GL/log2/log2_001_to_008.html w/conformance/ogles/GL/log2/log2_001_to_008.html
+index 5552a4f82e..539cb33214 100644
+--- i/conformance/ogles/GL/log2/log2_001_to_008.html
++++ w/conformance/ogles/GL/log2/log2_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" value="content">
+ <title>WebGL GLSL conformance test: log2_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/uniforms/out-of-bounds-uniform-array-access.html w/conformance/uniforms/out-of-bounds-uniform-array-access.html
+index 2758b320ff..4d85c3a53a 100644
+--- i/conformance/uniforms/out-of-bounds-uniform-array-access.html
++++ w/conformance/uniforms/out-of-bounds-uniform-array-access.html
+@@ -29,6 +29,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL out of bounds uniform array access.</title>
+ <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+ <script src=/resources/testharness.js></script>
