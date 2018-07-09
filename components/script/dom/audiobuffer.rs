@@ -38,13 +38,25 @@ impl AudioBuffer {
     pub fn new_inherited(cx: *mut JSContext,
                          number_of_channels: u32,
                          length: u32,
-                         sample_rate: f32) -> AudioBuffer {
-        let initial_data = vec![0.; length as usize];
+                         sample_rate: f32,
+                         initial_data: Option<&[f32]>) -> AudioBuffer {
+        let initial_data = match initial_data {
+            Some(initial_data) => {
+                let mut data = vec![];
+                data.extend_from_slice(initial_data);
+                data
+            },
+            None => vec![0.; (length * number_of_channels) as usize]
+        };
         let mut js_channels: Vec<JSAudioChannel> = Vec::with_capacity(number_of_channels as usize);
-        for _ in 0..number_of_channels {
+        for channel in 0..number_of_channels {
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+            let offset = (channel * length) as usize;
             let _ = unsafe {
-                Float32Array::create(cx, CreateWith::Slice(initial_data.as_slice()), array.handle_mut())
+                Float32Array::create(
+                    cx,
+                    CreateWith::Slice(&initial_data.as_slice()[offset..offset + (length as usize)]),
+                    array.handle_mut())
             };
             let js_channel = Heap::default();
             js_channel.set(array.get());
@@ -65,8 +77,9 @@ impl AudioBuffer {
     pub fn new(global: &Window,
                number_of_channels: u32,
                length: u32,
-               sample_rate: f32) -> DomRoot<AudioBuffer> {
-        let buffer = AudioBuffer::new_inherited(global.get_cx(), number_of_channels, length, sample_rate);
+               sample_rate: f32,
+               initial_data: Option<&[f32]>) -> DomRoot<AudioBuffer> {
+        let buffer = AudioBuffer::new_inherited(global.get_cx(), number_of_channels, length, sample_rate, initial_data);
         reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap)
     }
 
@@ -75,7 +88,7 @@ impl AudioBuffer {
         if options.numberOfChannels > MAX_CHANNEL_COUNT {
             return Err(Error::NotSupported);
         }
-        Ok(AudioBuffer::new(window, options.numberOfChannels, options.length, *options.sampleRate))
+        Ok(AudioBuffer::new(window, options.numberOfChannels, options.length, *options.sampleRate, None))
     }
 
     #[allow(unsafe_code)]

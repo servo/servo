@@ -12,8 +12,8 @@ enum AudioContextState {
   "closed"
 };
 
-// callback DecodeErrorCallback = void (DOMException error);
-// callback DecodeSuccessCallback = void (AudioBuffer decodedData);
+callback DecodeErrorCallback = void (DOMException error);
+callback DecodeSuccessCallback = void (AudioBuffer decodedData);
 
 [Exposed=Window]
 interface BaseAudioContext : EventTarget {
@@ -27,9 +27,9 @@ interface BaseAudioContext : EventTarget {
   [Throws] AudioBuffer createBuffer(unsigned long numberOfChannels,
                                     unsigned long length,
                                     float sampleRate);
-  // Promise<AudioBuffer> decodeAudioData(ArrayBuffer audioData,
-  //                                      optional DecodeSuccessCallback successCallback,
-  //                                      optional DecodeErrorCallback errorCallback);
+  Promise<AudioBuffer> decodeAudioData(ArrayBuffer audioData,
+                                       optional DecodeSuccessCallback successCallback,
+                                       optional DecodeErrorCallback errorCallback);
   AudioBufferSourceNode createBufferSource();
   // ConstantSourceNode createConstantSource();
   // ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
