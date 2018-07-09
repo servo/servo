@@ -12,9 +12,8 @@
 </head>
 <body>
 <script>
-// Edge serializes as "currentColor".
-test_valid_value("background-color", "currentcolor", ["currentcolor", "currentColor"]);
-test_valid_value("background-color", "currentColor", ["currentcolor", "currentColor"]);
+test_valid_value("background-color", "currentcolor", "currentcolor");
+test_valid_value("background-color", "currentColor", "currentcolor");
 
 test_valid_value("background-color", "red");
 test_valid_value("background-color", "#00FF00", "rgb(0, 255, 0)");

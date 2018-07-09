@@ -12,8 +12,8 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   generateOffer
-  //   assert_session_desc_not_equals
-  //   assert_session_desc_equals
+  //   assert_session_desc_not_similar
+  //   assert_session_desc_similar
 
   /*
     4.3.2.  Interface Definition
@@ -63,10 +63,10 @@
         pc.setLocalDescription(offer2)
         .then(() => {
           assert_equals(pc.signalingState, 'have-local-offer');
-          assert_session_desc_not_equals(offer1, offer2);
-          assert_session_desc_equals(pc.localDescription, offer2);
-          assert_session_desc_equals(pc.currentLocalDescription, offer1);
-          assert_session_desc_equals(pc.pendingLocalDescription, offer2);
+          assert_session_desc_not_similar(offer1, offer2);
+          assert_session_desc_similar(pc.localDescription, offer2);
+          assert_session_desc_similar(pc.currentLocalDescription, offer1);
+          assert_session_desc_similar(pc.pendingLocalDescription, offer2);
 
           assert_array_equals(states, ['have-local-offer', 'stable', 'have-local-offer']);
         })));
@@ -89,9 +89,9 @@
         pc.setLocalDescription(offer)
         .then(() => {
           assert_equals(pc.signalingState, 'have-local-offer');
-          assert_session_desc_equals(pc.localDescription, offer);
-          assert_session_desc_equals(pc.currentLocalDescription, answer);
-          assert_session_desc_equals(pc.pendingLocalDescription, offer);
+          assert_session_desc_similar(pc.localDescription, offer);
+          assert_session_desc_similar(pc.currentLocalDescription, answer);
+          assert_session_desc_similar(pc.pendingLocalDescription, offer);
 
           assert_array_equals(states, ['have-remote-offer', 'stable', 'have-local-offer']);
         })));

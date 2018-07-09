@@ -25,7 +25,7 @@ class TestRewriter(TestUsingServer):
         self.server.router.register(*route)
         resp = self.request("/test/original")
         self.assertEqual(200, resp.getcode())
-        self.assertEqual("/test/rewritten", resp.read())
+        self.assertEqual(b"/test/rewritten", resp.read())
 
 class TestRequestHandler(TestUsingServer):
     def test_exception(self):

@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on inline-flex elements should cause them to be sized and baseline-aligned as if they had no contents.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-inline-flex-001-ref.html">
+  <style>
+  .contain {
+    display: inline-flex;
+    contain:size;
+    border: 1em solid green;
+    background: red;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .width {
+    width: 50px;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: A size-contained inline-flex element without dimensions should ensure baseline alignment behaviour matches that of an empty object of the same type.-->
+  aa<div class="contain"><div class="innerContents">inner</div></div>bb
+  <br>
+
+  <!--CSS Test: A size-contained inline-flex element with specified width should ensure baseline alignment behaviour matches that of an empty object of the same type.-->
+  aa<div class="contain width"><div class="innerContents">inner</div></div>bb
+</body>
+</html>

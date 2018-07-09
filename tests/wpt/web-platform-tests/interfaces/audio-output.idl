@@ -1,0 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Audio Output Devices API" spec.
+// See: https://w3c.github.io/mediacapture-output/
+
+partial interface HTMLMediaElement {
+  readonly        attribute DOMString sinkId;
+  Promise<void> setSinkId(DOMString sinkId);
+};

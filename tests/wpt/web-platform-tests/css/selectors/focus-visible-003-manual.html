@@ -8,21 +8,14 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <style>
-    :root {
-      --focus-background: hsl(50, 94%, 72%);
-      --focus-ring-color: rgb(59, 153, 252);
-    }
-
     :focus-visible {
-      outline: var(--focus-ring-color) auto 5px;
+      outline: red dotted 1px; /* fallback for Edge */
+      outline: red auto 5px;
     }
 
-    * {
-      outline: 0;
-    }
-
-    :focus {
-      background-color: var(--focus-background);
+    :focus:not(:focus-visible) {
+        outline: 0;
+        background-color: darkseagreen;
     }
   </style>
 </head>
@@ -31,7 +24,7 @@
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Click each element element below to focus it.</li>
-    <li>If the element has a blue outline, then the test result is FAILURE. If the element does NOT have a blue outline, then the test result is SUCCESS.</li>
+    <li>If the element has a red outline, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
   </ol>
   <br />
   <div>

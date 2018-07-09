@@ -7,7 +7,9 @@
 <script>
 
 async_test((t) => {
-  t.add_cleanup(() => document.exitFullscreen());
+  t.add_cleanup(() => {
+    Promise.resolve(document.exitFullscreen()).catch(() => {});
+  });
 
   // When a message is received from a child frame, ensure that the report
   // matches the expectations.

@@ -17,6 +17,13 @@ manifestitem = None
 
 logger = structuredlog.StructuredLogger("web-platform-tests")
 
+try:
+    import ujson
+except ImportError:
+    pass
+else:
+    reader.json = ujson
+
 
 def load_test_manifests(serve_root, test_paths):
     do_delayed_imports(serve_root)
@@ -162,10 +169,11 @@ def update_from_logs(manifests, *log_filenames, **kwargs):
         for tree in manifest_expected.itervalues():
             for test in tree.iterchildren():
                 for subtest in test.iterchildren():
-                    subtest.coalesce_expected(stability=stability)
-                test.coalesce_expected(stability=stability)
+                    subtest.coalesce_properties(stability=stability)
+                test.coalesce_properties(stability=stability)
 
     return expected_map
+
 
 def directory_manifests(metadata_path):
     rv = []
@@ -174,6 +182,7 @@ def directory_manifests(metadata_path):
             rel_path = os.path.relpath(dirpath, metadata_path)
             rv.append(os.path.join(rel_path, "__dir__.ini"))
     return rv
+
 
 def write_changes(metadata_path, expected_map):
     # First write the new manifest files to a temporary directory
@@ -228,10 +237,17 @@ class ExpectedUpdater(object):
         self.action_map = {"suite_start": self.suite_start,
                            "test_start": self.test_start,
                            "test_status": self.test_status,
-                           "test_end": self.test_end}
+                           "test_end": self.test_end,
+                           "assertion_count": self.assertion_count}
         self.tests_visited = {}
 
         self.test_cache = {}
+
+        self.types_by_path = {}
+        for manifest in self.test_manifests.iterkeys():
+            for test_type, path, _ in manifest:
+                if test_type in wpttest.manifest_test_cls:
+                    self.types_by_path[path] = wpttest.manifest_test_cls[test_type]
 
     def update_from_log(self, log_file):
         self.run_info = None
@@ -240,14 +256,6 @@ class ExpectedUpdater(object):
 
     def suite_start(self, data):
         self.run_info = data["run_info"]
-
-    def test_type(self, path):
-        for manifest in self.test_manifests.iterkeys():
-            tests = list(manifest.iterpath(path))
-            if len(tests):
-                assert all(test.item_type == tests[0].item_type for test in tests)
-                return tests[0].item_type
-        assert False
 
     def test_start(self, data):
         test_id = data["test"]
@@ -261,23 +269,24 @@ class ExpectedUpdater(object):
 
         if test_id not in self.tests_visited:
             if self.ignore_existing:
-                expected_node.clear_expected()
+                expected_node.clear("expected")
             self.tests_visited[test_id] = set()
 
     def test_status(self, data):
-        test = self.test_cache.get(data["test"])
+        test_id = data["test"]
+        test = self.test_cache.get(test_id)
         if test is None:
             return
-        test_cls = wpttest.manifest_test_cls[self.test_type(test.root.test_path)]
+        test_cls = self.types_by_path[test.root.test_path]
 
         subtest = test.get_subtest(data["subtest"])
 
-        self.tests_visited[test.id].add(data["subtest"])
+        self.tests_visited[test_id].add(data["subtest"])
 
         result = test_cls.subtest_result_cls(
             data["subtest"],
             data["status"],
-            data.get("message"))
+            None)
 
         subtest.set_result(self.run_info, result)
 
@@ -286,16 +295,24 @@ class ExpectedUpdater(object):
         test = self.test_cache.get(test_id)
         if test is None:
             return
-        test_cls = wpttest.manifest_test_cls[self.test_type(test.root.test_path)]
+        test_cls = self.types_by_path[test.root.test_path]
 
         if data["status"] == "SKIP":
             return
 
         result = test_cls.result_cls(
             data["status"],
-            data.get("message"))
+            None)
         test.set_result(self.run_info, result)
         del self.test_cache[test_id]
+
+    def assertion_count(self, data):
+        test_id = data["test"]
+        test = self.test_cache.get(test_id)
+        if test is None:
+            return
+
+        test.set_asserts(self.run_info, data["count"])
 
 
 def create_test_tree(metadata_path, test_manifest, property_order=None,

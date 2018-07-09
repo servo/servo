@@ -3,6 +3,7 @@
 <title>RTCPeerConnection addTrack does not deadlock</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -12,10 +13,10 @@
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
-    const stream = await navigator.mediaDevices.getUserMedia(
+    const stream = await getNoiseStream(
       {audio: false, video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const videoTrack = stream.getVideoTracks()[0];
-    t.add_cleanup(() => videoTrack.stop());
     pc1.addTrack(videoTrack, stream);
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
