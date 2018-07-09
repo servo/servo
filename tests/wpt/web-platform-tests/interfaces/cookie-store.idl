@@ -3,6 +3,10 @@
 dictionary CookieListItem {
   USVString name;
   USVString value;
+  USVString? domain;
+  USVString path;
+  DOMTimeStamp? expires;
+  boolean secure;
 };
 
 typedef sequence<CookieListItem> CookieList;
@@ -35,7 +39,7 @@ dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
 
 enum CookieMatchType {
   "equals",
-  "startsWith"
+  "starts-with"
 };
 
 dictionary CookieStoreGetOptions {
@@ -62,9 +66,6 @@ dictionary CookieStoreSetOptions {
 
   Promise<CookieListItem?> get(USVString name, optional CookieStoreGetOptions options);
   Promise<CookieListItem?> get(optional CookieStoreGetOptions options);
-
-  Promise<boolean> has(USVString name, optional CookieStoreGetOptions options);
-  Promise<boolean> has(optional CookieStoreGetOptions options);
 
   Promise<void> set(USVString name, USVString value, optional CookieStoreSetOptions options);
   Promise<void> set(CookieStoreSetOptions options);

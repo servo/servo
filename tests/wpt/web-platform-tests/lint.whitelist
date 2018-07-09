@@ -110,6 +110,7 @@ CONSOLE: streams/resources/test-utils.js
 CONSOLE: service-workers/service-worker/resources/navigation-redirect-other-origin.html
 CONSOLE: service-workers/service-worker/navigation-redirect.https.html
 CONSOLE: service-workers/service-worker/resources/clients-get-other-origin.html
+CONSOLE: webrtc/tools/*
 
 # use of console in a public library - annotation-model ensures
 # it is not actually used

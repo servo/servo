@@ -106,6 +106,8 @@
 
 # Tests of shape-outside layout behavior with too-wide inline elements
 == float-retry-push-circle.html float-retry-push-ref.html
+# The next test offsets a 250px wide element up to one pixel due to small offsets in gradient generation.
 == float-retry-push-image.html float-retry-push-ref.html
 == float-retry-push-inset.html float-retry-push-ref.html
 == float-retry-push-polygon.html float-retry-push-ref.html
+== float-should-push.html float-should-push-ref.html
