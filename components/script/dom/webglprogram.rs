@@ -18,6 +18,7 @@ use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use fnv::FnvHashSet;
 use std::cell::{Cell, Ref};
 
 #[dom_struct]
@@ -121,6 +122,26 @@ impl WebGLProgram {
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer.send(WebGLCommand::LinkProgram(self.id, sender)).unwrap();
         let link_info = receiver.recv().unwrap();
+
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.31
+        let mut used_locs = FnvHashSet::default();
+        for active_attrib in &*link_info.active_attribs {
+            if active_attrib.location == -1 {
+                continue;
+            }
+            let columns = match active_attrib.type_ {
+                constants::FLOAT_MAT2 => 2,
+                constants::FLOAT_MAT3 => 3,
+                constants::FLOAT_MAT4 => 4,
+                _ => 1,
+            };
+            for column in 0..columns {
+                if !used_locs.insert(active_attrib.location as u32 + column) {
+                    return Ok(());
+                }
+            }
+        }
+
         self.linked.set(link_info.linked);
         *self.active_attribs.borrow_mut() = link_info.active_attribs;
         Ok(())
