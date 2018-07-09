@@ -1,3 +1,4 @@
+import sys
 import unittest
 import uuid
 
@@ -14,6 +15,7 @@ class TestResponseSetCookie(TestUsingServer):
         with StashServer(None, authkey=str(uuid.uuid4())):
             super(TestResponseSetCookie, self).run(result)
 
+    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_put_take(self):
         @wptserve.handlers.handler
         def handler(request, response):

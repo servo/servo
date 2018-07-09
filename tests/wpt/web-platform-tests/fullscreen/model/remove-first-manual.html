@@ -10,7 +10,9 @@
 <script>
 async_test(function(t)
 {
-    t.add_cleanup(() => document.exitFullscreen());
+    t.add_cleanup(() => {
+        Promise.resolve(document.exitFullscreen()).catch(() => {});
+    });
     var first = document.getElementById("first");
     trusted_request(t, first);
     document.onfullscreenchange = t.step_func(function(event)

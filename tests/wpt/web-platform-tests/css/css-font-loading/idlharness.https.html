@@ -6,25 +6,24 @@
 <script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <script>
-"use strict";
+'use strict';
 
-function doTest([dom, cssfontloading]) {
+promise_test(async () => {
+  const srcs = ['css-font-loading', 'dom', 'html', 'cssom'];
+  const [cssfontloading, dom, html, cssom] = await Promise.all(
+      srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
+
   const idl_array = new IdlArray();
-  idl_array.add_untested_idls(dom);
-  idl_array.add_untested_idls("[Exposed=Worker] interface WorkerGlobalScope : EventTarget { };");
-  idl_array.add_objects({Document: ["document"]});
   idl_array.add_idls(cssfontloading);
+  idl_array.add_dependency_idls(dom);
+  idl_array.add_dependency_idls(html);
+  idl_array.add_dependency_idls(cssom);
+  idl_array.add_objects({
+    Document: ['document'],
+    FontFace: ['new FontFace("family", "src")'],
+    FontFaceSetLoadEvent: ['new FontFaceSetLoadEvent("type")'],
+    FontFaceSet: ['document.fonts'],
+  });
   idl_array.test();
-}
-
-function fetchText(url) {
-  return fetch(url).then((response) => response.text());
-}
-
-promise_test(() => {
-  return Promise.all([
-    "/interfaces/dom.idl",
-    "/interfaces/css-font-loading.idl",
-  ].map(fetchText)).then(doTest);
-}, "Test IDL implementation of CSS Font Loading");
+}, 'css-font-loading interfaces');
 </script>

@@ -7,31 +7,26 @@
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <style>
-    :root {
-      --focus-background: hsl(50, 94%, 72%);
-      --focus-ring-color: rgb(59, 153, 252);
-    }
-
     :focus-visible {
-      outline: var(--focus-ring-color) auto 5px;
+      outline: red dotted 1px; /* fallback for Edge */
+      outline: red auto 5px;
     }
 
-    * {
+    :focus:not(:focus-visible) {
       outline: 0;
-    }
-
-    :focus {
-      background-color: var(--focus-background);
+      background-color: darkseagreen;
     }
   </style>
 </head>
 <body>
-  This test checks that programmatically focusing an element causes <code>:focus-visible</code> matching to trigger.
+  This test checks that programmatically focusing an element after a click does not cause <code>:focus-visible</code> matching to trigger.
   <ol id="instructions">
     <li>If the user-agent does not claim to support the <code>:focus-visible</code> pseudo-class then SKIP this test.</li>
     <li>Click the button below that says "Click me."</li>
-    <li>If the element that says "I will be focused programmatically." does not have a blue outline, then the test result is FAILURE. If the element has a blue outline, then the test result is SUCCESS.</li>
+    <li>If the element that says "I will be focused programmatically." has a red outline, then the test result is FAILURE. If the element has a green background, then the test result is SUCCESS.</li>
   </ol>
   <br />
   <button id="button">Click me.</button>
@@ -41,12 +36,12 @@
       el.focus();
     });
     async_test(function(t) {
-      el.addEventListener("focus", t.step_func(() => {
-        assert_equals(getComputedStyle(el).outlineColor, "rgb(59, 153, 252)");
+      el.addEventListener("focus", t.step_func(function() {
+        assert_equals(getComputedStyle(el).outlineStyle, "none");
         t.done();
       }));
-      el.focus();
-    }, "Programmatic focus should always match :focus-visible");
+      test_driver.click(button);
+    }, "Programmatic focus after click should not match :focus-visible");
   </script>
 </body>
 </html>

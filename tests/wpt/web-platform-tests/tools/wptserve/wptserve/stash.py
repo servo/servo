@@ -4,6 +4,7 @@ import os
 import uuid
 import threading
 from multiprocessing.managers import AcquirerProxy, BaseManager, DictProxy
+from six import text_type
 
 class ServerDictManager(BaseManager):
     shared_data = {}
@@ -42,14 +43,16 @@ def load_env_config():
         address = tuple(address)
     else:
         address = str(address)
-    authkey = base64.decodestring(authkey)
+    authkey = base64.b64decode(authkey)
     return address, authkey
 
 def store_env_config(address, authkey):
-    authkey = base64.encodestring(authkey)
-    os.environ["WPT_STASH_CONFIG"] = json.dumps((address, authkey))
+    authkey = base64.b64encode(authkey)
+    os.environ["WPT_STASH_CONFIG"] = json.dumps((address, authkey.decode("ascii")))
 
 def start_server(address=None, authkey=None):
+    if isinstance(authkey, text_type):
+        authkey = authkey.encode("ascii")
     manager = ServerDictManager(address, authkey)
     manager.start()
 

@@ -56,6 +56,7 @@ testText("<div><span>abc </span><span style='white-space:pre'></span> def", "abc
 /**** Soft line breaks ****/
 
 testText("<div style='width:0'>abc def", "abc def", "Soft line breaks ignored");
+testText("<div style='width:0'><span>abc</span> <span>def</span>", "abc def", "Whitespace text node preserved");
 
 /**** first-line/first-letter ****/
 

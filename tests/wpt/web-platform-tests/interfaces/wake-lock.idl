@@ -1,12 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Wake Lock API" spec.
+// See: https://w3c.github.io/wake-lock/
+
 enum WakeLockType {
     "screen",
     "system"
 };
-
 partial interface Navigator {
     [SecureContext] Promise<WakeLock> getWakeLock(WakeLockType type);
 };
-
 [SecureContext,
  Exposed=Window]
 interface WakeLock : EventTarget {
@@ -15,7 +18,6 @@ interface WakeLock : EventTarget {
              attribute EventHandler onactivechange;
     WakeLockRequest createRequest();
 };
-
 [SecureContext,
  Exposed=Window]
 interface WakeLockRequest {

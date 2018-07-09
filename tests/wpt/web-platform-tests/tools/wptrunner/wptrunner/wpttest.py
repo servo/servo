@@ -9,13 +9,14 @@ enabled_tests = set(["testharness", "reftest", "wdspec"])
 
 
 class Result(object):
-    def __init__(self, status, message, expected=None, extra=None):
+    def __init__(self, status, message, expected=None, extra=None, stack=None):
         if status not in self.statuses:
             raise ValueError("Unrecognised status %s" % status)
         self.status = status
         self.message = message
         self.expected = expected
-        self.extra = extra
+        self.extra = extra if extra is not None else {}
+        self.stack = stack
 
     def __repr__(self):
         return "<%s.%s %s>" % (self.__module__, self.__class__.__name__, self.status)
@@ -165,15 +166,14 @@ class Test(object):
             return self._test_metadata
 
     def itermeta(self, subtest=None):
-        for metadata in self._inherit_metadata:
-            yield metadata
-
         if self._test_metadata is not None:
-            yield self._get_metadata()
             if subtest is not None:
                 subtest_meta = self._get_metadata(subtest)
                 if subtest_meta is not None:
                     yield subtest_meta
+            yield self._get_metadata()
+        for metadata in reversed(self._inherit_metadata):
+            yield metadata
 
     def disabled(self, subtest=None):
         for meta in self.itermeta(subtest):
@@ -199,15 +199,30 @@ class Test(object):
         return False
 
     @property
+    def min_assertion_count(self):
+        for meta in self.itermeta(None):
+            count = meta.min_assertion_count
+            if count is not None:
+                return count
+        return 0
+
+    @property
+    def max_assertion_count(self):
+        for meta in self.itermeta(None):
+            count = meta.max_assertion_count
+            if count is not None:
+                return count
+        return 0
+
+    @property
     def tags(self):
         tags = set()
         for meta in self.itermeta():
             meta_tags = meta.tags
+            tags |= meta_tags
             if atom_reset in meta_tags:
-                tags = meta_tags.copy()
                 tags.remove(atom_reset)
-            else:
-                tags |= meta_tags
+                break
 
         tags.add("dir:%s" % self.id.lstrip("/").split("/")[0])
 
@@ -218,11 +233,10 @@ class Test(object):
         prefs = {}
         for meta in self.itermeta():
             meta_prefs = meta.prefs
-            if atom_reset in prefs:
-                prefs = meta_prefs.copy()
+            prefs.update(meta_prefs)
+            if atom_reset in meta_prefs:
                 del prefs[atom_reset]
-            else:
-                prefs.update(meta_prefs)
+                break
         return prefs
 
     def expected(self, subtest=None):

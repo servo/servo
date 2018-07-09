@@ -1,9 +1,9 @@
 #!/usr/bin/python
-import urlparse
+from six.moves import urllib
 
 
 def web_socket_do_extra_handshake(request):
-    url_parts = urlparse.urlsplit(request.uri)
+    url_parts = urllib.parse.urlsplit(request.uri)
     request.extra_headers.append(('Set-Cookie', 'ws_test_'+(url_parts.query or '')+'=test; Secure; Path=/'))
 
 def web_socket_transfer_data(request):

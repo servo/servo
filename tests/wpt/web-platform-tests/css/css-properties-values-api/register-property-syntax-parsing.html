@@ -10,7 +10,7 @@ function assert_valid(syntax, initialValue) {
     // No actual assertions, this just shouldn't throw
     test(function() {
         var name = '--syntax-test-' + (test_count++);
-        CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue});
+        CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false});
     }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is valid");
 }
 
@@ -18,7 +18,7 @@ function assert_invalid(syntax, initialValue) {
     test(function(){
         var name = '--syntax-test-' + (test_count++);
         assert_throws(new SyntaxError(),
-            () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue}));
+            () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false}));
     }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is invalid");
 }
 
