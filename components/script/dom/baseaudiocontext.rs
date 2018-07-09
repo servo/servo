@@ -6,12 +6,15 @@ use dom::audiobuffer::AudioBuffer;
 use dom::audiobuffersourcenode::AudioBufferSourceNode;
 use dom::audiodestinationnode::AudioDestinationNode;
 use dom::audionode::MAX_CHANNEL_COUNT;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
+use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -20,6 +23,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::DomRoot;
+use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
 use dom::gainnode::GainNode;
 use dom::globalscope::GlobalScope;
@@ -28,18 +32,31 @@ use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::ServoMedia;
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::ArrayBuffer;
 use servo_media::audio::context::{AudioContext, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
+use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
 use std::cell::Cell;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use task_source::TaskSource;
+use uuid::Uuid;
 
 pub enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
     OfflineAudioContext(OfflineAudioContextOptions),
+}
+
+#[derive(JSTraceable)]
+#[allow(unrooted_must_root)]
+struct DecodeResolver {
+    pub promise: Rc<Promise>,
+    pub success_callback: Option<Rc<DecodeSuccessCallback>>,
+    pub error_callback: Option<Rc<DecodeErrorCallback>>,
 }
 
 #[dom_struct]
@@ -55,6 +72,8 @@ pub struct BaseAudioContext {
     /// https://webaudio.github.io/web-audio-api/#pendingresumepromises
     #[ignore_malloc_size_of = "promises are hard"]
     pending_resume_promises: DomRefCell<Vec<Rc<Promise>>>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    decode_resolvers: DomRefCell<HashMap<String, DecodeResolver>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-samplerate
     sample_rate: f32,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-state
@@ -85,6 +104,7 @@ impl BaseAudioContext {
             destination: None,
             in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
+            decode_resolvers: Default::default(),
             sample_rate,
             state: Cell::new(AudioContextState::Suspended),
         };
@@ -290,13 +310,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
                     length: u32,
                     sample_rate: Finite<f32>) -> Fallible<DomRoot<AudioBuffer>> {
         if number_of_channels <= 0 ||
-           number_of_channels > MAX_CHANNEL_COUNT ||
-           length <= 0 ||
-           *sample_rate <= 0. {
-            return Err(Error::NotSupported);
-        }
+            number_of_channels > MAX_CHANNEL_COUNT ||
+                length <= 0 ||
+                *sample_rate <= 0. {
+                    return Err(Error::NotSupported);
+                }
         let global = self.global();
-        Ok(AudioBuffer::new(&global.as_window(), number_of_channels, length, *sample_rate))
+        Ok(AudioBuffer::new(&global.as_window(), number_of_channels, length, *sample_rate, None))
     }
 
     #[allow(unsafe_code)]
@@ -306,6 +326,78 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let options = unsafe { AudioBufferSourceOptions::empty(global.get_cx()) };
         AudioBufferSourceNode::new(&global.as_window(), &self, &options)
     }
+
+    #[allow(unrooted_must_root)]
+    fn DecodeAudioData(&self,
+                       audio_data: CustomAutoRooterGuard<ArrayBuffer>,
+                       decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
+                       decode_error_callback: Option<Rc<DecodeErrorCallback>>)
+        -> Rc<Promise> {
+            // Step 1.
+            let promise = Promise::new(&self.global());
+
+            if audio_data.len() > 0 {
+                // Step 2.
+                // XXX detach array buffer.
+                let uuid = Uuid::new_v4().simple().to_string();
+                let uuid_ = uuid.clone();
+                self.decode_resolvers.borrow_mut().insert(uuid.clone(), DecodeResolver {
+                    promise: promise.clone(),
+                    success_callback: decode_success_callback,
+                    error_callback: decode_error_callback,
+                });
+                let audio_data = audio_data.to_vec();
+                let decoded_audio = Arc::new(Mutex::new(Vec::new()));
+                let decoded_audio_ = decoded_audio.clone();
+                let this = Trusted::new(self);
+                let this_ = this.clone();
+                let callbacks = AudioDecoderCallbacks::new()
+                    .eos(move || {
+                        let this = this_.root();
+                        let decoded_audio = decoded_audio.lock().unwrap();
+                        let buffer = AudioBuffer::new(
+                            &this.global().as_window(),
+                            1, // XXX servo-media should provide this info
+                            decoded_audio.len() as u32,
+                            this.sample_rate,
+                            Some(decoded_audio.as_slice()));
+                        let mut resolvers = this.decode_resolvers.borrow_mut();
+                        assert!(resolvers.contains_key(&uuid_));
+                        let resolver = resolvers.remove(&uuid_).unwrap();
+                        if let Some(callback) = resolver.success_callback {
+                            let _ = callback.Call__(&buffer, ExceptionHandling::Report);
+                        }
+                        resolver.promise.resolve_native(&buffer);
+                    })
+                .error(move || {
+                    let this = this.root();
+                    let mut resolvers = this.decode_resolvers.borrow_mut();
+                    assert!(resolvers.contains_key(&uuid));
+                    let resolver = resolvers.remove(&uuid).unwrap();
+                    if let Some(callback) = resolver.error_callback {
+                        let _ = callback.Call__(
+                            &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
+                            ExceptionHandling::Report);
+                    }
+                    resolver.promise.reject_error(Error::Type("Audio decode error".to_owned()));
+                })
+                .progress(move |buffer| {
+                    decoded_audio_
+                        .lock()
+                        .unwrap()
+                        .extend_from_slice((*buffer).as_ref());
+                })
+                .build();
+                self.audio_context_impl.decode_audio_data(audio_data, callbacks);
+            } else {
+                // Step 3.
+                promise.reject_error(Error::DataClone);
+                return promise;
+            }
+
+            // Step 4.
+            promise
+        }
 }
 
 impl From<ProcessingState> for AudioContextState {
