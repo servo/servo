@@ -11,10 +11,10 @@ promise_test(async () => {
   assert_equals(msg_event.data, 'TypeError');
 }, 'importScripts() on module worker should throw an exception.');
 
-promise_test(async () => {
+promise_test(() => {
   const scriptURL = 'resources/static-import-worker.js';
   const worker = new Worker(scriptURL, { type: 'classic' });
-  await new Promise(resolve => worker.onerror = resolve);
+  return new Promise(resolve => worker.onerror = resolve);
 }, 'Static import on classic worker should throw an exception.');
 
 promise_test(() => {
@@ -31,12 +31,22 @@ promise_test(() => {
 }, 'Static import for non-existent script should dispatch an ErrorEvent.');
 
 promise_test(async () => {
-  const script_url = './non-existent-worker.js';
+  const scriptURL = './non-existent-worker.js';
   const worker = new Worker('resources/dynamic-import-given-url-worker.js',
                             { type: 'module' });
-  worker.postMessage(script_url);
+  worker.postMessage(scriptURL);
   const msg_event = await new Promise(resolve => worker.onmessage = resolve);
   assert_equals(msg_event.data, 'TypeError');
 }, 'Dynamic import for non-existent script should throw an exception.');
+
+test(() => {
+  const scriptURL = 'http://invalid:123$';
+  assert_throws('SyntaxError', () => new Worker(scriptURL, { type: 'module' }));
+}, 'Worker construction for an invalid URL should throw an exception.');
+
+test(() => {
+  const scriptURL = 'file:///static-import-worker.js';
+  assert_throws('SecurityError', () => new Worker(scriptURL, { type: 'module' }));
+}, 'Worker construction for a file URL should throw an exception.');
 
 </script>

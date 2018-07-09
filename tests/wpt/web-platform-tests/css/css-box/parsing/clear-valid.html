@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing clear with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-clear">
+<meta name="assert" content="clear supports the full grammar 'none | left | right | both'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("clear", "none");
+test_valid_value("clear", "left");
+test_valid_value("clear", "right");
+test_valid_value("clear", "both");
+</script>
+</body>
+</html>

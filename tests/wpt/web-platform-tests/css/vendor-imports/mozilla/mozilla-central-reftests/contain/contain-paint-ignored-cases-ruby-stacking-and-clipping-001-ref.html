@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang=en>
+  <head>
+    <meta charset=utf-8>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Yusuf Sermet" href="mailto:ysermet@mozilla.com">
+    <style>
+      div {
+        position: relative;
+      }
+      rbc {
+        display: ruby-base-container;
+      }
+      .contained {
+        z-index: 5;
+        width: 70px;
+        height: 10px;
+        background-color: blue;
+        margin-left: -25px;
+      }
+      .background {
+        display: inline-block;
+        background-color: yellow;
+        height: 50px;
+        width: 50px;
+        position: fixed;
+        z-index: 2;
+      }
+      .group {
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rb>&emsp;<div class="contained"></div></rb></ruby>
+    </div>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rbc>&emsp;<div class="contained"></div></rbc></ruby>
+    </div>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rt>&emsp;<div class="contained"></div></rt></ruby>
+    </div>
+    <div class="group">
+      <div class="background"></div>
+      <ruby><rtc>&emsp;<div class="contained"></div></rtc></ruby>
+    </div>
+  </body>
+</html>

@@ -9,5 +9,10 @@
 == contain-paint-containing-block-fixed-001.html contain-paint-containing-block-fixed-001-ref.html
 == contain-paint-formatting-context-float-001.html contain-paint-formatting-context-float-001-ref.html
 == contain-paint-formatting-context-margin-001.html contain-paint-formatting-context-margin-001-ref.html
+== contain-paint-ignored-cases-internal-table-001a.html contain-paint-ignored-cases-internal-table-001-ref.html
+== contain-paint-ignored-cases-internal-table-001b.html contain-paint-ignored-cases-internal-table-001-ref.html
+== contain-paint-ignored-cases-no-principal-box-001.html contain-paint-ignored-cases-no-principal-box-001-ref.html
+== contain-paint-ignored-cases-ruby-containing-block-001.html contain-paint-ignored-cases-ruby-containing-block-001-ref.html
+== contain-paint-ignored-cases-ruby-stacking-and-clipping-001.html contain-paint-ignored-cases-ruby-stacking-and-clipping-001-ref.html
 == contain-paint-stacking-context-001a.html contain-paint-stacking-context-001-ref.html
 == contain-paint-stacking-context-001b.html contain-paint-stacking-context-001-ref.html

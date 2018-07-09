@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Media Session Standard" spec.
+// See: https://wicg.github.io/mediasession/
+
 [Exposed=Window]
 partial interface Navigator {
   [SameObject] readonly attribute MediaSession mediaSession;
@@ -23,7 +28,9 @@ callback MediaSessionActionHandler = void();
 [Exposed=Window]
 interface MediaSession {
   attribute MediaMetadata? metadata;
+
   attribute MediaSessionPlaybackState playbackState;
+
   void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
 };
 

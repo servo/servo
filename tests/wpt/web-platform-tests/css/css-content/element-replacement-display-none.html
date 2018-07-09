@@ -1,0 +1,12 @@
+<!doctype html>
+<title>The content CSS property doesn't override display: none</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="match" href="resources/blank.html">
+<link rel="help" href="https://drafts.csswg.org/css-content-3/#content-property">
+<style>
+  div {
+    display: none;
+    content: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==);
+  }
+</style>
+<div>FAIL</div>

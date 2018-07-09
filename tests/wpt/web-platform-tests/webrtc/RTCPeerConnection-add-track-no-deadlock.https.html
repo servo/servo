@@ -14,8 +14,8 @@
     t.add_cleanup(() => pc1.close());
     const stream = await navigator.mediaDevices.getUserMedia(
       {audio: false, video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const videoTrack = stream.getVideoTracks()[0];
-    t.add_cleanup(() => videoTrack.stop());
     pc1.addTrack(videoTrack, stream);
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
