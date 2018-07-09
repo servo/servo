@@ -39,13 +39,17 @@ impl AnimationRules {
     }
 }
 
-/// Whether a given declaration comes from CSS parsing, or from CSSOM.
+/// Enum for how a given declaration should be pushed into a declaration block.
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-pub enum DeclarationSource {
-    /// The declaration was obtained from CSS parsing of sheets and such.
+pub enum DeclarationPushMode {
+    /// Mode used when declarations were obtained from CSS parsing.
+    /// If there is an existing declaration of the same property with a higher
+    /// importance, the new declaration will be discarded. Otherwise, it will
+    /// be appended to the end of the declaration block.
     Parsing,
-    /// The declaration was obtained from CSSOM.
-    CssOm,
+    /// In this mode, the new declaration is always pushed to the end of the
+    /// declaration block. This is for CSSOM.
+    Append,
 }
 
 /// A declaration [importance][importance].
@@ -418,10 +422,10 @@ impl PropertyDeclarationBlock {
         &mut self,
         mut drain: SourcePropertyDeclarationDrain,
         importance: Importance,
-        source: DeclarationSource,
+        mode: DeclarationPushMode,
     ) -> bool {
-        match source {
-            DeclarationSource::Parsing => {
+        match mode {
+            DeclarationPushMode::Parsing => {
                 let all_shorthand_len = match drain.all_shorthand {
                     AllShorthand::NotSet => 0,
                     AllShorthand::CSSWideKeyword(_) |
@@ -433,7 +437,7 @@ impl PropertyDeclarationBlock {
                 // With deduplication the actual length increase may be less than this.
                 self.declarations.reserve(push_calls_count);
             }
-            DeclarationSource::CssOm => {
+            _ => {
                 // Don't bother reserving space, since it's usually the case
                 // that CSSOM just overrides properties and we don't need to use
                 // more memory. See bug 1424346 for an example where this
@@ -448,7 +452,7 @@ impl PropertyDeclarationBlock {
             changed |= self.push(
                 decl,
                 importance,
-                source,
+                mode,
             );
         }
         match drain.all_shorthand {
@@ -461,7 +465,7 @@ impl PropertyDeclarationBlock {
                     changed |= self.push(
                         decl,
                         importance,
-                        source,
+                        mode,
                     );
                 }
             }
@@ -473,7 +477,7 @@ impl PropertyDeclarationBlock {
                     changed |= self.push(
                         decl,
                         importance,
-                        source,
+                        mode,
                     );
                 }
             }
@@ -483,22 +487,16 @@ impl PropertyDeclarationBlock {
 
     /// Adds or overrides the declaration for a given property in this block.
     ///
-    /// Depending on the value of `source`, this has a different behavior in the
+    /// Depending on the value of `mode`, this has a different behavior in the
     /// presence of another declaration with the same ID in the declaration
     /// block.
-    ///
-    ///   * For `DeclarationSource::Parsing`, this will not override a
-    ///     declaration with more importance, and will ensure that, if inserted,
-    ///     it's inserted at the end of the declaration block.
-    ///
-    ///   * For `DeclarationSource::CssOm`, this will override importance.
     ///
     /// Returns whether the declaration has changed.
     pub fn push(
         &mut self,
         declaration: PropertyDeclaration,
         importance: Importance,
-        source: DeclarationSource,
+        mode: DeclarationPushMode,
     ) -> bool {
         let longhand_id = match declaration.id() {
             PropertyDeclarationId::Longhand(id) => Some(id),
@@ -516,7 +514,7 @@ impl PropertyDeclarationBlock {
                     continue;
                 }
 
-                if matches!(source, DeclarationSource::Parsing) {
+                if matches!(mode, DeclarationPushMode::Parsing) {
                     let important = self.declarations_importance[i];
 
                     // For declarations from parsing, non-important declarations
@@ -1209,7 +1207,7 @@ pub fn parse_property_declaration_list(
                 block.extend(
                     iter.parser.declarations.drain(),
                     importance,
-                    DeclarationSource::Parsing,
+                    DeclarationPushMode::Parsing,
                 );
             }
             Err((error, slice)) => {
