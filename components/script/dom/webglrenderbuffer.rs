@@ -106,8 +106,6 @@ impl WebGLRenderbuffer {
             _ => return Err(WebGLError::InvalidEnum),
         };
 
-        // FIXME: Check that w/h are < MAX_RENDERBUFFER_SIZE
-
         // FIXME: Invalidate completeness after the call
 
         let msg = WebGLCommand::RenderbufferStorage(constants::RENDERBUFFER, internal_format, width, height);

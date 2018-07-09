@@ -3863,27 +3863,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
-    fn RenderbufferStorage(&self, target: u32, internal_format: u32,
-                           width: i32, height: i32) {
-        // From the GLES 2.0.25 spec:
-        //
-        //    "target must be RENDERBUFFER."
+    fn RenderbufferStorage(&self, target: u32, internal_format: u32, width: i32, height: i32) {
         if target != constants::RENDERBUFFER {
             return self.webgl_error(InvalidEnum);
         }
 
-        // From the GLES 2.0.25 spec:
-        //
-        //     "If either width or height is greater than the value of
-        //      MAX_RENDERBUFFER_SIZE , the error INVALID_VALUE is
-        //      generated."
-        //
-        // and we have to throw out negative-size values as well just
-        // like for TexImage.
-        //
-        // FIXME: Handle max_renderbuffer_size, which doesn't seem to
-        // be in limits.
-        if width < 0 || height < 0 {
+        let max = self.limits.max_renderbuffer_size;
+
+        if width < 0 || width as u32 > max || height < 0 || height as u32 > max {
             return self.webgl_error(InvalidValue);
         }
 
