@@ -2,7 +2,7 @@ import socket
 
 def invert_dict(dict):
     rv = {}
-    for key, values in dict.iteritems():
+    for key, values in dict.items():
         for value in values:
             if value in rv:
                 raise ValueError

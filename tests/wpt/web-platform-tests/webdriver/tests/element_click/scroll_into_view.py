@@ -21,7 +21,7 @@ def test_scroll_into_view(session):
 
     # Check if element clicked is scrolled into view
     assert session.execute_script("""
-        let [input] = arguments;
+        let input = arguments[0];
         rect = input.getBoundingClientRect();
         return rect["top"] >= 0 && rect["left"] >= 0 &&
             (rect["top"] + rect["height"]) <= window.innerHeight &&

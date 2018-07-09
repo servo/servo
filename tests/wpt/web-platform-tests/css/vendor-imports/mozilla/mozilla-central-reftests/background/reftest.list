@@ -36,3 +36,6 @@
 
 # background-attachment test cases
 == background-attachment-fixed-inside-transform-1.html background-attachment-fixed-inside-transform-1-ref.html
+
+# box-shadow with currentcolor test cases
+== box-shadow-currentcolor.html box-shadow-currentcolor-ref.html

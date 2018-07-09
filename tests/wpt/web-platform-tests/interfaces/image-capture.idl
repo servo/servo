@@ -1,0 +1,151 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "MediaStream Image Capture" spec.
+// See: https://w3c.github.io/mediacapture-image/
+
+[Exposed=Window, Constructor(MediaStreamTrack videoTrack)]
+interface ImageCapture {
+   Promise<Blob>              takePhoto(optional PhotoSettings photoSettings);
+   Promise<PhotoCapabilities> getPhotoCapabilities();
+   Promise<PhotoSettings>     getPhotoSettings();
+
+   Promise<ImageBitmap>       grabFrame();
+
+   readonly attribute MediaStreamTrack track;
+};
+
+[Exposed=Window] interface PhotoCapabilities {
+  readonly attribute RedEyeReduction            redEyeReduction;
+  readonly attribute MediaSettingsRange         imageHeight;
+  readonly attribute MediaSettingsRange         imageWidth;
+  readonly attribute FrozenArray<FillLightMode> fillLightMode;
+};
+
+dictionary PhotoSettings {
+  FillLightMode   fillLightMode;
+  double          imageHeight;
+  double          imageWidth;
+  boolean         redEyeReduction;
+};
+
+[Exposed=Window] interface MediaSettingsRange {
+    readonly attribute double max;
+    readonly attribute double min;
+    readonly attribute double step;
+};
+
+enum RedEyeReduction {
+  "never",
+  "always",
+  "controllable"
+};
+
+enum FillLightMode {
+  "auto",
+  "off",
+  "flash"
+};
+
+partial dictionary MediaTrackSupportedConstraints {
+  boolean whiteBalanceMode = true;
+  boolean exposureMode = true;
+  boolean focusMode = true;
+  boolean pointsOfInterest = true;
+
+  boolean exposureCompensation = true;
+  boolean exposureTime = true;
+  boolean colorTemperature = true;
+  boolean iso = true;
+
+  boolean brightness = true;
+  boolean contrast = true;
+  boolean saturation = true;
+  boolean sharpness = true;
+  boolean focusDistance = true;
+  boolean zoom = true;
+  boolean torch = true;
+};
+
+partial dictionary MediaTrackCapabilities {
+  sequence<DOMString>  whiteBalanceMode;
+  sequence<DOMString>  exposureMode;
+  sequence<DOMString>  focusMode;
+
+  MediaSettingsRange   exposureCompensation;
+  MediaSettingsRange   exposureTime;
+  MediaSettingsRange   colorTemperature;
+  MediaSettingsRange   iso;
+
+  MediaSettingsRange   brightness;
+  MediaSettingsRange   contrast;
+  MediaSettingsRange   saturation;
+  MediaSettingsRange   sharpness;
+
+  MediaSettingsRange   focusDistance;
+  MediaSettingsRange   zoom;
+
+  boolean              torch;
+};
+
+partial dictionary MediaTrackConstraintSet {
+  ConstrainDOMString whiteBalanceMode;
+  ConstrainDOMString exposureMode;
+  ConstrainDOMString focusMode;
+  ConstrainPoint2D   pointsOfInterest;
+
+  ConstrainDouble    exposureCompensation;
+  ConstrainDouble    exposureTime;
+  ConstrainDouble    colorTemperature;
+  ConstrainDouble    iso;
+
+  ConstrainDouble    brightness;
+  ConstrainDouble    contrast;
+  ConstrainDouble    saturation;
+  ConstrainDouble    sharpness;
+
+  ConstrainDouble    focusDistance;
+  ConstrainDouble    zoom;
+
+  ConstrainBoolean   torch;
+};
+
+partial dictionary MediaTrackSettings {
+  DOMString         whiteBalanceMode;
+  DOMString         exposureMode;
+  DOMString         focusMode;
+  sequence<Point2D> pointsOfInterest;
+
+  double            exposureCompensation;
+  double            exposureTime;
+  double            colorTemperature;
+  double            iso;
+
+  double            brightness;
+  double            contrast;
+  double            saturation;
+  double            sharpness;
+
+  double            focusDistance;
+  double            zoom;
+
+  boolean           torch;
+};
+
+dictionary ConstrainPoint2DParameters {
+  sequence<Point2D> exact;
+  sequence<Point2D> ideal;
+};
+
+typedef (sequence<Point2D> or ConstrainPoint2DParameters) ConstrainPoint2D;
+
+enum MeteringMode {
+  "none",
+  "manual",
+  "single-shot",
+  "continuous"
+};
+
+dictionary Point2D {
+  double x = 0.0;
+  double y = 0.0;
+};

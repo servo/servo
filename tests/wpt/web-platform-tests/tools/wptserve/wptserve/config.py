@@ -3,7 +3,7 @@ import os
 
 from collections import defaultdict, Mapping
 
-import sslutils
+from . import sslutils
 from .utils import get_port
 
 

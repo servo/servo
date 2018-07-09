@@ -1,8 +1,19 @@
 // https://github.com/WICG/cookie-store/blob/gh-pages/explainer.md
 
+enum CookieSameSite {
+  "strict",
+  "lax",
+  "unrestricted"
+};
+
 dictionary CookieListItem {
   USVString name;
   USVString value;
+  USVString? domain;
+  USVString path;
+  DOMTimeStamp? expires;
+  boolean secure;
+  CookieSameSite sameSite;
 };
 
 typedef sequence<CookieListItem> CookieList;
@@ -14,6 +25,7 @@ dictionary CookieChangeEventInit : EventInit {
 
 [
   Exposed=Window,
+  SecureContext,
   Constructor(DOMString type, optional CookieChangeEventInit eventInitDict)
 ] interface CookieChangeEvent : Event {
   readonly attribute CookieList changed;
@@ -35,7 +47,7 @@ dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
 
 enum CookieMatchType {
   "equals",
-  "startsWith"
+  "starts-with"
 };
 
 dictionary CookieStoreGetOptions {
@@ -50,21 +62,20 @@ dictionary CookieStoreSetOptions {
   DOMTimeStamp? expires = null;
   USVString domain;
   USVString path = "/";
-  boolean? secure;
+  boolean secure = true;
   boolean httpOnly = false;
+  CookieSameSite sameSite = "strict";
 };
 
 [
-  Exposed=(ServiceWorker,Window)
+  Exposed=(ServiceWorker,Window),
+  SecureContext
 ] interface CookieStore : EventTarget {
   Promise<CookieList?> getAll(USVString name, optional CookieStoreGetOptions options);
   Promise<CookieList?> getAll(optional CookieStoreGetOptions options);
 
   Promise<CookieListItem?> get(USVString name, optional CookieStoreGetOptions options);
   Promise<CookieListItem?> get(optional CookieStoreGetOptions options);
-
-  Promise<boolean> has(USVString name, optional CookieStoreGetOptions options);
-  Promise<boolean> has(optional CookieStoreGetOptions options);
 
   Promise<void> set(USVString name, USVString value, optional CookieStoreSetOptions options);
   Promise<void> set(CookieStoreSetOptions options);
@@ -79,6 +90,7 @@ dictionary CookieStoreSetOptions {
   [Exposed=Window] attribute EventHandler onchange;
 };
 
+[SecureContext]
 partial interface Window {
   [Replaceable, SameObject] readonly attribute CookieStore cookieStore;
 };

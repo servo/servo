@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS basic box model: parsing height with valid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-box-3/#propdef-height">
+<meta name="assert" content="height supports the full grammar '[<length> | <percentage>] | available | min-content | max-content | fit-content | complex | auto'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("height", "auto");
+
+test_valid_value("height", "10px");
+test_valid_value("height", "20%");
+test_valid_value("height", "calc(2em + 3ex)");
+
+test_valid_value("height", "min-content");
+test_valid_value("height", "max-content");
+test_valid_value("height", "fit-content");
+
+// The following are not yet supported by browsers:
+// test_valid_value("height", "available");
+// test_valid_value("height", "complex");
+</script>
+</body>
+</html>

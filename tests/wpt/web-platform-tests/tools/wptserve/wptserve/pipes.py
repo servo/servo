@@ -7,7 +7,7 @@ import re
 import time
 import types
 import uuid
-from cStringIO import StringIO
+from six.moves import StringIO
 
 from six import text_type
 
