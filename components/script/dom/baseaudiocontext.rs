@@ -86,7 +86,6 @@ pub struct BaseAudioContext {
 
 impl BaseAudioContext {
     #[allow(unrooted_must_root)]
-    #[allow(unsafe_code)]
     pub fn new_inherited(
         global: &GlobalScope,
         options: BaseAudioContextOptions,
@@ -109,7 +108,7 @@ impl BaseAudioContext {
             state: Cell::new(AudioContextState::Suspended),
         };
 
-        let mut options = unsafe { AudioNodeOptions::empty(global.get_cx()) };
+        let mut options = AudioNodeOptions::empty();
         options.channelCount = Some(2);
         options.channelCountMode = Some(ChannelCountMode::Explicit);
         options.channelInterpretation = Some(ChannelInterpretation::Speakers);
@@ -287,21 +286,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
-    #[allow(unsafe_code)]
     fn CreateOscillator(&self) -> DomRoot<OscillatorNode> {
-        let global = self.global();
-        let window = global.as_window();
-        let options = unsafe { OscillatorOptions::empty(window.get_cx()) };
-        OscillatorNode::new(&window, &self, &options)
+        OscillatorNode::new(&self.global().as_window(), &self, &OscillatorOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain
-    #[allow(unsafe_code)]
     fn CreateGain(&self) -> DomRoot<GainNode> {
-        let global = self.global();
-        let window = global.as_window();
-        let options = unsafe { GainOptions::empty(window.get_cx()) };
-        GainNode::new(&window, &self, &options)
+        GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
@@ -315,16 +306,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
                 *sample_rate <= 0. {
                     return Err(Error::NotSupported);
                 }
-        let global = self.global();
-        Ok(AudioBuffer::new(&global.as_window(), number_of_channels, length, *sample_rate, None))
+        Ok(AudioBuffer::new(&self.global().as_window(), number_of_channels, length, *sample_rate, None))
     }
 
-    #[allow(unsafe_code)]
     fn CreateBufferSource(&self) -> DomRoot<AudioBufferSourceNode> {
-        let global = self.global();
-        // XXX Can we do this implementing Default?
-        let options = unsafe { AudioBufferSourceOptions::empty(global.get_cx()) };
-        AudioBufferSourceNode::new(&global.as_window(), &self, &options)
+        AudioBufferSourceNode::new(&self.global().as_window(), &self, &AudioBufferSourceOptions::empty())
     }
 
     #[allow(unrooted_must_root)]
