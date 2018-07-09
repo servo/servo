@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Transform Module Level 1: parsing transform-box with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-box-property">
+<meta name="assert" content="transform-box supports only the grammar 'content-box | border-box | fill-box | stroke-box | view-box'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("transform-box", "margin-box");
+test_invalid_value("transform-box", "padding-box");
+test_invalid_value("transform-box", "fill-box view-box");
+</script>
+</body>
+</html>

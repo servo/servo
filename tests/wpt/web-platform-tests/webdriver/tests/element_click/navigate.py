@@ -44,11 +44,12 @@ def test_link_unload_event(session, server_config):
             <a href={url}>click here</a>
             <input type=checkbox>
             <script>
-                function checkUnload() {
+                function checkUnload() {{
                     document.getElementsByTagName("input")[0].checked = true;
-                }
+                }}
             </script>
         </body>""".format(url=link))
+
     element = session.find.css("a", all=False)
     response = element_click(session, element)
     assert_success(response)
@@ -61,7 +62,7 @@ def test_link_unload_event(session, server_config):
 
     element = session.find.css("input", all=False)
     response = session.execute_script("""
-        let [input] = arguments;
+        let input = arguments[0];
         return input.checked;
         """, args=(element,))
     assert response is True
@@ -84,7 +85,7 @@ def test_link_hash(session):
 
     element = session.find.css("p", all=False)
     assert session.execute_script("""
-        let [input] = arguments;
+        let input = arguments[0];
         rect = input.getBoundingClientRect();
         return rect["top"] >= 0 && rect["left"] >= 0 &&
             (rect["top"] + rect["height"]) <= window.innerHeight &&

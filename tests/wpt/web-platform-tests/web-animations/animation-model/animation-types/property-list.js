@@ -997,23 +997,23 @@ const gCSSProperties = {
     types: [
     ]
   },
-  'offset-block-end': {
-    // https://drafts.csswg.org/css-logical-props/#propdef-offset-block-end
+  'inset-block-end': {
+    // https://drafts.csswg.org/css-logical-props/#propdef-inset-block-end
     types: [
     ]
   },
-  'offset-block-start': {
-    // https://drafts.csswg.org/css-logical-props/#propdef-offset-block-start
+  'inset-block-start': {
+    // https://drafts.csswg.org/css-logical-props/#propdef-inset-block-start
     types: [
     ]
   },
-  'offset-inline-end': {
-    // https://drafts.csswg.org/css-logical-props/#propdef-offset-inline-end
+  'inset-inline-end': {
+    // https://drafts.csswg.org/css-logical-props/#propdef-inset-inline-end
     types: [
     ]
   },
-  'offset-inline-start': {
-    // https://drafts.csswg.org/css-logical-props/#propdef-offset-inline-start
+  'inset-inline-start': {
+    // https://drafts.csswg.org/css-logical-props/#propdef-inset-inline-start
     types: [
     ]
   },

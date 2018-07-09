@@ -99,35 +99,55 @@ function run() {
 
     // The no-type syntax doesn't mix with the not and only keywords.
     query_should_be_parseable("(orientation)");
-    query_should_not_be_parseable("not (orientation)");
+    query_should_be_parseable("not (orientation)");
     query_should_not_be_parseable("only (orientation)");
     query_should_be_parseable("all and (orientation)");
     query_should_be_parseable("not all and (orientation)");
     query_should_be_parseable("only all and (orientation)");
 
+    query_should_not_be_parseable("not not (orientation)");
+    query_should_be_parseable("(orientation) and (orientation)");
+    query_should_be_parseable("(orientation) or (orientation)");
+    query_should_be_parseable("(orientation) or ((orientation) and ((orientation) or (orientation) or (not (orientation))))");
+
+    query_should_not_be_parseable("all and (orientation) or (orientation)");
+    query_should_be_parseable("all and (orientation) and (orientation)");
+
+    query_should_not_be_parseable("(orientation) and (orientation) or (orientation)");
+    query_should_not_be_parseable("(orientation) and not (orientation)");
+
+
     var features = [ "width", "height", "device-width", "device-height" ];
+    var separators = [ ":", ">", ">=", "=", "<=", "<" ];
     var feature;
     var i;
     for (i in features) {
       feature = features[i];
       expression_should_be_parseable(feature);
-      expression_should_be_parseable(feature + ": 0");
-      expression_should_be_parseable(feature + ": 0px");
-      expression_should_be_parseable(feature + ": 0em");
-      expression_should_be_parseable(feature + ": -0");
-      expression_should_be_parseable("min-" + feature + ": -0");
-      expression_should_be_parseable("max-" + feature + ": -0");
-      expression_should_be_parseable(feature + ": -0cm");
-      expression_should_be_parseable(feature + ": 1px");
-      expression_should_be_parseable(feature + ": 0.001mm");
-      expression_should_be_parseable(feature + ": 100000px");
-      expression_should_not_be_parseable(feature + ": -1px");
-      expression_should_not_be_parseable("min-" + feature + ": -1px");
-      expression_should_not_be_parseable("max-" + feature + ": -1px");
-      expression_should_not_be_parseable(feature + ": -0.00001mm");
-      expression_should_not_be_parseable(feature + ": -100000em");
       expression_should_not_be_parseable("min-" + feature);
       expression_should_not_be_parseable("max-" + feature);
+      for (let separator of separators) {
+        expression_should_be_parseable(feature + " " + separator + " 0");
+        expression_should_be_parseable(feature + " " + separator + " 0px");
+        expression_should_be_parseable(feature + " " + separator + " 0em");
+        expression_should_be_parseable(feature + " " + separator + " -0");
+        expression_should_be_parseable(feature + " " + separator + " -0cm");
+        expression_should_be_parseable(feature + " " + separator + " 1px");
+        expression_should_be_parseable(feature + " " + separator + " 0.001mm");
+        expression_should_be_parseable(feature + " " + separator + " 100000px");
+        if (separator == ":") {
+          expression_should_be_parseable("min-" + feature + " " + separator + " -0");
+          expression_should_be_parseable("max-" + feature + " " + separator + " -0");
+        } else {
+          expression_should_not_be_parseable("min-" + feature + " " + separator + " -0");
+          expression_should_not_be_parseable("max-" + feature + " " + separator + " -0");
+        }
+        expression_should_not_be_parseable(feature + " " + separator + " -1px");
+        expression_should_not_be_parseable("min-" + feature + " " + separator + " -1px");
+        expression_should_not_be_parseable("max-" + feature + " " + separator + " -1px");
+        expression_should_not_be_parseable(feature + " " + separator + " -0.00001mm");
+        expression_should_not_be_parseable(feature + " " + separator + " -100000em");
+      }
     }
 
     var content_div = document.getElementById("content");
@@ -142,15 +162,21 @@ function run() {
     iframe_style.height = height_val + "px";
     var device_width = window.screen.width;
     var device_height = window.screen.height;
-    features = { "width": width_val,
-                      "height": height_val,
-                      "device-width": device_width,
-                      "device-height": device_height };
+    features = {
+      "width": width_val,
+      "height": height_val,
+      "device-width": device_width,
+      "device-height": device_height
+    };
     for (feature in features) {
       var value = features[feature];
       should_apply("all and (" + feature + ": " + value + "px)");
+      should_apply("all and (" + feature + " = " + value + "px)");
       should_not_apply("all and (" + feature + ": " + (value + 1) + "px)");
       should_not_apply("all and (" + feature + ": " + (value - 1) + "px)");
+      should_not_apply("all and (" + feature + " = " + (value + 1) + "px)");
+      should_not_apply("all and (" + feature + " = " + (value - 1) + "px)");
+
       should_apply("all and (min-" + feature + ": " + value + "px)");
       should_not_apply("all and (min-" + feature + ": " + (value + 1) + "px)");
       should_apply("all and (min-" + feature + ": " + (value - 1) + "px)");
@@ -165,6 +191,21 @@ function run() {
                    (Math.ceil(value/em_size) + 1) + "em)");
       should_not_apply("all and (max-" + feature + ": " +
                        (Math.floor(value/em_size) - 1) + "em)");
+
+      should_apply("(" + feature + " <= " + value + "px)");
+      should_apply("(" + feature + " >= " + value + "px)");
+      should_not_apply("(" + feature + " < " + value + "px)");
+      should_not_apply("(" + feature + " > " + value + "px)");
+
+      should_apply("(" + feature + " < " + (value + 1) + "px)");
+      should_apply("(" + feature + " <= " + (value + 1) + "px)");
+      should_not_apply("(" + feature + " > " + (value + 1) + "px)");
+      should_not_apply("(" + feature + " >= " + (value + 1) + "px)");
+
+      should_apply("(" + feature + " > " + (value - 1) + "px)");
+      should_apply("(" + feature + " >= " + (value - 1) + "px)");
+      should_not_apply("(" + feature + " < " + (value - 1) + "px)");
+      should_not_apply("(" + feature + " <= " + (value - 1) + "px)");
     }
 
     iframe_style.width = "0";

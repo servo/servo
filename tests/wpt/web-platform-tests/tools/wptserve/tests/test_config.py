@@ -8,11 +8,11 @@ config = pytest.importorskip("wptserve.config")
 
 
 def test_renamed_are_renamed():
-    assert len(set(config._renamed_props.viewkeys()) & set(config.Config._default.viewkeys())) == 0
+    assert len(set(config._renamed_props.keys()) & set(config.Config._default.keys())) == 0
 
 
 def test_renamed_exist():
-    assert set(config._renamed_props.viewvalues()).issubset(set(config.Config._default.viewkeys()))
+    assert set(config._renamed_props.values()).issubset(set(config.Config._default.keys()))
 
 
 @pytest.mark.parametrize("base, override, expected", [
@@ -68,8 +68,9 @@ def test_init_renamed_host():
 def test_init_bogus():
     with pytest.raises(TypeError) as e:
         config.Config(foo=1, bar=2)
-    assert "foo" in e.value.message
-    assert "bar" in e.value.message
+    message = e.value.args[0]
+    assert "foo" in message
+    assert "bar" in message
 
 
 def test_getitem():
@@ -282,12 +283,12 @@ def test_domains_not_domains_intersection():
                       not_subdomains={"x", "y"})
     domains = c.domains
     not_domains = c.not_domains
-    assert len(set(domains.iterkeys()) ^ set(not_domains.iterkeys())) == 0
-    for host in domains.iterkeys():
+    assert len(set(domains.keys()) ^ set(not_domains.keys())) == 0
+    for host in domains.keys():
         host_domains = domains[host]
         host_not_domains = not_domains[host]
-        assert len(set(host_domains.iterkeys()) & set(host_not_domains.iterkeys())) == 0
-        assert len(set(host_domains.itervalues()) & set(host_not_domains.itervalues())) == 0
+        assert len(set(host_domains.keys()) & set(host_not_domains.keys())) == 0
+        assert len(set(host_domains.values()) & set(host_not_domains.values())) == 0
 
 
 def test_all_domains():
