@@ -64,9 +64,10 @@ class TestEnvironmentError(Exception):
 
 
 class TestEnvironment(object):
-    def __init__(self, test_paths, ssl_env, pause_after_test, debug_info, options, env_extras):
+    def __init__(self, logging_queue, test_paths, ssl_env, pause_after_test, debug_info, options, env_extras):
         """Context manager that owns the test environment i.e. the http and
         websockets servers"""
+        self.logging_queue = logging_queue
         self.test_paths = test_paths
         self.ssl_env = ssl_env
         self.server = None
@@ -102,7 +103,8 @@ class TestEnvironment(object):
 
         self.servers = serve.start(self.config,
                                    self.ssl_env,
-                                   self.get_routes())
+                                   self.get_routes(),
+                                   self.logging_queue)
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
         return self

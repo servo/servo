@@ -133,159 +133,161 @@ def get_pause_after_test(test_loader, **kwargs):
 
 
 def run_tests(config, test_paths, product, **kwargs):
-    with wptlogging.CaptureIO(logger, not kwargs["no_capture_stdio"]):
-        env.do_delayed_imports(logger, test_paths)
+    with wptlogging.LoggingQueue(logger) as logging_queue:
+        with wptlogging.CaptureIO(logging_queue, not kwargs["no_capture_stdio"]):
+            env.do_delayed_imports(logger, test_paths)
 
-        (check_args,
-         target_browser_cls, get_browser_kwargs,
-         executor_classes, get_executor_kwargs,
-         env_options, get_env_extras, run_info_extras) = products.load_product(config, product)
+            (check_args,
+             target_browser_cls, get_browser_kwargs,
+             executor_classes, get_executor_kwargs,
+             env_options, get_env_extras, run_info_extras) = products.load_product(config, product)
 
-        ssl_env = env.ssl_env(logger, **kwargs)
-        env_extras = get_env_extras(**kwargs)
+            ssl_env = env.ssl_env(logger, **kwargs)
+            env_extras = get_env_extras(**kwargs)
 
-        check_args(**kwargs)
+            check_args(**kwargs)
 
-        if kwargs["install_fonts"]:
-            env_extras.append(FontInstaller(
-                font_dir=kwargs["font_dir"],
-                ahem=os.path.join(kwargs["tests_root"], "fonts/Ahem.ttf")
-            ))
+            if kwargs["install_fonts"]:
+                env_extras.append(FontInstaller(
+                    font_dir=kwargs["font_dir"],
+                    ahem=os.path.join(kwargs["tests_root"], "fonts/Ahem.ttf")
+                ))
 
-        if "test_loader" in kwargs:
-            run_info = wpttest.get_run_info(kwargs["run_info"], product,
-                                            browser_version=kwargs.get("browser_version"),
-                                            debug=None,
-                                            extras=run_info_extras(**kwargs))
-            test_loader = kwargs["test_loader"]
-        else:
-            run_info, test_loader = get_loader(test_paths,
-                                               product,
-                                               ssl_env,
-                                               run_info_extras=run_info_extras(**kwargs),
-                                               **kwargs)
+            if "test_loader" in kwargs:
+                run_info = wpttest.get_run_info(kwargs["run_info"], product,
+                                                browser_version=kwargs.get("browser_version"),
+                                                debug=None,
+                                                extras=run_info_extras(**kwargs))
+                test_loader = kwargs["test_loader"]
+            else:
+                run_info, test_loader = get_loader(test_paths,
+                                                   product,
+                                                   ssl_env,
+                                                   run_info_extras=run_info_extras(**kwargs),
+                                                   **kwargs)
 
-        test_source_kwargs = {"processes": kwargs["processes"]}
-        if kwargs["run_by_dir"] is False:
-            test_source_cls = testloader.SingleTestSource
-        else:
-            # A value of None indicates infinite depth
-            test_source_cls = testloader.PathGroupedSource
-            test_source_kwargs["depth"] = kwargs["run_by_dir"]
+            test_source_kwargs = {"processes": kwargs["processes"]}
+            if kwargs["run_by_dir"] is False:
+                test_source_cls = testloader.SingleTestSource
+            else:
+                # A value of None indicates infinite depth
+                test_source_cls = testloader.PathGroupedSource
+                test_source_kwargs["depth"] = kwargs["run_by_dir"]
 
-        logger.info("Using %i client processes" % kwargs["processes"])
+            logger.info("Using %i client processes" % kwargs["processes"])
 
-        test_total = 0
-        unexpected_total = 0
+            test_total = 0
+            unexpected_total = 0
 
-        kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
+            kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
 
-        with env.TestEnvironment(test_paths,
-                                 ssl_env,
-                                 kwargs["pause_after_test"],
-                                 kwargs["debug_info"],
-                                 env_options,
-                                 env_extras) as test_environment:
-            try:
-                test_environment.ensure_started()
-            except env.TestEnvironmentError as e:
-                logger.critical("Error starting test environment: %s" % e.message)
-                raise
+            with env.TestEnvironment(logging_queue,
+                                     test_paths,
+                                     ssl_env,
+                                     kwargs["pause_after_test"],
+                                     kwargs["debug_info"],
+                                     env_options,
+                                     env_extras) as test_environment:
+                try:
+                    test_environment.ensure_started()
+                except env.TestEnvironmentError as e:
+                    logger.critical("Error starting test environment: %s" % e.message)
+                    raise
 
-            repeat = kwargs["repeat"]
-            repeat_count = 0
-            repeat_until_unexpected = kwargs["repeat_until_unexpected"]
+                repeat = kwargs["repeat"]
+                repeat_count = 0
+                repeat_until_unexpected = kwargs["repeat_until_unexpected"]
 
-            while repeat_count < repeat or repeat_until_unexpected:
-                repeat_count += 1
-                if repeat_until_unexpected:
-                    logger.info("Repetition %i" % (repeat_count))
-                elif repeat > 1:
-                    logger.info("Repetition %i / %i" % (repeat_count, repeat))
+                while repeat_count < repeat or repeat_until_unexpected:
+                    repeat_count += 1
+                    if repeat_until_unexpected:
+                        logger.info("Repetition %i" % (repeat_count))
+                    elif repeat > 1:
+                        logger.info("Repetition %i / %i" % (repeat_count, repeat))
 
-                test_count = 0
-                unexpected_count = 0
-                logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info)
-                for test_type in kwargs["test_types"]:
-                    logger.info("Running %s tests" % test_type)
+                    test_count = 0
+                    unexpected_count = 0
+                    logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info)
+                    for test_type in kwargs["test_types"]:
+                        logger.info("Running %s tests" % test_type)
 
-                    # WebDriver tests may create and destroy multiple browser
-                    # processes as part of their expected behavior. These
-                    # processes are managed by a WebDriver server binary. This
-                    # obviates the need for wptrunner to provide a browser, so
-                    # the NullBrowser is used in place of the "target" browser
-                    if test_type == "wdspec":
-                        browser_cls = NullBrowser
-                    else:
-                        browser_cls = target_browser_cls
+                        # WebDriver tests may create and destroy multiple browser
+                        # processes as part of their expected behavior. These
+                        # processes are managed by a WebDriver server binary. This
+                        # obviates the need for wptrunner to provide a browser, so
+                        # the NullBrowser is used in place of the "target" browser
+                        if test_type == "wdspec":
+                            browser_cls = NullBrowser
+                        else:
+                            browser_cls = target_browser_cls
 
-                    browser_kwargs = get_browser_kwargs(test_type,
-                                                        run_info,
-                                                        ssl_env=ssl_env,
-                                                        config=test_environment.config,
-                                                        **kwargs)
+                        browser_kwargs = get_browser_kwargs(test_type,
+                                                            run_info,
+                                                            ssl_env=ssl_env,
+                                                            config=test_environment.config,
+                                                            **kwargs)
 
-                    executor_cls = executor_classes.get(test_type)
-                    executor_kwargs = get_executor_kwargs(test_type,
-                                                          test_environment.config,
-                                                          test_environment.cache_manager,
-                                                          run_info,
-                                                          **kwargs)
+                        executor_cls = executor_classes.get(test_type)
+                        executor_kwargs = get_executor_kwargs(test_type,
+                                                              test_environment.config,
+                                                              test_environment.cache_manager,
+                                                              run_info,
+                                                              **kwargs)
 
-                    if executor_cls is None:
-                        logger.error("Unsupported test type %s for product %s" %
-                                     (test_type, product))
-                        continue
+                        if executor_cls is None:
+                            logger.error("Unsupported test type %s for product %s" %
+                                         (test_type, product))
+                            continue
 
-                    for test in test_loader.disabled_tests[test_type]:
-                        logger.test_start(test.id)
-                        logger.test_end(test.id, status="SKIP")
+                        for test in test_loader.disabled_tests[test_type]:
+                            logger.test_start(test.id)
+                            logger.test_end(test.id, status="SKIP")
 
-                    if test_type == "testharness":
-                        run_tests = {"testharness": []}
-                        for test in test_loader.tests["testharness"]:
-                            if test.testdriver and not executor_cls.supports_testdriver:
-                                logger.test_start(test.id)
-                                logger.test_end(test.id, status="SKIP")
-                            elif test.jsshell and not executor_cls.supports_jsshell:
-                                # We expect that tests for JavaScript shells
-                                # will not be run along with tests that run in
-                                # a full web browser, so we silently skip them
-                                # here.
-                                pass
-                            else:
-                                run_tests["testharness"].append(test)
-                    else:
-                        run_tests = test_loader.tests
+                        if test_type == "testharness":
+                            run_tests = {"testharness": []}
+                            for test in test_loader.tests["testharness"]:
+                                if test.testdriver and not executor_cls.supports_testdriver:
+                                    logger.test_start(test.id)
+                                    logger.test_end(test.id, status="SKIP")
+                                elif test.jsshell and not executor_cls.supports_jsshell:
+                                    # We expect that tests for JavaScript shells
+                                    # will not be run along with tests that run in
+                                    # a full web browser, so we silently skip them
+                                    # here.
+                                    pass
+                                else:
+                                    run_tests["testharness"].append(test)
+                        else:
+                            run_tests = test_loader.tests
 
-                    with ManagerGroup("web-platform-tests",
-                                      kwargs["processes"],
-                                      test_source_cls,
-                                      test_source_kwargs,
-                                      browser_cls,
-                                      browser_kwargs,
-                                      executor_cls,
-                                      executor_kwargs,
-                                      kwargs["rerun"],
-                                      kwargs["pause_after_test"],
-                                      kwargs["pause_on_unexpected"],
-                                      kwargs["restart_on_unexpected"],
-                                      kwargs["debug_info"]) as manager_group:
-                        try:
-                            manager_group.run(test_type, run_tests)
-                        except KeyboardInterrupt:
-                            logger.critical("Main thread got signal")
-                            manager_group.stop()
-                            raise
-                    test_count += manager_group.test_count()
-                    unexpected_count += manager_group.unexpected_count()
+                        with ManagerGroup("web-platform-tests",
+                                          kwargs["processes"],
+                                          test_source_cls,
+                                          test_source_kwargs,
+                                          browser_cls,
+                                          browser_kwargs,
+                                          executor_cls,
+                                          executor_kwargs,
+                                          kwargs["rerun"],
+                                          kwargs["pause_after_test"],
+                                          kwargs["pause_on_unexpected"],
+                                          kwargs["restart_on_unexpected"],
+                                          kwargs["debug_info"]) as manager_group:
+                            try:
+                                manager_group.run(test_type, run_tests)
+                            except KeyboardInterrupt:
+                                logger.critical("Main thread got signal")
+                                manager_group.stop()
+                                raise
+                        test_count += manager_group.test_count()
+                        unexpected_count += manager_group.unexpected_count()
 
-                test_total += test_count
-                unexpected_total += unexpected_count
-                logger.info("Got %i unexpected results" % unexpected_count)
-                if repeat_until_unexpected and unexpected_total > 0:
-                    break
-                logger.suite_end()
+                    test_total += test_count
+                    unexpected_total += unexpected_count
+                    logger.info("Got %i unexpected results" % unexpected_count)
+                    if repeat_until_unexpected and unexpected_total > 0:
+                        break
+                    logger.suite_end()
 
     if test_total == 0:
         logger.error("No tests ran")

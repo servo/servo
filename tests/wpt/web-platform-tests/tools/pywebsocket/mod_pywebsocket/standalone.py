@@ -563,10 +563,13 @@ class WebSocketServer(socketserver.ThreadingMixIn, BaseHTTPServer.HTTPServer):
         attribute.
         """
 
+        self._logger.info('Accepting a socket')
         accepted_socket, client_address = self.socket.accept()
+        self._logger.info('Accepted a socket')
 
         server_options = self.websocket_server_options
         if server_options.use_tls:
+            #self._logger.info('Performing TLS steps')
             if server_options.tls_module == _TLS_BY_STANDARD_MODULE:
                 try:
                     accepted_socket.do_handshake()
@@ -629,6 +632,7 @@ class WebSocketServer(socketserver.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
         self.__ws_serving = True
         self.__ws_is_shut_down.clear()
+        self._logger.info('Starting to serve forever')
         handle_request = self.handle_request
         if hasattr(self, '_handle_request_noblock'):
             handle_request = self._handle_request_noblock
@@ -640,17 +644,22 @@ class WebSocketServer(socketserver.ThreadingMixIn, BaseHTTPServer.HTTPServer):
                     [socket_[0] for socket_ in self._sockets],
                     [], [], poll_interval)
                 for socket_ in r:
+                    #self._logger.info('Socket selected; handling request')
                     self.socket = socket_
                     handle_request()
+                    #self._logger.info('Handled request')
                 self.socket = None
         finally:
+            self._logger.info('Marking shutdown; no longer serving forever')
             self.__ws_is_shut_down.set()
 
     def shutdown(self):
         """Override socketserver.BaseServer.shutdown."""
 
+        self._logger.info('Shutting down')
         self.__ws_serving = False
         self.__ws_is_shut_down.wait()
+        self._logger.info('Finished shutting down')
 
 
 class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
@@ -705,6 +714,7 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
         this method to understand how the return value will be handled.
         """
 
+        self._logger.info('Parsing a request')
         # We hook parse_request method, but also call the original
         # CGIHTTPRequestHandler.parse_request since when we return False,
         # CGIHTTPRequestHandler.handle_one_request continues processing and

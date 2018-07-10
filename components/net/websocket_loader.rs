@@ -40,14 +40,16 @@ pub fn init(
     http_state: Arc<HttpState>
 ) {
     thread::Builder::new().name(format!("WebSocket connection to {}", req_init.url)).spawn(move || {
+        let url = req_init.url.clone();
         let channel = establish_a_websocket_connection(req_init, &http_state);
         let (ws_sender, mut receiver) = match channel {
             Ok((protocol_in_use, sender, receiver)) => {
+                debug!("Established a websocket connection");
                 let _ = resource_event_sender.send(WebSocketNetworkEvent::ConnectionEstablished { protocol_in_use });
                 (sender, receiver)
             },
             Err(e) => {
-                debug!("Failed to establish a WebSocket connection: {:?}", e);
+                debug!("Failed to establish a WebSocket connection to {}: {:?}", url, e);
                 let _ = resource_event_sender.send(WebSocketNetworkEvent::Fail);
                 return;
             }
@@ -122,6 +124,7 @@ type Stream = HttpStream;
 
 // https://fetch.spec.whatwg.org/#concept-websocket-connection-obtain
 fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError> {
+    //debug!("about to obtain connection");
     // Step 1.
     let host = url.host_str().unwrap();
 
@@ -143,9 +146,11 @@ fn obtain_a_websocket_connection(url: &ServoUrl) -> Result<Stream, NetworkError>
 
     // Steps 4-5.
     let host = replace_host(host);
+    debug!("making TCP connection to {}:{}", host, port);
     let tcp_stream = TcpStream::connect((&*host, port)).map_err(|e| {
         NetworkError::Internal(format!("Could not connect to host: {}", e))
     })?;
+    //debug!("made TCP connection to {}:{}", host, port);
     Ok(HttpStream(tcp_stream))
 }
 
