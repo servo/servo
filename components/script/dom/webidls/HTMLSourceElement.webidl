@@ -5,8 +5,14 @@
 // https://html.spec.whatwg.org/multipage/#htmlsourceelement
 [HTMLConstructor]
 interface HTMLSourceElement : HTMLElement {
-  // [CEReactions]
-  //         attribute DOMString src;
-  // [CEReactions]
-  //         attribute DOMString type;
+  [CEReactions]
+           attribute DOMString src;
+  [CEReactions]
+           attribute DOMString type;
+  [CEReactions]
+            attribute DOMString srcset;
+  [CEReactions]
+            attribute DOMString sizes;
+  [CEReactions]
+            attribute DOMString media;
 };
