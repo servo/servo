@@ -421,7 +421,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if android:
-            pkg_path = binary_path + ".apk"
+            pkg_path = self.get_apk_path(release)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
                 print("Cannot install to both emulator and USB at the same time.")
