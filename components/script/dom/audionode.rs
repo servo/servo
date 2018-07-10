@@ -11,7 +11,7 @@ use dom::audioparam::AudioParam;
 use dom::eventtarget::EventTarget;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
 use std::cell::Cell;
 
 // 32 is the minimum required by the spec for createBuffer() and the deprecated
@@ -33,7 +33,7 @@ pub struct AudioNode {
 }
 
 impl AudioNode {
-    pub fn new_inherited(node_type: AudioNodeType,
+    pub fn new_inherited(node_type: AudioNodeInit,
                          node_id: Option<NodeId>,
                          context: &BaseAudioContext,
                          options: &AudioNodeOptions,

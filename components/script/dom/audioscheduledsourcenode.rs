@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::num::Finite;
 use dom_struct::dom_struct;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeType, AudioScheduledSourceNodeMessage};
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSourceNodeMessage};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -19,7 +19,7 @@ pub struct AudioScheduledSourceNode {
 }
 
 impl AudioScheduledSourceNode {
-    pub fn new_inherited(node_type: AudioNodeType,
+    pub fn new_inherited(node_type: AudioNodeInit,
                          context: &BaseAudioContext,
                          options: &AudioNodeOptions,
                          number_of_inputs: u32,
