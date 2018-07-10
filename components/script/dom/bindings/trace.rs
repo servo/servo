@@ -83,6 +83,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use servo_media::audio::buffer_source_node::AudioBuffer;
 use servo_media::audio::context::AudioContext;
 use servo_media::audio::graph::NodeId;
+use servo_media::audio::param::ParamType;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
@@ -436,6 +437,7 @@ unsafe_no_jsmanaged_fields!(AudioGraph);
 unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext);
 unsafe_no_jsmanaged_fields!(NodeId);
+unsafe_no_jsmanaged_fields!(ParamType);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
