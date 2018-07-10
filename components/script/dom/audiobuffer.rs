@@ -84,6 +84,7 @@ impl AudioBuffer {
         reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap)
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
     pub fn Constructor(window: &Window,
                        options: &AudioBufferOptions) -> Fallible<DomRoot<AudioBuffer>> {
         if options.numberOfChannels > MAX_CHANNEL_COUNT {
