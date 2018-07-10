@@ -11,7 +11,7 @@ partial interface Navigator {
   [SameObject] readonly attribute XR xr;
 };
 
-[SecureContext, Exposed=Window] interface XRDevice : EventTarget {
+[SecureContext, Exposed=Window] interface XRDevice {
   // Methods
   Promise<void> supportsSession(optional XRSessionCreationOptions options);
   Promise<XRSession> requestSession(optional XRSessionCreationOptions options);

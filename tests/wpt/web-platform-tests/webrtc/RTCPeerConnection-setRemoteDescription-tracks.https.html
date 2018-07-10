@@ -23,7 +23,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     caller.addTrack(localStream.getTracks()[0]);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -41,7 +41,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -64,7 +64,7 @@
     t.add_cleanup(() => callee.close());
     let eventSequence = '';
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -82,8 +82,8 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStreams = await Promise.all([
-      navigator.mediaDevices.getUserMedia({audio: true}),
-      navigator.mediaDevices.getUserMedia({audio: true}),
+      getNoiseStream({audio: true}),
+      getNoiseStream({audio: true}),
     ]);
     caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
     caller.addTrack(localStreams[1].getTracks()[0], localStreams[0]);
@@ -126,8 +126,8 @@
     t.add_cleanup(() => callee.close());
     let eventSequence = '';
     const localStreams = await Promise.all([
-      navigator.mediaDevices.getUserMedia({audio: true}),
-      navigator.mediaDevices.getUserMedia({audio: true}),
+      getNoiseStream({audio: true}),
+      getNoiseStream({audio: true}),
     ]);
     caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
     const remoteStreams = [];
@@ -158,8 +158,8 @@
     t.add_cleanup(() => callee.close());
     let eventSequence = '';
     const localStreams = await Promise.all([
-      navigator.mediaDevices.getUserMedia({audio: true}),
-      navigator.mediaDevices.getUserMedia({audio: true}),
+      getNoiseStream({audio: true}),
+      getNoiseStream({audio: true}),
     ]);
     caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
     const remoteStreams = [];
@@ -187,8 +187,8 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStreams = await Promise.all([
-      navigator.mediaDevices.getUserMedia({audio: true}),
-      navigator.mediaDevices.getUserMedia({audio: true}),
+      getNoiseStream({audio: true}),
+      getNoiseStream({audio: true}),
     ]);
     caller.addTrack(localStreams[0].getTracks()[0],
                     localStreams[0], localStreams[1]);
@@ -215,7 +215,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     caller.addTrack(localStream.getTracks()[0]);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -232,7 +232,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const sender = caller.addTrack(localStream.getTracks()[0]);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track');
@@ -250,7 +250,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const [track] = localStream.getTracks();
     const sender = caller.addTrack(track, localStream);
@@ -279,7 +279,7 @@
     t.add_cleanup(() => callee.close());
     let eventSequence = '';
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const sender = caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -306,7 +306,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const sender = caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -332,7 +332,7 @@
     t.add_cleanup(() => callee.close());
     let eventSequence = '';
     const localStream =
-        await navigator.mediaDevices.getUserMedia({audio: true});
+        await getNoiseStream({audio: true});
     t.add_cleanup(() => localStream.getTracks().forEach(track => track.stop()));
     const sender = caller.addTrack(localStream.getTracks()[0], localStream);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {
@@ -356,7 +356,7 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    const stream = await getNoiseStream({audio: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const sender = pc.addTrack(stream.getTracks()[0]);
     pc.removeTrack(sender);

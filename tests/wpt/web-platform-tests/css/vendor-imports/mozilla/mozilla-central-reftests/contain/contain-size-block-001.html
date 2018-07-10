@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Test: 'contain: size' on block elements should cause them to be sized and baseline-aligned as if they had no contents.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-block-001-ref.html">
+  <style>
+  .contain {
+    contain: size;
+    border: 1em solid green;
+    background: red;
+  }
+  .innerContents {
+    color: transparent;
+    height: 100px;
+    width: 100px;
+  }
+  .minHeight {
+    min-height: 50px;
+    background: lightblue;
+  }
+  .height {
+    height: 50px;
+    background: lightblue;
+  }
+  .maxWidth {
+    max-width: 50px;
+  }
+  .width {
+    width: 50px;
+  }
+  .floatLBasic {
+    float: left;
+  }
+  .floatLWidth {
+    float: left;
+    width: 50px;
+  }
+  .flexBaselineCheck {
+    display: flex;
+    align-items: baseline;
+  }
+  </style>
+</head>
+<body>
+  <!--CSS Test: A size-contained block element with no specified size should render at 0 height regardless of content.-->
+  <div class="contain"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained block element with specified min-height should render at given min-height regardless of content.-->
+  <div class="contain minHeight"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained block element with specified height should render at given height regardless of content.-->
+  <div class="contain height"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained block element with specified max-width should render at given max-width and zero height regardless of content.-->
+  <div class="contain maxWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained block element with specified width should render at given width and zero height regardless of content.-->
+  <div class="contain width"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained floated block element with no specified size should render at 0px by 0px regardless of content.-->
+  <div class="contain floatLBasic"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained floated block element with specified width and no specified height should render at given width and 0 height regardless of content.-->
+  <div class="contain floatLWidth"><div class="innerContents">inner</div></div>
+  <br>
+
+  <!--CSS Test: A size-contained block element should perform baseline alignment as if the container were empty.-->
+  <div class="flexBaselineCheck">
+  outside before<div class="contain"><div class="innerContents">inner</div></div>outside after
+  </div>
+</body>
+</html>

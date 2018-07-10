@@ -42,8 +42,8 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         server_config['ports']['ws'] + server_config['ports']['wss']
     ))
 
-    executor_kwargs = base_executor_kwargs(test_type, server_config,
-                                           cache_manager, **kwargs)
+    executor_kwargs = base_executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+                                           **kwargs)
     executor_kwargs["close_after_done"] = True
     capabilities = dict(DesiredCapabilities.CHROME.items())
     capabilities["chromeOptions"] = {}

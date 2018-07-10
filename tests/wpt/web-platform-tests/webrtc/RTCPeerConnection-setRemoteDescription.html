@@ -11,8 +11,8 @@
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   assert_session_desc_not_equals()
-  //   assert_session_desc_equals()
+  //   assert_session_desc_not_similar()
+  //   assert_session_desc_similar()
 
   /*
     4.3.2.  Interface Definition
@@ -116,10 +116,10 @@
     await pc.setLocalDescription(await pc.createAnswer());
     const offer2 = await pc2.createOffer({ offerToReceiveVideo: true });
     await pc.setRemoteDescription(offer2);
-    assert_session_desc_not_equals(offer1, offer2);
-    assert_session_desc_equals(pc.remoteDescription, offer2);
-    assert_session_desc_equals(pc.currentRemoteDescription, offer1);
-    assert_session_desc_equals(pc.pendingRemoteDescription, offer2);
+    assert_session_desc_not_similar(offer1, offer2);
+    assert_session_desc_similar(pc.remoteDescription, offer2);
+    assert_session_desc_similar(pc.currentRemoteDescription, offer1);
+    assert_session_desc_similar(pc.pendingRemoteDescription, offer2);
   }, 'Calling setRemoteDescription() again after one round of remote-offer/local-answer should succeed');
 
   promise_test(async t => {
@@ -136,8 +136,8 @@
     await pc.setRemoteDescription(answer);
     await pc.setRemoteDescription(await pc2.createOffer());
     assert_equals(pc.remoteDescription.sdp, pc.pendingRemoteDescription.sdp);
-    assert_session_desc_equals(pc.remoteDescription, offer);
-    assert_session_desc_equals(pc.currentRemoteDescription, answer);
+    assert_session_desc_similar(pc.remoteDescription, offer);
+    assert_session_desc_similar(pc.currentRemoteDescription, answer);
   }, 'Switching role from offerer to answerer after going back to stable state should succeed');
 
   /*

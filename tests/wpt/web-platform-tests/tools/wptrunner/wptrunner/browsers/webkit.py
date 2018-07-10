@@ -51,7 +51,7 @@ def capabilities_for_port(server_config, **kwargs):
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
     executor_kwargs = base_executor_kwargs(test_type, server_config,
-                                           cache_manager, **kwargs)
+                                           cache_manager, run_info_data, **kwargs)
     executor_kwargs["close_after_done"] = True
     executor_kwargs["capabilities"] = capabilities_for_port(server_config,
                                                             **kwargs)

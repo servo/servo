@@ -32,7 +32,19 @@ class ConditionalValue(object):
         return self.condition_func(run_info)
 
     def set_value(self, value):
+        if type(value) not in (str, unicode):
+            value = unicode(value)
         self.value = value
+
+    def value_as(self, type_func):
+        """Get value and convert to a given type.
+
+        This is unfortunate, but we don't currently have a good way to specify that
+        specific properties should have their data returned as specific types"""
+        value = self.value
+        if type_func is not None:
+            value = type_func(value)
+        return value
 
     def remove(self):
         if len(self.node.parent.children) == 1:
@@ -255,7 +267,7 @@ class ManifestItem(object):
             node = KeyValueNode(key)
             self.node.append(node)
 
-        value_node = ValueNode(value)
+        value_node = ValueNode(unicode(value))
         if condition is not None:
             conditional_node = ConditionalNode()
             conditional_node.append(condition)

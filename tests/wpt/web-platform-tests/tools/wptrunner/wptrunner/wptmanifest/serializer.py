@@ -70,15 +70,19 @@ class ManifestSerializer(NodeVisitor):
         return ["".join(rv)]
 
     def visit_ValueNode(self, node):
-        if "#" in node.data or (isinstance(node.parent, ListNode) and
-                                ("," in node.data or "]" in node.data)):
-            if "\"" in node.data:
+        if not isinstance(node.data, (str, unicode)):
+            data = unicode(node.data)
+        else:
+            data = node.data
+        if "#" in data or (isinstance(node.parent, ListNode) and
+                           ("," in data or "]" in data)):
+            if "\"" in data:
                 quote = "'"
             else:
                 quote = "\""
         else:
             quote = ""
-        return [quote + escape(node.data, extras=quote) + quote]
+        return [quote + escape(data, extras=quote) + quote]
 
     def visit_AtomNode(self, node):
         return [atom_names[node.data]]

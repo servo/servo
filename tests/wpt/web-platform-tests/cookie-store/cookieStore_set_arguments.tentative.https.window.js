@@ -36,10 +36,10 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.set(
-      'cookie-name', 'cookie-value', { name: 'cookie-name' }));
+  cookieStore.set('cookie-name', 'cookie-value', { name: 'wrong-cookie-name' });
   const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie, null);
+  assert_equals(cookie.name, 'cookie-name');
+  assert_equals(cookie.value, 'cookie-value');
 
   await async_cleanup(() => cookieStore.delete('cookie-name'));
 }, 'cookieStore.set with name in both positional arguments and options');
@@ -47,10 +47,11 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.set(
-      'cookie-name', 'cookie-value', { value: 'cookie-value' }));
+  cookieStore.set('cookie-name', 'cookie-value',
+                  { value: 'wrong-cookie-value' });
   const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie, null);
+  assert_equals(cookie.name, 'cookie-name');
+  assert_equals(cookie.value, 'cookie-value');
 
   await async_cleanup(() => cookieStore.delete('cookie-name'));
 }, 'cookieStore.set with value in both positional arguments and options');
@@ -139,7 +140,7 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentDomain = currentUrl.hostname;
-  await cookieStore.delete('cookie-name', { domain: currentDomain });
+  await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
 
   await cookieStore.set(
       'cookie-name', 'cookie-value', { domain: currentDomain });
@@ -148,7 +149,7 @@ promise_test(async testCase => {
   assert_equals(cookie.value, 'cookie-value');
 
   await async_cleanup(async () => {
-    await cookieStore.delete('cookie-name', { domain: currentDomain });
+    await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
   });
 }, 'cookieStore.set with domain set to the current hostname');
 
@@ -198,7 +199,7 @@ promise_test(async testCase => {
 
   await async_cleanup(async () => {
     await cookieStore.delete('cookie-name');
-    await cookieStore.delete('cookie-name', { domain: currentDomain });
+    await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
   });
 }, 'cookieStore.set default domain is null and differs from current hostname');
 
@@ -207,7 +208,7 @@ promise_test(async testCase => {
   const currentPath = currentUrl.pathname;
   const currentDirectory =
       currentPath.substr(0, currentPath.lastIndexOf('/') + 1);
-  await cookieStore.delete('cookie-name', { path: currentDirectory });
+  await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
 
   await cookieStore.set(
       'cookie-name', 'cookie-value', { path: currentDirectory });
@@ -216,7 +217,7 @@ promise_test(async testCase => {
   assert_equals(cookie.value, 'cookie-value');
 
   await async_cleanup(async () => {
-    await cookieStore.delete('cookie-name', { path: currentDirectory });
+    await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
   });
 }, 'cookieStore.set with path set to the current directory');
 
@@ -226,8 +227,8 @@ promise_test(async testCase => {
   const currentDirectory =
       currentPath.substr(0, currentPath.lastIndexOf('/') + 1);
   const subDirectory = currentDirectory + "subdir/";
-  await cookieStore.delete('cookie-name', { path: currentDirectory });
-  await cookieStore.delete('cookie-name', { path: subDirectory });
+  await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
+  await cookieStore.delete({ name: 'cookie-name', path: subDirectory });
 
   await cookieStore.set(
       'cookie-name', 'cookie-value', { path: subDirectory });
@@ -235,7 +236,7 @@ promise_test(async testCase => {
   assert_equals(cookie, null);
 
   await async_cleanup(async () => {
-    await cookieStore.delete('cookie-name', { path: subDirectory });
+    await cookieStore.delete({ name: 'cookie-name', path: subDirectory });
   });
 }, 'cookieStore.set with path set to a subdirectory of the current directory');
 
@@ -250,6 +251,24 @@ promise_test(async testCase => {
   assert_equals(cookies[0].name, 'cookie-name');
   assert_equals(cookies[0].value, 'cookie-new-value');
 
-  await async_cleanup(() => cookieStore.delete('cookie-name'));
-  await async_cleanup(() => cookieStore.delete('cookie-name', { path: '/' }));
+  await async_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+    await cookieStore.delete({ name: 'cookie-name',  path: '/' });
+  });
 }, 'cookieStore.set default path is /');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'old-cookie-value');
+
+  const cookie_attributes = await cookieStore.get('cookie-name');
+  assert_equals(cookie_attributes.name, 'cookie-name');
+  assert_equals(cookie_attributes.value, 'old-cookie-value');
+
+  cookie_attributes.value = 'new-cookie-value';
+  await cookieStore.set(cookie_attributes);
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.name, 'cookie-name');
+  assert_equals(cookie.value, 'new-cookie-value');
+
+  await async_cleanup(() => cookieStore.delete('cookie-name'));
+}, 'cookieStore.set with get result');
