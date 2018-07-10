@@ -88,15 +88,12 @@ class PostBuildCommands(CommandBase):
                 return
             script = [
                 "am force-stop com.mozilla.servo",
-                "echo servo >/sdcard/Android/data/com.mozilla.servo/files/android_params"
             ]
-            for param in params:
-                script += [
-                    "echo '%s' >>/sdcard/Android/data/com.mozilla.servo/files/android_params"
-                    % param.replace("'", "\\'")
-                ]
+            extra = ""
+            if params:
+                extra += "-e servoargs \'" + " ".join(params) + "\'"
             script += [
-                "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
+                "am start " + extra + " com.mozilla.servo/com.mozilla.servo.MainActivity",
                 "sleep 0.5",
                 "echo Servo PID: $(pidof com.mozilla.servo)",
                 "exit"
@@ -257,7 +254,7 @@ class PostBuildCommands(CommandBase):
                         copy2(full_name, destination)
 
         return self.call_rustup_run(
-            ["cargo", "doc", "--manifest-path", self.servo_manifest()] + params,
+            ["cargo", "doc", "--manifest-path", self.ports_servo_manifest()] + params,
             env=self.build_env()
         )
 
