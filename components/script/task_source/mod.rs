@@ -30,8 +30,6 @@ pub enum TaskSourceName {
 }
 
 impl TaskSourceName {
-    // Retuns a vec of variants of TaskSourceName.
-    // Note: When adding a variant, update the vec.
     pub fn all() -> Vec<TaskSourceName> {
         TaskSourceName::into_enum_iter().collect()
     }
