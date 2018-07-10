@@ -15,7 +15,7 @@ use std::fmt;
 use std::result::Result;
 use std::sync::mpsc::Sender;
 use task::{TaskCanceller, TaskOnce};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 
 #[derive(Clone, JSTraceable)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
@@ -27,6 +27,8 @@ impl fmt::Debug for UserInteractionTaskSource {
 }
 
 impl TaskSource for UserInteractionTaskSource {
+    const NAME: TaskSourceName = TaskSourceName::UserInteraction;
+
     fn queue_with_canceller<T>(
         &self,
         task: T,

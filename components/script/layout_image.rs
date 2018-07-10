@@ -17,6 +17,7 @@ use net_traits::request::{Destination, RequestInit as FetchRequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
+use task_source::TaskSourceName;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -62,7 +63,7 @@ pub fn fetch_image_for_layout(url: ServoUrl,
     let listener = NetworkListener {
         context: context,
         task_source: window.networking_task_source(),
-        canceller: Some(window.task_canceller()),
+        canceller: Some(window.task_canceller(TaskSourceName::Networking)),
     };
     ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
         listener.notify_fetch(message.to().unwrap());

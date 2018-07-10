@@ -34,7 +34,7 @@ use std::cell::Cell;
 use std::mem;
 use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use timers::OneshotTimerCallback;
 use utf8;
 
@@ -482,10 +482,12 @@ impl EventSource {
             data: String::new(),
             last_event_id: String::new(),
         };
+        // TODO: use the "remote event task source", and canceller.
+        // https://html.spec.whatwg.org/multipage/#remote-event-task-source
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.networking_task_source(),
-            canceller: Some(global.task_canceller())
+            canceller: Some(global.task_canceller(TaskSourceName::Networking))
         };
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());

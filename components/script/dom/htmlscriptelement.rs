@@ -41,6 +41,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
+use task_source::TaskSourceName;
 use uuid::Uuid;
 
 #[dom_struct]
@@ -273,7 +274,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     let listener = NetworkListener {
         context: context,
         task_source: doc.window().networking_task_source(),
-        canceller: Some(doc.window().task_canceller())
+        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking))
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {

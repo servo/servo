@@ -39,7 +39,7 @@ use std::cell::Cell;
 use std::ptr;
 use std::thread;
 use task::{TaskOnce, TaskCanceller};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use task_source::networking::NetworkingTaskSource;
 
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -199,8 +199,11 @@ impl WebSocket {
         };
         let _ = global.core_resource_thread().send(CoreResourceMsg::Fetch(request, channels));
 
+        // TODO: use a dedicated task source,
+        // https://html.spec.whatwg.org/multipage/#websocket-task-source
+        // When making the switch, also update the task_canceller call.
         let task_source = global.networking_task_source();
-        let canceller = global.task_canceller();
+        let canceller = global.task_canceller(TaskSourceName::Networking);
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
@@ -391,8 +394,13 @@ impl WebSocketMethods for WebSocket {
                 self.ready_state.set(WebSocketRequestState::Closing);
 
                 let address = Trusted::new(self);
+                // TODO: use a dedicated task source,
+                // https://html.spec.whatwg.org/multipage/#websocket-task-source
+                // When making the switch, also update the task_canceller call.
                 let task_source = self.global().networking_task_source();
-                fail_the_websocket_connection(address, &task_source, &self.global().task_canceller());
+                fail_the_websocket_connection(address,
+                                              &task_source,
+                                              &self.global().task_canceller(TaskSourceName::Networking));
             }
             WebSocketRequestState::Open => {
                 self.ready_state.set(WebSocketRequestState::Closing);
