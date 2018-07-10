@@ -833,6 +833,7 @@ impl TransitionProperty {
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
          SpecifiedValueInfo, ToCss)]
+/// https://drafts.csswg.org/css-box/#propdef-float
 pub enum Float {
     Left,
     Right,
@@ -846,6 +847,7 @@ pub enum Float {
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
          SpecifiedValueInfo, ToCss)]
+/// https://drafts.csswg.org/css-box/#propdef-clear
 pub enum Clear {
     None,
     Left,
