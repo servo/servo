@@ -1,1 +1,1 @@
-import serve  # noqa: F401
+from . import serve  # noqa: F401

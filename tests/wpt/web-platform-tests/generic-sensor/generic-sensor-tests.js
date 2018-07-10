@@ -337,8 +337,7 @@ function runGenericSensorTests(sensorName) {
       NaN,
       Infinity,
       -Infinity,
-      {},
-      undefined
+      {}
     ];
     invalidFreqs.map(freq => {
       assert_throws(new TypeError(),

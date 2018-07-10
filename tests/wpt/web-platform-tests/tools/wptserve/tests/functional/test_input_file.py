@@ -1,5 +1,3 @@
-import sys
-
 from wptserve.request import InputFile
 from io import BytesIO
 import pytest
@@ -23,7 +21,6 @@ def teardown_function(function):
     test_file.close()
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_seek():
     input_file.seek(2)
     test_file.seek(2)
@@ -34,7 +31,6 @@ def test_seek():
     assert input_file.read(1) == test_file.read(1)
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_seek_backwards():
     input_file.seek(2)
     test_file.seek(2)
@@ -52,7 +48,6 @@ def test_seek_negative_offset():
         input_file.seek(-1)
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_seek_file_bigger_than_buffer():
     old_max_buf = InputFile.max_buffer_size
     InputFile.max_buffer_size = 10
@@ -71,12 +66,10 @@ def test_seek_file_bigger_than_buffer():
         InputFile.max_buffer_size = old_max_buf
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_read():
     assert input_file.read() == test_file.read()
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_read_file_bigger_than_buffer():
     old_max_buf = InputFile.max_buffer_size
     InputFile.max_buffer_size = 10
@@ -88,7 +81,6 @@ def test_read_file_bigger_than_buffer():
         InputFile.max_buffer_size = old_max_buf
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_readline():
     assert input_file.readline() == test_file.readline()
     assert input_file.readline() == test_file.readline()
@@ -98,20 +90,17 @@ def test_readline():
     assert input_file.readline() == test_file.readline()
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_readline_max_byte():
     line = test_file.readline()
-    assert input_file.readline(max_bytes=len(line)/2) == line[:len(line)/2]
-    assert input_file.readline(max_bytes=len(line)) == line[len(line)/2:]
+    assert input_file.readline(max_bytes=len(line)//2) == line[:len(line)//2]
+    assert input_file.readline(max_bytes=len(line)) == line[len(line)//2:]
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_readline_max_byte_longer_than_file():
     assert input_file.readline(max_bytes=1000) == test_file.readline()
     assert input_file.readline(max_bytes=1000) == test_file.readline()
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_readline_file_bigger_than_buffer():
     old_max_buf = InputFile.max_buffer_size
     InputFile.max_buffer_size = 10
@@ -125,12 +114,10 @@ def test_readline_file_bigger_than_buffer():
         InputFile.max_buffer_size = old_max_buf
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_readlines():
     assert input_file.readlines() == test_file.readlines()
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_readlines_file_bigger_than_buffer():
     old_max_buf = InputFile.max_buffer_size
     InputFile.max_buffer_size = 10
@@ -143,13 +130,11 @@ def test_readlines_file_bigger_than_buffer():
         InputFile.max_buffer_size = old_max_buf
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_iter():
     for a, b in zip(input_file, test_file):
         assert a == b
 
 
-@pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
 def test_iter_file_bigger_than_buffer():
     old_max_buf = InputFile.max_buffer_size
     InputFile.max_buffer_size = 10

@@ -290,3 +290,16 @@ class TestDriverProtocolPart(ProtocolPart):
                            previous command succeeded.
         :param str message: Additional data to add to the message."""
         pass
+
+
+class AssertsProtocolPart(ProtocolPart):
+    """ProtocolPart that implements the functionality required to get a count of non-fatal
+    assertions triggered"""
+    __metaclass__ = ABCMeta
+
+    name = "asserts"
+
+    @abstractmethod
+    def get(self):
+        """Get a count of assertions since the last browser start"""
+        pass

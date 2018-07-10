@@ -6,7 +6,7 @@ importScripts("/resources/testharness.js");
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    cookieStore.subscribeToChanges([
+    await cookieStore.subscribeToChanges([
       { name: 'cookie-name', matchType: 'equals', url: '/scope/path' }]);
   })());
 });
@@ -57,7 +57,8 @@ promise_test(async testCase => {
   assert_true(event instanceof ExtendableCookieChangeEvent);
   assert_true(event instanceof ExtendableEvent);
 
-  await async_cleanup(() => { cookieStore.delete('cookie-name'); });
-}, 'cookiechange dispatched with cookie change that matches subscription');
+  await async_cleanup(() => cookieStore.delete('cookie-name'));
+}, 'cookiechange dispatched with cookie change that matches subscription ' +
+   'to event handler registered with addEventListener');
 
 done();

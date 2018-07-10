@@ -38,8 +38,9 @@ dictionary PaymentDetailsInit : PaymentDetailsBase {
     required PaymentItem total;
 };
 dictionary PaymentDetailsUpdate : PaymentDetailsBase {
-    DOMString   error;
-    PaymentItem total;
+    DOMString          error;
+    PaymentItem        total;
+    AddressErrorFields shippingAddressErrors;
 };
 dictionary PaymentDetailsModifier {
     required DOMString             supportedMethods;
@@ -99,6 +100,20 @@ dictionary AddressInit {
     DOMString           organization;
     DOMString           recipient;
     DOMString           phone;
+};
+dictionary AddressErrorFields {
+    DOMString addressLineError;
+    DOMString cityError;
+    DOMString countryError;
+    DOMString dependentLocalityError;
+    DOMString languageCodeError;
+    DOMString organizationError;
+    DOMString phoneError;
+    DOMString postalCodeError;
+    DOMString recipientError;
+    DOMString regionError;
+    DOMString regionCodeError;
+    DOMString sortingCodeError;
 };
 dictionary PaymentShippingOption {
     required DOMString             id;

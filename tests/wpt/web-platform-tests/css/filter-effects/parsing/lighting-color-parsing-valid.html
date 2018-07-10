@@ -16,9 +16,8 @@ test_valid_value("lighting-color", "rgb(1,2,3)", "rgb(1, 2, 3)");
 test_valid_value("lighting-color", "#102030", "rgb(16, 32, 48)");
 test_valid_value("lighting-color", "rgba(1, 2, 3, 0.5)");
 
-// Edge serializes this keyword as mixed case. Blink, WebKit, Firefox serialize as lowercase.
-test_valid_value("lighting-color", "currentColor", ["currentColor", "currentcolor"]);
-test_valid_value("lighting-color", "currentcolor", ["currentColor", "currentcolor"]);
+test_valid_value("lighting-color", "currentColor", "currentcolor");
+test_valid_value("lighting-color", "currentcolor", "currentcolor");
 </script>
 </body>
 </html>

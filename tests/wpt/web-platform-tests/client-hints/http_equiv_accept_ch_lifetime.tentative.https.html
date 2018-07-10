@@ -1,0 +1,66 @@
+<html>
+<title>Accept-CH-Lifetime test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+Apart from this webpage, the test opens two more html web page. One test is run
+in this web page, and two in the other web pages.
+-->
+
+<script>
+
+// This test fetches resources/http_equiv_accept_ch_lifetime.html. The response
+// to that webpage contains Accept-CH and Accept-CH-Lifetime http-equiv headers.
+// Fetching that webpage should cause the user-agent to persist origin
+// preferences for the client hints specified in Accept-CH header for a
+// duration specified in the Accept-CH-Lifetime header.
+
+// Next, to verify if the origin preferences were persisted by the user
+// agent, this test fetches resources/expect_client_hints_headers.html
+// in a new window. Fetching of resources/expect_client_hints_headers.html
+// verifies that the user agent actually sends the client hints in the request
+// headers.
+
+// Test is marked as tentative until https://github.com/whatwg/fetch/issues/726
+// is resolved.
+
+// First, verify the initial state to make sure that the browser does not have
+// client hints preferences cached from a previous run of the test.
+promise_test(t => {
+  return fetch("echo_client_hints_received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser did not include client hints in the request
+    // headers when fetching echo_client_hints_received.py.
+    assert_false(r.headers.has("device-memory-received"), "device-memory-received");
+  });
+}, "Precondition: Test that the browser does not have client hints preferences cached");
+
+async_test(t => {
+  window.addEventListener('message', function(e) {
+    if(!e.source.location.pathname.includes("expect_client_hints_headers.html")) {
+      return;
+    }
+    if(typeof e.data != "string")
+      return;
+    assert_equals(e.data, "PASS");
+    t.done();
+})
+}, "Loading of resources/expect_client_hints_headers.html did not finish.");
+
+function acceptChLifetimeLoaded() {
+  // Open a new window. Verify that the user agent attaches the client hints.
+  var verify_win = window.open("expect_client_hints_headers.html");
+  assert_not_equals(verify_win, null, "Popup windows not allowed?");
+}
+
+// Fetching this webpage should cause user-agent to persist client hint
+// preferences for the origin.
+var win = window.open("resources/http_equiv_accept_ch_lifetime.html");
+assert_not_equals(win, null, "Popup windows not allowed?");
+win.addEventListener('load', acceptChLifetimeLoaded, false);
+
+</script>
+</body>
+</html>

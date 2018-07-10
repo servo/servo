@@ -22,7 +22,7 @@ function doTest(idl) {
 }
 
 promise_test(function() {
-  return fetch("/interfaces/webidl.idl").then(response => response.text())
+  return fetch("/interfaces/WebIDL.idl").then(response => response.text())
                                         .then(doTest);
 }, "Test driver");
 </script>

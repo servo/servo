@@ -19,10 +19,10 @@
 <div id=test1></div>
 <script>
 test(function() {
-    CSS.registerProperty({name: '--registered-1-a', syntax: '<length>', initialValue: '1px'});
-    CSS.registerProperty({name: '--registered-1-b', syntax: '<length>', initialValue: '2px'});
-    CSS.registerProperty({name: '--registered-1-c', syntax: '<length>', initialValue: '3px'});
-    CSS.registerProperty({name: '--registered-1-d', syntax: '<length>', initialValue: '4px'});
+    CSS.registerProperty({name: '--registered-1-a', syntax: '<length>', initialValue: '1px', inherits: false});
+    CSS.registerProperty({name: '--registered-1-b', syntax: '<length>', initialValue: '2px', inherits: false});
+    CSS.registerProperty({name: '--registered-1-c', syntax: '<length>', initialValue: '3px', inherits: false});
+    CSS.registerProperty({name: '--registered-1-d', syntax: '<length>', initialValue: '4px', inherits: false});
 
     computedStyle = getComputedStyle(test1);
     assert_equals(computedStyle.getPropertyValue('--registered-1-a'), '1px');
@@ -56,11 +56,11 @@ test(function() {
 <div id=test2></div>
 <script>
 test(function() {
-    CSS.registerProperty({name: '--registered-2-a', syntax: '<length>', initialValue: '1px'});
-    CSS.registerProperty({name: '--registered-2-b', syntax: '<length>', initialValue: '2px'});
-    CSS.registerProperty({name: '--registered-2-c', syntax: '<length>', initialValue: '3px'});
-    CSS.registerProperty({name: '--registered-2-d', syntax: '<length>', initialValue: '4px'});
-    CSS.registerProperty({name: '--registered-2-e', syntax: '<length>', initialValue: '5px'});
+    CSS.registerProperty({name: '--registered-2-a', syntax: '<length>', initialValue: '1px', inherits: false});
+    CSS.registerProperty({name: '--registered-2-b', syntax: '<length>', initialValue: '2px', inherits: false});
+    CSS.registerProperty({name: '--registered-2-c', syntax: '<length>', initialValue: '3px', inherits: false});
+    CSS.registerProperty({name: '--registered-2-d', syntax: '<length>', initialValue: '4px', inherits: false});
+    CSS.registerProperty({name: '--registered-2-e', syntax: '<length>', initialValue: '5px', inherits: false});
 
     computedStyle = getComputedStyle(test2);
     assert_equals(computedStyle.getPropertyValue('--registered-2-a'), '1px');
@@ -95,10 +95,10 @@ test(function() {
 <div id=test3></div>
 <script>
 test(function() {
-    CSS.registerProperty({name: '--registered-3-a', syntax: '<length>', initialValue: '1px'});
-    CSS.registerProperty({name: '--registered-3-b', syntax: '<length>', initialValue: '2px'});
-    CSS.registerProperty({name: '--registered-3-c', syntax: '<length>', initialValue: '3px'});
-    CSS.registerProperty({name: '--registered-3-d', syntax: '<length>', initialValue: '4px'});
+    CSS.registerProperty({name: '--registered-3-a', syntax: '<length>', initialValue: '1px', inherits: false});
+    CSS.registerProperty({name: '--registered-3-b', syntax: '<length>', initialValue: '2px', inherits: false});
+    CSS.registerProperty({name: '--registered-3-c', syntax: '<length>', initialValue: '3px', inherits: false});
+    CSS.registerProperty({name: '--registered-3-d', syntax: '<length>', initialValue: '4px', inherits: false});
 
     computedStyle = getComputedStyle(test3);
     assert_equals(computedStyle.getPropertyValue('--unregistered-3-a'), '');
@@ -128,9 +128,9 @@ test(function() {
 <div id=test4></div>
 <script>
 test(function() {
-    CSS.registerProperty({name: '--registered-4-a', syntax: '*'});
-    CSS.registerProperty({name: '--registered-4-b', syntax: '*', initialValue: 'moo'});
-    CSS.registerProperty({name: '--registered-4-c', syntax: '*', initialValue: 'circle'});
+    CSS.registerProperty({name: '--registered-4-a', syntax: '*', inherits: false});
+    CSS.registerProperty({name: '--registered-4-b', syntax: '*', initialValue: 'moo', inherits: false});
+    CSS.registerProperty({name: '--registered-4-c', syntax: '*', initialValue: 'circle', inherits: false});
 
     computedStyle = getComputedStyle(test4);
     assert_equals(computedStyle.getPropertyValue('--registered-4-a'), '');

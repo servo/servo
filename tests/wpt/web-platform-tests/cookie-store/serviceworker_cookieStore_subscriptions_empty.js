@@ -6,7 +6,7 @@ importScripts("/resources/testharness.js");
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    cookieStore.subscribeToChanges([]);
+    await cookieStore.subscribeToChanges([]);
   })());
 });
 

@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Encoding Standard" spec.
+// See: https://encoding.spec.whatwg.org/
+
 dictionary TextDecoderOptions {
   boolean fatal = false;
   boolean ignoreBOM = false;
@@ -15,7 +20,6 @@ interface TextDecoder {
   readonly attribute boolean ignoreBOM;
   USVString decode(optional BufferSource input, optional TextDecodeOptions options);
 };
-
 [Constructor,
  Exposed=(Window,Worker)]
 interface TextEncoder {

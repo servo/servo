@@ -103,8 +103,8 @@ promise_test(async testCase => {
   assert_true(event instanceof ExtendableCookieChangeEvent);
   assert_true(event instanceof ExtendableEvent);
 
-  await async_cleanup(() => {
-    cookieStore.delete('cookie-name');
+  await async_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
     g_cookie_changes = [];
     RearmCookieChangeReceivedPromise();
   });
