@@ -22,7 +22,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
 use dom::gainnode::GainNode;
@@ -65,7 +65,7 @@ pub struct BaseAudioContext {
     #[ignore_malloc_size_of = "servo_media"]
     audio_context_impl: Rc<AudioContext>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
-    destination: Option<DomRoot<AudioDestinationNode>>,
+    destination: MutNullableDom<AudioDestinationNode>,
     /// Resume promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
@@ -87,7 +87,7 @@ pub struct BaseAudioContext {
 impl BaseAudioContext {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        global: &GlobalScope,
+        _: &GlobalScope,
         options: BaseAudioContextOptions,
         ) -> BaseAudioContext {
         let options = match options {
@@ -97,23 +97,16 @@ impl BaseAudioContext {
 
         let sample_rate = options.sample_rate;
 
-        let mut context = BaseAudioContext {
+        let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
             audio_context_impl: Rc::new(ServoMedia::get().unwrap().create_audio_context(options.into())),
-            destination: None,
+            destination: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
             decode_resolvers: Default::default(),
             sample_rate,
             state: Cell::new(AudioContextState::Suspended),
         };
-
-        let mut options = AudioNodeOptions::empty();
-        options.channelCount = Some(2);
-        options.channelCountMode = Some(ChannelCountMode::Explicit);
-        options.channelInterpretation = Some(ChannelInterpretation::Speakers);
-
-        context.destination = Some(AudioDestinationNode::new(global, &context, &options));
 
         context
     }
@@ -280,7 +273,14 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     fn Destination(&self) -> DomRoot<AudioDestinationNode> {
-        DomRoot::from_ref(self.destination.as_ref().unwrap())
+        let global = self.global();
+        self.destination.or_init(|| {
+            let mut options = AudioNodeOptions::empty();
+            options.channelCount = Some(2);
+            options.channelCountMode = Some(ChannelCountMode::Explicit);
+            options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+            AudioDestinationNode::new(&global, self, &options)
+        })
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
