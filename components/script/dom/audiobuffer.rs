@@ -35,7 +35,7 @@ pub struct AudioBuffer {
 impl AudioBuffer {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    pub fn new_inherited(cx: *mut JSContext,
+    pub fn new_inherited(global: &Window,
                          number_of_channels: u32,
                          length: u32,
                          sample_rate: f32,
@@ -48,6 +48,7 @@ impl AudioBuffer {
             },
             None => vec![0.; (length * number_of_channels) as usize]
         };
+        let cx = global.get_cx();
         let mut js_channels: Vec<JSAudioChannel> = Vec::with_capacity(number_of_channels as usize);
         for channel in 0..number_of_channels {
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
@@ -79,7 +80,7 @@ impl AudioBuffer {
                length: u32,
                sample_rate: f32,
                initial_data: Option<&[f32]>) -> DomRoot<AudioBuffer> {
-        let buffer = AudioBuffer::new_inherited(global.get_cx(), number_of_channels, length, sample_rate, initial_data);
+        let buffer = AudioBuffer::new_inherited(global, number_of_channels, length, sample_rate, initial_data);
         reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap)
     }
 
