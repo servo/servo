@@ -43,7 +43,7 @@ pub use self::font::{FontFamily, FontLanguageOverride, FontStyle, FontVariantEas
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display, TransitionProperty};
-pub use self::box_::Float;
+pub use self::box_::{Clear, Float};
 pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective};
 pub use self::box_::{ScrollSnapType, TouchAction, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
