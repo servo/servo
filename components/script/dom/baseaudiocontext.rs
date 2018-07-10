@@ -195,7 +195,8 @@ impl BaseAudioContext {
     }
 
     pub fn resume(&self) {
-        let window = DomRoot::downcast::<Window>(self.global()).unwrap();
+        let global = self.global();
+        let window = global.as_window();
         let task_source = window.dom_manipulation_task_source();
         let this = Trusted::new(self);
         // Set the rendering thread state to 'running' and start
@@ -321,6 +322,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
         -> Rc<Promise> {
             // Step 1.
             let promise = Promise::new(&self.global());
+            let global = self.global();
+            let window = global.as_window();
 
             if audio_data.len() > 0 {
                 // Step 2.
@@ -337,35 +340,43 @@ impl BaseAudioContextMethods for BaseAudioContext {
                 let decoded_audio_ = decoded_audio.clone();
                 let this = Trusted::new(self);
                 let this_ = this.clone();
+                let task_source = window.dom_manipulation_task_source();
+                let task_source_ = window.dom_manipulation_task_source();
+                let canceller = window.task_canceller();
+                let canceller_ = window.task_canceller();
                 let callbacks = AudioDecoderCallbacks::new()
                     .eos(move || {
-                        let this = this_.root();
-                        let decoded_audio = decoded_audio.lock().unwrap();
-                        let buffer = AudioBuffer::new(
-                            &this.global().as_window(),
-                            1, // XXX servo-media should provide this info
-                            decoded_audio.len() as u32,
-                            this.sample_rate,
-                            Some(decoded_audio.as_slice()));
-                        let mut resolvers = this.decode_resolvers.borrow_mut();
-                        assert!(resolvers.contains_key(&uuid_));
-                        let resolver = resolvers.remove(&uuid_).unwrap();
-                        if let Some(callback) = resolver.success_callback {
-                            let _ = callback.Call__(&buffer, ExceptionHandling::Report);
-                        }
-                        resolver.promise.resolve_native(&buffer);
+                        let _ = task_source.queue_with_canceller(task!(audio_decode_eos: move || {
+                            let this = this.root();
+                            let decoded_audio = decoded_audio.lock().unwrap();
+                            let buffer = AudioBuffer::new(
+                                &this.global().as_window(),
+                                1, // XXX servo-media should provide this info
+                                decoded_audio.len() as u32,
+                                this.sample_rate,
+                                Some(decoded_audio.as_slice()));
+                            let mut resolvers = this.decode_resolvers.borrow_mut();
+                            assert!(resolvers.contains_key(&uuid_));
+                            let resolver = resolvers.remove(&uuid_).unwrap();
+                            if let Some(callback) = resolver.success_callback {
+                                let _ = callback.Call__(&buffer, ExceptionHandling::Report);
+                            }
+                            resolver.promise.resolve_native(&buffer);
+                        }), &canceller);
                     })
                 .error(move || {
-                    let this = this.root();
-                    let mut resolvers = this.decode_resolvers.borrow_mut();
-                    assert!(resolvers.contains_key(&uuid));
-                    let resolver = resolvers.remove(&uuid).unwrap();
-                    if let Some(callback) = resolver.error_callback {
-                        let _ = callback.Call__(
-                            &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
-                            ExceptionHandling::Report);
-                    }
-                    resolver.promise.reject_error(Error::Type("Audio decode error".to_owned()));
+                    let _ = task_source_.queue_with_canceller(task!(audio_decode_eos: move || {
+                        let this = this_.root();
+                        let mut resolvers = this.decode_resolvers.borrow_mut();
+                        assert!(resolvers.contains_key(&uuid));
+                        let resolver = resolvers.remove(&uuid).unwrap();
+                        if let Some(callback) = resolver.error_callback {
+                            let _ = callback.Call__(
+                                &DOMException::new(&this.global(), DOMErrorName::DataCloneError),
+                                ExceptionHandling::Report);
+                        }
+                        resolver.promise.reject_error(Error::Type("Audio decode error".to_owned()));
+                    }), &canceller_);
                 })
                 .progress(move |buffer| {
                     decoded_audio_
