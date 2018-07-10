@@ -13,6 +13,8 @@
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
 
+#![recursion_limit = "128"]
+
 #![doc = "The script crate contains all matters DOM."]
 
 #![plugin(script_plugins)]
