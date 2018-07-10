@@ -2,7 +2,7 @@
  * License, v.2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::audioparam::{AudioParam, AudioParamImpl};
+use dom::audioparam::AudioParam;
 use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
@@ -15,18 +15,11 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::audio::context::AudioContext;
-use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
+use servo_media::audio::node::AudioNodeInit;
 use servo_media::audio::oscillator_node::OscillatorNodeOptions as ServoMediaOscillatorOptions;
 use servo_media::audio::oscillator_node::OscillatorType as ServoMediaOscillatorType;
-use servo_media::audio::oscillator_node::OscillatorNodeMessage;
-use servo_media::audio::param::{UserAutomationEvent, RampKind};
+use servo_media::audio::param::ParamType;
 use std::f32;
-use std::rc::Rc;
-
-audio_param_impl!(Frequency, OscillatorNode, OscillatorNodeMessage, SetFrequency);
-audio_param_impl!(Detune, OscillatorNode, OscillatorNodeMessage, SetDetune);
 
 #[dom_struct]
 pub struct OscillatorNode {
@@ -48,21 +41,23 @@ impl OscillatorNode {
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeType::OscillatorNode(oscillator_options.into()),
+            AudioNodeInit::OscillatorNode(oscillator_options.into()),
             context,
             &node_options,
             0, /* inputs */
             1, /* outputs */
             );
         let node_id = source_node.node().node_id();
-        let frequency = Frequency::new(context.audio_context_impl(), node_id);
         let frequency = AudioParam::new(window,
-                                        Box::new(frequency),
+                                        context,
+                                        node_id,
+                                        ParamType::Frequency,
                                         AutomationRate::A_rate,
                                         440., f32::MIN, f32::MAX);
-        let detune = Detune::new(context.audio_context_impl(), node_id);
         let detune = AudioParam::new(window,
-                                     Box::new(detune),
+                                     context,
+                                     node_id,
+                                     ParamType::Detune,
                                      AutomationRate::A_rate,
                                      0., -440. / 2., 440. / 2.);
 

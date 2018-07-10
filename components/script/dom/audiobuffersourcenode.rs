@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::audiobuffer::AudioBuffer;
-use dom::audioparam::{AudioParam, AudioParamImpl};
+use dom::audioparam::AudioParam;
 use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
@@ -23,16 +23,10 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeMessage;
 use servo_media::audio::buffer_source_node::AudioBufferSourceNodeOptions;
-use servo_media::audio::context::AudioContext;
-use servo_media::audio::graph::NodeId;
-use servo_media::audio::node::{AudioNodeMessage, AudioNodeType};
-use servo_media::audio::param::{UserAutomationEvent, RampKind};
+use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
+use servo_media::audio::param::ParamType;
 use std::cell::Cell;
 use std::f32;
-use std::rc::Rc;
-
-audio_param_impl!(PlaybackRate, AudioBufferSourceNode, AudioBufferSourceNodeMessage, SetPlaybackRate);
-audio_param_impl!(Detune, AudioBufferSourceNode, AudioBufferSourceNodeMessage, SetDetune);
 
 #[dom_struct]
 pub struct AudioBufferSourceNode {
@@ -57,22 +51,24 @@ impl AudioBufferSourceNode {
         node_options.channelCountMode = Some(ChannelCountMode::Max);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
         let source_node = AudioScheduledSourceNode::new_inherited(
-            AudioNodeType::AudioBufferSourceNode(options.into()),
+            AudioNodeInit::AudioBufferSourceNode(options.into()),
             context,
             &node_options,
             0 /* inputs */,
             1 /* outputs */,
             );
         let node_id = source_node.node().node_id();
-        let playback_rate = PlaybackRate::new(context.audio_context_impl(), node_id);
         let playback_rate = AudioParam::new(&window,
-                                            Box::new(playback_rate),
+                                            context,
+                                            node_id,
+                                            ParamType::PlaybackRate,
                                             AutomationRate::K_rate,
                                             *options.playbackRate,
                                             f32::MIN, f32::MAX);
-        let detune = Detune::new(context.audio_context_impl(), node_id);
         let detune = AudioParam::new(&window,
-                                     Box::new(detune),
+                                     context,
+                                     node_id,
+                                     ParamType::Detune,
                                      AutomationRate::K_rate,
                                      *options.detune,
                                      f32::MIN, f32::MAX);
