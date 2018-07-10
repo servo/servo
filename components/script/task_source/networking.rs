@@ -18,9 +18,7 @@ impl Clone for NetworkingTaskSource {
 }
 
 impl TaskSource for NetworkingTaskSource {
-    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
-        global.task_canceller(TaskSourceName::Networking)
-    }
+    const NAME: TaskSourceName = TaskSourceName::Networking;
 
     fn queue_with_canceller<T>(
         &self,

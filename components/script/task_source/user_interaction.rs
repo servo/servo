@@ -28,9 +28,7 @@ impl fmt::Debug for UserInteractionTaskSource {
 }
 
 impl TaskSource for UserInteractionTaskSource {
-    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
-        global.task_canceller(TaskSourceName::UserInteraction)
-    }
+    const NAME: TaskSourceName = TaskSourceName::UserInteraction;
 
     fn queue_with_canceller<T>(
         &self,

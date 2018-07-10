@@ -28,6 +28,8 @@ impl fmt::Debug for DOMManipulationTaskSource {
 }
 
 impl TaskSource for DOMManipulationTaskSource {
+     const NAME: TaskSourceName = TaskSourceName::DOMManipulation;
+
     fn queue_with_canceller<T>(
         &self,
         task: T,
@@ -42,10 +44,6 @@ impl TaskSource for DOMManipulationTaskSource {
             Some(self.1)
         ));
         self.0.send(msg).map_err(|_| ())
-    }
-
-    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
-        global.task_canceller(TaskSourceName::DOMManipulation)
     }
 }
 

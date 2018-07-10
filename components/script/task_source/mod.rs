@@ -38,6 +38,8 @@ impl TaskSourceName {
 }
 
 pub trait TaskSource {
+    const NAME: TaskSourceName;
+
     fn queue_with_canceller<T>(
         &self,
         task: T,
@@ -46,13 +48,11 @@ pub trait TaskSource {
     where
         T: TaskOnce + 'static;
 
-    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller;
-
     fn queue<T>(&self, task: T, global: &GlobalScope) -> Result<(), ()>
     where
         T: TaskOnce + 'static,
     {
-        let canceller = self.choose_canceller(global);
+        let canceller = global.task_canceller(Self::NAME);
         self.queue_with_canceller(task, &canceller)
     }
 }

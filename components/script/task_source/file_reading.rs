@@ -21,9 +21,7 @@ impl Clone for FileReadingTaskSource {
 }
 
 impl TaskSource for FileReadingTaskSource {
-    fn choose_canceller(&self, global: &GlobalScope) -> TaskCanceller {
-        global.task_canceller(TaskSourceName::FileReading)
-    }
+    const NAME: TaskSourceName = TaskSourceName::FileReading;
 
     fn queue_with_canceller<T>(
         &self,
