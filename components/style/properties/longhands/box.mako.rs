@@ -67,60 +67,16 @@ ${helpers.predefined_type(
     gecko_ffi_name="mFloat"
 )}
 
-<%helpers:single_keyword
-    name="clear"
-    values="none left right both"
-    // https://drafts.csswg.org/css-logical-props/#float-clear
-    extra_specified="inline-start inline-end"
-    needs_conversion="True"
-    gecko_inexhaustive="True"
-    animation_value_type="discrete"
-    gecko_enum_prefix="StyleClear"
-    gecko_ffi_name="mBreakType"
-    spec="https://drafts.csswg.org/css-box/#propdef-clear"
+${helpers.predefined_type(
+    "clear",
+    "Clear",
+    "computed::Clear::None",
+    animation_value_type="discrete",
+    needs_context=False,
+    gecko_ffi_name="mBreakType",
+    spec="https://drafts.csswg.org/css-box/#propdef-clear",
     servo_restyle_damage="rebuild_and_reflow"
->
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            let ltr = context.style().writing_mode.is_bidi_ltr();
-            // https://drafts.csswg.org/css-logical-props/#float-clear
-            match *self {
-                SpecifiedValue::InlineStart => {
-                    context.rule_cache_conditions.borrow_mut()
-                        .set_writing_mode_dependency(context.builder.writing_mode);
-                    if ltr {
-                        computed_value::T::Left
-                    } else {
-                        computed_value::T::Right
-                    }
-                }
-                SpecifiedValue::InlineEnd => {
-                    context.rule_cache_conditions.borrow_mut()
-                        .set_writing_mode_dependency(context.builder.writing_mode);
-                    if ltr {
-                        computed_value::T::Right
-                    } else {
-                        computed_value::T::Left
-                    }
-                }
-                % for value in "None Left Right Both".split():
-                    SpecifiedValue::${value} => computed_value::T::${value},
-                % endfor
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
-            match *computed {
-                % for value in "None Left Right Both".split():
-                    computed_value::T::${value} => SpecifiedValue::${value},
-                % endfor
-            }
-        }
-    }
-</%helpers:single_keyword>
+)}
 
 ${helpers.predefined_type(
     "vertical-align",
