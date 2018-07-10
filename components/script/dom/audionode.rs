@@ -79,8 +79,6 @@ impl AudioNodeMethods for AudioNode {
                 return Err(Error::IndexSize);
             }
 
-        // XXX Check previous connections.
-
         self.context.audio_context_impl().connect_ports(
             self.node_id().output(output), destination.node_id().input(input)
             );
