@@ -828,3 +828,16 @@ impl TransitionProperty {
         })
     }
 }
+
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToCss)]
+pub enum Float {
+    Left,
+    Right,
+    None,
+    // https://drafts.csswg.org/css-logical-props/#float-clear
+    InlineStart,
+    InlineEnd
+}

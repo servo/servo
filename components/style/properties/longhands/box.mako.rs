@@ -54,61 +54,18 @@ ${helpers.single_keyword("position", "static absolute relative fixed sticky",
                          spec="https://drafts.csswg.org/css-position/#position-property",
                          servo_restyle_damage="rebuild_and_reflow")}
 
-<%helpers:single_keyword
-    name="float"
-    values="none left right"
-    // https://drafts.csswg.org/css-logical-props/#float-clear
-    extra_specified="inline-start inline-end"
-    needs_conversion="True"
-    animation_value_type="discrete"
-    gecko_enum_prefix="StyleFloat"
-    gecko_inexhaustive="True"
+${helpers.predefined_type(
+    "float",
+    "Float",
+    "computed::Float::None",
+    initial_specified_value="specified::Float::None",
+    spec="https://drafts.csswg.org/css-box/#propdef-float",
+    animation_value_type="discrete",
+    needs_context=False,
+    flags="APPLIES_TO_FIRST_LETTER",
+    servo_restyle_damage="rebuild_and_reflow",
     gecko_ffi_name="mFloat"
-    flags="APPLIES_TO_FIRST_LETTER"
-    spec="https://drafts.csswg.org/css-box/#propdef-float"
-    servo_restyle_damage="rebuild_and_reflow"
->
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            let ltr = context.style().writing_mode.is_bidi_ltr();
-            // https://drafts.csswg.org/css-logical-props/#float-clear
-            match *self {
-                SpecifiedValue::InlineStart => {
-                    context.rule_cache_conditions.borrow_mut()
-                        .set_writing_mode_dependency(context.builder.writing_mode);
-                    if ltr {
-                        computed_value::T::Left
-                    } else {
-                        computed_value::T::Right
-                    }
-                }
-                SpecifiedValue::InlineEnd => {
-                    context.rule_cache_conditions.borrow_mut()
-                        .set_writing_mode_dependency(context.builder.writing_mode);
-                    if ltr {
-                        computed_value::T::Right
-                    } else {
-                        computed_value::T::Left
-                    }
-                }
-                % for value in "None Left Right".split():
-                    SpecifiedValue::${value} => computed_value::T::${value},
-                % endfor
-            }
-        }
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
-            match *computed {
-                % for value in "None Left Right".split():
-                    computed_value::T::${value} => SpecifiedValue::${value},
-                % endfor
-            }
-        }
-    }
-</%helpers:single_keyword>
+)}
 
 <%helpers:single_keyword
     name="clear"
