@@ -414,7 +414,6 @@ pub mod performanceobserver;
 pub mod performanceobserverentrylist;
 pub mod performancepainttiming;
 pub mod performancetiming;
-pub mod periodicwave;
 pub mod permissions;
 pub mod permissionstatus;
 pub mod plugin;
