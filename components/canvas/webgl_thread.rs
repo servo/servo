@@ -736,8 +736,6 @@ impl WebGLImpl {
                 ctx.gl().stencil_op(fail, zfail, zpass),
             WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass) =>
                 ctx.gl().stencil_op_separate(face, fail, zfail, zpass),
-            WebGLCommand::GetActiveAttrib(program_id, index, ref chan) =>
-                Self::active_attrib(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetActiveUniform(program_id, index, ref chan) =>
                 Self::active_uniform(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetRenderbufferParameter(target, pname, ref chan) =>
@@ -1043,25 +1041,6 @@ impl WebGLImpl {
     ) {
       let result = gl.read_pixels(x, y, width, height, format, pixel_type);
       chan.send(result.into()).unwrap()
-    }
-
-    #[allow(unsafe_code)]
-    fn active_attrib(
-        gl: &gl::Gl,
-        program_id: WebGLProgramId,
-        index: u32,
-        chan: &WebGLSender<WebGLResult<(i32, u32, String)>>,
-    ) {
-        let mut max = [0];
-        unsafe {
-            gl.get_program_iv(program_id.get(), gl::ACTIVE_ATTRIBUTES, &mut max);
-        }
-        let result = if index >= max[0] as u32 {
-            Err(WebGLError::InvalidValue)
-        } else {
-            Ok(gl.get_active_attrib(program_id.get(), index))
-        };
-        chan.send(result).unwrap();
     }
 
     #[allow(unsafe_code)]
