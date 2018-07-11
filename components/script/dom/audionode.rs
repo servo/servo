@@ -82,6 +82,8 @@ impl AudioNodeMethods for AudioNode {
             return Err(Error::IndexSize);
         }
 
+        // servo-media takes care of ignoring duplicated connections.
+
         self.context.audio_context_impl().connect_ports(
             self.node_id().output(output),
             destination.node_id().input(input),
