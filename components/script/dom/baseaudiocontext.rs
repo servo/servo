@@ -86,10 +86,7 @@ pub struct BaseAudioContext {
 
 impl BaseAudioContext {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(
-        _: &GlobalScope,
-        options: BaseAudioContextOptions,
-        ) -> BaseAudioContext {
+    pub fn new_inherited(_: &GlobalScope, options: BaseAudioContextOptions) -> BaseAudioContext {
         let options = match options {
             BaseAudioContextOptions::AudioContext(options) => options,
             BaseAudioContextOptions::OfflineAudioContext(_) => unimplemented!(),
@@ -99,7 +96,11 @@ impl BaseAudioContext {
 
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
-            audio_context_impl: Rc::new(ServoMedia::get().unwrap().create_audio_context(options.into())),
+            audio_context_impl: Rc::new(
+                ServoMedia::get()
+                    .unwrap()
+                    .create_audio_context(options.into()),
+            ),
             destination: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
@@ -126,7 +127,9 @@ impl BaseAudioContext {
 
     #[allow(unrooted_must_root)]
     fn push_pending_resume_promise(&self, promise: &Rc<Promise>) {
-        self.pending_resume_promises.borrow_mut().push(promise.clone());
+        self.pending_resume_promises
+            .borrow_mut()
+            .push(promise.clone());
     }
 
     /// Takes the pending resume promises.
@@ -141,14 +144,11 @@ impl BaseAudioContext {
     /// which were taken and moved to the in-flight queue.
     #[allow(unrooted_must_root)]
     fn take_pending_resume_promises(&self, result: ErrorResult) {
-        let pending_resume_promises = mem::replace(
-            &mut *self.pending_resume_promises.borrow_mut(),
-            vec![],
-            );
-        self.in_flight_resume_promises_queue.borrow_mut().push_back((
-                pending_resume_promises.into(),
-                result,
-                ));
+        let pending_resume_promises =
+            mem::replace(&mut *self.pending_resume_promises.borrow_mut(), vec![]);
+        self.in_flight_resume_promises_queue
+            .borrow_mut()
+            .push_back((pending_resume_promises.into(), result));
     }
 
     /// Fulfills the next in-flight resume promises queue after running a closure.
@@ -161,21 +161,22 @@ impl BaseAudioContext {
     /// hiding actual safety bugs.
     #[allow(unrooted_must_root)]
     fn fulfill_in_flight_resume_promises<F>(&self, f: F)
-        where
-            F: FnOnce(),
-        {
-            let (promises, result) = self.in_flight_resume_promises_queue
-                .borrow_mut()
-                .pop_front()
-                .expect("there should be at least one list of in flight resume promises");
-            f();
-            for promise in &*promises {
-                match result {
-                    Ok(ref value) => promise.resolve_native(value),
-                    Err(ref error) => promise.reject_error(error.clone()),
-                }
+    where
+        F: FnOnce(),
+    {
+        let (promises, result) = self
+            .in_flight_resume_promises_queue
+            .borrow_mut()
+            .pop_front()
+            .expect("there should be at least one list of in flight resume promises");
+        f();
+        for promise in &*promises {
+            match result {
+                Ok(ref value) => promise.resolve_native(value),
+                Err(ref error) => promise.reject_error(error.clone()),
             }
         }
+    }
 
     /// Control thread processing state
     pub fn control_thread_state(&self) -> ProcessingState {
@@ -197,7 +198,8 @@ impl BaseAudioContext {
         match self.audio_context_impl.resume() {
             Ok(()) => {
                 self.take_pending_resume_promises(Ok(()));
-                let _ = task_source.queue(task!(resume_success: move || {
+                let _ = task_source.queue(
+                    task!(resume_success: move || {
                     let this = this.root();
                     this.fulfill_in_flight_resume_promises(|| {
                         if this.state.get() != AudioContextState::Running {
@@ -210,14 +212,21 @@ impl BaseAudioContext {
                                 );
                         }
                     });
-                }), window.upcast());
+                }),
+                    window.upcast(),
+                );
             },
             Err(()) => {
-                self.take_pending_resume_promises(Err(Error::Type("Something went wrong".to_owned())));
-                let _ = task_source.queue(task!(resume_error: move || {
+                self.take_pending_resume_promises(Err(Error::Type(
+                    "Something went wrong".to_owned(),
+                )));
+                let _ = task_source.queue(
+                    task!(resume_error: move || {
                     this.root().fulfill_in_flight_resume_promises(|| {})
-                }), window.upcast());
-            }
+                }),
+                    window.upcast(),
+                );
+            },
         }
     }
 }
@@ -288,7 +297,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
     fn CreateOscillator(&self) -> DomRoot<OscillatorNode> {
-        OscillatorNode::new(&self.global().as_window(), &self, &OscillatorOptions::empty())
+        OscillatorNode::new(
+            &self.global().as_window(),
+            &self,
+            &OscillatorOptions::empty(),
+        )
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain
@@ -297,56 +310,74 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
-    fn CreateBuffer(&self,
-                    number_of_channels: u32,
-                    length: u32,
-                    sample_rate: Finite<f32>) -> Fallible<DomRoot<AudioBuffer>> {
+    fn CreateBuffer(
+        &self,
+        number_of_channels: u32,
+        length: u32,
+        sample_rate: Finite<f32>,
+    ) -> Fallible<DomRoot<AudioBuffer>> {
         if number_of_channels <= 0 ||
             number_of_channels > MAX_CHANNEL_COUNT ||
-                length <= 0 ||
-                *sample_rate <= 0. {
-                    return Err(Error::NotSupported);
-                }
-        Ok(AudioBuffer::new(&self.global().as_window(), number_of_channels, length, *sample_rate, None))
+            length <= 0 ||
+            *sample_rate <= 0.
+        {
+            return Err(Error::NotSupported);
+        }
+        Ok(AudioBuffer::new(
+            &self.global().as_window(),
+            number_of_channels,
+            length,
+            *sample_rate,
+            None,
+        ))
     }
 
     fn CreateBufferSource(&self) -> DomRoot<AudioBufferSourceNode> {
-        AudioBufferSourceNode::new(&self.global().as_window(), &self, &AudioBufferSourceOptions::empty())
+        AudioBufferSourceNode::new(
+            &self.global().as_window(),
+            &self,
+            &AudioBufferSourceOptions::empty(),
+        )
     }
 
     #[allow(unrooted_must_root)]
-    fn DecodeAudioData(&self,
-                       audio_data: CustomAutoRooterGuard<ArrayBuffer>,
-                       decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
-                       decode_error_callback: Option<Rc<DecodeErrorCallback>>)
-        -> Rc<Promise> {
-            // Step 1.
-            let promise = Promise::new(&self.global());
-            let global = self.global();
-            let window = global.as_window();
+    fn DecodeAudioData(
+        &self,
+        audio_data: CustomAutoRooterGuard<ArrayBuffer>,
+        decode_success_callback: Option<Rc<DecodeSuccessCallback>>,
+        decode_error_callback: Option<Rc<DecodeErrorCallback>>,
+    ) -> Rc<Promise> {
+        // Step 1.
+        let promise = Promise::new(&self.global());
+        let global = self.global();
+        let window = global.as_window();
 
-            if audio_data.len() > 0 {
-                // Step 2.
-                // XXX detach array buffer.
-                let uuid = Uuid::new_v4().simple().to_string();
-                let uuid_ = uuid.clone();
-                self.decode_resolvers.borrow_mut().insert(uuid.clone(), DecodeResolver {
+        if audio_data.len() > 0 {
+            // Step 2.
+            // XXX detach array buffer.
+            let uuid = Uuid::new_v4().simple().to_string();
+            let uuid_ = uuid.clone();
+            self.decode_resolvers.borrow_mut().insert(
+                uuid.clone(),
+                DecodeResolver {
                     promise: promise.clone(),
                     success_callback: decode_success_callback,
                     error_callback: decode_error_callback,
-                });
-                let audio_data = audio_data.to_vec();
-                let decoded_audio = Arc::new(Mutex::new(Vec::new()));
-                let decoded_audio_ = decoded_audio.clone();
-                let this = Trusted::new(self);
-                let this_ = this.clone();
-                let task_source = window.dom_manipulation_task_source();
-                let task_source_ = window.dom_manipulation_task_source();
-                let canceller = window.task_canceller();
-                let canceller_ = window.task_canceller();
-                let callbacks = AudioDecoderCallbacks::new()
-                    .eos(move || {
-                        let _ = task_source.queue_with_canceller(task!(audio_decode_eos: move || {
+                },
+            );
+            let audio_data = audio_data.to_vec();
+            let decoded_audio = Arc::new(Mutex::new(Vec::new()));
+            let decoded_audio_ = decoded_audio.clone();
+            let this = Trusted::new(self);
+            let this_ = this.clone();
+            let task_source = window.dom_manipulation_task_source();
+            let task_source_ = window.dom_manipulation_task_source();
+            let canceller = window.task_canceller();
+            let canceller_ = window.task_canceller();
+            let callbacks = AudioDecoderCallbacks::new()
+                .eos(move || {
+                    let _ = task_source.queue_with_canceller(
+                        task!(audio_decode_eos: move || {
                             let this = this.root();
                             let decoded_audio = decoded_audio.lock().unwrap();
                             let buffer = AudioBuffer::new(
@@ -362,10 +393,13 @@ impl BaseAudioContextMethods for BaseAudioContext {
                                 let _ = callback.Call__(&buffer, ExceptionHandling::Report);
                             }
                             resolver.promise.resolve_native(&buffer);
-                        }), &canceller);
-                    })
+                        }),
+                        &canceller,
+                    );
+                })
                 .error(move || {
-                    let _ = task_source_.queue_with_canceller(task!(audio_decode_eos: move || {
+                    let _ = task_source_.queue_with_canceller(
+                        task!(audio_decode_eos: move || {
                         let this = this_.root();
                         let mut resolvers = this.decode_resolvers.borrow_mut();
                         assert!(resolvers.contains_key(&uuid));
@@ -376,7 +410,9 @@ impl BaseAudioContextMethods for BaseAudioContext {
                                 ExceptionHandling::Report);
                         }
                         resolver.promise.reject_error(Error::Type("Audio decode error".to_owned()));
-                    }), &canceller_);
+                    }),
+                        &canceller_,
+                    );
                 })
                 .progress(move |buffer| {
                     decoded_audio_
@@ -385,16 +421,17 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .extend_from_slice((*buffer).as_ref());
                 })
                 .build();
-                self.audio_context_impl.decode_audio_data(audio_data, callbacks);
-            } else {
-                // Step 3.
-                promise.reject_error(Error::DataClone);
-                return promise;
-            }
-
-            // Step 4.
-            promise
+            self.audio_context_impl
+                .decode_audio_data(audio_data, callbacks);
+        } else {
+            // Step 3.
+            promise.reject_error(Error::DataClone);
+            return promise;
         }
+
+        // Step 4.
+        promise
+    }
 }
 
 impl From<ProcessingState> for AudioContextState {

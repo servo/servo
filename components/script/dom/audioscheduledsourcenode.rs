@@ -19,16 +19,24 @@ pub struct AudioScheduledSourceNode {
 }
 
 impl AudioScheduledSourceNode {
-    pub fn new_inherited(node_type: AudioNodeInit,
-                         context: &BaseAudioContext,
-                         options: &AudioNodeOptions,
-                         number_of_inputs: u32,
-                         number_of_outputs: u32) -> AudioScheduledSourceNode {
+    pub fn new_inherited(
+        node_type: AudioNodeInit,
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+        number_of_inputs: u32,
+        number_of_outputs: u32,
+    ) -> AudioScheduledSourceNode {
         AudioScheduledSourceNode {
-            node: AudioNode::new_inherited(node_type, None /* node_id */,
-                                           context, options, number_of_inputs, number_of_outputs),
-                                           started: Cell::new(false),
-                                           stopped: Cell::new(false),
+            node: AudioNode::new_inherited(
+                node_type,
+                None, /* node_id */
+                context,
+                options,
+                number_of_inputs,
+                number_of_outputs,
+            ),
+            started: Cell::new(false),
+            stopped: Cell::new(false),
         }
     }
 
@@ -51,9 +59,10 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
             return Err(Error::InvalidState);
         }
         self.started.set(true);
-        self.node.message(
-            AudioNodeMessage::AudioScheduledSourceNode(AudioScheduledSourceNodeMessage::Start(*when))
-            );
+        self.node
+            .message(AudioNodeMessage::AudioScheduledSourceNode(
+                AudioScheduledSourceNodeMessage::Start(*when),
+            ));
         Ok(())
     }
 
@@ -63,9 +72,10 @@ impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
             return Err(Error::InvalidState);
         }
         self.stopped.set(true);
-        self.node.message(
-            AudioNodeMessage::AudioScheduledSourceNode(AudioScheduledSourceNodeMessage::Stop(*when))
-            );
+        self.node
+            .message(AudioNodeMessage::AudioScheduledSourceNode(
+                AudioScheduledSourceNodeMessage::Stop(*when),
+            ));
         Ok(())
     }
 }
