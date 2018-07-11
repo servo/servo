@@ -629,3 +629,4 @@ macro_rules! handle_potential_webgl_error {
         handle_potential_webgl_error!($context, $call, ());
     };
 }
+
