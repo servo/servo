@@ -18,7 +18,7 @@ dictionary OscillatorOptions : AudioNodeOptions {
   OscillatorType type = "sine";
   float frequency = 440;
   float detune = 0;
-  PeriodicWave periodicWave;
+  // PeriodicWave periodicWave;
 };
 
 [Exposed=Window,

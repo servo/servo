@@ -46,6 +46,7 @@ use std::sync::{Arc, Mutex};
 use task_source::TaskSource;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub enum BaseAudioContextOptions {
     AudioContext(RealTimeAudioContextOptions),
     OfflineAudioContext(OfflineAudioContextOptions),
