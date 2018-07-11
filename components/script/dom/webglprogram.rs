@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLProgramId, WebGLResult, to_name_in_compiled_shader, webgl_channel};
+use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{WebGLMsgSender, WebGLProgramId, WebGLResult, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -248,10 +248,8 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        let name = to_name_in_compiled_shader(&name);
-
         self.renderer
-            .send(WebGLCommand::BindAttribLocation(self.id, index, name))
+            .send(WebGLCommand::BindAttribLocation(self.id, index, name.into()))
             .unwrap();
         Ok(())
     }
@@ -326,11 +324,9 @@ impl WebGLProgram {
             return Ok(None);
         }
 
-        let name = to_name_in_compiled_shader(&name);
-
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer
-            .send(WebGLCommand::GetUniformLocation(self.id, name, sender))
+            .send(WebGLCommand::GetUniformLocation(self.id, name.into(), sender))
             .unwrap();
         Ok(receiver.recv().unwrap())
     }

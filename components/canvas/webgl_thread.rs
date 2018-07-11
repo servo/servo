@@ -646,8 +646,9 @@ impl WebGLImpl {
                 ctx.gl().attach_shader(program_id.get(), shader_id.get()),
             WebGLCommand::DetachShader(program_id, shader_id) =>
                 ctx.gl().detach_shader(program_id.get(), shader_id.get()),
-            WebGLCommand::BindAttribLocation(program_id, index, ref name) =>
-                ctx.gl().bind_attrib_location(program_id.get(), index, name),
+            WebGLCommand::BindAttribLocation(program_id, index, ref name) => {
+                ctx.gl().bind_attrib_location(program_id.get(), index, &to_name_in_compiled_shader(name))
+            }
             WebGLCommand::BlendColor(r, g, b, a) =>
                 ctx.gl().blend_color(r, g, b, a),
             WebGLCommand::BlendEquation(mode) =>
@@ -1100,11 +1101,13 @@ impl WebGLImpl {
         chan.send(parameter).unwrap();
     }
 
-    fn uniform_location(gl: &gl::Gl,
-                        program_id: WebGLProgramId,
-                        name: &str,
-                        chan: &WebGLSender<Option<i32>>) {
-        let location = gl.get_uniform_location(program_id.get(), name);
+    fn uniform_location(
+        gl: &gl::Gl,
+        program_id: WebGLProgramId,
+        name: &str,
+        chan: &WebGLSender<Option<i32>>,
+    ) {
+        let location = gl.get_uniform_location(program_id.get(), &to_name_in_compiled_shader(name));
         let location = if location == -1 {
             None
         } else {
@@ -1222,4 +1225,40 @@ impl WebGLImpl {
         gl.shader_source(shader_id.get(), &[source.as_bytes()]);
         gl.compile_shader(shader_id.get());
     }
+}
+
+/// ANGLE adds a `_u` prefix to variable names:
+///
+/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
+///
+/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
+/// API to look up the `x.name` and `x.mappedName` members.
+const ANGLE_NAME_PREFIX: &'static str = "_u";
+
+fn to_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(ANGLE_NAME_PREFIX);
+        mapped.push_str(s);
+    })
+}
+
+fn from_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
+            &s[ANGLE_NAME_PREFIX.len()..]
+        } else {
+            s
+        })
+    })
+}
+
+fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
+    let mut iter = s.split('.');
+    let mut mapped = String::new();
+    f(iter.next().unwrap(), &mut mapped);
+    for s in iter {
+        mapped.push('.');
+        f(s, &mut mapped);
+    }
+    mapped
 }

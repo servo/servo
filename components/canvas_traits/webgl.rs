@@ -589,39 +589,3 @@ parameters! {
         }),
     }
 }
-
-/// ANGLE adds a `_u` prefix to variable names:
-///
-/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
-///
-/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
-/// API to look up the `x.name` and `x.mappedName` members.
-const ANGLE_NAME_PREFIX: &'static str = "_u";
-
-pub fn to_name_in_compiled_shader(s: &str) -> String {
-    map_dot_separated(s, |s, mapped| {
-        mapped.push_str(ANGLE_NAME_PREFIX);
-        mapped.push_str(s);
-    })
-}
-
-pub fn from_name_in_compiled_shader(s: &str) -> String {
-    map_dot_separated(s, |s, mapped| {
-        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
-            &s[ANGLE_NAME_PREFIX.len()..]
-        } else {
-            s
-        })
-    })
-}
-
-fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
-    let mut iter = s.split('.');
-    let mut mapped = String::new();
-    f(iter.next().unwrap(), &mut mapped);
-    for s in iter {
-        mapped.push('.');
-        f(s, &mut mapped);
-    }
-    mapped
-}
