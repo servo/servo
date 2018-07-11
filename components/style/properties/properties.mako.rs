@@ -2222,6 +2222,50 @@ enum AllShorthand {
     WithVariables(Arc<UnparsedValue>)
 }
 
+impl AllShorthand {
+    /// Iterates property declarations from the given all shorthand value.
+    #[inline]
+    fn declarations(&self) -> AllShorthandDeclarationIterator {
+        AllShorthandDeclarationIterator {
+            all_shorthand: self,
+            longhands: ShorthandId::All.longhands(),
+        }
+    }
+}
+
+struct AllShorthandDeclarationIterator<'a> {
+    all_shorthand: &'a AllShorthand,
+    longhands: NonCustomPropertyIterator<LonghandId>,
+}
+
+impl<'a> Iterator for AllShorthandDeclarationIterator<'a> {
+    type Item = PropertyDeclaration;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        match *self.all_shorthand {
+            AllShorthand::NotSet => None,
+            AllShorthand::CSSWideKeyword(ref keyword) => {
+                Some(PropertyDeclaration::CSSWideKeyword(
+                    WideKeywordDeclaration {
+                        id: self.longhands.next()?,
+                        keyword: *keyword
+                    }
+                ))
+            }
+            AllShorthand::WithVariables(ref unparsed) => {
+                let id = self.longhands.next()?;
+                Some(PropertyDeclaration::WithVariables(
+                    VariableDeclaration {
+                        id: self.longhands.next()?,
+                        value: unparsed.clone()
+                    }
+                ))
+            }
+        }
+    }
+}
+
 #[cfg(feature = "gecko")]
 pub use gecko_properties::style_structs;
 

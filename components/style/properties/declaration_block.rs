@@ -455,34 +455,9 @@ impl PropertyDeclarationBlock {
                 mode,
             );
         }
-        match drain.all_shorthand {
-            AllShorthand::NotSet => {}
-            AllShorthand::CSSWideKeyword(keyword) => {
-                for id in ShorthandId::All.longhands() {
-                    let decl = PropertyDeclaration::CSSWideKeyword(
-                        WideKeywordDeclaration { id, keyword },
-                    );
-                    changed |= self.push(
-                        decl,
-                        importance,
-                        mode,
-                    );
-                }
-            }
-            AllShorthand::WithVariables(unparsed) => {
-                for id in ShorthandId::All.longhands() {
-                    let decl = PropertyDeclaration::WithVariables(
-                        VariableDeclaration { id, value: unparsed.clone() },
-                    );
-                    changed |= self.push(
-                        decl,
-                        importance,
-                        mode,
-                    );
-                }
-            }
-        }
-        changed
+        drain.all_shorthand.declarations().fold(changed, |changed, decl| {
+            changed | self.push(decl, importance, mode)
+        })
     }
 
     /// Adds or overrides the declaration for a given property in this block.
