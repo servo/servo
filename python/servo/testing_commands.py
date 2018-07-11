@@ -598,8 +598,8 @@ class MachCommands(CommandBase):
                 print("Waiting for the emulator to boot")
                 time.sleep(1)
 
-            binary_path = self.get_binary_path(release, dev, android=True)
-            result = subprocess.call(adb + ["install", "-r", binary_path + ".apk"])
+            apk_path = self.get_apk_path(release)
+            result = subprocess.call(adb + ["install", "-r", apk_path])
             if result != 0:
                 return result
 
