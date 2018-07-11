@@ -51,6 +51,7 @@ impl AudioScheduledSourceNode {
 
 impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-onended
+    // XXX We should dispatch this when we reach the end. Depends on servo-media #82.
     event_handler!(ended, GetOnended, SetOnended);
 
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-start
