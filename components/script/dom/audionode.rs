@@ -236,7 +236,7 @@ impl AudioNodeMethods for AudioNode {
     fn SetChannelInterpretation(&self, value: ChannelInterpretation) {
         // Channel interpretation mode has no effect for nodes with no inputs.
         if self.number_of_inputs == 0 {
-            return Ok(());
+            return;
         }
 
         self.channel_interpretation.set(value);
