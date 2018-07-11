@@ -18,19 +18,28 @@ pub struct AudioDestinationNode {
 }
 
 impl AudioDestinationNode {
-    fn new_inherited(context: &BaseAudioContext,
-                     options: &AudioNodeOptions) -> AudioDestinationNode {
+    fn new_inherited(
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+    ) -> AudioDestinationNode {
         AudioDestinationNode {
-            node: AudioNode::new_inherited(AudioNodeInit::DestinationNode,
-                                           Some(context.destination_node()),
-                                           context, options, 1, 1),
+            node: AudioNode::new_inherited(
+                AudioNodeInit::DestinationNode,
+                Some(context.destination_node()),
+                context,
+                options,
+                1,
+                1,
+            ),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               context: &BaseAudioContext,
-               options: &AudioNodeOptions) -> DomRoot<AudioDestinationNode> {
+    pub fn new(
+        global: &GlobalScope,
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+    ) -> DomRoot<AudioDestinationNode> {
         let node = AudioDestinationNode::new_inherited(context, options);
         reflect_dom_object(Box::new(node), global, AudioDestinationNodeBinding::Wrap)
     }

@@ -37,7 +37,10 @@ impl AudioContext {
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
     fn new_inherited(global: &GlobalScope, options: &AudioContextOptions) -> AudioContext {
         // Steps 1-3.
-        let context = BaseAudioContext::new_inherited(global, BaseAudioContextOptions::AudioContext(options.into()));
+        let context = BaseAudioContext::new_inherited(
+            global,
+            BaseAudioContextOptions::AudioContext(options.into()),
+        );
 
         // Step 4.1.
         let latency_hint = options.latencyHint;
@@ -52,14 +55,13 @@ impl AudioContext {
         AudioContext {
             context,
             latency_hint,
-            base_latency: 0., // TODO
+            base_latency: 0.,   // TODO
             output_latency: 0., // TODO
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope,
-               options: &AudioContextOptions) -> DomRoot<AudioContext> {
+    pub fn new(global: &GlobalScope, options: &AudioContextOptions) -> DomRoot<AudioContext> {
         let context = AudioContext::new_inherited(global, options);
         let context = reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap);
         context.resume();
@@ -67,8 +69,10 @@ impl AudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    pub fn Constructor(window: &Window,
-                       options: &AudioContextOptions) -> Fallible<DomRoot<AudioContext>> {
+    pub fn Constructor(
+        window: &Window,
+        options: &AudioContextOptions,
+    ) -> Fallible<DomRoot<AudioContext>> {
         let global = window.upcast::<GlobalScope>();
         Ok(AudioContext::new(global, options))
     }
@@ -125,7 +129,8 @@ impl AudioContextMethods for AudioContext {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
-                let _ = task_source.queue(task!(suspend_ok: move || {
+                let _ = task_source.queue(
+                    task!(suspend_ok: move || {
                     let base_context = base_context.root();
                     let context = context.root();
                     let promise = trusted_promise.root();
@@ -139,15 +144,20 @@ impl AudioContextMethods for AudioContext {
                             &window
                             );
                     }
-                }), window.upcast());
+                }),
+                    window.upcast(),
+                );
             },
             Err(_) => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
-                let _ = task_source.queue(task!(suspend_error: move || {
+                let _ = task_source.queue(
+                    task!(suspend_error: move || {
                     let promise = trusted_promise.root();
                     promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                }), window.upcast());
+                }),
+                    window.upcast(),
+                );
             },
         };
 
@@ -180,7 +190,8 @@ impl AudioContextMethods for AudioContext {
             Ok(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
-                let _ = task_source.queue(task!(suspend_ok: move || {
+                let _ = task_source.queue(
+                    task!(suspend_ok: move || {
                     let base_context = base_context.root();
                     let context = context.root();
                     let promise = trusted_promise.root();
@@ -194,18 +205,22 @@ impl AudioContextMethods for AudioContext {
                             &window
                             );
                     }
-                }), window.upcast());
+                }),
+                    window.upcast(),
+                );
             },
             Err(_) => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
-                let _ = task_source.queue(task!(suspend_error: move || {
+                let _ = task_source.queue(
+                    task!(suspend_error: move || {
                     let promise = trusted_promise.root();
                     promise.reject_error(Error::Type("Something went wrong".to_owned()));
-                }), window.upcast());
+                }),
+                    window.upcast(),
+                );
             },
         };
-
 
         // Step 6.
         promise

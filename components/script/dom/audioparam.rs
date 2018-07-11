@@ -30,13 +30,15 @@ pub struct AudioParam {
 }
 
 impl AudioParam {
-    pub fn new_inherited(context: &BaseAudioContext,
-                         node: NodeId,
-                         param: ParamType,
-                         automation_rate: AutomationRate,
-                         default_value: f32,
-                         min_value: f32,
-                         max_value: f32) -> AudioParam {
+    pub fn new_inherited(
+        context: &BaseAudioContext,
+        node: NodeId,
+        param: ParamType,
+        automation_rate: AutomationRate,
+        default_value: f32,
+        min_value: f32,
+        max_value: f32,
+    ) -> AudioParam {
         AudioParam {
             reflector_: Reflector::new(),
             context: Dom::from_ref(context),
@@ -50,16 +52,25 @@ impl AudioParam {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window,
-               context: &BaseAudioContext,
-               node: NodeId,
-               param: ParamType,
-               automation_rate: AutomationRate,
-               default_value: f32,
-               min_value: f32,
-               max_value: f32) -> DomRoot<AudioParam> {
-        let audio_param = AudioParam::new_inherited(context, node, param, automation_rate,
-                                                    default_value, min_value, max_value);
+    pub fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        node: NodeId,
+        param: ParamType,
+        automation_rate: AutomationRate,
+        default_value: f32,
+        min_value: f32,
+        max_value: f32,
+    ) -> DomRoot<AudioParam> {
+        let audio_param = AudioParam::new_inherited(
+            context,
+            node,
+            param,
+            automation_rate,
+            default_value,
+            min_value,
+            max_value,
+        );
         reflect_dom_object(Box::new(audio_param), window, AudioParamBinding::Wrap)
     }
 }
@@ -80,14 +91,10 @@ impl AudioParamMethods for AudioParam {
     }
 
     fn SetValue(&self, value: Finite<f32>) {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::SetValue(
-                                *value
-                            )
-                          )
-                         );
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(self.param, UserAutomationEvent::SetValue(*value)),
+        );
     }
 
     fn DefaultValue(&self) -> Finite<f32> {
@@ -102,83 +109,82 @@ impl AudioParamMethods for AudioParam {
         Finite::wrap(self.max_value)
     }
 
-    fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>)
-        -> DomRoot<AudioParam>
-    {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::SetValueAtTime(
-                                *value, *start_time
-                            )
-                          )
-                         );
+    fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>) -> DomRoot<AudioParam> {
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(
+                self.param,
+                UserAutomationEvent::SetValueAtTime(*value, *start_time),
+            ),
+        );
         DomRoot::from_ref(self)
     }
 
-    fn LinearRampToValueAtTime(&self, value: Finite<f32>, end_time: Finite<f64>)
-        -> DomRoot<AudioParam>
-    {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::RampToValueAtTime(
-                                RampKind::Linear, *value, *end_time
-                            )
-                          )
-                         );
+    fn LinearRampToValueAtTime(
+        &self,
+        value: Finite<f32>,
+        end_time: Finite<f64>,
+    ) -> DomRoot<AudioParam> {
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(
+                self.param,
+                UserAutomationEvent::RampToValueAtTime(RampKind::Linear, *value, *end_time),
+            ),
+        );
         DomRoot::from_ref(self)
     }
 
-    fn ExponentialRampToValueAtTime(&self, value: Finite<f32>, end_time: Finite<f64>)
-        -> DomRoot<AudioParam>
-    {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::RampToValueAtTime(
-                                RampKind::Exponential, *value, *end_time
-                            )
-                          )
-                         );
+    fn ExponentialRampToValueAtTime(
+        &self,
+        value: Finite<f32>,
+        end_time: Finite<f64>,
+    ) -> DomRoot<AudioParam> {
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(
+                self.param,
+                UserAutomationEvent::RampToValueAtTime(RampKind::Exponential, *value, *end_time),
+            ),
+        );
         DomRoot::from_ref(self)
     }
 
-    fn SetTargetAtTime(&self, target: Finite<f32>, start_time: Finite<f64>, time_constant: Finite<f32>)
-        -> DomRoot<AudioParam>
-    {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::SetTargetAtTime(
-                                *target, *start_time, (*time_constant).into()
-                            )
-                          )
-                         );
+    fn SetTargetAtTime(
+        &self,
+        target: Finite<f32>,
+        start_time: Finite<f64>,
+        time_constant: Finite<f32>,
+    ) -> DomRoot<AudioParam> {
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(
+                self.param,
+                UserAutomationEvent::SetTargetAtTime(*target, *start_time, (*time_constant).into()),
+            ),
+        );
         DomRoot::from_ref(self)
     }
 
     fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::CancelScheduledValues(
-                                *cancel_time
-                            )
-                          )
-                         );
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(
+                self.param,
+                UserAutomationEvent::CancelScheduledValues(*cancel_time),
+            ),
+        );
         DomRoot::from_ref(self)
     }
 
     fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
-        self.context.audio_context_impl()
-            .message_node(self.node,
-                          AudioNodeMessage::SetParam(self.param,
-                            UserAutomationEvent::CancelAndHoldAtTime(
-                                *cancel_time
-                            )
-                          )
-                         );
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParam(
+                self.param,
+                UserAutomationEvent::CancelAndHoldAtTime(*cancel_time),
+            ),
+        );
         DomRoot::from_ref(self)
     }
 }

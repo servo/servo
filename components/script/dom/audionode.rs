@@ -33,15 +33,16 @@ pub struct AudioNode {
 }
 
 impl AudioNode {
-    pub fn new_inherited(node_type: AudioNodeInit,
-                         node_id: Option<NodeId>,
-                         context: &BaseAudioContext,
-                         options: &AudioNodeOptions,
-                         number_of_inputs: u32,
-                         number_of_outputs: u32) -> AudioNode {
-        let node_id = node_id.unwrap_or_else(|| {
-            context.audio_context_impl().create_node(node_type)
-        });
+    pub fn new_inherited(
+        node_type: AudioNodeInit,
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+        number_of_inputs: u32,
+        number_of_outputs: u32,
+    ) -> AudioNode {
+        let node_id =
+            node_id.unwrap_or_else(|| context.audio_context_impl().create_node(node_type));
         AudioNode {
             eventtarget: EventTarget::new_inherited(),
             node_id,
@@ -55,7 +56,9 @@ impl AudioNode {
     }
 
     pub fn message(&self, message: AudioNodeMessage) {
-        self.context.audio_context_impl().message_node(self.node_id, message);
+        self.context
+            .audio_context_impl()
+            .message_node(self.node_id, message);
     }
 
     pub fn node_id(&self) -> NodeId {
@@ -65,65 +68,69 @@ impl AudioNode {
 
 impl AudioNodeMethods for AudioNode {
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
-    fn Connect(&self,
-               destination: &AudioNode,
-               output: u32,
-               input: u32) -> Fallible<DomRoot<AudioNode>> {
-
+    fn Connect(
+        &self,
+        destination: &AudioNode,
+        output: u32,
+        input: u32,
+    ) -> Fallible<DomRoot<AudioNode>> {
         if self.context != destination.context {
             return Err(Error::InvalidAccess);
         }
 
-        if output >= self.NumberOfOutputs() ||
-            input >= destination.NumberOfInputs() {
-                return Err(Error::IndexSize);
-            }
+        if output >= self.NumberOfOutputs() || input >= destination.NumberOfInputs() {
+            return Err(Error::IndexSize);
+        }
 
         self.context.audio_context_impl().connect_ports(
-            self.node_id().output(output), destination.node_id().input(input)
-            );
+            self.node_id().output(output),
+            destination.node_id().input(input),
+        );
 
         Ok(DomRoot::from_ref(destination))
     }
 
-    fn Connect_(&self,
-                _: &AudioParam,
-                _: u32) -> Fallible<()> {
+    fn Connect_(&self, _: &AudioParam, _: u32) -> Fallible<()> {
         // TODO
         Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
     fn Disconnect(&self) -> ErrorResult {
-        self.context.audio_context_impl()
+        self.context
+            .audio_context_impl()
             .disconnect_all_from(self.node_id());
         Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output
     fn Disconnect_(&self, out: u32) -> ErrorResult {
-        self.context.audio_context_impl()
+        self.context
+            .audio_context_impl()
             .disconnect_output(self.node_id().output(out));
         Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode
     fn Disconnect__(&self, to: &AudioNode) -> ErrorResult {
-        self.context.audio_context_impl()
+        self.context
+            .audio_context_impl()
             .disconnect_between(self.node_id(), to.node_id());
         Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output
-    fn Disconnect___(&self, to: &AudioNode, out: u32) -> ErrorResult{
-        self.context.audio_context_impl()
+    fn Disconnect___(&self, to: &AudioNode, out: u32) -> ErrorResult {
+        self.context
+            .audio_context_impl()
             .disconnect_output_between(self.node_id().output(out), to.node_id());
         Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input
     fn Disconnect____(&self, to: &AudioNode, out: u32, inp: u32) -> ErrorResult {
-        self.context.audio_context_impl()
+        self.context
+            .audio_context_impl()
             .disconnect_output_between_to(self.node_id().output(out), to.node_id().input(inp));
         Ok(())
     }
