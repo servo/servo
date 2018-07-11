@@ -159,6 +159,9 @@ android:
   - bash ./etc/ci/lockfile_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
+android-x86:
+  - echo FIXME To be filled in once Buildbot is configured
+
 android-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
