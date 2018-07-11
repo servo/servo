@@ -51,8 +51,8 @@ pub enum BaseAudioContextOptions {
     OfflineAudioContext(OfflineAudioContextOptions),
 }
 
+#[must_root]
 #[derive(JSTraceable)]
-#[allow(unrooted_must_root)]
 struct DecodeResolver {
     pub promise: Rc<Promise>,
     pub success_callback: Option<Rc<DecodeSuccessCallback>>,
