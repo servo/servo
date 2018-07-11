@@ -5,13 +5,17 @@
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{AudioNodeMethods, AudioNodeOptions};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::codegen::InheritTypes::{AudioNodeTypeId, EventTargetTypeId};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::audioparam::AudioParam;
 use dom::eventtarget::EventTarget;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
+use servo_media::audio::node::ChannelCountMode as ServoMediaChannelCountMode;
+use servo_media::audio::node::ChannelInterpretation as ServoMediaChannelInterpretation;
 use std::cell::Cell;
 
 // 32 is the minimum required by the spec for createBuffer() and the deprecated
@@ -169,28 +173,92 @@ impl AudioNodeMethods for AudioNode {
         self.channel_count.get()
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount
     fn SetChannelCount(&self, value: u32) -> ErrorResult {
+        match self.upcast::<EventTarget>().type_id() {
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
+                if self.context.is_offline() {
+                    return Err(Error::InvalidState);
+                } else if value < 1 || value > MAX_CHANNEL_COUNT {
+                    return Err(Error::IndexSize);
+                }
+            },
+            // XXX We do not support any of the other AudioNodes with
+            // constraints yet. Add more cases here as we add support
+            // for new AudioNodes.
+            _ => (),
+        };
+
         if value == 0 || value > MAX_CHANNEL_COUNT {
             return Err(Error::NotSupported);
         }
+
         self.channel_count.set(value);
+        self.message(AudioNodeMessage::SetChannelCount(value as u8));
         Ok(())
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcountmode
     fn ChannelCountMode(&self) -> ChannelCountMode {
         self.channel_count_mode.get()
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcountmode
     fn SetChannelCountMode(&self, value: ChannelCountMode) -> ErrorResult {
+        // Channel count mode has no effect for nodes with no inputs.
+        if self.number_of_inputs == 0 {
+            return Ok(());
+        }
+
+        match self.upcast::<EventTarget>().type_id() {
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
+                if self.context.is_offline() {
+                    return Err(Error::InvalidState);
+                }
+            },
+            // XXX We do not support any of the other AudioNodes with
+            // constraints yet. Add more cases here as we add support
+            // for new AudioNodes.
+            _ => (),
+        };
+
         self.channel_count_mode.set(value);
+        self.message(AudioNodeMessage::SetChannelMode(value.into()));
         Ok(())
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation
     fn ChannelInterpretation(&self) -> ChannelInterpretation {
         self.channel_interpretation.get()
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-channelinterpretation
     fn SetChannelInterpretation(&self, value: ChannelInterpretation) {
+        // Channel interpretation mode has no effect for nodes with no inputs.
+        if self.number_of_inputs == 0 {
+            return Ok(());
+        }
+
         self.channel_interpretation.set(value);
+        self.message(AudioNodeMessage::SetChannelInterpretation(value.into()));
+    }
+}
+
+impl From<ChannelCountMode> for ServoMediaChannelCountMode {
+    fn from(mode: ChannelCountMode) -> Self {
+        match mode {
+            ChannelCountMode::Max => ServoMediaChannelCountMode::Max,
+            ChannelCountMode::Clamped_max => ServoMediaChannelCountMode::ClampedMax,
+            ChannelCountMode::Explicit => ServoMediaChannelCountMode::Explicit,
+        }
+    }
+}
+
+impl From<ChannelInterpretation> for ServoMediaChannelInterpretation {
+    fn from(interpretation: ChannelInterpretation) -> Self {
+        match interpretation {
+            ChannelInterpretation::Discrete => ServoMediaChannelInterpretation::Discrete,
+            ChannelInterpretation::Speakers => ServoMediaChannelInterpretation::Speakers,
+        }
     }
 }
