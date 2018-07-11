@@ -207,7 +207,6 @@ pub enum WebGLCommand {
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetExtensions(WebGLSender<String>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
-    GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
     GetUniformLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
@@ -424,6 +423,8 @@ pub struct ProgramLinkInfo {
     pub linked: bool,
     /// The list of active attributes.
     pub active_attribs: Box<[ActiveAttribInfo]>,
+    /// The list of active uniforms.
+    pub active_uniforms: Box<[ActiveUniformInfo]>,
 }
 
 /// Description of a single active attribute.
@@ -437,6 +438,17 @@ pub struct ActiveAttribInfo {
     pub type_: u32,
     /// The location of the attribute.
     pub location: i32,
+}
+
+/// Description of a single active uniform.
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ActiveUniformInfo {
+    /// The name of the uniform.
+    pub name: String,
+    /// The size of the uniform.
+    pub size: i32,
+    /// The type of the uniform.
+    pub type_: u32,
 }
 
 macro_rules! parameters {

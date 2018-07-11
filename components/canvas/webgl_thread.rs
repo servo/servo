@@ -736,8 +736,6 @@ impl WebGLImpl {
                 ctx.gl().stencil_op(fail, zfail, zpass),
             WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass) =>
                 ctx.gl().stencil_op_separate(face, fail, zfail, zpass),
-            WebGLCommand::GetActiveUniform(program_id, index, ref chan) =>
-                Self::active_uniform(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetRenderbufferParameter(target, pname, ref chan) =>
                 Self::get_renderbuffer_parameter(ctx.gl(), target, pname, chan),
             WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, ref chan) =>
@@ -1001,6 +999,7 @@ impl WebGLImpl {
             return ProgramLinkInfo {
                 linked: false,
                 active_attribs: vec![].into(),
+                active_uniforms: vec![].into(),
             }
         }
 
@@ -1009,6 +1008,8 @@ impl WebGLImpl {
             gl.get_program_iv(program.get(), gl::ACTIVE_ATTRIBUTES, &mut num_active_attribs);
         }
         let active_attribs = (0..num_active_attribs[0] as u32).map(|i| {
+            // FIXME(nox): This allocates strings sometimes for nothing
+            // and the gleam method keeps getting ACTIVE_ATTRIBUTE_MAX_LENGTH.
             let (size, type_, name) = gl.get_active_attrib(program.get(), i);
             let location = if name.starts_with("gl_") {
                 -1
@@ -1023,9 +1024,25 @@ impl WebGLImpl {
             }
         }).collect::<Vec<_>>().into();
 
+        let mut num_active_uniforms = [0];
+        unsafe {
+            gl.get_program_iv(program.get(), gl::ACTIVE_UNIFORMS, &mut num_active_uniforms);
+        }
+        let active_uniforms = (0..num_active_uniforms[0] as u32).map(|i| {
+            // FIXME(nox): This allocates strings sometimes for nothing
+            // and the gleam method keeps getting ACTIVE_UNIFORM_MAX_LENGTH.
+            let (size, type_, name) = gl.get_active_uniform(program.get(), i);
+            ActiveUniformInfo {
+                name: from_name_in_compiled_shader(&name),
+                size,
+                type_,
+            }
+        }).collect::<Vec<_>>().into();
+
         ProgramLinkInfo {
             linked: true,
             active_attribs,
+            active_uniforms,
         }
     }
 
@@ -1041,23 +1058,6 @@ impl WebGLImpl {
     ) {
       let result = gl.read_pixels(x, y, width, height, format, pixel_type);
       chan.send(result.into()).unwrap()
-    }
-
-    #[allow(unsafe_code)]
-    fn active_uniform(gl: &gl::Gl,
-                      program_id: WebGLProgramId,
-                      index: u32,
-                      chan: &WebGLSender<WebGLResult<(i32, u32, String)>>) {
-        let mut max = [0];
-        unsafe {
-            gl.get_program_iv(program_id.get(), gl::ACTIVE_UNIFORMS, &mut max);
-        }
-        let result = if index >= max[0] as u32 {
-            Err(WebGLError::InvalidValue)
-        } else {
-            Ok(gl.get_active_uniform(program_id.get(), index))
-        };
-        chan.send(result).unwrap();
     }
 
     fn finish(gl: &gl::Gl, chan: &WebGLSender<()>) {

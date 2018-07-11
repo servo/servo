@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{ActiveAttribInfo, WebGLCommand, WebGLError, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLProgramId, WebGLResult, from_name_in_compiled_shader};
-use canvas_traits::webgl::{to_name_in_compiled_shader, webgl_channel};
+use canvas_traits::webgl::{ActiveAttribInfo, ActiveUniformInfo, WebGLCommand, WebGLError, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLProgramId, WebGLResult, to_name_in_compiled_shader, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -33,6 +32,7 @@ pub struct WebGLProgram {
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
     renderer: WebGLMsgSender,
     active_attribs: DomRefCell<Box<[ActiveAttribInfo]>>,
+    active_uniforms: DomRefCell<Box<[ActiveUniformInfo]>>,
 }
 
 impl WebGLProgram {
@@ -49,6 +49,7 @@ impl WebGLProgram {
             vertex_shader: Default::default(),
             renderer: renderer,
             active_attribs: DomRefCell::new(vec![].into()),
+            active_uniforms: DomRefCell::new(vec![].into()),
         }
     }
 
@@ -123,20 +124,30 @@ impl WebGLProgram {
         self.renderer.send(WebGLCommand::LinkProgram(self.id, sender)).unwrap();
         let link_info = receiver.recv().unwrap();
 
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.31
-        let mut used_locs = FnvHashSet::default();
-        for active_attrib in &*link_info.active_attribs {
-            if active_attrib.location == -1 {
-                continue;
+        {
+            let mut used_locs = FnvHashSet::default();
+            let mut used_names = FnvHashSet::default();
+            for active_attrib in &*link_info.active_attribs {
+                if active_attrib.location == -1 {
+                    continue;
+                }
+                let columns = match active_attrib.type_ {
+                    constants::FLOAT_MAT2 => 2,
+                    constants::FLOAT_MAT3 => 3,
+                    constants::FLOAT_MAT4 => 4,
+                    _ => 1,
+                };
+                assert!(used_names.insert(&*active_attrib.name));
+                for column in 0..columns {
+                    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.31
+                    if !used_locs.insert(active_attrib.location as u32 + column) {
+                        return Ok(());
+                    }
+                }
             }
-            let columns = match active_attrib.type_ {
-                constants::FLOAT_MAT2 => 2,
-                constants::FLOAT_MAT3 => 3,
-                constants::FLOAT_MAT4 => 4,
-                _ => 1,
-            };
-            for column in 0..columns {
-                if !used_locs.insert(active_attrib.location as u32 + column) {
+            for active_uniform in &*link_info.active_uniforms {
+                // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.41
+                if !used_names.insert(&*active_uniform.name) {
                     return Ok(());
                 }
             }
@@ -144,11 +155,16 @@ impl WebGLProgram {
 
         self.linked.set(link_info.linked);
         *self.active_attribs.borrow_mut() = link_info.active_attribs;
+        *self.active_uniforms.borrow_mut() = link_info.active_uniforms;
         Ok(())
     }
 
     pub fn active_attribs(&self) -> Ref<[ActiveAttribInfo]> {
         Ref::map(self.active_attribs.borrow(), |attribs| &**attribs)
+    }
+
+    pub fn active_uniforms(&self) -> Ref<[ActiveUniformInfo]> {
+        Ref::map(self.active_uniforms.borrow(), |uniforms| &**uniforms)
     }
 
     /// glValidateProgram
@@ -244,15 +260,14 @@ impl WebGLProgram {
         if self.is_deleted() {
             return Err(WebGLError::InvalidValue);
         }
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.renderer
-            .send(WebGLCommand::GetActiveUniform(self.id, index, sender))
-            .unwrap();
-
-        receiver.recv().unwrap().map(|(size, ty, name)| {
-            let name = DOMString::from(from_name_in_compiled_shader(&name));
-            WebGLActiveInfo::new(self.global().as_window(), size, ty, name)
-        })
+        let uniforms = self.active_uniforms.borrow();
+        let data = uniforms.get(index as usize).ok_or(WebGLError::InvalidValue)?;
+        Ok(WebGLActiveInfo::new(
+            self.global().as_window(),
+            data.size,
+            data.type_,
+            data.name.clone().into(),
+        ))
     }
 
     /// glGetActiveAttrib

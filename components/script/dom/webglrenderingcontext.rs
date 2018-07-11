@@ -2693,12 +2693,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 Int32Value(program.attached_shaders().map(|shaders| shaders.len() as i32).unwrap_or(0))
             }
             constants::ACTIVE_ATTRIBUTES => Int32Value(program.active_attribs().len() as i32),
-            constants::ACTIVE_UNIFORMS => {
-                // FIXME(nox): We'll need to cache that on the DOM side at some point.
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetProgramActiveUniforms(program.id(), sender));
-                Int32Value(receiver.recv().unwrap())
-            }
+            constants::ACTIVE_UNIFORMS => Int32Value(program.active_uniforms().len() as i32),
             _ => {
                 self.webgl_error(InvalidEnum);
                 NullValue()
