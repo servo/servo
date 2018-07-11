@@ -12,7 +12,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
 use servo_media::audio::node::AudioNodeMessage;
-use servo_media::audio::param::{ParamType, RampKind, UserAutomationEvent};
+use servo_media::audio::param::{ParamRate, ParamType, RampKind, UserAutomationEvent};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -76,20 +76,27 @@ impl AudioParam {
 }
 
 impl AudioParamMethods for AudioParam {
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
     fn AutomationRate(&self) -> AutomationRate {
         self.automation_rate.get()
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-automationrate
     fn SetAutomationRate(&self, automation_rate: AutomationRate) {
         self.automation_rate.set(automation_rate);
-        // XXX set servo-media param automation rate
+        self.context.audio_context_impl().message_node(
+            self.node,
+            AudioNodeMessage::SetParamRate(self.param, automation_rate.into()),
+        );
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-value
     fn Value(&self) -> Finite<f32> {
         // XXX
         Finite::wrap(0.)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-value
     fn SetValue(&self, value: Finite<f32>) {
         self.context.audio_context_impl().message_node(
             self.node,
@@ -97,18 +104,22 @@ impl AudioParamMethods for AudioParam {
         );
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-defaultvalue
     fn DefaultValue(&self) -> Finite<f32> {
         Finite::wrap(self.default_value)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-minvalue
     fn MinValue(&self) -> Finite<f32> {
         Finite::wrap(self.min_value)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-maxvalue
     fn MaxValue(&self) -> Finite<f32> {
         Finite::wrap(self.max_value)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-setvalueattime
     fn SetValueAtTime(&self, value: Finite<f32>, start_time: Finite<f64>) -> DomRoot<AudioParam> {
         self.context.audio_context_impl().message_node(
             self.node,
@@ -120,6 +131,7 @@ impl AudioParamMethods for AudioParam {
         DomRoot::from_ref(self)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-linearramptovalueattime
     fn LinearRampToValueAtTime(
         &self,
         value: Finite<f32>,
@@ -135,6 +147,7 @@ impl AudioParamMethods for AudioParam {
         DomRoot::from_ref(self)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-exponentialramptovalueattime
     fn ExponentialRampToValueAtTime(
         &self,
         value: Finite<f32>,
@@ -150,6 +163,7 @@ impl AudioParamMethods for AudioParam {
         DomRoot::from_ref(self)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-settargetattime
     fn SetTargetAtTime(
         &self,
         target: Finite<f32>,
@@ -166,6 +180,7 @@ impl AudioParamMethods for AudioParam {
         DomRoot::from_ref(self)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelscheduledvalues
     fn CancelScheduledValues(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
         self.context.audio_context_impl().message_node(
             self.node,
@@ -177,6 +192,7 @@ impl AudioParamMethods for AudioParam {
         DomRoot::from_ref(self)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audioparam-cancelandholdattime
     fn CancelAndHoldAtTime(&self, cancel_time: Finite<f64>) -> DomRoot<AudioParam> {
         self.context.audio_context_impl().message_node(
             self.node,
@@ -186,5 +202,15 @@ impl AudioParamMethods for AudioParam {
             ),
         );
         DomRoot::from_ref(self)
+    }
+}
+
+// https://webaudio.github.io/web-audio-api/#enumdef-automationrate
+impl From<AutomationRate> for ParamRate {
+    fn from(rate: AutomationRate) -> Self {
+        match rate {
+            AutomationRate::A_rate => ParamRate::ARate,
+            AutomationRate::K_rate => ParamRate::KRate,
+        }
     }
 }
