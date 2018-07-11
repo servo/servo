@@ -31,7 +31,7 @@ impl GainNode {
         window: &Window,
         context: &BaseAudioContext,
         gain_options: &GainOptions,
-        ) -> GainNode {
+    ) -> GainNode {
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
@@ -43,16 +43,17 @@ impl GainNode {
             &node_options,
             1, // inputs
             1, // outputs
-            );
-        let gain = AudioParam::new(window,
-                                   context,
-                                   node.node_id(),
-                                   ParamType::Gain,
-                                   AutomationRate::A_rate,
-                                   1., // default value
-                                   f32::MIN, // min value
-                                   f32::MAX, // max value
-                                  );
+        );
+        let gain = AudioParam::new(
+            window,
+            context,
+            node.node_id(),
+            ParamType::Gain,
+            AutomationRate::A_rate,
+            1.,       // default value
+            f32::MIN, // min value
+            f32::MAX, // max value
+        );
         GainNode {
             node,
             gain: Dom::from_ref(&gain),
@@ -60,10 +61,11 @@ impl GainNode {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window,
-               context: &BaseAudioContext,
-               options: &GainOptions
-              ) -> DomRoot<GainNode> {
+    pub fn new(
+        window: &Window,
+        context: &BaseAudioContext,
+        options: &GainOptions,
+    ) -> DomRoot<GainNode> {
         let node = GainNode::new_inherited(window, context, options);
         reflect_dom_object(Box::new(node), window, GainNodeBinding::Wrap)
     }
@@ -72,7 +74,7 @@ impl GainNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &GainOptions,
-        ) -> Fallible<DomRoot<GainNode>> {
+    ) -> Fallible<DomRoot<GainNode>> {
         Ok(GainNode::new(window, context, options))
     }
 }

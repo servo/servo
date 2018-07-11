@@ -35,7 +35,7 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         oscillator_options: &OscillatorOptions,
-        ) -> OscillatorNode {
+    ) -> OscillatorNode {
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
@@ -46,20 +46,28 @@ impl OscillatorNode {
             &node_options,
             0, /* inputs */
             1, /* outputs */
-            );
+        );
         let node_id = source_node.node().node_id();
-        let frequency = AudioParam::new(window,
-                                        context,
-                                        node_id,
-                                        ParamType::Frequency,
-                                        AutomationRate::A_rate,
-                                        440., f32::MIN, f32::MAX);
-        let detune = AudioParam::new(window,
-                                     context,
-                                     node_id,
-                                     ParamType::Detune,
-                                     AutomationRate::A_rate,
-                                     0., -440. / 2., 440. / 2.);
+        let frequency = AudioParam::new(
+            window,
+            context,
+            node_id,
+            ParamType::Frequency,
+            AutomationRate::A_rate,
+            440.,
+            f32::MIN,
+            f32::MAX,
+        );
+        let detune = AudioParam::new(
+            window,
+            context,
+            node_id,
+            ParamType::Detune,
+            AutomationRate::A_rate,
+            0.,
+            -440. / 2.,
+            440. / 2.,
+        );
 
         OscillatorNode {
             source_node,
@@ -74,7 +82,7 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
-        ) -> DomRoot<OscillatorNode> {
+    ) -> DomRoot<OscillatorNode> {
         let node = OscillatorNode::new_inherited(window, context, options);
         reflect_dom_object(Box::new(node), window, OscillatorNodeBinding::Wrap)
     }
@@ -83,7 +91,7 @@ impl OscillatorNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
-        ) -> Fallible<DomRoot<OscillatorNode>> {
+    ) -> Fallible<DomRoot<OscillatorNode>> {
         Ok(OscillatorNode::new(window, context, options))
     }
 }
