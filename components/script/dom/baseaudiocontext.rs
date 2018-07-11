@@ -112,6 +112,11 @@ impl BaseAudioContext {
         context
     }
 
+    /// Tells whether this is an OfflineAudioContext or not.
+    pub fn is_offline(&self) -> bool {
+        false
+    }
+
     pub fn audio_context_impl(&self) -> Rc<AudioContext> {
         self.audio_context_impl.clone()
     }
