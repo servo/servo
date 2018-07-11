@@ -63,7 +63,7 @@ class MachCommands(CommandBase):
         ndk = "android-ndk-r12b-{system}-{arch}"
         tools = "sdk-tools-{system}-4333796"
 
-        sdk_build_tools = "25.0.2"
+        sdk_build_tools = "27.0.3"
         emulator_images = [
             ("servo-arm", "25", "google_apis;armeabi-v7a"),
             ("servo-x86", "28", "google_apis;x86"),
