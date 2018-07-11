@@ -84,7 +84,7 @@ impl AudioBuffer {
         reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
     pub fn Constructor(window: &Window,
                        options: &AudioBufferOptions) -> Fallible<DomRoot<AudioBuffer>> {
         if options.numberOfChannels > MAX_CHANNEL_COUNT {
@@ -94,7 +94,7 @@ impl AudioBuffer {
     }
 
     #[allow(unsafe_code)]
-    fn restore_js_channel_data(&self, cx: *mut JSContext) -> bool {
+    unsafe fn restore_js_channel_data(&self, cx: *mut JSContext) -> bool {
         for (i, channel) in self.js_channels.borrow_mut().iter().enumerate() {
             if !channel.get().is_null() {
                 // Already have data in JS array.
@@ -104,9 +104,7 @@ impl AudioBuffer {
             // Move the channel data from shared_channels to js_channels.
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
             let shared_channel = (*self.shared_channels.borrow_mut()).buffers.remove(i);
-            if unsafe {
-                Float32Array::create(cx, CreateWith::Slice(&shared_channel), array.handle_mut())
-            }.is_err() {
+            if Float32Array::create(cx, CreateWith::Slice(&shared_channel), array.handle_mut()).is_err() {
                 return false;
             }
             channel.set(array.get());
@@ -238,7 +236,7 @@ impl AudioBufferMethods for AudioBuffer {
         }
 
         let cx = self.global().get_cx();
-        if !self.restore_js_channel_data(cx) {
+        if unsafe { !self.restore_js_channel_data(cx) } {
             return Err(Error::JSFailed);
         }
 
