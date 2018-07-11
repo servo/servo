@@ -607,8 +607,7 @@ class MachCommands(CommandBase):
         env = self.build_env(target=target)
         os.environ["PATH"] = env["PATH"]
         assert self.handle_android_target(target)
-        binary_path = self.get_binary_path(release, dev, android=True)
-        apk = binary_path + ".apk"
+        apk = self.get_apk_path(release)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
         return [py, avd, apk]
