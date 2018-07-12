@@ -17,6 +17,7 @@ matrix:
         - sudo add-apt-repository 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.9 main' -y
         - sudo apt-get update -q
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime -y
+        - sudo apt-get install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev -y
         - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
         - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
         - source ~/.profile
