@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::audioparam::AudioParam;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{AudioNodeMethods, AudioNodeOptions};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
@@ -9,7 +10,6 @@ use dom::bindings::codegen::InheritTypes::{AudioNodeTypeId, EventTargetTypeId};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::root::{Dom, DomRoot};
-use dom::audioparam::AudioParam;
 use dom::eventtarget::EventTarget;
 use dom_struct::dom_struct;
 use servo_media::audio::graph::NodeId;
@@ -96,6 +96,7 @@ impl AudioNodeMethods for AudioNode {
         Ok(DomRoot::from_ref(destination))
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output
     fn Connect_(&self, _: &AudioParam, _: u32) -> Fallible<()> {
         // TODO
         Ok(())
