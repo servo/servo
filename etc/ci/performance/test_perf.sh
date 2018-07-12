@@ -39,8 +39,8 @@ fi
 # Make sure we're running with an up-to-date warc test repo
 git -C ${WARC_DIR} pull --progress
 
-virtualenv venv --python="$(which python3)"
-PS1="" source venv/bin/activate
+virtualenv venv ./perf-venv --python="$(which python3)"
+PS1="" source ./perf-venv/bin/activate
 # `PS1` must be defined before activating virtualenv
 pip install \
     "boto3>=1.4.0" \
