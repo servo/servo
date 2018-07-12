@@ -2254,7 +2254,6 @@ impl<'a> Iterator for AllShorthandDeclarationIterator<'a> {
                 ))
             }
             AllShorthand::WithVariables(ref unparsed) => {
-                let id = self.longhands.next()?;
                 Some(PropertyDeclaration::WithVariables(
                     VariableDeclaration {
                         id: self.longhands.next()?,
