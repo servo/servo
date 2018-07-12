@@ -31,9 +31,9 @@ use dom::oscillatornode::OscillatorNode;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use servo_media::ServoMedia;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
+use servo_media::{Backend, ServoMedia};
 use servo_media::audio::context::{AudioContext, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
@@ -64,7 +64,7 @@ struct DecodeResolver {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_context_impl: Rc<AudioContext>,
+    audio_context_impl: Rc<AudioContext<Backend>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
     /// Resume promises which are soon to be fulfilled by a queued task.
@@ -118,7 +118,7 @@ impl BaseAudioContext {
         false
     }
 
-    pub fn audio_context_impl(&self) -> Rc<AudioContext> {
+    pub fn audio_context_impl(&self) -> Rc<AudioContext<Backend>> {
         self.audio_context_impl.clone()
     }
 
