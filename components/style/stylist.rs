@@ -1175,7 +1175,6 @@ impl Stylist {
             pseudo_element.is_some()
         );
 
-        let only_default_rules = rule_inclusion == RuleInclusion::DefaultOnly;
         let matches_user_rules = rule_hash_target.matches_user_and_author_rules();
         let matches_author_rules =
             matches_user_rules && self.author_styles_enabled == AuthorStylesEnabled::Yes;
@@ -1220,7 +1219,11 @@ impl Stylist {
             }
         }
 
-        if pseudo_element.is_none() && !only_default_rules {
+        if rule_inclusion == RuleInclusion::DefaultOnly {
+            return;
+        }
+
+        if pseudo_element.is_none() {
             // Presentational hints.
             //
             // These go before author rules, but after user rules, see:
@@ -1230,8 +1233,8 @@ impl Stylist {
                 context.visited_handling(),
                 applicable_declarations,
             );
-            if applicable_declarations.len() != length_before_preshints {
-                if cfg!(debug_assertions) {
+            if cfg!(debug_assertions) {
+                if applicable_declarations.len() != length_before_preshints {
                     for declaration in &applicable_declarations[length_before_preshints..] {
                         assert_eq!(declaration.level(), CascadeLevel::PresHints);
                     }
@@ -1248,7 +1251,7 @@ impl Stylist {
         // particular, normally document rules override ::slotted() rules, but
         // for !important it should be the other way around. So probably we need
         // to add some sort of AuthorScoped cascade level or something.
-        if matches_author_rules && !only_default_rules {
+        if matches_author_rules {
             if let Some(shadow) = rule_hash_target.shadow_root() {
                 if let Some(map) = shadow.style_data().host_rules(pseudo_element) {
                     context.with_shadow_host(Some(rule_hash_target), |context| {
@@ -1315,10 +1318,8 @@ impl Stylist {
             }
         }
 
-        // FIXME(emilio): It looks very wrong to match XBL rules even for
-        // getDefaultComputedStyle!
-        //
-        // Also, this doesn't account for the author_styles_enabled stuff.
+        // FIXME(emilio): This doesn't account for the author_styles_enabled
+        // stuff...
         let cut_xbl_binding_inheritance =
             element.each_xbl_cascade_data(|cascade_data, quirks_mode| {
                 if let Some(map) = cascade_data.normal_rules(pseudo_element) {
@@ -1349,7 +1350,7 @@ impl Stylist {
 
         match_document_author_rules &= !cut_xbl_binding_inheritance;
 
-        if match_document_author_rules && !only_default_rules {
+        if match_document_author_rules {
             // Author normal rules.
             if let Some(map) = self.cascade_data.author.normal_rules(pseudo_element) {
                 map.get_all_matching_rules(
@@ -1364,47 +1365,43 @@ impl Stylist {
             }
         }
 
-        if !only_default_rules {
-            // Style attribute ("Normal override declarations").
-            if let Some(sa) = style_attribute {
-                applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
-                    sa.clone_arc(),
-                    CascadeLevel::StyleAttributeNormal,
-                ));
-            }
+        // Style attribute ("Normal override declarations").
+        if let Some(sa) = style_attribute {
+            applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
+                sa.clone_arc(),
+                CascadeLevel::StyleAttributeNormal,
+            ));
+        }
 
-            // Declarations from SVG SMIL animation elements.
-            if let Some(so) = smil_override {
-                applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
-                    so.clone_arc(),
-                    CascadeLevel::SMILOverride,
-                ));
-            }
+        // Declarations from SVG SMIL animation elements.
+        if let Some(so) = smil_override {
+            applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
+                so.clone_arc(),
+                CascadeLevel::SMILOverride,
+            ));
+        }
 
-            // The animations sheet (CSS animations, script-generated
-            // animations, and CSS transitions that are no longer tied to CSS
-            // markup).
-            if let Some(anim) = animation_rules.0 {
-                applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
-                    anim.clone(),
-                    CascadeLevel::Animations,
-                ));
-            }
+        // The animations sheet (CSS animations, script-generated
+        // animations, and CSS transitions that are no longer tied to CSS
+        // markup).
+        if let Some(anim) = animation_rules.0 {
+            applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
+                anim.clone(),
+                CascadeLevel::Animations,
+            ));
         }
 
         //
         // !important rules are handled during rule tree insertion.
         //
 
-        if !only_default_rules {
-            // The transitions sheet (CSS transitions that are tied to CSS
-            // markup).
-            if let Some(anim) = animation_rules.1 {
-                applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
-                    anim.clone(),
-                    CascadeLevel::Transitions,
-                ));
-            }
+        // The transitions sheet (CSS transitions that are tied to CSS
+        // markup).
+        if let Some(anim) = animation_rules.1 {
+            applicable_declarations.push(ApplicableDeclarationBlock::from_declarations(
+                anim.clone(),
+                CascadeLevel::Transitions,
+            ));
         }
     }
 
