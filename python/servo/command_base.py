@@ -334,10 +334,8 @@ class CommandBase(object):
         base_path = self.get_target_dir()
         base_path = path.join(base_path, self.config["android"]["target"])
         apk_name = "servo.apk"
-        if release:
-            return path.join(base_path, "release", apk_name)
-        else:
-            return path.join(base_path, "debug", apk_name)
+        build_type = "release" if release else "debug"
+        return path.join(base_path, build_type, apk_name)
 
     def get_binary_path(self, release, dev, android=False):
         # TODO(autrilla): this function could still use work - it shouldn't

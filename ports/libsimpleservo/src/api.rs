@@ -175,12 +175,7 @@ impl ServoGlue {
             .map_err(|_| "Can't parse URL")
             .and_then(|url| {
                 let event = WindowEvent::LoadUrl(self.browser_id, url);
-                self.events.push(event);
-                if !self.batch_mode {
-                    self.perform_updates()
-                } else {
-                    Ok(())
-                }
+                self.process_event(event)
             })
     }
 
@@ -188,36 +183,21 @@ impl ServoGlue {
     pub fn reload(&mut self) -> Result<(), &'static str> {
         info!("reload");
         let event = WindowEvent::Reload(self.browser_id);
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(event)
     }
 
     /// Go back in history.
     pub fn go_back(&mut self) -> Result<(), &'static str> {
         info!("go_back");
         let event = WindowEvent::Navigation(self.browser_id, TraversalDirection::Back(1));
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(event)
     }
 
     /// Go forward in history.
     pub fn go_forward(&mut self) -> Result<(), &'static str> {
         info!("go_forward");
         let event = WindowEvent::Navigation(self.browser_id, TraversalDirection::Forward(1));
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(event)
     }
 
     /// Let Servo know that the window has been resized.
@@ -225,13 +205,7 @@ impl ServoGlue {
         info!("resize");
         self.callbacks.width.set(width);
         self.callbacks.height.set(height);
-        let event = WindowEvent::Resize;
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(WindowEvent::Resize)
     }
 
     /// Start scrolling.
@@ -245,12 +219,7 @@ impl ServoGlue {
             TypedPoint2D::new(x as i32, y as i32),
             TouchEventType::Down,
         );
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(event)
     }
 
     /// Scroll.
@@ -264,12 +233,7 @@ impl ServoGlue {
             TypedPoint2D::new(x as i32, y as i32),
             TouchEventType::Move,
         );
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(event)
     }
 
     /// End scrolling.
@@ -283,12 +247,7 @@ impl ServoGlue {
             TypedPoint2D::new(x as i32, y as i32),
             TouchEventType::Up,
         );
-        self.events.push(event);
-        if !self.batch_mode {
-            self.perform_updates()
-        } else {
-            Ok(())
-        }
+        self.process_event(event)
     }
 
     /// Perform a click.
@@ -296,7 +255,11 @@ impl ServoGlue {
         let mouse_event =
             MouseWindowEvent::Click(MouseButton::Left, TypedPoint2D::new(x as f32, y as f32));
         let event = WindowEvent::MouseWindowEventClass(mouse_event);
-        self.servo.handle_events(vec![event]);
+        self.process_event(event)
+    }
+
+    fn process_event(&mut self, event: WindowEvent) -> Result<(), &'static str> {
+        self.events.push(event);
         if !self.batch_mode {
             self.perform_updates()
         } else {

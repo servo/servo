@@ -36,6 +36,7 @@ pub struct CHostCallbacks {
     pub on_animating_changed: extern fn(animating: bool),
 }
 
+/// The returned string is not freed. This will leak.
 #[no_mangle]
 pub extern "C" fn servo_version() -> *const c_char {
     let v = api::servo_version();

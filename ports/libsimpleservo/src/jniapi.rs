@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![allow(non_snake_case)]
+
 use android_logger::{self, Filter};
 use api::{self, EventLoopWaker, ServoGlue, SERVO, HostTrait, ReadFileTrait};
 use gl_glue;
@@ -34,7 +36,6 @@ where
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_version(env: JNIEnv, _class: JClass) -> jstring {
     let v = api::servo_version();
     let output = env.new_string(v).expect("Couldn't create java string");
@@ -42,7 +43,6 @@ pub fn Java_com_mozilla_servoview_NativeServo_version(env: JNIEnv, _class: JClas
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_init(
     env: JNIEnv,
     _: JClass,
@@ -99,7 +99,6 @@ pub fn Java_com_mozilla_servoview_NativeServo_init(
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_setBatchMode(
     env: JNIEnv,
     _: JClass,
@@ -110,7 +109,6 @@ pub fn Java_com_mozilla_servoview_NativeServo_setBatchMode(
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_resize(
     env: JNIEnv,
     _: JClass,
@@ -122,14 +120,12 @@ pub fn Java_com_mozilla_servoview_NativeServo_resize(
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_performUpdates(env: JNIEnv, _class: JClass) {
     debug!("performUpdates");
     call(env, |s| s.perform_updates());
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
     debug!("loadUri");
     let url: String = env.get_string(url).unwrap().into();
@@ -137,28 +133,24 @@ pub fn Java_com_mozilla_servoview_NativeServo_loadUri(env: JNIEnv, _class: JClas
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_reload(env: JNIEnv, _class: JClass) {
     debug!("reload");
     call(env, |s| s.reload());
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
     call(env, |s| s.go_back());
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_goForward(env: JNIEnv, _class: JClass) {
     debug!("goForward");
     call(env, |s| s.go_forward());
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_scrollStart(
     env: JNIEnv,
     _: JClass,
@@ -172,7 +164,6 @@ pub fn Java_com_mozilla_servoview_NativeServo_scrollStart(
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_scrollEnd(
     env: JNIEnv,
     _: JClass,
@@ -187,7 +178,6 @@ pub fn Java_com_mozilla_servoview_NativeServo_scrollEnd(
 
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_scroll(
     env: JNIEnv,
     _: JClass,
@@ -201,7 +191,6 @@ pub fn Java_com_mozilla_servoview_NativeServo_scroll(
 }
 
 #[no_mangle]
-#[allow(non_snake_case)]
 pub fn Java_com_mozilla_servoview_NativeServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
     call(env, |s| s.click(x as u32, y as u32));
