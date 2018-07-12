@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use dom::audionode::AudioNode;
 use dom::baseaudiocontext::BaseAudioContext;
-use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::num::Finite;
 use dom_struct::dom_struct;

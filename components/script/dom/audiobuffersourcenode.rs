@@ -9,11 +9,10 @@ use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceNodeMethods;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
-use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::
-AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
+use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
@@ -109,12 +108,12 @@ impl AudioBufferSourceNode {
 }
 
 impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
     fn GetBuffer(&self) -> Fallible<Option<DomRoot<AudioBuffer>>> {
         Ok(self.buffer.get())
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-buffer
     fn SetBuffer(&self, new_buffer: Option<&AudioBuffer>) -> Fallible<()> {
         if new_buffer.is_some() && self.buffer.get().is_some() {
             return Err(Error::InvalidState);
@@ -136,38 +135,47 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         Ok(())
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate
     fn PlaybackRate(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.playback_rate)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-detune
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
     fn Loop(&self) -> bool {
         self.loop_enabled.get()
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loop
     fn SetLoop(&self, should_loop: bool) {
         self.loop_enabled.set(should_loop);
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
     fn LoopStart(&self) -> Finite<f64> {
         Finite::wrap(self.loop_start.get())
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopstart
     fn SetLoopStart(&self, loop_start: Finite<f64>) {
         self.loop_start.set(*loop_start);
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
     fn LoopEnd(&self) -> Finite<f64> {
         Finite::wrap(self.loop_end.get())
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-loopend
     fn SetLoopEnd(&self, loop_end: Finite<f64>) {
         self.loop_end.set(*loop_end)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-start
     fn Start(
         &self,
         when: Finite<f64>,

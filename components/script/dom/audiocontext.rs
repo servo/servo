@@ -4,8 +4,8 @@
 
 use dom::baseaudiocontext::{BaseAudioContext, BaseAudioContextOptions};
 use dom::bindings::codegen::Bindings::AudioContextBinding;
-use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextMethods, AudioContextOptions};
-use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextLatencyCategory, AudioTimestamp};
+use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextLatencyCategory, AudioContextMethods};
+use dom::bindings::codegen::Bindings::AudioContextBinding::{AudioContextOptions, AudioTimestamp};
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::error::{Error, Fallible};
@@ -87,14 +87,17 @@ impl AudioContext {
 }
 
 impl AudioContextMethods for AudioContext {
+    // https://webaudio.github.io/web-audio-api/#dom-audiocontext-baselatency
     fn BaseLatency(&self) -> Finite<f64> {
         Finite::wrap(self.base_latency)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiocontext-outputlatency
     fn OutputLatency(&self) -> Finite<f64> {
         Finite::wrap(self.output_latency)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiocontext-outputlatency
     fn GetOutputTimestamp(&self) -> AudioTimestamp {
         // TODO
         AudioTimestamp {
@@ -103,7 +106,7 @@ impl AudioContextMethods for AudioContext {
         }
     }
 
-    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
+    // https://webaudio.github.io/web-audio-api/#dom-audiocontext-suspend
     #[allow(unrooted_must_root)]
     fn Suspend(&self) -> Rc<Promise> {
         // Step 1.
@@ -165,6 +168,7 @@ impl AudioContextMethods for AudioContext {
         promise
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-audiocontext-close
     #[allow(unrooted_must_root)]
     fn Close(&self) -> Rc<Promise> {
         // Step 1.

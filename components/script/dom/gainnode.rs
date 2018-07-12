@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v.2.0. If a copy of the MPL was not distributed with this
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::audionode::AudioNode;
 use dom::audioparam::AudioParam;
 use dom::baseaudiocontext::BaseAudioContext;
-use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::GainNodeBinding::{self, GainNodeMethods, GainOptions};
 use dom::bindings::error::Fallible;
 use dom::bindings::reflector::reflect_dom_object;
@@ -80,6 +80,7 @@ impl GainNode {
 }
 
 impl GainNodeMethods for GainNode {
+    // https://webaudio.github.io/web-audio-api/#dom-gainnode-gain
     fn Gain(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.gain)
     }

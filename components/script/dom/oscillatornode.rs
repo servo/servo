@@ -1,13 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v.2.0. If a copy of the MPL was not distributed with this
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::audioparam::AudioParam;
 use dom::audioscheduledsourcenode::AudioScheduledSourceNode;
 use dom::baseaudiocontext::BaseAudioContext;
-use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
+use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::{self, OscillatorOptions, OscillatorType};
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorNodeMethods;
 use dom::bindings::error::Fallible;
@@ -97,10 +97,12 @@ impl OscillatorNode {
 }
 
 impl OscillatorNodeMethods for OscillatorNode {
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency
     fn Frequency(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.frequency)
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune
     fn Detune(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.detune)
     }
