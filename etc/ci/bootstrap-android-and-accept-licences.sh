@@ -8,5 +8,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# We enable pipefail above to satisfy servo-tidy, but disable it again here.
+# In the case of the 'yes' program,
+# exiting when the stdout pipe is broken is expected.
+set +o pipefail
+
 cd $(dirname ${0})/../..
 yes | ./mach bootstrap-android
