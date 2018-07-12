@@ -100,7 +100,7 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.networking_task_source().queue(
+        let _ = global.remote_event_task_source().queue(
             task!(announce_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -121,7 +121,7 @@ impl EventSourceContext {
         let global = event_source.global();
         let event_source = self.event_source.clone();
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.networking_task_source().queue(
+        let _ = global.remote_event_task_source().queue(
             task!(fail_the_event_source_connection: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -145,7 +145,7 @@ impl EventSourceContext {
         let action_sender = self.action_sender.clone();
         let global = event_source.global();
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.networking_task_source().queue(
+        let _ = global.remote_event_task_source().queue(
             task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();
 
@@ -242,7 +242,7 @@ impl EventSourceContext {
         let event_source = self.event_source.clone();
         let event = Trusted::new(&*event);
         // FIXME(nox): Why are errors silenced here?
-        let _ = global.networking_task_source().queue(
+        let _ = global.remote_event_task_source().queue(
             task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
@@ -423,6 +423,7 @@ impl EventSource {
         self.request.borrow().clone().unwrap()
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-eventsource
     pub fn Constructor(global: &GlobalScope,
                        url: DOMString,
                        event_source_init: &EventSourceInit) -> Fallible<DomRoot<EventSource>> {
@@ -482,8 +483,6 @@ impl EventSource {
             data: String::new(),
             last_event_id: String::new(),
         };
-        // TODO: use the "remote event task source", and canceller.
-        // https://html.spec.whatwg.org/multipage/#remote-event-task-source
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.networking_task_source(),

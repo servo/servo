@@ -46,6 +46,7 @@ use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
 use time::precise_time_ns;
 use timers::{IsInterval, TimerCallback};
 
@@ -383,6 +384,10 @@ impl WorkerGlobalScope {
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
         PerformanceTimelineTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
+    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
+        RemoteEventTaskSource(self.script_chan(), self.pipeline_id())
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
