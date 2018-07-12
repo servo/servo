@@ -9,8 +9,8 @@ use dom::audionode::MAX_CHANNEL_COUNT;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::AudioBufferSourceNodeBinding::AudioBufferSourceOptions;
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
+use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
@@ -338,6 +338,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         ))
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource
     fn CreateBufferSource(&self) -> DomRoot<AudioBufferSourceNode> {
         AudioBufferSourceNode::new(
             &self.global().as_window(),
@@ -346,6 +347,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         )
     }
 
+    // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-decodeaudiodata
     #[allow(unrooted_must_root)]
     fn DecodeAudioData(
         &self,

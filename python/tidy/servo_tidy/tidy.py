@@ -94,6 +94,7 @@ WEBIDL_STANDARDS = [
     "//webbluetoothcg.github.io/web-bluetooth/",
     "//svgwg.org/svg2-draft",
     "//wicg.github.io",
+    "//webaudio.github.io",
     # Not a URL
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."

@@ -46,6 +46,7 @@ impl AudioDestinationNode {
 }
 
 impl AudioDestinationNodeMethods for AudioDestinationNode {
+    // https://webaudio.github.io/web-audio-api/#dom-audiodestinationnode-maxchannelcount
     fn MaxChannelCount(&self) -> u32 {
         MAX_CHANNEL_COUNT
     }
