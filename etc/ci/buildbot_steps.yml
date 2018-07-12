@@ -160,7 +160,13 @@ android:
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-x86:
-  - echo FIXME To be filled in once Buildbot is configured
+  - ./mach clean-nightlies --keep 3 --force
+  - ./mach clean-cargo-cache --keep 3 --force
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target i686-linux-android --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --target i686-linux-android --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-android-startup --release
+  - bash ./etc/ci/lockfile_changed.sh
 
 android-nightly:
   - ./mach clean-nightlies --keep 3 --force
