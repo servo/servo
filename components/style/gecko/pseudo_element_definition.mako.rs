@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /// Gecko's pseudo-element definition.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
