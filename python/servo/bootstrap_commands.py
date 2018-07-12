@@ -58,10 +58,7 @@ class MachCommands(CommandBase):
     @Command('bootstrap-android',
              description='Install the Android SDK and NDK.',
              category='bootstrap')
-    @CommandArgument('--update',
-                     action='store_true',
-                     help='Run SDK component install and emulator image creation again')
-    def bootstrap_android(self, update=False):
+    def bootstrap_android(self):
 
         ndk = "android-ndk-r12b-{system}-{arch}"
         tools = "sdk-tools-{system}-4333796"
