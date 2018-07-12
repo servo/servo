@@ -8,7 +8,7 @@ use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
 use azure::azure_hl::{
     BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat,
 };
-use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
+use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder, Path};
 use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
@@ -23,6 +23,7 @@ pub struct CanvasData<'a> {
     drawtarget: DrawTarget,
     /// TODO(pcwalton): Support multiple paths.
     path_builder: PathBuilder,
+    path: Option<Path>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     webrender_api: webrender_api::RenderApi,
@@ -47,6 +48,7 @@ impl<'a> CanvasData<'a> {
         CanvasData {
             drawtarget: draw_target,
             path_builder: path_builder,
+            path: None,
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
             webrender_api: webrender_api,
@@ -206,40 +208,54 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn begin_path(&mut self) {
-        self.path_builder = self.drawtarget.create_path_builder()
+        self.path_builder = self.drawtarget.create_path_builder();
+        self.path = None;
     }
 
     pub fn close_path(&self) {
         self.path_builder.close()
     }
 
-    pub fn fill(&self) {
+    fn ensure_path(&mut self) {
+        if self.path.is_none() {
+            self.path = Some(self.path_builder.finish());
+        }
+    }
+
+    fn path(&self) -> &Path {
+        self.path.as_ref().expect("Should have called ensure_path()")
+    }
+
+    pub fn fill(&mut self) {
         if is_zero_size_gradient(&self.state.fill_style) {
             return; // Paint nothing if gradient size is zero.
         }
 
+        self.ensure_path();
         self.drawtarget.fill(
-            &self.path_builder.finish(),
+            &self.path(),
             self.state.fill_style.to_pattern_ref(),
             &self.state.draw_options,
         );
     }
 
-    pub fn stroke(&self) {
+    pub fn stroke(&mut self) {
         if is_zero_size_gradient(&self.state.stroke_style) {
             return; // Paint nothing if gradient size is zero.
         }
 
+        self.ensure_path();
         self.drawtarget.stroke(
-            &self.path_builder.finish(),
+            &self.path(),
             self.state.stroke_style.to_pattern_ref(),
             &self.state.stroke_opts,
             &self.state.draw_options,
         );
     }
 
-    pub fn clip(&self) {
-        self.drawtarget.push_clip(&self.path_builder.finish());
+    pub fn clip(&mut self) {
+        self.ensure_path();
+        self.drawtarget.push_clip(&self.path());
     }
 
     pub fn is_point_in_path(
@@ -249,9 +265,13 @@ impl<'a> CanvasData<'a> {
         _fill_rule: FillRule,
         chan: IpcSender<bool>,
     ) {
-        let path = self.path_builder.finish();
-        let result = path.contains_point(x, y, &self.state.transform);
-        self.path_builder = path.copy_to_builder();
+        self.ensure_path();
+        let (path_builder, result) = {
+            let path = self.path();
+            let result = path.contains_point(x, y, &self.state.transform);
+            (path.copy_to_builder(), result)
+        };
+        self.path_builder = path_builder;
         chan.send(result).unwrap();
     }
 
