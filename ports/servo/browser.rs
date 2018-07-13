@@ -91,7 +91,10 @@ impl Browser {
                     self.event_queue.push(WindowEvent::Reload(id));
                 }
             }
-            (CMD_OR_CONTROL, Some('l'), _) => {
+            // FIXME (#17146): Workaround for Ctrl + L not working on Windows.
+            // When #17146 is fixed revert this line back to:
+            // (CMD_OR_CONTROL, Some('l'), _) => {
+            (CMD_OR_CONTROL, _, Key::L) => {
                 if let Some(id) = self.browser_id {
                     let url: String = if let Some(ref current_url) = self.current_url {
                         current_url.to_string()
