@@ -2720,7 +2720,6 @@ impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
         _: &Device,
-        _: Option<<&ComputedValues>,
         _: Option<<&PseudoElement>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -3128,10 +3127,6 @@ pub struct StyleBuilder<'a> {
     /// The style we're getting reset structs from.
     reset_style: &'a ComputedValues,
 
-    /// The style we're inheriting from explicitly, or none if we're the root of
-    /// a subtree.
-    parent_style: Option<<&'a ComputedValues>,
-
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     pub rules: Option<StrongRuleNode>,
@@ -3199,7 +3194,6 @@ impl<'a> StyleBuilder<'a> {
 
         StyleBuilder {
             device,
-            parent_style,
             inherited_style,
             inherited_style_ignoring_first_line,
             reset_style,
@@ -3243,7 +3237,6 @@ impl<'a> StyleBuilder<'a> {
                       parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
         StyleBuilder {
             device,
-            parent_style,
             inherited_style,
             // None of our callers pass in ::first-line parent styles.
             inherited_style_ignoring_first_line: inherited_style,
@@ -3485,7 +3478,6 @@ impl<'a> StyleBuilder<'a> {
     pub fn build(self) -> Arc<ComputedValues> {
         ComputedValues::new(
             self.device,
-            self.parent_style,
             self.pseudo,
             self.custom_properties,
             self.writing_mode,

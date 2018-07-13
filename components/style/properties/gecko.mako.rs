@@ -83,7 +83,6 @@ pub struct ComputedValues(::gecko_bindings::structs::mozilla::ComputedStyle);
 impl ComputedValues {
     pub fn new(
         device: &Device,
-        parent: Option<<&ComputedValues>,
         pseudo: Option<<&PseudoElement>,
         custom_properties: Option<Arc<CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -105,7 +104,6 @@ impl ComputedValues {
             % endfor
         ).to_outer(
             device.pres_context(),
-            parent,
             pseudo.map(|p| p.pseudo_info())
         )
     }
@@ -120,7 +118,7 @@ impl ComputedValues {
             % for style_struct in data.style_structs:
             style_structs::${style_struct.name}::default(pres_context),
             % endfor
-        ).to_outer(pres_context, None, None)
+        ).to_outer(pres_context, None)
     }
 
     pub fn pseudo(&self) -> Option<PseudoElement> {
@@ -195,7 +193,6 @@ impl Clone for ComputedValuesInner {
 }
 
 type PseudoInfo = (*mut structs::nsAtom, structs::CSSPseudoElementType);
-type ParentComputedStyleInfo<'a> = Option< &'a ComputedValues>;
 
 impl ComputedValuesInner {
     pub fn new(custom_properties: Option<Arc<CustomPropertiesMap>>,
@@ -222,7 +219,6 @@ impl ComputedValuesInner {
     fn to_outer(
         self,
         pres_context: RawGeckoPresContextBorrowed,
-        parent: ParentComputedStyleInfo,
         info: Option<PseudoInfo>
     ) -> Arc<ComputedValues> {
         let (tag, ty) = if let Some(info) = info {
@@ -231,21 +227,24 @@ impl ComputedValuesInner {
             (ptr::null_mut(), structs::CSSPseudoElementType::NotPseudo)
         };
 
-        unsafe { self.to_outer_helper(pres_context, parent, ty, tag) }
+        unsafe { self.to_outer_helper(pres_context, ty, tag) }
     }
 
     unsafe fn to_outer_helper(
         self,
         pres_context: bindings::RawGeckoPresContextBorrowed,
-        parent: ParentComputedStyleInfo,
         pseudo_ty: structs::CSSPseudoElementType,
         pseudo_tag: *mut structs::nsAtom
     ) -> Arc<ComputedValues> {
         let arc = {
             let arc: Arc<ComputedValues> = Arc::new(uninitialized());
-            bindings::Gecko_ComputedStyle_Init(&arc.0 as *const _ as *mut _,
-                                                   parent, pres_context,
-                                                   &self, pseudo_ty, pseudo_tag);
+            bindings::Gecko_ComputedStyle_Init(
+                &arc.0 as *const _ as *mut _,
+                pres_context,
+                &self,
+                pseudo_ty,
+                pseudo_tag
+            );
             // We're simulating a move by having C++ do a memcpy and then forgetting
             // it on this end.
             forget(self);
