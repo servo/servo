@@ -28,7 +28,7 @@ fnv = "1.0"
 phf = "0.7.18"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
-smallvec = "0.6"
+smallvec = "0.6.2"
 
 [build-dependencies]
 phf_codegen = "0.7.18"

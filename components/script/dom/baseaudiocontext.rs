@@ -43,7 +43,7 @@ use std::collections::{HashMap, VecDeque};
 use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -380,8 +380,8 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let this_ = this.clone();
             let task_source = window.dom_manipulation_task_source();
             let task_source_ = window.dom_manipulation_task_source();
-            let canceller = window.task_canceller();
-            let canceller_ = window.task_canceller();
+            let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+            let canceller_ = window.task_canceller(TaskSourceName::DOMManipulation);
             let callbacks = AudioDecoderCallbacks::new()
                 .eos(move || {
                     let _ = task_source.queue_with_canceller(
