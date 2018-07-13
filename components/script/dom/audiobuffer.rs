@@ -11,7 +11,7 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject, JS_StealArrayBufferContents};
+use js::jsapi::{DetachDataDisposition, Heap, JSContext, JSObject, JS_DetachArrayBuffer};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
@@ -42,26 +42,31 @@ impl AudioBuffer {
         sample_rate: f32,
         initial_data: Option<&[f32]>,
     ) -> AudioBuffer {
-        let initial_data = match initial_data {
-            Some(initial_data) => {
-                let mut data = vec![];
-                data.extend_from_slice(initial_data);
-                data
-            },
-            None => vec![0.; (length * number_of_channels) as usize],
-        };
         let cx = global.get_cx();
         let mut js_channels: Vec<JSAudioChannel> = Vec::with_capacity(number_of_channels as usize);
         for channel in 0..number_of_channels {
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
             let offset = (channel * length) as usize;
-            let _ = unsafe {
-                Float32Array::create(
-                    cx,
-                    CreateWith::Slice(&initial_data.as_slice()[offset..offset + (length as usize)]),
-                    array.handle_mut(),
-                )
-            };
+            match initial_data {
+                Some(data) => {
+                    let _ = unsafe {
+                        Float32Array::create(
+                            cx,
+                            CreateWith::Slice(&data[offset..offset + (length as usize) - 1]),
+                            array.handle_mut(),
+                        )
+                    };
+                },
+                None => {
+                    let _ = unsafe {
+                        Float32Array::create(
+                            cx,
+                            CreateWith::Slice(&vec![0.; length as usize]),
+                            array.handle_mut(),
+                        )
+                    };
+                }
+            }
             let js_channel = Heap::default();
             js_channel.set(array.get());
             js_channels.push(js_channel);
@@ -151,10 +156,8 @@ impl AudioBuffer {
             let channel_data = unsafe {
                 typedarray!(in(cx) let array: Float32Array = channel.get());
                 if let Ok(array) = array {
-                    // XXX TypedArrays API does not expose a way to steal the buffer's
-                    //     content.
                     let data = array.to_vec();
-                    let _ = JS_StealArrayBufferContents(cx, channel.handle());
+                    let _ = JS_DetachArrayBuffer(cx, channel.handle(), DetachDataDisposition::KeepData);
                     data
                 } else {
                     return None;
