@@ -121,6 +121,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
@@ -435,6 +436,8 @@ pub struct ScriptThread {
     file_reading_task_sender: Box<ScriptChan>,
 
     performance_timeline_task_sender: Box<ScriptChan>,
+
+    remote_event_task_sender: Box<ScriptChan>,
 
     /// A channel to hand out to threads that need to respond to a message from the script thread.
     control_chan: IpcSender<ConstellationControlMsg>,
@@ -850,6 +853,7 @@ impl ScriptThread {
             networking_task_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
             performance_timeline_task_sender: boxed_script_sender.clone(),
+            remote_event_task_sender: boxed_script_sender.clone(),
 
             history_traversal_task_source: HistoryTraversalTaskSource(chan),
 
@@ -1805,6 +1809,10 @@ impl ScriptThread {
         FileReadingTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
     }
 
+    pub fn remote_event_task_source(&self, pipeline_id: PipelineId) -> RemoteEventTaskSource {
+        RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
+    }
+
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
@@ -2113,6 +2121,7 @@ impl ScriptThread {
             HistoryTraversalTaskSource(history_sender.clone()),
             self.file_reading_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id).clone(),
+            self.remote_event_task_source(incomplete.pipeline_id),
             self.image_cache_channel.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),

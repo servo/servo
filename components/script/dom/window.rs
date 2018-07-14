@@ -115,6 +115,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, TimerCallback};
@@ -172,6 +173,8 @@ pub struct Window {
     file_reading_task_source: FileReadingTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     performance_timeline_task_source: PerformanceTimelineTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
+    remote_event_task_source: RemoteEventTaskSource,
     navigator: MutNullableDom<Navigator>,
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<ImageCache>,
@@ -356,6 +359,10 @@ impl Window {
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
         self.performance_timeline_task_source.clone()
+    }
+
+    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
+        self.remote_event_task_source.clone()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1798,6 +1805,7 @@ impl Window {
         history_traversal_task_source: HistoryTraversalTaskSource,
         file_reading_task_source: FileReadingTaskSource,
         performance_timeline_task_source: PerformanceTimelineTaskSource,
+        remote_event_task_source: RemoteEventTaskSource,
         image_cache_chan: Sender<ImageCacheMsg>,
         image_cache: Arc<ImageCache>,
         resource_threads: ResourceThreads,
@@ -1850,6 +1858,7 @@ impl Window {
             history_traversal_task_source,
             file_reading_task_source,
             performance_timeline_task_source,
+            remote_event_task_source,
             image_cache_chan,
             image_cache,
             navigator: Default::default(),

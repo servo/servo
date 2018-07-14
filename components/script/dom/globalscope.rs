@@ -56,6 +56,7 @@ use task_source::TaskSourceName;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::remote_event::RemoteEventTaskSource;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
@@ -390,13 +391,25 @@ impl GlobalScope {
     }
 
     /// `ScriptChan` to send messages to the networking task source of
-    /// this of this global scope.
+    /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
             return window.networking_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.networking_task_source();
+        }
+        unreachable!();
+    }
+
+    /// `ScriptChan` to send messages to the remote-event task source of
+    /// this global scope.
+    pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.remote_event_task_source();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.remote_event_task_source();
         }
         unreachable!();
     }

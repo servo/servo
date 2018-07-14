@@ -8,6 +8,7 @@ pub mod file_reading;
 pub mod history_traversal;
 pub mod networking;
 pub mod performance_timeline;
+pub mod remote_event;
 pub mod user_interaction;
 
 use dom::globalscope::GlobalScope;
@@ -26,7 +27,8 @@ pub enum TaskSourceName {
     HistoryTraversal,
     Networking,
     PerformanceTimeline,
-    UserInteraction
+    UserInteraction,
+    RemoteEvent
 }
 
 impl TaskSourceName {
