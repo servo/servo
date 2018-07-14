@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, AU_PER_PX};
+use cssparser::{Parser, ParserInput};
 use document_loader::{LoadType, LoadBlocker};
 use dom::activation::Activatable;
 use dom::attr::Attr;
@@ -57,7 +58,13 @@ use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_unsigned_integer};
+use style::context::QuirksMode;
+use style::parser::ParserContext;
 use style::str::is_ascii_digit;
+use style::stylesheets::{CssRuleType, Origin};
+use style::values::specified::{Length, NoCalcLength};
+use style::values::specified::{ViewportPercentageLength, source_size_list::SourceSizeList};
+use style_traits::ParsingMode;
 use task_source::{TaskSource, TaskSourceName};
 
 enum ParseState {
@@ -1008,6 +1015,36 @@ pub fn collect_sequence_characters<F>(s: &str, predicate: F) -> (&str, &str)
     }
 
     return (s, "");
+}
+
+//https://html.spec.whatwg.org/multipage/#parse-a-sizes-attribute
+pub fn parse_a_sizes_attribute(value: DOMString, width: Option<u32>) -> SourceSizeList {
+    let mut input = ParserInput::new(&value);
+    let mut parser = Parser::new(&mut input);
+    let url = ServoUrl::parse("about:blank").unwrap();
+    let context = ParserContext::new(
+        Origin::Author,
+        &url,
+        Some(CssRuleType::Style),
+        ParsingMode::empty(),
+        QuirksMode::NoQuirks,
+        None,
+    );
+    let mut source_size_list = SourceSizeList::parse(&context, &mut parser);
+    if source_size_list.source_sizes.len() == 0  {
+        source_size_list = match width {
+            Some(w) => SourceSizeList {
+                source_sizes: vec![],
+                value: Some(Length::from_px(w as f32))
+            },
+            None => SourceSizeList {
+                source_sizes: vec![],
+                value: Some(Length::NoCalc(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.))))
+            },
+        }
+    }
+
+    source_size_list
 }
 
 /// Parse an `srcset` attribute - https://html.spec.whatwg.org/multipage/#parsing-a-srcset-attribute.
