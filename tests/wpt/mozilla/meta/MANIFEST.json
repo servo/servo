@@ -73,6 +73,18 @@
      {}
     ]
    ],
+   "css/absolute_div_with_padding.html": [
+    [
+     "/_mozilla/css/absolute_div_with_padding.html",
+     [
+      [
+       "/_mozilla/css/absolute_div_with_padding_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/absolute_hypothetical_float.html": [
     [
      "/_mozilla/css/absolute_hypothetical_float.html",
@@ -103,6 +115,18 @@
      [
       [
        "/_mozilla/css/absolute_ib_split_ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
+   "css/absolute_img_with_padding.html": [
+    [
+     "/_mozilla/css/absolute_img_with_padding.html",
+     [
+      [
+       "/_mozilla/css/absolute_img_with_padding_ref.html",
        "=="
       ]
      ],
@@ -7339,6 +7363,11 @@
      {}
     ]
    ],
+   "css/absolute_div_with_padding_ref.html": [
+    [
+     {}
+    ]
+   ],
    "css/absolute_hypothetical_float_ref.html": [
     [
      {}
@@ -7350,6 +7379,11 @@
     ]
    ],
    "css/absolute_ib_split_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/absolute_img_with_padding_ref.html": [
     [
      {}
     ]
@@ -60016,6 +60050,14 @@
    "e38f77f3a7691b11abeece839aba62ce9246ff6a",
    "support"
   ],
+  "css/absolute_div_with_padding.html": [
+   "a3f85092cde2ff19120d95be8edb834a8db97b39",
+   "reftest"
+  ],
+  "css/absolute_div_with_padding_ref.html": [
+   "794a23ea9ff6597273cad61ec9755df727d58f3f",
+   "support"
+  ],
   "css/absolute_hypothetical_float.html": [
    "1abe08648b55df2390cb2b6561923aa576212fbf",
    "reftest"
@@ -60038,6 +60080,14 @@
   ],
   "css/absolute_ib_split_ref.html": [
    "400117a1d118ee05db150877aa81bb414f4e7200",
+   "support"
+  ],
+  "css/absolute_img_with_padding.html": [
+   "ae552f695fabf59becc33a274e5b3e2f5ad2d92e",
+   "reftest"
+  ],
+  "css/absolute_img_with_padding_ref.html": [
+   "3f949e99ab09c5f8ce352a7987330d99023d7f0d",
    "support"
   ],
   "css/absolute_inline_containing_block_a.html": [

@@ -1263,7 +1263,8 @@ impl BlockFlow {
                 // TODO: Right now, this content block-size value includes the
                 // margin because of erroneous block-size calculation in fragment.
                 // Check this when that has been fixed.
-                let block_size_used_val = self.fragment.border_box.size.block;
+                let block_size_used_val = self.fragment.border_box.size.block -
+                    self.fragment.border_padding.block_start_end();
                 solution = Some(BSizeConstraintSolution::solve_vertical_constraints_abs_replaced(
                         block_size_used_val,
                         margin_block_start,
@@ -1305,6 +1306,7 @@ impl BlockFlow {
         }
 
         let block_size = solution.block_size + self.fragment.border_padding.block_start_end();
+
         self.fragment.border_box.size.block = block_size;
         self.base.position.size.block = block_size;
 
