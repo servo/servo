@@ -9,6 +9,7 @@
 
 use display_list::items::{BorderDetails, ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
 use display_list::items::{DisplayItem, DisplayList, StackingContextType};
+use euclid::SideOffsets2D;
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
 use webrender_api::LayoutPoint;
@@ -132,30 +133,50 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     BorderDetails::Normal(ref border) => {
                         webrender_api::BorderDetails::Normal(*border)
                     },
-                    BorderDetails::Image(ref image) => webrender_api::BorderDetails::NinePatch(*image),
+                    BorderDetails::Image(ref image) => {
+                        webrender_api::BorderDetails::NinePatch(*image)
+                    }
                     BorderDetails::Gradient(ref gradient) => {
-                        webrender_api::BorderDetails::Gradient(webrender_api::GradientBorder {
-                            gradient: builder.create_gradient(
-                                gradient.gradient.start_point,
-                                gradient.gradient.end_point,
-                                gradient.gradient.stops.clone(),
-                                gradient.gradient.extend_mode,
-                            ),
+                        let wr_gradient = builder.create_gradient(
+                            gradient.gradient.start_point,
+                            gradient.gradient.end_point,
+                            gradient.gradient.stops.clone(),
+                            gradient.gradient.extend_mode,
+                        );
+
+                        let details = webrender_api::NinePatchBorder {
+                            source: webrender_api::NinePatchBorderSource::Gradient(wr_gradient),
+                            width: 0,
+                            height: 0,
+                            slice: SideOffsets2D::zero(),
+                            fill: false,
+                            repeat_horizontal: webrender_api::RepeatMode::Stretch,
+                            repeat_vertical: webrender_api::RepeatMode::Stretch,
                             outset: gradient.outset,
-                        })
+                        };
+
+                        webrender_api::BorderDetails::NinePatch(details)
                     },
                     BorderDetails::RadialGradient(ref gradient) => {
-                        webrender_api::BorderDetails::RadialGradient(
-                            webrender_api::RadialGradientBorder {
-                                gradient: builder.create_radial_gradient(
-                                    gradient.gradient.center,
-                                    gradient.gradient.radius,
-                                    gradient.gradient.stops.clone(),
-                                    gradient.gradient.extend_mode,
-                                ),
-                                outset: gradient.outset,
-                            },
-                        )
+                        let wr_gradient = builder.create_radial_gradient(
+                            gradient.gradient.center,
+                            gradient.gradient.radius,
+                            gradient.gradient.stops.clone(),
+                            gradient.gradient.extend_mode,
+                        );
+
+                        let details = webrender_api::NinePatchBorder {
+                            source: webrender_api::NinePatchBorderSource::RadialGradient(wr_gradient),
+                            width: 0,
+                            height: 0,
+                            slice: SideOffsets2D::zero(),
+                            fill: false,
+                            repeat_horizontal: webrender_api::RepeatMode::Stretch,
+                            repeat_vertical: webrender_api::RepeatMode::Stretch,
+                            outset: gradient.outset,
+                        };
+
+                        webrender_api::BorderDetails::NinePatch(details)
                     },
                 };
 
