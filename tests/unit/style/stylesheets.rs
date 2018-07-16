@@ -17,7 +17,7 @@ use std::sync::atomic::AtomicBool;
 use style::context::QuirksMode;
 use style::error_reporting::{ParseErrorReporter, ContextualParseError};
 use style::media_queries::MediaList;
-use style::properties::{CSSWideKeyword, CustomDeclaration, DeclarationSource};
+use style::properties::{CSSWideKeyword, CustomDeclaration, DeclarationPushMode};
 use style::properties::{DeclaredValueOwned, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands::{self, animation_timing_function};
@@ -34,7 +34,7 @@ pub fn block_from<I>(iterable: I) -> PropertyDeclarationBlock
 where I: IntoIterator<Item=(PropertyDeclaration, Importance)> {
     let mut block = PropertyDeclarationBlock::new();
     for (d, i) in iterable {
-        block.push(d, i, DeclarationSource::CssOm);
+        block.push(d, i, DeclarationPushMode::Append);
     }
     block
 }
