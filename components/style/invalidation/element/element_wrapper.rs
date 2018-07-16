@@ -367,8 +367,4 @@ where
             .assigned_slot()
             .map(|e| ElementWrapper::new(e, self.snapshot_map))
     }
-
-    fn blocks_ancestor_combinators(&self) -> bool {
-        self.element.blocks_ancestor_combinators()
-    }
 }

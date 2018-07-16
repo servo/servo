@@ -1261,8 +1261,9 @@ impl Stylist {
 
             if let Some(containing_shadow) = rule_hash_target.containing_shadow() {
                 let cascade_data = containing_shadow.style_data();
+                let host = containing_shadow.host();
                 if let Some(map) = cascade_data.normal_rules(pseudo_element) {
-                    context.with_shadow_host(Some(containing_shadow.host()), |context| {
+                    context.with_shadow_host(Some(host), |context| {
                         map.get_all_matching_rules(
                             element,
                             rule_hash_target,
@@ -1276,7 +1277,26 @@ impl Stylist {
                     shadow_cascade_order += 1;
                 }
 
-                match_document_author_rules = false;
+                // NOTE(emilio): Hack so <svg:use> matches document rules as
+                // expected.
+                //
+                // This is not a problem for invalidation and that kind of stuff
+                // because they still don't match rules based on elements
+                // outside of the shadow tree, and because the <svg:use> subtree
+                // is immutable and recreated each time the source tree changes.
+                //
+                // See: https://github.com/w3c/svgwg/issues/504
+                //
+                // Note that we always resolve URLs against the document, so we
+                // can't get into a nested shadow situation here.
+                //
+                // See: https://github.com/w3c/svgwg/issues/505
+                //
+                let host_is_svg_use =
+                    host.is_svg_element() &&
+                    host.local_name() == &*local_name!("use");
+
+                match_document_author_rules = host_is_svg_use;
             }
         }
 

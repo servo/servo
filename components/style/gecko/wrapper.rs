@@ -856,13 +856,12 @@ impl<'le> GeckoElement<'le> {
     /// Returns true if this node is the shadow root of an use-element shadow tree.
     #[inline]
     fn is_root_of_use_element_shadow_tree(&self) -> bool {
-        if !self.is_root_of_anonymous_subtree() {
+        if !self.as_node().is_in_shadow_tree() {
             return false;
         }
-        match self.parent_element() {
+        match self.containing_shadow_host() {
             Some(e) => {
-                e.local_name() == &*local_name!("use") &&
-                e.is_svg_element()
+                e.is_svg_element() && e.local_name() == &*local_name!("use")
             },
             None => false,
         }
@@ -2331,14 +2330,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     #[inline]
     fn ignores_nth_child_selectors(&self) -> bool {
         self.is_root_of_anonymous_subtree()
-    }
-
-    #[inline]
-    fn blocks_ancestor_combinators(&self) -> bool {
-        // If this element is the shadow root of an use-element shadow tree,
-        // according to the spec, we should not match rules cross the shadow
-        // DOM boundary.
-        self.is_root_of_use_element_shadow_tree()
     }
 }
 

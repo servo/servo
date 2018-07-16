@@ -418,10 +418,6 @@ where
     match combinator {
         Combinator::NextSibling | Combinator::LaterSibling => element.prev_sibling_element(),
         Combinator::Child | Combinator::Descendant => {
-            if element.blocks_ancestor_combinators() {
-                return None;
-            }
-
             match element.parent_element() {
                 Some(e) => return Some(e),
                 None => {},
