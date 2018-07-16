@@ -237,7 +237,6 @@ impl AudioBufferMethods for AudioBuffer {
         let channel_number = channel_number as usize;
         let offset = start_in_channel as usize;
         let mut dest = Vec::with_capacity(destination.len());
-        // let destination = unsafe { destination.as_mut_slice() };
 
         // We either copy form js_channels or shared_channels.
 
