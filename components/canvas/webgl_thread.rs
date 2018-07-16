@@ -817,12 +817,15 @@ impl WebGLImpl {
                 ctx.gl().uniform_4i(uniform_id, x, y, z, w),
             WebGLCommand::Uniform4iv(uniform_id, ref v) =>
                 ctx.gl().uniform_4iv(uniform_id, v),
-            WebGLCommand::UniformMatrix2fv(uniform_id, transpose,  ref v) =>
-                ctx.gl().uniform_matrix_2fv(uniform_id, transpose, v),
-            WebGLCommand::UniformMatrix3fv(uniform_id, transpose,  ref v) =>
-                ctx.gl().uniform_matrix_3fv(uniform_id, transpose, v),
-            WebGLCommand::UniformMatrix4fv(uniform_id, transpose,  ref v) =>
-                ctx.gl().uniform_matrix_4fv(uniform_id, transpose, v),
+            WebGLCommand::UniformMatrix2fv(uniform_id, ref v) => {
+                ctx.gl().uniform_matrix_2fv(uniform_id, false, v)
+            }
+            WebGLCommand::UniformMatrix3fv(uniform_id, ref v) => {
+                ctx.gl().uniform_matrix_3fv(uniform_id, false, v)
+            }
+            WebGLCommand::UniformMatrix4fv(uniform_id, ref v) => {
+                ctx.gl().uniform_matrix_4fv(uniform_id, false, v)
+            }
             WebGLCommand::ValidateProgram(program_id) =>
                 ctx.gl().validate_program(program_id.get()),
             WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) =>
@@ -1032,10 +1035,16 @@ impl WebGLImpl {
         let active_uniforms = (0..num_active_uniforms[0] as u32).map(|i| {
             // FIXME(nox): This allocates strings sometimes for nothing
             // and the gleam method keeps getting ACTIVE_UNIFORM_MAX_LENGTH.
-            let (size, type_, name) = gl.get_active_uniform(program.get(), i);
+            let (size, type_, mut name) = gl.get_active_uniform(program.get(), i);
+            let is_array = name.ends_with("[0]");
+            if is_array {
+                // FIXME(nox): NLL
+                let len = name.len();
+                name.truncate(len - 3);
+            }
             ActiveUniformInfo {
-                name: from_name_in_compiled_shader(&name),
-                size,
+                base_name: from_name_in_compiled_shader(&name).into(),
+                size: if is_array { Some(size) } else { None },
                 type_,
             }
         }).collect::<Vec<_>>().into();
@@ -1105,15 +1114,10 @@ impl WebGLImpl {
         gl: &gl::Gl,
         program_id: WebGLProgramId,
         name: &str,
-        chan: &WebGLSender<Option<i32>>,
+        chan: &WebGLSender<i32>,
     ) {
         let location = gl.get_uniform_location(program_id.get(), &to_name_in_compiled_shader(name));
-        let location = if location == -1 {
-            None
-        } else {
-            Some(location)
-        };
-
+        assert!(location >= 0);
         chan.send(location).unwrap();
     }
 

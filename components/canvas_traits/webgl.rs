@@ -6,6 +6,7 @@ use euclid::Size2D;
 use gleam::gl;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
+use std::borrow::Cow;
 use std::num::NonZeroU32;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
@@ -207,7 +208,7 @@ pub enum WebGLCommand {
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetExtensions(WebGLSender<String>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
-    GetUniformLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
+    GetUniformLocation(WebGLProgramId, String, WebGLSender<i32>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
@@ -244,9 +245,9 @@ pub enum WebGLCommand {
     Uniform4fv(i32, Vec<f32>),
     Uniform4i(i32, i32, i32, i32, i32),
     Uniform4iv(i32, Vec<i32>),
-    UniformMatrix2fv(i32, bool, Vec<f32>),
-    UniformMatrix3fv(i32, bool, Vec<f32>),
-    UniformMatrix4fv(i32, bool, Vec<f32>),
+    UniformMatrix2fv(i32, Vec<f32>),
+    UniformMatrix3fv(i32, Vec<f32>),
+    UniformMatrix4fv(i32, Vec<f32>),
     UseProgram(Option<WebGLProgramId>),
     ValidateProgram(WebGLProgramId),
     VertexAttrib(u32, f32, f32, f32, f32),
@@ -443,12 +444,24 @@ pub struct ActiveAttribInfo {
 /// Description of a single active uniform.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
 pub struct ActiveUniformInfo {
-    /// The name of the uniform.
-    pub name: String,
-    /// The size of the uniform.
-    pub size: i32,
+    /// The base name of the uniform.
+    pub base_name: Box<str>,
+    /// The size of the uniform, if it is an array.
+    pub size: Option<i32>,
     /// The type of the uniform.
     pub type_: u32,
+}
+
+impl ActiveUniformInfo {
+    pub fn name(&self) -> Cow<str> {
+        if self.size.is_some() {
+            let mut name = String::from(&*self.base_name);
+            name.push_str("[0]");
+            Cow::Owned(name)
+        } else {
+            Cow::Borrowed(&self.base_name)
+        }
+    }
 }
 
 macro_rules! parameters {
