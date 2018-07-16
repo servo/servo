@@ -49,7 +49,7 @@ use std::thread;
 use std::time::Duration;
 use uuid::Uuid;
 use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandParameters};
-use webdriver::command::{LocatorParameters, Parameters};
+use webdriver::command::{LocatorParameters, Parameters, NewSessionParameters};
 use webdriver::command::{SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::command::WindowRectParameters;
@@ -307,7 +307,12 @@ impl Handler {
         }
     }
 
-    fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+    fn handle_new_session(&mut self, params: &NewSessionParameters) -> WebDriverResult<WebDriverResponse> {
+        if let NewSessionParameters::Legacy(..) = params {
+            return Err(WebDriverError::new(ErrorStatus::InvalidArgument,
+                                           "Unsupported legacy arguments"));
+        }
+
         debug!("new session");
         if self.session.is_none() {
             let top_level_browsing_context_id = self.focus_top_level_browsing_context_id()?;
@@ -330,7 +335,7 @@ impl Handler {
 
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
         self.session = None;
-        Ok(WebDriverResponse::Void)
+        Ok(WebDriverResponse::DeleteSession)
     }
 
     fn browsing_context_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
@@ -890,7 +895,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         }
 
         match msg.command {
-            WebDriverCommand::NewSession(_) => self.handle_new_session(),
+            WebDriverCommand::NewSession(ref params) => self.handle_new_session(params),
             WebDriverCommand::DeleteSession => self.handle_delete_session(),
             WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
