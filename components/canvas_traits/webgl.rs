@@ -6,6 +6,7 @@ use euclid::Size2D;
 use gleam::gl;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
+use std::borrow::Cow;
 use std::num::NonZeroU32;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
 
@@ -207,9 +208,7 @@ pub enum WebGLCommand {
     FramebufferTexture2D(u32, u32, u32, Option<WebGLTextureId>, i32),
     GetExtensions(WebGLSender<String>),
     GetShaderPrecisionFormat(u32, u32, WebGLSender<(i32, i32, i32)>),
-    GetActiveAttrib(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
-    GetActiveUniform(WebGLProgramId, u32, WebGLSender<WebGLResult<(i32, u32, String)>>),
-    GetUniformLocation(WebGLProgramId, String, WebGLSender<Option<i32>>),
+    GetUniformLocation(WebGLProgramId, String, WebGLSender<i32>),
     GetShaderInfoLog(WebGLShaderId, WebGLSender<String>),
     GetProgramInfoLog(WebGLProgramId, WebGLSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, WebGLSender<i32>),
@@ -246,9 +245,9 @@ pub enum WebGLCommand {
     Uniform4fv(i32, Vec<f32>),
     Uniform4i(i32, i32, i32, i32, i32),
     Uniform4iv(i32, Vec<i32>),
-    UniformMatrix2fv(i32, bool, Vec<f32>),
-    UniformMatrix3fv(i32, bool, Vec<f32>),
-    UniformMatrix4fv(i32, bool, Vec<f32>),
+    UniformMatrix2fv(i32, Vec<f32>),
+    UniformMatrix3fv(i32, Vec<f32>),
+    UniformMatrix4fv(i32, Vec<f32>),
     UseProgram(Option<WebGLProgramId>),
     ValidateProgram(WebGLProgramId),
     VertexAttrib(u32, f32, f32, f32, f32),
@@ -425,6 +424,8 @@ pub struct ProgramLinkInfo {
     pub linked: bool,
     /// The list of active attributes.
     pub active_attribs: Box<[ActiveAttribInfo]>,
+    /// The list of active uniforms.
+    pub active_uniforms: Box<[ActiveUniformInfo]>,
 }
 
 /// Description of a single active attribute.
@@ -438,6 +439,29 @@ pub struct ActiveAttribInfo {
     pub type_: u32,
     /// The location of the attribute.
     pub location: i32,
+}
+
+/// Description of a single active uniform.
+#[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
+pub struct ActiveUniformInfo {
+    /// The base name of the uniform.
+    pub base_name: Box<str>,
+    /// The size of the uniform, if it is an array.
+    pub size: Option<i32>,
+    /// The type of the uniform.
+    pub type_: u32,
+}
+
+impl ActiveUniformInfo {
+    pub fn name(&self) -> Cow<str> {
+        if self.size.is_some() {
+            let mut name = String::from(&*self.base_name);
+            name.push_str("[0]");
+            Cow::Owned(name)
+        } else {
+            Cow::Borrowed(&self.base_name)
+        }
+    }
 }
 
 macro_rules! parameters {
@@ -577,40 +601,4 @@ parameters! {
             TextureWrapT = gl::TEXTURE_WRAP_T,
         }),
     }
-}
-
-/// ANGLE adds a `_u` prefix to variable names:
-///
-/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
-///
-/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
-/// API to look up the `x.name` and `x.mappedName` members.
-const ANGLE_NAME_PREFIX: &'static str = "_u";
-
-pub fn to_name_in_compiled_shader(s: &str) -> String {
-    map_dot_separated(s, |s, mapped| {
-        mapped.push_str(ANGLE_NAME_PREFIX);
-        mapped.push_str(s);
-    })
-}
-
-pub fn from_name_in_compiled_shader(s: &str) -> String {
-    map_dot_separated(s, |s, mapped| {
-        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
-            &s[ANGLE_NAME_PREFIX.len()..]
-        } else {
-            s
-        })
-    })
-}
-
-fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
-    let mut iter = s.split('.');
-    let mut mapped = String::new();
-    f(iter.next().unwrap(), &mut mapped);
-    for s in iter {
-        mapped.push('.');
-        f(s, &mut mapped);
-    }
-    mapped
 }

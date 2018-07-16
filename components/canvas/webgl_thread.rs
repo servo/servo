@@ -646,8 +646,9 @@ impl WebGLImpl {
                 ctx.gl().attach_shader(program_id.get(), shader_id.get()),
             WebGLCommand::DetachShader(program_id, shader_id) =>
                 ctx.gl().detach_shader(program_id.get(), shader_id.get()),
-            WebGLCommand::BindAttribLocation(program_id, index, ref name) =>
-                ctx.gl().bind_attrib_location(program_id.get(), index, name),
+            WebGLCommand::BindAttribLocation(program_id, index, ref name) => {
+                ctx.gl().bind_attrib_location(program_id.get(), index, &to_name_in_compiled_shader(name))
+            }
             WebGLCommand::BlendColor(r, g, b, a) =>
                 ctx.gl().blend_color(r, g, b, a),
             WebGLCommand::BlendEquation(mode) =>
@@ -736,10 +737,6 @@ impl WebGLImpl {
                 ctx.gl().stencil_op(fail, zfail, zpass),
             WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass) =>
                 ctx.gl().stencil_op_separate(face, fail, zfail, zpass),
-            WebGLCommand::GetActiveAttrib(program_id, index, ref chan) =>
-                Self::active_attrib(ctx.gl(), program_id, index, chan),
-            WebGLCommand::GetActiveUniform(program_id, index, ref chan) =>
-                Self::active_uniform(ctx.gl(), program_id, index, chan),
             WebGLCommand::GetRenderbufferParameter(target, pname, ref chan) =>
                 Self::get_renderbuffer_parameter(ctx.gl(), target, pname, chan),
             WebGLCommand::GetFramebufferAttachmentParameter(target, attachment, pname, ref chan) =>
@@ -820,12 +817,15 @@ impl WebGLImpl {
                 ctx.gl().uniform_4i(uniform_id, x, y, z, w),
             WebGLCommand::Uniform4iv(uniform_id, ref v) =>
                 ctx.gl().uniform_4iv(uniform_id, v),
-            WebGLCommand::UniformMatrix2fv(uniform_id, transpose,  ref v) =>
-                ctx.gl().uniform_matrix_2fv(uniform_id, transpose, v),
-            WebGLCommand::UniformMatrix3fv(uniform_id, transpose,  ref v) =>
-                ctx.gl().uniform_matrix_3fv(uniform_id, transpose, v),
-            WebGLCommand::UniformMatrix4fv(uniform_id, transpose,  ref v) =>
-                ctx.gl().uniform_matrix_4fv(uniform_id, transpose, v),
+            WebGLCommand::UniformMatrix2fv(uniform_id, ref v) => {
+                ctx.gl().uniform_matrix_2fv(uniform_id, false, v)
+            }
+            WebGLCommand::UniformMatrix3fv(uniform_id, ref v) => {
+                ctx.gl().uniform_matrix_3fv(uniform_id, false, v)
+            }
+            WebGLCommand::UniformMatrix4fv(uniform_id, ref v) => {
+                ctx.gl().uniform_matrix_4fv(uniform_id, false, v)
+            }
             WebGLCommand::ValidateProgram(program_id) =>
                 ctx.gl().validate_program(program_id.get()),
             WebGLCommand::VertexAttrib(attrib_id, x, y, z, w) =>
@@ -1003,6 +1003,7 @@ impl WebGLImpl {
             return ProgramLinkInfo {
                 linked: false,
                 active_attribs: vec![].into(),
+                active_uniforms: vec![].into(),
             }
         }
 
@@ -1011,6 +1012,8 @@ impl WebGLImpl {
             gl.get_program_iv(program.get(), gl::ACTIVE_ATTRIBUTES, &mut num_active_attribs);
         }
         let active_attribs = (0..num_active_attribs[0] as u32).map(|i| {
+            // FIXME(nox): This allocates strings sometimes for nothing
+            // and the gleam method keeps getting ACTIVE_ATTRIBUTE_MAX_LENGTH.
             let (size, type_, name) = gl.get_active_attrib(program.get(), i);
             let location = if name.starts_with("gl_") {
                 -1
@@ -1025,9 +1028,31 @@ impl WebGLImpl {
             }
         }).collect::<Vec<_>>().into();
 
+        let mut num_active_uniforms = [0];
+        unsafe {
+            gl.get_program_iv(program.get(), gl::ACTIVE_UNIFORMS, &mut num_active_uniforms);
+        }
+        let active_uniforms = (0..num_active_uniforms[0] as u32).map(|i| {
+            // FIXME(nox): This allocates strings sometimes for nothing
+            // and the gleam method keeps getting ACTIVE_UNIFORM_MAX_LENGTH.
+            let (size, type_, mut name) = gl.get_active_uniform(program.get(), i);
+            let is_array = name.ends_with("[0]");
+            if is_array {
+                // FIXME(nox): NLL
+                let len = name.len();
+                name.truncate(len - 3);
+            }
+            ActiveUniformInfo {
+                base_name: from_name_in_compiled_shader(&name).into(),
+                size: if is_array { Some(size) } else { None },
+                type_,
+            }
+        }).collect::<Vec<_>>().into();
+
         ProgramLinkInfo {
             linked: true,
             active_attribs,
+            active_uniforms,
         }
     }
 
@@ -1043,42 +1068,6 @@ impl WebGLImpl {
     ) {
       let result = gl.read_pixels(x, y, width, height, format, pixel_type);
       chan.send(result.into()).unwrap()
-    }
-
-    #[allow(unsafe_code)]
-    fn active_attrib(
-        gl: &gl::Gl,
-        program_id: WebGLProgramId,
-        index: u32,
-        chan: &WebGLSender<WebGLResult<(i32, u32, String)>>,
-    ) {
-        let mut max = [0];
-        unsafe {
-            gl.get_program_iv(program_id.get(), gl::ACTIVE_ATTRIBUTES, &mut max);
-        }
-        let result = if index >= max[0] as u32 {
-            Err(WebGLError::InvalidValue)
-        } else {
-            Ok(gl.get_active_attrib(program_id.get(), index))
-        };
-        chan.send(result).unwrap();
-    }
-
-    #[allow(unsafe_code)]
-    fn active_uniform(gl: &gl::Gl,
-                      program_id: WebGLProgramId,
-                      index: u32,
-                      chan: &WebGLSender<WebGLResult<(i32, u32, String)>>) {
-        let mut max = [0];
-        unsafe {
-            gl.get_program_iv(program_id.get(), gl::ACTIVE_UNIFORMS, &mut max);
-        }
-        let result = if index >= max[0] as u32 {
-            Err(WebGLError::InvalidValue)
-        } else {
-            Ok(gl.get_active_uniform(program_id.get(), index))
-        };
-        chan.send(result).unwrap();
     }
 
     fn finish(gl: &gl::Gl, chan: &WebGLSender<()>) {
@@ -1121,17 +1110,14 @@ impl WebGLImpl {
         chan.send(parameter).unwrap();
     }
 
-    fn uniform_location(gl: &gl::Gl,
-                        program_id: WebGLProgramId,
-                        name: &str,
-                        chan: &WebGLSender<Option<i32>>) {
-        let location = gl.get_uniform_location(program_id.get(), name);
-        let location = if location == -1 {
-            None
-        } else {
-            Some(location)
-        };
-
+    fn uniform_location(
+        gl: &gl::Gl,
+        program_id: WebGLProgramId,
+        name: &str,
+        chan: &WebGLSender<i32>,
+    ) {
+        let location = gl.get_uniform_location(program_id.get(), &to_name_in_compiled_shader(name));
+        assert!(location >= 0);
         chan.send(location).unwrap();
     }
 
@@ -1243,4 +1229,40 @@ impl WebGLImpl {
         gl.shader_source(shader_id.get(), &[source.as_bytes()]);
         gl.compile_shader(shader_id.get());
     }
+}
+
+/// ANGLE adds a `_u` prefix to variable names:
+///
+/// https://chromium.googlesource.com/angle/angle/+/855d964bd0d05f6b2cb303f625506cf53d37e94f
+///
+/// To avoid hard-coding this we would need to use the `sh::GetAttributes` and `sh::GetUniforms`
+/// API to look up the `x.name` and `x.mappedName` members.
+const ANGLE_NAME_PREFIX: &'static str = "_u";
+
+fn to_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(ANGLE_NAME_PREFIX);
+        mapped.push_str(s);
+    })
+}
+
+fn from_name_in_compiled_shader(s: &str) -> String {
+    map_dot_separated(s, |s, mapped| {
+        mapped.push_str(if s.starts_with(ANGLE_NAME_PREFIX) {
+            &s[ANGLE_NAME_PREFIX.len()..]
+        } else {
+            s
+        })
+    })
+}
+
+fn map_dot_separated<F: Fn(&str, &mut String)>(s: &str, f: F) -> String {
+    let mut iter = s.split('.');
+    let mut mapped = String::new();
+    f(iter.next().unwrap(), &mut mapped);
+    for s in iter {
+        mapped.push('.');
+        f(s, &mut mapped);
+    }
+    mapped
 }
