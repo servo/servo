@@ -15,6 +15,7 @@ use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
+use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use fnv::FnvHashSet;
@@ -147,7 +148,7 @@ impl WebGLProgram {
             }
             for active_uniform in &*link_info.active_uniforms {
                 // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.41
-                if !used_names.insert(&*active_uniform.name) {
+                if !used_names.insert(&*active_uniform.base_name) {
                     return Ok(());
                 }
             }
@@ -262,9 +263,9 @@ impl WebGLProgram {
         let data = uniforms.get(index as usize).ok_or(WebGLError::InvalidValue)?;
         Ok(WebGLActiveInfo::new(
             self.global().as_window(),
-            data.size,
+            data.size.unwrap_or(1),
             data.type_,
-            data.name.clone().into(),
+            data.name().into(),
         ))
     }
 
@@ -311,7 +312,10 @@ impl WebGLProgram {
     }
 
     /// glGetUniformLocation
-    pub fn get_uniform_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
+    pub fn get_uniform_location(
+        &self,
+        name: DOMString,
+    ) -> WebGLResult<Option<DomRoot<WebGLUniformLocation>>> {
         if !self.is_linked() || self.is_deleted() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -320,15 +324,37 @@ impl WebGLProgram {
         }
 
         // Check if the name is reserved
-        if name.starts_with("webgl") || name.starts_with("_webgl_") {
+        if name.starts_with("gl_") {
             return Ok(None);
         }
+
+        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#GLSL_CONSTRUCTS
+        if name.starts_with("webgl_") || name.starts_with("_webgl_") {
+            return Ok(None);
+        }
+
+        let (size, type_) = {
+            let (base_name, array_index) = match parse_uniform_name(&name) {
+                Some((name, index)) if index.map_or(true, |i| i >= 0) => (name, index),
+                _ => return Ok(None),
+            };
+
+            let uniforms = self.active_uniforms.borrow();
+            match uniforms.iter().find(|attrib| &*attrib.base_name == base_name) {
+                Some(uniform) if array_index.is_none() || array_index < uniform.size => {
+                    (uniform.size.map(|size| size - array_index.unwrap_or_default()), uniform.type_)
+                },
+                _ => return Ok(None),
+            }
+        };
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.renderer
             .send(WebGLCommand::GetUniformLocation(self.id, name.into(), sender))
             .unwrap();
-        Ok(receiver.recv().unwrap())
+        let location = receiver.recv().unwrap();
+
+        Ok(Some(WebGLUniformLocation::new(self.global().as_window(), location, self.id, size, type_)))
     }
 
     /// glGetProgramInfoLog
@@ -368,4 +394,14 @@ impl Drop for WebGLProgram {
     fn drop(&mut self) {
         self.delete();
     }
+}
+
+
+fn parse_uniform_name(name: &str) -> Option<(&str, Option<i32>)> {
+    if !name.ends_with(']') {
+        return Some((name, None));
+    }
+    let bracket_pos = name[..name.len() - 1].rfind('[')?;
+    let index = name[(bracket_pos + 1)..(name.len() - 1)].parse::<i32>().ok()?;
+    Some((&name[..bracket_pos], Some(index)))
 }

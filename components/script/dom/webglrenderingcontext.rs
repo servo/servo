@@ -425,6 +425,21 @@ impl WebGLRenderingContext {
         }
     }
 
+    fn with_location<F>(&self, location: Option<&WebGLUniformLocation>, f: F)
+    where
+        F: FnOnce(&WebGLUniformLocation) -> WebGLResult<()>,
+    {
+        let location = match location {
+            Some(loc) => loc,
+            None => return,
+        };
+        match self.current_program.get() {
+            Some(ref program) if program.id() == location.program_id() => {}
+            _ => return self.webgl_error(InvalidOperation),
+        }
+        handle_potential_webgl_error!(self, f(location));
+    }
+
     fn tex_parameter(&self, target: u32, name: u32, value: TexParameterValue) {
         let texture = match target {
             constants::TEXTURE_2D |
@@ -526,38 +541,6 @@ impl WebGLRenderingContext {
             constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP => true,
             _ => false,
         }
-    }
-
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    // https://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform.xml
-    // https://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf#nameddest=section-2.10.4
-    fn validate_uniform_parameters<T>(&self,
-                                      uniform: Option<&WebGLUniformLocation>,
-                                      uniform_type: UniformSetterType,
-                                      data: &[T]) -> bool {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return false,
-        };
-
-        let program = self.current_program.get();
-        match program {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => {
-                self.webgl_error(InvalidOperation);
-                return false;
-            },
-        };
-
-        // TODO(emilio): Get more complex uniform info from ANGLE, and use it to
-        // properly validate that the uniform setter type is compatible with the
-        // uniform type, and that the uniform size matches.
-        if data.len() % uniform_type.element_count() != 0 {
-            self.webgl_error(InvalidOperation);
-            return false;
-        }
-
-        true
     }
 
     // https://en.wikipedia.org/wiki/Relative_luminance
@@ -2762,9 +2745,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         program: &WebGLProgram,
         name: DOMString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
-        handle_potential_webgl_error!(self, program.get_uniform_location(name), None).map(|location| {
-            WebGLUniformLocation::new(self.global().as_window(), location, program.id())
-        })
+        handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
     }
 
     #[allow(unsafe_code)]
@@ -3166,75 +3147,145 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1f(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  val: f32) {
-        if self.validate_uniform_parameters(location, UniformSetterType::Float, &[val]) {
-            self.send_command(WebGLCommand::Uniform1f(location.unwrap().id(), val))
-        }
+    fn Uniform1f(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: f32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL | constants::FLOAT => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform1f(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1i(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  val: i32) {
-        if self.validate_uniform_parameters(location, UniformSetterType::Int, &[val]) {
-            self.send_command(WebGLCommand::Uniform1i(location.unwrap().id(), val))
-        }
+    fn Uniform1i(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: i32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL | constants::INT => {}
+                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                    if val < 0 || val as u32 >= self.limits.max_combined_texture_image_units {
+                        return Err(InvalidValue);
+                    }
+                }
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform1i(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
+        val: Int32ArrayOrLongSequence,
     ) {
-        let v = match v {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
-            Int32ArrayOrLongSequence::LongSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::Int, &v) {
-            self.send_command(WebGLCommand::Uniform1iv(location.unwrap().id(), v))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL | constants::INT | constants::SAMPLER_2D | constants::SAMPLER_CUBE => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+                Int32ArrayOrLongSequence::LongSequence(v) => v,
+            };
+            if val.is_empty() {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 1 {
+                return Err(InvalidOperation);
+            }
+            match location.type_() {
+                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                    for &v in val.iter().take(cmp::min(location.size().unwrap_or(1) as usize, val.len())) {
+                        if v < 0 || v as u32 >= self.limits.max_combined_texture_image_units {
+                            return Err(InvalidValue);
+                        }
+                    }
+                }
+                _ => {}
+            }
+            self.send_command(WebGLCommand::Uniform1iv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::Float, &v) {
-            self.send_command(WebGLCommand::Uniform1fv(location.unwrap().id(), v));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL | constants::FLOAT => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if val.is_empty() {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 1 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform1fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2f(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: f32, y: f32) {
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec2, &[x, y]) {
-            self.send_command(WebGLCommand::Uniform2f(location.unwrap().id(), x, y));
-        }
+    fn Uniform2f(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        x: f32,
+        y: f32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC2 | constants::FLOAT_VEC2 => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform2f(location.id(), x, y));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec2, &v) {
-            self.send_command(WebGLCommand::Uniform2fv(location.unwrap().id(), v));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC2 | constants::FLOAT_VEC2 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if val.len() < 2 || val.len() % 2 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 2 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform2fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3244,26 +3295,40 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         x: i32,
         y: i32,
     ) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::IntVec2,
-                                            &[x, y]) {
-            self.send_command(WebGLCommand::Uniform2i(location.unwrap().id(), x, y));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC2 | constants::INT_VEC2 => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform2i(location.id(), x, y));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
+        val: Int32ArrayOrLongSequence,
     ) {
-        let v = match v {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
-            Int32ArrayOrLongSequence::LongSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::IntVec2, &v) {
-            self.send_command(WebGLCommand::Uniform2iv(location.unwrap().id(), v));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC2 | constants::INT_VEC2 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+                Int32ArrayOrLongSequence::LongSequence(v) => v,
+            };
+            if val.len() < 2 || val.len() % 2 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 2 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform2iv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3274,52 +3339,84 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         y: f32,
         z: f32,
     ) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatVec3,
-                                            &[x, y, z]) {
-            self.send_command(WebGLCommand::Uniform3f(location.unwrap().id(), x, y, z));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC3 | constants::FLOAT_VEC3 => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform3f(location.id(), x, y, z));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec3, &v) {
-            self.send_command(WebGLCommand::Uniform3fv(location.unwrap().id(), v))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC3 | constants::FLOAT_VEC3 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if val.len() < 3 || val.len() % 3 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 3 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform3fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3i(&self,
-                  location: Option<&WebGLUniformLocation>,
-                  x: i32, y: i32, z: i32) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::IntVec3,
-                                            &[x, y, z]) {
-            self.send_command(WebGLCommand::Uniform3i(location.unwrap().id(), x, y, z))
-        }
+    fn Uniform3i(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        x: i32,
+        y: i32,
+        z: i32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC3 | constants::INT_VEC3 => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform3i(location.id(), x, y, z));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
+        val: Int32ArrayOrLongSequence,
     ) {
-        let v = match v {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
-            Int32ArrayOrLongSequence::LongSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::IntVec3, &v) {
-            self.send_command(WebGLCommand::Uniform3iv(location.unwrap().id(), v))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC3 | constants::INT_VEC3 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+                Int32ArrayOrLongSequence::LongSequence(v) => v,
+            };
+            if val.len() < 3 || val.len() % 3 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 3 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform3iv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3331,11 +3428,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         z: i32,
         w: i32,
     ) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::IntVec4,
-                                            &[x, y, z, w]) {
-            self.send_command(WebGLCommand::Uniform4i(location.unwrap().id(), x, y, z, w))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC4 | constants::INT_VEC4 => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform4i(location.id(), x, y, z, w));
+            Ok(())
+        });
     }
 
 
@@ -3343,15 +3443,26 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4iv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Int32ArrayOrLongSequence,
+        val: Int32ArrayOrLongSequence,
     ) {
-        let v = match v {
-            Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
-            Int32ArrayOrLongSequence::LongSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::IntVec4, &v) {
-            self.send_command(WebGLCommand::Uniform4iv(location.unwrap().id(), v))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC4 | constants::INT_VEC4 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec(),
+                Int32ArrayOrLongSequence::LongSequence(v) => v,
+            };
+            if val.len() < 4 || val.len() % 4 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 4 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform4iv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3363,26 +3474,40 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         z: f32,
         w: f32,
     ) {
-        if self.validate_uniform_parameters(location,
-                                            UniformSetterType::FloatVec4,
-                                            &[x, y, z, w]) {
-            self.send_command(WebGLCommand::Uniform4f(location.unwrap().id(), x, y, z, w))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC4 | constants::FLOAT_VEC4 => {}
+                _ => return Err(InvalidOperation),
+            }
+            self.send_command(WebGLCommand::Uniform4f(location.id(), x, y, z, w));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4fv(
         &self,
         location: Option<&WebGLUniformLocation>,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatVec4, &v) {
-            self.send_command(WebGLCommand::Uniform4fv(location.unwrap().id(), v))
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC4 | constants::FLOAT_VEC4 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if val.len() < 4 || val.len() % 4 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 4 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::Uniform4fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3390,15 +3515,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatMat2, &v) {
-            self.send_command(WebGLCommand::UniformMatrix2fv(location.unwrap().id(), transpose, v));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT2 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if transpose {
+                return Err(InvalidValue);
+            }
+            if val.len() < 4 || val.len() % 4 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 4 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::UniformMatrix2fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3406,15 +3545,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatMat3, &v) {
-            self.send_command(WebGLCommand::UniformMatrix3fv(location.unwrap().id(), transpose, v));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT3 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if transpose {
+                return Err(InvalidValue);
+            }
+            if val.len() < 9 || val.len() % 9 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 9 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::UniformMatrix3fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3422,15 +3575,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
-        v: Float32ArrayOrUnrestrictedFloatSequence,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
-        let v = match v {
-            Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
-            Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
-        };
-        if self.validate_uniform_parameters(location, UniformSetterType::FloatMat4, &v) {
-            self.send_command(WebGLCommand::UniformMatrix4fv(location.unwrap().id(), transpose, v));
-        }
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT4 => {}
+                _ => return Err(InvalidOperation),
+            }
+            let val = match val {
+                Float32ArrayOrUnrestrictedFloatSequence::Float32Array(v) => v.to_vec(),
+                Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
+            };
+            if transpose {
+                return Err(InvalidValue);
+            }
+            if val.len() < 16 || val.len() % 16 != 0 {
+                return Err(InvalidValue);
+            }
+            if location.size().is_none() && val.len() != 16 {
+                return Err(InvalidOperation);
+            }
+            self.send_command(WebGLCommand::UniformMatrix4fv(location.id(), val));
+            Ok(())
+        });
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -3929,39 +4096,6 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGLRenderingContex
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
         HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle())
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum UniformSetterType {
-    Int,
-    IntVec2,
-    IntVec3,
-    IntVec4,
-    Float,
-    FloatVec2,
-    FloatVec3,
-    FloatVec4,
-    FloatMat2,
-    FloatMat3,
-    FloatMat4,
-}
-
-impl UniformSetterType {
-    pub fn element_count(&self) -> usize {
-        match *self {
-            UniformSetterType::Int => 1,
-            UniformSetterType::IntVec2 => 2,
-            UniformSetterType::IntVec3 => 3,
-            UniformSetterType::IntVec4 => 4,
-            UniformSetterType::Float => 1,
-            UniformSetterType::FloatVec2 => 2,
-            UniformSetterType::FloatVec3 => 3,
-            UniformSetterType::FloatVec4 => 4,
-            UniformSetterType::FloatMat2 => 4,
-            UniformSetterType::FloatMat3 => 9,
-            UniformSetterType::FloatMat4 => 16,
-        }
     }
 }
 
