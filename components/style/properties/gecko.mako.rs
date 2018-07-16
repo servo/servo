@@ -3083,6 +3083,9 @@ fn static_assert() {
 
     <%call expr="impl_keyword_clone('display', 'mDisplay', display_keyword)"></%call>
 
+    <% float_keyword = Keyword("float", "Left Right None", gecko_enum_prefix="StyleFloat") %>
+    ${impl_keyword('float', 'mFloat', float_keyword)}
+
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
     pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
         use properties::longhands::overflow_x::computed_value::T as BaseType;
