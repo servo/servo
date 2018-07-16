@@ -106,7 +106,7 @@ impl Request {
                 // Step 5.5
                 fallback_mode = Some(NetTraitsRequestMode::CorsMode);
                 // Step 5.6
-                fallback_credentials = Some(NetTraitsRequestCredentials::Omit);
+                fallback_credentials = Some(NetTraitsRequestCredentials::CredentialsSameOrigin);
             }
             // Step 6
             RequestInfo::Request(ref input_request) => {
