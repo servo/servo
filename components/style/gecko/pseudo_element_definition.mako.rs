@@ -8,7 +8,7 @@ pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
         % if pseudo.is_tree_pseudo_element():
-        ${pseudo.capitalized()}(Box<[Atom]>),
+        ${pseudo.capitalized()}(ThinBoxedSlice<Atom>),
         % else:
         ${pseudo.capitalized()},
         % endif
@@ -209,7 +209,7 @@ impl PseudoElement {
         % for pseudo in PSEUDOS:
             % if pseudo.is_tree_pseudo_element():
                 if atom == &atom!("${pseudo.value}") {
-                    return Some(PseudoElement::${pseudo.capitalized()}(args));
+                    return Some(PseudoElement::${pseudo.capitalized()}(args.into()));
                 }
             % endif
         % endfor
@@ -256,7 +256,7 @@ impl PseudoElement {
         let tree_part = &name[10..];
         % for pseudo in TREE_PSEUDOS:
             if tree_part.eq_ignore_ascii_case("${pseudo.value[11:]}") {
-                return Some(${pseudo_element_variant(pseudo, "args")});
+                return Some(${pseudo_element_variant(pseudo, "args.into()")});
             }
         % endfor
         None

@@ -19,6 +19,7 @@ extern crate phf;
 extern crate precomputed_hash;
 extern crate servo_arc;
 extern crate smallvec;
+extern crate thin_slice;
 
 pub mod attr;
 pub mod bloom;

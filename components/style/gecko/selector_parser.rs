@@ -13,11 +13,13 @@ use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use invalidation::element::document_state::InvalidationMatchingData;
 use selector_parser::{Direction, SelectorParser};
 use selectors::SelectorList;
-use selectors::parser::{self as selector_parser, Selector, SelectorParseErrorKind, Visit};
+use selectors::parser::{self as selector_parser, Selector};
+use selectors::parser::{SelectorParseErrorKind, Visit};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
+use thin_slice::ThinBoxedSlice;
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -34,7 +36,7 @@ bitflags! {
 }
 
 /// The type used for storing pseudo-class string arguments.
-pub type PseudoClassStringArg = Box<[u16]>;
+pub type PseudoClassStringArg = ThinBoxedSlice<u16>;
 
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -56,7 +58,7 @@ macro_rules! pseudo_class_name {
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
-            MozAny(Box<[Selector<SelectorImpl>]>),
+            MozAny(ThinBoxedSlice<Selector<SelectorImpl>>),
             /// The non-standard `:-moz-locale-dir` pseudo-class.
             MozLocaleDir(Box<Direction>),
         }
@@ -405,7 +407,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                         // convert to null terminated utf16 string
                         // since that's what Gecko deals with
                         let utf16: Vec<u16> = name.encode_utf16().chain(Some(0u16)).collect();
-                        NonTSPseudoClass::$s_name(utf16.into_boxed_slice())
+                        NonTSPseudoClass::$s_name(utf16.into_boxed_slice().into())
                     }, )*
                     "-moz-locale-dir" => {
                         NonTSPseudoClass::MozLocaleDir(
@@ -422,7 +424,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                             selector_parser::parse_compound_selector_list(
                                 self,
                                 parser,
-                            )?
+                            )?.into()
                         )
                     }
                     _ => return Err(parser.new_custom_error(

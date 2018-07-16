@@ -15,6 +15,7 @@ use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
 use string_cache::Atom;
+use thin_slice::ThinBoxedSlice;
 use values::serialize_atom_identifier;
 
 include!(concat!(
