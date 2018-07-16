@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use style::properties::{DeclarationSource, Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
+use style::properties::{DeclarationPushMode, Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
@@ -302,7 +302,7 @@ impl CSSStyleDeclaration {
             *changed = pdb.extend(
                 declarations.drain(),
                 importance,
-                DeclarationSource::CssOm,
+                DeclarationPushMode::Update,
             );
 
             Ok(())

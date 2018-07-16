@@ -172,7 +172,7 @@ impl<T> PerPseudoElementMap<T> {
 }
 
 /// Values for the :dir() pseudo class
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
 pub enum Direction {
     /// left-to-right semantic directionality
     Ltr,

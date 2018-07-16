@@ -13,14 +13,14 @@ use values::CustomIdent;
 use values::generics::svg as generic;
 use values::specified::{LengthOrPercentage, NonNegativeLengthOrPercentage, NonNegativeNumber};
 use values::specified::{Number, Opacity};
-use values::specified::color::RGBAColor;
+use values::specified::color::Color;
 use values::specified::url::SpecifiedUrl;
 
 /// Specified SVG Paint value
-pub type SVGPaint = generic::SVGPaint<RGBAColor, SpecifiedUrl>;
+pub type SVGPaint = generic::SVGPaint<Color, SpecifiedUrl>;
 
 /// Specified SVG Paint Kind value
-pub type SVGPaintKind = generic::SVGPaintKind<RGBAColor, SpecifiedUrl>;
+pub type SVGPaintKind = generic::SVGPaintKind<Color, SpecifiedUrl>;
 
 #[cfg(feature = "gecko")]
 fn is_context_value_enabled() -> bool {

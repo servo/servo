@@ -2222,6 +2222,49 @@ enum AllShorthand {
     WithVariables(Arc<UnparsedValue>)
 }
 
+impl AllShorthand {
+    /// Iterates property declarations from the given all shorthand value.
+    #[inline]
+    fn declarations(&self) -> AllShorthandDeclarationIterator {
+        AllShorthandDeclarationIterator {
+            all_shorthand: self,
+            longhands: ShorthandId::All.longhands(),
+        }
+    }
+}
+
+struct AllShorthandDeclarationIterator<'a> {
+    all_shorthand: &'a AllShorthand,
+    longhands: NonCustomPropertyIterator<LonghandId>,
+}
+
+impl<'a> Iterator for AllShorthandDeclarationIterator<'a> {
+    type Item = PropertyDeclaration;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        match *self.all_shorthand {
+            AllShorthand::NotSet => None,
+            AllShorthand::CSSWideKeyword(ref keyword) => {
+                Some(PropertyDeclaration::CSSWideKeyword(
+                    WideKeywordDeclaration {
+                        id: self.longhands.next()?,
+                        keyword: *keyword
+                    }
+                ))
+            }
+            AllShorthand::WithVariables(ref unparsed) => {
+                Some(PropertyDeclaration::WithVariables(
+                    VariableDeclaration {
+                        id: self.longhands.next()?,
+                        value: unparsed.clone()
+                    }
+                ))
+            }
+        }
+    }
+}
+
 #[cfg(feature = "gecko")]
 pub use gecko_properties::style_structs;
 
@@ -2677,7 +2720,6 @@ impl ComputedValues {
     /// Create a new refcounted `ComputedValues`
     pub fn new(
         _: &Device,
-        _: Option<<&ComputedValues>,
         _: Option<<&PseudoElement>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
         writing_mode: WritingMode,
@@ -3085,10 +3127,6 @@ pub struct StyleBuilder<'a> {
     /// The style we're getting reset structs from.
     reset_style: &'a ComputedValues,
 
-    /// The style we're inheriting from explicitly, or none if we're the root of
-    /// a subtree.
-    parent_style: Option<<&'a ComputedValues>,
-
     /// The rule node representing the ordered list of rules matched for this
     /// node.
     pub rules: Option<StrongRuleNode>,
@@ -3156,7 +3194,6 @@ impl<'a> StyleBuilder<'a> {
 
         StyleBuilder {
             device,
-            parent_style,
             inherited_style,
             inherited_style_ignoring_first_line,
             reset_style,
@@ -3200,7 +3237,6 @@ impl<'a> StyleBuilder<'a> {
                       parent_style.unwrap().pseudo() != Some(PseudoElement::FirstLine));
         StyleBuilder {
             device,
-            parent_style,
             inherited_style,
             // None of our callers pass in ::first-line parent styles.
             inherited_style_ignoring_first_line: inherited_style,
@@ -3442,7 +3478,6 @@ impl<'a> StyleBuilder<'a> {
     pub fn build(self) -> Arc<ComputedValues> {
         ComputedValues::new(
             self.device,
-            self.parent_style,
             self.pseudo,
             self.custom_properties,
             self.writing_mode,
@@ -3768,14 +3803,6 @@ where
                 PropertyDeclarationId::Custom(..) => continue,
             };
 
-            // Only a few properties are allowed to depend on the visited state
-            // of links.  When cascading visited styles, we can save time by
-            // only processing these properties.
-            if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) &&
-               !longhand_id.is_visited_dependent() {
-                continue
-            }
-
             if !apply_reset && !longhand_id.inherited() {
                 continue;
             }
@@ -3792,6 +3819,14 @@ where
             <% maybe_to_physical = ".to_physical(writing_mode)" if category_to_cascade_now != "early" else "" %>
             let physical_longhand_id = longhand_id ${maybe_to_physical};
             if seen.contains(physical_longhand_id) {
+                continue
+            }
+
+            // Only a few properties are allowed to depend on the visited state
+            // of links.  When cascading visited styles, we can save time by
+            // only processing these properties.
+            if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) &&
+               !physical_longhand_id.is_visited_dependent() {
                 continue
             }
 

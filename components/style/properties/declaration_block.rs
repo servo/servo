@@ -39,13 +39,21 @@ impl AnimationRules {
     }
 }
 
-/// Whether a given declaration comes from CSS parsing, or from CSSOM.
+/// Enum for how a given declaration should be pushed into a declaration block.
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-pub enum DeclarationSource {
-    /// The declaration was obtained from CSS parsing of sheets and such.
+pub enum DeclarationPushMode {
+    /// Mode used when declarations were obtained from CSS parsing.
+    /// If there is an existing declaration of the same property with a higher
+    /// importance, the new declaration will be discarded. Otherwise, it will
+    /// be appended to the end of the declaration block.
     Parsing,
-    /// The declaration was obtained from CSSOM.
-    CssOm,
+    /// In this mode, if there is an existing declaration of the same property,
+    /// the value is updated in-place. Otherwise it's appended. This is one
+    /// possible behavior of CSSOM.
+    Update,
+    /// In this mode, the new declaration is always pushed to the end of the
+    /// declaration block. This is another possible behavior of CSSOM.
+    Append,
 }
 
 /// A declaration [importance][importance].
@@ -410,18 +418,57 @@ impl PropertyDeclarationBlock {
         }
     }
 
+    /// Returns whether the property is definitely new for this declaration
+    /// block. It returns true when the declaration is a non-custom longhand
+    /// and it doesn't exist in the block, and returns false otherwise.
+    #[inline]
+    fn is_definitely_new(&self, decl: &PropertyDeclaration) -> bool {
+        match decl.id() {
+            PropertyDeclarationId::Longhand(id) => !self.longhands.contains(id),
+            PropertyDeclarationId::Custom(..) => false,
+        }
+    }
+
+    /// Returns whether calling extend with `DeclarationPushMode::Update`
+    /// will cause this declaration block to change.
+    pub fn will_change_in_update_mode(
+        &self,
+        source_declarations: &SourcePropertyDeclaration,
+        importance: Importance,
+    ) -> bool {
+        // XXX The type of parameter seems to be necessary because otherwise
+        // the compiler complains about `decl` not living long enough in the
+        // all_shorthand expression. Why?
+        let needs_update = |decl: &_| {
+            if self.is_definitely_new(decl) {
+                return true;
+            }
+            self.declarations.iter().enumerate()
+                .find(|&(_, ref slot)| slot.id() == decl.id())
+                .map_or(true, |(i, slot)| {
+                    let important = self.declarations_importance[i];
+                    *slot != *decl || important != importance.important()
+                })
+        };
+        source_declarations.declarations.iter().any(&needs_update) ||
+            source_declarations.all_shorthand.declarations().any(|decl| needs_update(&decl))
+    }
+
     /// Adds or overrides the declaration for a given property in this block.
     ///
     /// See the documentation of `push` to see what impact `source` has when the
     /// property is already there.
+    ///
+    /// When calling with `DeclarationPushMode::Update`, this should not change
+    /// anything if `will_change_in_update_mode` returns false.
     pub fn extend(
         &mut self,
         mut drain: SourcePropertyDeclarationDrain,
         importance: Importance,
-        source: DeclarationSource,
+        mode: DeclarationPushMode,
     ) -> bool {
-        match source {
-            DeclarationSource::Parsing => {
+        match mode {
+            DeclarationPushMode::Parsing => {
                 let all_shorthand_len = match drain.all_shorthand {
                     AllShorthand::NotSet => 0,
                     AllShorthand::CSSWideKeyword(_) |
@@ -433,7 +480,7 @@ impl PropertyDeclarationBlock {
                 // With deduplication the actual length increase may be less than this.
                 self.declarations.reserve(push_calls_count);
             }
-            DeclarationSource::CssOm => {
+            _ => {
                 // Don't bother reserving space, since it's usually the case
                 // that CSSOM just overrides properties and we don't need to use
                 // more memory. See bug 1424346 for an example where this
@@ -448,75 +495,35 @@ impl PropertyDeclarationBlock {
             changed |= self.push(
                 decl,
                 importance,
-                source,
+                mode,
             );
         }
-        match drain.all_shorthand {
-            AllShorthand::NotSet => {}
-            AllShorthand::CSSWideKeyword(keyword) => {
-                for id in ShorthandId::All.longhands() {
-                    let decl = PropertyDeclaration::CSSWideKeyword(
-                        WideKeywordDeclaration { id, keyword },
-                    );
-                    changed |= self.push(
-                        decl,
-                        importance,
-                        source,
-                    );
-                }
-            }
-            AllShorthand::WithVariables(unparsed) => {
-                for id in ShorthandId::All.longhands() {
-                    let decl = PropertyDeclaration::WithVariables(
-                        VariableDeclaration { id, value: unparsed.clone() },
-                    );
-                    changed |= self.push(
-                        decl,
-                        importance,
-                        source,
-                    );
-                }
-            }
-        }
-        changed
+        drain.all_shorthand.declarations().fold(changed, |changed, decl| {
+            changed | self.push(decl, importance, mode)
+        })
     }
 
     /// Adds or overrides the declaration for a given property in this block.
     ///
-    /// Depending on the value of `source`, this has a different behavior in the
+    /// Depending on the value of `mode`, this has a different behavior in the
     /// presence of another declaration with the same ID in the declaration
     /// block.
-    ///
-    ///   * For `DeclarationSource::Parsing`, this will not override a
-    ///     declaration with more importance, and will ensure that, if inserted,
-    ///     it's inserted at the end of the declaration block.
-    ///
-    ///   * For `DeclarationSource::CssOm`, this will override importance.
     ///
     /// Returns whether the declaration has changed.
     pub fn push(
         &mut self,
         declaration: PropertyDeclaration,
         importance: Importance,
-        source: DeclarationSource,
+        mode: DeclarationPushMode,
     ) -> bool {
-        let longhand_id = match declaration.id() {
-            PropertyDeclarationId::Longhand(id) => Some(id),
-            PropertyDeclarationId::Custom(..) => None,
-        };
-
-        let definitely_new = longhand_id.map_or(false, |id| {
-            !self.longhands.contains(id)
-        });
-
-        if !definitely_new {
+        if !self.is_definitely_new(&declaration) {
             let mut index_to_remove = None;
             for (i, slot) in self.declarations.iter_mut().enumerate() {
                 if slot.id() != declaration.id() {
                     continue;
                 }
 
-                if matches!(source, DeclarationSource::Parsing) {
+                if matches!(mode, DeclarationPushMode::Parsing) {
                     let important = self.declarations_importance[i];
 
                     // For declarations from parsing, non-important declarations
@@ -541,6 +548,15 @@ impl PropertyDeclarationBlock {
                         }
                     }
                 }
+                if matches!(mode, DeclarationPushMode::Update) {
+                    let important = self.declarations_importance[i];
+                    if *slot == declaration && important == importance.important() {
+                        return false;
+                    }
+                    *slot = declaration;
+                    self.declarations_importance.set(i, importance.important());
+                    return true;
+                }
 
                 index_to_remove = Some(i);
                 break;
@@ -555,7 +571,7 @@ impl PropertyDeclarationBlock {
             }
         }
 
-        if let Some(id) = longhand_id {
+        if let PropertyDeclarationId::Longhand(id) = declaration.id() {
             self.longhands.insert(id);
         }
         self.declarations.push(declaration);
@@ -1209,7 +1225,7 @@ pub fn parse_property_declaration_list(
                 block.extend(
                     iter.parser.declarations.drain(),
                     importance,
-                    DeclarationSource::Parsing,
+                    DeclarationPushMode::Parsing,
                 );
             }
             Err((error, slice)) => {

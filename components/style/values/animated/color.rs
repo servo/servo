@@ -126,11 +126,11 @@ impl Animate for Color {
         let (this_weight, other_weight) = procedure.weights();
 
         Ok(match (*self, *other, procedure) {
-            // Any interpolation of currentColor with currentColor returns currentColor.
-            (Foreground, Foreground, Procedure::Interpolate { .. }) => Color::currentcolor(),
+            // Any interpolation of currentcolor with currentcolor returns currentcolor.
+            (Foreground, Foreground, Procedure::Interpolate { .. }) => Foreground,
             // Animating two numeric colors.
             (Numeric(c1), Numeric(c2), _) => Numeric(c1.animate(&c2, procedure)?),
-            // Combinations of numeric color and currentColor
+            // Combinations of numeric color and currentcolor
             (Foreground, Numeric(color), _) => Self::with_ratios(
                 color,
                 ComplexColorRatios {
@@ -146,7 +146,7 @@ impl Animate for Color {
                 },
             ),
 
-            // Any other animation of currentColor with currentColor.
+            // Any other animation of currentcolor with currentcolor.
             (Foreground, Foreground, _) => Self::with_ratios(
                 RGBA::transparent(),
                 ComplexColorRatios {
@@ -157,20 +157,72 @@ impl Animate for Color {
 
             // Defer to complex calculations
             _ => {
-                // For interpolating between two complex colors, we need to
-                // generate colors with effective alpha value.
-                let self_color = self.effective_intermediate_rgba();
-                let other_color = other.effective_intermediate_rgba();
-                let color = self_color.animate(&other_color, procedure)?;
-                // Then we compute the final background ratio, and derive
-                // the final alpha value from the effective alpha value.
-                let self_ratios = self.effective_ratios();
-                let other_ratios = other.effective_ratios();
-                let ratios = self_ratios.animate(&other_ratios, procedure)?;
-                let alpha = color.alpha / ratios.bg;
-                let color = RGBA { alpha, ..color };
+                // Compute the "scaled" contribution for `color`.
+                fn scaled_rgba(color: &Color) -> RGBA {
+                    match *color {
+                        GenericColor::Numeric(color) => color,
+                        GenericColor::Foreground => RGBA::transparent(),
+                        GenericColor::Complex(color, ratios) => RGBA {
+                            red: color.red * ratios.bg,
+                            green: color.green * ratios.bg,
+                            blue: color.blue * ratios.bg,
+                            alpha: color.alpha * ratios.bg,
+                        },
+                    }
+                }
 
-                Self::with_ratios(color, ratios)
+                // Each `Color`, represents a complex combination of foreground color and
+                // background color where fg and bg represent the overall
+                // contributions. ie:
+                //
+                //    color = { bg * mColor, fg * foreground }
+                //          =   { bg_color , fg_color }
+                //          =     bg_color + fg_color
+                //
+                // where `foreground` is `currentcolor`, and `bg_color`,
+                // `fg_color` are the scaled background and foreground
+                // contributions.
+                //
+                // Each operation, lerp, addition, or accumulate, can be
+                // represented as a scaled-addition each complex color. ie:
+                //
+                //    p * col1 + q * col2
+                //
+                // where p = (1 - a), q = a for lerp(a), p = 1, q = 1 for
+                // addition, etc.
+                //
+                // Therefore:
+                //
+                //    col1 op col2
+                //    = p * col1 + q * col2
+                //    = p * { bg_color1, fg_color1 } + q * { bg_color2, fg_color2 }
+                //    = p * (bg_color1 + fg_color1) + q * (bg_color2 + fg_color2)
+                //    = p * bg_color1 + p * fg_color1 + q * bg_color2 + p * fg_color2
+                //    = (p * bg_color1 + q * bg_color2) + (p * fg_color1 + q * fg_color2)
+                //    = (bg_color1 op bg_color2) + (fg_color1 op fg_color2)
+                //
+                // fg_color1 op fg_color2 is equivalent to (fg1 op fg2) * foreground,
+                // so the final color is:
+                //
+                //    = { bg_color, fg_color }
+                //    = { 1 * (bg_color1 op bg_color2), (fg1 op fg2) * foreground }
+
+                // To perform the operation on two complex colors, we need to
+                // generate the scaled contributions of each background color
+                // component.
+                let bg_color1 = scaled_rgba(self);
+                let bg_color2 = scaled_rgba(other);
+                // Perform bg_color1 op bg_color2
+                let bg_color = bg_color1.animate(&bg_color2, procedure)?;
+
+                // Calculate the final foreground color ratios; perform
+                // animation on effective fg ratios.
+                let ComplexColorRatios { fg: fg1, .. } = self.effective_ratios();
+                let ComplexColorRatios { fg: fg2, .. } = other.effective_ratios();
+                // Perform fg1 op fg2
+                let fg = fg1.animate(&fg2, procedure)?;
+
+                Self::with_ratios(bg_color, ComplexColorRatios { bg: 1., fg })
             }
         })
     }
