@@ -3086,6 +3086,14 @@ fn static_assert() {
     <% float_keyword = Keyword("float", "Left Right None", gecko_enum_prefix="StyleFloat") %>
     ${impl_keyword('float', 'mFloat', float_keyword)}
 
+    <% clear_keyword = Keyword(
+        "clear",
+        "Left Right None Both",
+        gecko_enum_prefix="StyleClear",
+        gecko_inexhaustive=True,
+    ) %>
+    ${impl_keyword('clear', 'mBreakType', clear_keyword)}
+
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
     pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
         use properties::longhands::overflow_x::computed_value::T as BaseType;
