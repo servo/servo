@@ -14,7 +14,7 @@ base64 = "0.6"
 cookie = "0.10"
 euclid = "0.17"
 hyper = "0.10"
-image = "0.18"
+image = "0.19"
 ipc-channel = "0.10"
 log = "0.4"
 msg = {path = "../msg"}

@@ -836,7 +836,7 @@ impl Handler {
         let rgb = RgbImage::from_raw(img.width, img.height, img.bytes.to_vec()).unwrap();
 
         let mut png_data = Vec::new();
-        DynamicImage::ImageRgb8(rgb).save(&mut png_data, ImageFormat::PNG).unwrap();
+        DynamicImage::ImageRgb8(rgb).write_to(&mut png_data, ImageFormat::PNG).unwrap();
 
         let encoded = base64::encode(&png_data);
         Ok(WebDriverResponse::Generic(ValueResponse::new(encoded.to_json())))
