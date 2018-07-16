@@ -164,7 +164,6 @@ android-x86:
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/bootstrap-android-and-accept-licences.sh
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --target i686-linux-android --release
-  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --target i686-linux-android --release
   - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach test-android-startup --release
   - bash ./etc/ci/lockfile_changed.sh
 
