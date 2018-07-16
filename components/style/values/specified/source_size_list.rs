@@ -18,7 +18,7 @@ use values::specified::{Length, NoCalcLength, ViewportPercentageLength};
 /// A value for a `<source-size>`:
 ///
 /// https://html.spec.whatwg.org/multipage/#source-size
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct SourceSize {
     /// https://html.spec.whatwg.org/multipage/#source-size
     pub condition: MediaCondition,
@@ -41,7 +41,7 @@ impl Parse for SourceSize {
 /// A value for a `<source-size-list>`:
 ///
 /// https://html.spec.whatwg.org/multipage/#source-size-list
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct SourceSizeList {
     /// https://html.spec.whatwg.org/multipage/#source-size-list
     pub source_sizes: Vec<SourceSize>,

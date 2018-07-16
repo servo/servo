@@ -64,7 +64,7 @@ use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_double, parse_length, parse_unsigned_integer};
 use style::context::QuirksMode;
-use style::media_queries::{MediaQuery, MediaCondition};
+use style::media_queries::{MediaQuery, MediaList};
 use style::parser::ParserContext;
 use style::str::is_ascii_digit;
 use style::stylesheets::{CssRuleType, Origin};
@@ -81,8 +81,8 @@ enum ParseState {
 }
 
 pub struct SourceSet {
-    pub imageSources: Vec<ImageSource>,
-    pub sourceSize: SourceSizeList,
+    pub image_sources: Vec<ImageSource>,
+    pub source_size: SourceSizeList,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -148,8 +148,8 @@ impl HTMLImageElement {
 
     pub fn new_source_set() -> SourceSet {
         SourceSet {
-            imageSources: Vec::<ImageSource>::new(),
-            sourceSize: SourceSizeList::empty(),
+            image_sources: Vec::<ImageSource>::new(),
+            source_size: SourceSizeList::empty(),
         }
     }
 }
@@ -403,7 +403,9 @@ impl HTMLImageElement {
         };
         let nodes = parent.unwrap().upcast::<Node>().ChildNodes();
         let elements = match is_parent_picture {
-            true => nodes.iter().map(|n| DomRoot::from_ref(&*(*n).downcast::<Element>().unwrap())).collect(),
+            true =>
+            nodes.iter().filter_map(DomRoot::downcast::<Element>)
+                        .map(|n| DomRoot::from_ref(&*n)).collect(),
             false => vec![DomRoot::from_ref(&*elem)],
         };
 
@@ -425,7 +427,7 @@ impl HTMLImageElement {
                 // Step 4.1.1
                 match element.get_attribute(&ns!(), &local_name!("srcset")) {
                     Some(x) => {
-                        source_set.imageSources = parse_a_srcset_attribute(&x.value());
+                        source_set.image_sources = parse_a_srcset_attribute(&x.value());
                     }
                     _ => ()
                 }
@@ -433,9 +435,9 @@ impl HTMLImageElement {
                 // Step 4.1.2
                 match element.get_attribute(&ns!(), &local_name!("sizes")) {
                     Some(x) => {
-                        source_set.sourceSize =
+                        source_set.source_size =
                             parse_a_sizes_attribute(DOMString::from_string(x.value().to_string()));
-                            self.set_value_source_size_list(& mut source_set.sourceSize);
+                            self.set_value_source_size_list(& mut source_set.source_size);
                     }
                     _ => ()
                 }
@@ -443,20 +445,20 @@ impl HTMLImageElement {
                 // Step 4.1.3
                 let is_str_empty = element.get_string_attribute(&local_name!("src")) ==
                                          DOMString::from_string("".to_string());
-                let den_img_src_not_found = source_set.imageSources.iter().filter(|imgsource|
+                let den_img_src_not_found = source_set.image_sources.iter().filter(|imgsource|
                     match imgsource.descriptor.den {
                         Some(x) => (x == (1 as f64)),
                         _ => false
                     }
                 ).count() == 0;
-                let wid_img_src_not_found = source_set.imageSources.iter().filter(|imgsource|
+                let wid_img_src_not_found = source_set.image_sources.iter().filter(|imgsource|
                     match imgsource.descriptor.wid {
                         Some(_x) => true,
                         _ => false
                     }
                 ).count() == 0;
                 if !is_str_empty && den_img_src_not_found && wid_img_src_not_found {
-                    source_set.imageSources.push(ImageSource {
+                    source_set.image_sources.push(ImageSource {
                         url: element.get_string_attribute(&local_name!("src")).to_string(),
                         descriptor: Descriptor { wid: None, den: None }
                     })
@@ -470,67 +472,66 @@ impl HTMLImageElement {
 
                 // Step 4.1.6
                 return ;
-            } else {
-                // Step 4.2
-                if !element.is::<HTMLSourceElement>() {
-                    continue;
-                } else {
-                    // Step 4.3 - 4.4
-                    let mut source_set = HTMLImageElement::new_source_set();
-                    match element.get_attribute(&ns!(), &local_name!("srcset")) {
-                        Some(x) => {
-                            source_set.imageSources = parse_a_srcset_attribute(&x.value());
-                        }
-                        _ => continue
-                    }
+            }
+            // Step 4.2
+            if !element.is::<HTMLSourceElement>() {
+                continue;
+            }
 
-                    // Step 4.5
-                    if source_set.imageSources.len() == 0 {
+            // Step 4.3 - 4.4
+            let mut source_set = HTMLImageElement::new_source_set();
+            match element.get_attribute(&ns!(), &local_name!("srcset")) {
+                Some(x) => {
+                    source_set.image_sources = parse_a_srcset_attribute(&x.value());
+                }
+                _ => continue
+            }
+
+            // Step 4.5
+            if source_set.image_sources.len() == 0 {
+                continue;
+            }
+
+            // Step 4.6
+            match element.get_attribute(&ns!(), &local_name!("media")) {
+                Some(x) => {
+                    // Check if value of the attribute matches the environment
+                    if self.matches_environment(x.value().to_string()) {
+                        ()
+                    } else {
                         continue;
                     }
-
-                    // Step 4.6
-                    match element.get_attribute(&ns!(), &local_name!("media")) {
-                        Some(x) => {
-                            // Check if value of the attribute matches the environment
-                            if self.matches_environment(x.value().to_string()) {
-                                ()
-                            } else {
-                                continue;
-                            }
-                        }
-                        _ => ()
-                    }
-
-                    // Step 4.7
-                    match element.get_attribute(&ns!(), &local_name!("sizes")) {
-                        Some(x) => {
-                            source_set.sourceSize =
-                                parse_a_sizes_attribute(DOMString::from_string(x.value().to_string()));
-                            self.set_value_source_size_list(& mut source_set.sourceSize);
-                        }
-                        _ => ()
-                    }
-
-                    // Step 4.8
-                    match element.get_attribute(&ns!(), &local_name!("type")) {
-                        Some(x) => {
-                            match get_mime_type_str(&x.value()) {
-                                Some(_valid_mime) => (),
-                                None => continue // Unsupported mime type
-                            }
-                        }
-                        _ => continue // Unknown mime type
-                    }
-
-                    // Step 4.9
-                    Self::normalise_source_densities(&mut source_set);
-
-                    // Step 4.10
-                    *self.source_set.borrow_mut() = source_set;
-                    return ;
                 }
+                _ => ()
             }
+
+            // Step 4.7
+            match element.get_attribute(&ns!(), &local_name!("sizes")) {
+                Some(x) => {
+                    source_set.source_size =
+                        parse_a_sizes_attribute(DOMString::from_string(x.value().to_string()));
+                    self.set_value_source_size_list(& mut source_set.source_size);
+                }
+                _ => ()
+            }
+
+            // Step 4.8
+            match element.get_attribute(&ns!(), &local_name!("type")) {
+                Some(x) => {
+                    match get_mime_type_str(&x.value()) {
+                        Some(_valid_mime) => (),
+                        None => continue // Unsupported mime type
+                    }
+                }
+                _ => continue // Unknown mime type
+            }
+
+            // Step 4.9
+            Self::normalise_source_densities(&mut source_set);
+
+            // Step 4.10
+            *self.source_set.borrow_mut() = source_set;
+            return ;
         }
     }
 
@@ -560,25 +561,15 @@ impl HTMLImageElement {
         );
         let mut parserInput = ParserInput::new(&media_query);
         let mut parser = Parser::new(&mut parserInput);
-        let condition = MediaCondition::parse(&context, &mut parser);
-
-        let result = match condition {
-            Ok(x) => x.matches(&device, quirks_mode),
-            _ => false,
-        };
-
-        if *(&media_query.trim().is_empty()) || result {
-            true
-        } else {
-            false
-        }
+        let media_list = MediaList::parse(&context, &mut parser);
+        media_list.evaluate(&device, quirks_mode)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
     fn normalise_source_densities(source_set: &mut SourceSet) {
-        let length = &source_set.sourceSize.value.clone().unwrap();
+        let length = &source_set.source_size.value.clone().unwrap();
         let source_size_length_result = length.to_pixel_length(Some(Au::new(1 as i32)));
-        for imgsource in &mut source_set.imageSources {
+        for imgsource in &mut source_set.image_sources {
             if imgsource.descriptor.den.is_some() {
                 continue;
             } else {
@@ -601,7 +592,7 @@ impl HTMLImageElement {
         // Step 1, 3
         self.update_source_set();
         let source_set = &*self.source_set.borrow_mut();
-        let len = source_set.imageSources.len();
+        let len = source_set.image_sources.len();
 
         // Step 2
         if len == 0 {
@@ -617,10 +608,10 @@ impl HTMLImageElement {
             if repeat_indices.contains(&outer_index) {
                 continue;
             }
-            let imgsource = &source_set.imageSources[outer_index];
+            let imgsource = &source_set.image_sources[outer_index];
             let pixel_density = imgsource.descriptor.den.unwrap();
             for mut inner_index in (outer_index + 1)..len {
-                let imgsource2 = &source_set.imageSources[inner_index];
+                let imgsource2 = &source_set.image_sources[inner_index];
                 if pixel_density == imgsource2.descriptor.den.unwrap() {
                     repeat_indices.insert(inner_index);
                 }
@@ -630,7 +621,7 @@ impl HTMLImageElement {
         let img_sources = &mut vec![];
         for mut outer_index in 0..len {
             if !repeat_indices.contains(&outer_index) {
-                img_sources.push(&source_set.imageSources[outer_index]);
+                img_sources.push(&source_set.image_sources[outer_index]);
             }
         }
 
