@@ -185,7 +185,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
 
         match expr.node {
             // Trait casts from #[must_root] types are not allowed
-            hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            hir::ExprKind::Cast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
             // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.
