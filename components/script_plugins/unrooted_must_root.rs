@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use rustc::hir;
+use rustc::hir::{self, ExprKind};
 use rustc::hir::intravisit as visit;
 use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
@@ -185,7 +185,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
 
         match expr.node {
             // Trait casts from #[must_root] types are not allowed
-            hir::ExprCast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
+            ExprKind::Cast(ref subexpr, _) => require_rooted(cx, self.in_new_function, &*subexpr),
             // This catches assignments... the main point of this would be to catch mutable
             // references to `JS<T>`.
             // FIXME: Enable this? Triggers on certain kinds of uses of DomRefCell.
