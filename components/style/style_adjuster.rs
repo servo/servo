@@ -684,11 +684,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ) where
         E: TElement,
     {
-        debug_assert!(
-            !self.style.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED),
-            "Adjusting visited styles is wasted work"
-        );
-
         if cfg!(debug_assertions) {
             if element
                 .and_then(|e| e.implemented_pseudo_element())

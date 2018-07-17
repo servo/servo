@@ -124,11 +124,6 @@ impl RuleCache {
         guards: &StylesheetGuards,
         builder_with_early_props: &StyleBuilder,
     ) -> Option<&ComputedValues> {
-        if builder_with_early_props.is_style_if_visited() {
-            // FIXME(emilio): We can probably do better, does it matter much?
-            return None;
-        }
-
         // A pseudo-element with property restrictions can result in different
         // computed values if it's also used for a non-pseudo.
         if builder_with_early_props
@@ -163,11 +158,6 @@ impl RuleCache {
         conditions: &RuleCacheConditions,
     ) -> bool {
         if !conditions.cacheable() {
-            return false;
-        }
-
-        if style.is_style_if_visited() {
-            // FIXME(emilio): We can probably do better, does it matter much?
             return false;
         }
 

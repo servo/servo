@@ -2692,11 +2692,6 @@ impl ComputedValues {
         self.get_box().clone_display().is_contents()
     }
 
-    /// Whether we're a visited style.
-    pub fn is_style_if_visited(&self) -> bool {
-        self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
-    }
-
     /// Gets a reference to the rule node. Panic if no rule node exists.
     pub fn rules(&self) -> &StrongRuleNode {
         self.rules.as_ref().unwrap()
@@ -3225,7 +3220,6 @@ impl<'a> StyleBuilder<'a> {
         parent_style: Option<<&'a ComputedValues>,
         parent_style_ignoring_first_line: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
-        cascade_mode: CascadeMode,
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
     ) -> Self {
@@ -3248,10 +3242,7 @@ impl<'a> StyleBuilder<'a> {
             reset_style
         };
 
-        let mut flags = inherited_style.flags.inherited();
-        if matches!(cascade_mode, CascadeMode::Visited { .. }) {
-            flags.insert(ComputedValueFlags::IS_STYLE_IF_VISITED);
-        }
+        let flags = inherited_style.flags.inherited();
 
         StyleBuilder {
             device,
@@ -3273,11 +3264,6 @@ impl<'a> StyleBuilder<'a> {
             % endif
             % endfor
         }
-    }
-
-    /// Whether we're a visited style.
-    pub fn is_style_if_visited(&self) -> bool {
-        self.flags.contains(ComputedValueFlags::IS_STYLE_IF_VISITED)
     }
 
     /// NOTE(emilio): This is done so we can compute relative units with respect
@@ -3420,11 +3406,6 @@ impl<'a> StyleBuilder<'a> {
         // produced by this builder.  This assumes that the caller doesn't need
         // to adjust or process visited style, so we can just build visited
         // style here for simplicity.
-        //
-        // FIXME(emilio): This doesn't set the IS_STYLE_IF_VISITED flag
-        // correctly, though right now it doesn't matter.
-        //
-        // We can probably kill that flag now.
         let visited_style = parent.and_then(|parent| {
             parent.visited_style().map(|style| {
                 Self::for_inheritance(
@@ -3439,7 +3420,6 @@ impl<'a> StyleBuilder<'a> {
             parent,
             parent,
             pseudo,
-            CascadeMode::Unvisited { visited_rules: None },
             /* rules = */ None,
             parent.and_then(|p| p.custom_properties().cloned()),
         );
@@ -3851,7 +3831,6 @@ where
             parent_style,
             parent_style_ignoring_first_line,
             pseudo,
-            cascade_mode,
             Some(rules.clone()),
             custom_properties,
         ),
@@ -4012,7 +3991,11 @@ where
                     font_metrics_provider,
                     CascadeMode::Visited { writing_mode },
                     quirks_mode,
-                    rule_cache,
+                    // The rule cache doesn't care about caching :visited
+                    // styles, we cache the unvisited style instead. We still do
+                    // need to set the caching dependencies properly if present
+                    // though, so the cache conditions need to match.
+                    /* rule_cache = */ None,
                     &mut *context.rule_cache_conditions.borrow_mut(),
                     element,
                 ));
