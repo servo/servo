@@ -10,7 +10,7 @@
 
 use cssparser::ToCss;
 use gecko_bindings::structs::{self, CSSPseudoElementType};
-use properties::{CascadeFlags, ComputedValues, PropertyFlags};
+use properties::{ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{NonTSPseudoClass, PseudoElementCascadeType, SelectorImpl};
 use std::fmt;
@@ -55,14 +55,12 @@ impl PseudoElement {
         PseudoElementCascadeType::Lazy
     }
 
-    /// The CascadeFlags needed to cascade this pseudo-element.
+    /// Whether cascading this pseudo-element makes it inherit all properties,
+    /// even reset ones.
     ///
-    /// This is only needed to support the broken INHERIT_ALL pseudo mode for
-    /// Servo.
+    /// This is used in Servo for anonymous boxes, though it's likely broken.
     #[inline]
-    pub fn cascade_flags(&self) -> CascadeFlags {
-        CascadeFlags::empty()
-    }
+    pub fn inherits_all(&self) -> bool { false }
 
     /// Whether the pseudo-element should inherit from the default computed
     /// values instead of from the parent element.

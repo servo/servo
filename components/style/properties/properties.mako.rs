@@ -3225,10 +3225,9 @@ impl<'a> StyleBuilder<'a> {
         parent_style: Option<<&'a ComputedValues>,
         parent_style_ignoring_first_line: Option<<&'a ComputedValues>,
         pseudo: Option<<&'a PseudoElement>,
-        cascade_flags: CascadeFlags,
+        cascade_mode: CascadeMode,
         rules: Option<StrongRuleNode>,
         custom_properties: Option<Arc<::custom_properties::CustomPropertiesMap>>,
-        visited_style: Option<Arc<ComputedValues>>,
     ) -> Self {
         debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
         #[cfg(feature = "gecko")]
@@ -3239,18 +3238,18 @@ impl<'a> StyleBuilder<'a> {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
         let inherited_style_ignoring_first_line = parent_style_ignoring_first_line.unwrap_or(reset_style);
-        // FIXME(bz): INHERIT_ALL seems like a fundamentally broken idea.  I'm
+        // FIXME(bz): inherits_all seems like a fundamentally broken idea.  I'm
         // 99% sure it should give incorrect behavior for table anonymous box
         // backgrounds, for example.  This code doesn't attempt to make it play
         // nice with inherited_style_ignoring_first_line.
-        let reset_style = if cascade_flags.contains(CascadeFlags::INHERIT_ALL) {
+        let reset_style = if pseudo.map_or(false, |p| p.inherits_all()) {
             inherited_style
         } else {
             reset_style
         };
 
         let mut flags = inherited_style.flags.inherited();
-        if cascade_flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) {
+        if matches!(cascade_mode, CascadeMode::Visited { .. }) {
             flags.insert(ComputedValueFlags::IS_STYLE_IF_VISITED);
         }
 
@@ -3265,7 +3264,7 @@ impl<'a> StyleBuilder<'a> {
             custom_properties,
             writing_mode: inherited_style.writing_mode,
             flags,
-            visited_style,
+            visited_style: None,
             % for style_struct in data.active_style_structs():
             % if style_struct.inherited:
             ${style_struct.ident}: StyleStructRef::Borrowed(inherited_style.${style_struct.name_lower}_arc()),
@@ -3421,6 +3420,11 @@ impl<'a> StyleBuilder<'a> {
         // produced by this builder.  This assumes that the caller doesn't need
         // to adjust or process visited style, so we can just build visited
         // style here for simplicity.
+        //
+        // FIXME(emilio): This doesn't set the IS_STYLE_IF_VISITED flag
+        // correctly, though right now it doesn't matter.
+        //
+        // We can probably kill that flag now.
         let visited_style = parent.and_then(|parent| {
             parent.visited_style().map(|style| {
                 Self::for_inheritance(
@@ -3430,16 +3434,17 @@ impl<'a> StyleBuilder<'a> {
                 ).build()
             })
         });
-        Self::new(
+        let mut ret = Self::new(
             device,
             parent,
             parent,
             pseudo,
-            CascadeFlags::empty(),
+            CascadeMode::Unvisited { visited_rules: None },
             /* rules = */ None,
             parent.and_then(|p| p.custom_properties().cloned()),
-            visited_style,
-        )
+        );
+        ret.visited_style = visited_style;
+        ret
     }
 
     /// Returns whether we have a visited style.
@@ -3650,18 +3655,6 @@ static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
     % endfor
 ];
 
-bitflags! {
-    /// A set of flags to tweak the behavior of the `cascade` function.
-    pub struct CascadeFlags: u8 {
-        /// Whether to inherit all styles from the parent. If this flag is not
-        /// present, non-inherited styles are reset to their initial values.
-        const INHERIT_ALL = 1;
-
-        /// Whether to only cascade properties that are visited dependent.
-        const VISITED_DEPENDENT_ONLY = 1 << 1;
-    }
-}
-
 /// Performs the CSS cascade, computing new styles for an element from its parent style.
 ///
 /// The arguments are:
@@ -3684,9 +3677,43 @@ pub fn cascade<E>(
     parent_style: Option<<&ComputedValues>,
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
-    visited_style: Option<Arc<ComputedValues>>,
+    visited_rules: Option<<&StrongRuleNode>,
     font_metrics_provider: &FontMetricsProvider,
-    flags: CascadeFlags,
+    quirks_mode: QuirksMode,
+    rule_cache: Option<<&RuleCache>,
+    rule_cache_conditions: &mut RuleCacheConditions,
+    element: Option<E>,
+) -> Arc<ComputedValues>
+where
+    E: TElement,
+{
+    cascade_rules(
+        device,
+        pseudo,
+        rule_node,
+        guards,
+        parent_style,
+        parent_style_ignoring_first_line,
+        layout_parent_style,
+        font_metrics_provider,
+        CascadeMode::Unvisited { visited_rules },
+        quirks_mode,
+        rule_cache,
+        rule_cache_conditions,
+        element,
+    )
+}
+
+fn cascade_rules<E>(
+    device: &Device,
+    pseudo: Option<<&PseudoElement>,
+    rule_node: &StrongRuleNode,
+    guards: &StylesheetGuards,
+    parent_style: Option<<&ComputedValues>,
+    parent_style_ignoring_first_line: Option<<&ComputedValues>,
+    layout_parent_style: Option<<&ComputedValues>,
+    font_metrics_provider: &FontMetricsProvider,
+    cascade_mode: CascadeMode,
     quirks_mode: QuirksMode,
     rule_cache: Option<<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
@@ -3697,33 +3724,29 @@ where
 {
     debug_assert_eq!(parent_style.is_some(), parent_style_ignoring_first_line.is_some());
     let empty = SmallBitVec::new();
-
-    let property_restriction = pseudo.and_then(|p| p.property_restriction());
-
+    let restriction = pseudo.and_then(|p| p.property_restriction());
     let iter_declarations = || {
         rule_node.self_and_ancestors().flat_map(|node| {
             let cascade_level = node.cascade_level();
-            let source = node.style_source();
-
-            let declarations = if source.is_some() {
-                source.as_ref().unwrap().read(cascade_level.guard(guards)).declaration_importance_iter()
-            } else {
-                // The root node has no style source.
-                DeclarationImportanceIterator::new(&[], &empty)
-            };
             let node_importance = node.importance();
+            let declarations = match node.style_source() {
+                Some(source) => {
+                    source.read(cascade_level.guard(guards)).declaration_importance_iter()
+                }
+                None => DeclarationImportanceIterator::new(&[], &empty),
+            };
 
             declarations
                 // Yield declarations later in source order (with more precedence) first.
                 .rev()
                 .filter_map(move |(declaration, declaration_importance)| {
-                    if let Some(property_restriction) = property_restriction {
+                    if let Some(restriction) = restriction {
                         // declaration.id() is either a longhand or a custom
                         // property.  Custom properties are always allowed, but
                         // longhands are only allowed if they have our
-                        // property_restriction flag set.
+                        // restriction flag set.
                         if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                            if !id.flags().contains(property_restriction) {
+                            if !id.flags().contains(restriction) {
                                 return None
                             }
                         }
@@ -3747,14 +3770,29 @@ where
         parent_style,
         parent_style_ignoring_first_line,
         layout_parent_style,
-        visited_style,
         font_metrics_provider,
-        flags,
+        cascade_mode,
         quirks_mode,
         rule_cache,
         rule_cache_conditions,
         element,
     )
+}
+
+/// Whether we're cascading for visited or unvisited styles.
+#[derive(Clone, Copy)]
+pub enum CascadeMode<'a> {
+    /// We're cascading for unvisited styles.
+    Unvisited {
+        /// The visited rules that should match the visited style.
+        visited_rules: Option<<&'a StrongRuleNode>,
+    },
+    /// We're cascading for visited styles.
+    Visited {
+        /// The writing mode of our unvisited style, needed to correctly resolve
+        /// logical properties..
+        writing_mode: WritingMode,
+    },
 }
 
 /// NOTE: This function expects the declaration with more priority to appear
@@ -3768,9 +3806,8 @@ pub fn apply_declarations<'a, E, F, I>(
     parent_style: Option<<&ComputedValues>,
     parent_style_ignoring_first_line: Option<<&ComputedValues>,
     layout_parent_style: Option<<&ComputedValues>,
-    visited_style: Option<Arc<ComputedValues>>,
     font_metrics_provider: &FontMetricsProvider,
-    flags: CascadeFlags,
+    cascade_mode: CascadeMode,
     quirks_mode: QuirksMode,
     rule_cache: Option<<&RuleCache>,
     rule_cache_conditions: &mut RuleCacheConditions,
@@ -3788,16 +3825,8 @@ where
                   ::std::ptr::eq(parent_style.unwrap(),
                                  parent_style_ignoring_first_line.unwrap()) ||
                   parent_style.unwrap().pseudo() == Some(PseudoElement::FirstLine));
-    let (inherited_style, layout_parent_style) = match parent_style {
-        Some(parent_style) => {
-            (parent_style,
-             layout_parent_style.unwrap_or(parent_style))
-        },
-        None => {
-            (device.default_computed_values(),
-             device.default_computed_values())
-        }
-    };
+    let inherited_style =
+        parent_style.unwrap_or(device.default_computed_values());
 
     let custom_properties = {
         let mut builder =
@@ -3822,10 +3851,9 @@ where
             parent_style,
             parent_style_ignoring_first_line,
             pseudo,
-            flags,
+            cascade_mode,
             Some(rules.clone()),
             custom_properties,
-            visited_style,
         ),
         cached_system_font: None,
         in_media_query: false,
@@ -3887,7 +3915,7 @@ where
             // Only a few properties are allowed to depend on the visited state
             // of links.  When cascading visited styles, we can save time by
             // only processing these properties.
-            if flags.contains(CascadeFlags::VISITED_DEPENDENT_ONLY) &&
+            if matches!(cascade_mode, CascadeMode::Visited { .. }) &&
                !physical_longhand_id.is_visited_dependent() {
                 continue
             }
@@ -3952,9 +3980,43 @@ where
             (CASCADE_PROPERTY[discriminant])(&*declaration, &mut context);
         }
         % if category_to_cascade_now == "early":
-            let writing_mode =
-                WritingMode::new(context.builder.get_inherited_box());
+            let writing_mode = match cascade_mode {
+                CascadeMode::Unvisited { .. } => {
+                    WritingMode::new(context.builder.get_inherited_box())
+                }
+                CascadeMode::Visited { writing_mode } => writing_mode,
+            };
+
             context.builder.writing_mode = writing_mode;
+            if let CascadeMode::Unvisited { visited_rules: Some(visited_rules) } = cascade_mode {
+                let is_link = pseudo.is_none() && element.unwrap().is_link();
+                macro_rules! visited_parent {
+                    ($parent:expr) => {
+                        if is_link {
+                            $parent
+                        } else {
+                            $parent.map(|p| p.visited_style().unwrap_or(p))
+                        }
+                    }
+                }
+                // We could call apply_declarations directly, but that'd cause
+                // another instantiation of this function which is not great.
+                context.builder.visited_style = Some(cascade_rules(
+                    device,
+                    pseudo,
+                    visited_rules,
+                    guards,
+                    visited_parent!(parent_style),
+                    visited_parent!(parent_style_ignoring_first_line),
+                    visited_parent!(layout_parent_style),
+                    font_metrics_provider,
+                    CascadeMode::Visited { writing_mode },
+                    quirks_mode,
+                    rule_cache,
+                    &mut *context.rule_cache_conditions.borrow_mut(),
+                    element,
+                ));
+            }
 
             let mut _skip_font_family = false;
 
@@ -4097,11 +4159,12 @@ where
 
     builder.clear_modified_reset();
 
-    StyleAdjuster::new(&mut builder).adjust(
-        layout_parent_style,
-        element,
-        flags,
-    );
+    if matches!(cascade_mode, CascadeMode::Unvisited { .. }) {
+        StyleAdjuster::new(&mut builder).adjust(
+            layout_parent_style.unwrap_or(inherited_style),
+            element,
+        );
+    }
 
     if builder.modified_reset() || !apply_reset {
         // If we adjusted any reset structs, we can't cache this ComputedValues.
@@ -4110,8 +4173,7 @@ where
         // back again. (Aside from being wasted effort, it will be wrong, since
         // context.rule_cache_conditions won't be set appropriately if we
         // didn't compute those reset properties.)
-        context.rule_cache_conditions.borrow_mut()
-            .set_uncacheable();
+        context.rule_cache_conditions.borrow_mut().set_uncacheable();
     }
 
     builder.build()

@@ -20,7 +20,7 @@ use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use media_queries::Device;
-use properties::{self, CascadeFlags, ComputedValues};
+use properties::{self, CascadeMode, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
 use rule_cache::{RuleCache, RuleCacheConditions};
 use rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
@@ -845,55 +845,18 @@ impl Stylist {
     {
         debug_assert!(pseudo.is_some() || element.is_some(), "Huh?");
 
-        let cascade_flags = pseudo.map_or(CascadeFlags::empty(), |p| p.cascade_flags());
-
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
-        let mut visited_values = None;
-        if inputs.visited_rules.is_some() || parent_style.and_then(|s| s.visited_style()).is_some()
-        {
-            // At this point inputs may have visited rules, or rules.
-            let rule_node = match inputs.visited_rules.as_ref() {
-                Some(rules) => rules,
-                None => inputs.rules.as_ref().unwrap_or(self.rule_tree.root()),
-            };
-
-            let inherited_style;
-            let inherited_style_ignoring_first_line;
-            let layout_parent_style_for_visited;
-            if pseudo.is_none() && element.unwrap().is_link() {
-                // We just want to use our parent style as our parent.
-                inherited_style = parent_style;
-                inherited_style_ignoring_first_line = parent_style_ignoring_first_line;
-                layout_parent_style_for_visited = layout_parent_style;
-            } else {
-                // We want to use the visited bits (if any) from our parent
-                // style as our parent.
-                inherited_style = parent_style
-                    .map(|parent_style| parent_style.visited_style().unwrap_or(parent_style));
-                inherited_style_ignoring_first_line = parent_style_ignoring_first_line
-                    .map(|parent_style| parent_style.visited_style().unwrap_or(parent_style));
-                layout_parent_style_for_visited = layout_parent_style
-                    .map(|parent_style| parent_style.visited_style().unwrap_or(parent_style));
+        let visited_rules = match inputs.visited_rules.as_ref() {
+            Some(rules) => Some(rules),
+            None => {
+                if parent_style.and_then(|s| s.visited_style()).is_some() {
+                    Some(inputs.rules.as_ref().unwrap_or(self.rule_tree.root()))
+                } else {
+                    None
+                }
             }
-
-            visited_values = Some(properties::cascade::<E>(
-                &self.device,
-                pseudo,
-                rule_node,
-                guards,
-                inherited_style,
-                inherited_style_ignoring_first_line,
-                layout_parent_style_for_visited,
-                None,
-                font_metrics,
-                cascade_flags | CascadeFlags::VISITED_DEPENDENT_ONLY,
-                self.quirks_mode,
-                rule_cache,
-                rule_cache_conditions,
-                element,
-            ));
-        }
+        };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
@@ -909,9 +872,8 @@ impl Stylist {
             parent_style,
             parent_style_ignoring_first_line,
             layout_parent_style,
-            visited_values,
+            visited_rules,
             font_metrics,
-            cascade_flags,
             self.quirks_mode,
             rule_cache,
             rule_cache_conditions,
@@ -1581,9 +1543,8 @@ impl Stylist {
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
-            None,
             &metrics,
-            CascadeFlags::empty(),
+            CascadeMode::Unvisited { visited_rules: None },
             self.quirks_mode,
             /* rule_cache = */ None,
             &mut Default::default(),

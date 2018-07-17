@@ -223,19 +223,19 @@ impl PseudoElement {
     /// properties...  Also, I guess it just could do all: inherit on the
     /// stylesheet, though chances are that'd be kinda slow if we don't cache
     /// them...
-    pub fn cascade_flags(&self) -> CascadeFlags {
+    pub fn inherits_all(&self) -> bool {
         match *self {
             PseudoElement::After |
             PseudoElement::Before |
             PseudoElement::Selection |
             PseudoElement::DetailsContent |
-            PseudoElement::DetailsSummary => CascadeFlags::empty(),
+            PseudoElement::DetailsSummary |
             // Anonymous table flows shouldn't inherit their parents properties in order
             // to avoid doubling up styles such as transformations.
             PseudoElement::ServoAnonymousTableCell |
             PseudoElement::ServoAnonymousTableRow |
             PseudoElement::ServoText |
-            PseudoElement::ServoInputText => CascadeFlags::empty(),
+            PseudoElement::ServoInputText => false,
 
             // For tables, we do want style to inherit, because TableWrapper is
             // responsible for handling clipping and scrolling, while Table is
@@ -248,7 +248,7 @@ impl PseudoElement {
             PseudoElement::ServoTableWrapper |
             PseudoElement::ServoAnonymousBlock |
             PseudoElement::ServoInlineBlockWrapper |
-            PseudoElement::ServoInlineAbsolute => CascadeFlags::INHERIT_ALL,
+            PseudoElement::ServoInlineAbsolute => true,
         }
     }
 
