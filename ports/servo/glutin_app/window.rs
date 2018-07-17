@@ -493,12 +493,14 @@ impl Window {
             },
             Event::WindowEvent {
                 event: winit::WindowEvent::CursorMoved {
-                    position: LogicalPosition { x, y },
+                    position,
                     ..
                 },
                 ..
             } => {
-                self.mouse_pos.set(TypedPoint2D::new(x as i32, y as i32));
+                let pos = position.to_physical(self.hidpi_factor().get() as f64);
+                let (x, y): (i32, i32) = pos.into();
+                self.mouse_pos.set(TypedPoint2D::new(x, y));
                 self.event_queue.borrow_mut().push(
                     WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
             }
@@ -508,7 +510,10 @@ impl Window {
             } => {
                 let (mut dx, mut dy) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
-                    MouseScrollDelta::PixelDelta(LogicalPosition { x: dx, y: dy }) => (dx as f32, dy as f32),
+                    MouseScrollDelta::PixelDelta(position) => {
+                        let position = position.to_physical(self.hidpi_factor().get() as f64);
+                        (position.x as f32, position.y as f32)
+                    }
                 };
                 // Scroll events snap to the major axis of movement, with vertical
                 // preferred over horizontal.
@@ -531,7 +536,8 @@ impl Window {
 
                 let phase = winit_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
-                let point = TypedPoint2D::new(touch.location.x as f32, touch.location.y as f32);
+                let position = touch.location.to_physical(self.hidpi_factor().get() as f64);
+                let point = TypedPoint2D::new(position.x as f32, position.y as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
             }
             Event::WindowEvent {
@@ -545,17 +551,18 @@ impl Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Quit);
             }
             Event::WindowEvent {
-                event: winit::WindowEvent::Resized(LogicalSize { width, height }),
+                event: winit::WindowEvent::Resized(size),
                 ..
             } => {
-                // width and height are DevicePixel.
+                // width and height are DeviceIndependentPixel.
                 // window.resize() takes DevicePixel.
                 if let WindowKind::Window(ref window, _) = self.kind {
-                    window.resize(PhysicalSize { width, height });
+                    let size = size.to_physical(self.hidpi_factor().get() as f64);
+                    window.resize(size);
                 }
                 // window.set_inner_size() takes DeviceIndependentPixel.
-                let new_size = TypedSize2D::new(width as f32, height as f32);
-                let new_size = (new_size / self.hidpi_factor()).to_u32();
+                let (width, height) = size.into();
+                let new_size = TypedSize2D::new(width, height);
                 if self.inner_size.get() != new_size {
                     self.inner_size.set(new_size);
                     self.event_queue.borrow_mut().push(WindowEvent::Resize);
