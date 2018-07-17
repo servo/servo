@@ -349,15 +349,10 @@ impl<T: ?Sized> Arc<T> {
 
     #[inline]
     pub fn is_unique(&self) -> bool {
-        // We can use Relaxed here, but the justification is a bit subtle.
+        // See the extensive discussion in [1] for why this needs to be Acquire.
         //
-        // The reason to use Acquire would be to synchronize with other threads
-        // that are modifying the refcount with Release, i.e. to ensure that
-        // their writes to memory guarded by this refcount are flushed. However,
-        // we know that threads only modify the contents of the Arc when they
-        // observe the refcount to be 1, and no other thread could observe that
-        // because we're holding one strong reference here.
-        self.inner().count.load(Relaxed) == 1
+        // [1] https://github.com/servo/servo/issues/21186
+        self.inner().count.load(Acquire) == 1
     }
 }
 
