@@ -580,7 +580,7 @@ interface WebGLRenderingContextBase
 
     any getTexParameter(GLenum target, GLenum pname);
 
-    // any getUniform(WebGLProgram program, WebGLUniformLocation location);
+    any getUniform(WebGLProgram program, WebGLUniformLocation location);
 
     WebGLUniformLocation? getUniformLocation(WebGLProgram program, DOMString name);
 

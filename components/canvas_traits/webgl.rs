@@ -284,6 +284,20 @@ pub enum WebGLCommand {
     DrawArraysInstanced { mode: u32, first: i32, count: i32, primcount: i32 },
     DrawElementsInstanced { mode: u32, count: i32, type_: u32, offset: u32, primcount: i32 },
     VertexAttribDivisor { index: u32, divisor: u32 },
+    GetUniformBool(WebGLProgramId, i32, WebGLSender<bool>),
+    GetUniformBool2(WebGLProgramId, i32, WebGLSender<[bool; 2]>),
+    GetUniformBool3(WebGLProgramId, i32, WebGLSender<[bool; 3]>),
+    GetUniformBool4(WebGLProgramId, i32, WebGLSender<[bool; 4]>),
+    GetUniformInt(WebGLProgramId, i32, WebGLSender<i32>),
+    GetUniformInt2(WebGLProgramId, i32, WebGLSender<[i32; 2]>),
+    GetUniformInt3(WebGLProgramId, i32, WebGLSender<[i32; 3]>),
+    GetUniformInt4(WebGLProgramId, i32, WebGLSender<[i32; 4]>),
+    GetUniformFloat(WebGLProgramId, i32, WebGLSender<f32>),
+    GetUniformFloat2(WebGLProgramId, i32, WebGLSender<[f32; 2]>),
+    GetUniformFloat3(WebGLProgramId, i32, WebGLSender<[f32; 3]>),
+    GetUniformFloat4(WebGLProgramId, i32, WebGLSender<[f32; 4]>),
+    GetUniformFloat9(WebGLProgramId, i32, WebGLSender<[f32; 9]>),
+    GetUniformFloat16(WebGLProgramId, i32, WebGLSender<[f32; 16]>),
 }
 
 macro_rules! define_resource_id_struct {

@@ -982,6 +982,119 @@ impl WebGLImpl {
             WebGLCommand::VertexAttribDivisor { index, divisor } => {
                 ctx.gl().vertex_attrib_divisor(index, divisor)
             }
+            WebGLCommand::GetUniformBool(program_id, loc, ref sender) => {
+                let mut value = [0];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value[0] != 0).unwrap();
+            }
+            WebGLCommand::GetUniformBool2(program_id, loc, ref sender) => {
+                let mut value = [0; 2];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                let value = [
+                    value[0] != 0,
+                    value[1] != 0,
+                ];
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformBool3(program_id, loc, ref sender) => {
+                let mut value = [0; 3];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                let value = [
+                    value[0] != 0,
+                    value[1] != 0,
+                    value[2] != 0,
+                ];
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformBool4(program_id, loc, ref sender) => {
+                let mut value = [0; 4];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                let value = [
+                    value[0] != 0,
+                    value[1] != 0,
+                    value[2] != 0,
+                    value[3] != 0,
+                ];
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformInt(program_id, loc, ref sender) => {
+                let mut value = [0];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value[0]).unwrap();
+            }
+            WebGLCommand::GetUniformInt2(program_id, loc, ref sender) => {
+                let mut value = [0; 2];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformInt3(program_id, loc, ref sender) => {
+                let mut value = [0; 3];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformInt4(program_id, loc, ref sender) => {
+                let mut value = [0; 4];
+                unsafe {
+                    ctx.gl().get_uniform_iv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformFloat(program_id, loc, ref sender) => {
+                let mut value = [0.];
+                unsafe {
+                    ctx.gl().get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value[0]).unwrap();
+            }
+            WebGLCommand::GetUniformFloat2(program_id, loc, ref sender) => {
+                let mut value = [0.; 2];
+                unsafe {
+                    ctx.gl().get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformFloat3(program_id, loc, ref sender) => {
+                let mut value = [0.; 3];
+                unsafe {
+                    ctx.gl().get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformFloat4(program_id, loc, ref sender) => {
+                let mut value = [0.; 4];
+                unsafe {
+                    ctx.gl().get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformFloat9(program_id, loc, ref sender) => {
+                let mut value = [0.; 9];
+                unsafe {
+                    ctx.gl().get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
+            WebGLCommand::GetUniformFloat16(program_id, loc, ref sender) => {
+                let mut value = [0.; 16];
+                unsafe {
+                    ctx.gl().get_uniform_fv(program_id.get(), loc, &mut value);
+                }
+                sender.send(value).unwrap();
+            }
         }
 
         // TODO: update test expectations in order to enable debug assertions

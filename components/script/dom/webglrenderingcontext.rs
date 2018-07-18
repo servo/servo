@@ -8,8 +8,8 @@ use canvas_traits::webgl::{ActiveAttribInfo, DOMToTextureCommand, Parameter};
 use canvas_traits::webgl::{ShaderParameter, TexParameter, WebGLCommand};
 use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
-use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLVersion};
-use canvas_traits::webgl::{WebVRCommand, webgl_channel};
+use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
+use canvas_traits::webgl::{WebGLVersion, WebVRCommand, webgl_channel};
 use canvas_traits::webgl::WebGLError::*;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
@@ -56,12 +56,14 @@ use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
 use js::jsval::{ObjectValue, NullValue, UndefinedValue};
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBufferView, CreateWith, Float32Array, Int32Array, Uint32Array};
+use js::typedarray::{ArrayBufferView, CreateWith, Float32, Float32Array, Int32, Int32Array, Uint32Array};
+use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::HTMLCanvasDataSource;
+use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
 use std::cell::{Cell, Ref};
 use std::cmp;
@@ -3598,6 +3600,80 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.send_command(WebGLCommand::UniformMatrix4fv(location.id(), val));
             Ok(())
         });
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    unsafe fn GetUniform(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        location: &WebGLUniformLocation,
+    ) -> JSVal {
+        // FIXME(nox): https://github.com/servo/servo/issues/21133
+
+        if program.is_deleted() || !program.is_linked() || program.id() != location.program_id() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
+
+        fn get<T, F>(
+            triple: (&WebGLRenderingContext, WebGLProgramId, i32),
+            f: F,
+        ) -> T
+        where
+            F: FnOnce(WebGLProgramId, i32, WebGLSender<T>) -> WebGLCommand,
+            T: for<'de> Deserialize<'de> + Serialize,
+        {
+            let (sender, receiver) = webgl_channel().unwrap();
+            triple.0.send_command(f(triple.1, triple.2, sender));
+            receiver.recv().unwrap()
+        }
+
+        let triple = (self, program.id(), location.id());
+
+        unsafe fn typed<T>(cx: *mut JSContext, value: &[T::Element]) -> JSVal
+        where
+            T: TypedArrayElementCreator,
+        {
+            rooted!(in(cx) let mut rval = ptr::null_mut::<JSObject>());
+            <TypedArray<T, *mut JSObject>>::create(cx, CreateWith::Slice(&value), rval.handle_mut()).unwrap();
+            ObjectValue(rval.get())
+        }
+
+        match location.type_() {
+            constants::BOOL => BooleanValue(get(triple, WebGLCommand::GetUniformBool)),
+            constants::BOOL_VEC2 => {
+                rooted!(in(cx) let mut rval = NullValue());
+                get(triple, WebGLCommand::GetUniformBool2).to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
+            constants::BOOL_VEC3 => {
+                rooted!(in(cx) let mut rval = NullValue());
+                get(triple, WebGLCommand::GetUniformBool3).to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
+            constants::BOOL_VEC4 => {
+                rooted!(in(cx) let mut rval = NullValue());
+                get(triple, WebGLCommand::GetUniformBool4).to_jsval(cx, rval.handle_mut());
+                rval.get()
+            }
+            constants::INT | constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                Int32Value(get(triple, WebGLCommand::GetUniformInt))
+            }
+            constants::INT_VEC2 => typed::<Int32>(cx, &get(triple, WebGLCommand::GetUniformInt2)),
+            constants::INT_VEC3 => typed::<Int32>(cx, &get(triple, WebGLCommand::GetUniformInt3)),
+            constants::INT_VEC4 => typed::<Int32>(cx, &get(triple, WebGLCommand::GetUniformInt4)),
+            constants::FLOAT => DoubleValue(get(triple, WebGLCommand::GetUniformFloat) as f64),
+            constants::FLOAT_VEC2 => typed::<Float32>(cx, &get(triple, WebGLCommand::GetUniformFloat2)),
+            constants::FLOAT_VEC3 => typed::<Float32>(cx, &get(triple, WebGLCommand::GetUniformFloat3)),
+            constants::FLOAT_VEC4 | constants::FLOAT_MAT2 => {
+                typed::<Float32>(cx, &get(triple, WebGLCommand::GetUniformFloat4))
+            }
+            constants::FLOAT_MAT3 => typed::<Float32>(cx, &get(triple, WebGLCommand::GetUniformFloat9)),
+            constants::FLOAT_MAT4 => typed::<Float32>(cx, &get(triple, WebGLCommand::GetUniformFloat16)),
+            _ => panic!("wrong uniform type"),
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9

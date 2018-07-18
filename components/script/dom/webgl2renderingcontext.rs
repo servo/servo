@@ -766,6 +766,17 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.UniformMatrix4fv(location, transpose, v)
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    #[allow(unsafe_code)]
+    unsafe fn GetUniform(
+        &self,
+        cx: *mut JSContext,
+        program: &WebGLProgram,
+        location: &WebGLUniformLocation,
+    ) -> JSVal {
+        self.base.GetUniform(cx, program, location)
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         self.base.UseProgram(program)
