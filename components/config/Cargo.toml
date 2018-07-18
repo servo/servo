@@ -28,8 +28,8 @@ url = "1.2"
 env_logger = "0.5"
 embedder_traits = { path = "../embedder_traits", features = ["tests"] }
 
-[target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
-xdg = "2.0"
+[target.'cfg(not(target_os = "android"))'.dependencies]
+dirs = "1.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_injected_glue = "0.2"
