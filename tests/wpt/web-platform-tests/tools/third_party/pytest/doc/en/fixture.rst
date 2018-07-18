@@ -73,20 +73,20 @@ marked ``smtp`` fixture function.  Running the test looks like this::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 1 item
-    
+
     test_smtpsimple.py F                                                 [100%]
-    
+
     ================================= FAILURES =================================
     ________________________________ test_ehlo _________________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_ehlo(smtp):
             response, msg = smtp.ehlo()
             assert response == 250
     >       assert 0 # for demo purposes
     E       assert 0
-    
+
     test_smtpsimple.py:11: AssertionError
     ========================= 1 failed in 0.12 seconds =========================
 
@@ -111,11 +111,11 @@ with a list of available function arguments.
 
 .. note::
 
-    You can always issue::
+    You can always issue ::
 
         pytest --fixtures test_simplefactory.py
 
-    to see available fixtures.
+    to see available fixtures (fixtures with leading ``_`` are only shown if you add the ``-v`` option).
 
 Fixtures: a prime example of dependency injection
 ---------------------------------------------------
@@ -141,7 +141,7 @@ automatically gets discovered by pytest. The discovery of
 fixture functions starts at test classes, then test modules, then
 ``conftest.py`` files and finally builtin and third party plugins.
 
-You can also use the ``conftest.py`` file to implement 
+You can also use the ``conftest.py`` file to implement
 :ref:`local per-directory plugins <conftest.py plugins>`.
 
 Sharing test data
@@ -152,9 +152,9 @@ to do this is by loading these data in a fixture for use by your tests.
 This makes use of the automatic caching mechanisms of pytest.
 
 Another good approach is by adding the data files in the ``tests`` folder.
-There are also community plugins available to help managing this aspect of 
-testing, e.g. `pytest-datadir <https://github.com/gabrielcnr/pytest-datadir>`__ 
-and `pytest-datafiles <https://pypi.python.org/pypi/pytest-datafiles>`__. 
+There are also community plugins available to help managing this aspect of
+testing, e.g. `pytest-datadir <https://github.com/gabrielcnr/pytest-datadir>`__
+and `pytest-datafiles <https://pypi.python.org/pypi/pytest-datafiles>`__.
 
 .. _smtpshared:
 
@@ -165,14 +165,14 @@ Scope: sharing a fixture instance across tests in a class, module or session
 
 Fixtures requiring network access depend on connectivity and are
 usually time-expensive to create.  Extending the previous example, we
-can add a ``scope='module'`` parameter to the
+can add a ``scope="module"`` parameter to the
 :py:func:`@pytest.fixture <_pytest.python.fixture>` invocation
 to cause the decorated ``smtp`` fixture function to only be invoked once
 per test *module* (the default is to invoke once per test *function*).
 Multiple test functions in a test module will thus
 each receive the same ``smtp`` fixture instance, thus saving time.
 
-The next example puts the fixture function into a separate ``conftest.py`` file 
+The next example puts the fixture function into a separate ``conftest.py`` file
 so that tests from multiple test modules in the directory can
 access the fixture function::
 
@@ -209,32 +209,32 @@ inspect what is going on and can now run the tests::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 2 items
-    
+
     test_module.py FF                                                    [100%]
-    
+
     ================================= FAILURES =================================
     ________________________________ test_ehlo _________________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_ehlo(smtp):
             response, msg = smtp.ehlo()
             assert response == 250
             assert b"smtp.gmail.com" in msg
     >       assert 0  # for demo purposes
     E       assert 0
-    
+
     test_module.py:6: AssertionError
     ________________________________ test_noop _________________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_noop(smtp):
             response, msg = smtp.noop()
             assert response == 250
     >       assert 0  # for demo purposes
     E       assert 0
-    
+
     test_module.py:11: AssertionError
     ========================= 2 failed in 0.12 seconds =========================
 
@@ -250,11 +250,60 @@ instance, you can simply declare it:
 .. code-block:: python
 
     @pytest.fixture(scope="session")
-    def smtp(...):
+    def smtp():
         # the returned fixture value will be shared for
         # all tests needing it
+        ...
 
 Finally, the ``class`` scope will invoke the fixture once per test *class*.
+
+
+Higher-scoped fixtures are instantiated first
+---------------------------------------------
+
+.. versionadded:: 3.5
+
+Within a function request for features, fixture of higher-scopes (such as ``session``) are instantiated first than
+lower-scoped fixtures (such as ``function`` or ``class``). The relative order of fixtures of same scope follows
+the declared order in the test function and honours dependencies between fixtures.
+
+Consider the code below:
+
+.. code-block:: python
+
+    @pytest.fixture(scope="session")
+    def s1():
+        pass
+
+
+    @pytest.fixture(scope="module")
+    def m1():
+        pass
+
+
+    @pytest.fixture
+    def f1(tmpdir):
+        pass
+
+
+    @pytest.fixture
+    def f2():
+        pass
+
+
+    def test_foo(f1, m1, f2, s1):
+        ...
+
+
+The fixtures requested by ``test_foo`` will be instantiated in the following order:
+
+1. ``s1``: is the highest-scoped fixture (``session``).
+2. ``m1``: is the second highest-scoped fixture (``module``).
+3. ``tmpdir``: is a ``function``-scoped fixture, required by ``f1``: it needs to be instantiated at this point
+   because it is a dependency of ``f1``.
+4. ``f1``: is the first ``function``-scoped fixture in ``test_foo`` parameter list.
+5. ``f2``: is the last ``function``-scoped fixture in ``test_foo`` parameter list.
+
 
 .. _`finalization`:
 
@@ -272,6 +321,7 @@ the code after the *yield* statement serves as the teardown code:
     import smtplib
     import pytest
 
+
     @pytest.fixture(scope="module")
     def smtp():
         smtp = smtplib.SMTP("smtp.gmail.com", 587, timeout=5)
@@ -286,8 +336,8 @@ tests.
 Let's execute it::
 
     $ pytest -s -q --tb=no
-    FF                                                                   [100%]teardown smtp
-    
+    FFteardown smtp
+
     2 failed in 0.12 seconds
 
 We see that the ``smtp`` instance is finalized after the two
@@ -305,6 +355,7 @@ Note that we can also seamlessly use the ``yield`` syntax with ``with`` statemen
 
     import smtplib
     import pytest
+
 
     @pytest.fixture(scope="module")
     def smtp():
@@ -331,12 +382,15 @@ Here's the ``smtp`` fixture changed to use ``addfinalizer`` for cleanup:
     import smtplib
     import pytest
 
+
     @pytest.fixture(scope="module")
     def smtp(request):
         smtp = smtplib.SMTP("smtp.gmail.com", 587, timeout=5)
+
         def fin():
-            print ("teardown smtp")
+            print("teardown smtp")
             smtp.close()
+
         request.addfinalizer(fin)
         return smtp  # provide the fixture value
 
@@ -369,7 +423,7 @@ ends, but ``addfinalizer`` has two key differences over ``yield``:
 Fixtures can introspect the requesting test context
 -------------------------------------------------------------
 
-Fixture function can accept the :py:class:`request <FixtureRequest>` object
+Fixture functions can accept the :py:class:`request <FixtureRequest>` object
 to introspect the "requesting" test function, class or module context.
 Further extending the previous ``smtp`` fixture example, let's
 read an optional server URL from the test module which uses our fixture::
@@ -391,8 +445,8 @@ We use the ``request.module`` attribute to optionally obtain an
 again, nothing much has changed::
 
     $ pytest -s -q --tb=no
-    FF                                                                   [100%]finalizing <smtplib.SMTP object at 0xdeadbeef> (smtp.gmail.com)
-    
+    FFfinalizing <smtplib.SMTP object at 0xdeadbeef> (smtp.gmail.com)
+
     2 failed in 0.12 seconds
 
 Let's quickly create another test module that actually sets the
@@ -420,6 +474,59 @@ Running it::
 
 voila! The ``smtp`` fixture function picked up our mail server name
 from the module namespace.
+
+.. _`fixture-factory`:
+
+Factories as fixtures
+-------------------------------------------------------------
+
+The "factory as fixture" pattern can help in situations where the result
+of a fixture is needed multiple times in a single test. Instead of returning
+data directly, the fixture instead returns a function which generates the data.
+This function can then be called multiple times in the test.
+
+Factories can have have parameters as needed::
+
+    @pytest.fixture
+    def make_customer_record():
+
+        def _make_customer_record(name):
+            return {
+                "name": name,
+                "orders": []
+            }
+
+        return _make_customer_record
+
+
+    def test_customer_records(make_customer_record):
+        customer_1 = make_customer_record("Lisa")
+        customer_2 = make_customer_record("Mike")
+        customer_3 = make_customer_record("Meredith")
+
+If the data created by the factory requires managing, the fixture can take care of that::
+
+    @pytest.fixture
+    def make_customer_record():
+
+        created_records = []
+
+        def _make_customer_record(name):
+            record = models.Customer(name=name, orders=[])
+            created_records.append(record)
+            return record
+
+        yield _make_customer_record
+
+        for record in created_records:
+            record.destroy()
+
+
+    def test_customer_records(make_customer_record):
+        customer_1 = make_customer_record("Lisa")
+        customer_2 = make_customer_record("Mike")
+        customer_3 = make_customer_record("Meredith")
+
 
 .. _`fixture-parametrize`:
 
@@ -460,51 +567,51 @@ So let's just do another run::
     FFFF                                                                 [100%]
     ================================= FAILURES =================================
     ________________________ test_ehlo[smtp.gmail.com] _________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_ehlo(smtp):
             response, msg = smtp.ehlo()
             assert response == 250
             assert b"smtp.gmail.com" in msg
     >       assert 0  # for demo purposes
     E       assert 0
-    
+
     test_module.py:6: AssertionError
     ________________________ test_noop[smtp.gmail.com] _________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_noop(smtp):
             response, msg = smtp.noop()
             assert response == 250
     >       assert 0  # for demo purposes
     E       assert 0
-    
+
     test_module.py:11: AssertionError
     ________________________ test_ehlo[mail.python.org] ________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_ehlo(smtp):
             response, msg = smtp.ehlo()
             assert response == 250
     >       assert b"smtp.gmail.com" in msg
     E       AssertionError: assert b'smtp.gmail.com' in b'mail.python.org\nPIPELINING\nSIZE 51200000\nETRN\nSTARTTLS\nAUTH DIGEST-MD5 NTLM CRAM-MD5\nENHANCEDSTATUSCODES\n8BITMIME\nDSN\nSMTPUTF8'
-    
+
     test_module.py:5: AssertionError
     -------------------------- Captured stdout setup ---------------------------
     finalizing <smtplib.SMTP object at 0xdeadbeef>
     ________________________ test_noop[mail.python.org] ________________________
-    
+
     smtp = <smtplib.SMTP object at 0xdeadbeef>
-    
+
         def test_noop(smtp):
             response, msg = smtp.noop()
             assert response == 250
     >       assert 0  # for demo purposes
     E       assert 0
-    
+
     test_module.py:11: AssertionError
     ------------------------- Captured stdout teardown -------------------------
     finalizing <smtplib.SMTP object at 0xdeadbeef>
@@ -576,8 +683,42 @@ Running the above tests results in the following test IDs being used::
      <Function 'test_noop[smtp.gmail.com]'>
      <Function 'test_ehlo[mail.python.org]'>
      <Function 'test_noop[mail.python.org]'>
-   
+
    ======================= no tests ran in 0.12 seconds =======================
+
+.. _`fixture-parametrize-marks`:
+
+Using marks with parametrized fixtures
+--------------------------------------
+
+:func:`pytest.param` can be used to apply marks in values sets of parametrized fixtures in the same way
+that they can be used with :ref:`@pytest.mark.parametrize <@pytest.mark.parametrize>`.
+
+Example::
+
+    # content of test_fixture_marks.py
+    import pytest
+    @pytest.fixture(params=[0, 1, pytest.param(2, marks=pytest.mark.skip)])
+    def data_set(request):
+        return request.param
+
+    def test_data(data_set):
+        pass
+
+Running this test will *skip* the invocation of ``data_set`` with value ``2``::
+
+    $ pytest test_fixture_marks.py -v
+    =========================== test session starts ============================
+    platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python3.5
+    cachedir: .pytest_cache
+    rootdir: $REGENDOC_TMPDIR, inifile:
+    collecting ... collected 3 items
+
+    test_fixture_marks.py::test_data[0] PASSED                           [ 33%]
+    test_fixture_marks.py::test_data[1] PASSED                           [ 66%]
+    test_fixture_marks.py::test_data[2] SKIPPED                          [100%]
+
+    =================== 2 passed, 1 skipped in 0.12 seconds ====================
 
 .. _`interdependent fixtures`:
 
@@ -612,13 +753,13 @@ Here we declare an ``app`` fixture which receives the previously defined
     $ pytest -v test_appsetup.py
     =========================== test session starts ============================
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python3.5
-    cachedir: .cache
+    cachedir: .pytest_cache
     rootdir: $REGENDOC_TMPDIR, inifile:
     collecting ... collected 2 items
-    
+
     test_appsetup.py::test_smtp_exists[smtp.gmail.com] PASSED            [ 50%]
     test_appsetup.py::test_smtp_exists[mail.python.org] PASSED           [100%]
-    
+
     ========================= 2 passed in 0.12 seconds =========================
 
 Due to the parametrization of ``smtp`` the test will run twice with two
@@ -681,43 +822,43 @@ Let's run the tests in verbose mode and with looking at the print-output::
     $ pytest -v -s test_module.py
     =========================== test session starts ============================
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y -- $PYTHON_PREFIX/bin/python3.5
-    cachedir: .cache
+    cachedir: .pytest_cache
     rootdir: $REGENDOC_TMPDIR, inifile:
     collecting ... collected 8 items
-    
+
     test_module.py::test_0[1]   SETUP otherarg 1
       RUN test0 with otherarg 1
-    PASSED                                     [ 12%]  TEARDOWN otherarg 1
-    
+    PASSED  TEARDOWN otherarg 1
+
     test_module.py::test_0[2]   SETUP otherarg 2
       RUN test0 with otherarg 2
-    PASSED                                     [ 25%]  TEARDOWN otherarg 2
-    
+    PASSED  TEARDOWN otherarg 2
+
     test_module.py::test_1[mod1]   SETUP modarg mod1
       RUN test1 with modarg mod1
-    PASSED                                  [ 37%]
-    test_module.py::test_2[1-mod1]   SETUP otherarg 1
+    PASSED
+    test_module.py::test_2[mod1-1]   SETUP otherarg 1
       RUN test2 with otherarg 1 and modarg mod1
-    PASSED                                [ 50%]  TEARDOWN otherarg 1
-    
-    test_module.py::test_2[2-mod1]   SETUP otherarg 2
+    PASSED  TEARDOWN otherarg 1
+
+    test_module.py::test_2[mod1-2]   SETUP otherarg 2
       RUN test2 with otherarg 2 and modarg mod1
-    PASSED                                [ 62%]  TEARDOWN otherarg 2
-    
+    PASSED  TEARDOWN otherarg 2
+
     test_module.py::test_1[mod2]   TEARDOWN modarg mod1
       SETUP modarg mod2
       RUN test1 with modarg mod2
-    PASSED                                  [ 75%]
-    test_module.py::test_2[1-mod2]   SETUP otherarg 1
+    PASSED
+    test_module.py::test_2[mod2-1]   SETUP otherarg 1
       RUN test2 with otherarg 1 and modarg mod2
-    PASSED                                [ 87%]  TEARDOWN otherarg 1
-    
-    test_module.py::test_2[2-mod2]   SETUP otherarg 2
+    PASSED  TEARDOWN otherarg 1
+
+    test_module.py::test_2[mod2-2]   SETUP otherarg 2
       RUN test2 with otherarg 2 and modarg mod2
-    PASSED                                [100%]  TEARDOWN otherarg 2
+    PASSED  TEARDOWN otherarg 2
       TEARDOWN modarg mod2
-    
-    
+
+
     ========================= 8 passed in 0.12 seconds =========================
 
 You can see that the parametrized module-scoped ``modarg`` resource caused an
@@ -789,6 +930,8 @@ You can specify multiple fixtures like this:
 .. code-block:: python
 
     @pytest.mark.usefixtures("cleandir", "anotherfixture")
+    def test():
+        ...
 
 and you may specify fixture usage at the test module level, using
 a generic feature of the mark mechanism:

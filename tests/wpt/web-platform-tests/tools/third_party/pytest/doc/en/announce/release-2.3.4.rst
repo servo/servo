@@ -10,15 +10,15 @@ comes with the following fixes and features:
   can write: -k "name1 or name2" etc.  This is a slight usage incompatibility
   if you used special syntax like "TestClass.test_method" which you now
   need to write as -k "TestClass and test_method" to match a certain
-  method in a certain test class.  
+  method in a certain test class.
 - allow to dynamically define markers via
   item.keywords[...]=assignment integrating with "-m" option
-- yielded test functions will now have autouse-fixtures active but 
+- yielded test functions will now have autouse-fixtures active but
   cannot accept fixtures as funcargs - it's anyway recommended to
   rather use the post-2.0 parametrize features instead of yield, see:
   http://pytest.org/latest/example/parametrize.html
 - fix autouse-issue where autouse-fixtures would not be discovered
-  if defined in a a/conftest.py file and tests in a/tests/test_some.py
+  if defined in an a/conftest.py file and tests in a/tests/test_some.py
 - fix issue226 - LIFO ordering for fixture teardowns
 - fix issue224 - invocations with >256 char arguments now work
 - fix issue91 - add/discuss package/directory level setups in example
@@ -26,7 +26,7 @@ comes with the following fixes and features:
 
 Thanks in particular to Thomas Waldmann for spotting and reporting issues.
 
-See 
+See
 
      http://pytest.org/
 

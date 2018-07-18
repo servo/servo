@@ -1,9 +1,8 @@
+spec: https://drafts.csswg.org/css-writing-modes/
 suggested_reviewers:
   - kojiishi
   - fantasai
-  - hshiozawa
   - myakura
-  - snsk
   - r12a
   - plinss
   - upsuper

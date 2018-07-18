@@ -284,5 +284,20 @@ promise_test(async t => {
 }, 'An exception is NOT thrown when finishing if the effective playback rate'
    + ' is negative and the target effect end is infinity');
 
+promise_test(async t => {
+  const div = createDiv(t);
+  const animation = div.animate({}, 100 * MS_PER_SEC);
+  div.remove();
+
+  const eventWatcher = new EventWatcher(t, animation, 'finish');
+
+  await animation.ready;
+  animation.finish();
+
+  await eventWatcher.wait_for('finish');
+  assert_equals(animation.effect.target.parentNode, null,
+    'finish event should be fired for the animation on an orphaned element');
+}, 'Finishing an animation fires finish event on orphaned element');
+
 </script>
 </body>

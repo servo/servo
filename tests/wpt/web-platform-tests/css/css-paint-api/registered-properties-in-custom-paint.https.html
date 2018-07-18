@@ -54,9 +54,9 @@ registerPaint('geometry', class {
 
 <script>
     try {
-      CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px'});
-      CSS.registerProperty({name: '--length-initial', syntax: '<length>', initialValue: '20px'});
-      CSS.registerProperty({name: '--number', syntax: '<number>', initialValue: '0'});
+      CSS.registerProperty({name: '--length', syntax: '<length>', initialValue: '0px', inherits: false});
+      CSS.registerProperty({name: '--length-initial', syntax: '<length>', initialValue: '20px', inherits: false});
+      CSS.registerProperty({name: '--number', syntax: '<number>', initialValue: '0', inherits: false});
       importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
     } catch(e) {
       document.body.textContent = e;

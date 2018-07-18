@@ -413,12 +413,6 @@ const gCSSProperties = {
       { type: 'discrete', options: [ [ 'auto', '1px' ] ] }
     ]
   },
-  'contain': {
-    // https://drafts.csswg.org/css-containment/#propdef-contain
-    types: [
-      { type: 'discrete', options: [ [ 'strict', 'none' ] ] }
-    ]
-  },
   'content': {
     // https://drafts.csswg.org/css-content-3/#propdef-content
     types: [
@@ -444,12 +438,6 @@ const gCSSProperties = {
     // https://drafts.csswg.org/css2/ui.html#propdef-cursor
     types: [
       { type: 'discrete', options: [ [ 'pointer', 'wait' ] ] }
-    ]
-  },
-  'direction': {
-    // https://drafts.csswg.org/css-writing-modes-3/#propdef-direction
-    types: [
-      { type: 'discrete', options: [ [ 'ltr', 'rtl' ] ] }
     ]
   },
   'dominant-baseline': {
@@ -711,13 +699,13 @@ const gCSSProperties = {
   'hyphens': {
     // https://drafts.csswg.org/css-text-3/#propdef-hyphens
     types: [
-      { type: 'discrete', options: [ [ 'manual', 'auto' ] ] }
+      { type: 'discrete', options: [ [ 'manual', 'none' ] ] }
     ]
   },
   'image-orientation': {
     // https://drafts.csswg.org/css-images-3/#propdef-image-orientation
     types: [
-      { type: 'discrete', options: [ [ '0deg', '90deg' ] ] }
+      { type: 'discrete', options: [ [ 'none', 'from-image' ] ] }
     ]
   },
   'image-rendering': {
@@ -1340,12 +1328,6 @@ const gCSSProperties = {
     types: [
     ]
   },
-  'text-orientation': {
-    // https://drafts.csswg.org/css-writing-modes-3/#propdef-text-orientation
-    types: [
-      { type: 'discrete', options: [ [ 'upright', 'sideways' ] ] }
-    ]
-  },
   'text-overflow': {
     // https://drafts.csswg.org/css-ui/#propdef-text-overflow
     types: [
@@ -1424,12 +1406,6 @@ const gCSSProperties = {
     // https://drafts.csswg.org/css-transforms-2/#individual-transforms
     types: [ 'scaleList' ]
   },
-  'unicode-bidi': {
-    // https://drafts.csswg.org/css-writing-modes-3/#propdef-unicode-bidi
-    types: [
-      { type: 'discrete', options: [ [ 'embed', 'bidi-override' ] ] },
-    ]
-  },
   'vector-effect': {
     // https://svgwg.org/svg2-draft/coords.html#VectorEffectProperty
     types: [
@@ -1465,18 +1441,6 @@ const gCSSProperties = {
   'word-spacing': {
     // https://drafts.csswg.org/css-text-3/#propdef-word-spacing
     types: [ 'lengthPercentageOrCalc' ]
-  },
-  'will-change': {
-    // http://dev.w3.org/csswg/css-will-change/#propdef-will-change
-    types: [
-      { type: 'discrete', options: [ [ 'scroll-position', 'contents' ] ] }
-    ]
-  },
-  'writing-mode': {
-    // https://drafts.csswg.org/css-writing-modes-3/#propdef-writing-mode
-    types: [
-      { type: 'discrete', options: [ [ 'vertical-rl', 'sideways-rl' ] ] }
-    ]
   },
   'z-index': {
     // https://drafts.csswg.org/css-position/#propdef-z-index

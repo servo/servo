@@ -6,11 +6,12 @@
 partial interface HTMLMediaElement {
     MediaStream captureStream();
 };
+
 partial interface HTMLCanvasElement {
     MediaStream captureStream(optional double frameRequestRate);
 };
-[Exposed=Window]
-interface CanvasCaptureMediaStreamTrack : MediaStreamTrack {
-    readonly attribute HTMLCanvasElement canvas;
+
+[Exposed=Window] interface CanvasCaptureMediaStreamTrack : MediaStreamTrack {
+    readonly        attribute HTMLCanvasElement canvas;
     void requestFrame();
 };

@@ -11,6 +11,10 @@
   This window opens a new window which contains a longtask. We test that the
   longtask from the new window is not observed by the observer of this window. */
 async_test(t => {
+  if (typeof PerformanceLongTaskTiming === 'undefined') {
+      assert_unreached("Longtasks are not supported.");
+      t.done();
+  }
   const observer = new PerformanceObserver(
       t.step_func(function (entryList) {
           const entries = entryList.getEntries();
@@ -34,12 +38,14 @@ async_test(t => {
   );
   observer.observe({entryTypes: ['mark', 'longtask']});
 
-  // Open a window with a longtask.
-  const other_window = window.open('resources/frame-with-longtask.html');
-  window.addEventListener('message', t.step_func(e => {
-    // Do a mark (after the other window's longtask) to fire the callback.
-    self.performance.mark('mark1');
-  }));
+  window.onload = () => {
+    // Open a window with a longtask.
+    const other_window = window.open('resources/frame-with-longtask.html');
+    window.addEventListener('message', t.step_func(e => {
+      // Do a mark (after the other window's longtask) to fire the callback.
+      self.performance.mark('mark1');
+    }));
+  };
 }, 'A longtask in a frame from window.open is not reported in original frame');
 </script>
 </body>

@@ -3,14 +3,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 'use strict';
-const test_desc = '[SameObject] test for navigator.bluetooth';
 
 test(() => {
-  assert_true('bluetooth' in navigator,
-              'navigator.bluetooth exists.');
-}, 'navigator.bluetooth IDL test');
-
-test(() => {
-  assert_equals(navigator.bluetooth, navigator.bluetooth);
-}, test_desc);
+  assert_false('bluetooth' in navigator);
+}, 'navigator.bluetooth not available in insecure contexts');
 </script>

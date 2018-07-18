@@ -8,8 +8,8 @@ from collections import Mapping, OrderedDict, Sequence
 
 import pytest
 
-from hypothesis import strategies as st
 from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
 
 import attr
 
@@ -18,7 +18,7 @@ from attr._compat import TYPE
 from attr.exceptions import AttrsAttributeNotFoundError
 from attr.validators import instance_of
 
-from .utils import nested_classes, simple_classes
+from .strategies import nested_classes, simple_classes
 
 
 MAPPING_TYPES = (dict, OrderedDict)

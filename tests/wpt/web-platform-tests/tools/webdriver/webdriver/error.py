@@ -6,7 +6,7 @@ class WebDriverException(Exception):
     http_status = None
     status_code = None
 
-    def __init__(self, message, stacktrace=None):
+    def __init__(self, message=None, stacktrace=None):
         super(WebDriverException, self)
         self.message = message
         self.stacktrace = stacktrace
@@ -15,12 +15,15 @@ class WebDriverException(Exception):
         return "<%s http_status=%s>" % (self.__class__.__name__, self.http_status)
 
     def __str__(self):
-        message = "%s (%s): %s\n" % (self.status_code, self.http_status, self.message)
+        message = "%s (%s)" % (self.status_code, self.http_status)
+
+        if self.message is not None:
+            message += ": %s" % self.message
+        message += "\n"
+
         if self.stacktrace:
-            message += ("\n"
-            "Remote-end stacktrace:\n"
-            "\n"
-            "%s" % self.stacktrace)
+            message += ("\nRemote-end stacktrace:\n\n%s" % self.stacktrace)
+
         return message
 
 

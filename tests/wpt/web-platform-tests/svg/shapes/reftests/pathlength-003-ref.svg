@@ -1,0 +1,40 @@
+<svg id="svg-root"
+  width="100%" height="100%" viewBox="0 0 480 360"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:html="http://www.w3.org/1999/xhtml">
+  <g id="testmeta">
+    <title>Test of 'pathLength' on shapes.</title>
+    <html:link rel="author"
+          title="Tavmjong Bah"
+          href="http://tavmjong.free.fr"/>
+  </g>
+
+  <style id="test-font" type="text/css">
+    /* Standard Font (if needed). */
+    @font-face {
+      font-family: FreeSans;
+      src: url("../fonts/FreeSans.woff") format("woff");
+    }
+    text {
+      font-family: FreeSans, sans-serif;
+      text-anchor: middle;
+      fill: black;
+    }
+    #title {
+      font-size: 24px;
+    }
+    .label {
+      font-size: 18px;
+    }
+  </style>
+
+
+  <g id="test-reference" style="fill:none;stroke:black;stroke-width:1px">
+    <path id="circle1" d="m  220,240 a 100,100 0 0 1 -200,0 100,100 0 0 1 200,0 z"/>
+    <path id="circle2" d="m  460,240 a 100,100 0 0 1 -200,0 100,100 0 0 1 200,0 z" pathLength="4"/>
+    <text><textPath xlink:href="#circle1" startOffset="471.8" style="font-size:24px;stroke:none">Some text on a circle!</textPath></text>
+    <text><textPath xlink:href="#circle2" startOffset="3" style="font-size:24px;stroke:none">Some text on a circle!</textPath></text>
+  </g>
+
+</svg>

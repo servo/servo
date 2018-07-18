@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Content Security Policy: Embedded Enforcement" spec.
+// See: https://w3c.github.io/webappsec-csp/embedded/
+
+partial interface HTMLIFrameElement {
+  [CEReactions] attribute DOMString csp;
+};

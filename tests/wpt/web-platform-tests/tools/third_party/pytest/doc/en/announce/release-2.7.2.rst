@@ -55,4 +55,3 @@ The py.test Development Team
 
 - fix issue756, fix issue752 (and similar issues): depend on py-1.4.29
   which has a refined algorithm for traceback generation.
-

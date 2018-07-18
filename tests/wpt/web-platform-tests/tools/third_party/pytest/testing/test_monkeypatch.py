@@ -17,20 +17,21 @@ def mp():
 
 
 def test_setattr():
+
     class A(object):
         x = 1
 
     monkeypatch = MonkeyPatch()
     pytest.raises(AttributeError, "monkeypatch.setattr(A, 'notexists', 2)")
-    monkeypatch.setattr(A, 'y', 2, raising=False)
+    monkeypatch.setattr(A, "y", 2, raising=False)
     assert A.y == 2
     monkeypatch.undo()
-    assert not hasattr(A, 'y')
+    assert not hasattr(A, "y")
 
     monkeypatch = MonkeyPatch()
-    monkeypatch.setattr(A, 'x', 2)
+    monkeypatch.setattr(A, "x", 2)
     assert A.x == 2
-    monkeypatch.setattr(A, 'x', 3)
+    monkeypatch.setattr(A, "x", 3)
     assert A.x == 3
     monkeypatch.undo()
     assert A.x == 1
@@ -41,6 +42,7 @@ def test_setattr():
 
 
 class TestSetattrWithImportPath(object):
+
     def test_string_expression(self, monkeypatch):
         monkeypatch.setattr("os.path.abspath", lambda x: "hello2")
         assert os.path.abspath("123") == "hello2"
@@ -48,11 +50,13 @@ class TestSetattrWithImportPath(object):
     def test_string_expression_class(self, monkeypatch):
         monkeypatch.setattr("_pytest.config.Config", 42)
         import _pytest
+
         assert _pytest.config.Config == 42
 
     def test_unicode_string(self, monkeypatch):
         monkeypatch.setattr("_pytest.config.Config", 42)
         import _pytest
+
         assert _pytest.config.Config == 42
         monkeypatch.delattr("_pytest.config.Config")
 
@@ -60,16 +64,16 @@ class TestSetattrWithImportPath(object):
         pytest.raises(TypeError, lambda: monkeypatch.setattr(None, None))
 
     def test_unknown_import(self, monkeypatch):
-        pytest.raises(ImportError,
-                      lambda: monkeypatch.setattr("unkn123.classx", None))
+        pytest.raises(ImportError, lambda: monkeypatch.setattr("unkn123.classx", None))
 
     def test_unknown_attr(self, monkeypatch):
-        pytest.raises(AttributeError,
-                      lambda: monkeypatch.setattr("os.path.qweqwe", None))
+        pytest.raises(
+            AttributeError, lambda: monkeypatch.setattr("os.path.qweqwe", None)
+        )
 
     def test_unknown_attr_non_raising(self, monkeypatch):
         # https://github.com/pytest-dev/pytest/issues/746
-        monkeypatch.setattr('os.path.qweqwe', 42, raising=False)
+        monkeypatch.setattr("os.path.qweqwe", 42, raising=False)
         assert os.path.qweqwe == 42
 
     def test_delattr(self, monkeypatch):
@@ -80,48 +84,49 @@ class TestSetattrWithImportPath(object):
 
 
 def test_delattr():
+
     class A(object):
         x = 1
 
     monkeypatch = MonkeyPatch()
-    monkeypatch.delattr(A, 'x')
-    assert not hasattr(A, 'x')
+    monkeypatch.delattr(A, "x")
+    assert not hasattr(A, "x")
     monkeypatch.undo()
     assert A.x == 1
 
     monkeypatch = MonkeyPatch()
-    monkeypatch.delattr(A, 'x')
+    monkeypatch.delattr(A, "x")
     pytest.raises(AttributeError, "monkeypatch.delattr(A, 'y')")
-    monkeypatch.delattr(A, 'y', raising=False)
-    monkeypatch.setattr(A, 'x', 5, raising=False)
+    monkeypatch.delattr(A, "y", raising=False)
+    monkeypatch.setattr(A, "x", 5, raising=False)
     assert A.x == 5
     monkeypatch.undo()
     assert A.x == 1
 
 
 def test_setitem():
-    d = {'x': 1}
+    d = {"x": 1}
     monkeypatch = MonkeyPatch()
-    monkeypatch.setitem(d, 'x', 2)
-    monkeypatch.setitem(d, 'y', 1700)
-    monkeypatch.setitem(d, 'y', 1700)
-    assert d['x'] == 2
-    assert d['y'] == 1700
-    monkeypatch.setitem(d, 'x', 3)
-    assert d['x'] == 3
+    monkeypatch.setitem(d, "x", 2)
+    monkeypatch.setitem(d, "y", 1700)
+    monkeypatch.setitem(d, "y", 1700)
+    assert d["x"] == 2
+    assert d["y"] == 1700
+    monkeypatch.setitem(d, "x", 3)
+    assert d["x"] == 3
     monkeypatch.undo()
-    assert d['x'] == 1
-    assert 'y' not in d
-    d['x'] = 5
+    assert d["x"] == 1
+    assert "y" not in d
+    d["x"] = 5
     monkeypatch.undo()
-    assert d['x'] == 5
+    assert d["x"] == 5
 
 
 def test_setitem_deleted_meanwhile():
     d = {}
     monkeypatch = MonkeyPatch()
-    monkeypatch.setitem(d, 'x', 2)
-    del d['x']
+    monkeypatch.setitem(d, "x", 2)
+    del d["x"]
     monkeypatch.undo()
     assert not d
 
@@ -132,7 +137,7 @@ def test_setenv_deleted_meanwhile(before):
     if before:
         os.environ[key] = "world"
     monkeypatch = MonkeyPatch()
-    monkeypatch.setenv(key, 'hello')
+    monkeypatch.setenv(key, "hello")
     del os.environ[key]
     monkeypatch.undo()
     if before:
@@ -143,33 +148,34 @@ def test_setenv_deleted_meanwhile(before):
 
 
 def test_delitem():
-    d = {'x': 1}
+    d = {"x": 1}
     monkeypatch = MonkeyPatch()
-    monkeypatch.delitem(d, 'x')
-    assert 'x' not in d
-    monkeypatch.delitem(d, 'y', raising=False)
+    monkeypatch.delitem(d, "x")
+    assert "x" not in d
+    monkeypatch.delitem(d, "y", raising=False)
     pytest.raises(KeyError, "monkeypatch.delitem(d, 'y')")
     assert not d
-    monkeypatch.setitem(d, 'y', 1700)
-    assert d['y'] == 1700
-    d['hello'] = 'world'
-    monkeypatch.setitem(d, 'x', 1500)
-    assert d['x'] == 1500
+    monkeypatch.setitem(d, "y", 1700)
+    assert d["y"] == 1700
+    d["hello"] = "world"
+    monkeypatch.setitem(d, "x", 1500)
+    assert d["x"] == 1500
     monkeypatch.undo()
-    assert d == {'hello': 'world', 'x': 1}
+    assert d == {"hello": "world", "x": 1}
 
 
 def test_setenv():
     monkeypatch = MonkeyPatch()
-    monkeypatch.setenv('XYZ123', 2)
+    monkeypatch.setenv("XYZ123", 2)
     import os
-    assert os.environ['XYZ123'] == "2"
+
+    assert os.environ["XYZ123"] == "2"
     monkeypatch.undo()
-    assert 'XYZ123' not in os.environ
+    assert "XYZ123" not in os.environ
 
 
 def test_delenv():
-    name = 'xyz1234'
+    name = "xyz1234"
     assert name not in os.environ
     monkeypatch = MonkeyPatch()
     pytest.raises(KeyError, "monkeypatch.delenv(%r, raising=True)" % name)
@@ -191,28 +197,31 @@ def test_delenv():
 
 def test_setenv_prepend():
     import os
+
     monkeypatch = MonkeyPatch()
-    monkeypatch.setenv('XYZ123', 2, prepend="-")
-    assert os.environ['XYZ123'] == "2"
-    monkeypatch.setenv('XYZ123', 3, prepend="-")
-    assert os.environ['XYZ123'] == "3-2"
+    monkeypatch.setenv("XYZ123", 2, prepend="-")
+    assert os.environ["XYZ123"] == "2"
+    monkeypatch.setenv("XYZ123", 3, prepend="-")
+    assert os.environ["XYZ123"] == "3-2"
     monkeypatch.undo()
-    assert 'XYZ123' not in os.environ
+    assert "XYZ123" not in os.environ
 
 
 def test_monkeypatch_plugin(testdir):
-    reprec = testdir.inline_runsource("""
+    reprec = testdir.inline_runsource(
+        """
         def test_method(monkeypatch):
             assert monkeypatch.__class__.__name__ == "MonkeyPatch"
-    """)
+    """
+    )
     res = reprec.countoutcomes()
     assert tuple(res) == (1, 0, 0), res
 
 
 def test_syspath_prepend(mp):
     old = list(sys.path)
-    mp.syspath_prepend('world')
-    mp.syspath_prepend('hello')
+    mp.syspath_prepend("world")
+    mp.syspath_prepend("hello")
     assert sys.path[0] == "hello"
     assert sys.path[1] == "world"
     mp.undo()
@@ -222,11 +231,11 @@ def test_syspath_prepend(mp):
 
 
 def test_syspath_prepend_double_undo(mp):
-    mp.syspath_prepend('hello world')
+    mp.syspath_prepend("hello world")
     mp.undo()
-    sys.path.append('more hello world')
+    sys.path.append("more hello world")
     mp.undo()
-    assert sys.path[-1] == 'more hello world'
+    assert sys.path[-1] == "more hello world"
 
 
 def test_chdir_with_path_local(mp, tmpdir):
@@ -255,37 +264,54 @@ def test_chdir_double_undo(mp, tmpdir):
 
 
 def test_issue185_time_breaks(testdir):
-    testdir.makepyfile("""
+    testdir.makepyfile(
+        """
         import time
         def test_m(monkeypatch):
             def f():
                 raise Exception
             monkeypatch.setattr(time, "time", f)
-    """)
+    """
+    )
     result = testdir.runpytest()
-    result.stdout.fnmatch_lines("""
+    result.stdout.fnmatch_lines(
+        """
         *1 passed*
-    """)
+    """
+    )
 
 
 def test_importerror(testdir):
     p = testdir.mkpydir("package")
-    p.join("a.py").write(textwrap.dedent("""\
+    p.join("a.py").write(
+        textwrap.dedent(
+            """\
         import doesnotexist
 
         x = 1
-    """))
-    testdir.tmpdir.join("test_importerror.py").write(textwrap.dedent("""\
+    """
+        )
+    )
+    testdir.tmpdir.join("test_importerror.py").write(
+        textwrap.dedent(
+            """\
         def test_importerror(monkeypatch):
             monkeypatch.setattr('package.a.x', 2)
-    """))
+    """
+        )
+    )
     result = testdir.runpytest()
-    result.stdout.fnmatch_lines("""
+    result.stdout.fnmatch_lines(
+        """
         *import error in package.a: No module named {0}doesnotexist{0}*
-    """.format("'" if sys.version_info > (3, 0) else ""))
+    """.format(
+            "'" if sys.version_info > (3, 0) else ""
+        )
+    )
 
 
 class SampleNew(object):
+
     @staticmethod
     def hello():
         return True
@@ -306,14 +332,15 @@ class SampleOldInherit(SampleOld):
     pass
 
 
-@pytest.mark.parametrize('Sample', [
-    SampleNew, SampleNewInherit,
-    SampleOld, SampleOldInherit,
-], ids=['new', 'new-inherit', 'old', 'old-inherit'])
+@pytest.mark.parametrize(
+    "Sample",
+    [SampleNew, SampleNewInherit, SampleOld, SampleOldInherit],
+    ids=["new", "new-inherit", "old", "old-inherit"],
+)
 def test_issue156_undo_staticmethod(Sample):
     monkeypatch = MonkeyPatch()
 
-    monkeypatch.setattr(Sample, 'hello', None)
+    monkeypatch.setattr(Sample, "hello", None)
     assert Sample.hello is None
 
     monkeypatch.undo()
@@ -321,9 +348,21 @@ def test_issue156_undo_staticmethod(Sample):
 
 
 def test_issue1338_name_resolving():
-    pytest.importorskip('requests')
+    pytest.importorskip("requests")
     monkeypatch = MonkeyPatch()
     try:
-        monkeypatch.delattr('requests.sessions.Session.request')
+        monkeypatch.delattr("requests.sessions.Session.request")
     finally:
         monkeypatch.undo()
+
+
+def test_context():
+    monkeypatch = MonkeyPatch()
+
+    import functools
+    import inspect
+
+    with monkeypatch.context() as m:
+        m.setattr(functools, "partial", 3)
+        assert not inspect.isclass(functools.partial)
+    assert inspect.isclass(functools.partial)

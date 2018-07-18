@@ -1550,6 +1550,7 @@ interface Window : EventTarget {
   void cancelAnimationFrame(unsigned long handle);
 
   void postMessage(any message, USVString targetOrigin, optional sequence<object> transfer = []);
+  void postMessage(any message, optional sequence<object> transfer = [], optional WindowPostMessageOptions options);
 
   // also has obsolete members
 };
@@ -1557,6 +1558,10 @@ Window includes GlobalEventHandlers;
 Window includes WindowEventHandlers;
 
 callback FrameRequestCallback = void (DOMHighResTimeStamp time);
+
+dictionary WindowPostMessageOptions {
+  USVString targetOrigin = "/";
+};
 
 [Exposed=Window]
 interface BarProp {

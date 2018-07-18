@@ -11,6 +11,10 @@
 <script>
 'use strict';
 
+function assert_opacity_value(opacity, expected, description) {
+  return assert_approx_equals(parseFloat(opacity), expected, 0.0001, description);
+}
+
 test(t => {
   const div = createDiv(t);
   const anim = div.animate([ { offset: 0, opacity: 0 },
@@ -21,7 +25,7 @@ test(t => {
                              { offset: 1, opacity: 1 } ],
                            { duration: 1000,
                              easing: 'cubic-bezier(0.5, -0.5, 0.5, 1.5)' });
-  assert_equals(getComputedStyle(div).opacity, '0.2',
+  assert_opacity_value(getComputedStyle(div).opacity, 0.2,
                 'When progress is zero the last keyframe with offset 0 should'
                 + ' be used');
   // http://cubic-bezier.com/#.5,-0.5,.5,1.5
@@ -55,15 +59,15 @@ test(t => {
                              { offset: 0.5, opacity: 0.7 },
                              { offset: 1, opacity: 1 } ], 1000);
   anim.currentTime = 250;
-  assert_equals(getComputedStyle(div).opacity, '0.15',
+  assert_opacity_value(getComputedStyle(div).opacity, 0.15,
                 'Before the overlap point, the first keyframe from the'
                 + ' overlap point should be used as interval endpoint');
   anim.currentTime = 500;
-  assert_equals(getComputedStyle(div).opacity, '0.7',
+  assert_opacity_value(getComputedStyle(div).opacity, 0.7,
                 'At the overlap point, the last keyframe from the'
                 + ' overlap point should be used as interval startpoint');
   anim.currentTime = 750;
-  assert_equals(getComputedStyle(div).opacity, '0.85',
+  assert_opacity_value(getComputedStyle(div).opacity, 0.85,
                 'After the overlap point, the last keyframe from the'
                 + ' overlap point should be used as interval startpoint');
 }, 'Overlapping keyframes between 0 and 1 use the appropriate value on each'

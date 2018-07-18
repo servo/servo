@@ -1,7 +1,6 @@
 import pickle
 import platform
 import os
-import sys
 
 import pytest
 
@@ -12,7 +11,6 @@ from .serve import Config
 
 @pytest.mark.skipif(platform.uname()[0] == "Windows",
                     reason="Expected contents are platform-dependent")
-@pytest.mark.xfail(sys.version_info >= (3,), reason="serve only works on Py2")
 def test_make_hosts_file_nix():
     c = Config(browser_host="foo.bar", alternate_hosts={"alt": "foo2.bar"})
     hosts = serve.make_hosts_file(c, "192.168.42.42")
@@ -34,7 +32,6 @@ def test_make_hosts_file_nix():
 
 @pytest.mark.skipif(platform.uname()[0] != "Windows",
                     reason="Expected contents are platform-dependent")
-@pytest.mark.xfail(sys.version_info >= (3,), reason="serve only works on Py2")
 def test_make_hosts_file_windows():
     c = Config(browser_host="foo.bar", alternate_hosts={"alt": "foo2.bar"})
     hosts = serve.make_hosts_file(c, "192.168.42.42")

@@ -1,3 +1,5 @@
+# META: timeout=long
+
 import pytest
 
 from webdriver import error
@@ -16,10 +18,10 @@ def execute_script(session, script, args=None):
         body)
 
 
-def test_handle_prompt_accept(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
-
-    response = execute_script(session, "window.alert('Hello');")
+@pytest.mark.capabilities({"unhandledPromptBehavior": "accept"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_accept(session, dialog_type):
+    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
     assert_success(response, None)
 
     session.title
@@ -27,33 +29,10 @@ def test_handle_prompt_accept(new_session, add_browser_capabilites):
         session.alert.accept()
 
 
-def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "dismiss"})}})
-
-    response = execute_script(session, "window.alert('Hello');")
-    assert_success(response, None)
-
-    session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.dismiss()
-
-
-def test_handle_prompt_dismiss_and_notify(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "dismiss and notify"})}})
-
-    response = execute_script(session, "window.alert('Hello');")
-    assert_success(response, None)
-
-    with pytest.raises(error.UnexpectedAlertOpenException):
-        session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.dismiss()
-
-
-def test_handle_prompt_accept_and_notify(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept and notify"})}})
-
-    response = execute_script(session, "window.alert('Hello');")
+@pytest.mark.capabilities({"unhandledPromptBehavior": "accept and notify"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_accept_and_notify(session, dialog_type):
+    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
     assert_success(response, None)
 
     with pytest.raises(error.UnexpectedAlertOpenException):
@@ -62,10 +41,33 @@ def test_handle_prompt_accept_and_notify(new_session, add_browser_capabilites):
         session.alert.accept()
 
 
-def test_handle_prompt_ignore(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "ignore"})}})
+@pytest.mark.capabilities({"unhandledPromptBehavior": "dismiss"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_dismiss(session, dialog_type):
+    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
+    assert_success(response, None)
 
-    response = execute_script(session, "window.alert('Hello');")
+    session.title
+    with pytest.raises(error.NoSuchAlertException):
+        session.alert.dismiss()
+
+
+@pytest.mark.capabilities({"unhandledPromptBehavior": "dismiss and notify"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_dismiss_and_notify(session, dialog_type):
+    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
+    assert_success(response, None)
+
+    with pytest.raises(error.UnexpectedAlertOpenException):
+        session.title
+    with pytest.raises(error.NoSuchAlertException):
+        session.alert.dismiss()
+
+
+@pytest.mark.capabilities({"unhandledPromptBehavior": "ignore"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_ignore(session, dialog_type):
+    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
     assert_success(response, None)
 
     with pytest.raises(error.UnexpectedAlertOpenException):
@@ -73,10 +75,9 @@ def test_handle_prompt_ignore(new_session, add_browser_capabilites):
     session.alert.dismiss()
 
 
-def test_handle_prompt_default(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({})}})
-
-    response = execute_script(session, "window.alert('Hello');")
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_default(session, dialog_type):
+    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
     assert_success(response, None)
 
     with pytest.raises(error.UnexpectedAlertOpenException):
@@ -85,10 +86,11 @@ def test_handle_prompt_default(new_session, add_browser_capabilites):
         session.alert.dismiss()
 
 
-def test_handle_prompt_twice(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
-
-    response = execute_script(session, "window.alert('Hello');window.alert('Bye');")
+@pytest.mark.capabilities({"unhandledPromptBehavior": "accept"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_twice(session, dialog_type):
+    response = execute_script(
+        session, "window.{0}('Hello');window.{0}('Bye');".format(dialog_type))
     assert_success(response, None)
 
     session.alert.dismiss()

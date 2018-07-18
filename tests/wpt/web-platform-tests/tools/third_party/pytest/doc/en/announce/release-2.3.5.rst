@@ -13,8 +13,8 @@ few interesting new plugins saw the light last month:
 - pytest-random: randomize test ordering
 
 And several others like pytest-django saw maintenance releases.
-For a more complete list, check out 
-https://pypi.python.org/pypi?%3Aaction=search&term=pytest&submit=search.
+For a more complete list, check out
+https://pypi.org/search/?q=pytest
 
 For general information see:
 
@@ -81,7 +81,7 @@ Changes between 2.3.4 and 2.3.5
 - fix bug where using capsys with pytest.set_trace() in a test
   function would break when looking at capsys.readouterr()
 
-- allow to specify prefixes starting with "_" when 
+- allow to specify prefixes starting with "_" when
   customizing python_functions test discovery. (thanks Graham Horler)
 
 - improve PYTEST_DEBUG tracing output by putting
@@ -94,4 +94,3 @@ Changes between 2.3.4 and 2.3.5
 - fix issue134 - print the collect errors that prevent running specified test items
 
 - fix issue266 - accept unicode in MarkEvaluator expressions
-

@@ -10,8 +10,9 @@ test(function() {
 
   // Check initial viewBox value.
   assert_true(svgElement.viewBox instanceof SVGAnimatedRect);
-  assert_true(svgElement.viewBox.baseVal instanceof SVGRect);
+  assert_true(svgElement.viewBox.baseVal instanceof DOMRect);
   assert_equals(svgElement.viewBox.baseVal.x, 0);
+  assert_true(svgElement.viewBox.animVal instanceof DOMRectReadOnly);
 
   // Check that rects are dynamic, caching value in a local variable and modifying it, should take effect.
   var numRef = svgElement.viewBox.baseVal;
@@ -28,6 +29,6 @@ test(function() {
   assert_equals(svgElement.viewBox.baseVal.x, 100);
 
   // Check that the viewBox baseVal type has not been changed.
-  assert_true(svgElement.viewBox.baseVal instanceof SVGRect);
+  assert_true(svgElement.viewBox.baseVal instanceof DOMRect);
 });
 </script>

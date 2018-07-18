@@ -27,6 +27,7 @@ The next three steps should bring you up and running in no time:
   After reading, you will know about our advanced features and how to use them.
 - Finally :doc:`why` gives you a rundown of potential alternatives and why we think ``attrs`` is superior.
   Yes, we've heard about ``namedtuple``\ s!
+- If at any point you get confused by some terminology, please check out our :doc:`glossary`.
 
 
 If you need any help while getting started, feel free to use the ``python-attrs`` tag on `StackOverflow <https://stackoverflow.com/questions/tagged/python-attrs>`_ and someone will surely help you out!
@@ -36,6 +37,11 @@ Day-to-Day Usage
 ================
 
 - Once you're comfortable with the concepts, our :doc:`api` contains all information you need to use ``attrs`` to its fullest.
+- Instance initialization is one of ``attrs`` key feature areas.
+  Our goal is to relieve you from writing as much code as possible.
+  :doc:`init` gives you an overview what ``attrs`` has to offer and explains some related philosophies we believe in.
+- If you want to put objects into sets or use them as keys in dictionaries, they have to be hashable.
+  The simplest way to do that is to use frozen classes, but the topic is more complex than it seems and :doc:`hashing` will give you a primer on what to look out for.
 - ``attrs`` is built for extension from the ground up.
   :doc:`extending` will show you the affordances it offers and how to make it a building block of your own projects.
 
@@ -68,9 +74,12 @@ Full Table of Contents
    overview
    why
    examples
+   init
+   hashing
    api
    extending
    how-does-it-work
+   glossary
 
 
 Indices and tables

@@ -23,14 +23,12 @@ dictionary RequestDeviceOptions {
   boolean acceptAllDevices = false;
 };
 
+[SecureContext]
 interface Bluetooth : EventTarget {
-  [SecureContext]
   Promise<boolean> getAvailability();
-  [SecureContext]
   attribute EventHandler onavailabilitychanged;
-  [SecureContext, SameObject]
+  [SameObject]
   readonly attribute BluetoothDevice? referringDevice;
-  [SecureContext]
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
 };
 Bluetooth implements BluetoothDeviceEventHandlers;
@@ -59,7 +57,10 @@ interface BluetoothPermissionResult : PermissionStatus {
   attribute FrozenArray<BluetoothDevice> devices;
 };
 
-[Constructor(DOMString type, optional ValueEventInit initDict)]
+[
+  Constructor(DOMString type, optional ValueEventInit initDict),
+  SecureContext
+]
 interface ValueEvent : Event {
   readonly attribute any value;
 };
@@ -68,6 +69,7 @@ dictionary ValueEventInit : EventInit {
   any value = null;
 };
 
+[SecureContext]
 interface BluetoothDevice {
   readonly attribute DOMString id;
   readonly attribute DOMString? name;
@@ -82,13 +84,18 @@ BluetoothDevice implements BluetoothDeviceEventHandlers;
 BluetoothDevice implements CharacteristicEventHandlers;
 BluetoothDevice implements ServiceEventHandlers;
 
+[SecureContext]
 interface BluetoothManufacturerDataMap {
   readonly maplike<unsigned short, DataView>;
 };
+[SecureContext]
 interface BluetoothServiceDataMap {
   readonly maplike<UUID, DataView>;
 };
-[Constructor(DOMString type, BluetoothAdvertisingEventInit init)]
+[
+  Constructor(DOMString type, BluetoothAdvertisingEventInit init),
+  SecureContext
+]
 interface BluetoothAdvertisingEvent : Event {
   [SameObject]
   readonly attribute BluetoothDevice device;
@@ -113,6 +120,7 @@ dictionary BluetoothAdvertisingEventInit : EventInit {
   Map serviceData;
 };
 
+[SecureContext]
 interface BluetoothRemoteGATTServer {
   [SameObject]
   readonly attribute BluetoothDevice device;
@@ -124,6 +132,7 @@ interface BluetoothRemoteGATTServer {
     getPrimaryServices(optional BluetoothServiceUUID service);
 };
 
+[SecureContext]
 interface BluetoothRemoteGATTService {
   [SameObject]
   readonly attribute BluetoothDevice device;
@@ -142,6 +151,7 @@ BluetoothRemoteGATTService implements EventTarget;
 BluetoothRemoteGATTService implements CharacteristicEventHandlers;
 BluetoothRemoteGATTService implements ServiceEventHandlers;
 
+[SecureContext]
 interface BluetoothRemoteGATTCharacteristic {
   [SameObject]
   readonly attribute BluetoothRemoteGATTService service;
@@ -159,6 +169,7 @@ interface BluetoothRemoteGATTCharacteristic {
 BluetoothRemoteGATTCharacteristic implements EventTarget;
 BluetoothRemoteGATTCharacteristic implements CharacteristicEventHandlers;
 
+[SecureContext]
 interface BluetoothCharacteristicProperties {
   readonly attribute boolean broadcast;
   readonly attribute boolean read;
@@ -171,6 +182,7 @@ interface BluetoothCharacteristicProperties {
   readonly attribute boolean writableAuxiliaries;
 };
 
+[SecureContext]
 interface BluetoothRemoteGATTDescriptor {
   [SameObject]
   readonly attribute BluetoothRemoteGATTCharacteristic characteristic;
@@ -180,17 +192,17 @@ interface BluetoothRemoteGATTDescriptor {
   Promise<void> writeValue(BufferSource value);
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, SecureContext]
 interface CharacteristicEventHandlers {
   attribute EventHandler oncharacteristicvaluechanged;
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, SecureContext]
 interface BluetoothDeviceEventHandlers {
   attribute EventHandler ongattserverdisconnected;
 };
 
-[NoInterfaceObject]
+[NoInterfaceObject, SecureContext]
 interface ServiceEventHandlers {
   attribute EventHandler onserviceadded;
   attribute EventHandler onservicechanged;
@@ -210,6 +222,7 @@ typedef (DOMString or unsigned long) BluetoothServiceUUID;
 typedef (DOMString or unsigned long) BluetoothCharacteristicUUID;
 typedef (DOMString or unsigned long) BluetoothDescriptorUUID;
 
+[SecureContext]
 partial interface Navigator {
   [SameObject]
   readonly attribute Bluetooth bluetooth;

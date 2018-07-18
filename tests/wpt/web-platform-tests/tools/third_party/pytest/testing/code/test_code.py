@@ -6,18 +6,19 @@ import _pytest._code
 import py
 import pytest
 from test_excinfo import TWMock
+from six import text_type
 
 
 def test_ne():
-    code1 = _pytest._code.Code(compile('foo = "bar"', '', 'exec'))
+    code1 = _pytest._code.Code(compile('foo = "bar"', "", "exec"))
     assert code1 == code1
-    code2 = _pytest._code.Code(compile('foo = "baz"', '', 'exec'))
+    code2 = _pytest._code.Code(compile('foo = "baz"', "", "exec"))
     assert code2 != code1
 
 
 def test_code_gives_back_name_for_not_existing_file():
-    name = 'abc-123'
-    co_code = compile("pass\n", name, 'exec')
+    name = "abc-123"
+    co_code = compile("pass\n", name, "exec")
     assert co_code.co_filename == name
     code = _pytest._code.Code(co_code)
     assert str(code.path) == name
@@ -25,12 +26,15 @@ def test_code_gives_back_name_for_not_existing_file():
 
 
 def test_code_with_class():
+
     class A(object):
         pass
+
     pytest.raises(TypeError, "_pytest._code.Code(A)")
 
 
 if True:
+
     def x():
         pass
 
@@ -38,7 +42,7 @@ if True:
 def test_code_fullsource():
     code = _pytest._code.Code(x)
     full = code.fullsource
-    assert 'test_code_fullsource()' in str(full)
+    assert "test_code_fullsource()" in str(full)
 
 
 def test_code_source():
@@ -50,8 +54,10 @@ def test_code_source():
 
 
 def test_frame_getsourcelineno_myself():
+
     def func():
         return sys._getframe(0)
+
     f = func()
     f = _pytest._code.Frame(f)
     source, lineno = f.code.fullsource, f.lineno
@@ -59,8 +65,10 @@ def test_frame_getsourcelineno_myself():
 
 
 def test_getstatement_empty_fullsource():
+
     def func():
         return sys._getframe(0)
+
     f = func()
     f = _pytest._code.Frame(f)
     prop = f.code.__class__.fullsource
@@ -78,7 +86,7 @@ def test_code_from_func():
 
 
 def test_unicode_handling():
-    value = py.builtin._totext('\xc4\x85\xc4\x87\n', 'utf-8').encode('utf8')
+    value = py.builtin._totext("\xc4\x85\xc4\x87\n", "utf-8").encode("utf8")
 
     def f():
         raise Exception(value)
@@ -86,65 +94,74 @@ def test_unicode_handling():
     excinfo = pytest.raises(Exception, f)
     str(excinfo)
     if sys.version_info[0] < 3:
-        unicode(excinfo)
+        text_type(excinfo)
 
 
-@pytest.mark.skipif(sys.version_info[0] >= 3, reason='python 2 only issue')
+@pytest.mark.skipif(sys.version_info[0] >= 3, reason="python 2 only issue")
 def test_unicode_handling_syntax_error():
-    value = py.builtin._totext('\xc4\x85\xc4\x87\n', 'utf-8').encode('utf8')
+    value = py.builtin._totext("\xc4\x85\xc4\x87\n", "utf-8").encode("utf8")
 
     def f():
-        raise SyntaxError('invalid syntax', (None, 1, 3, value))
+        raise SyntaxError("invalid syntax", (None, 1, 3, value))
 
     excinfo = pytest.raises(Exception, f)
     str(excinfo)
     if sys.version_info[0] < 3:
-        unicode(excinfo)
+        text_type(excinfo)
 
 
 def test_code_getargs():
+
     def f1(x):
         pass
+
     c1 = _pytest._code.Code(f1)
-    assert c1.getargs(var=True) == ('x',)
+    assert c1.getargs(var=True) == ("x",)
 
     def f2(x, *y):
         pass
+
     c2 = _pytest._code.Code(f2)
-    assert c2.getargs(var=True) == ('x', 'y')
+    assert c2.getargs(var=True) == ("x", "y")
 
     def f3(x, **z):
         pass
+
     c3 = _pytest._code.Code(f3)
-    assert c3.getargs(var=True) == ('x', 'z')
+    assert c3.getargs(var=True) == ("x", "z")
 
     def f4(x, *y, **z):
         pass
+
     c4 = _pytest._code.Code(f4)
-    assert c4.getargs(var=True) == ('x', 'y', 'z')
+    assert c4.getargs(var=True) == ("x", "y", "z")
 
 
 def test_frame_getargs():
+
     def f1(x):
         return sys._getframe(0)
-    fr1 = _pytest._code.Frame(f1('a'))
-    assert fr1.getargs(var=True) == [('x', 'a')]
+
+    fr1 = _pytest._code.Frame(f1("a"))
+    assert fr1.getargs(var=True) == [("x", "a")]
 
     def f2(x, *y):
         return sys._getframe(0)
-    fr2 = _pytest._code.Frame(f2('a', 'b', 'c'))
-    assert fr2.getargs(var=True) == [('x', 'a'), ('y', ('b', 'c'))]
+
+    fr2 = _pytest._code.Frame(f2("a", "b", "c"))
+    assert fr2.getargs(var=True) == [("x", "a"), ("y", ("b", "c"))]
 
     def f3(x, **z):
         return sys._getframe(0)
-    fr3 = _pytest._code.Frame(f3('a', b='c'))
-    assert fr3.getargs(var=True) == [('x', 'a'), ('z', {'b': 'c'})]
+
+    fr3 = _pytest._code.Frame(f3("a", b="c"))
+    assert fr3.getargs(var=True) == [("x", "a"), ("z", {"b": "c"})]
 
     def f4(x, *y, **z):
         return sys._getframe(0)
-    fr4 = _pytest._code.Frame(f4('a', 'b', c='d'))
-    assert fr4.getargs(var=True) == [('x', 'a'), ('y', ('b',)),
-                                     ('z', {'c': 'd'})]
+
+    fr4 = _pytest._code.Frame(f4("a", "b", c="d"))
+    assert fr4.getargs(var=True) == [("x", "a"), ("y", ("b",)), ("z", {"c": "d"})]
 
 
 class TestExceptionInfo(object):
@@ -173,7 +190,7 @@ class TestTracebackEntry(object):
         entry = exci.traceback[0]
         source = entry.getsource()
         assert len(source) == 6
-        assert 'assert False' in source[5]
+        assert "assert False" in source[5]
 
 
 class TestReprFuncArgs(object):
@@ -183,14 +200,11 @@ class TestReprFuncArgs(object):
 
         tw = TWMock()
 
-        args = [
-            ('unicode_string', u"São Paulo"),
-            ('utf8_string', 'S\xc3\xa3o Paulo'),
-        ]
+        args = [("unicode_string", u"São Paulo"), ("utf8_string", "S\xc3\xa3o Paulo")]
 
         r = ReprFuncArgs(args)
         r.toterminal(tw)
         if sys.version_info[0] >= 3:
-            assert tw.lines[0] == 'unicode_string = São Paulo, utf8_string = SÃ£o Paulo'
+            assert tw.lines[0] == "unicode_string = São Paulo, utf8_string = SÃ£o Paulo"
         else:
-            assert tw.lines[0] == 'unicode_string = São Paulo, utf8_string = São Paulo'
+            assert tw.lines[0] == "unicode_string = São Paulo, utf8_string = São Paulo"

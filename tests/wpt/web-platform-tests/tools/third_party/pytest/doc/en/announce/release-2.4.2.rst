@@ -26,9 +26,9 @@ pytest-2.4.2 is another bug-fixing release:
 
 - remove attempt to "dup" stdout at startup as it's icky.
   the normal capturing should catch enough possibilities
-  of tests messing up standard FDs. 
+  of tests messing up standard FDs.
 
-- add pluginmanager.do_configure(config) as a link to 
+- add pluginmanager.do_configure(config) as a link to
   config.do_configure() for plugin-compatibility
 
 as usual, docs at http://pytest.org and upgrades via::

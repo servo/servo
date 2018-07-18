@@ -155,7 +155,7 @@ class Config(Mapping):
                     try:
                         port = old_ports[scheme][i]
                     except (KeyError, IndexError):
-                        port = get_port(self.server_host)
+                        port = get_port()
                 else:
                     port = port
                 new_ports[scheme].append(port)

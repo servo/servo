@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+  <title>CSS Test: 'contain: size' should force elements to be monolithic, i.e. to not fragment inside a multicol element.</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="help" href="https://drafts.csswg.org/css-contain/#containment-size">
+  <link rel="match" href="contain-size-multicol-001-ref.html">
+  <style>
+    .contain {
+      contain:size;
+    }
+    .cols {
+      column-count: 3;
+      column-rule: 1px dotted blue;
+      column-fill: auto;
+      border: 2px solid blue;
+      height: 50px;
+      width: 300px;
+    }
+    .innerObject {
+      height: 200px;
+      width: 100px;
+      background: orange;
+    }
+  </style>
+</head>
+  <body>
+    <div class="cols">
+      <div class="contain innerObject">
+      </div>
+    </div>
+  </body>
+</html>

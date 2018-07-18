@@ -34,4 +34,3 @@ Changes between 2.1.0 and 2.1.1
 - fix issue59: provide system-out/err tags for junitxml output
 - fix issue61: assertion rewriting on boolean operations with 3 or more operands
 - you can now build a man page with "cd doc ; make man"
-

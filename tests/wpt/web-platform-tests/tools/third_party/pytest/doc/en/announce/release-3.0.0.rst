@@ -8,10 +8,10 @@ against itself, passing on many different interpreters and platforms.
 
 This release contains a lot of bugs fixes and improvements, and much of
 the work done on it was possible because of the 2016 Sprint[1], which
-was funded by an indiegogo campaign which raised over US$12,000 with 
-nearly 100 backers. 
+was funded by an indiegogo campaign which raised over US$12,000 with
+nearly 100 backers.
 
-There's a "What's new in pytest 3.0" [2] blog post highlighting the 
+There's a "What's new in pytest 3.0" [2] blog post highlighting the
 major features in this release.
 
 To see the complete changelog and documentation, please visit:

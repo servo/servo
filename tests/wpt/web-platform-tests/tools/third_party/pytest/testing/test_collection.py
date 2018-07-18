@@ -1,22 +1,27 @@
 from __future__ import absolute_import, division, print_function
+import pprint
+import sys
 import pytest
-import py
 
 import _pytest._code
 from _pytest.main import Session, EXIT_NOTESTSCOLLECTED, _in_venv
 
 
 class TestCollector(object):
+
     def test_collect_versus_item(self):
         from pytest import Collector, Item
+
         assert not issubclass(Collector, Item)
         assert not issubclass(Item, Collector)
 
     def test_compat_attributes(self, testdir, recwarn):
-        modcol = testdir.getmodulecol("""
+        modcol = testdir.getmodulecol(
+            """
             def test_pass(): pass
             def test_fail(): assert 0
-        """)
+        """
+        )
         recwarn.clear()
         assert modcol.Module == pytest.Module
         assert modcol.Class == pytest.Class
@@ -25,10 +30,12 @@ class TestCollector(object):
         assert modcol.Function == pytest.Function
 
     def test_check_equality(self, testdir):
-        modcol = testdir.getmodulecol("""
+        modcol = testdir.getmodulecol(
+            """
             def test_pass(): pass
             def test_fail(): assert 0
-        """)
+        """
+        )
         fn1 = testdir.collect_by_name(modcol, "test_pass")
         assert isinstance(fn1, pytest.Function)
         fn2 = testdir.collect_by_name(modcol, "test_pass")
@@ -36,8 +43,8 @@ class TestCollector(object):
 
         assert fn1 == fn2
         assert fn1 != modcol
-        if py.std.sys.version_info < (3, 0):
-            assert cmp(fn1, fn2) == 0
+        if sys.version_info < (3, 0):
+            assert cmp(fn1, fn2) == 0  # NOQA
         assert hash(fn1) == hash(fn2)
 
         fn3 = testdir.collect_by_name(modcol, "test_fail")
@@ -53,14 +60,15 @@ class TestCollector(object):
             assert modcol != fn
 
     def test_getparent(self, testdir):
-        modcol = testdir.getmodulecol("""
+        modcol = testdir.getmodulecol(
+            """
             class TestClass(object):
                  def test_foo():
                      pass
-        """)
+        """
+        )
         cls = testdir.collect_by_name(modcol, "TestClass")
-        fn = testdir.collect_by_name(
-            testdir.collect_by_name(cls, "()"), "test_foo")
+        fn = testdir.collect_by_name(testdir.collect_by_name(cls, "()"), "test_foo")
 
         parent = fn.getparent(pytest.Module)
         assert parent is modcol
@@ -73,14 +81,16 @@ class TestCollector(object):
 
     def test_getcustomfile_roundtrip(self, testdir):
         hello = testdir.makefile(".xxx", hello="world")
-        testdir.makepyfile(conftest="""
+        testdir.makepyfile(
+            conftest="""
             import pytest
             class CustomFile(pytest.File):
                 pass
             def pytest_collect_file(path, parent):
                 if path.ext == ".xxx":
                     return CustomFile(path, parent=parent)
-        """)
+        """
+        )
         node = testdir.getpathnode(hello)
         assert isinstance(node, pytest.File)
         assert node.name == "hello.xxx"
@@ -90,32 +100,32 @@ class TestCollector(object):
 
     def test_can_skip_class_with_test_attr(self, testdir):
         """Assure test class is skipped when using `__test__=False` (See #2007)."""
-        testdir.makepyfile("""
+        testdir.makepyfile(
+            """
             class TestFoo(object):
                 __test__ = False
                 def __init__(self):
                     pass
                 def test_foo():
                     assert True
-        """)
+        """
+        )
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines([
-            'collected 0 items',
-            '*no tests ran in*',
-        ])
+        result.stdout.fnmatch_lines(["collected 0 items", "*no tests ran in*"])
 
 
 class TestCollectFS(object):
+
     def test_ignored_certain_directories(self, testdir):
         tmpdir = testdir.tmpdir
-        tmpdir.ensure("build", 'test_notfound.py')
-        tmpdir.ensure("dist", 'test_notfound.py')
-        tmpdir.ensure("_darcs", 'test_notfound.py')
-        tmpdir.ensure("CVS", 'test_notfound.py')
-        tmpdir.ensure("{arch}", 'test_notfound.py')
-        tmpdir.ensure(".whatever", 'test_notfound.py')
-        tmpdir.ensure(".bzr", 'test_notfound.py')
-        tmpdir.ensure("normal", 'test_found.py')
+        tmpdir.ensure("build", "test_notfound.py")
+        tmpdir.ensure("dist", "test_notfound.py")
+        tmpdir.ensure("_darcs", "test_notfound.py")
+        tmpdir.ensure("CVS", "test_notfound.py")
+        tmpdir.ensure("{arch}", "test_notfound.py")
+        tmpdir.ensure(".whatever", "test_notfound.py")
+        tmpdir.ensure(".bzr", "test_notfound.py")
+        tmpdir.ensure("normal", "test_found.py")
         for x in tmpdir.visit("test_*.py"):
             x.write("def test_hello(): pass")
 
@@ -124,11 +134,19 @@ class TestCollectFS(object):
         assert "test_notfound" not in s
         assert "test_found" in s
 
-    @pytest.mark.parametrize('fname',
-                             ("activate", "activate.csh", "activate.fish",
-                              "Activate", "Activate.bat", "Activate.ps1"))
+    @pytest.mark.parametrize(
+        "fname",
+        (
+            "activate",
+            "activate.csh",
+            "activate.fish",
+            "Activate",
+            "Activate.bat",
+            "Activate.ps1",
+        ),
+    )
     def test_ignored_virtualenvs(self, testdir, fname):
-        bindir = "Scripts" if py.std.sys.platform.startswith("win") else "bin"
+        bindir = "Scripts" if sys.platform.startswith("win") else "bin"
         testdir.tmpdir.ensure("virtual", bindir, fname)
         testfile = testdir.tmpdir.ensure("virtual", "test_invenv.py")
         testfile.write("def test_hello(): pass")
@@ -143,11 +161,19 @@ class TestCollectFS(object):
         result = testdir.runpytest("virtual")
         assert "test_invenv" in result.stdout.str()
 
-    @pytest.mark.parametrize('fname',
-                             ("activate", "activate.csh", "activate.fish",
-                              "Activate", "Activate.bat", "Activate.ps1"))
+    @pytest.mark.parametrize(
+        "fname",
+        (
+            "activate",
+            "activate.csh",
+            "activate.fish",
+            "Activate",
+            "Activate.bat",
+            "Activate.ps1",
+        ),
+    )
     def test_ignored_virtualenvs_norecursedirs_precedence(self, testdir, fname):
-        bindir = "Scripts" if py.std.sys.platform.startswith("win") else "bin"
+        bindir = "Scripts" if sys.platform.startswith("win") else "bin"
         # norecursedirs takes priority
         testdir.tmpdir.ensure(".virtual", bindir, fname)
         testfile = testdir.tmpdir.ensure(".virtual", "test_invenv.py")
@@ -158,24 +184,34 @@ class TestCollectFS(object):
         result = testdir.runpytest("--collect-in-virtualenv", ".virtual")
         assert "test_invenv" in result.stdout.str()
 
-    @pytest.mark.parametrize('fname',
-                             ("activate", "activate.csh", "activate.fish",
-                              "Activate", "Activate.bat", "Activate.ps1"))
+    @pytest.mark.parametrize(
+        "fname",
+        (
+            "activate",
+            "activate.csh",
+            "activate.fish",
+            "Activate",
+            "Activate.bat",
+            "Activate.ps1",
+        ),
+    )
     def test__in_venv(self, testdir, fname):
         """Directly test the virtual env detection function"""
-        bindir = "Scripts" if py.std.sys.platform.startswith("win") else "bin"
+        bindir = "Scripts" if sys.platform.startswith("win") else "bin"
         # no bin/activate, not a virtualenv
-        base_path = testdir.tmpdir.mkdir('venv')
+        base_path = testdir.tmpdir.mkdir("venv")
         assert _in_venv(base_path) is False
         # with bin/activate, totally a virtualenv
         base_path.ensure(bindir, fname)
         assert _in_venv(base_path) is True
 
     def test_custom_norecursedirs(self, testdir):
-        testdir.makeini("""
+        testdir.makeini(
+            """
             [pytest]
             norecursedirs = mydir xyz*
-        """)
+        """
+        )
         tmpdir = testdir.tmpdir
         tmpdir.ensure("mydir", "test_hello.py").write("def test_1(): pass")
         tmpdir.ensure("xyz123", "test_2.py").write("def test_2(): 0/0")
@@ -186,10 +222,12 @@ class TestCollectFS(object):
         rec.assertoutcome(failed=1)
 
     def test_testpaths_ini(self, testdir, monkeypatch):
-        testdir.makeini("""
+        testdir.makeini(
+            """
             [pytest]
             testpaths = gui uts
-        """)
+        """
+        )
         tmpdir = testdir.tmpdir
         tmpdir.ensure("env", "test_1.py").write("def test_env(): pass")
         tmpdir.ensure("gui", "test_2.py").write("def test_gui(): pass")
@@ -197,28 +235,30 @@ class TestCollectFS(object):
 
         # executing from rootdir only tests from `testpaths` directories
         # are collected
-        items, reprec = testdir.inline_genitems('-v')
-        assert [x.name for x in items] == ['test_gui', 'test_uts']
+        items, reprec = testdir.inline_genitems("-v")
+        assert [x.name for x in items] == ["test_gui", "test_uts"]
 
         # check that explicitly passing directories in the command-line
         # collects the tests
-        for dirname in ('env', 'gui', 'uts'):
+        for dirname in ("env", "gui", "uts"):
             items, reprec = testdir.inline_genitems(tmpdir.join(dirname))
-            assert [x.name for x in items] == ['test_%s' % dirname]
+            assert [x.name for x in items] == ["test_%s" % dirname]
 
         # changing cwd to each subdirectory and running pytest without
         # arguments collects the tests in that directory normally
-        for dirname in ('env', 'gui', 'uts'):
+        for dirname in ("env", "gui", "uts"):
             monkeypatch.chdir(testdir.tmpdir.join(dirname))
             items, reprec = testdir.inline_genitems()
-            assert [x.name for x in items] == ['test_%s' % dirname]
+            assert [x.name for x in items] == ["test_%s" % dirname]
 
 
 class TestCollectPluginHookRelay(object):
+
     def test_pytest_collect_file(self, testdir):
         wascalled = []
 
         class Plugin(object):
+
             def pytest_collect_file(self, path, parent):
                 if not path.basename.startswith("."):
                     # Ignore hidden files, e.g. .testmondata.
@@ -227,12 +267,13 @@ class TestCollectPluginHookRelay(object):
         testdir.makefile(".abc", "xyz")
         pytest.main([testdir.tmpdir], plugins=[Plugin()])
         assert len(wascalled) == 1
-        assert wascalled[0].ext == '.abc'
+        assert wascalled[0].ext == ".abc"
 
     def test_pytest_collect_directory(self, testdir):
         wascalled = []
 
         class Plugin(object):
+
             def pytest_collect_directory(self, path, parent):
                 wascalled.append(path.basename)
 
@@ -246,10 +287,13 @@ class TestCollectPluginHookRelay(object):
 class TestPrunetraceback(object):
 
     def test_custom_repr_failure(self, testdir):
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             import not_exists
-        """)
-        testdir.makeconftest("""
+        """
+        )
+        testdir.makeconftest(
+            """
             import pytest
             def pytest_collect_file(path, parent):
                 return MyFile(path, parent)
@@ -262,20 +306,21 @@ class TestPrunetraceback(object):
                     if excinfo.errisinstance(MyError):
                         return "hello world"
                     return pytest.File.repr_failure(self, excinfo)
-        """)
+        """
+        )
 
         result = testdir.runpytest(p)
-        result.stdout.fnmatch_lines([
-            "*ERROR collecting*",
-            "*hello world*",
-        ])
+        result.stdout.fnmatch_lines(["*ERROR collecting*", "*hello world*"])
 
     @pytest.mark.xfail(reason="other mechanism for adding to reporting needed")
     def test_collect_report_postprocessing(self, testdir):
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             import not_exists
-        """)
-        testdir.makeconftest("""
+        """
+        )
+        testdir.makeconftest(
+            """
             import pytest
             @pytest.hookimpl(hookwrapper=True)
             def pytest_make_collect_report():
@@ -283,21 +328,22 @@ class TestPrunetraceback(object):
                 rep = outcome.get_result()
                 rep.headerlines += ["header1"]
                 outcome.force_result(rep)
-        """)
+        """
+        )
         result = testdir.runpytest(p)
-        result.stdout.fnmatch_lines([
-            "*ERROR collecting*",
-            "*header1*",
-        ])
+        result.stdout.fnmatch_lines(["*ERROR collecting*", "*header1*"])
 
 
 class TestCustomConftests(object):
+
     def test_ignore_collect_path(self, testdir):
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             def pytest_ignore_collect(path, config):
                 return path.basename.startswith("x") or \
                        path.basename == "test_one.py"
-        """)
+        """
+        )
         sub = testdir.mkdir("xy123")
         sub.ensure("test_hello.py").write("syntax error")
         sub.join("conftest.py").write("syntax error")
@@ -308,10 +354,12 @@ class TestCustomConftests(object):
         result.stdout.fnmatch_lines(["*1 passed*"])
 
     def test_ignore_collect_not_called_on_argument(self, testdir):
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             def pytest_ignore_collect(path, config):
                 return True
-        """)
+        """
+        )
         p = testdir.makepyfile("def test_hello(): pass")
         result = testdir.runpytest(p)
         assert result.ret == 0
@@ -321,14 +369,16 @@ class TestCustomConftests(object):
         result.stdout.fnmatch_lines("*collected 0 items*")
 
     def test_collectignore_exclude_on_option(self, testdir):
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             collect_ignore = ['hello', 'test_world.py']
             def pytest_addoption(parser):
                 parser.addoption("--XX", action="store_true", default=False)
             def pytest_configure(config):
                 if config.getvalue("XX"):
                     collect_ignore[:] = []
-        """)
+        """
+        )
         testdir.mkdir("hello")
         testdir.makepyfile(test_world="def test_hello(): pass")
         result = testdir.runpytest()
@@ -339,55 +389,55 @@ class TestCustomConftests(object):
         assert "passed" in result.stdout.str()
 
     def test_pytest_fs_collect_hooks_are_seen(self, testdir):
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             import pytest
             class MyModule(pytest.Module):
                 pass
             def pytest_collect_file(path, parent):
                 if path.ext == ".py":
                     return MyModule(path, parent)
-        """)
+        """
+        )
         testdir.mkdir("sub")
         testdir.makepyfile("def test_x(): pass")
         result = testdir.runpytest("--collect-only")
-        result.stdout.fnmatch_lines([
-            "*MyModule*",
-            "*test_x*"
-        ])
+        result.stdout.fnmatch_lines(["*MyModule*", "*test_x*"])
 
     def test_pytest_collect_file_from_sister_dir(self, testdir):
         sub1 = testdir.mkpydir("sub1")
         sub2 = testdir.mkpydir("sub2")
-        conf1 = testdir.makeconftest("""
+        conf1 = testdir.makeconftest(
+            """
             import pytest
             class MyModule1(pytest.Module):
                 pass
             def pytest_collect_file(path, parent):
                 if path.ext == ".py":
                     return MyModule1(path, parent)
-        """)
+        """
+        )
         conf1.move(sub1.join(conf1.basename))
-        conf2 = testdir.makeconftest("""
+        conf2 = testdir.makeconftest(
+            """
             import pytest
             class MyModule2(pytest.Module):
                 pass
             def pytest_collect_file(path, parent):
                 if path.ext == ".py":
                     return MyModule2(path, parent)
-        """)
+        """
+        )
         conf2.move(sub2.join(conf2.basename))
         p = testdir.makepyfile("def test_x(): pass")
         p.copy(sub1.join(p.basename))
         p.copy(sub2.join(p.basename))
         result = testdir.runpytest("--collect-only")
-        result.stdout.fnmatch_lines([
-            "*MyModule1*",
-            "*MyModule2*",
-            "*test_x*"
-        ])
+        result.stdout.fnmatch_lines(["*MyModule1*", "*MyModule2*", "*test_x*"])
 
 
 class TestSession(object):
+
     def test_parsearg(self, testdir):
         p = testdir.makepyfile("def test_func(): pass")
         subdir = testdir.mkdir("sub")
@@ -424,9 +474,13 @@ class TestSession(object):
 
     def get_reported_items(self, hookrec):
         """Return pytest.Item instances reported by the pytest_collectreport hook"""
-        calls = hookrec.getcalls('pytest_collectreport')
-        return [x for call in calls for x in call.report.result
-                if isinstance(x, pytest.Item)]
+        calls = hookrec.getcalls("pytest_collectreport")
+        return [
+            x
+            for call in calls
+            for x in call.report.result
+            if isinstance(x, pytest.Item)
+        ]
 
     def test_collect_protocol_single_function(self, testdir):
         p = testdir.makepyfile("def test_func(): pass")
@@ -436,42 +490,48 @@ class TestSession(object):
         assert item.name == "test_func"
         newid = item.nodeid
         assert newid == id
-        py.std.pprint.pprint(hookrec.calls)
+        pprint.pprint(hookrec.calls)
         topdir = testdir.tmpdir  # noqa
-        hookrec.assert_contains([
-            ("pytest_collectstart", "collector.fspath == topdir"),
-            ("pytest_make_collect_report", "collector.fspath == topdir"),
-            ("pytest_collectstart", "collector.fspath == p"),
-            ("pytest_make_collect_report", "collector.fspath == p"),
-            ("pytest_pycollect_makeitem", "name == 'test_func'"),
-            ("pytest_collectreport", "report.result[0].name == 'test_func'"),
-        ])
+        hookrec.assert_contains(
+            [
+                ("pytest_collectstart", "collector.fspath == topdir"),
+                ("pytest_make_collect_report", "collector.fspath == topdir"),
+                ("pytest_collectstart", "collector.fspath == p"),
+                ("pytest_make_collect_report", "collector.fspath == p"),
+                ("pytest_pycollect_makeitem", "name == 'test_func'"),
+                ("pytest_collectreport", "report.result[0].name == 'test_func'"),
+            ]
+        )
         # ensure we are reporting the collection of the single test item (#2464)
-        assert [x.name for x in self.get_reported_items(hookrec)] == ['test_func']
+        assert [x.name for x in self.get_reported_items(hookrec)] == ["test_func"]
 
     def test_collect_protocol_method(self, testdir):
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             class TestClass(object):
                 def test_method(self):
                     pass
-        """)
+        """
+        )
         normid = p.basename + "::TestClass::()::test_method"
-        for id in [p.basename,
-                   p.basename + "::TestClass",
-                   p.basename + "::TestClass::()",
-                   normid,
-                   ]:
+        for id in [
+            p.basename,
+            p.basename + "::TestClass",
+            p.basename + "::TestClass::()",
+            normid,
+        ]:
             items, hookrec = testdir.inline_genitems(id)
             assert len(items) == 1
             assert items[0].name == "test_method"
             newid = items[0].nodeid
             assert newid == normid
             # ensure we are reporting the collection of the single test item (#2464)
-            assert [x.name for x in self.get_reported_items(hookrec)] == ['test_method']
+            assert [x.name for x in self.get_reported_items(hookrec)] == ["test_method"]
 
     def test_collect_custom_nodes_multi_id(self, testdir):
         p = testdir.makepyfile("def test_func(): pass")
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             import pytest
             class SpecialItem(pytest.Item):
                 def runtest(self):
@@ -482,22 +542,26 @@ class TestSession(object):
             def pytest_collect_file(path, parent):
                 if path.basename == %r:
                     return SpecialFile(fspath=path, parent=parent)
-        """ % p.basename)
+        """
+            % p.basename
+        )
         id = p.basename
 
         items, hookrec = testdir.inline_genitems(id)
-        py.std.pprint.pprint(hookrec.calls)
+        pprint.pprint(hookrec.calls)
         assert len(items) == 2
-        hookrec.assert_contains([
-            ("pytest_collectstart",
-                "collector.fspath == collector.session.fspath"),
-            ("pytest_collectstart",
-                "collector.__class__.__name__ == 'SpecialFile'"),
-            ("pytest_collectstart",
-                "collector.__class__.__name__ == 'Module'"),
-            ("pytest_pycollect_makeitem", "name == 'test_func'"),
-            ("pytest_collectreport", "report.nodeid.startswith(p.basename)"),
-        ])
+        hookrec.assert_contains(
+            [
+                ("pytest_collectstart", "collector.fspath == collector.session.fspath"),
+                (
+                    "pytest_collectstart",
+                    "collector.__class__.__name__ == 'SpecialFile'",
+                ),
+                ("pytest_collectstart", "collector.__class__.__name__ == 'Module'"),
+                ("pytest_pycollect_makeitem", "name == 'test_func'"),
+                ("pytest_collectreport", "report.nodeid.startswith(p.basename)"),
+            ]
+        )
         assert len(self.get_reported_items(hookrec)) == 2
 
     def test_collect_subdir_event_ordering(self, testdir):
@@ -508,13 +572,14 @@ class TestSession(object):
 
         items, hookrec = testdir.inline_genitems()
         assert len(items) == 1
-        py.std.pprint.pprint(hookrec.calls)
-        hookrec.assert_contains([
-            ("pytest_collectstart", "collector.fspath == test_aaa"),
-            ("pytest_pycollect_makeitem", "name == 'test_func'"),
-            ("pytest_collectreport",
-             "report.nodeid.startswith('aaa/test_aaa.py')"),
-        ])
+        pprint.pprint(hookrec.calls)
+        hookrec.assert_contains(
+            [
+                ("pytest_collectstart", "collector.fspath == test_aaa"),
+                ("pytest_pycollect_makeitem", "name == 'test_func'"),
+                ("pytest_collectreport", "report.nodeid.startswith('aaa/test_aaa.py')"),
+            ]
+        )
 
     def test_collect_two_commandline_args(self, testdir):
         p = testdir.makepyfile("def test_func(): pass")
@@ -529,15 +594,17 @@ class TestSession(object):
 
         items, hookrec = testdir.inline_genitems(id)
         assert len(items) == 2
-        py.std.pprint.pprint(hookrec.calls)
-        hookrec.assert_contains([
-            ("pytest_collectstart", "collector.fspath == test_aaa"),
-            ("pytest_pycollect_makeitem", "name == 'test_func'"),
-            ("pytest_collectreport", "report.nodeid == 'aaa/test_aaa.py'"),
-            ("pytest_collectstart", "collector.fspath == test_bbb"),
-            ("pytest_pycollect_makeitem", "name == 'test_func'"),
-            ("pytest_collectreport", "report.nodeid == 'bbb/test_bbb.py'"),
-        ])
+        pprint.pprint(hookrec.calls)
+        hookrec.assert_contains(
+            [
+                ("pytest_collectstart", "collector.fspath == test_aaa"),
+                ("pytest_pycollect_makeitem", "name == 'test_func'"),
+                ("pytest_collectreport", "report.nodeid == 'aaa/test_aaa.py'"),
+                ("pytest_collectstart", "collector.fspath == test_bbb"),
+                ("pytest_pycollect_makeitem", "name == 'test_func'"),
+                ("pytest_collectreport", "report.nodeid == 'bbb/test_bbb.py'"),
+            ]
+        )
 
     def test_serialization_byid(self, testdir):
         testdir.makepyfile("def test_func(): pass")
@@ -550,28 +617,31 @@ class TestSession(object):
         assert item2.fspath == item.fspath
 
     def test_find_byid_without_instance_parents(self, testdir):
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             class TestClass(object):
                 def test_method(self):
                     pass
-        """)
+        """
+        )
         arg = p.basename + "::TestClass::test_method"
         items, hookrec = testdir.inline_genitems(arg)
         assert len(items) == 1
         item, = items
         assert item.nodeid.endswith("TestClass::()::test_method")
         # ensure we are reporting the collection of the single test item (#2464)
-        assert [x.name for x in self.get_reported_items(hookrec)] == ['test_method']
+        assert [x.name for x in self.get_reported_items(hookrec)] == ["test_method"]
 
 
 class Test_getinitialnodes(object):
+
     def test_global_file(self, testdir, tmpdir):
         x = tmpdir.ensure("x.py")
         with tmpdir.as_cwd():
             config = testdir.parseconfigure(x)
         col = testdir.getnode(config, x)
         assert isinstance(col, pytest.Module)
-        assert col.name == 'x.py'
+        assert col.name == "x.py"
         assert col.parent.parent is None
         for col in col.listchain():
             assert col.config is config
@@ -585,21 +655,24 @@ class Test_getinitialnodes(object):
             config = testdir.parseconfigure(x)
         col = testdir.getnode(config, x)
         assert isinstance(col, pytest.Module)
-        assert col.name == 'x.py'
+        assert col.name == "x.py"
         assert col.parent.parent is None
         for col in col.listchain():
             assert col.config is config
 
 
 class Test_genitems(object):
+
     def test_check_collect_hashes(self, testdir):
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             def test_1():
                 pass
 
             def test_2():
                 pass
-        """)
+        """
+        )
         p.copy(p.dirpath(p.purebasename + "2" + ".py"))
         items, reprec = testdir.inline_genitems(p.dirpath())
         assert len(items) == 4
@@ -610,7 +683,8 @@ class Test_genitems(object):
                     assert i != j
 
     def test_example_items1(self, testdir):
-        p = testdir.makepyfile('''
+        p = testdir.makepyfile(
+            """
             def testone():
                 pass
 
@@ -620,12 +694,13 @@ class Test_genitems(object):
 
             class TestY(TestX):
                 pass
-        ''')
+        """
+        )
         items, reprec = testdir.inline_genitems(p)
         assert len(items) == 3
-        assert items[0].name == 'testone'
-        assert items[1].name == 'testmethod_one'
-        assert items[2].name == 'testmethod_one'
+        assert items[0].name == "testone"
+        assert items[1].name == "testmethod_one"
+        assert items[2].name == "testmethod_one"
 
         # let's also test getmodpath here
         assert items[0].getmodpath() == "testone"
@@ -641,12 +716,15 @@ class Test_genitems(object):
         tests that python_classes and python_functions config options work
         as prefixes and glob-like patterns (issue #600).
         """
-        testdir.makeini("""
+        testdir.makeini(
+            """
             [pytest]
             python_classes = *Suite Test
             python_functions = *_test test
-        """)
-        p = testdir.makepyfile('''
+        """
+        )
+        p = testdir.makepyfile(
+            """
             class MyTestSuite(object):
                 def x_test(self):
                     pass
@@ -654,14 +732,16 @@ class Test_genitems(object):
             class TestCase(object):
                 def test_y(self):
                     pass
-        ''')
+        """
+        )
         items, reprec = testdir.inline_genitems(p)
         ids = [x.getmodpath() for x in items]
-        assert ids == ['MyTestSuite.x_test', 'TestCase.test_y']
+        assert ids == ["MyTestSuite.x_test", "TestCase.test_y"]
 
 
 def test_matchnodes_two_collections_same_file(testdir):
-    testdir.makeconftest("""
+    testdir.makeconftest(
+        """
         import pytest
         def pytest_configure(config):
             config.pluginmanager.register(Plugin2())
@@ -685,25 +765,25 @@ def test_matchnodes_two_collections_same_file(testdir):
         class Item2(pytest.Item):
             def runtest(self):
                 pass
-    """)
+    """
+    )
     p = testdir.makefile(".abc", "")
     result = testdir.runpytest()
     assert result.ret == 0
-    result.stdout.fnmatch_lines([
-        "*2 passed*",
-    ])
+    result.stdout.fnmatch_lines(["*2 passed*"])
     res = testdir.runpytest("%s::hello" % p.basename)
-    res.stdout.fnmatch_lines([
-        "*1 passed*",
-    ])
+    res.stdout.fnmatch_lines(["*1 passed*"])
 
 
 class TestNodekeywords(object):
+
     def test_no_under(self, testdir):
-        modcol = testdir.getmodulecol("""
+        modcol = testdir.getmodulecol(
+            """
             def test_pass(): pass
             def test_fail(): assert 0
-        """)
+        """
+        )
         values = list(modcol.keywords)
         assert modcol.name in values
         for x in values:
@@ -711,13 +791,15 @@ class TestNodekeywords(object):
         assert modcol.name in repr(modcol.keywords)
 
     def test_issue345(self, testdir):
-        testdir.makepyfile("""
+        testdir.makepyfile(
+            """
             def test_should_not_be_selected():
                 assert False, 'I should not have been selected to run'
 
             def test___repr__():
                 pass
-        """)
+        """
+        )
         reprec = testdir.inline_run("-k repr")
         reprec.assertoutcome(passed=1, failed=0)
 
@@ -751,13 +833,15 @@ def test_exit_on_collection_error(testdir):
     res = testdir.runpytest()
     assert res.ret == 2
 
-    res.stdout.fnmatch_lines([
-        "collected 2 items / 2 errors",
-        "*ERROR collecting test_02_import_error.py*",
-        "*No module named *asdfa*",
-        "*ERROR collecting test_03_import_error.py*",
-        "*No module named *asdfa*",
-    ])
+    res.stdout.fnmatch_lines(
+        [
+            "collected 2 items / 2 errors",
+            "*ERROR collecting test_02_import_error.py*",
+            "*No module named *asdfa*",
+            "*ERROR collecting test_03_import_error.py*",
+            "*No module named *asdfa*",
+        ]
+    )
 
 
 def test_exit_on_collection_with_maxfail_smaller_than_n_errors(testdir):
@@ -770,12 +854,11 @@ def test_exit_on_collection_with_maxfail_smaller_than_n_errors(testdir):
     res = testdir.runpytest("--maxfail=1")
     assert res.ret == 1
 
-    res.stdout.fnmatch_lines([
-        "*ERROR collecting test_02_import_error.py*",
-        "*No module named *asdfa*",
-    ])
+    res.stdout.fnmatch_lines(
+        ["*ERROR collecting test_02_import_error.py*", "*No module named *asdfa*"]
+    )
 
-    assert 'test_03' not in res.stdout.str()
+    assert "test_03" not in res.stdout.str()
 
 
 def test_exit_on_collection_with_maxfail_bigger_than_n_errors(testdir):
@@ -788,13 +871,15 @@ def test_exit_on_collection_with_maxfail_bigger_than_n_errors(testdir):
     res = testdir.runpytest("--maxfail=4")
     assert res.ret == 2
 
-    res.stdout.fnmatch_lines([
-        "collected 2 items / 2 errors",
-        "*ERROR collecting test_02_import_error.py*",
-        "*No module named *asdfa*",
-        "*ERROR collecting test_03_import_error.py*",
-        "*No module named *asdfa*",
-    ])
+    res.stdout.fnmatch_lines(
+        [
+            "collected 2 items / 2 errors",
+            "*ERROR collecting test_02_import_error.py*",
+            "*No module named *asdfa*",
+            "*ERROR collecting test_03_import_error.py*",
+            "*No module named *asdfa*",
+        ]
+    )
 
 
 def test_continue_on_collection_errors(testdir):
@@ -807,10 +892,9 @@ def test_continue_on_collection_errors(testdir):
     res = testdir.runpytest("--continue-on-collection-errors")
     assert res.ret == 1
 
-    res.stdout.fnmatch_lines([
-        "collected 2 items / 2 errors",
-        "*1 failed, 1 passed, 2 error*",
-    ])
+    res.stdout.fnmatch_lines(
+        ["collected 2 items / 2 errors", "*1 failed, 1 passed, 2 error*"]
+    )
 
 
 def test_continue_on_collection_errors_maxfail(testdir):
@@ -826,21 +910,22 @@ def test_continue_on_collection_errors_maxfail(testdir):
     res = testdir.runpytest("--continue-on-collection-errors", "--maxfail=3")
     assert res.ret == 1
 
-    res.stdout.fnmatch_lines([
-        "collected 2 items / 2 errors",
-        "*1 failed, 2 error*",
-    ])
+    res.stdout.fnmatch_lines(["collected 2 items / 2 errors", "*1 failed, 2 error*"])
 
 
 def test_fixture_scope_sibling_conftests(testdir):
     """Regression test case for https://github.com/pytest-dev/pytest/issues/2836"""
     foo_path = testdir.mkpydir("foo")
-    foo_path.join("conftest.py").write(_pytest._code.Source("""
+    foo_path.join("conftest.py").write(
+        _pytest._code.Source(
+            """
         import pytest
         @pytest.fixture
         def fix():
             return 1
-    """))
+    """
+        )
+    )
     foo_path.join("test_foo.py").write("def test_foo(fix): assert fix == 1")
 
     # Tests in `food/` should not see the conftest fixture from `foo/`
@@ -850,8 +935,10 @@ def test_fixture_scope_sibling_conftests(testdir):
     res = testdir.runpytest()
     assert res.ret == 1
 
-    res.stdout.fnmatch_lines([
-        "*ERROR at setup of test_food*",
-        "E*fixture 'fix' not found",
-        "*1 passed, 1 error*",
-    ])
+    res.stdout.fnmatch_lines(
+        [
+            "*ERROR at setup of test_food*",
+            "E*fixture 'fix' not found",
+            "*1 passed, 1 error*",
+        ]
+    )

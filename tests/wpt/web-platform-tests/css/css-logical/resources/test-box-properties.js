@@ -90,6 +90,9 @@
    *   }, logical: {
    *     inlineStart: "margin-inline-start", inlineEnd: "margin-inline-end",
    *     blockStart: "margin-block-start", blockEnd: "margin-block-end",
+   *   }, shorthands: {
+   *     inline: ["margin-inline-start", "margin-inline-end"],
+   *     block: ["margin-block-start", "margin-block-end"],
    *   }, type: ["length"], prerequisites: "...", property: "'margin-*'" }
    *
    * @param {string} property
@@ -105,9 +108,18 @@
   exports.createBoxPropertyGroup = function(property, descriptor) {
     const logical = {};
     const physical = {};
-    for (const logicalSide of ["inline-start", "inline-end", "block-start", "block-end"]) {
-      const camelCase = logicalSide.replace(/-(.)/g, (match, $1) => $1.toUpperCase());
-      logical[camelCase] = property.replace("*", logicalSide);
+    const shorthands = {};
+    for (const axis of ["inline", "block"]) {
+      const shorthand = property.replace("*", axis);
+      const longhands = [];
+      shorthands[shorthand] = longhands;
+      for (const side of ["start", "end"]) {
+        const logicalSide = axis + "-" + side;
+        const camelCase = logicalSide.replace(/-(.)/g, (match, $1) => $1.toUpperCase());
+        const longhand = property.replace("*", logicalSide);
+        logical[camelCase] = longhand;
+        longhands.push(longhand);
+      }
     }
     const isInset = property === "inset-*";
     let prerequisites = "";
@@ -116,7 +128,7 @@
       prerequisites += makeDeclaration(descriptor.prerequisites, physicalSide);
     }
     const type = [].concat(descriptor.type);
-    return {name, logical, physical, type, prerequisites, property};
+    return {name, logical, physical, shorthands, type, prerequisites, property};
   };
 
   /**
@@ -153,6 +165,7 @@
     });
     const logicals = Object.values(group.logical);
     const physicals = Object.values(group.physical);
+    const shorthands = group.shorthands ? Object.entries(group.shorthands) : null;
 
     test(function() {
       const expected = [];
@@ -195,6 +208,33 @@
                              expected);
         }, `Test that logical ${group.property} properties share computed values `
          + `with their physical associates, with '${writingModeDecl}'.`);
+
+
+        // Test logical shorthand properties.
+        if (shorthands) {
+          test(function() {
+            for (const [shorthand, longhands] of shorthands) {
+              let shorthandValues;
+              if (group.type.length > 1) {
+                shorthandValues = [values[0]];
+              } else {
+                shorthandValues = testValues[group.type].slice(0, longhands.length);
+              }
+              const decl = group.prerequisites + `${shorthand}: ${shorthandValues.join(" ")}; `;
+              const expected = [];
+              for (let [i, longhand] of longhands.entries()) {
+                const longhandValue = shorthandValues[group.type.length > 1 ? 0 : i];
+                expected.push([longhand, longhandValue]);
+                expected.push([associated[longhand], longhandValue]);
+              }
+              testComputedValues("shorthand properties on one declaration, writing " +
+                                 `mode properties on another, '${writingModeDecl}'`,
+                                 `.test { ${writingModeDecl} } .test { ${decl} }`,
+                                 expected);
+            }
+          }, `Test that ${group.property} shorthands set the computed value of both `
+           + `logical and physical longhands, with '${writingModeDecl}'.`);
+        }
 
         // Test that logical and physical properties are cascaded together,
         // honoring their relative order on a single declaration

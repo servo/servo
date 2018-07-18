@@ -1,0 +1,49 @@
+<html>
+<meta http-equiv="Accept-CH" content="DPR, Width, Viewport-Width, Device-Memory, rtt, downlink, ect">
+<title>Accept-CH http-equiv cross-navigation test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=test>
+    <p>Apart from this webpage, the test opens another html web page. One test
+    is run in this web page, and another in the second web page.
+</div>
+
+<script>
+
+// This test contains accept-ch http-equiv header. Due to the missing
+// Accept-CH-Lifetime header, the user-agent should not persist origin
+// preferences for the client hints specified in Accept-CH header.
+
+// Next, to verify that the origin preferences were not persisted by the user
+// agent, this test fetches resources/do_not_expect_client_hints_headers.html
+// in a new window. Fetching of
+// resources/do_not_expect_client_hints_headers.html
+// verifies that the user agent does not send the client hints in the request
+// headers.
+
+// Test is marked as tentative until https://github.com/whatwg/fetch/issues/726
+// is resolved.
+promise_test(t => {
+  return fetch("echo_client_hints_received.py").then(r => {
+    assert_equals(r.status, 200)
+    // Verify that the browser includes client hints in the request
+    // headers when fetching echo_client_hints_received.py within this page.
+    assert_true(r.headers.has("device-memory-received"), "device-memory-received");
+  });
+}, "Test that the browser attaches client hints on subresources in the same navigation");
+
+// Verify that the browser does not attach client hints on resources in a
+// different navigation. This verifies that the client hint preferences were
+// not persisted for the origin.
+window.open("resources/do_not_expect_client_hints_headers.html");
+async_test(t => {
+window.addEventListener('message', function(event) {
+  t.done();
+})
+}, "Loading of resources/do_not_expect_client_hints_headers.html did not finish.");
+
+</script>
+</body>
+</html>

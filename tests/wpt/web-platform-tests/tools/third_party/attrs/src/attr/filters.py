@@ -23,7 +23,7 @@ def include(*what):
     Whitelist *what*.
 
     :param what: What to whitelist.
-    :type what: :class:`list` of :class:`type` or :class:`attr.Attribute`\ s
+    :type what: :class:`list` of :class:`type` or :class:`attr.Attribute`\\ s
 
     :rtype: :class:`callable`
     """
@@ -40,7 +40,7 @@ def exclude(*what):
     Blacklist *what*.
 
     :param what: What to blacklist.
-    :type what: :class:`list` of classes or :class:`attr.Attribute`\ s.
+    :type what: :class:`list` of classes or :class:`attr.Attribute`\\ s.
 
     :rtype: :class:`callable`
     """

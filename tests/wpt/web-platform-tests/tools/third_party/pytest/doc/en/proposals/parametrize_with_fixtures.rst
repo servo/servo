@@ -35,26 +35,29 @@ This is how a functional test could look like:
 
     import pytest
 
+
     @pytest.fixture
     def default_context():
-        return {'extra_context': {}}
+        return {"extra_context": {}}
 
 
-    @pytest.fixture(params=[
-        {'author': 'alice'},
-        {'project_slug': 'helloworld'},
-        {'author': 'bob', 'project_slug': 'foobar'},
-    ])
+    @pytest.fixture(
+        params=[
+            {"author": "alice"},
+            {"project_slug": "helloworld"},
+            {"author": "bob", "project_slug": "foobar"},
+        ]
+    )
     def extra_context(request):
-        return {'extra_context': request.param}
+        return {"extra_context": request.param}
 
 
-    @pytest.fixture(params=['default', 'extra'])
+    @pytest.fixture(params=["default", "extra"])
     def context(request):
-        if request.param == 'default':
-            return request.getfuncargvalue('default_context')
+        if request.param == "default":
+            return request.getfuncargvalue("default_context")
         else:
-            return request.getfuncargvalue('extra_context')
+            return request.getfuncargvalue("extra_context")
 
 
     def test_generate_project(cookies, context):
@@ -95,8 +98,7 @@ fixtures from existing ones.
 .. code-block:: python
 
     pytest.define_combined_fixture(
-        name='context',
-        fixtures=['default_context', 'extra_context'],
+        name="context", fixtures=["default_context", "extra_context"]
     )
 
 The new fixture ``context`` inherits the scope from the used fixtures and yield
@@ -118,15 +120,17 @@ all parameters marked as a fixture.
 
 .. note::
 
-    The `pytest-lazy-fixture <https://pypi.python.org/pypi/pytest-lazy-fixture>`_ plugin implements a very
+    The `pytest-lazy-fixture <https://pypi.org/project/pytest-lazy-fixture/>`_ plugin implements a very
     similar solution to the proposal below, make sure to check it out.
 
 .. code-block:: python
 
-    @pytest.fixture(params=[
-        pytest.fixture_request('default_context'),
-        pytest.fixture_request('extra_context'),
-    ])
+    @pytest.fixture(
+        params=[
+            pytest.fixture_request("default_context"),
+            pytest.fixture_request("extra_context"),
+        ]
+    )
     def context(request):
         """Returns all values for ``default_context``, one-by-one before it
         does the same for ``extra_context``.
@@ -145,10 +149,10 @@ The same helper can be used in combination with ``pytest.mark.parametrize``.
 
 
     @pytest.mark.parametrize(
-        'context, expected_response_code',
+        "context, expected_response_code",
         [
-            (pytest.fixture_request('default_context'), 0),
-            (pytest.fixture_request('extra_context'), 0),
+            (pytest.fixture_request("default_context"), 0),
+            (pytest.fixture_request("extra_context"), 0),
         ],
     )
     def test_generate_project(cookies, context, exit_code):

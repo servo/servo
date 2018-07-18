@@ -32,7 +32,7 @@ For that, it gives you a class decorator and a way to declaratively define the a
 .. code-block:: pycon
 
    >>> import attr
-   
+
    >>> @attr.s
    ... class SomeClass(object):
    ...     a_number = attr.ib(default=42)
@@ -40,25 +40,25 @@ For that, it gives you a class decorator and a way to declaratively define the a
    ...
    ...     def hard_math(self, another_number):
    ...         return self.a_number + sum(self.list_of_numbers) * another_number
-   
-   
+
+
    >>> sc = SomeClass(1, [1, 2, 3])
    >>> sc
    SomeClass(a_number=1, list_of_numbers=[1, 2, 3])
-   
+
    >>> sc.hard_math(3)
    19
    >>> sc == SomeClass(1, [1, 2, 3])
    True
    >>> sc != SomeClass(2, [3, 2, 1])
    True
-   
+
    >>> attr.asdict(sc)
    {'a_number': 1, 'list_of_numbers': [1, 2, 3]}
-   
+
    >>> SomeClass()
    SomeClass(a_number=42, list_of_numbers=[])
-   
+
    >>> C = attr.make_class("C", ["a", "b"])
    >>> C("foo", "bar")
    C(a='foo', b='bar')
@@ -126,4 +126,7 @@ the code on `GitHub <https://github.com/python-attrs/attrs>`_,
 and the latest release on `PyPI <https://pypi.org/project/attrs/>`_.
 It’s rigorously tested on Python 2.7, 3.4+, and PyPy.
 
-If you'd like to contribute you're most welcome and we've written `a little guide <http://www.attrs.org/en/latest/contributing.html>`_ to get you started!
+We collect information on **third-party extensions** in our `wiki <https://github.com/python-attrs/attrs/wiki/Extensions-to-attrs>`_.
+Feel free to browse and add your own!
+
+If you'd like to contribute to ``attrs`` you're most welcome and we've written `a little guide <http://www.attrs.org/en/latest/contributing.html>`_ to get you started!

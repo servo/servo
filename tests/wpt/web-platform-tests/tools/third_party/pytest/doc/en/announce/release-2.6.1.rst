@@ -52,8 +52,7 @@ Changes 2.6.1
   "::" node id specifications (copy pasted from "-v" output)
 
 - fix issue544 by only removing "@NUM" at the end of "::" separated parts
-  and if the part has an ".py" extension
+  and if the part has a ".py" extension
 
 - don't use py.std import helper, rather import things directly.
   Thanks Bruno Oliveira.
-

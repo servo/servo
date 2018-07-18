@@ -559,4 +559,36 @@ promise_test(() => {
 
 }, 'Closing must be propagated forward: shutdown must not occur until the final write completes; becomes closed after first write; preventClose = true');
 
+
+promise_test(t => {
+  const rs = recordingReadableStream({
+    start(c) {
+      c.enqueue('a');
+      c.enqueue('b');
+      c.close();
+    }
+  });
+  let rejectWritePromise;
+  const ws = recordingWritableStream({
+    write() {
+      return new Promise((resolve, reject) => {
+        rejectWritePromise = reject;
+      });
+    }
+  }, { highWaterMark: 3 });
+  const pipeToPromise = rs.pipeTo(ws);
+  return delay(0).then(() => {
+    rejectWritePromise(error1);
+    return promise_rejects(t, error1, pipeToPromise, 'pipeTo should reject');
+  }).then(() => {
+    assert_array_equals(rs.events, []);
+    assert_array_equals(ws.events, ['write', 'a']);
+
+    return Promise.all([
+      rs.getReader().closed,
+      promise_rejects(t, error1, ws.getWriter().closed, 'ws should be errored')
+    ]);
+  });
+}, 'Closing must be propagated forward: erroring the writable while flushing pending writes should error pipeTo');
+
 done();

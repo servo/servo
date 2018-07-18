@@ -17,48 +17,52 @@ partial dictionary MediaTrackSupportedConstraints {
     boolean depthFar = false;
     boolean depthToVideoTransform = false;
 };
+
 partial dictionary MediaTrackCapabilities {
     // Apply to both depth stream track and color stream track:
-    DOMString               videoKind;
+    DOMString videoKind;
     (double or DoubleRange) focalLengthX;
     (double or DoubleRange) focalLengthY;
     (double or DoubleRange) principalPointX;
     (double or DoubleRange) principalPointY;
-    boolean                 deprojectionDistortionCoefficients;
-    boolean                 projectionDistortionCoefficients;
+    boolean deprojectionDistortionCoefficients;
+    boolean projectionDistortionCoefficients;
     // Apply to depth stream track:
     (double or DoubleRange) depthNear;
     (double or DoubleRange) depthFar;
-    boolean                 depthToVideoTransform;
+    boolean depthToVideoTransform;
 };
+
 partial dictionary MediaTrackConstraintSet {
     // Apply to both depth stream track and color stream track:
     ConstrainDOMString videoKind;
-    ConstrainDouble    focalLengthX;
-    ConstrainDouble    focalLengthY;
-    ConstrainDouble    principalPointX;
-    ConstrainDouble    principalPointY;
-    ConstrainBoolean   deprojectionDistortionCoefficients;
-    ConstrainBoolean   projectionDistortionCoefficients;
+    ConstrainDouble focalLengthX;
+    ConstrainDouble focalLengthY;
+    ConstrainDouble principalPointX;
+    ConstrainDouble principalPointY;
+    ConstrainBoolean deprojectionDistortionCoefficients;
+    ConstrainBoolean projectionDistortionCoefficients;
     // Apply to depth stream track:
-    ConstrainDouble    depthNear;
-    ConstrainDouble    depthFar;
-    ConstrainBoolean   depthToVideoTransform;
+    ConstrainDouble depthNear;
+    ConstrainDouble depthFar;
+    ConstrainBoolean depthToVideoTransform;
 };
+
 partial dictionary MediaTrackSettings {
     // Apply to both depth stream track and color stream track:
-    DOMString              videoKind;
-    double                 focalLengthX;
-    double                 focalLengthY;
-    double                 principalPointX;
-    double                 principalPointY;
+    DOMString videoKind;
+    double focalLengthX;
+    double focalLengthY;
+    double principalPointX;
+    double principalPointY;
     DistortionCoefficients deprojectionDistortionCoefficients;
     DistortionCoefficients projectionDistortionCoefficients;
     // Apply to depth stream track:
-    double                 depthNear;
-    double                 depthFar;
-    Transformation         depthToVideoTransform;
+    double depthNear;
+    double depthFar;
+    Transformation depthToVideoTransform;
 };
+
 dictionary DistortionCoefficients {
     double k1;
     double k2;
@@ -66,10 +70,12 @@ dictionary DistortionCoefficients {
     double p2;
     double k3;
 };
+
 dictionary Transformation {
-    Float32Array transformationMatrix;
-    DOMString    videoDeviceId;
+  Float32Array transformationMatrix;
+  DOMString videoDeviceId;
 };
+
 enum VideoKindEnum {
     "color",
     "depth"

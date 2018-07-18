@@ -1,8 +1,10 @@
+from _pytest.outcomes import Failed
 import pytest
 import sys
 
 
 class TestRaises(object):
+
     def test_raises(self):
         source = "int('qwe')"
         excinfo = pytest.raises(ValueError, source)
@@ -17,19 +19,23 @@ class TestRaises(object):
         pytest.raises(SyntaxError, "qwe qwe qwe")
 
     def test_raises_function(self):
-        pytest.raises(ValueError, int, 'hello')
+        pytest.raises(ValueError, int, "hello")
 
     def test_raises_callable_no_exception(self):
+
         class A(object):
+
             def __call__(self):
                 pass
+
         try:
             pytest.raises(ValueError, A())
         except pytest.raises.Exception:
             pass
 
     def test_raises_as_contextmanager(self, testdir):
-        testdir.makepyfile("""
+        testdir.makepyfile(
+            """
             from __future__ import with_statement
             import py, pytest
             import _pytest._code
@@ -51,25 +57,29 @@ class TestRaises(object):
                 with pytest.raises(ZeroDivisionError):
                     with pytest.raises(ValueError):
                            1/0
-        """)
+        """
+        )
         result = testdir.runpytest()
-        result.stdout.fnmatch_lines([
-            '*3 passed*',
-        ])
+        result.stdout.fnmatch_lines(["*3 passed*"])
 
     def test_noclass(self):
         with pytest.raises(TypeError):
-            pytest.raises('wrong', lambda: None)
+            pytest.raises("wrong", lambda: None)
+
+    def test_invalid_arguments_to_raises(self):
+        with pytest.raises(TypeError, match="unknown"):
+            with pytest.raises(TypeError, unknown="bogus"):
+                raise ValueError()
 
     def test_tuple(self):
         with pytest.raises((KeyError, ValueError)):
-            raise KeyError('oops')
+            raise KeyError("oops")
 
     def test_no_raise_message(self):
         try:
-            pytest.raises(ValueError, int, '0')
+            pytest.raises(ValueError, int, "0")
         except pytest.raises.Exception as e:
-            assert e.msg == "DID NOT RAISE {0}".format(repr(ValueError))
+            assert e.msg == "DID NOT RAISE {}".format(repr(ValueError))
         else:
             assert False, "Expected pytest.raises.Exception"
 
@@ -77,7 +87,7 @@ class TestRaises(object):
             with pytest.raises(ValueError):
                 pass
         except pytest.raises.Exception as e:
-            assert e.msg == "DID NOT RAISE {0}".format(repr(ValueError))
+            assert e.msg == "DID NOT RAISE {}".format(repr(ValueError))
         else:
             assert False, "Expected pytest.raises.Exception"
 
@@ -91,7 +101,7 @@ class TestRaises(object):
         else:
             assert False, "Expected pytest.raises.Exception"
 
-    @pytest.mark.parametrize('method', ['function', 'with'])
+    @pytest.mark.parametrize("method", ["function", "with"])
     def test_raises_cyclic_reference(self, method):
         """
         Ensure pytest.raises does not leave a reference cycle (#1965).
@@ -99,11 +109,12 @@ class TestRaises(object):
         import gc
 
         class T(object):
+
             def __call__(self):
                 raise ValueError
 
         t = T()
-        if method == 'function':
+        if method == "function":
             pytest.raises(ValueError, t)
         else:
             with pytest.raises(ValueError):
@@ -121,14 +132,46 @@ class TestRaises(object):
     def test_raises_match(self):
         msg = r"with base \d+"
         with pytest.raises(ValueError, match=msg):
-            int('asdf')
+            int("asdf")
 
         msg = "with base 10"
         with pytest.raises(ValueError, match=msg):
-            int('asdf')
+            int("asdf")
 
         msg = "with base 16"
-        expr = r"Pattern '{0}' not found in 'invalid literal for int\(\) with base 10: 'asdf''".format(msg)
+        expr = r"Pattern '{}' not found in 'invalid literal for int\(\) with base 10: 'asdf''".format(
+            msg
+        )
         with pytest.raises(AssertionError, match=expr):
             with pytest.raises(ValueError, match=msg):
-                int('asdf', base=10)
+                int("asdf", base=10)
+
+    def test_raises_match_wrong_type(self):
+        """Raising an exception with the wrong type and match= given.
+
+        pytest should throw the unexpected exception - the pattern match is not
+        really relevant if we got a different exception.
+        """
+        with pytest.raises(ValueError):
+            with pytest.raises(IndexError, match="nomatch"):
+                int("asdf")
+
+    def test_raises_exception_looks_iterable(self):
+        from six import add_metaclass
+
+        class Meta(type(object)):
+
+            def __getitem__(self, item):
+                return 1 / 0
+
+            def __len__(self):
+                return 1
+
+        @add_metaclass(Meta)
+        class ClassLooksIterableException(Exception):
+            pass
+
+        with pytest.raises(
+            Failed, match="DID NOT RAISE <class 'raises.ClassLooksIterableException'>"
+        ):
+            pytest.raises(ClassLooksIterableException, lambda: None)

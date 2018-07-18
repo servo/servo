@@ -18,11 +18,11 @@ promise_test(async t => {
 }, "Test that wakeLock.type is 'system' when system wake lock is invoked");
 
 promise_test(t => {
-  return promise_rejects(t, new DOMException("", "WakeLockTypeNotSupported"), navigator.getWakeLock());
-}, "'WakeLockTypeNotSupported' is thrown when set an empty wake lock type");
+  return promise_rejects(t, new DOMException("", "NotSupportedError"), navigator.getWakeLock());
+}, "'NotSupportedError' is thrown when set an empty wake lock type");
 
 promise_test(t => {
-  return promise_rejects(t, new DOMException("", "WakeLockTypeNotSupported"), navigator.getWakeLock("unsupported"));
-}, "'WakeLockTypeNotSupported' is thrown when set an unsupported wake lock type");
+  return promise_rejects(t, new DOMException("", "NotSupportedError"), navigator.getWakeLock("unsupported"));
+}, "'NotSupportedError' is thrown when set an unsupported wake lock type");
 
 </script>

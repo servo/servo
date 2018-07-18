@@ -8,7 +8,7 @@ compared to 2.3.5 before they hit more people:
   "type" keyword should also be converted to the respective types.
   thanks Floris Bruynooghe, @dnozay. (fixes issue360 and issue362)
 
-- fix dotted filename completion when using argcomplete 
+- fix dotted filename completion when using argcomplete
   thanks Anthon van der Neuth. (fixes issue361)
 
 - fix regression when a 1-tuple ("arg",) is used for specifying

@@ -10,7 +10,7 @@ function assert_valid(syntax, initialValue) {
     // No actual assertions, this just shouldn't throw
     test(function() {
         var name = '--syntax-test-' + (test_count++);
-        CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue});
+        CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false});
     }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is valid");
 }
 
@@ -18,7 +18,7 @@ function assert_invalid(syntax, initialValue) {
     test(function(){
         var name = '--syntax-test-' + (test_count++);
         assert_throws(new SyntaxError(),
-            () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue}));
+            () => CSS.registerProperty({name: name, syntax: syntax, initialValue: initialValue, inherits: false}));
     }, "syntax:'" + syntax + "', initialValue:'" + initialValue + "' is invalid");
 }
 
@@ -64,6 +64,10 @@ assert_valid("<time>", "calc(2s - 9ms)");
 assert_valid("<resolution>", "10dpi");
 assert_valid("<resolution>", "3dPpX");
 assert_valid("<resolution>", "-5.3dpcm");
+assert_valid("<transform-function>", "translateX(2px)");
+assert_valid("<transform-function>|<integer>", "5");
+assert_valid("<transform-function>|<integer>", "scale(2)");
+assert_valid("<transform-function>+", "translateX(2px) rotate(42deg)");
 assert_valid("<transform-list>", "scale(2)");
 assert_valid("<transform-list>", "translateX(2px) rotate(20deg)");
 
@@ -155,6 +159,7 @@ assert_invalid("<angle>", "0");
 assert_invalid("<angle>", "10%");
 assert_invalid("<time>", "2px");
 assert_invalid("<resolution>", "10");
+assert_invalid("<transform-function>", "scale()");
 assert_invalid("<transform-list>", "scale()");
 assert_invalid("<transform-list>+", "translateX(2px) rotate(20deg)");
 assert_invalid("<color>", "fancy-looking");

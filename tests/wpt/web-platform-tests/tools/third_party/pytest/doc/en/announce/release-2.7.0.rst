@@ -98,4 +98,3 @@ holger krekel
 - On failure, the ``sys.last_value``, ``sys.last_type`` and
   ``sys.last_traceback`` are set, so that a user can inspect the error
   via postmortem debugging (almarklein).
-

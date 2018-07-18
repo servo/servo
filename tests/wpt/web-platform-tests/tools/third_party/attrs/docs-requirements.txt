@@ -1,3 +1,0 @@
--e .
-sphinx
-zope.interface

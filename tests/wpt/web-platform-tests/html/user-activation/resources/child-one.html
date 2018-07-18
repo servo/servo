@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<body style="background: red;">
+  <script>
+  window.parent.postMessage(JSON.stringify({"type": "child-one-loaded", "isActive": navigator.userActivation.isActive,
+                                            "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+
+  window.addEventListener("click", event => {
+      window.parent.postMessage(JSON.stringify({"type": "child-one-clicked", "isActive": navigator.userActivation.isActive,
+                                                "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+  });
+
+  window.addEventListener("message", event => {
+      if (event.data == "report") {
+        window.parent.postMessage(JSON.stringify({"type": "child-one-report", "isActive": navigator.userActivation.isActive,
+                                                  "hasBeenActive": navigator.userActivation.hasBeenActive}), "*");
+      }
+  });
+
+</script>
+</body>

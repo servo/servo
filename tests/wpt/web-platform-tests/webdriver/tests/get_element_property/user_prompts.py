@@ -1,10 +1,7 @@
+import pytest
+
 from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
-from tests.support.fixtures import create_dialog
 from tests.support.inline import inline
-
-
-def read_global(session, name):
-    return session.execute_script("return %s;" % name)
 
 
 def get_property(session, element_id, name):
@@ -13,75 +10,54 @@ def get_property(session, element_id, name):
             session_id=session.session_id, element_id=element_id, name=name))
 
 
-def test_handle_prompt_dismiss(new_session, add_browser_capabilites):
-    # 13.3 step 2
-    _, session = new_session({"capabilities": {
-        "alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "dismiss"})}})
+@pytest.mark.capabilities({"unhandledPromptBehavior": "accept"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_accept(session, create_dialog, dialog_type):
     session.url = inline("<input id=foo>")
     element = session.find.css("#foo", all=False)
 
-    create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
+    create_dialog(dialog_type, text="dialog")
 
-    result = get_property(session, element.id, "id")
-    assert_success(result, "foo")
-    assert_dialog_handled(session, "dismiss #1")
+    response = get_property(session, element.id, "id")
+    assert_success(response, "foo")
 
-    create_dialog(session)("confirm", text="dismiss #2", result_var="dismiss2")
-
-    result = get_property(session, element.id, "id")
-    assert_success(result, "foo")
-    assert_dialog_handled(session, "dismiss #2")
-
-    create_dialog(session)("prompt", text="dismiss #3", result_var="dismiss3")
-
-    result = get_property(session, element.id, "id")
-    assert_success(result, "foo")
-    assert_dialog_handled(session, "dismiss #3")
+    assert_dialog_handled(session, expected_text="dialog")
 
 
-def test_handle_prompt_accept(new_session, add_browser_capabilites):
-    _, session = new_session({"capabilities": {
-        "alwaysMatch": add_browser_capabilites({"unhandledPromptBehavior": "accept"})}})
+def test_handle_prompt_accept_and_notify():
+    """TODO"""
+
+
+@pytest.mark.capabilities({"unhandledPromptBehavior": "dismiss"})
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_dismiss(session, create_dialog, dialog_type):
     session.url = inline("<input id=foo>")
     element = session.find.css("#foo", all=False)
 
-    create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
+    create_dialog(dialog_type, text="dialog")
 
-    result = get_property(session, element.id, "id")
-    assert_success(result, "foo")
-    assert_dialog_handled(session, "dismiss #1")
+    response = get_property(session, element.id, "id")
+    assert_success(response, "foo")
 
-    create_dialog(session)("confirm", text="dismiss #2", result_var="dismiss2")
-
-    result = get_property(session, element.id, "id")
-    assert_success(result, "foo")
-    assert_dialog_handled(session, "dismiss #2")
-
-    create_dialog(session)("prompt", text="dismiss #3", result_var="dismiss3")
-
-    result = get_property(session, element.id, "id")
-    assert_success(result, "foo")
-    assert_dialog_handled(session, "dismiss #3")
+    assert_dialog_handled(session, expected_text="dialog")
 
 
-def test_handle_prompt_missing_value(session):
+def test_handle_prompt_dismiss_and_notify():
+    """TODO"""
+
+
+def test_handle_prompt_ignore():
+    """TODO"""
+
+
+@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
+def test_handle_prompt_default(session, create_dialog, dialog_type):
     session.url = inline("<input id=foo>")
     element = session.find.css("#foo", all=False)
 
-    create_dialog(session)("alert", text="dismiss #1", result_var="dismiss1")
+    create_dialog(dialog_type, text="dialog")
 
-    result = get_property(session, element.id, "id")
-    assert_error(result, "unexpected alert open")
-    assert_dialog_handled(session, "dismiss #1")
+    response = get_property(session, element.id, "id")
+    assert_error(response, "unexpected alert open")
 
-    create_dialog(session)("confirm", text="dismiss #2", result_var="dismiss2")
-
-    result = get_property(session, element.id, "id")
-    assert_error(result, "unexpected alert open")
-    assert_dialog_handled(session, "dismiss #2")
-
-    create_dialog(session)("prompt", text="dismiss #3", result_var="dismiss3")
-
-    result = get_property(session, element.id, "id")
-    assert_error(result, "unexpected alert open")
-    assert_dialog_handled(session, "dismiss #3")
+    assert_dialog_handled(session, expected_text="dialog")

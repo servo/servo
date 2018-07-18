@@ -5,12 +5,15 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="resources/raflongtask.js"></script>
 
 <h1>Long Task: requestAnimationFrame</h1>
 <div id="log"></div>
 <script>
   async_test(function (t) {
+    if (typeof PerformanceLongTaskTiming === 'undefined') {
+        assert_unreached("Longtasks are not supported.");
+        t.done();
+    }
     const observer = new PerformanceObserver(
         t.step_func(function (entryList) {
             const entries = entryList.getEntries();
@@ -37,7 +40,11 @@
         })
     );
     observer.observe({entryTypes: ['longtask']});
+    window.onload = () => {
+        const script = document.createElement('script');
+        script.src = 'resources/raflongtask.js';
+        document.body.appendChild(script);
+    };
 }, 'Performance longtask entries are observable.');
 </script>
-
 </body>

@@ -1,8 +1,10 @@
 # encoding: UTF-8
 from __future__ import absolute_import, division, print_function
 import pytest
-import py
 import os
+import re
+import sys
+import types
 
 from _pytest.config import get_config, PytestPluginManager
 from _pytest.main import EXIT_NOTESTSCOLLECTED, Session
@@ -14,72 +16,86 @@ def pytestpm():
 
 
 class TestPytestPluginInteractions(object):
+
     def test_addhooks_conftestplugin(self, testdir):
-        testdir.makepyfile(newhooks="""
+        testdir.makepyfile(
+            newhooks="""
             def pytest_myhook(xyz):
                 "new hook"
-        """)
-        conf = testdir.makeconftest("""
+        """
+        )
+        conf = testdir.makeconftest(
+            """
             import sys ; sys.path.insert(0, '.')
             import newhooks
             def pytest_addhooks(pluginmanager):
                 pluginmanager.addhooks(newhooks)
             def pytest_myhook(xyz):
                 return xyz + 1
-        """)
+        """
+        )
         config = get_config()
         pm = config.pluginmanager
         pm.hook.pytest_addhooks.call_historic(
-            kwargs=dict(pluginmanager=config.pluginmanager))
+            kwargs=dict(pluginmanager=config.pluginmanager)
+        )
         config.pluginmanager._importconftest(conf)
         # print(config.pluginmanager.get_plugins())
         res = config.hook.pytest_myhook(xyz=10)
         assert res == [11]
 
     def test_addhooks_nohooks(self, testdir):
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             import sys
             def pytest_addhooks(pluginmanager):
                 pluginmanager.addhooks(sys)
-        """)
+        """
+        )
         res = testdir.runpytest()
         assert res.ret != 0
-        res.stderr.fnmatch_lines([
-            "*did not find*sys*"
-        ])
+        res.stderr.fnmatch_lines(["*did not find*sys*"])
 
     def test_namespace_early_from_import(self, testdir):
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             from pytest import Item
             from pytest import Item as Item2
             assert Item is Item2
-        """)
+        """
+        )
         result = testdir.runpython(p)
         assert result.ret == 0
 
     def test_do_ext_namespace(self, testdir):
-        testdir.makeconftest("""
+        testdir.makeconftest(
+            """
             def pytest_namespace():
                 return {'hello': 'world'}
-        """)
-        p = testdir.makepyfile("""
+        """
+        )
+        p = testdir.makepyfile(
+            """
             from pytest import hello
             import pytest
             def test_hello():
                 assert hello == "world"
                 assert 'hello' in pytest.__all__
-        """)
+        """
+        )
         reprec = testdir.inline_run(p)
         reprec.assertoutcome(passed=1)
 
     def test_do_option_postinitialize(self, testdir):
         config = testdir.parseconfigure()
-        assert not hasattr(config.option, 'test123')
-        p = testdir.makepyfile("""
+        assert not hasattr(config.option, "test123")
+        p = testdir.makepyfile(
+            """
             def pytest_addoption(parser):
                 parser.addoption('--test123', action="store_true",
                     default=True)
-        """)
+        """
+        )
         config.pluginmanager._importconftest(p)
         assert config.option.test123
 
@@ -88,6 +104,7 @@ class TestPytestPluginInteractions(object):
         values = []
 
         class A(object):
+
             def pytest_configure(self, config):
                 values.append(self)
 
@@ -108,10 +125,12 @@ class TestPytestPluginInteractions(object):
         saveindent = []
 
         class api1(object):
+
             def pytest_plugin_registered(self):
                 saveindent.append(pytestpm.trace.root.indent)
 
         class api2(object):
+
             def pytest_plugin_registered(self):
                 saveindent.append(pytestpm.trace.root.indent)
                 raise ValueError()
@@ -125,8 +144,8 @@ class TestPytestPluginInteractions(object):
             pytestpm.register(p)
             assert pytestpm.trace.root.indent == indent
             assert len(values) >= 2
-            assert 'pytest_plugin_registered' in values[0]
-            assert 'finish' in values[1]
+            assert "pytest_plugin_registered" in values[0]
+            assert "finish" in values[1]
 
             values[:] = []
             with pytest.raises(ValueError):
@@ -140,29 +159,28 @@ class TestPytestPluginInteractions(object):
         """Test the gethookproxy function(#2016)"""
         config = testdir.parseconfig()
         session = Session(config)
-        testdir.makepyfile(**{
-            'tests/conftest.py': '',
-            'tests/subdir/conftest.py': '',
-        })
+        testdir.makepyfile(**{"tests/conftest.py": "", "tests/subdir/conftest.py": ""})
 
-        conftest1 = testdir.tmpdir.join('tests/conftest.py')
-        conftest2 = testdir.tmpdir.join('tests/subdir/conftest.py')
+        conftest1 = testdir.tmpdir.join("tests/conftest.py")
+        conftest2 = testdir.tmpdir.join("tests/subdir/conftest.py")
 
         config.pluginmanager._importconftest(conftest1)
-        ihook_a = session.gethookproxy(testdir.tmpdir.join('tests'))
+        ihook_a = session.gethookproxy(testdir.tmpdir.join("tests"))
         assert ihook_a is not None
         config.pluginmanager._importconftest(conftest2)
-        ihook_b = session.gethookproxy(testdir.tmpdir.join('tests'))
+        ihook_b = session.gethookproxy(testdir.tmpdir.join("tests"))
         assert ihook_a is not ihook_b
 
     def test_warn_on_deprecated_addhooks(self, pytestpm):
         warnings = []
 
         class get_warnings(object):
+
             def pytest_logwarning(self, code, fslocation, message, nodeid):
                 warnings.append(message)
 
         class Plugin(object):
+
             def pytest_testhook():
                 pass
 
@@ -174,20 +192,19 @@ class TestPytestPluginInteractions(object):
 
 
 def test_namespace_has_default_and_env_plugins(testdir):
-    p = testdir.makepyfile("""
+    p = testdir.makepyfile(
+        """
         import pytest
         pytest.mark
-    """)
+    """
+    )
     result = testdir.runpython(p)
     assert result.ret == 0
 
 
 def test_default_markers(testdir):
     result = testdir.runpytest("--markers")
-    result.stdout.fnmatch_lines([
-        "*tryfirst*first*",
-        "*trylast*last*",
-    ])
+    result.stdout.fnmatch_lines(["*tryfirst*first*", "*trylast*last*"])
 
 
 def test_importplugin_error_message(testdir, pytestpm):
@@ -197,25 +214,28 @@ def test_importplugin_error_message(testdir, pytestpm):
     See #375 and #1998.
     """
     testdir.syspathinsert(testdir.tmpdir)
-    testdir.makepyfile(qwe="""
+    testdir.makepyfile(
+        qwe="""
         # encoding: UTF-8
         def test_traceback():
             raise ImportError(u'Not possible to import: ☺')
         test_traceback()
-    """)
+    """
+    )
     with pytest.raises(ImportError) as excinfo:
         pytestpm.import_plugin("qwe")
 
     expected_message = '.*Error importing plugin "qwe": Not possible to import: .'
     expected_traceback = ".*in test_traceback"
-    assert py.std.re.match(expected_message, str(excinfo.value))
-    assert py.std.re.match(expected_traceback, str(excinfo.traceback[-1]))
+    assert re.match(expected_message, str(excinfo.value))
+    assert re.match(expected_traceback, str(excinfo.traceback[-1]))
 
 
 class TestPytestPluginManager(object):
+
     def test_register_imported_modules(self):
         pm = PytestPluginManager()
-        mod = py.std.types.ModuleType("x.y.pytest_hello")
+        mod = types.ModuleType("x.y.pytest_hello")
         pm.register(mod)
         assert pm.is_registered(mod)
         values = pm.get_plugins()
@@ -226,18 +246,18 @@ class TestPytestPluginManager(object):
         assert pm.get_plugins() == values
 
     def test_canonical_import(self, monkeypatch):
-        mod = py.std.types.ModuleType("pytest_xyz")
-        monkeypatch.setitem(py.std.sys.modules, 'pytest_xyz', mod)
+        mod = types.ModuleType("pytest_xyz")
+        monkeypatch.setitem(sys.modules, "pytest_xyz", mod)
         pm = PytestPluginManager()
-        pm.import_plugin('pytest_xyz')
-        assert pm.get_plugin('pytest_xyz') == mod
+        pm.import_plugin("pytest_xyz")
+        assert pm.get_plugin("pytest_xyz") == mod
         assert pm.is_registered(mod)
 
     def test_consider_module(self, testdir, pytestpm):
         testdir.syspathinsert()
         testdir.makepyfile(pytest_p1="#")
         testdir.makepyfile(pytest_p2="#")
-        mod = py.std.types.ModuleType("temp")
+        mod = types.ModuleType("temp")
         mod.pytest_plugins = ["pytest_p1", "pytest_p2"]
         pytestpm.consider_module(mod)
         assert pytestpm.get_plugin("pytest_p1").__name__ == "pytest_p1"
@@ -245,12 +265,12 @@ class TestPytestPluginManager(object):
 
     def test_consider_module_import_module(self, testdir):
         pytestpm = get_config().pluginmanager
-        mod = py.std.types.ModuleType("x")
+        mod = types.ModuleType("x")
         mod.pytest_plugins = "pytest_a"
         aplugin = testdir.makepyfile(pytest_a="#")
         reprec = testdir.make_hook_recorder(pytestpm)
         # syspath.prepend(aplugin.dirpath())
-        py.std.sys.path.insert(0, str(aplugin.dirpath()))
+        sys.path.insert(0, str(aplugin.dirpath()))
         pytestpm.consider_module(mod)
         call = reprec.getcall(pytestpm.hook.pytest_plugin_registered.name)
         assert call.plugin.__name__ == "pytest_a"
@@ -261,46 +281,49 @@ class TestPytestPluginManager(object):
         assert len(values) == 1
 
     def test_consider_env_fails_to_import(self, monkeypatch, pytestpm):
-        monkeypatch.setenv('PYTEST_PLUGINS', 'nonexisting', prepend=",")
+        monkeypatch.setenv("PYTEST_PLUGINS", "nonexisting", prepend=",")
         with pytest.raises(ImportError):
             pytestpm.consider_env()
 
     def test_plugin_skip(self, testdir, monkeypatch):
-        p = testdir.makepyfile(skipping1="""
+        p = testdir.makepyfile(
+            skipping1="""
             import pytest
             pytest.skip("hello")
-        """)
+        """
+        )
         p.copy(p.dirpath("skipping2.py"))
         monkeypatch.setenv("PYTEST_PLUGINS", "skipping2")
         result = testdir.runpytest("-rw", "-p", "skipping1", syspathinsert=True)
         assert result.ret == EXIT_NOTESTSCOLLECTED
-        result.stdout.fnmatch_lines([
-            "*skipped plugin*skipping1*hello*",
-            "*skipped plugin*skipping2*hello*",
-        ])
+        result.stdout.fnmatch_lines(
+            ["*skipped plugin*skipping1*hello*", "*skipped plugin*skipping2*hello*"]
+        )
 
     def test_consider_env_plugin_instantiation(self, testdir, monkeypatch, pytestpm):
         testdir.syspathinsert()
         testdir.makepyfile(xy123="#")
-        monkeypatch.setitem(os.environ, 'PYTEST_PLUGINS', 'xy123')
+        monkeypatch.setitem(os.environ, "PYTEST_PLUGINS", "xy123")
         l1 = len(pytestpm.get_plugins())
         pytestpm.consider_env()
         l2 = len(pytestpm.get_plugins())
         assert l2 == l1 + 1
-        assert pytestpm.get_plugin('xy123')
+        assert pytestpm.get_plugin("xy123")
         pytestpm.consider_env()
         l3 = len(pytestpm.get_plugins())
         assert l2 == l3
 
     def test_pluginmanager_ENV_startup(self, testdir, monkeypatch):
         testdir.makepyfile(pytest_x500="#")
-        p = testdir.makepyfile("""
+        p = testdir.makepyfile(
+            """
             import pytest
             def test_hello(pytestconfig):
                 plugin = pytestconfig.pluginmanager.get_plugin('pytest_x500')
                 assert plugin is not None
-        """)
-        monkeypatch.setenv('PYTEST_PLUGINS', 'pytest_x500', prepend=",")
+        """
+        )
+        monkeypatch.setenv("PYTEST_PLUGINS", "pytest_x500", prepend=",")
         result = testdir.runpytest(p, syspathinsert=True)
         assert result.ret == 0
         result.stdout.fnmatch_lines(["*1 passed*"])
@@ -318,7 +341,7 @@ class TestPytestPluginManager(object):
         len2 = len(pytestpm.get_plugins())
         assert len1 == len2
         plugin1 = pytestpm.get_plugin("pytest_hello")
-        assert plugin1.__name__.endswith('pytest_hello')
+        assert plugin1.__name__.endswith("pytest_hello")
         plugin2 = pytestpm.get_plugin("pytest_hello")
         assert plugin2 is plugin1
 
@@ -340,9 +363,11 @@ class TestPytestPluginManager(object):
 
 
 class TestPytestPluginManagerBootstrapming(object):
+
     def test_preparse_args(self, pytestpm):
-        pytest.raises(ImportError, lambda:
-                      pytestpm.consider_preparse(["xyz", "-p", "hello123"]))
+        pytest.raises(
+            ImportError, lambda: pytestpm.consider_preparse(["xyz", "-p", "hello123"])
+        )
 
     def test_plugin_prevent_register(self, pytestpm):
         pytestpm.consider_preparse(["xyz", "-p", "no:abc"])

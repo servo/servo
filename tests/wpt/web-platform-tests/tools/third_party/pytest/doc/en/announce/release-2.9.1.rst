@@ -14,17 +14,17 @@ As usual, you can upgrade from pypi via::
 
 Thanks to all who contributed to this release, among them:
 
-    Bruno Oliveira                                                                                                                                                                                                                            
-    Daniel Hahler                                                                                                                                                                                                                             
-    Dmitry Malinovsky                                                                                                                                                                                                                         
-    Florian Bruhin                                                                                                                                                                                                                            
-    Floris Bruynooghe                                                                                                                                                                                                                         
-    Matt Bachmann                                                                                                                                                                                                                             
-    Ronny Pfannschmidt                                                                                                                                                                                                                        
-    TomV                                                                                                                                                                                                                                      
-    Vladimir Bolshakov                                                                                                                                                                                                                        
-    Zearin                                                                                                                                                                                                                                     
-    palaviv   
+    Bruno Oliveira
+    Daniel Hahler
+    Dmitry Malinovsky
+    Florian Bruhin
+    Floris Bruynooghe
+    Matt Bachmann
+    Ronny Pfannschmidt
+    TomV
+    Vladimir Bolshakov
+    Zearin
+    palaviv
 
 
 Happy testing,

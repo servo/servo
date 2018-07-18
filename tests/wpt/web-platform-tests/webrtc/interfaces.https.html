@@ -79,7 +79,7 @@
 
   // Asynchoronously generate MediaStreamTrack from getUserMedia
   function asyncInitMediaStreamTrack() {
-    return navigator.mediaDevices.getUserMedia({ audio: true })
+    return getNoiseStream({ audio: true })
     .then(mediaStream => {
       idlTestObjects.mediaStreamTrack = mediaStream.getTracks()[0];
     });
@@ -109,7 +109,7 @@
     const idlArray = new IdlArray();
 
     let webrtcIdl = fetch('/interfaces/webrtc-pc.idl').then(r => r.text());
-    let mediacaptureMainIdl = fetch('/interfaces/mediacapture-main.idl').then(r => r.text());
+    let mediacaptureMainIdl = fetch('/interfaces/mediacapture-streams.idl').then(r => r.text());
 
     idlArray.add_untested_idls(mediacaptureMainIdl, { only: ['MediaStreamConstraints'] });
     idlArray.add_idls(webrtcIdl);

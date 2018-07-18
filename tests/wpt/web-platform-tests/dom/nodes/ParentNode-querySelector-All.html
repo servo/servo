@@ -85,6 +85,8 @@ function init(target) {
   var fragment = doc.createDocumentFragment(); // Fragment Node tests
   fragment.appendChild(element.cloneNode(true));
 
+  var empty = document.createElement("div"); // Empty Node tests
+
   // Setup Tests
   interfaceCheck("Document", doc);
   interfaceCheck("Detached Element", detached);
@@ -105,6 +107,7 @@ function init(target) {
   runInvalidSelectorTest("Detached Element", detached, invalidSelectors);
   runInvalidSelectorTest("Fragment", fragment, invalidSelectors);
   runInvalidSelectorTest("In-document Element", element, invalidSelectors);
+  runInvalidSelectorTest("Empty Element", empty, invalidSelectors);
 
   runValidSelectorTest("Document", doc, validSelectors, testType, docType);
   runValidSelectorTest("Detached Element", detached, validSelectors, testType, docType);

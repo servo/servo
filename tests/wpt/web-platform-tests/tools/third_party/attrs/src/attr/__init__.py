@@ -6,11 +6,12 @@ from . import converters, exceptions, filters, validators
 from ._config import get_run_validators, set_run_validators
 from ._funcs import asdict, assoc, astuple, evolve, has
 from ._make import (
-    NOTHING, Attribute, Factory, attrib, attrs, fields, make_class, validate
+    NOTHING, Attribute, Factory, attrib, attrs, fields, fields_dict,
+    make_class, validate
 )
 
 
-__version__ = "17.4.0.dev0"
+__version__ = "18.1.0"
 
 __title__ = "attrs"
 __description__ = "Classes Without Boilerplate"
@@ -43,6 +44,7 @@ __all__ = [
     "evolve",
     "exceptions",
     "fields",
+    "fields_dict",
     "filters",
     "get_run_validators",
     "has",

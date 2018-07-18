@@ -27,7 +27,7 @@ Changes between 2.2.0 and 2.2.1
 ----------------------------------------
 
 - fix issue99 (in pytest and py) internallerrors with resultlog now
-  produce better output - fixed by normalizing pytest_internalerror 
+  produce better output - fixed by normalizing pytest_internalerror
   input arguments.
 - fix issue97 / traceback issues (in pytest and py) improve traceback output
   in conjunction with jinja2 and cython which hack tracebacks
@@ -35,7 +35,7 @@ Changes between 2.2.0 and 2.2.1
   the final test in a test node will now run its teardown directly
   instead of waiting for the end of the session. Thanks Dave Hunt for
   the good reporting and feedback.  The pytest_runtest_protocol as well
-  as the pytest_runtest_teardown hooks now have "nextitem" available 
+  as the pytest_runtest_teardown hooks now have "nextitem" available
   which will be None indicating the end of the test run.
 - fix collection crash due to unknown-source collected items, thanks
   to Ralf Schmitt (fixed by depending on a more recent pylib)

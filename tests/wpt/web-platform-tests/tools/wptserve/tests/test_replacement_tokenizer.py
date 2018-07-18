@@ -1,4 +1,4 @@
-import sys
+from __future__ import unicode_literals
 
 import pytest
 
@@ -7,33 +7,18 @@ from wptserve.pipes import ReplacementTokenizer
 @pytest.mark.parametrize(
     "content,expected",
     [
-        ["aaa", [('ident', 'aaa')]],
-        ["bbb()", [('ident', 'bbb'), ('arguments', [])]],
-        ["$ccc:ddd", [('var', '$ccc'), ('ident', 'ddd')]],
-        ["$eee", [('ident', '$eee')]],
-        ["fff[0]", [('ident', 'fff'), ('index', 0)]],
-        pytest.param(
-            "ggg[hhh]", [('ident', 'ggg'), ('index', u'hhh')],
-            marks=pytest.mark.xfail(sys.version_info >= (3,),
-                                    reason="wptserve only works on Py2")
-        ),
-        pytest.param(
-            "[iii]", [('index', u'iii')],
-            marks=pytest.mark.xfail(sys.version_info >= (3,),
-                                    reason="wptserve only works on Py2")
-        ),
-        pytest.param(
-            "jjj['kkk']", [('ident', 'jjj'), ('index', u"'kkk'")],
-            marks=pytest.mark.xfail(sys.version_info >= (3,),
-                                    reason="wptserve only works on Py2")
-        ),
-        pytest.param(
-            "lll[]", [('ident', 'lll'), ('index', u"")],
-            marks=pytest.mark.xfail(sys.version_info >= (3,),
-                                    reason="wptserve only works on Py2")
-        ),
-        ["111", [('ident', u'111')]],
-        ["$111", [('ident', u'$111')]],
+        [b"aaa", [('ident', 'aaa')]],
+        [b"bbb()", [('ident', 'bbb'), ('arguments', [])]],
+        [b"bcd(uvw, xyz)", [('ident', 'bcd'), ('arguments', ['uvw', 'xyz'])]],
+        [b"$ccc:ddd", [('var', '$ccc'), ('ident', 'ddd')]],
+        [b"$eee", [('ident', '$eee')]],
+        [b"fff[0]", [('ident', 'fff'), ('index', 0)]],
+        [b"ggg[hhh]", [('ident', 'ggg'), ('index', 'hhh')]],
+        [b"[iii]", [('index', 'iii')]],
+        [b"jjj['kkk']", [('ident', 'jjj'), ('index', "'kkk'")]],
+        [b"lll[]", [('ident', 'lll'), ('index', "")]],
+        [b"111", [('ident', '111')]],
+        [b"$111", [('ident', '$111')]],
     ]
 )
 def test_tokenizer(content, expected):
@@ -45,8 +30,8 @@ def test_tokenizer(content, expected):
 @pytest.mark.parametrize(
     "content,expected",
     [
-        ["/", []],
-        ["$aaa: BBB", [('var', '$aaa')]],
+        [b"/", []],
+        [b"$aaa: BBB", [('var', '$aaa')]],
     ]
 )
 def test_tokenizer_errors(content, expected):

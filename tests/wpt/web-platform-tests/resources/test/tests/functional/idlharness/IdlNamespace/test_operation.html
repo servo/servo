@@ -1,0 +1,99 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="variant" content="">
+  <meta name="variant" content="?keep-promise">
+  <title>idlharness: namespace operation</title>
+  <script src="../../../../variants.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/WebIDLParser.js"></script>
+  <script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<p>Verify the series of sub-tests that are executed for namespace operations.</p>
+<script>
+"use strict";
+
+self.foo = {
+  Truth: function() {},
+};
+Object.defineProperty(self.foo, "Truth", { writable: true });
+
+self.bar = {
+  Truth: function() {},
+}
+Object.defineProperty(self.bar, "Truth", {
+  writable: false,
+  configurable: false,
+});
+
+self.baz = {
+  LongStory: function(hero, ...details) {
+    return `${hero} went and ${details.join(', then')}`
+  },
+  ShortStory: function(...details) {
+    return `${details.join('. ')}`;
+  },
+};
+
+var idlArray = new IdlArray();
+idlArray.add_idls(
+`namespace foo {
+  void Truth();
+  void Lies();
+};
+namespace bar {
+  [Unforgeable]
+  void Truth();
+};
+namespace baz {
+  DOMString LongStory(any hero, DOMString... details);
+  DOMString ShortStory(DOMString... details);
+};`);
+idlArray.test();
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "name": "bar namespace: operation Truth()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "baz namespace: operation LongStory(any, DOMString...)",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "baz namespace: operation ShortStory(DOMString...)",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: operation Truth()",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: operation Lies()",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_own_property: namespace object missing operation \"Lies\" expected property \"Lies\" missing"
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

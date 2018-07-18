@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Web Authentication spec.
-// See https://w3c.github.io/webauthn/
+// Content of this file was automatically extracted from the
+// "Web Authentication: An API for accessing Public Key Credentials - Level 1" spec.
+// See: https://w3c.github.io/webauthn/
 
 [SecureContext, Exposed=Window]
 interface PublicKeyCredential : Credential {
@@ -18,7 +19,7 @@ partial dictionary CredentialRequestOptions {
 };
 
 partial interface PublicKeyCredential {
-    static Promise < boolean > isUserVerifyingPlatformAuthenticatorAvailable();
+    static Promise<boolean> isUserVerifyingPlatformAuthenticatorAvailable();
 };
 
 [SecureContext, Exposed=Window]
@@ -78,8 +79,8 @@ dictionary AuthenticatorSelectionCriteria {
 };
 
 enum AuthenticatorAttachment {
-    "platform",       // Platform attachment
-    "cross-platform"  // Cross-platform attachment
+    "platform",
+    "cross-platform"
 };
 
 enum AttestationConveyancePreference {
@@ -117,7 +118,7 @@ dictionary TokenBinding {
     DOMString id;
 };
 
-enum TokenBindingStatus { "present", "supported", "not-supported" };
+enum TokenBindingStatus { "present", "supported" };
 
 enum PublicKeyCredentialType {
     "public-key"
@@ -132,7 +133,8 @@ dictionary PublicKeyCredentialDescriptor {
 enum AuthenticatorTransport {
     "usb",
     "nfc",
-    "ble"
+    "ble",
+    "internal"
 };
 
 typedef long COSEAlgorithmIdentifier;

@@ -1,2 +1,0 @@
-The attribute redefinition feature introduced in 17.3.0 now takes into account if an attribute is redefined via multiple inheritance.
-In that case, the definition that is closer to the base of the class hierarchy wins.

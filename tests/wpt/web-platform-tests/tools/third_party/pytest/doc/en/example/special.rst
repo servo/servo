@@ -68,5 +68,5 @@ If you run this without output capturing::
     .test_method1 called
     .test other
     .test_unit1 method called
-    .                                                                 [100%]
+    .
     4 passed in 0.12 seconds

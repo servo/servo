@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Web Locks API: WebIDL tests in service worker</title>
+<link rel=help href="https://github.com/inexorabletash/web-locks">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+(async () => {
+  const scope = 'resources/does/not/exist';
+
+  let registration = await navigator.serviceWorker.getRegistration(scope);
+  if (registration)
+    await registration.unregister();
+  registration = await navigator.serviceWorker.register(
+      'resources/interfaces-serviceworker.js', {scope});
+
+  fetch_tests_from_worker(registration.installing);
+})();
+</script>

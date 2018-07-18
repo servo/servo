@@ -1,3 +1,4 @@
 # pinning sphinx to 1.4.* due to search issues with rtd:
 # https://github.com/rtfd/readthedocs-sphinx-ext/issues/25
 sphinx ==1.4.*
+sphinxcontrib-trio

@@ -13,5 +13,5 @@
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(
       t, new TypeError(),
-      bgFetch.fetch(uniqueTag(), 'https://example.com/?\n<'));
+      bgFetch.fetch(uniqueId(), 'https://example.com/?\n<'));
 }, 'fetch to URL containing \\n and < should reject');

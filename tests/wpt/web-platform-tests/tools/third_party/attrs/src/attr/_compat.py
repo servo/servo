@@ -10,6 +10,13 @@ PY2 = sys.version_info[0] == 2
 PYPY = platform.python_implementation() == "PyPy"
 
 
+if PYPY or sys.version_info[:2] >= (3, 6):
+    ordered_dict = dict
+else:
+    from collections import OrderedDict
+    ordered_dict = OrderedDict
+
+
 if PY2:
     from UserDict import IterableUserDict
 
@@ -87,15 +94,12 @@ else:
         return types.MappingProxyType(dict(d))
 
 
-def import_ctypes():  # pragma: nocover
+def import_ctypes():
     """
     Moved into a function for testability.
     """
-    try:
-        import ctypes
-        return ctypes
-    except ImportError:
-        return None
+    import ctypes
+    return ctypes
 
 
 if not PY2:
@@ -126,12 +130,15 @@ def make_set_closure_cell():
         def set_closure_cell(cell, value):
             cell.__setstate__((value,))
     else:
-        ctypes = import_ctypes()
-        if ctypes is not None:
+        try:
+            ctypes = import_ctypes()
+
             set_closure_cell = ctypes.pythonapi.PyCell_Set
             set_closure_cell.argtypes = (ctypes.py_object, ctypes.py_object)
             set_closure_cell.restype = ctypes.c_int
-        else:
+        except Exception:
+            # We try best effort to set the cell, but sometimes it's not
+            # possible.  For example on Jython or on GAE.
             set_closure_cell = just_warn
     return set_closure_cell
 

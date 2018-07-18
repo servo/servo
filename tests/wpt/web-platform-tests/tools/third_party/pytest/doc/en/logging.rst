@@ -3,24 +3,11 @@
 Logging
 -------
 
-.. versionadded 3.3.0
+.. versionadded:: 3.3
+.. versionchanged:: 3.4
 
-.. note::
-
-   This feature is a drop-in replacement for the `pytest-catchlog
-   <https://pypi.org/project/pytest-catchlog/>`_ plugin and they will conflict
-   with each other. The backward compatibility API with ``pytest-capturelog``
-   has been dropped when this feature was introduced, so if for that reason you
-   still need ``pytest-catchlog`` you can disable the internal feature by
-   adding to your ``pytest.ini``:
-
-   .. code-block:: ini
-
-       [pytest]
-           addopts=-p no:logging
-
-Log messages are captured by default and for each failed test will be shown in
-the same manner as captured stdout and stderr.
+pytest captures log messages of level ``WARNING`` or above automatically and displays them in their own section
+for each failed test in the same manner as captured stdout and stderr.
 
 Running without options::
 
@@ -29,7 +16,7 @@ Running without options::
 Shows failed tests like so::
 
     ----------------------- Captured stdlog call ----------------------
-    test_reporting.py    26 INFO     text going to logger
+    test_reporting.py    26 WARNING  text going to logger
     ----------------------- Captured stdout call ----------------------
     text going to stdout
     ----------------------- Captured stderr call ----------------------
@@ -37,11 +24,10 @@ Shows failed tests like so::
     ==================== 2 failed in 0.02 seconds =====================
 
 By default each captured log message shows the module, line number, log level
-and message.  Showing the exact module and line number is useful for testing and
-debugging.  If desired the log format and date format can be specified to
-anything that the logging module supports.
+and message.
 
-Running pytest specifying formatting options::
+If desired the log and date format can be specified to
+anything that the logging module supports by passing specific formatting options::
 
     pytest --log-format="%(asctime)s %(levelname)s %(message)s" \
             --log-date-format="%Y-%m-%d %H:%M:%S"
@@ -49,14 +35,14 @@ Running pytest specifying formatting options::
 Shows failed tests like so::
 
     ----------------------- Captured stdlog call ----------------------
-    2010-04-10 14:48:44 INFO text going to logger
+    2010-04-10 14:48:44 WARNING text going to logger
     ----------------------- Captured stdout call ----------------------
     text going to stdout
     ----------------------- Captured stderr call ----------------------
     text going to stderr
     ==================== 2 failed in 0.02 seconds =====================
 
-These options can also be customized through a configuration file:
+These options can also be customized through ``pytest.ini`` file:
 
 .. code-block:: ini
 
@@ -64,26 +50,14 @@ These options can also be customized through a configuration file:
     log_format = %(asctime)s %(levelname)s %(message)s
     log_date_format = %Y-%m-%d %H:%M:%S
 
-Further it is possible to disable reporting logs on failed tests completely
-with::
+Further it is possible to disable reporting of captured content (stdout,
+stderr and logs) on failed tests completely with::
 
-    pytest --no-print-logs
-
-Or in you ``pytest.ini``:
-
-.. code-block:: ini
-
-  [pytest]
-  log_print = False
+    pytest --show-capture=no
 
 
-Shows failed tests in the normal manner as no logs were captured::
-
-    ----------------------- Captured stdout call ----------------------
-    text going to stdout
-    ----------------------- Captured stderr call ----------------------
-    text going to stderr
-    ==================== 2 failed in 0.02 seconds =====================
+caplog fixture
+^^^^^^^^^^^^^^
 
 Inside tests it is possible to change the log level for the captured log
 messages.  This is supported by the ``caplog`` fixture::
@@ -92,7 +66,7 @@ messages.  This is supported by the ``caplog`` fixture::
         caplog.set_level(logging.INFO)
         pass
 
-By default the level is set on the handler used to catch the log messages,
+By default the level is set on the root logger,
 however as a convenience it is also possible to set the log level of any
 logger::
 
@@ -100,14 +74,16 @@ logger::
         caplog.set_level(logging.CRITICAL, logger='root.baz')
         pass
 
+The log levels set are restored automatically at the end of the test.
+
 It is also possible to use a context manager to temporarily change the log
-level::
+level inside a ``with`` block::
 
     def test_bar(caplog):
         with caplog.at_level(logging.INFO):
             pass
 
-Again, by default the level of the handler is affected but the level of any
+Again, by default the level of the root logger is affected but the level of any
 logger can be changed instead with::
 
     def test_bar(caplog):
@@ -115,7 +91,7 @@ logger can be changed instead with::
             pass
 
 Lastly all the logs sent to the logger during the test run are made available on
-the fixture in the form of both the LogRecord instances and the final log text.
+the fixture in the form of both the ``logging.LogRecord`` instances and the final log text.
 This is useful for when you want to assert on the contents of a message::
 
     def test_baz(caplog):
@@ -146,12 +122,43 @@ You can call ``caplog.clear()`` to reset the captured log records in a test::
         your_test_method()
         assert ['Foo'] == [rec.message for rec in caplog.records]
 
+
+The ``caplog.records`` attribute contains records from the current stage only, so
+inside the ``setup`` phase it contains only setup logs, same with the ``call`` and
+``teardown`` phases.
+
+To access logs from other stages, use the ``caplog.get_records(when)`` method. As an example,
+if you want to make sure that tests which use a certain fixture never log any warnings, you can inspect
+the records for the ``setup`` and ``call`` stages during teardown like so:
+
+.. code-block:: python
+
+
+    @pytest.fixture
+    def window(caplog):
+        window = create_window()
+        yield window
+        for when in ("setup", "call"):
+            messages = [
+                x.message for x in caplog.get_records(when) if x.level == logging.WARNING
+            ]
+            if messages:
+                pytest.fail(
+                    "warning messages encountered during testing: {}".format(messages)
+                )
+
+
+
+The full API is available at :class:`_pytest.logging.LogCaptureFixture`.
+
+
+.. _live_logs:
+
 Live Logs
 ^^^^^^^^^
 
-By default, pytest will output any logging records with a level higher or
-equal to WARNING. In order to actually see these logs in the console you have to
-disable pytest output capture by passing ``-s``.
+By setting the :confval:`log_cli` configuration option to ``true``, pytest will output
+logging records as they are emitted directly into the console.
 
 You can specify the logging level for which log records with equal or higher
 level are printed to the console by passing ``--log-cli-level``. This setting
@@ -190,3 +197,49 @@ option names are:
 * ``log_file_level``
 * ``log_file_format``
 * ``log_file_date_format``
+
+.. _log_release_notes:
+
+Release notes
+^^^^^^^^^^^^^
+
+This feature was introduced as a drop-in replacement for the `pytest-catchlog
+<https://pypi.org/project/pytest-catchlog/>`_ plugin and they conflict
+with each other. The backward compatibility API with ``pytest-capturelog``
+has been dropped when this feature was introduced, so if for that reason you
+still need ``pytest-catchlog`` you can disable the internal feature by
+adding to your ``pytest.ini``:
+
+.. code-block:: ini
+
+   [pytest]
+       addopts=-p no:logging
+
+
+.. _log_changes_3_4:
+
+Incompatible changes in pytest 3.4
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This feature was introduced in ``3.3`` and some **incompatible changes** have been
+made in ``3.4`` after community feedback:
+
+* Log levels are no longer changed unless explicitly requested by the :confval:`log_level` configuration
+  or ``--log-level`` command-line options. This allows users to configure logger objects themselves.
+* :ref:`Live Logs <live_logs>` is now disabled by default and can be enabled setting the
+  :confval:`log_cli` configuration option to ``true``. When enabled, the verbosity is increased so logging for each
+  test is visible.
+* :ref:`Live Logs <live_logs>` are now sent to ``sys.stdout`` and no longer require the ``-s`` command-line option
+  to work.
+
+If you want to partially restore the logging behavior of version ``3.3``, you can add this options to your ``ini``
+file:
+
+.. code-block:: ini
+
+    [pytest]
+    log_cli=true
+    log_level=NOTSET
+
+More details about the discussion that lead to this changes can be read in
+issue `#3013 <https://github.com/pytest-dev/pytest/issues/3013>`_.

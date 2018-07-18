@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Reftest Reference</title>
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <style>
+  button {
+    border: 1em solid green;
+  }
+  .width-ref {
+    width: 50px;
+  }
+  .height-ref {
+    height: 50px;
+    background: lightblue;
+  }
+  .floatLBasic-ref {
+    float: left;
+  }
+  .floatLWidth-ref {
+    float: left;
+    width: 50px;
+  }
+  .iFlexBasic-ref {
+    display: inline-flex;
+  }
+  .iFlexWidth-ref {
+    display: inline-flex;
+    width: 50px;
+  }
+  .orthog-ref {
+    writing-mode: vertical-lr;
+  }
+  </style>
+</head>
+<body>
+  <button></button>
+  <br>
+
+  <button class="floatLBasic-ref"></button>
+  <br>
+
+  <button class="floatLWidth-ref"></button>
+  <br>
+
+  <button class="iFlexBasic-ref"></button>
+  <br>
+
+  <button class="iFlexWidth-ref"></button>
+  <br>
+
+  outside before<button></button>outside after
+  <br>
+
+  <button class="width-ref"></button>
+  <br>
+
+  <button class="width-ref"></button>
+  <br>
+
+  <button class="height-ref"></button>
+  <br>
+
+  <button class="height-ref"></button>
+  <br>
+
+  s<button class="orthog-ref"></button>endtext
+  <br>
+
+  <button class="height-ref width-ref">inside</button>
+</body>
+</html>

@@ -10,6 +10,10 @@
 <div id="log"></div>
 <script>
   async_test(function (t) {
+    if (typeof PerformanceLongTaskTiming === 'undefined') {
+        assert_unreached("Longtasks are not supported.");
+        t.done();
+    }
     const observer = new PerformanceObserver(
         t.step_func(function (entryList) {
             const entries = entryList.getEntries();
@@ -40,10 +44,11 @@
     );
     observer.observe({entryTypes: ['longtask']});
 
-    /* Generate a slow task */
-    const begin = window.performance.now();
-    while (window.performance.now() < begin + 51);
-
+    window.onload = () => {
+        /* Generate a slow task */
+        const begin = window.performance.now();
+        while (window.performance.now() < begin + 60);
+    };
 }, 'Performance longtask entries are observable.');
 </script>
 

@@ -12,7 +12,6 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   // generateAnswer
-  // generateMediaStreamTrack
 
   /*
     5.1.  RTCPeerConnection Interface Extensions
@@ -35,22 +34,23 @@
     5.1.  removeTrack
       3.  If connection's [[isClosed]] slot is true, throw an InvalidStateError.
    */
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track);
     const { sender } = transceiver;
 
     pc.close();
     assert_throws('InvalidStateError', () => pc.removeTrack(sender));
-
   }, 'addTransceiver - Calling removeTrack when connection is closed should throw InvalidStateError');
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await getNoiseStream({ audio: true });
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track, stream);
@@ -59,23 +59,24 @@
     assert_throws('InvalidStateError', () => pc.removeTrack(sender));
   }, 'addTrack - Calling removeTrack when connection is closed should throw InvalidStateError');
 
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track);
     const { sender } = transceiver;
 
     const pc2 = new RTCPeerConnection();
     pc2.close();
     assert_throws('InvalidStateError', () => pc2.removeTrack(sender));
-
   }, 'addTransceiver - Calling removeTrack on different connection that is closed should throw InvalidStateError');
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await getNoiseStream({ audio: true });
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track, stream);
@@ -89,22 +90,23 @@
     5.1.  removeTrack
       4.  If sender was not created by connection, throw an InvalidAccessError.
    */
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track);
     const { sender } = transceiver;
 
     const pc2 = new RTCPeerConnection();
     assert_throws('InvalidAccessError', () => pc2.removeTrack(sender));
-
   }, 'addTransceiver - Calling removeTrack on different connection should throw InvalidAccessError');
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await getNoiseStream({ audio: true });
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track, stream);
@@ -117,9 +119,11 @@
     5.1.  removeTrack
       7.  Set sender.track to null.
    */
-  test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track);
     const { sender } = transceiver;
 
@@ -130,14 +134,13 @@
     pc.removeTrack(sender);
     assert_equals(sender.track, null);
     assert_equals(transceiver.direction, 'recvonly');
-
   }, 'addTransceiver - Calling removeTrack with valid sender should set sender.track to null');
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await getNoiseStream({ audio: true });
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track, stream);
@@ -159,7 +162,9 @@
     t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = caller.addTransceiver(track);
     const { sender } = transceiver;
 
@@ -192,7 +197,9 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
     const { sender } = transceiver;
 
@@ -224,7 +231,9 @@
     t.add_cleanup(() => caller.close());
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = caller.addTransceiver(track, { direction: 'recvonly' });
     const { sender } = transceiver;
 
@@ -256,7 +265,9 @@
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     const transceiver = pc.addTransceiver(track, { direction: 'inactive' });
     const { sender } = transceiver;
 

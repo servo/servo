@@ -1,0 +1,3 @@
+The order of attributes that are passed into ``attr.make_class()`` or the ``these`` argument of ``@attr.s()`` is now retained if the dictionary is ordered (i.e. ``dict`` on Python 3.6 and later, ``collections.OrderedDict`` otherwise).
+
+Before, the order was always determined by the order in which the attributes have been defined which may not be desirable when creating classes programatically.

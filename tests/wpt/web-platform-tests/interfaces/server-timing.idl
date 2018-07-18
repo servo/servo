@@ -5,12 +5,13 @@
 
 [Exposed=(Window,Worker)]
 interface PerformanceServerTiming {
-    readonly attribute DOMString           name;
-    readonly attribute DOMHighResTimeStamp duration;
-    readonly attribute DOMString           description;
-    [Default] object toJSON();
+  readonly attribute DOMString name;
+  readonly attribute DOMHighResTimeStamp duration;
+  readonly attribute DOMString description;
+  [Default] object toJSON();
 };
+
 [Exposed=(Window,Worker)]
 partial interface PerformanceResourceTiming {
-    readonly attribute FrozenArray<PerformanceServerTiming> serverTiming;
+  readonly attribute FrozenArray<PerformanceServerTiming> serverTiming;
 };

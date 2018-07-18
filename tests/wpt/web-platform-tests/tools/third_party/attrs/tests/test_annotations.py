@@ -11,6 +11,7 @@ import pytest
 
 import attr
 
+from attr._make import _classvar_prefixes
 from attr.exceptions import UnannotatedAttributeError
 
 
@@ -32,6 +33,11 @@ class TestAnnotations:
         assert int is attr.fields(C).x.type
         assert str is attr.fields(C).y.type
         assert None is attr.fields(C).z.type
+        assert C.__init__.__annotations__ == {
+            'x': int,
+            'y': str,
+            'return': None,
+        }
 
     def test_catches_basic_type_conflict(self):
         """
@@ -57,6 +63,11 @@ class TestAnnotations:
 
         assert typing.List[int] is attr.fields(C).x.type
         assert typing.Optional[str] is attr.fields(C).y.type
+        assert C.__init__.__annotations__ == {
+            'x': typing.List[int],
+            'y': typing.Optional[str],
+            'return': None,
+        }
 
     def test_only_attrs_annotations_collected(self):
         """
@@ -68,6 +79,10 @@ class TestAnnotations:
             y: int
 
         assert 1 == len(attr.fields(C))
+        assert C.__init__.__annotations__ == {
+            'x': typing.List[int],
+            'return': None,
+        }
 
     @pytest.mark.parametrize("slots", [True, False])
     def test_auto_attribs(self, slots):
@@ -115,6 +130,15 @@ class TestAnnotations:
             i.y = 23
             assert 23 == i.y
 
+        assert C.__init__.__annotations__ == {
+            'a': int,
+            'x': typing.List[int],
+            'y': int,
+            'z': int,
+            'foo': typing.Any,
+            'return': None,
+        }
+
     @pytest.mark.parametrize("slots", [True, False])
     def test_auto_attribs_unannotated(self, slots):
         """
@@ -154,3 +178,52 @@ class TestAnnotations:
 
         assert "B(a=1, b=2)" == repr(B())
         assert "C(a=1)" == repr(C())
+
+        assert A.__init__.__annotations__ == {
+            'a': int,
+            'return': None,
+        }
+        assert B.__init__.__annotations__ == {
+            'a': int,
+            'b': int,
+            'return': None,
+        }
+        assert C.__init__.__annotations__ == {
+            'a': int,
+            'return': None,
+        }
+
+    def test_converter_annotations(self):
+        """
+        Attributes with converters don't have annotations.
+        """
+
+        @attr.s(auto_attribs=True)
+        class A:
+            a: int = attr.ib(converter=int)
+
+        assert A.__init__.__annotations__ == {'return': None}
+
+    @pytest.mark.parametrize("slots", [True, False])
+    @pytest.mark.parametrize("classvar", _classvar_prefixes)
+    def test_annotations_strings(self, slots, classvar):
+        """
+        String annotations are passed into __init__ as is.
+        """
+        @attr.s(auto_attribs=True, slots=slots)
+        class C:
+            cls_var: classvar + '[int]' = 23
+            a: 'int'
+            x: 'typing.List[int]' = attr.Factory(list)
+            y: 'int' = 2
+            z: 'int' = attr.ib(default=3)
+            foo: 'typing.Any' = None
+
+        assert C.__init__.__annotations__ == {
+            'a': 'int',
+            'x': 'typing.List[int]',
+            'y': 'int',
+            'z': 'int',
+            'foo': 'typing.Any',
+            'return': None,
+        }

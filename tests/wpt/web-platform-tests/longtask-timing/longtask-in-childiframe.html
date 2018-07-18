@@ -11,6 +11,10 @@
 <script>
   const initialTime = performance.now();
   async_test(function (t) {
+    if (typeof PerformanceLongTaskTiming === 'undefined') {
+        assert_unreached("Longtasks are not supported.");
+        t.done();
+    }
     const observer = new PerformanceObserver(
         t.step_func(function (entryList) {
             const entries = entryList.getEntries();
@@ -45,11 +49,13 @@
         })
     );
     observer.observe({entryTypes: ['longtask']});
-    const iframe = document.createElement('iframe');
-    iframe.id = 'child-iframe-id';
-    iframe.name = 'child-iframe-name';
-    document.body.appendChild(iframe);
-    iframe.src = 'resources/subframe-with-longtask.html';
+    window.onload = () => {
+        const iframe = document.createElement('iframe');
+        iframe.id = 'child-iframe-id';
+        iframe.name = 'child-iframe-name';
+        document.body.appendChild(iframe);
+        iframe.src = 'resources/subframe-with-longtask.html';
+    };
 }, 'Performance longtask entries in child iframe are observable in parent.');
 </script>
 

@@ -8,16 +8,26 @@
 <script>
 
 promise_test(function(t) {
-  var frame;
+  return runTest(t, 'resources/claim-worker-fetch-iframe.html');
+}, 'fetch() in Worker should be intercepted after the client is claimed.');
+
+promise_test(function(t) {
+  return runTest(t, 'resources/claim-nested-worker-fetch-iframe.html');
+}, 'fetch() in nested Worker should be intercepted after the client is claimed.');
+
+var frame;
+var registration;
+
+function runTest(t, iframe_url) {
   var resource = 'simple.txt';
 
   var worker;
   var scope = 'resources/';
   var script = 'resources/claim-worker.js';
 
-  return Promise.resolve()
+  const test_result = Promise.resolve()
     // Create the test iframe with a dedicated worker.
-    .then(() => with_iframe('resources/claim-worker-fetch-iframe.html'))
+    .then(() => with_iframe(iframe_url))
     .then(f => frame = f)
 
     // Check the controller and test with fetch in the worker.
@@ -49,20 +59,29 @@ promise_test(function(t) {
 
     // Check the controller and test with fetch in the worker.
     .then(() => frame.contentWindow.navigator.serviceWorker.getRegistration(scope))
-    .then(r => assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
-                             r.active,
+    .then(r => registration = r)
+    .then(() => assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
+                             registration.active,
                              'Test iframe should be claimed.'))
     // TODO(horo): Check the worker's navigator.seviceWorker.controller.
     .then(() => frame.contentWindow.fetch_in_worker(resource))
     .then(response_text =>
           assert_equals(response_text,
                         'Intercepted!',
-                        'fetch() in the worker should be intercepted.'))
+                        'fetch() in the worker should be intercepted.'));
 
     // Cleanup this testcase.
-    .then(() => frame.remove())
-    .then(() => service_worker_unregister_and_done(t, scope));
-}, 'fetch() in Worker should be intercepted after the client is claimed.')
+    return Promise.resolve()
+        .then(cleanup, cleanup)
+        .then(() => { return test_result; });
+}
+
+const cleanup = async () => {
+  if (registration)
+    await registration.unregister();
+  if (frame)
+    frame.remove();
+}
 
 </script>
 </body>

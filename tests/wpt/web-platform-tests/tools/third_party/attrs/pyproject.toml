@@ -2,6 +2,7 @@
     package = "attr"
     package_dir = "src"
     filename = "CHANGELOG.rst"
+    template = "changelog.d/towncrier_template.rst"
     issue_format = "`#{issue} <https://github.com/python-attrs/attrs/issues/{issue}>`_"
     directory = "changelog.d"
     title_format = "{version} ({project_date})"

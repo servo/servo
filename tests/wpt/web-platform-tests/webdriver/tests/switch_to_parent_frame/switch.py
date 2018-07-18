@@ -10,6 +10,16 @@ def switch_to_parent_frame(session):
         "POST", "session/{session_id}/frame/parent".format(**vars(session)))
 
 
+def test_null_response_value(session):
+    session.url = inline(iframe("<p>foo"))
+    frame_element = session.find.css("iframe", all=False)
+    session.switch_frame(frame_element)
+
+    response = switch_to_parent_frame(session)
+    value = assert_success(response)
+    assert value is None
+
+
 def test_stale_element_from_iframe(session):
     session.url = inline(iframe("<p>foo"))
     frame_element = session.find.css("iframe", all=False)
