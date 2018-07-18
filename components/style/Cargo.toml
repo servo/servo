@@ -34,7 +34,7 @@ cfg-if = "0.1.0"
 cssparser = "0.24.0"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.7", optional = true}
-euclid = "0.17"
+euclid = "0.18"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }

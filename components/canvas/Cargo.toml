@@ -14,13 +14,13 @@ azure = {git = "https://github.com/servo/rust-azure"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
 cssparser = "0.24"
-euclid = "0.17"
+euclid = "0.18"
 fnv = "1.0"
 gleam = "0.5"
 ipc-channel = "0.10"
 log = "0.4"
 num-traits = "0.1.32"
-offscreen_gl_context = {version = "0.18", features = ["serde", "osmesa"]}
+offscreen_gl_context = {version = "0.19", features = ["serde", "osmesa"]}
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
 webrender = {git = "https://github.com/servo/webrender"}

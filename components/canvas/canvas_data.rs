@@ -585,7 +585,7 @@ impl<'a> CanvasData<'a> {
                                                                                   source_rect.size.height as i32),
                                                                      self.drawtarget.get_format());
         let matrix = Transform2D::identity()
-            .pre_translate(-source_rect.origin.to_vector().cast().unwrap())
+            .pre_translate(-source_rect.origin.to_vector().cast())
             .pre_mul(&self.state.transform);
         draw_target.set_transform(&matrix);
         draw_target

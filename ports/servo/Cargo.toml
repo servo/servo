@@ -36,7 +36,7 @@ unstable = ["libservo/unstable"]
 [dependencies]
 backtrace = "0.3"
 bitflags = "1.0"
-euclid = "0.17"
+euclid = "0.18"
 gleam = "0.5"
 glutin = "0.17"
 lazy_static = "1"

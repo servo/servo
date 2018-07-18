@@ -99,7 +99,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow, iterator
                 if let Some(matrix) = kid.as_block()
                        .fragment
                        .transform_matrix(&relative_position) {
-                    let transform_matrix = matrix.transform_point2d(&LayoutPoint::zero());
+                    let transform_matrix = matrix.transform_point2d(&LayoutPoint::zero()).unwrap();
                     stacking_context_position = stacking_context_position +
                                                 Vector2D::new(Au::from_f32_px(transform_matrix.x),
                                                               Au::from_f32_px(transform_matrix.y))
