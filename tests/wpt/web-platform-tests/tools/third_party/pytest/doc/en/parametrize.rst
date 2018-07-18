@@ -11,13 +11,13 @@ Parametrizing fixtures and test functions
 
 pytest enables test parametrization at several levels:
 
-- :py:func:`pytest.fixture` allows one to :ref:`parametrize fixture 
+- :py:func:`pytest.fixture` allows one to :ref:`parametrize fixture
   functions <fixture-parametrize>`.
 
-* `@pytest.mark.parametrize`_ allows one to define multiple sets of 
+* `@pytest.mark.parametrize`_ allows one to define multiple sets of
   arguments and fixtures at the test function or class.
 
-* `pytest_generate_tests`_ allows one to define custom parametrization 
+* `pytest_generate_tests`_ allows one to define custom parametrization
   schemes or extensions.
 
 .. _parametrizemark:
@@ -33,7 +33,7 @@ pytest enables test parametrization at several levels:
 .. versionchanged:: 2.4
     Several improvements.
 
-The builtin ``pytest.mark.parametrize`` decorator enables
+The builtin :ref:`pytest.mark.parametrize ref` decorator enables
 parametrization of arguments for a test function.  Here is a typical example
 of a test function that implements checking that a certain input leads
 to an expected output::
@@ -57,14 +57,14 @@ them in turn::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 3 items
-    
+
     test_expectation.py ..F                                              [100%]
-    
+
     ================================= FAILURES =================================
     ____________________________ test_eval[6*9-42] _____________________________
-    
+
     test_input = '6*9', expected = 42
-    
+
         @pytest.mark.parametrize("test_input,expected", [
             ("3+5", 8),
             ("2+4", 6),
@@ -74,7 +74,7 @@ them in turn::
     >       assert eval(test_input) == expected
     E       AssertionError: assert 54 == 42
     E        +  where 54 = eval('6*9')
-    
+
     test_expectation.py:8: AssertionError
     ==================== 1 failed, 2 passed in 0.12 seconds ====================
 
@@ -106,9 +106,9 @@ Let's run this::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 3 items
-    
+
     test_expectation.py ..x                                              [100%]
-    
+
     =================== 2 passed, 1 xfailed in 0.12 seconds ====================
 
 The one parameter set which caused a failure previously now
@@ -123,8 +123,8 @@ To get all combinations of multiple parametrized arguments you can stack
     def test_foo(x, y):
         pass
 
-This will run the test with the arguments set to ``x=0/y=2``, ``x=0/y=3``, ``x=1/y=2`` and
-``x=1/y=3``.
+This will run the test with the arguments set to ``x=0/y=2``, ``x=1/y=2``,
+``x=0/y=3``, and ``x=1/y=3`` exhausting parameters in the order of the decorators.
 
 .. _`pytest_generate_tests`:
 
@@ -174,15 +174,15 @@ Let's also run with a stringinput that will lead to a failing test::
     F                                                                    [100%]
     ================================= FAILURES =================================
     ___________________________ test_valid_string[!] ___________________________
-    
+
     stringinput = '!'
-    
+
         def test_valid_string(stringinput):
     >       assert stringinput.isalpha()
     E       AssertionError: assert False
     E        +  where False = <built-in method isalpha of str object at 0xdeadbeef>()
     E        +    where <built-in method isalpha of str object at 0xdeadbeef> = '!'.isalpha
-    
+
     test_strings.py:3: AssertionError
     1 failed in 0.12 seconds
 
@@ -198,7 +198,7 @@ list::
     SKIP [1] test_strings.py: got empty parameter set ['stringinput'], function test_valid_string at $REGENDOC_TMPDIR/test_strings.py:1
     1 skipped in 0.12 seconds
 
-Note that when calling ``metafunc.parametrize`` multiple times with different parameter sets, all parameter names across 
+Note that when calling ``metafunc.parametrize`` multiple times with different parameter sets, all parameter names across
 those sets cannot be duplicated, otherwise an error will be raised.
 
 More examples
@@ -206,12 +206,3 @@ More examples
 
 For further examples, you might want to look at :ref:`more
 parametrization examples <paramexamples>`.
-
-.. _`metafunc object`:
-
-The **metafunc** object
--------------------------------------------
-
-.. currentmodule:: _pytest.python
-.. autoclass:: Metafunc
-    :members:

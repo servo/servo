@@ -4,72 +4,77 @@ import os
 import _pytest._code
 import py
 import pytest
-from _pytest.main import Node, Item, FSCollector
-from _pytest.resultlog import generic_path, ResultLog, \
-    pytest_configure, pytest_unconfigure
+from _pytest.nodes import Node, Item, FSCollector
+from _pytest.resultlog import (
+    generic_path,
+    ResultLog,
+    pytest_configure,
+    pytest_unconfigure,
+)
 
 
 def test_generic_path(testdir):
     from _pytest.main import Session
+
     config = testdir.parseconfig()
     session = Session(config)
-    p1 = Node('a', config=config, session=session)
+    p1 = Node("a", config=config, session=session, nodeid="a")
     # assert p1.fspath is None
-    p2 = Node('B', parent=p1)
-    p3 = Node('()', parent=p2)
-    item = Item('c', parent=p3)
+    p2 = Node("B", parent=p1)
+    p3 = Node("()", parent=p2)
+    item = Item("c", parent=p3)
 
     res = generic_path(item)
-    assert res == 'a.B().c'
+    assert res == "a.B().c"
 
-    p0 = FSCollector('proj/test', config=config, session=session)
-    p1 = FSCollector('proj/test/a', parent=p0)
-    p2 = Node('B', parent=p1)
-    p3 = Node('()', parent=p2)
-    p4 = Node('c', parent=p3)
-    item = Item('[1]', parent=p4)
+    p0 = FSCollector("proj/test", config=config, session=session)
+    p1 = FSCollector("proj/test/a", parent=p0)
+    p2 = Node("B", parent=p1)
+    p3 = Node("()", parent=p2)
+    p4 = Node("c", parent=p3)
+    item = Item("[1]", parent=p4)
 
     res = generic_path(item)
-    assert res == 'test/a:B().c[1]'
+    assert res == "test/a:B().c[1]"
 
 
 def test_write_log_entry():
     reslog = ResultLog(None, None)
     reslog.logfile = py.io.TextIO()
-    reslog.write_log_entry('name', '.', '')
+    reslog.write_log_entry("name", ".", "")
     entry = reslog.logfile.getvalue()
-    assert entry[-1] == '\n'
+    assert entry[-1] == "\n"
     entry_lines = entry.splitlines()
     assert len(entry_lines) == 1
-    assert entry_lines[0] == '. name'
+    assert entry_lines[0] == ". name"
 
     reslog.logfile = py.io.TextIO()
-    reslog.write_log_entry('name', 's', 'Skipped')
+    reslog.write_log_entry("name", "s", "Skipped")
     entry = reslog.logfile.getvalue()
-    assert entry[-1] == '\n'
+    assert entry[-1] == "\n"
     entry_lines = entry.splitlines()
     assert len(entry_lines) == 2
-    assert entry_lines[0] == 's name'
-    assert entry_lines[1] == ' Skipped'
+    assert entry_lines[0] == "s name"
+    assert entry_lines[1] == " Skipped"
 
     reslog.logfile = py.io.TextIO()
-    reslog.write_log_entry('name', 's', 'Skipped\n')
+    reslog.write_log_entry("name", "s", "Skipped\n")
     entry = reslog.logfile.getvalue()
-    assert entry[-1] == '\n'
+    assert entry[-1] == "\n"
     entry_lines = entry.splitlines()
     assert len(entry_lines) == 2
-    assert entry_lines[0] == 's name'
-    assert entry_lines[1] == ' Skipped'
+    assert entry_lines[0] == "s name"
+    assert entry_lines[1] == " Skipped"
 
     reslog.logfile = py.io.TextIO()
-    longrepr = ' tb1\n tb 2\nE tb3\nSome Error'
-    reslog.write_log_entry('name', 'F', longrepr)
+    longrepr = " tb1\n tb 2\nE tb3\nSome Error"
+    reslog.write_log_entry("name", "F", longrepr)
     entry = reslog.logfile.getvalue()
-    assert entry[-1] == '\n'
+    assert entry[-1] == "\n"
     entry_lines = entry.splitlines()
     assert len(entry_lines) == 5
-    assert entry_lines[0] == 'F name'
-    assert entry_lines[1:] == [' ' + line for line in longrepr.splitlines()]
+    assert entry_lines[0] == "F name"
+    assert entry_lines[1:] == [" " + line for line in longrepr.splitlines()]
 
 
 class TestWithFunctionIntegration(object):
@@ -98,7 +103,8 @@ class TestWithFunctionIntegration(object):
         assert "XXX" in "".join(lines[1:])
 
     def test_log_test_outcomes(self, testdir):
-        mod = testdir.makepyfile(test_mod="""
+        mod = testdir.makepyfile(
+            test_mod="""
             import pytest
             def test_pass(): pass
             def test_skip(): pytest.skip("hello")
@@ -109,7 +115,8 @@ class TestWithFunctionIntegration(object):
             @pytest.mark.xfail
             def test_xpass(): pass
 
-        """)
+        """
+        )
         lines = self.getresultlog(testdir, mod)
         assert len(lines) >= 3
         assert lines[0].startswith(". ")
@@ -123,11 +130,11 @@ class TestWithFunctionIntegration(object):
         tb = "".join(lines[4:8])
         assert tb.find('raise ValueError("FAIL")') != -1
 
-        assert lines[8].startswith('x ')
+        assert lines[8].startswith("x ")
         tb = "".join(lines[8:14])
         assert tb.find('raise ValueError("XFAIL")') != -1
 
-        assert lines[14].startswith('X ')
+        assert lines[14].startswith("X ")
         assert len(lines) == 15
 
     @pytest.mark.parametrize("style", ("native", "long", "short"))
@@ -143,16 +150,17 @@ class TestWithFunctionIntegration(object):
         entry = reslog.logfile.getvalue()
         entry_lines = entry.splitlines()
 
-        assert entry_lines[0].startswith('! ')
+        assert entry_lines[0].startswith("! ")
         if style != "native":
             assert os.path.basename(__file__)[:-9] in entry_lines[0]  # .pyc/class
-        assert entry_lines[-1][0] == ' '
-        assert 'ValueError' in entry
+        assert entry_lines[-1][0] == " "
+        assert "ValueError" in entry
 
 
 def test_generic(testdir, LineMatcher):
     testdir.plugins.append("resultlog")
-    testdir.makepyfile("""
+    testdir.makepyfile(
+        """
         import pytest
         def test_pass():
             pass
@@ -166,51 +174,55 @@ def test_generic(testdir, LineMatcher):
         @pytest.mark.xfail(run=False)
         def test_xfail_norun():
             assert 0
-    """)
+    """
+    )
     testdir.runpytest("--resultlog=result.log")
     lines = testdir.tmpdir.join("result.log").readlines(cr=0)
-    LineMatcher(lines).fnmatch_lines([
-        ". *:test_pass",
-        "F *:test_fail",
-        "s *:test_skip",
-        "x *:test_xfail",
-        "x *:test_xfail_norun",
-    ])
+    LineMatcher(lines).fnmatch_lines(
+        [
+            ". *:test_pass",
+            "F *:test_fail",
+            "s *:test_skip",
+            "x *:test_xfail",
+            "x *:test_xfail_norun",
+        ]
+    )
 
 
 def test_makedir_for_resultlog(testdir, LineMatcher):
     """--resultlog should automatically create directories for the log file"""
     testdir.plugins.append("resultlog")
-    testdir.makepyfile("""
+    testdir.makepyfile(
+        """
         import pytest
         def test_pass():
             pass
-    """)
+    """
+    )
     testdir.runpytest("--resultlog=path/to/result.log")
     lines = testdir.tmpdir.join("path/to/result.log").readlines(cr=0)
-    LineMatcher(lines).fnmatch_lines([
-        ". *:test_pass",
-    ])
+    LineMatcher(lines).fnmatch_lines([". *:test_pass"])
 
 
 def test_no_resultlog_on_slaves(testdir):
     config = testdir.parseconfig("-p", "resultlog", "--resultlog=resultlog")
 
-    assert not hasattr(config, '_resultlog')
+    assert not hasattr(config, "_resultlog")
     pytest_configure(config)
-    assert hasattr(config, '_resultlog')
+    assert hasattr(config, "_resultlog")
     pytest_unconfigure(config)
-    assert not hasattr(config, '_resultlog')
+    assert not hasattr(config, "_resultlog")
 
     config.slaveinput = {}
     pytest_configure(config)
-    assert not hasattr(config, '_resultlog')
+    assert not hasattr(config, "_resultlog")
     pytest_unconfigure(config)
-    assert not hasattr(config, '_resultlog')
+    assert not hasattr(config, "_resultlog")
 
 
 def test_failure_issue380(testdir):
-    testdir.makeconftest("""
+    testdir.makeconftest(
+        """
         import pytest
         class MyCollector(pytest.File):
             def collect(self):
@@ -219,10 +231,13 @@ def test_failure_issue380(testdir):
                 return "somestring"
         def pytest_collect_file(path, parent):
             return MyCollector(parent=parent, fspath=path)
-    """)
-    testdir.makepyfile("""
+    """
+    )
+    testdir.makepyfile(
+        """
         def test_func():
             pass
-    """)
+    """
+    )
     result = testdir.runpytest("--resultlog=log")
     assert result.ret == 2

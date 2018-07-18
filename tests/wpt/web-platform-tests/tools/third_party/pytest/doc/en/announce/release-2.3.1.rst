@@ -3,16 +3,16 @@ pytest-2.3.1: fix regression with factory functions
 
 pytest-2.3.1 is a quick follow-up release:
 
-- fix issue202 - regression with fixture functions/funcarg factories:  
-  using "self" is now safe again and works as in 2.2.4.  Thanks 
+- fix issue202 - regression with fixture functions/funcarg factories:
+  using "self" is now safe again and works as in 2.2.4.  Thanks
   to Eduard Schettino for the quick bug report.
 
-- disable pexpect pytest self tests on Freebsd - thanks Koob for the 
+- disable pexpect pytest self tests on Freebsd - thanks Koob for the
   quick reporting
 
 - fix/improve interactive docs with --markers
 
-See 
+See
 
      http://pytest.org/
 

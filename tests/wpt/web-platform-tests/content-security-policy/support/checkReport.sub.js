@@ -73,8 +73,8 @@
 
           if(data["csp-report"] != undefined && data["csp-report"][reportField] != undefined) {
             assert_field_value(data["csp-report"][reportField], reportValue, reportField);
-          } else if (data[0] != undefined && data[0]["report"] != undefined && data[0]["report"][reportField] != undefined) {
-            assert_field_value(data[0]["report"][reportField], reportValue, reportField);
+          } else if (data[0] != undefined && data[0]["body"] != undefined && data[0]["body"][reportField] != undefined) {
+            assert_field_value(data[0]["body"][reportField], reportValue, reportField);
           } else {
             assert_equals("", reportField, "Expected report field could not be found in report");
           }

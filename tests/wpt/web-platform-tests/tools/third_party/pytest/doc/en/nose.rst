@@ -58,7 +58,7 @@ Unsupported idioms / known issues
   You may find yourself wanting to do this if you ran ``python setup.py install``
   to set up your project, as opposed to ``python setup.py develop`` or any of
   the package manager equivalents.  Installing with develop in a
-  virtual environment like Tox is recommended over this pattern.
+  virtual environment like tox is recommended over this pattern.
 
 - nose-style doctests are not collected and executed correctly,
   also doctest fixtures don't work.
@@ -70,6 +70,3 @@ Unsupported idioms / known issues
   There are no plans to fix this currently because ``yield``-tests
   are deprecated in pytest 3.0, with ``pytest.mark.parametrize``
   being the recommended alternative.
-
-
-

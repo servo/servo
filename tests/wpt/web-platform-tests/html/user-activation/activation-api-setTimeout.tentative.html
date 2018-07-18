@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+    https://github.com/whatwg/html/issues/1983
+-->
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</head>
+<body>
+  <h1>Clicking on document sets user activation even after setTimeout</h1>
+  <p>Click anywhere in the document.</p>
+  <script>
+    async_test(function(t) {
+      assert_false(navigator.userActivation.hasBeenActive);
+      assert_false(navigator.userActivation.isActive);
+      window.addEventListener("click", event => {
+        t.step_timeout(() => {
+          assert_true(navigator.userActivation.hasBeenActive);
+          assert_true(navigator.userActivation.isActive);
+
+          // Opening a window should consume the activation.
+          window.open('404.html');
+          assert_true(navigator.userActivation.hasBeenActive);
+          assert_false(navigator.userActivation.isActive);
+          t.done();
+        }, 0);
+      });
+      test_driver.click(document.body);
+    }, "Values adjust on activity");
+  </script>
+</body>
+</html>

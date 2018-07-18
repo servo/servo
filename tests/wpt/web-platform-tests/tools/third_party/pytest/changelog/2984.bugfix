@@ -1,1 +1,0 @@
-Bring back ``TerminalReporter.writer`` as an alias to ``TerminalReporter._tw``. This alias was removed by accident in the ``3.3.0`` release.

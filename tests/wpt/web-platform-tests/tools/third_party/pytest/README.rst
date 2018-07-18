@@ -6,13 +6,13 @@
 ------
 
 .. image:: https://img.shields.io/pypi/v/pytest.svg
-    :target: https://pypi.python.org/pypi/pytest
+    :target: https://pypi.org/project/pytest/
 
-.. image:: https://anaconda.org/conda-forge/pytest/badges/version.svg
+.. image:: https://img.shields.io/conda/vn/conda-forge/pytest.svg
     :target: https://anaconda.org/conda-forge/pytest
 
 .. image:: https://img.shields.io/pypi/pyversions/pytest.svg
-    :target: https://pypi.python.org/pypi/pytest
+    :target: https://pypi.org/project/pytest/
 
 .. image:: https://img.shields.io/coveralls/pytest-dev/pytest/master.svg
     :target: https://coveralls.io/r/pytest-dev/pytest
@@ -22,6 +22,12 @@
 
 .. image:: https://ci.appveyor.com/api/projects/status/mrgbjaua7t33pg6b?svg=true
     :target: https://ci.appveyor.com/project/pytestbot/pytest
+
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+  :target: https://github.com/ambv/black
+
+.. image:: https://www.codetriage.com/pytest-dev/pytest/badges/users.svg
+    :target: https://www.codetriage.com/pytest-dev/pytest
 
 The ``pytest`` framework makes it easy to write small tests, yet
 scales to support complex functional testing for applications and libraries.
@@ -33,6 +39,7 @@ An example of a simple test:
     # content of test_sample.py
     def inc(x):
         return x + 1
+
 
     def test_answer():
         assert inc(3) == 5

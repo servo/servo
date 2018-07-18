@@ -16,46 +16,46 @@
     var tests = [
       // response directives
       {
-        name: 'HTTP cache reuses a response with a future Expires.',
+        name: "HTTP cache reuses a response with a future Expires",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(30*24*60*60)]
+              ["Expires", (30 * 24 * 60 * 60)]
             ]
           },
           {
-            expected_type: "cached",
+            expected_type: "cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not reuse a response with a past Expires.',
+        name: "HTTP cache does not reuse a response with a past Expires",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(-30*24*60*60)]
+              ["Expires", (-30 * 24 * 60 * 60)]
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not reuse a response with a present Expires.',
+        name: "HTTP cache does not reuse a response with a present Expires",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(0)]
+              ["Expires", 0]
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not reuse a response with an invalid Expires.',
+        name: "HTTP cache does not reuse a response with an invalid Expires",
         requests: [
           {
             response_headers: [
@@ -63,12 +63,12 @@
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache reuses a response with positive Cache-Control: max-age.',
+        name: "HTTP cache reuses a response with positive Cache-Control: max-age",
         requests: [
           {
             response_headers: [
@@ -76,12 +76,12 @@
             ]
           },
           {
-            expected_type: "cached",
+            expected_type: "cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not reuse a response with Cache-Control: max-age=0.',
+        name: "HTTP cache does not reuse a response with Cache-Control: max-age=0",
         requests: [
           {
             response_headers: [
@@ -89,54 +89,54 @@
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache reuses a response with positive Cache-Control: max-age and a past Expires.',
+        name: "HTTP cache reuses a response with positive Cache-Control: max-age and a past Expires",
         requests: [
           {
             response_headers: [
               ["Cache-Control", "max-age=3600"],
-              ['Expires', http_date(-10000)]
+              ["Expires", -10000]
             ]
           },
           {
-            expected_type: "cached",
+            expected_type: "cached"
           }
         ]
       },
       {
-        name: 'HTTP cache reuses a response with positive Cache-Control: max-age and an invalid Expires.',
+        name: "HTTP cache reuses a response with positive Cache-Control: max-age and an invalid Expires",
         requests: [
           {
             response_headers: [
               ["Cache-Control", "max-age=3600"],
-              ['Expires', '0']
+              ["Expires", "0"]
             ]
           },
           {
-            expected_type: "cached",
+            expected_type: "cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not reuse a response with Cache-Control: max-age=0 and a future Expires.',
+        name: "HTTP cache does not reuse a response with Cache-Control: max-age=0 and a future Expires",
         requests: [
           {
             response_headers: [
               ["Cache-Control", "max-age=0"],
-              ['Expires', http_date(10000)]
+              ["Expires", 10000]
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not prefer Cache-Control: s-maxage over Cache-Control: max-age.',
+        name: "HTTP cache does not prefer Cache-Control: s-maxage over Cache-Control: max-age",
         requests: [
           {
             response_headers: [
@@ -145,12 +145,12 @@
             pause_after: true,
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not reuse a response when the Age header is greater than its freshness lifetime.',
+        name: "HTTP cache does not reuse a response when the Age header is greater than its freshness lifetime",
         requests: [
           {
             response_headers: [
@@ -159,12 +159,12 @@
             ],
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not store a response with Cache-Control: no-store.',
+        name: "HTTP cache does not store a response with Cache-Control: no-store",
         requests: [
           {
             response_headers: [
@@ -172,50 +172,50 @@
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache does not store a response with Cache-Control: no-store, even with max-age and Expires.',
+        name: "HTTP cache does not store a response with Cache-Control: no-store, even with max-age and Expires",
         requests: [
           {
             response_headers: [
               ["Cache-Control", "max-age=10000, no-store"],
-              ['Expires', http_date(10000)]
+              ["Expires", 10000]
             ]
           },
           {
-            expected_type: "not_cached",
+            expected_type: "not_cached"
           }
         ]
       },
       {
-        name: 'HTTP cache stores a response with Cache-Control: no-cache, but revalidates upon use.',
+        name: "HTTP cache stores a response with Cache-Control: no-cache, but revalidates upon use",
         requests: [
           {
             response_headers: [
               ["Cache-Control", "no-cache"],
-              ['ETag', 'abcd']
+              ["ETag", "abcd"]
             ]
           },
           {
-            expected_type: "etag_validated",
+            expected_type: "etag_validated"
           }
         ]
       },
       {
-        name: 'HTTP cache stores a response with Cache-Control: no-cache, but revalidates upon use, even with max-age and Expires.',
+        name: "HTTP cache stores a response with Cache-Control: no-cache, but revalidates upon use, even with max-age and Expires",
         requests: [
           {
             response_headers: [
               ["Cache-Control", "max-age=10000, no-cache"],
-              ['Expires', http_date(10000)],
-              ['ETag', 'abcd']
+              ["Expires", 10000],
+              ["ETag", "abcd"]
             ]
           },
           {
-            expected_type: "etag_validated",
+            expected_type: "etag_validated"
           }
         ]
       },

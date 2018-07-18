@@ -1,11 +1,12 @@
-include LICENSE *.rst *.toml
+include LICENSE *.rst *.toml .readthedocs.yml
 
 # Don't package GitHub-specific files.
-exclude *.md .travis.yml
+exclude .github/*.md .travis.yml
 
 # Tests
-include tox.ini .coveragerc conftest.py dev-requirements.txt docs-requirements.txt
+include tox.ini .coveragerc conftest.py
 recursive-include tests *.py
+recursive-include .github *.rst
 
 # Documentation
 include docs/Makefile docs/docutils.conf
@@ -15,5 +16,7 @@ recursive-include docs *.py
 recursive-include docs *.rst
 prune docs/_build
 
-# Changelog news fragments -- is empty on releases.
-prune changelog.d
+# Just to keep check-manifest happy; on releases those files are gone.
+# Last rule wins!
+exclude changelog.d/*.rst
+include changelog.d/towncrier_template.rst

@@ -16,5 +16,5 @@ document.head.appendChild(meta);
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(
       t, new TypeError(),
-      bgFetch.fetch(uniqueTag(), 'https://example.com'));
+      bgFetch.fetch(uniqueId(), 'https://example.com'));
 }, 'fetch blocked by CSP should reject');

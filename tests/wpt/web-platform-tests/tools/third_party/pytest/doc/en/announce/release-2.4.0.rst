@@ -1,9 +1,9 @@
 pytest-2.4.0: new fixture features/hooks and bug fixes
 ===========================================================================
 
-The just released pytest-2.4.0 brings many improvements and numerous 
+The just released pytest-2.4.0 brings many improvements and numerous
 bug fixes while remaining plugin- and test-suite compatible apart
-from a few supposedly very minor incompatibilities.  See below for 
+from a few supposedly very minor incompatibilities.  See below for
 a full list of details.  A few feature highlights:
 
 - new yield-style fixtures `pytest.yield_fixture
@@ -13,7 +13,7 @@ a full list of details.  A few feature highlights:
 - improved pdb support: ``import pdb ; pdb.set_trace()`` now works
   without requiring prior disabling of stdout/stderr capturing.
   Also the ``--pdb`` options works now on collection and internal errors
-  and we introduced a new experimental hook for IDEs/plugins to 
+  and we introduced a new experimental hook for IDEs/plugins to
   intercept debugging: ``pytest_exception_interact(node, call, report)``.
 
 - shorter monkeypatch variant to allow specifying an import path as
@@ -23,21 +23,21 @@ a full list of details.  A few feature highlights:
   called if the corresponding setup method succeeded.
 
 - integrate tab-completion on command line options if you
-  have `argcomplete <http://pypi.python.org/pypi/argcomplete>`_ 
+  have `argcomplete <http://pypi.python.org/pypi/argcomplete>`_
   configured.
 
 - allow boolean expression directly with skipif/xfail
   if a "reason" is also specified.
 
 - a new hook ``pytest_load_initial_conftests`` allows plugins like
-  `pytest-django <http://pypi.python.org/pypi/pytest-django>`_ to
+  `pytest-django <https://pypi.org/project/pytest-django/>`_ to
   influence the environment before conftest files import ``django``.
 
 - reporting: color the last line red or green depending if
   failures/errors occurred or everything passed.
 
-The documentation has been updated to accommodate the changes, 
-see `http://pytest.org <http://pytest.org>`_ 
+The documentation has been updated to accommodate the changes,
+see `http://pytest.org <http://pytest.org>`_
 
 To install or upgrade pytest::
 
@@ -45,8 +45,8 @@ To install or upgrade pytest::
     easy_install -U pytest
 
 
-**Many thanks to all who helped, including Floris Bruynooghe, 
-Brianna Laugher, Andreas Pelme, Anthon van der Neut, Anatoly Bubenkoff, 
+**Many thanks to all who helped, including Floris Bruynooghe,
+Brianna Laugher, Andreas Pelme, Anthon van der Neut, Anatoly Bubenkoff,
 Vladimir Keleshev, Mathieu Agopian, Ronny Pfannschmidt, Christian
 Theunert and many others.**
 
@@ -101,12 +101,12 @@ new features:
 - make "import pdb ; pdb.set_trace()" work natively wrt capturing (no
   "-s" needed anymore), making ``pytest.set_trace()`` a mere shortcut.
 
-- fix issue181: --pdb now also works on collect errors (and 
-  on internal errors) .  This was implemented by a slight internal 
-  refactoring and the introduction of a new hook 
+- fix issue181: --pdb now also works on collect errors (and
+  on internal errors) .  This was implemented by a slight internal
+  refactoring and the introduction of a new hook
   ``pytest_exception_interact`` hook (see next item).
 
-- fix issue341: introduce new experimental hook for IDEs/terminals to 
+- fix issue341: introduce new experimental hook for IDEs/terminals to
   intercept debugging: ``pytest_exception_interact(node, call, report)``.
 
 - new monkeypatch.setattr() variant to provide a shorter
@@ -124,7 +124,7 @@ new features:
   phase of a node.
 
 - simplify pytest.mark.parametrize() signature: allow to pass a
-  CSV-separated string to specify argnames.  For example: 
+  CSV-separated string to specify argnames.  For example:
   ``pytest.mark.parametrize("input,expected",  [(1,2), (2,3)])``
   works as well as the previous:
   ``pytest.mark.parametrize(("input", "expected"), ...)``.
@@ -149,10 +149,10 @@ new features:
 
 Bug fixes:
 
-- fix issue358 - capturing options are now parsed more properly 
+- fix issue358 - capturing options are now parsed more properly
   by using a new parser.parse_known_args method.
 
-- pytest now uses argparse instead of optparse (thanks Anthon) which 
+- pytest now uses argparse instead of optparse (thanks Anthon) which
   means that "argparse" is added as a dependency if installing into python2.6
   environments or below.
 
@@ -193,7 +193,7 @@ Bug fixes:
 - fix issue323 - sorting of many module-scoped arg parametrizations
 
 - make sessionfinish hooks execute with the same cwd-context as at
-  session start (helps fix plugin behaviour which write output files 
+  session start (helps fix plugin behaviour which write output files
   with relative path such as pytest-cov)
 
 - fix issue316 - properly reference collection hooks in docs
@@ -201,7 +201,7 @@ Bug fixes:
 - fix issue 306 - cleanup of -k/-m options to only match markers/test
   names/keywords respectively.  Thanks Wouter van Ackooy.
 
-- improved doctest counting for doctests in python modules -- 
+- improved doctest counting for doctests in python modules --
   files without any doctest items will not show up anymore
   and doctest examples are counted as separate test items.
   thanks Danilo Bellini.
@@ -211,7 +211,7 @@ Bug fixes:
   mode. Thanks Jason R. Coombs.
 
 - fix junitxml generation when test output contains control characters,
-  addressing issue267, thanks Jaap Broekhuizen 
+  addressing issue267, thanks Jaap Broekhuizen
 
 - fix issue338: honor --tb style for setup/teardown errors as well.  Thanks Maho.
 
@@ -220,6 +220,5 @@ Bug fixes:
 - better parametrize error messages, thanks Brianna Laugher
 
 - pytest_terminal_summary(terminalreporter) hooks can now use
-  ".section(title)" and ".line(msg)" methods to print extra 
+  ".section(title)" and ".line(msg)" methods to print extra
   information at the end of a test run.
-

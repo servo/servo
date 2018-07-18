@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <metadata>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="author" title="Dan Glastonbury" href="mailto:dglastonbury@mozilla.com"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/SVG2/pservers.html"/>
+    <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="currentColor-override-pserver-fill-ref.svg"/>
+    <meta xmlns="http://www.w3.org/1999/xhtml" name="assert" content="pattern inherits fill color via currentcolor."/>
+  </metadata>
+
+  <defs>
+    <pattern id="MyPattern" patternUnits="userSpaceOnUse"
+             x="5" y ="5" width="10" height="10" color="red" fill="currentcolor">
+      <circle color="limegreen" fill="inherit" cx="5" cy="5" r="5" />
+    </pattern>
+  </defs>
+
+  <circle stroke="black" fill="url(#MyPattern)" cx="50" cy="50" r="40" />
+</svg>

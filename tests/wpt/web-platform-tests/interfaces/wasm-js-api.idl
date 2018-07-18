@@ -1,0 +1,103 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "WebAssembly JavaScript Interface" spec.
+// See: https://webassembly.github.io/spec/js-api/
+
+dictionary WebAssemblyInstantiatedSource {
+    required Module module;
+    required Instance instance;
+};
+
+[Exposed=(Window,Worker,Worklet)]
+namespace WebAssembly {
+    boolean validate(BufferSource bytes);
+    Promise<Module> compile(BufferSource bytes);
+
+    Promise<WebAssemblyInstantiatedSource> instantiate(
+        BufferSource bytes, optional object importObject);
+
+    Promise<Instance> instantiate(
+        Module moduleObject, optional object importObject);
+};
+
+enum ImportExportKind {
+  "function",
+  "table",
+  "memory",
+  "global"
+};
+
+dictionary ModuleExportDescriptor {
+  required USVString name;
+  required ImportExportKind kind;
+  // Note: Other fields such as signature may be added in the future.
+};
+
+dictionary ModuleImportDescriptor {
+  required USVString module;
+  required USVString name;
+  required ImportExportKind kind;
+};
+
+[LegacyNamespace=WebAssembly, Constructor(BufferSource bytes), Exposed=(Window,Worker,Worklet)]
+interface Module {
+  static sequence<ModuleExportDescriptor> exports(Module module);
+  static sequence<ModuleImportDescriptor> imports(Module module);
+  static sequence<ArrayBuffer> customSections(Module module, USVString sectionName);
+};
+
+[LegacyNamespace=WebAssembly, Constructor(Module module, optional object importObject), Exposed=(Window,Worker,Worklet)]
+interface Instance {
+  readonly attribute object exports;
+};
+
+dictionary MemoryDescriptor {
+  required [EnforceRange] unsigned long initial;
+  [EnforceRange] unsigned long maximum;
+};
+
+[LegacyNamespace=WebAssembly, Constructor(MemoryDescriptor descriptor), Exposed=(Window,Worker,Worklet)]
+interface Memory {
+  unsigned long grow([EnforceRange] unsigned long delta);
+  readonly attribute ArrayBuffer buffer;
+};
+
+enum TableKind {
+  "anyfunc",
+  // Note: More values may be added in future iterations,
+  // e.g., typed function references, typed GC references
+};
+
+dictionary TableDescriptor {
+  required TableKind element;
+  required [EnforceRange] unsigned long initial;
+  [EnforceRange] unsigned long maximum;
+};
+
+[LegacyNamespace=WebAssembly, Constructor(TableDescriptor descriptor), Exposed=(Window,Worker,Worklet)]
+interface Table {
+  unsigned long grow([EnforceRange] unsigned long delta);
+  Function? get([EnforceRange] unsigned long index);
+  void set([EnforceRange] unsigned long index, Function? value);
+  readonly attribute unsigned long length;
+};
+
+dictionary GlobalDescriptor {
+  required USVString value;
+  boolean mutable = false;
+};
+
+[LegacyNamespace=WebAssembly, Constructor(GlobalDescriptor descriptor, optional any value), Exposed=(Window,Worker,Worklet)]
+interface Global {
+  any valueOf();
+  attribute any value;
+};
+
+[LegacyNamespace=WebAssembly]
+interface CompileError { };
+
+[LegacyNamespace=WebAssembly]
+interface LinkError { };
+
+[LegacyNamespace=WebAssembly]
+interface RuntimeError { };

@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Indexed Database API spec.
-// See https://w3c.github.io/IndexedDB/
+// Content of this file was automatically extracted from the
+// "Indexed Database API 3.0" spec.
+// See: https://w3c.github.io/IndexedDB/
 
 [Exposed=(Window,Worker)]
 interface IDBRequest : EventTarget {
@@ -39,7 +40,7 @@ dictionary IDBVersionChangeEventInit : EventInit {
   unsigned long long? newVersion = null;
 };
 
-partial interface WindowOrWorkerGlobalScope {
+partial interface mixin WindowOrWorkerGlobalScope {
   [SameObject] readonly attribute IDBFactory indexedDB;
 };
 

@@ -78,10 +78,13 @@
     });
   }, 'getStats() with track added via addTrack should succeed');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
     pc.addTransceiver(track);
 
     return pc.getStats(track);
@@ -238,7 +241,7 @@
 
     const dataChannel = pc1.createDataChannel('test-channel');
 
-    return navigator.mediaDevices.getUserMedia({
+    return getNoiseStream({
       audio: true,
       video: true
     })

@@ -1,15 +1,14 @@
 Thanks for submitting a PR, your contribution is really appreciated!
 
-Here's a quick checklist that should be present in PRs:
+Here's a quick checklist that should be present in PRs (you can delete this text from the final description, this is
+just a guideline):
 
-- [ ] Add a new news fragment into the changelog folder
-  * name it `$issue_id.$type` for example (588.bug)
-  * if you don't have an issue_id change it to the pr id after creating the pr
-  * ensure type is one of `removal`, `feature`, `bugfix`, `vendor`, `doc` or `trivial`
-  * Make sure to use full sentences with correct case and punctuation, for example: "Fix issue with non-ascii contents in doctest text files."
-- [ ] Target: for `bugfix`, `vendor`, `doc` or `trivial` fixes, target `master`; for removals or features target `features`;
-- [ ] Make sure to include reasonable tests for your change if necessary
+- [ ] Create a new changelog file in the `changelog` folder, with a name like `<ISSUE NUMBER>.<TYPE>.rst`. See [changelog/README.rst](/changelog/README.rst) for details.
+- [ ] Target the `master` branch for bug fixes, documentation updates and trivial changes.
+- [ ] Target the `features` branch for new features and removals/deprecations.
+- [ ] Include documentation when adding new features.
+- [ ] Include new tests or update existing tests when applicable.
 
-Unless your change is a trivial or a documentation fix (e.g.,  a typo or reword of a small section) please:
+Unless your change is trivial or a small documentation fix (e.g.,  a typo or reword of a small section) please:
 
-- [ ] Add yourself to `AUTHORS`, in alphabetical order;
+- [ ] Add yourself to `AUTHORS` in alphabetical order;

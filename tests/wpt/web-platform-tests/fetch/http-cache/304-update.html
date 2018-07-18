@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>HTTP Cache - 304 Updates</title>
     <meta name="help" href="https://fetch.spec.whatwg.org/#request">
+    <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/utils.js"></script>
@@ -14,19 +15,19 @@
     <script>
     var tests = [
       {
-        name: 'HTTP cache updates returned headers from a Last-Modified 304.',
+        name: "HTTP cache updates returned headers from a Last-Modified 304",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(-5000)],
-              ["Last-Modified", http_date(-3000)],
+              ["Expires", -5000],
+              ["Last-Modified", -3000],
               ["Test-Header", "A"]
             ]
           },
           {
             response_headers: [
-              ["Expires", http_date(-3000)],
-              ["Last-Modified", http_date(-3000)],
+              ["Expires", -3000],
+              ["Last-Modified", -3000],
               ["Test-Header", "B"]
             ],
             expected_type: "lm_validated",
@@ -37,25 +38,26 @@
         ]
       },
       {
-        name: 'HTTP cache updates stored headers from a Last-Modified 304.',
+        name: "HTTP cache updates stored headers from a Last-Modified 304",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(-5000)],
-              ["Last-Modified", http_date(-3000)],
+              ["Expires", -5000],
+              ["Last-Modified", -3000],
               ["Test-Header", "A"]
             ]
           },
           {
             response_headers: [
-              ["Expires", http_date(3000)],
-              ["Last-Modified", http_date(-3000)],
+              ["Expires", 3000],
+              ["Last-Modified", -3000],
               ["Test-Header", "B"]
             ],
             expected_type: "lm_validated",
             expected_response_headers: [
               ["Test-Header", "B"]
-            ]
+            ],
+            pause_after: true
           },
           {
             expected_type: "cached",
@@ -66,18 +68,18 @@
         ]
       },
       {
-        name: 'HTTP cache updates returned headers from a ETag 304.',
+        name: "HTTP cache updates returned headers from a ETag 304",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(-5000)],
+              ["Expires", -5000],
               ["ETag", "ABC"],
               ["Test-Header", "A"]
             ]
           },
           {
             response_headers: [
-              ["Expires", http_date(-3000)],
+              ["Expires", -3000],
               ["ETag", "ABC"],
               ["Test-Header", "B"]
             ],
@@ -89,25 +91,26 @@
         ]
       },
       {
-        name: 'HTTP cache updates stored headers from a ETag 304.',
+        name: "HTTP cache updates stored headers from a ETag 304",
         requests: [
           {
             response_headers: [
-              ["Expires", http_date(-5000)],
+              ["Expires", -5000],
               ["ETag", "DEF"],
               ["Test-Header", "A"]
             ]
           },
           {
             response_headers: [
-              ["Expires", http_date(3000)],
+              ["Expires", 3000],
               ["ETag", "DEF"],
               ["Test-Header", "B"]
             ],
             expected_type: "etag_validated",
             expected_response_headers: [
               ["Test-Header", "B"]
-            ]
+            ],
+            pause_after: true
           },
           {
             expected_type: "cached",

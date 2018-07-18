@@ -42,3 +42,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   - call scripts\call-tox.bat
+
+cache:
+  - '%LOCALAPPDATA%\pip\cache'
+  - '%USERPROFILE%\.cache\pre-commit'

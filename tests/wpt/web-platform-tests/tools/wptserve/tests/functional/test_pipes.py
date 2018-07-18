@@ -13,29 +13,24 @@ from .base import TestUsingServer, doc_root
 
 
 class TestStatus(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_status(self):
         resp = self.request("/document.txt", query="pipe=status(202)")
         self.assertEqual(resp.getcode(), 202)
 
 class TestHeader(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_not_set(self):
         resp = self.request("/document.txt", query="pipe=header(X-TEST,PASS)")
         self.assertEqual(resp.info()["X-TEST"], "PASS")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_set(self):
         resp = self.request("/document.txt", query="pipe=header(Content-Type,text/html)")
         self.assertEqual(resp.info()["Content-Type"], "text/html")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_multiple(self):
         resp = self.request("/document.txt", query="pipe=header(X-Test,PASS)|header(Content-Type,text/html)")
         self.assertEqual(resp.info()["X-TEST"], "PASS")
         self.assertEqual(resp.info()["Content-Type"], "text/html")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_multiple_same(self):
         resp = self.request("/document.txt", query="pipe=header(Content-Type,FAIL)|header(Content-Type,text/html)")
         self.assertEqual(resp.info()["Content-Type"], "text/html")
@@ -46,19 +41,16 @@ class TestHeader(TestUsingServer):
         self.assertEqual(resp.info()["X-Test"], "1, 2")
 
 class TestSlice(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_both_bounds(self):
         resp = self.request("/document.txt", query="pipe=slice(1,10)")
         expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
         self.assertEqual(resp.read(), expected[1:10])
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_no_upper(self):
         resp = self.request("/document.txt", query="pipe=slice(1)")
         expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
         self.assertEqual(resp.read(), expected[1:])
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_no_lower(self):
         resp = self.request("/document.txt", query="pipe=slice(null,10)")
         expected = open(os.path.join(doc_root, "document.txt"), 'rb').read()
@@ -84,7 +76,6 @@ sha512: r8eLGRTc7ZznZkFjeVLyo6/FyQdra9qmlYCwKKxm3kfQAswRS9+3HsYk3thLUhcFmmWhK4dX
 JwGFonfXwg=="""
         self.assertEqual(resp.read().rstrip(), expected.strip())
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_sub_file_hash_unrecognized(self):
         with self.assertRaises(urllib.error.HTTPError):
             self.request("/sub_file_hash_unrecognized.sub.txt")
@@ -133,7 +124,6 @@ server: http://localhost:{0}""".format(self.server.port)
         self.assertEqual(resp.read().rstrip(), expected)
 
 class TestTrickle(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_trickle(self):
         #Actually testing that the response trickles in is not that easy
         t0 = time.time()
@@ -143,7 +133,6 @@ class TestTrickle(TestUsingServer):
         self.assertEqual(resp.read(), expected)
         self.assertGreater(6, t1-t0)
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_headers(self):
         resp = self.request("/document.txt", query="pipe=trickle(d0.01)")
         self.assertEqual(resp.info()["Cache-Control"], "no-cache, no-store, must-revalidate")

@@ -14,52 +14,56 @@ var usbEndpoint;
 var usbConnectionEvent;
 
 usb_test(async () => {
-  const idl = await fetch('/interfaces/webusb.idl').then(r => r.text());
-  const html = await fetch('/interfaces/html.idl').then(r => r.text());
-  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+  // Ignored errors are surfaced in idlharness.js's test_object below.
+  let device;
+  try {
+    device = (await getFakeDevice()).device;
+  } catch (e) {}
 
-  let idl_array = new IdlArray();
-  idl_array.add_idls(idl);
-  idl_array.add_dependency_idls(html);
-  idl_array.add_dependency_idls(dom);
+  return idl_test(
+    ['webusb'],
+    ['html', 'dom'],
+    idl_array => {
+      // Untested IDL interfaces
+      idl_array.add_untested_idls('dictionary PermissionDescriptor {};');
+      idl_array.add_untested_idls('interface PermissionStatus {};');
 
-  // Untested IDL interfaces
-  idl_array.add_untested_idls('dictionary PermissionDescriptor {};');
-  idl_array.add_untested_idls('interface PermissionStatus {};');
+      try {
+        usbDevice = device;
+        usbConfiguration = usbDevice.configurations[0];
+        usbInterface = usbConfiguration.interfaces[0];
+        usbAlternateInterface = usbInterface.alternates[0];
+        usbEndpoint = usbAlternateInterface.endpoints[0];
+        usbConnectionEvent =
+            new USBConnectionEvent('connect', { device: usbDevice })
+      } catch (e) {}
 
-  let {device} = await getFakeDevice();
+      if (self.GLOBAL.isWindow()) {
+        idl_array.add_objects({ Navigator: ['navigator'] });
+      } else if (self.GLOBAL.isWorker()) {
+        idl_array.add_objects({ WorkerNavigator: ['navigator'] });
+      }
 
-  usbDevice = device;
-  usbConfiguration = usbDevice.configurations[0];
-  usbInterface = usbConfiguration.interfaces[0];
-  usbAlternateInterface = usbInterface.alternates[0];
-  usbEndpoint = usbAlternateInterface.endpoints[0];
-  usbConnectionEvent =
-      new USBConnectionEvent('connect', { device: usbDevice })
-
-  if (self.GLOBAL.isWindow()) {
-    idl_array.add_objects({ Navigator: ['navigator'] });
-  } else if (self.GLOBAL.isWorker()) {
-    idl_array.add_objects({ WorkerNavigator: ['navigator'] });
-  }
-
-  idl_array.add_objects({
-    USB: ['navigator.usb'],
-    USBAlternateInterface: ['usbAlternateInterface'],
-    USBConfiguration: ['usbConfiguration'],
-    USBConnectionEvent: ['usbConnectionEvent'],
-    USBDevice: ['usbDevice'],
-    USBEndpoint: ['usbEndpoint'],
-    USBInterface: ['usbInterface'],
-    USBInTransferResult: ['new USBInTransferResult("ok")'],
-    USBOutTransferResult: ['new USBOutTransferResult("ok")'],
-    USBIsochronousInTransferResult: ['new USBIsochronousInTransferResult([])'],
-    USBIsochronousOutTransferResult: ['new USBIsochronousOutTransferResult([])'],
-    USBIsochronousInTransferPacket: ['new USBIsochronousInTransferPacket("ok")'],
-    USBIsochronousOutTransferPacket: ['new USBIsochronousOutTransferPacket("ok")'],
-  });
-
-  idl_array.test();
-}, 'WebUSB IDL test');
+      idl_array.add_objects({
+        Navigator: ['navigator'],
+        USB: ['navigator.usb'],
+        USBAlternateInterface: ['usbAlternateInterface'],
+        USBConfiguration: ['usbConfiguration'],
+        USBConnectionEvent: ['usbConnectionEvent'],
+        USBDevice: ['usbDevice'],
+        USBEndpoint: ['usbEndpoint'],
+        USBInterface: ['usbInterface'],
+        USBInTransferResult: ['new USBInTransferResult("ok")'],
+        USBOutTransferResult: ['new USBOutTransferResult("ok")'],
+        USBIsochronousInTransferResult: ['new USBIsochronousInTransferResult([])'],
+        USBIsochronousOutTransferResult: ['new USBIsochronousOutTransferResult([])'],
+        USBIsochronousInTransferPacket: ['new USBIsochronousInTransferPacket("ok")'],
+        USBIsochronousOutTransferPacket: ['new USBIsochronousOutTransferPacket("ok")'],
+      });
+      idl_array.prevent_multiple_testing('Navigator');
+    },
+    'WebUSB IDL test'
+  )
+});
 
 done();

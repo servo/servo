@@ -8,7 +8,6 @@ from .base import TestUsingServer
 
 
 class TestResponseSetCookie(TestUsingServer):
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_name_value(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -21,7 +20,6 @@ class TestResponseSetCookie(TestUsingServer):
 
         self.assertEqual(resp.info()["Set-Cookie"], "name=value; Path=/")
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_unset(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -35,7 +33,6 @@ class TestResponseSetCookie(TestUsingServer):
 
         self.assertTrue("Set-Cookie" not in resp.info())
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_delete(self):
         @wptserve.handlers.handler
         def handler(request, response):

@@ -98,8 +98,3 @@ Plugin specific examples:
 .. _`parametrizing tests, generalized`: http://tetamap.wordpress.com/2009/05/13/parametrizing-python-tests-generalized/
 .. _`generating parametrized tests with fixtures`: parametrize.html#test-generators
 .. _`test generators and cached setup`: http://bruynooghe.blogspot.com/2010/06/pytest-test-generators-and-cached-setup.html
-
-
-
-
-

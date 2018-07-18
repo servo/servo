@@ -5,18 +5,19 @@
 
 [Constructor(optional InputDeviceCapabilitiesInit deviceInitDict)]
 interface InputDeviceCapabilities {
-    readonly attribute boolean firesTouchEvents;
-    readonly attribute boolean pointerMovementScrolls;
+  readonly attribute boolean firesTouchEvents;
+  readonly attribute boolean pointerMovementScrolls;
 };
 
 dictionary InputDeviceCapabilitiesInit {
-    boolean firesTouchEvents = false;
-    boolean pointerMovementScrolls = false;
+  boolean firesTouchEvents = false;
+  boolean pointerMovementScrolls = false;
 };
+
 partial interface UIEvent {
-    readonly attribute InputDeviceCapabilities? sourceCapabilities;
+  readonly attribute InputDeviceCapabilities? sourceCapabilities;
 };
 
 partial dictionary UIEventInit {
-    InputDeviceCapabilities? sourceCapabilities = null;
+  InputDeviceCapabilities? sourceCapabilities = null;
 };

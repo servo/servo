@@ -49,4 +49,3 @@ Changes 2.6.3
 
 - check xfail/skip also with non-python function test items. Thanks
   Floris Bruynooghe.
-

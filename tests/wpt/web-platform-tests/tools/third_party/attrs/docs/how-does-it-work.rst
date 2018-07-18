@@ -17,7 +17,7 @@ In order to ensure that sub-classing works as you'd expect it to work, ``attrs``
 Please note that ``attrs`` does *not* call ``super()`` *ever*.
 It will write dunder methods to work on *all* of those attributes which also has performance benefits due to fewer function calls.
 
-Once ``attrs`` knows what attributes it has to work on, it writes the requested dunder methods and -- depending on whether you wish to have ``__slots__`` -- creates a new class for you (``slots=True``) or attaches them to the original class (``slots=False``).
+Once ``attrs`` knows what attributes it has to work on, it writes the requested dunder methods and -- depending on whether you wish to have a :term:`dict <dict classes>` or :term:`slotted <slotted classes>` class -- creates a new class for you (``slots=True``) or attaches them to the original class (``slots=False``).
 While creating new classes is more elegant, we've run into several edge cases surrounding metaclasses that make it impossible to go this route unconditionally.
 
 To be very clear: if you define a class with a single attribute  without a default value, the generated ``__init__`` will look *exactly* how you'd expect:
@@ -53,7 +53,24 @@ Immutability
 
 In order to give you immutability, ``attrs`` will attach a ``__setattr__`` method to your class that raises a :exc:`attr.exceptions.FrozenInstanceError` whenever anyone tries to set an attribute.
 
-To circumvent that ourselves in ``__init__``, ``attrs`` uses (an aggressively cached) :meth:`object.__setattr__` to set your attributes.
+Depending on whether of not a class is a dict class or a slots class, ``attrs`` uses a different technique to circumvent that limitation in the ``__init__`` method.
+
+Once constructed, frozen instances don't differ in any way from regular ones except that you cannot change its attributes.
+
+
+Dict Classes
+++++++++++++
+
+Dict classes -- i.e. regular classes -- simply assign the value directly into the class' eponymous ``__dict__`` (and there's nothing we can do to stop the user to do the same).
+
+The performance impact is negligible.
+
+
+Slots Classes
++++++++++++++
+
+Slots classes are more complicated.
+Here it uses (an aggressively cached) :meth:`object.__setattr__` to set your attributes.
 This is (still) slower than a plain assignment:
 
 .. code-block:: none
@@ -74,6 +91,10 @@ So on a standard notebook the difference is about 300 nanoseconds (1 second is 1
 It's certainly something you'll feel in a hot loop but shouldn't matter in normal code.
 Pick what's more important to you.
 
-****
 
-Once constructed, frozen instances don't differ in any way from regular ones except that you cannot change its attributes.
+Summary
++++++++
+
+You should avoid to instantiate lots of frozen slotted classes (i.e. ``@attr.s(slots=True, frozen=True)``) in performance-critical code.
+
+Frozen dict classes have barely a performance impact, unfrozen slotted classes are even *faster* than unfrozen dict classes (i.e. regular classes).

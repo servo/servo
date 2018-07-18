@@ -1,6 +1,6 @@
+spec: https://html.spec.whatwg.org/multipage/workers.html
 suggested_reviewers:
   - zqzhang
-  - chunywang
   - caitp
   - jdm
   - annevk

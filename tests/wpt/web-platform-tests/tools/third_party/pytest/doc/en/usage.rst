@@ -111,9 +111,9 @@ For more information see :ref:`marks <mark>`.
 ::
 
     pytest --pyargs pkg.testing
-     
+
 This will import ``pkg.testing`` and use its filesystem location to find and run tests from.
-    
+
 
 Modifying Python traceback printing
 ----------------------------------------------
@@ -152,9 +152,9 @@ allows one to drop into the PDB_ prompt via a command line option::
 
     pytest --pdb
 
-This will invoke the Python debugger on every failure.  Often you might
-only want to do this for the first failing test to understand a certain
-failure situation::
+This will invoke the Python debugger on every failure (or KeyboardInterrupt).
+Often you might only want to do this for the first failing test to understand
+a certain failure situation::
 
     pytest -x --pdb   # drop to PDB on first failure, then end test session
     pytest --pdb --maxfail=3  # drop to PDB for first three failures
@@ -189,6 +189,20 @@ in your code and pytest automatically disables its output capture for that test:
   for test output occurring after you exit the interactive PDB_ tracing session
   and continue with the regular test run.
 
+
+.. _`breakpoint-builtin`:
+
+Using the builtin breakpoint function
+-------------------------------------
+
+Python 3.7 introduces a builtin ``breakpoint()`` function.
+Pytest supports the use of ``breakpoint()`` with the following behaviours:
+
+ - When ``breakpoint()`` is called and ``PYTHONBREAKPOINT`` is set to the default value, pytest will use the custom internal PDB trace UI instead of the system default ``Pdb``.
+ - When tests are complete, the system will default back to the system ``Pdb`` trace UI.
+ - If ``--pdb`` is called on execution of pytest, the custom internal Pdb trace UI is used on ``bothbreakpoint()`` and failed tests/unhandled exceptions.
+ - If ``--pdbcls`` is used, the custom class debugger will be executed when a test fails (as expected within existing behaviour), but also when ``breakpoint()`` is called from within a test, the custom class debugger will be instantiated.
+
 .. _durations:
 
 Profiling test execution duration
@@ -220,19 +234,26 @@ To set the name of the root test suite xml item, you can configure the ``junit_s
     [pytest]
     junit_suite_name = my_suite
 
-record_xml_property
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _record_property example:
+
+record_property
+^^^^^^^^^^^^^^^
 
 .. versionadded:: 2.8
+.. versionchanged:: 3.5
+
+   Fixture renamed from ``record_xml_property`` to ``record_property`` as user
+   properties are now available to all reporters.
+   ``record_xml_property`` is now deprecated.
 
 If you want to log additional information for a test, you can use the
-``record_xml_property`` fixture:
+``record_property`` fixture:
 
 .. code-block:: python
 
-    def test_function(record_xml_property):
-        record_xml_property("example_key", 1)
-        assert 0
+    def test_function(record_property):
+        record_property("example_key", 1)
+        assert True
 
 This will add an extra property ``example_key="1"`` to the generated
 ``testcase`` tag:
@@ -245,16 +266,107 @@ This will add an extra property ``example_key="1"`` to the generated
       </properties>
     </testcase>
 
+Alternatively, you can integrate this functionality with custom markers:
+
+.. code-block:: python
+
+    # content of conftest.py
+
+
+    def pytest_collection_modifyitems(session, config, items):
+        for item in items:
+            for marker in item.iter_markers(name="test_id"):
+                test_id = marker.args[0]
+                item.user_properties.append(("test_id", test_id))
+
+And in your tests:
+
+.. code-block:: python
+
+    # content of test_function.py
+    import pytest
+
+
+    @pytest.mark.test_id(1501)
+    def test_function():
+        assert True
+
+Will result in:
+
+.. code-block:: xml
+
+    <testcase classname="test_function" file="test_function.py" line="0" name="test_function" time="0.0009">
+      <properties>
+        <property name="test_id" value="1501" />
+      </properties>
+    </testcase>
+
 .. warning::
 
-    ``record_xml_property`` is an experimental feature, and its interface might be replaced
-    by something more powerful and general in future versions. The
-    functionality per-se will be kept, however.
-
-    Currently it does not work when used with the ``pytest-xdist`` plugin.
+    ``record_property`` is an experimental feature and may change in the future.
 
     Also please note that using this feature will break any schema verification.
     This might be a problem when used with some CI servers.
+
+record_xml_attribute
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 3.4
+
+To add an additional xml attribute to a testcase element, you can use
+``record_xml_attribute`` fixture. This can also be used to override existing values:
+
+.. code-block:: python
+
+    def test_function(record_xml_attribute):
+        record_xml_attribute("assertions", "REQ-1234")
+        record_xml_attribute("classname", "custom_classname")
+        print("hello world")
+        assert True
+
+Unlike ``record_property``, this will not add a new child element.
+Instead, this will add an attribute ``assertions="REQ-1234"`` inside the generated
+``testcase`` tag and override the default ``classname`` with ``"classname=custom_classname"``:
+
+.. code-block:: xml
+
+    <testcase classname="custom_classname" file="test_function.py" line="0" name="test_function" time="0.003" assertions="REQ-1234">
+        <system-out>
+            hello world
+        </system-out>
+    </testcase>
+
+.. warning::
+
+    ``record_xml_attribute`` is an experimental feature, and its interface might be replaced
+    by something more powerful and general in future versions. The
+    functionality per-se will be kept, however.
+
+    Using this over ``record_xml_property`` can help when using ci tools to parse the xml report.
+    However, some parsers are quite strict about the elements and attributes that are allowed.
+    Many tools use an xsd schema (like the example below) to validate incoming xml.
+    Make sure you are using attribute names that are allowed by your parser.
+
+    Below is the Scheme used by Jenkins to validate the XML report:
+
+    .. code-block:: xml
+
+        <xs:element name="testcase">
+            <xs:complexType>
+                <xs:sequence>
+                    <xs:element ref="skipped" minOccurs="0" maxOccurs="1"/>
+                    <xs:element ref="error" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element ref="failure" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element ref="system-out" minOccurs="0" maxOccurs="unbounded"/>
+                    <xs:element ref="system-err" minOccurs="0" maxOccurs="unbounded"/>
+                </xs:sequence>
+                <xs:attribute name="name" type="xs:string" use="required"/>
+                <xs:attribute name="assertions" type="xs:string" use="optional"/>
+                <xs:attribute name="time" type="xs:string" use="optional"/>
+                <xs:attribute name="classname" type="xs:string" use="optional"/>
+                <xs:attribute name="status" type="xs:string" use="optional"/>
+            </xs:complexType>
+        </xs:element>
 
 LogXML: add_global_property
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,18 +380,21 @@ to all testcases you can use ``LogXML.add_global_properties``
 
     import pytest
 
+
     @pytest.fixture(scope="session")
     def log_global_env_facts(f):
 
-        if pytest.config.pluginmanager.hasplugin('junitxml'):
-            my_junit = getattr(pytest.config, '_xml', None)
+        if pytest.config.pluginmanager.hasplugin("junitxml"):
+            my_junit = getattr(pytest.config, "_xml", None)
 
-        my_junit.add_global_property('ARCH', 'PPC')
-        my_junit.add_global_property('STORAGE_TYPE', 'CEPH')
+        my_junit.add_global_property("ARCH", "PPC")
+        my_junit.add_global_property("STORAGE_TYPE", "CEPH")
 
-    @pytest.mark.usefixtures(log_global_env_facts)
+
+    @pytest.mark.usefixtures(log_global_env_facts.__name__)
     def start_and_prepare_env():
         pass
+
 
     class TestMe(object):
         def test_foo(self):
@@ -311,7 +426,7 @@ Creating resultlog format files
     This option is rarely used and is scheduled for removal in 4.0.
 
     An alternative for users which still need similar functionality is to use the
-    `pytest-tap <https://pypi.python.org/pypi/pytest-tap>`_ plugin which provides
+    `pytest-tap <https://pypi.org/project/pytest-tap/>`_ plugin which provides
     a stream of test data.
 
     If you have any concerns, please don't hesitate to
@@ -386,7 +501,17 @@ Running it will show that ``MyPlugin`` was added and its
 hook was invoked::
 
     $ python myinvoke.py
-    *** test run reporting finishing
-    
+    .                                                                    [100%]*** test run reporting finishing
+
+
+.. note::
+
+    Calling ``pytest.main()`` will result in importing your tests and any modules
+    that they import. Due to the caching mechanism of python's import system,
+    making subsequent calls to ``pytest.main()`` from the same process will not
+    reflect changes to those files between the calls. For this reason, making
+    multiple calls to ``pytest.main()`` from the same process (in order to re-run
+    tests, for example) is not recommended.
+
 
 .. include:: links.inc

@@ -36,4 +36,3 @@ Changes between 2.2.3 and 2.2.4
   configure/sessionstart where called
 - fix issue #144: better mangle test ids to junitxml classnames
 - upgrade distribute_setup.py to 0.6.27
-

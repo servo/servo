@@ -1,3 +1,4 @@
+import itertools
 import os
 import urlparse
 from collections import namedtuple, defaultdict
@@ -35,7 +36,7 @@ class ConditionError(Exception):
         self.cond = cond
 
 
-Result = namedtuple("Result", ["run_info", "status"])
+Value = namedtuple("Value", ["run_info", "value"])
 
 
 def data_cls_getter(output_node, visited_node):
@@ -113,12 +114,14 @@ class TestNode(ManifestItem):
         :param node: AST node associated with the test"""
 
         ManifestItem.__init__(self, node)
-        self.updated_expected = []
-        self.new_expected = []
-        self.new_disabled = False
         self.subtests = {}
-        self.default_status = None
         self._from_file = True
+        self.new_disabled = False
+        self.update_properties = {
+            "expected": ExpectedUpdate(self),
+            "max-asserts": MaxAssertsUpdate(self),
+            "min-asserts": MinAssertsUpdate(self)
+        }
 
     @classmethod
     def create(cls, test_id):
@@ -128,7 +131,7 @@ class TestNode(ManifestItem):
         :param test_id: The id of the test"""
 
         url = test_id
-        name = url.split("/")[-1]
+        name = url.rsplit("/", 1)[1]
         node = DataNode(name)
         self = cls(node)
 
@@ -168,130 +171,37 @@ class TestNode(ManifestItem):
                          to this run
         :param result: Status of the test in this run"""
 
-        if self.default_status is not None:
-            assert self.default_status == result.default_expected
-        else:
-            self.default_status = result.default_expected
+        self.update_properties["expected"].set(run_info, result)
 
-        # Add this result to the list of results satisfying
-        # any condition in the list of updated results it matches
-        for (cond, values) in self.updated_expected:
-            if cond(run_info):
-                values.append(Result(run_info, result.status))
-                if result.status != cond.value:
-                    self.root.modified = True
-                break
-        else:
-            # We didn't find a previous value for this
-            self.new_expected.append(Result(run_info, result.status))
-            self.root.modified = True
+    def set_asserts(self, run_info, count):
+        """Set the assert count of a test
 
-    def coalesce_expected(self, stability=None):
-        """Update the underlying manifest AST for this test based on all the
-        added results.
-
-        This will update existing conditionals if they got the same result in
-        all matching runs in the updated results, will delete existing conditionals
-        that get more than one different result in the updated run, and add new
-        conditionals for anything that doesn't match an existing conditional.
-
-        Conditionals not matched by any added result are not changed.
-
-        When `stability` is not None, disable any test that shows multiple
-        unexpected results for the same set of parameters.
         """
-
-        try:
-            unconditional_status = self.get("expected")
-        except KeyError:
-            unconditional_status = self.default_status
-
-        for conditional_value, results in self.updated_expected:
-            if not results:
-                # The conditional didn't match anything in these runs so leave it alone
-                pass
-            elif all(results[0].status == result.status for result in results):
-                # All the new values for this conditional matched, so update the node
-                result = results[0]
-                if (result.status == unconditional_status and
-                    conditional_value.condition_node is not None):
-                    if "expected" in self:
-                        self.remove_value("expected", conditional_value)
-                else:
-                    conditional_value.value = result.status
-            elif conditional_value.condition_node is not None:
-                # Blow away the existing condition and rebuild from scratch
-                # This isn't sure to work if we have a conditional later that matches
-                # these values too, but we can hope, verify that we get the results
-                # we expect, and if not let a human sort it out
-                self.remove_value("expected", conditional_value)
-                self.new_expected.extend(results)
-            elif conditional_value.condition_node is None:
-                self.new_expected.extend(result for result in results
-                                         if result.status != unconditional_status)
-
-        # It is an invariant that nothing in new_expected matches an existing
-        # condition except for the default condition
-
-        if self.new_expected:
-            if all(self.new_expected[0].status == result.status
-                   for result in self.new_expected) and not self.updated_expected:
-                status = self.new_expected[0].status
-                if status != self.default_status:
-                    self.set("expected", status, condition=None)
-            else:
-                try:
-                    conditionals = group_conditionals(
-                        self.new_expected,
-                        property_order=self.root.property_order,
-                        boolean_properties=self.root.boolean_properties)
-                except ConditionError as e:
-                    if stability is not None:
-                        self.set("disabled", stability or "unstable", e.cond.children[0])
-                        self.new_disabled = True
-                    else:
-                        print "Conflicting test results for %s, cannot update" % self.root.test_path
-                    return
-                for conditional_node, status in conditionals:
-                    if status != unconditional_status:
-                        self.set("expected", status, condition=conditional_node.children[0])
-
-        if ("expected" in self._data and
-            len(self._data["expected"]) > 0 and
-            self._data["expected"][-1].condition_node is None and
-            self._data["expected"][-1].value == self.default_status):
-
-            self.remove_value("expected", self._data["expected"][-1])
-
-        if ("expected" in self._data and
-            len(self._data["expected"]) == 0):
-            for child in self.node.children:
-                if (isinstance(child, KeyValueNode) and
-                    child.data == "expected"):
-                    child.remove()
-                    break
+        self.update_properties["min-asserts"].set(run_info, count)
+        self.update_properties["max-asserts"].set(run_info, count)
 
     def _add_key_value(self, node, values):
         ManifestItem._add_key_value(self, node, values)
-        if node.data == "expected":
-            self.updated_expected = []
+        if node.data in self.update_properties:
+            new_updated = []
+            self.update_properties[node.data].updated = new_updated
             for value in values:
-                self.updated_expected.append((value, []))
+                new_updated.append((value, []))
 
-    def clear_expected(self):
+    def clear(self, key):
         """Clear all the expected data for this test and all of its subtests"""
 
-        self.updated_expected = []
-        if "expected" in self._data:
+        self.updated = []
+        if key in self._data:
             for child in self.node.children:
                 if (isinstance(child, KeyValueNode) and
-                    child.data == "expected"):
+                    child.data == key):
                     child.remove()
-                    del self._data["expected"]
+                    del self._data[key]
                     break
 
         for subtest in self.subtests.itervalues():
-            subtest.clear_expected()
+            subtest.clear(key)
 
     def append(self, node):
         child = ManifestItem.append(self, node)
@@ -310,6 +220,10 @@ class TestNode(ManifestItem):
             subtest = SubtestNode.create(name)
             self.append(subtest)
             return subtest
+
+    def coalesce_properties(self, stability):
+        for prop_update in self.update_properties.itervalues():
+            prop_update.coalesce(stability)
 
 
 class SubtestNode(TestNode):
@@ -330,21 +244,252 @@ class SubtestNode(TestNode):
         return True
 
 
+class PropertyUpdate(object):
+    property_name = None
+    cls_default_value = None
+    value_type = None
+
+    def __init__(self, node):
+        self.node = node
+        self.updated = []
+        self.new = []
+        self.default_value = self.cls_default_value
+
+    def set(self, run_info, in_value):
+        self.check_default(in_value)
+        value = self.get_value(in_value)
+
+        # Add this result to the list of results satisfying
+        # any condition in the list of updated results it matches
+        for (cond, values) in self.updated:
+            if cond(run_info):
+                values.append(Value(run_info, value))
+                if value != cond.value_as(self.value_type):
+                    self.node.root.modified = True
+                break
+        else:
+            # We didn't find a previous value for this
+            self.new.append(Value(run_info, value))
+            self.node.root.modified = True
+
+    def check_default(self, result):
+        return
+
+    def get_value(self, in_value):
+        return in_value
+
+    def coalesce(self, stability=None):
+        """Update the underlying manifest AST for this test based on all the
+        added results.
+
+        This will update existing conditionals if they got the same result in
+        all matching runs in the updated results, will delete existing conditionals
+        that get more than one different result in the updated run, and add new
+        conditionals for anything that doesn't match an existing conditional.
+
+        Conditionals not matched by any added result are not changed.
+
+        When `stability` is not None, disable any test that shows multiple
+        unexpected results for the same set of parameters.
+        """
+
+        try:
+            unconditional_value = self.node.get(self.property_name)
+            if self.value_type:
+                unconditional_value = self.value_type(unconditional_value)
+        except KeyError:
+            unconditional_value = self.default_value
+
+        for conditional_value, results in self.updated:
+            if not results:
+                # The conditional didn't match anything in these runs so leave it alone
+                pass
+            elif all(results[0].value == result.value for result in results):
+                # All the new values for this conditional matched, so update the node
+                result = results[0]
+                if (result.value == unconditional_value and
+                    conditional_value.condition_node is not None):
+                    if self.property_name in self.node:
+                        self.node.remove_value(self.property_name, conditional_value)
+                else:
+                    conditional_value.value = self.update_value(conditional_value.value_as(self.value_type),
+                                                                result.value)
+            elif conditional_value.condition_node is not None:
+                # Blow away the existing condition and rebuild from scratch
+                # This isn't sure to work if we have a conditional later that matches
+                # these values too, but we can hope, verify that we get the results
+                # we expect, and if not let a human sort it out
+                self.node.remove_value(self.property_name, conditional_value)
+                self.new.extend(results)
+            elif conditional_value.condition_node is None:
+                self.new.extend(result for result in results
+                                if result.value != unconditional_value)
+
+        # It is an invariant that nothing in new matches an existing
+        # condition except for the default condition
+        if self.new:
+            update_default, new_default_value = self.update_default()
+            if update_default:
+                if new_default_value != self.default_value:
+                    self.node.set(self.property_name, self.update_value(None, new_default_value), condition=None)
+            else:
+                self.add_new(unconditional_value, stability)
+
+        # Remove cases where the value matches the default
+        if (self.property_name in self.node._data and
+            len(self.node._data[self.property_name]) > 0 and
+            self.node._data[self.property_name][-1].condition_node is None and
+            self.node._data[self.property_name][-1].value_as(self.value_type) == self.default_value):
+
+            self.node.remove_value(self.property_name, self.node._data[self.property_name][-1])
+
+        # Remove empty properties
+        if (self.property_name in self.node._data and len(self.node._data[self.property_name]) == 0):
+            for child in self.node.children:
+                if (isinstance(child, KeyValueNode) and child.data == self.property_name):
+                    child.remove()
+                    break
+
+    def update_default(self):
+        """Get the updated default value for the property (i.e. the one chosen when no conditions match).
+
+        :returns: (update, new_default_value) where updated is a bool indicating whether the property
+                  should be updated, and new_default_value is the value to set if it should."""
+        raise NotImplementedError
+
+    def add_new(self, unconditional_value, stability=False):
+        """Add new conditional values for the property.
+
+        Subclasses need not implement this if they only ever update the default value."""
+        raise NotImplementedError
+
+    def update_value(self, old_value, new_value):
+        """Get a value to set on the property, given its previous value and the new value from logs.
+
+        By default this just returns the new value, but overriding is useful in cases
+        where we want the new value to be some function of both old and new e.g. max(old_value, new_value)"""
+        return new_value
+
+
+class ExpectedUpdate(PropertyUpdate):
+    property_name = "expected"
+
+    def check_default(self, result):
+        if self.default_value is not None:
+            assert self.default_value == result.default_expected
+        else:
+            self.default_value = result.default_expected
+
+    def get_value(self, in_value):
+        return in_value.status
+
+    def update_default(self):
+        update_default = all(self.new[0].value == result.value
+                             for result in self.new) and not self.updated
+        new_value = self.new[0].value
+        return update_default, new_value
+
+    def add_new(self, unconditional_value, stability=False):
+        try:
+            conditionals = group_conditionals(
+                self.new,
+                property_order=self.node.root.property_order,
+                boolean_properties=self.node.root.boolean_properties)
+        except ConditionError as e:
+            if stability is not None:
+                self.node.set("disabled", stability or "unstable", e.cond.children[0])
+                self.node.new_disabled = True
+            else:
+                print "Conflicting metadata values for %s, cannot update" % self.root.test_path
+                return
+        for conditional_node, value in conditionals:
+            if value != unconditional_value:
+                self.node.set(self.property_name, value, condition=conditional_node.children[0])
+
+
+class MaxAssertsUpdate(PropertyUpdate):
+    property_name = "max-asserts"
+    cls_default_value = 0
+    value_type = int
+
+    def update_value(self, old_value, new_value):
+        if old_value is not None:
+            old_value = self.value_type(old_value)
+        if old_value and old_value < new_value:
+            return new_value
+        if old_value is None:
+            return new_value
+        return old_value
+
+    def update_default(self):
+        """For asserts we always update the default value and never add new conditionals.
+        The value we set as the default is the maximum the current default or one more than the
+        number of asserts we saw in any configuration."""
+        # Current values
+        values = []
+        current_default = None
+        if self.property_name in self.node._data:
+            current_default = [item for item in
+                               self.node._data[self.property_name]
+                               if item.condition_node is None]
+            if current_default:
+                values.append(int(current_default[0].value))
+        values.extend(item.value + 1 for item in self.new)
+        values.extend(item.value + 1 for item in
+                      itertools.chain.from_iterable(results for _, results in self.updated))
+        new_value = max(values)
+        return True, new_value
+
+
+class MinAssertsUpdate(PropertyUpdate):
+    property_name = "min-asserts"
+    cls_default_value = 0
+    value_type = int
+
+    def update_value(self, old_value, new_value):
+        if old_value is not None:
+            old_value = self.value_type(old_value)
+        if old_value and new_value < old_value:
+            return 0
+        if old_value is None:
+            # If we are getting some asserts for the first time, set the minimum to 0
+            return 0
+        return old_value
+
+    def update_default(self):
+        """For asserts we always update the default value and never add new conditionals.
+        This is either set to the current value or one less than the number of asserts
+        we saw, whichever is lower."""
+        values = []
+        current_default = None
+        if self.property_name in self.node._data:
+            current_default = [item for item in
+                               self.node._data[self.property_name]
+                               if item.condition_node is None]
+        if current_default:
+            values.append(current_default[0].value_as(self.value_type))
+        values.extend(max(0, item.value - 1) for item in self.new)
+        values.extend(max(0, item.value - 1) for item in
+                      itertools.chain.from_iterable(results for _, results in self.updated))
+        new_value = min(values)
+        return True, new_value
+
+
 def group_conditionals(values, property_order=None, boolean_properties=None):
-    """Given a list of Result objects, return a list of
+    """Given a list of Value objects, return a list of
     (conditional_node, status) pairs representing the conditional
     expressions that are required to match each status
 
-    :param values: List of Results
+    :param values: List of Values
     :param property_order: List of properties to use in expectation metadata
                            from most to least significant.
     :param boolean_properties: Set of properties in property_order that should
                                be treated as boolean."""
 
     by_property = defaultdict(set)
-    for run_info, status in values:
+    for run_info, value in values:
         for prop_name, prop_value in run_info.iteritems():
-            by_property[(prop_name, prop_value)].add(status)
+            by_property[(prop_name, prop_value)].add(value)
 
     if property_order is None:
         property_order = ["debug", "os", "version", "processor", "bits"]
@@ -372,21 +517,21 @@ def group_conditionals(values, property_order=None, boolean_properties=None):
 
     conditions = {}
 
-    for run_info, status in values:
+    for run_info, value in values:
         prop_set = tuple((prop, run_info[prop]) for prop in include_props)
         if prop_set in conditions:
-            if conditions[prop_set][1] != status:
+            if conditions[prop_set][1] != value:
                 # A prop_set contains contradictory results
-                raise ConditionError(make_expr(prop_set, status, boolean_properties))
+                raise ConditionError(make_expr(prop_set, value, boolean_properties))
             continue
 
-        expr = make_expr(prop_set, status, boolean_properties=boolean_properties)
-        conditions[prop_set] = (expr, status)
+        expr = make_expr(prop_set, value, boolean_properties=boolean_properties)
+        conditions[prop_set] = (expr, value)
 
     return conditions.values()
 
 
-def make_expr(prop_set, status, boolean_properties=None):
+def make_expr(prop_set, rhs, boolean_properties=None):
     """Create an AST that returns the value ``status`` given all the
     properties in prop_set match.
 
@@ -434,7 +579,11 @@ def make_expr(prop_set, status, boolean_properties=None):
         node = expressions[0]
 
     root.append(node)
-    root.append(StringNode(status))
+    if type(rhs) in number_types:
+        rhs_node = NumberNode(rhs)
+    else:
+        rhs_node = StringNode(rhs)
+    root.append(rhs_node)
 
     return root
 

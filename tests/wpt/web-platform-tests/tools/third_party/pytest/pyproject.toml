@@ -1,5 +1,13 @@
+[build-system]
+requires = [
+  "setuptools",
+  "setuptools-scm",
+  "wheel",
+]
+
 [tool.towncrier]
 package = "pytest"
+package_dir = "src"
 filename = "CHANGELOG.rst"
 directory = "changelog/"
 template = "changelog/_template.rst"

@@ -8,9 +8,9 @@ pytest-2.3.2 is another stabilization release:
 - fix teardown-ordering for parametrized setups
 - fix unittest and trial compat behaviour with respect  to runTest() methods
 - issue 206 and others: some improvements to packaging
-- fix issue127 and others: improve some docs 
+- fix issue127 and others: improve some docs
 
-See 
+See
 
      http://pytest.org/
 
@@ -26,7 +26,7 @@ holger krekel
 Changes between 2.3.1 and 2.3.2
 -----------------------------------
 
-- fix issue208 and fix issue29 use new py version to avoid long pauses 
+- fix issue208 and fix issue29 use new py version to avoid long pauses
   when printing tracebacks in long modules
 
 - fix issue205 - conftests in subdirs customizing

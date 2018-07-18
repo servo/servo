@@ -1,43 +1,17 @@
 <!DOCTYPE HTML>
-<html>
- <head>
-  <title>Forms</title>
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
- </head>
- <body>
-  <p>
-    <h3>input_setCustomValidity</h3>
-  </p>
+<title>input setCustomValidity</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 
-  <hr>
+<input id='input_test'>
 
-  <div id="log"></div>
+<script>
 
-  <form method="post"
-      enctype="application/x-www-form-urlencoded"
-      action=""
-      id="input_form">
-    <p><input type='hidden' id='input_text'></p>
-  </form>
-  <script>
+test(() => {
+  let elem = document.getElementById("input_test");
+  assert_false(elem.validity.customError);
+  elem.setCustomValidity("custom error");
+  assert_true(elem.validity.customError);
+}, "input setCustomValidity is correct")
 
-    var input = document.getElementById("input_text");
-
-    try
-    {
-      input.setCustomValidity("custom error");
-      test(function() {
-        assert_true(true, "calling of setCustomValidity method is successed.");
-      });
-    }
-    catch (e) {
-      test(function() {
-        assert_unreached("Error is raised.");
-      });
-    }
-
-  </script>
-
- </body>
-</html>
+</script>

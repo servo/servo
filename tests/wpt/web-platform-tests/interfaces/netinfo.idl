@@ -1,0 +1,45 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Network Information API" spec.
+// See: https://wicg.github.io/netinfo/
+
+enum ConnectionType {
+    "bluetooth",
+    "cellular",
+    "ethernet",
+    "mixed",
+    "none",
+    "other",
+    "unknown",
+    "wifi",
+    "wimax"
+};
+enum EffectiveConnectionType {
+    "2g",
+    "3g",
+    "4g",
+    "slow-2g"
+};
+[NoInterfaceObject,
+ Exposed=(Window,Worker)]
+interface NavigatorNetworkInformation {
+    readonly attribute NetworkInformation connection;
+};
+
+Navigator implements NavigatorNetworkInformation;
+
+WorkerNavigator implements NavigatorNetworkInformation;
+[Exposed=(Window,Worker)]
+interface NetworkInformation : EventTarget {
+    readonly attribute ConnectionType          type;
+    readonly attribute EffectiveConnectionType effectiveType;
+    readonly attribute Megabit                 downlinkMax;
+    readonly attribute Megabit                 downlink;
+    readonly attribute Millisecond             rtt;
+    readonly attribute boolean                 saveData;
+             attribute EventHandler            onchange;
+};
+
+typedef unrestricted double Megabit;
+
+typedef unsigned long long Millisecond;

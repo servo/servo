@@ -9,7 +9,7 @@ and integration testing.  See extensive docs with examples here:
 
 The release contains another fix to the perfected assertions introduced
 with the 2.1 series as well as the new possibility to customize reporting
-for assertion expressions on a per-directory level.  
+for assertion expressions on a per-directory level.
 
 If you want to install or upgrade pytest, just type one of::
 

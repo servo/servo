@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the Pointer Lock spec.
-// See https://w3c.github.io/pointerlock/
+// Content of this file was automatically extracted from the
+// "Pointer Lock 2.0" spec.
+// See: https://w3c.github.io/pointerlock/
 
 partial interface Element {
   void requestPointerLock();
@@ -13,7 +14,7 @@ partial interface Document {
 };
 
 partial interface DocumentOrShadowRoot {
-  readonly attribute Element ? pointerLockElement;
+  readonly attribute Element? pointerLockElement;
 };
 
 partial interface MouseEvent {

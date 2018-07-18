@@ -12,6 +12,14 @@ def link_doc(dest):
     return inline(content)
 
 
+def test_null_response_value(session, mouse_chain):
+    value = mouse_chain.click().perform()
+    assert value is None
+
+    value = session.actions.release()
+    assert value is None
+
+
 def test_click_at_coordinates(session, test_actions_page, mouse_chain):
     div_point = {
         "x": 82,

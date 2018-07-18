@@ -20,7 +20,7 @@ last ``pytest`` invocation:
 For cleanup (usually not needed), a ``--cache-clear`` option allows to remove
 all cross-session cache contents ahead of a test run.
 
-Other plugins may access the `config.cache`_ object to set/get 
+Other plugins may access the `config.cache`_ object to set/get
 **json encodable** values between ``pytest`` invocations.
 
 .. note::
@@ -49,26 +49,26 @@ If you run this for the first time you will see two failures::
     .................F.......F........................                   [100%]
     ================================= FAILURES =================================
     _______________________________ test_num[17] _______________________________
-    
+
     i = 17
-    
+
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
     >          pytest.fail("bad luck")
     E          Failed: bad luck
-    
+
     test_50.py:6: Failed
     _______________________________ test_num[25] _______________________________
-    
+
     i = 25
-    
+
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
     >          pytest.fail("bad luck")
     E          Failed: bad luck
-    
+
     test_50.py:6: Failed
     2 failed, 48 passed in 0.12 seconds
 
@@ -78,35 +78,34 @@ If you then run it with ``--lf``::
     =========================== test session starts ============================
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
-    collected 50 items
+    collected 50 items / 48 deselected
     run-last-failure: rerun previous 2 failures
-    
+
     test_50.py FF                                                        [100%]
-    
+
     ================================= FAILURES =================================
     _______________________________ test_num[17] _______________________________
-    
+
     i = 17
-    
+
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
     >          pytest.fail("bad luck")
     E          Failed: bad luck
-    
+
     test_50.py:6: Failed
     _______________________________ test_num[25] _______________________________
-    
+
     i = 25
-    
+
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
     >          pytest.fail("bad luck")
     E          Failed: bad luck
-    
+
     test_50.py:6: Failed
-    =========================== 48 tests deselected ============================
     ================= 2 failed, 48 deselected in 0.12 seconds ==================
 
 You have run only the two failing test from the last run, while 48 tests have
@@ -122,35 +121,49 @@ of ``FF`` and dots)::
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 50 items
     run-last-failure: rerun previous 2 failures first
-    
+
     test_50.py FF................................................        [100%]
-    
+
     ================================= FAILURES =================================
     _______________________________ test_num[17] _______________________________
-    
+
     i = 17
-    
+
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
     >          pytest.fail("bad luck")
     E          Failed: bad luck
-    
+
     test_50.py:6: Failed
     _______________________________ test_num[25] _______________________________
-    
+
     i = 25
-    
+
         @pytest.mark.parametrize("i", range(50))
         def test_num(i):
             if i in (17, 25):
     >          pytest.fail("bad luck")
     E          Failed: bad luck
-    
+
     test_50.py:6: Failed
     =================== 2 failed, 48 passed in 0.12 seconds ====================
 
 .. _`config.cache`:
+
+New ``--nf``, ``--new-first`` options: run new tests first followed by the rest
+of the tests, in both cases tests are also sorted by the file modified time,
+with more recent files coming first.
+
+Behavior when no tests failed in the last run
+---------------------------------------------
+
+When no tests failed in the last run, or when no cached ``lastfailed`` data was
+found, ``pytest`` can be configured either to run all of the tests or no tests,
+using the ``--last-failed-no-failures`` option, which takes one of the following values::
+
+    pytest --last-failed-no-failures all    # run all tests (default behavior)
+    pytest --last-failed-no-failures none   # run no tests and exit
 
 The new config.cache object
 --------------------------------
@@ -185,13 +198,13 @@ of the sleep::
     F                                                                    [100%]
     ================================= FAILURES =================================
     ______________________________ test_function _______________________________
-    
+
     mydata = 42
-    
+
         def test_function(mydata):
     >       assert mydata == 23
     E       assert 42 == 23
-    
+
     test_caching.py:14: AssertionError
     1 failed in 0.12 seconds
 
@@ -202,17 +215,17 @@ the cache and this will be quick::
     F                                                                    [100%]
     ================================= FAILURES =================================
     ______________________________ test_function _______________________________
-    
+
     mydata = 42
-    
+
         def test_function(mydata):
     >       assert mydata == 23
     E       assert 42 == 23
-    
+
     test_caching.py:14: AssertionError
     1 failed in 0.12 seconds
 
-See the `cache-api`_ for more details.
+See the :ref:`cache-api` for more details.
 
 
 Inspecting Cache content
@@ -221,17 +234,19 @@ Inspecting Cache content
 You can always peek at the content of the cache using the
 ``--cache-show`` command line option::
 
-    $ py.test --cache-show
+    $ pytest --cache-show
     =========================== test session starts ============================
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
-    cachedir: $REGENDOC_TMPDIR/.cache
+    cachedir: $REGENDOC_TMPDIR/.pytest_cache
     ------------------------------- cache values -------------------------------
     cache/lastfailed contains:
       {'test_caching.py::test_function': True}
+    cache/nodeids contains:
+      ['test_caching.py::test_function']
     example/value contains:
       42
-    
+
     ======================= no tests ran in 0.12 seconds =======================
 
 Clearing Cache content
@@ -245,24 +260,3 @@ by adding the ``--cache-clear`` option like this::
 This is recommended for invocations from Continuous Integration
 servers where isolation and correctness is more important
 than speed.
-
-
-.. _`cache-api`:
-
-config.cache API
-------------------
-
-The ``config.cache`` object allows other plugins,
-including ``conftest.py`` files,
-to safely and flexibly store and retrieve values across
-test runs because the ``config`` object is available
-in many places.
-
-Under the hood, the cache plugin uses the simple
-dumps/loads API of the json stdlib module
-
-.. currentmodule:: _pytest.cacheprovider
-
-.. automethod:: Cache.get
-.. automethod:: Cache.set
-.. automethod:: Cache.makedir

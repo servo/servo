@@ -1,4 +1,4 @@
-py.test 2.0.3: bug fixes and speed ups 
+py.test 2.0.3: bug fixes and speed ups
 ===========================================================================
 
 Welcome to pytest-2.0.3, a maintenance and bug fix release of pytest,
@@ -37,4 +37,3 @@ Changes between 2.0.2 and 2.0.3
   internally)
 
 - fix issue37: avoid invalid characters in junitxml's output
-

@@ -65,9 +65,9 @@ then you can just invoke ``pytest`` without command line options::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile: pytest.ini
     collected 1 item
-    
+
     mymodule.py .                                                        [100%]
-    
+
     ========================= 1 passed in 0.12 seconds =========================
 
 It is possible to use fixtures using the ``getfixture`` helper::
@@ -81,9 +81,9 @@ Also, :ref:`usefixtures` and :ref:`autouse` fixtures are supported
 when executing text doctest files.
 
 The standard ``doctest`` module provides some setting flags to configure the
-strictness of doctest tests. In pytest You can enable those flags those flags
-using the configuration file. To make pytest ignore trailing whitespaces and
-ignore lengthy exception stack traces you can just write:
+strictness of doctest tests. In pytest, you can enable those flags using the
+configuration file. To make pytest ignore trailing whitespaces and ignore
+lengthy exception stack traces you can just write:
 
 .. code-block:: ini
 
@@ -115,6 +115,13 @@ itself::
     >>> get_unicode_greeting()  # doctest: +ALLOW_UNICODE
     'Hello'
 
+By default, pytest would report only the first failure for a given doctest.  If
+you want to continue the test even when you have failures, do::
+
+    pytest --doctest-modules --doctest-continue-on-failure
+
+
+.. _`doctest_namespace`:
 
 The 'doctest_namespace' fixture
 -------------------------------
@@ -161,5 +168,3 @@ by using one of standard doctest modules format in options
     pytest --doctest-modules --doctest-report cdiff
     pytest --doctest-modules --doctest-report ndiff
     pytest --doctest-modules --doctest-report only_first_failure
-
-

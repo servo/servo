@@ -6,7 +6,7 @@ which offers uebersimple assertions, scalable fixture mechanisms
 and deep customization for testing with Python.  Particularly,
 this release provides:
 
-- integration fixes and improvements related to flask, numpy, nose, 
+- integration fixes and improvements related to flask, numpy, nose,
   unittest, mock
 
 - makes pytest work on py24 again (yes, people sometimes still need to use it)
@@ -16,7 +16,7 @@ this release provides:
 Thanks to Manuel Jacob, Thomas Waldmann, Ronny Pfannschmidt, Pavel Repin
 and Andreas Taumoefolau for providing patches and all for the issues.
 
-See 
+See
 
      http://pytest.org/
 
@@ -59,4 +59,3 @@ Changes between 2.3.2 and 2.3.3
 
 - fix issue127 - improve documentation for pytest_addoption() and
   add a ``config.getoption(name)`` helper function for consistency.
-

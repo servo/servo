@@ -1,0 +1,26 @@
+sudo: false
+
+language: "python"
+
+python:
+    - "2.7"
+    - "3.4"
+    - "3.5"
+    - "3.6"
+    - "3.7-dev"
+    - "pypy-5.4.1"
+    - "pypy3"
+
+install:
+    - "pip install ."
+    - "pip install -U coveralls flake8"
+
+script:
+    - "coverage run --include='more_itertools/*.py' --omit='more_itertools/tests/*' setup.py test"
+    - "flake8 ."
+
+notifications:
+  email: false
+
+after_success:
+    - "coveralls"

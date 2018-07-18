@@ -4,6 +4,14 @@ from tests.actions.support.keys import Keys
 from tests.actions.support.refine import filter_dict, get_keys, get_events
 
 
+def test_null_response_value(session, key_chain):
+    value = key_chain.key_up("a").perform()
+    assert value is None
+
+    value = session.actions.release()
+    assert value is None
+
+
 def test_lone_keyup_sends_no_events(session, key_reporter, key_chain):
     key_chain.key_up("a").perform()
     assert len(get_keys(key_reporter)) == 0

@@ -26,13 +26,11 @@ def test_get_status_no_session(http):
         assert isinstance(value["message"], basestring)
 
 
-def test_status_with_session_running_on_endpoint_node(new_session, add_browser_capabilites):
+def test_status_with_session_running_on_endpoint_node(session):
     # For an endpoint node, the maximum number of active
     # sessions is 1: https://www.w3.org/TR/webdriver/#dfn-maximum-active-sessions
     # A session is open, so we expect `ready` to be False
     # 8.3 step 1.
-
-    _, session = new_session({"capabilities": {"alwaysMatch": add_browser_capabilites({})}})
 
     response = get_status(session)
     value = assert_success(response)

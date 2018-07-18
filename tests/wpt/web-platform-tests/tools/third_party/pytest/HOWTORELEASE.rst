@@ -12,7 +12,7 @@ taking a lot of time to make a new one.
 
 #. Install development dependencies in a virtual environment with::
 
-    pip3 install -r tasks/requirements.txt
+    pip3 install -U -r tasks/requirements.txt
 
 #. Create a branch ``release-X.Y.Z`` with the version for the release.
 
@@ -22,44 +22,28 @@ taking a lot of time to make a new one.
 
    Ensure your are in a clean work tree.
 
-#. Generate docs, changelog, announcements and upload a package to
-   your ``devpi`` staging server::
+#. Generate docs, changelog, announcements and a **local** tag::
 
-     invoke generate.pre-release <VERSION> <DEVPI USER> --password <DEVPI PASSWORD>
-
-   If ``--password`` is not given, it is assumed the user is already logged in ``devpi``.
-   If you don't have an account, please ask for one.
+     invoke generate.pre-release <VERSION>
 
 #. Open a PR for this branch targeting ``master``.
 
-#. Test the package
+#. After all tests pass and the PR has been approved, publish to PyPI by pushing the tag::
 
-   * **Manual method**
+     git push git@github.com:pytest-dev/pytest.git <VERSION>
 
-     Run from multiple machines::
+   Wait for the deploy to complete, then make sure it is `available on PyPI <https://pypi.org/project/pytest>`_.
 
-       devpi use https://devpi.net/USER/dev
-       devpi test pytest==VERSION
+#. Send an email announcement with the contents from::
 
-     Check that tests pass for relevant combinations with::
+     doc/en/announce/release-<VERSION>.rst
 
-       devpi list pytest
+   To the following mailing lists:
 
-   * **CI servers**
+   * pytest-dev@python.org (all releases)
+   * python-announce-list@python.org (all releases)
+   * testing-in-python@lists.idyll.org (only major/minor releases)
 
-     Configure a repository as per-instructions on
-     devpi-cloud-test_ to test the package on Travis_ and AppVeyor_.
-     All test environments should pass.
-
-#. Publish to PyPI::
-
-      invoke generate.publish-release <VERSION> <DEVPI USER> <PYPI_NAME>
-
-   where PYPI_NAME is the name of pypi.python.org as configured in your ``~/.pypirc``
-   file `for devpi <http://doc.devpi.net/latest/quickstart-releaseprocess.html?highlight=pypirc#devpi-push-releasing-to-an-external-index>`_.
+   And announce it on `Twitter <https://twitter.com/>`_ with the ``#pytest`` hashtag.
 
 #. After a minor/major release, merge ``release-X.Y.Z`` into ``master`` and push (or open a PR).
-
-.. _devpi-cloud-test: https://github.com/obestwalter/devpi-cloud-test
-.. _AppVeyor: https://www.appveyor.com/
-.. _Travis: https://travis-ci.org

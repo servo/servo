@@ -18,5 +18,5 @@ def test_pycollector_makeitem_is_deprecated():
 
     collector = PyCollectorMock()
     with pytest.deprecated_call():
-        collector.makeitem('foo', 'bar')
+        collector.makeitem("foo", "bar")
     assert collector.called

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+.spacer {
+  height: calc(100vh + 100px);
+}
+</style>
+
+<div class="spacer"></div>
+<br id="target">
+<div class="spacer"></div>
+
+<script>
+var vw = document.documentElement.clientWidth;
+var vh = document.documentElement.clientHeight;
+
+var entries = [];
+var target;
+var tw, th;
+
+runTestCycle(function() {
+  target = document.getElementById("target");
+  let target_rect = target.getBoundingClientRect();
+  tw = target_rect.width;
+  th = target_rect.height;
+  assert_true(!!target, "target exists");
+  var observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes)
+  });
+  observer.observe(target);
+  entries = entries.concat(observer.takeRecords());
+  assert_equals(entries.length, 0, "No initial notifications.");
+  runTestCycle(step0, "First rAF.");
+}, "IntersectionObserver observing a br element.");
+
+function step0() {
+  document.scrollingElement.scrollTop = 300;
+  runTestCycle(step1, "document.scrollingElement.scrollTop = 300");
+  // The numbers in brackets are target client rect; intersection rect;
+  // and root bounds.
+  checkLastEntry(entries, 0, [8, 8 + tw, vh + 108, vh + 108 + th, 0, 0, 0, 0, 0, vw, 0, vh, false]);
+}
+
+function step1() {
+  document.scrollingElement.scrollTop = 100;
+  runTestCycle(step2, "document.scrollingElement.scrollTop = 100");
+  checkLastEntry(entries, 1, [8, 8 + tw, vh - 192, vh - 192 + th, 8, 8 + tw, vh - 192, vh - 192 + th, 0, vw, 0, vh, true]);
+}
+
+function step2() {
+  document.scrollingElement.scrollTop = 0;
+  checkLastEntry(entries, 2, [8, 8 + tw, vh + 8, vh + 8 + th, 0, 0, 0, 0, 0, vw, 0, vh, false]);
+}
+</script>

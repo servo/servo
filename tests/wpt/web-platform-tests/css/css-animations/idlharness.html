@@ -14,23 +14,34 @@
 <body>
   <div id="log"></div>
 
+  <style>
+    @keyframes test {
+      from { top: 0px; }
+      to { top: 1px; }
+    }
+  </style>
+
   <script>
     'use strict';
 
-    promise_test(async () => {
-      const idl = await fetch('/interfaces/css-animations.idl').then(r => r.text());
-      const cssom = await fetch('/interfaces/cssom.idl').then(r => r.text());
-      const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
+    idl_test(
+      ['css-animations'],
+      ['dom', 'cssom'],
+      idl_array => {
+        try {
+          window.keyframes = document.styleSheets[0].cssRules[0];
+        } catch (e) {
+          // Surfaced in idlharness.js's test_object below.
+        }
 
-      const idl_array = new IdlArray();
-      idl_array.add_idls(idl);
-      idl_array.add_dependency_idls(cssom);
-      idl_array.add_dependency_idls(dom);
-
-      idl_array.test();
-    }, 'Test css-animations IDL implementation');
+        idl_array.add_objects({
+          AnimationEvent: ['new AnimationEvent("animationstart")'],
+          CSSKeyframesRule: ['keyframes'],
+          CSSKeyframeRule: ['keyframes.cssRules[0]'],
+        });
+      },
+      'Test css-animations IDL implementation');
   </script>
-
 </body>
 
 </html>

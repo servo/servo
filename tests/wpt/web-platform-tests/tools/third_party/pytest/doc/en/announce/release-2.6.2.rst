@@ -49,4 +49,3 @@ holger krekel
 - Do not mark as universal wheel because Python 2.6 is different from
   other builds due to the extra argparse dependency.  Fixes issue566.
   Thanks sontek.
-

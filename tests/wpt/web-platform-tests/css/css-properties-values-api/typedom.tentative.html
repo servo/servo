@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<link rel="author" title="Anders Hartvoll Ruud" href="andruud@chromium.org">
+<!-- TODO(andruud): Add Typed OM details to spec and link to it here. -->
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#supported-syntax-strings" />
+<meta name="assert" content="Verifies that registered custom properties interact correctly with CSS Typed OM" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=target></div>
+
+<script>
+
+// Properties are generated on demand, as `--prop-${g_counter}`.
+let g_counter = 1;
+
+// Generate a property and return its name.
+function gen_prop(syntax, initialValue) {
+    let name = `--prop-${g_counter}`;
+    CSS.registerProperty({
+        name: name,
+        syntax: syntax,
+        initialValue: initialValue,
+        inherits: false
+    });
+    g_counter++;
+    return name;
+}
+
+// On the target element, verify that computed value of 'name' is an instance
+// of 'expected' and not an instance of CSSUnparsedValue.
+//
+// If 'value' is non-null, that value is first set on the attributeStyleMap
+// of the target.
+function assert_computed_type(name, value, expected) {
+    if (expected == CSSUnparsedValue) {
+        throw 'CSSUnparsedValue may not be used as expected type';
+    }
+
+    if (value != null) {
+        target.attributeStyleMap.set(name, value);
+    }
+
+    let computedValue = target.computedStyleMap().get(name);
+
+    assert_false(computedValue instanceof CSSUnparsedValue);
+    assert_true(computedValue instanceof expected);
+
+    if (value != null) {
+        target.attributeStyleMap.delete(name);
+    }
+}
+
+test(function(){
+    let name = gen_prop('*', 'if(){}');
+    assert_true(target.computedStyleMap().get(name) instanceof CSSUnparsedValue);
+
+    target.attributeStyleMap.set(name, 'as{}df');
+    assert_true(target.computedStyleMap().get(name) instanceof CSSUnparsedValue);
+    target.attributeStyleMap.delete(name);
+}, 'Computed * is reified as CSSUnparsedValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<angle>', '42deg'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<angle> | fail', 'fail'), '42deg', CSSUnitValue);
+}, 'Computed <angle> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<color>', '#fefefe'), null, CSSStyleValue);
+    assert_computed_type(gen_prop('<color> | fail', 'fail'), null, CSSStyleValue);
+}, 'Computed <color> is reified as CSSStyleValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<custom-ident>', 'none'), null, CSSKeywordValue);
+    assert_computed_type(gen_prop('<custom-ident> | <length>', '10px'), 'none', CSSKeywordValue);
+}, 'Computed <custom-ident> is reified as CSSKeywordValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<image>', 'url(thing.png)'), null, CSSImageValue);
+    assert_computed_type(gen_prop('<image> | fail', 'fail'), 'url(thing.png)', CSSImageValue);
+}, 'Computed <image> [url] is reified as CSSImageValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<integer>', '100'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<integer> | fail', 'fail'), '100', CSSUnitValue);
+}, 'Computed <integer> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<length-percentage>', '10%'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<length-percentage> | fail', 'fail'), '10%', CSSUnitValue);
+}, 'Computed <length-percentage> [%] is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<length-percentage>', '10px'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<length-percentage> | fail', 'fail'), '10px', CSSUnitValue);
+}, 'Computed <length-percentage> [px] is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<length-percentage>', 'calc(10px + 10%)'), null, CSSMathSum);
+    assert_computed_type(gen_prop('<length-percentage> | fail', 'fail'), 'calc(10px + 10%)', CSSMathSum);
+}, 'Computed <length-percentage> [px + %] is reified as CSSMathSum');
+
+test(function(){
+    assert_computed_type(gen_prop('<length>', '10px'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<length> | fail', 'fail'), '10px', CSSUnitValue);
+}, 'Computed <length> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<number>', '42'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<number> | fail', 'fail'), '42', CSSUnitValue);
+}, 'Computed <number> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<percentage>', '10%'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<percentage> | fail', 'fail'), '10%', CSSUnitValue);
+}, 'Computed <percentage> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<resolution>', '300dpi'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<resolution> | fail', 'fail'), '300dpi', CSSUnitValue);
+}, 'Computed <resolution> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<time>', '42s'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<time> | fail', 'fail'), '42s', CSSUnitValue);
+}, 'Computed <time> is reified as CSSUnitValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<url>', 'url(a)'), null, CSSStyleValue);
+    assert_computed_type(gen_prop('<url> | fail', 'fail'), 'url(a)', CSSStyleValue);
+}, 'Computed <url> is reified as CSSStyleValue');
+
+test(function(){
+    assert_computed_type(gen_prop('thing1 | THING2', 'thing1'), null, CSSKeywordValue);
+    assert_computed_type(gen_prop('thing1 | THING2 | <url>', 'url(fail)'), 'THING2', CSSKeywordValue);
+}, 'Computed ident is reified as CSSKeywordValue');
+
+test(function(){
+    assert_computed_type(gen_prop('<length>+', '10px 20px'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<length>+', '0px 0px'), '10px 20px', CSSUnitValue);
+}, 'First computed value correctly reified in space-separated list');
+
+test(function(){
+    assert_computed_type(gen_prop('<length>#', '10px, 20px'), null, CSSUnitValue);
+    assert_computed_type(gen_prop('<length>#', '0px, 0px'), '10px, 20px', CSSUnitValue);
+}, 'First computed value correctly reified in comma-separated list');
+
+test(function(){
+    let name = gen_prop('<length>+', '10px 20px');
+    assert_equals(target.computedStyleMap().getAll(name).length, 2);
+    assert_true(target.computedStyleMap().getAll(name).every(x => x instanceof CSSUnitValue));
+
+    target.attributeStyleMap.set(name, '10px 20px 30px');
+    assert_equals(target.computedStyleMap().getAll(name).length, 3);
+    assert_true(target.computedStyleMap().getAll(name).every(x => x instanceof CSSUnitValue));
+}, 'All computed values correctly reified in space-separated list');
+
+test(function(){
+    let name = gen_prop('<length>#', '10px, 20px');
+    assert_equals(target.computedStyleMap().getAll(name).length, 2);
+    assert_true(target.computedStyleMap().getAll(name).every(x => x instanceof CSSUnitValue));
+
+    target.attributeStyleMap.set(name, '10px, 20px, 30px');
+    assert_equals(target.computedStyleMap().getAll(name).length, 3);
+    assert_true(target.computedStyleMap().getAll(name).every(x => x instanceof CSSUnitValue));
+}, 'All computed values correctly reified in comma-separated list');
+
+</script>

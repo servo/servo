@@ -227,7 +227,8 @@
   }, "A labelable element is moved to iframe.");
 
   test(function () {
-    var labels1 = document.getElementById("test14").labels;
+    var test14 = document.getElementById("test14");
+    var labels1 = test14.labels;
     var labels2 = document.getElementById("test15").labels;
     assert_true(labels1 instanceof NodeList,
                 "A form control's 'labels' property should be an instance of a NodeList.");
@@ -237,12 +238,17 @@
                   "The number of labels associated with a form control should be the number of label elements for which it is a labeled control.");
     assert_array_equals(labels1, [document.getElementById("lbl14")],
                         "The labels for a form control should be returned in tree order.");
+    assert_array_equals(labels2, [document.getElementById("lbl15")],
+                        "The labels for a form control should be returned in tree order.");
 
     document.getElementById('div6').removeChild(document.getElementById('div7'));
-    assert_equals(labels1.length, 0,
-                  "The number of labels should be 0 after the labelable element is removed.");
+    assert_equals(labels1.length, 1,
+                  "The number of labels should be 1 after the labelable element is removed but label element is still in the same tree.");
     assert_equals(labels2.length, 0,
                   "The number of labels should be 0 since there is no label with a 'for' attribute associated with this labelable element.");
+    test14.remove();
+    assert_equals(labels1.length, 0,
+                  "The number of labels should be 0 after the labelable element is removed.");
   }, "A div element which contains labelable element is removed.");
 
   test(function () {

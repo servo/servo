@@ -7,7 +7,13 @@ def accept_alert(session):
         "POST", "session/{session_id}/alert/accept".format(**vars(session)))
 
 
-# 18.2 Accept Alert
+def test_null_response_value(session, url):
+    session.url = inline("<script>window.alert('Hello');</script>")
+
+    response = accept_alert(session)
+    value = assert_success(response)
+    assert value is None
+
 
 def test_no_browsing_context(session, create_window):
     # 18.2 step 1

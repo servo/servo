@@ -29,6 +29,11 @@ function pointInElement(node) {
 
 const displayValues = ['inline', 'block', 'inline-block'];
 var container = document.getElementById('container');
+customElements.define('test-element', class extends HTMLElement {
+  constructor() {
+    super();
+  }
+});
 
 displayValues.forEach(function (displayValue) {
   test(function () {
@@ -227,6 +232,21 @@ displayValues.forEach(function (displayValue) {
     assert_array_equals(shadow.elementsFromPoint(...pointInElement(host)), [shadow.querySelector('slot'), shadow.querySelector('div'), host, container, document.body, document.documentElement]);
   }, 'document.elementsFromPoint must return the shadow host and its ancestors and shadowRoot.elementsFromPoint must return the slot parent of the fallback text and its non-shadow ancestors when the hit-tested text node is a fallback content and the host has display: ' + displayValue);
 });
+
+test(function () {
+  container.innerHTML = '';
+  let host = document.createElement('test-element');
+  host.style.display = 'block';
+  let shadow = host.attachShadow({mode: 'closed'});
+  shadow.innerHTML = '<div style="margin: 2px;">not hit</div>';
+  let aboveHost = document.createElement("div");
+  aboveHost.appendChild(host);
+  container.appendChild(aboveHost);
+  document.documentElement.style = 'background-attachment: scroll; height: 2px;';
+  let boundingRect = host.getBoundingClientRect();
+  assert_array_equals(document.elementsFromPoint(boundingRect.x, boundingRect.y), [host, aboveHost, container, document.body, document.documentElement]);
+  assert_array_equals(shadow.elementsFromPoint(boundingRect.x, boundingRect.y), [host, aboveHost, container, document.body, document.documentElement]);
+}, 'shadowRoot.elementsFromPoint must behave the same with document.elementsFromPoint regarding HTML element');
 
 container.innerHTML = '';
 

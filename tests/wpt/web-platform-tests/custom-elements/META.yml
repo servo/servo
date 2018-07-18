@@ -1,11 +1,8 @@
+spec: https://html.spec.whatwg.org/multipage/custom-elements.html
 suggested_reviewers:
   - snuggs
-  - alsemenov
-  - deepak-sa
   - domenic
-  - dominiccooney
   - hayatoito
   - kojiishi
   - rniwa
-  - sgrekhov
   - takayoshikochi

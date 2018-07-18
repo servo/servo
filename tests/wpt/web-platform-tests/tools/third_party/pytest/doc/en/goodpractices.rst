@@ -145,7 +145,7 @@ Note that this layout also works in conjunction with the ``src`` layout mentione
 
 .. note::
 
-    If ``pytest`` finds a "a/b/test_module.py" test file while
+    If ``pytest`` finds an "a/b/test_module.py" test file while
     recursing into the filesystem it determines the import name
     as follows:
 
@@ -168,13 +168,13 @@ Note that this layout also works in conjunction with the ``src`` layout mentione
     to avoid surprises such as a test module getting imported twice.
 
 
-.. _`virtualenv`: http://pypi.python.org/pypi/virtualenv
+.. _`virtualenv`: https://pypi.org/project/virtualenv/
 .. _`buildout`: http://www.buildout.org/
-.. _pip: http://pypi.python.org/pypi/pip
+.. _pip: https://pypi.org/project/pip/
 
 .. _`use tox`:
 
-Tox
+tox
 ------
 
 For development, we recommend to use virtualenv_ environments and pip_
@@ -194,7 +194,7 @@ Once you are done with your work and want to make sure that your actual
 package passes all tests you may want to look into `tox`_, the
 virtualenv test automation tool and its `pytest support
 <https://tox.readthedocs.io/en/latest/example/pytest.html>`_.
-Tox helps you to setup virtualenv environments with pre-defined
+tox helps you to setup virtualenv environments with pre-defined
 dependencies and then executing a pre-configured test command with
 options.  It will run tests against the installed package and not
 against your source code checkout, helping to detect packaging
@@ -205,7 +205,7 @@ Integrating with setuptools / ``python setup.py test`` / ``pytest-runner``
 --------------------------------------------------------------------------
 
 You can integrate test runs into your setuptools based project
-with the `pytest-runner <https://pypi.python.org/pypi/pytest-runner>`_ plugin.
+with the `pytest-runner <https://pypi.org/project/pytest-runner/>`_ plugin.
 
 Add this to ``setup.py`` file:
 
@@ -214,10 +214,10 @@ Add this to ``setup.py`` file:
     from setuptools import setup
 
     setup(
-        #...,
-        setup_requires=['pytest-runner', ...],
-        tests_require=['pytest', ...],
-        #...,
+        # ...,
+        setup_requires=["pytest-runner", ...],
+        tests_require=["pytest", ...],
+        # ...,
     )
 
 
@@ -263,25 +263,27 @@ your own setuptools Test command for invoking pytest.
 
 
     class PyTest(TestCommand):
-        user_options = [('pytest-args=', 'a', "Arguments to pass to pytest")]
+        user_options = [("pytest-args=", "a", "Arguments to pass to pytest")]
 
         def initialize_options(self):
             TestCommand.initialize_options(self)
-            self.pytest_args = ''
+            self.pytest_args = ""
 
         def run_tests(self):
             import shlex
-            #import here, cause outside the eggs aren't loaded
+
+            # import here, cause outside the eggs aren't loaded
             import pytest
+
             errno = pytest.main(shlex.split(self.pytest_args))
             sys.exit(errno)
 
 
     setup(
-        #...,
-        tests_require=['pytest'],
-        cmdclass = {'test': PyTest},
-        )
+        # ...,
+        tests_require=["pytest"],
+        cmdclass={"test": PyTest},
+    )
 
 Now if you run::
 

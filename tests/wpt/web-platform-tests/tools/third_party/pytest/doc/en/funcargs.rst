@@ -11,4 +11,3 @@ and you can read on here:
 - :ref:`fixtures`
 - :ref:`parametrize`
 - :ref:`funcargcompare`
-

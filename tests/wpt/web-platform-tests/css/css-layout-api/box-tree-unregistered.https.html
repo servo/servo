@@ -10,6 +10,7 @@
 }
 
 .container {
+  float: left;
   margin: 20px 0;
   border: solid 2px;
   width: 100px;
@@ -46,4 +47,16 @@
   <!-- This tests that a float does not intrude into "layout()" box. -->
   <div class="float"></div>
   <div class="test" style="width: 100%; height: 40px; background: green;"></div>
+</div>
+
+<div class="container">
+  <!-- This tests that margins in two "layout()" box children collapse as normally. -->
+  <div class="test" style="background: green;">
+    <div style="margin:100px 0;">
+      <div style="margin:100px 0;"></div>
+    </div>
+    <div style="margin:100px 0;">
+      <div style="margin:100px 0;"></div>
+    </div>
+  </div>
 </div>

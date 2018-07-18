@@ -1,17 +1,19 @@
 sudo: false
 language: python
+stages:
+- linting
+- test
+- deploy
 python:
   - '3.6'
-# command to install dependencies
 install:
   - pip install --upgrade --pre tox
-# # command to run tests
 env:
   matrix:
     # coveralls is not listed in tox's envlist, but should run in travis
     - TOXENV=coveralls
     # note: please use "tox --listenvs" to populate the build matrix below
-    - TOXENV=linting
+    # please remove the linting env in all cases
     - TOXENV=py27
     - TOXENV=py34
     - TOXENV=py36
@@ -29,7 +31,7 @@ env:
     - TOXENV=doctesting
     - TOXENV=docs
 
-matrix:
+jobs:
   include:
     - env: TOXENV=pypy
       python: 'pypy-5.4'
@@ -39,9 +41,30 @@ matrix:
       python: '3.5'
     - env: TOXENV=py37
       python: 'nightly'
-  allow_failures:
-    - env: TOXENV=py37
-      python: 'nightly'
+
+    - stage: deploy
+      python: '3.6'
+      env:
+      install: pip install -U setuptools setuptools_scm
+      script: skip
+      deploy:
+        provider: pypi
+        user: nicoddemus
+        distributions: sdist bdist_wheel
+        skip_upload_docs: true
+        password:
+          secure: xanTgTUu6XDQVqB/0bwJQXoDMnU5tkwZc5koz6mBkkqZhKdNOi2CLoC1XhiSZ+ah24l4V1E0GAqY5kBBcy9d7NVe4WNg4tD095LsHw+CRU6/HCVIFfyk2IZ+FPAlguesCcUiJSXOrlBF+Wj68wEvLoK7EoRFbJeiZ/f91Ww1sbtDlqXABWGHrmhPJL5Wva7o7+wG7JwJowqdZg1pbQExsCc7b53w4v2RBu3D6TJaTAzHiVsW+nUSI67vKI/uf+cR/OixsTfy37wlHgSwihYmrYLFls3V0bSpahCim3bCgMaFZx8S8xrdgJ++PzBCof2HeflFKvW+VCkoYzGEG4NrTWJoNz6ni4red9GdvfjGH3YCjAKS56h9x58zp2E5rpsb/kVq5/45xzV+dq6JRuhQ1nJWjBC6fSKAc/bfwnuFK3EBxNLkvBssLHvsNjj5XG++cB8DdS9wVGUqjpoK4puaXUWFqy4q3S9F86HEsKNgExtieA9qNx+pCIZVs6JCXZNjr0I5eVNzqJIyggNgJG6RyravsU35t9Zd9doL5g4Y7UKmAGTn1Sz24HQ4sMQgXdm2SyD8gEK5je4tlhUvfGtDvMSlstq71kIn9nRpFnqB6MFlbYSEAZmo8dGbCquoUc++6Rum208wcVbrzzVtGlXB/Ow9AbFMYeAGA0+N/K1e59c=
+        on:
+          tags: true
+          repo: pytest-dev/pytest
+    - stage: linting
+      python: '3.6'
+      env:
+      install:
+      - pip install pre-commit
+      - pre-commit install-hooks
+      script:
+      - pre-commit run --all-files
 
 script: tox --recreate
 
@@ -54,3 +77,7 @@ notifications:
     skip_join: true
   email:
     - pytest-commit@python.org
+cache:
+    directories:
+        - $HOME/.cache/pip
+        - $HOME/.cache/pre-commit

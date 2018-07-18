@@ -7,7 +7,7 @@ This release fixes some regressions and bugs reported in version 3.0.1, being a
 drop-in replacement. To upgrade::
 
   pip install --upgrade pytest
-  
+
 The changelog is available at http://doc.pytest.org/en/latest/changelog.html.
 
 Thanks to all who contributed to this release, among them:

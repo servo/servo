@@ -17,39 +17,53 @@
     --length-percentage-1: 17em;
     --length-percentage-2: 18%;
     --length-percentage-3: calc(19em - 2%);
+    --csv-1: 10px, 3em;
+    --csv-2: 4em ,9px;
+    --csv-3: 8em;
+    --csv-4: 3% , 10vmax  , 22px;
+    --csv-5: calc(50% + 1em), 4px;
+    --csv-6: calc(13% + 37px);
     --list-1: 10px 3em;
     --list-2: 4em 9px;
     --list-3: 3% 10vmax 22px;
     --list-4: calc(50% + 1em) 4px;
-}
-#fontSizeCycle {
-    --font-size: 2em;
-    font-size: var(--font-size);
+    --transform-function-1: translateX(2px);
+    --transform-function-2: translateX(10em);
+    --transform-function-3: translateX(calc(11em + 10%));
+    --transform-function-4: translateX(10%) scale(2);
 }
 </style>
 
 <div id=divWithFontSizeSet></div>
 <div id=parentDiv>
     <div id=divWithFontSizeInherited></div>
-    <div id=fontSizeCycle></div>
 </div>
 
 <script>
 test(() => {
-    CSS.registerProperty({name: '--length-1', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-2', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-3', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-4', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-5', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-6', syntax: '<length>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-percentage-1', syntax: '<length-percentage>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-percentage-2', syntax: '<length-percentage>', initialValue: '0px'});
-    CSS.registerProperty({name: '--length-percentage-3', syntax: '<length-percentage>', initialValue: '0px'});
-    CSS.registerProperty({name: '--list-1', syntax: '<length>+', initialValue: '0px'});
-    CSS.registerProperty({name: '--list-2', syntax: '<length>+', initialValue: '0px'});
-    CSS.registerProperty({name: '--list-3', syntax: '<length-percentage>+', initialValue: '0px'});
-    CSS.registerProperty({name: '--list-4', syntax: '<length-percentage>+', initialValue: '0px'});
-    CSS.registerProperty({name: '--font-size', syntax: '<length>', initialValue: '0px'});
+    CSS.registerProperty({name: '--length-1', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-2', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-3', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-4', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-5', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-6', syntax: '<length>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-percentage-1', syntax: '<length-percentage>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-percentage-2', syntax: '<length-percentage>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--length-percentage-3', syntax: '<length-percentage>', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--csv-1', syntax: '<length>#', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--csv-2', syntax: '<length>#', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--csv-3', syntax: '<length>#', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--csv-4', syntax: '<length-percentage>#', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--csv-5', syntax: '<length-percentage>#', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--csv-6', syntax: '<length-percentage>#', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--list-1', syntax: '<length>+', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--list-2', syntax: '<length>+', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--list-3', syntax: '<length-percentage>+', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--list-4', syntax: '<length-percentage>+', initialValue: '0px', inherits: false});
+    CSS.registerProperty({name: '--transform-function-1', syntax: '<transform-function>', initialValue: 'translateX(0px)', inherits: false});
+    CSS.registerProperty({name: '--transform-function-2', syntax: '<transform-function>', initialValue: 'translateX(0px)', inherits: false});
+    CSS.registerProperty({name: '--transform-function-3', syntax: '<transform-function>', initialValue: 'translateX(0px)', inherits: false});
+    CSS.registerProperty({name: '--transform-function-4', syntax: '<transform-function>+', initialValue: 'translateX(0px)', inherits: false});
 }, "CSS.registerProperty");
 
 for (var element of [divWithFontSizeSet, divWithFontSizeInherited]) {
@@ -72,6 +86,18 @@ for (var element of [divWithFontSizeSet, divWithFontSizeInherited]) {
     }, "<length-percentage> values are computed correctly for " + id);
 
     test(function() {
+        assert_equals(computedStyle.getPropertyValue('--csv-1'), '10px, 30px');
+        assert_equals(computedStyle.getPropertyValue('--csv-2'), '40px, 9px');
+        assert_equals(computedStyle.getPropertyValue('--csv-3'), '80px');
+    }, "<length># values are computed correctly for " + id);
+
+    test(function() {
+        assert_equals(computedStyle.getPropertyValue('--csv-4'), '3%, 80px, 22px');
+        assert_equals(computedStyle.getPropertyValue('--csv-5'), 'calc(10px + 50%), 4px');
+        assert_equals(computedStyle.getPropertyValue('--csv-6'), 'calc(37px + 13%)');
+    }, "<length-percentage># values are computed correctly for " + id);
+
+    test(function() {
         assert_equals(computedStyle.getPropertyValue('--list-1'), '10px 30px');
         assert_equals(computedStyle.getPropertyValue('--list-2'), '40px 9px');
     }, "<length>+ values are computed correctly for " + id);
@@ -80,11 +106,12 @@ for (var element of [divWithFontSizeSet, divWithFontSizeInherited]) {
         assert_equals(computedStyle.getPropertyValue('--list-3'), '3% 80px 22px');
         assert_equals(computedStyle.getPropertyValue('--list-4'), 'calc(10px + 50%) 4px');
     }, "<length-percentage>+ values are computed correctly for " + id);
-}
 
-test(function() {
-    var computedStyle = getComputedStyle(fontSizeCycle);
-    assert_equals(computedStyle.fontSize, '20px');
-    assert_equals(computedStyle.getPropertyValue('--font-size'), '40px');
-}, "font-size with a var() reference to a registered property using ems works as expected");
+    test(function() {
+        assert_equals(computedStyle.getPropertyValue('--transform-function-1'), 'translateX(2px)');
+        assert_equals(computedStyle.getPropertyValue('--transform-function-2'), 'translateX(100px)');
+        assert_equals(computedStyle.getPropertyValue('--transform-function-3'), 'translateX(calc(110px + 10%))');
+        assert_equals(computedStyle.getPropertyValue('--transform-function-4'), 'translateX(10%) scale(2)');
+    }, "<transform-function> values are computed correctly for " + id);
+}
 </script>

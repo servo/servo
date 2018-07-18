@@ -17,7 +17,7 @@
   'use strict';
 
   promise_test(async () => {
-    const srcs = ['image-capture', 'mediacapture-main', 'html', 'dom'];
+    const srcs = ['image-capture', 'mediacapture-streams', 'html', 'dom'];
     const [idl, main, html, dom] = await Promise.all(
       srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
 

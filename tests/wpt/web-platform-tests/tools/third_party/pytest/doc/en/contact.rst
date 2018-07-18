@@ -8,9 +8,9 @@ Contact channels
 - `pytest issue tracker`_ to report bugs or suggest features (for version
   2.0 and above).
 
-- `pytest on stackoverflow.com <http://stackoverflow.com/search?q=pytest>`_ 
-  to post questions with the tag ``pytest``.  New Questions will usually 
-  be seen by pytest users or developers and answered quickly. 
+- `pytest on stackoverflow.com <http://stackoverflow.com/search?q=pytest>`_
+  to post questions with the tag ``pytest``.  New Questions will usually
+  be seen by pytest users or developers and answered quickly.
 
 - `Testing In Python`_: a mailing list for Python testing tools and discussion.
 
@@ -47,4 +47,3 @@ Contact channels
 .. _`development mailing list`:
 .. _`pytest-dev at python.org (mailing list)`: http://mail.python.org/mailman/listinfo/pytest-dev
 .. _`pytest-commit at python.org (mailing list)`: http://mail.python.org/mailman/listinfo/pytest-commit
-

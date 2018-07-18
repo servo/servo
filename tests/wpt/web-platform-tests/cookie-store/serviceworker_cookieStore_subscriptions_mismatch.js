@@ -6,7 +6,7 @@ importScripts("/resources/testharness.js");
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
-    cookieStore.subscribeToChanges([
+    await cookieStore.subscribeToChanges([
       { name: 'cookie-name', matchType: 'equals', url: '/scope/path' }]);
   })());
 });
@@ -44,9 +44,9 @@ promise_test(async testCase => {
   assert_equals(event.changed[0].name, 'cookie-name');
   assert_equals(event.changed[0].value, 'cookie-value');
 
-  await async_cleanup(() => {
-    cookieStore.delete('another-cookie-name');
-    cookieStore.delete('cookie-name');
+  await async_cleanup(async () => {
+    await cookieStore.delete('another-cookie-name');
+    await cookieStore.delete('cookie-name');
   });
 }, 'cookiechange not dispatched for change that does not match subscription');
 

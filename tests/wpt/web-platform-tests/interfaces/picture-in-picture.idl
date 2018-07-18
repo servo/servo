@@ -1,0 +1,30 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Picture-in-Picture" spec.
+// See: https://wicg.github.io/picture-in-picture/
+
+partial interface HTMLVideoElement {
+  [NewObject] Promise<PictureInPictureWindow> requestPictureInPicture();
+
+  attribute EventHandler onenterpictureinpicture;
+  attribute EventHandler onleavepictureinpicture;
+
+  [CEReactions] attribute boolean disablePictureInPicture;
+};
+
+partial interface Document {
+  readonly attribute boolean pictureInPictureEnabled;
+
+  [NewObject] Promise<void> exitPictureInPicture();
+};
+
+partial interface DocumentOrShadowRoot {
+  readonly attribute Element? pictureInPictureElement;
+};
+
+interface PictureInPictureWindow {
+  readonly attribute long width;
+  readonly attribute long height;
+
+  attribute EventHandler onresize;
+};

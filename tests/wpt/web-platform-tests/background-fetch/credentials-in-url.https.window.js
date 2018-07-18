@@ -10,23 +10,23 @@
 // https://url.spec.whatwg.org/#include-credentials
 
 backgroundFetchTest((t, bgFetch) => {
-  return bgFetch.fetch(uniqueTag(), 'https://example.com');
+  return bgFetch.fetch(uniqueId(), 'https://example.com');
 }, 'fetch without credentials in URL should register ok');
 
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(
       t, new TypeError(),
-      bgFetch.fetch(uniqueTag(), 'https://username:password@example.com'));
+      bgFetch.fetch(uniqueId(), 'https://username:password@example.com'));
 }, 'fetch with username and password in URL should reject');
 
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(
       t, new TypeError(),
-      bgFetch.fetch(uniqueTag(), 'https://username:@example.com'));
+      bgFetch.fetch(uniqueId(), 'https://username:@example.com'));
 }, 'fetch with username and empty password in URL should reject');
 
 backgroundFetchTest((t, bgFetch) => {
   return promise_rejects(
       t, new TypeError(),
-      bgFetch.fetch(uniqueTag(), 'https://:password@example.com'));
+      bgFetch.fetch(uniqueId(), 'https://:password@example.com'));
 }, 'fetch with empty username and password in URL should reject');

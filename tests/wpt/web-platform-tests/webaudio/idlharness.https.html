@@ -13,7 +13,7 @@
 let sample_rate, context, buffer, worklet_node;
 
 promise_test(async t => {
-  const srcs = ['cssom', 'dom', 'html', 'uievents', 'mediacapture-main', 'webaudio'];
+  const srcs = ['cssom', 'dom', 'html', 'uievents', 'mediacapture-streams', 'webaudio'];
   const [cssom, dom, html, uievents, mediacapture, webaudio] =
       await Promise.all(
           srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));

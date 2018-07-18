@@ -56,8 +56,11 @@ promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
   await cookieStore.set('cookie-name-2', 'cookie-value-2');
 
-  await promise_rejects(testCase, new TypeError(), cookieStore.get(
-      'cookie-name', { name: 'cookie-name' }));
+  const cookies = await cookieStore.getAll('cookie-name',
+                                           { name: 'wrong-cookie-name' });
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
 
   await async_cleanup(() => cookieStore.delete('cookie-name'));
   await async_cleanup(() => cookieStore.delete('cookie-name-2'));
@@ -66,8 +69,8 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
 
-  const cookies = await cookieStore.getAll(
-      'cookie-name', { matchType: 'equals' });
+  const cookies = await cookieStore.getAll({ name: 'cookie-name',
+                                             matchType: 'equals' });
   assert_equals(cookies.length, 1);
   assert_equals(cookies[0].name, 'cookie-name');
   assert_equals(cookies[0].value, 'cookie-value');
@@ -83,8 +86,8 @@ promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
   await cookieStore.set('cookie-name-2', 'cookie-value-2');
 
-  const cookies = await cookieStore.getAll(
-      'cookie-name-', { matchType: 'starts-with' });
+  const cookies = await cookieStore.getAll({ name: 'cookie-name-',
+                                             matchType: 'starts-with' });
   assert_equals(cookies.length, 1);
   assert_equals(cookies[0].name, 'cookie-name-2');
   assert_equals(cookies[0].value, 'cookie-value-2');
@@ -98,7 +101,7 @@ promise_test(async testCase => {
   await cookieStore.set('cookie-name-2', 'cookie-value-2');
 
   await promise_rejects(testCase, new TypeError(), cookieStore.getAll(
-      'cookie-name', { matchType: 'invalid' }));
+      { name: 'cookie-name', matchType: 'invalid' }));
 
   await async_cleanup(() => cookieStore.delete('cookie-name'));
   await async_cleanup(() => cookieStore.delete('cookie-name-2'));
@@ -106,14 +109,22 @@ promise_test(async testCase => {
 
 promise_test(async testCase => {
   await cookieStore.set('cookie-name', 'cookie-value');
-  await cookieStore.set('cookie-name-2', 'cookie-value-2');
 
-  const cookies = await cookieStore.getAll(
-      { matchType: 'starts-with', name: 'cookie-name-' });
+  const cookies = await cookieStore.getAll({ matchType: 'equals' });
   assert_equals(cookies.length, 1);
-  assert_equals(cookies[0].name, 'cookie-name-2');
-  assert_equals(cookies[0].value, 'cookie-value-2');
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
 
-  await async_cleanup(() => cookieStore.delete('cookie-name'));
-  await async_cleanup(() => cookieStore.delete('cookie-name-2'));
-}, 'cookieStore.getAll with matchType set to starts-with and name in options');
+  async_cleanup(() => cookieStore.delete('cookie-name'));
+}, 'cookieStore.getAll with matchType set to equals and missing name');
+
+promise_test(async testCase => {
+  await cookieStore.set('cookie-name', 'cookie-value');
+
+  const cookies = await cookieStore.getAll({ matchType: 'starts-with' });
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, 'cookie-name');
+  assert_equals(cookies[0].value, 'cookie-value');
+
+  async_cleanup(() => cookieStore.delete('cookie-name'));
+}, 'cookieStore.getAll with matchType set to starts-with and missing name');

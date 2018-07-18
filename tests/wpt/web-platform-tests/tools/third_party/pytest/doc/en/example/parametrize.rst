@@ -55,13 +55,13 @@ let's run the full monty::
     ....F                                                                [100%]
     ================================= FAILURES =================================
     _____________________________ test_compute[4] ______________________________
-    
+
     param1 = 4
-    
+
         def test_compute(param1):
     >       assert param1 < 4
     E       assert 4 < 4
-    
+
     test_compute.py:3: AssertionError
     1 failed, 4 passed in 0.12 seconds
 
@@ -151,7 +151,7 @@ objects, they are still using the default pytest representation::
       <Function 'test_timedistance_v2[20011211-20011212-expected1]'>
       <Function 'test_timedistance_v3[forward]'>
       <Function 'test_timedistance_v3[backward]'>
-    
+
     ======================= no tests ran in 0.12 seconds =======================
 
 In ``test_timedistance_v3``, we used ``pytest.param`` to specify the test IDs
@@ -160,7 +160,7 @@ together with the actual data, instead of listing them separately.
 A quick port of "testscenarios"
 ------------------------------------
 
-.. _`test scenarios`: http://pypi.python.org/pypi/testscenarios/
+.. _`test scenarios`: https://pypi.org/project/testscenarios/
 
 Here is a quick port to run tests configured with `test scenarios`_,
 an add-on from Robert Collins for the standard unittest framework. We
@@ -198,9 +198,9 @@ this is a fully self-contained example which you can run with::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 4 items
-    
+
     test_scenarios.py ....                                               [100%]
-    
+
     ========================= 4 passed in 0.12 seconds =========================
 
 If you just collect tests you'll also nicely see 'advanced' and 'basic' as variants for the test function::
@@ -218,7 +218,7 @@ If you just collect tests you'll also nicely see 'advanced' and 'basic' as varia
           <Function 'test_demo2[basic]'>
           <Function 'test_demo1[advanced]'>
           <Function 'test_demo2[advanced]'>
-    
+
     ======================= no tests ran in 0.12 seconds =======================
 
 Note that we told ``metafunc.parametrize()`` that your scenario values
@@ -279,7 +279,7 @@ Let's first see how it looks like at collection time::
     <Module 'test_backends.py'>
       <Function 'test_db_initialized[d1]'>
       <Function 'test_db_initialized[d2]'>
-    
+
     ======================= no tests ran in 0.12 seconds =======================
 
 And then when we run the test::
@@ -288,15 +288,15 @@ And then when we run the test::
     .F                                                                   [100%]
     ================================= FAILURES =================================
     _________________________ test_db_initialized[d2] __________________________
-    
+
     db = <conftest.DB2 object at 0xdeadbeef>
-    
+
         def test_db_initialized(db):
             # a dummy test
             if db.__class__.__name__ == "DB2":
     >           pytest.fail("deliberately failing for demo purposes")
     E           Failed: deliberately failing for demo purposes
-    
+
     test_backends.py:6: Failed
     1 failed, 1 passed in 0.12 seconds
 
@@ -339,7 +339,7 @@ The result of this test will be successful::
     collected 1 item
     <Module 'test_indirect_list.py'>
       <Function 'test_indirect[a-b]'>
-    
+
     ======================= no tests ran in 0.12 seconds =======================
 
 .. regendoc:wipe
@@ -384,13 +384,13 @@ argument sets to use for each test function.  Let's run it::
     F..                                                                  [100%]
     ================================= FAILURES =================================
     ________________________ TestClass.test_equals[1-2] ________________________
-    
+
     self = <test_parametrize.TestClass object at 0xdeadbeef>, a = 1, b = 2
-    
+
         def test_equals(self, a, b):
     >       assert a == b
     E       assert 1 == 2
-    
+
     test_parametrize.py:18: AssertionError
     1 failed, 2 passed in 0.12 seconds
 
@@ -462,14 +462,14 @@ If you run this with reporting for skips enabled::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 2 items
-    
+
     test_module.py .s                                                    [100%]
     ========================= short test summary info ==========================
     SKIP [1] $REGENDOC_TMPDIR/conftest.py:11: could not import 'opt2'
-    
+
     =================== 1 passed, 1 skipped in 0.12 seconds ====================
 
-You'll see that we don't have a ``opt2`` module and thus the second test run
+You'll see that we don't have an ``opt2`` module and thus the second test run
 of our ``test_func1`` was skipped.  A few notes:
 
 - the fixture functions in the ``conftest.py`` file are "session-scoped" because we
@@ -504,10 +504,10 @@ For example::
     ])
     def test_eval(test_input, expected):
         assert eval(test_input) == expected
-    
+
 In this example, we have 4 parametrized tests. Except for the first test,
 we mark the rest three parametrized tests with the custom marker ``basic``,
-and for the fourth test we also use the built-in mark ``xfail`` to indicate this 
+and for the fourth test we also use the built-in mark ``xfail`` to indicate this
 test is expected to fail. For explicitness, we set test ids for some tests.
 
 Then run ``pytest`` with verbose mode and with only the ``basic`` marker::

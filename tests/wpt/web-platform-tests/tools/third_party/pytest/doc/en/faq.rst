@@ -30,14 +30,14 @@ and does not handle Deferreds returned from a test in pytest style.
 If you are using trial's unittest.TestCase chances are that you can
 just run your tests even if you return Deferreds.  In addition,
 there also is a dedicated `pytest-twisted
-<http://pypi.python.org/pypi/pytest-twisted>`_ plugin which allows you to
+<https://pypi.org/project/pytest-twisted/>`_ plugin which allows you to
 return deferreds from pytest-style tests, allowing the use of
 :ref:`fixtures` and other features.
 
 how does pytest work with Django?
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-In 2012, some work is going into the `pytest-django plugin <http://pypi.python.org/pypi/pytest-django>`_.  It substitutes the usage of Django's
+In 2012, some work is going into the `pytest-django plugin <https://pypi.org/project/pytest-django/>`_.  It substitutes the usage of Django's
 ``manage.py test`` and allows the use of all pytest features_ most of which
 are not available from Django directly.
 

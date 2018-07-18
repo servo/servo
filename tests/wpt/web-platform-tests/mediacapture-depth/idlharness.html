@@ -17,7 +17,7 @@
 
     promise_test(async () => {
       const idl = await fetch('/interfaces/mediacapture-depth.idl').then(r => r.text());
-      const main = await fetch('/interfaces/mediacapture-main.idl').then(r => r.text());
+      const main = await fetch('/interfaces/mediacapture-streams.idl').then(r => r.text());
 
       var idl_array = new IdlArray();
       idl_array.add_idls(idl);

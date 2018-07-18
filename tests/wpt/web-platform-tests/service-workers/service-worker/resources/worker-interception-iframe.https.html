@@ -3,9 +3,9 @@
 <script>
 var host_info = get_host_info();
 
-function boilerplate_test(msg) {
+function boilerplate_test(url, msg) {
     return new Promise(function(resolve, reject) {
-          var worker = new Worker("load_worker.js");
+          var worker = new Worker(url);
           worker.onmessage = function(e) { resolve(e.data) };
           worker.onerror = function(e) { reject(e) };
           worker.postMessage(msg);
@@ -16,15 +16,27 @@ function boilerplate_test(msg) {
 }
 
 function xhr_test() {
-    return boilerplate_test("xhr");
+    return boilerplate_test("load_worker.js", "xhr");
 }
 
 function fetch_test() {
-    return boilerplate_test("fetch");
+    return boilerplate_test("load_worker.js", "fetch");
 }
 
 function importScripts_test() {
-    return boilerplate_test("importScripts");
+    return boilerplate_test("load_worker.js", "importScripts");
+}
+
+function nested_worker_xhr_test() {
+    return boilerplate_test("nested_load_worker.js", "xhr");
+}
+
+function nested_worker_fetch_test() {
+    return boilerplate_test("nested_load_worker.js", "fetch");
+}
+
+function nested_worker_importScripts_test() {
+    return boilerplate_test("nested_load_worker.js", "importScripts");
 }
 
 window.addEventListener('message', function(evt) {
@@ -32,6 +44,9 @@ window.addEventListener('message', function(evt) {
     xhr_test()
       .then(fetch_test)
       .then(importScripts_test)
+      .then(nested_worker_xhr_test)
+      .then(nested_worker_fetch_test)
+      .then(nested_worker_importScripts_test)
       .then(function() { port.postMessage({results: 'finish'}); })
       .catch(function(e) { port.postMessage({results: 'failure:' + e}); });
   });

@@ -1,0 +1,16 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Worklets Level 1" spec.
+// See: https://drafts.css-houdini.org/worklets/
+
+[Exposed=Worklet]
+interface WorkletGlobalScope {
+};
+
+interface Worklet {
+    [NewObject] Promise<void> addModule(USVString moduleURL, optional WorkletOptions options);
+};
+
+dictionary WorkletOptions {
+    RequestCredentials credentials = "same-origin";
+};

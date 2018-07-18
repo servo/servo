@@ -53,7 +53,6 @@ The py.test Development Team
   Thanks Gabriel Reis for the PR.
 
 - add more talks to the documentation
-- extend documentation on the --ignore cli option 
-- use pytest-runner for setuptools integration 
+- extend documentation on the --ignore cli option
+- use pytest-runner for setuptools integration
 - minor fixes for interaction with OS X El Capitan system integrity protection (thanks Florian)
-

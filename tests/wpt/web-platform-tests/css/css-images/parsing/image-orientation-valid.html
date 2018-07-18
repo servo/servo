@@ -5,7 +5,7 @@
 <title>CSS Images Module Level 3: parsing image-orientation with valid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-images-3/#propdef-image-orientation">
-<meta name="assert" content="image-orientation supports the full grammar 'from-image | <angle> | [ <angle>? flip ]'.">
+<meta name="assert" content="image-orientation supports the full grammar 'from-image | none'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/parsing-testcommon.js"></script>
@@ -13,9 +13,7 @@
 <body>
 <script>
 test_valid_value("image-orientation", "from-image");
-test_valid_value("image-orientation", "30deg");
-test_valid_value("image-orientation", "flip", "0deg flip"); // "0deg flip" in Firefox.
-test_valid_value("image-orientation", "-1.25turn flip");
+test_valid_value("image-orientation", "none");
 </script>
 </body>
 </html>

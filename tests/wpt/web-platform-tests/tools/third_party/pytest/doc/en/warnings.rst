@@ -25,14 +25,14 @@ Running pytest now produces this output::
     platform linux -- Python 3.x.y, pytest-3.x.y, py-1.x.y, pluggy-0.x.y
     rootdir: $REGENDOC_TMPDIR, inifile:
     collected 1 item
-    
+
     test_show_warnings.py .                                              [100%]
-    
+
     ============================= warnings summary =============================
     test_show_warnings.py::test_one
       $REGENDOC_TMPDIR/test_show_warnings.py:4: UserWarning: api v1, should use functions from v2
         warnings.warn(UserWarning("api v1, should use functions from v2"))
-    
+
     -- Docs: http://doc.pytest.org/en/latest/warnings.html
     =================== 1 passed, 1 warnings in 0.12 seconds ===================
 
@@ -45,17 +45,17 @@ them into errors::
     F                                                                    [100%]
     ================================= FAILURES =================================
     _________________________________ test_one _________________________________
-    
+
         def test_one():
     >       assert api_v1() == 1
-    
-    test_show_warnings.py:8: 
-    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-    
+
+    test_show_warnings.py:8:
+    _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
         def api_v1():
     >       warnings.warn(UserWarning("api v1, should use functions from v2"))
     E       UserWarning: api v1, should use functions from v2
-    
+
     test_show_warnings.py:4: UserWarning
     1 failed in 0.12 seconds
 
@@ -78,6 +78,9 @@ Both ``-W`` command-line option and ``filterwarnings`` ini option are based on P
 `-W option`_ and `warnings.simplefilter`_, so please refer to those sections in the Python
 documentation for other examples and advanced usage.
 
+
+.. _`filterwarnings`:
+
 ``@pytest.mark.filterwarnings``
 -------------------------------
 
@@ -91,11 +94,13 @@ even module level:
 
     import warnings
 
+
     def api_v1():
         warnings.warn(UserWarning("api v1, should use functions from v2"))
         return 1
 
-    @pytest.mark.filterwarnings('ignore:api v1')
+
+    @pytest.mark.filterwarnings("ignore:api v1")
     def test_one():
         assert api_v1() == 1
 
@@ -109,8 +114,14 @@ decorator or to all tests in a module by setting the ``pytestmark`` variable:
 .. code-block:: python
 
     # turns all warnings into errors for this module
-    pytestmark = pytest.mark.filterwarnings('error')
+    pytestmark = pytest.mark.filterwarnings("error")
 
+
+.. note::
+
+    Except for these features, pytest does not change the python warning filter; it only captures
+    and displays the warnings which are issued with respect to the currently configured filter,
+    including changes to the filter made by test functions or by the system under test.
 
 .. note::
 
@@ -244,23 +255,11 @@ The ``recwarn`` fixture will record warnings for the whole function::
 Both ``recwarn`` and ``pytest.warns`` return the same interface for recorded
 warnings: a WarningsRecorder instance. To view the recorded warnings, you can
 iterate over this instance, call ``len`` on it to get the number of recorded
-warnings, or index into it to get a particular recorded warning. It also
-provides these methods:
+warnings, or index into it to get a particular recorded warning.
 
-.. autoclass:: _pytest.recwarn.WarningsRecorder()
-    :members:
+.. currentmodule:: _pytest.warnings
 
-Each recorded warning has the attributes ``message``, ``category``,
-``filename``, ``lineno``, ``file``, and ``line``. The ``category`` is the
-class of the warning. The ``message`` is the warning itself; calling
-``str(message)`` will return the actual message of the warning.
-
-.. note::
-    :class:`RecordedWarning` was changed from a plain class to a namedtuple in pytest 3.1
-
-.. note::
-    ``DeprecationWarning`` and ``PendingDeprecationWarning`` are treated
-    differently; see :ref:`ensuring_function_triggers`.
+Full API: :class:`WarningsRecorder`.
 
 .. _`ensuring a function triggers a deprecation warning`:
 

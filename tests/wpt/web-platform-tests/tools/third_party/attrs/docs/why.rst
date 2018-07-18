@@ -135,6 +135,28 @@ With ``attrs`` your users won't notice a difference because it creates regular, 
 .. _behaving like a tuple: https://docs.python.org/3/tutorial/datastructures.html#tuples-and-sequences
 
 
+…Data Classes?
+--------------
+
+`PEP 557 <https://www.python.org/dev/peps/pep-0557/>`_ added Data Classes to `Python 3.7 <https://docs.python.org/3.7/whatsnew/3.7.html#pep-557-data-classes>`_ that resemble ``attrs`` in many ways.
+
+They are the result of the Python community's `wish <https://mail.python.org/pipermail/python-ideas/2017-May/045618.html>`_ to have an easier way to write classes in the standard library that doesn't carry the problems of ``namedtuple``\ s.
+To that end, ``attrs`` and its developers were involved in the PEP process and while we may disagree with some minor decisions that have been made, it's a fine library and if it stops you from abusing ``namedtuple``\ s, they are a huge win.
+
+Nevertheless, there are still reasons to prefer ``attrs`` over Data Classes whose relevancy depends on your circumstances:
+
+- ``attrs`` supports all maintream Python versions, including CPython 2.7 and PyPy.
+- Data Classes are intentionally less powerful than ``attrs``.
+  There is a long list of features that were sacrificed for the sake of simplicity and while the most obvious ones are validators, converters, and ``__slots__``, it permeates throughout all APIs.
+
+  On the other hand, Data Classes currently do not offer any significant feature that ``attrs`` doesn't already have.
+- ``attrs`` can and will move faster.
+  We are not bound to any release schedules and we have a clear deprecation policy.
+
+  One of the `reasons <https://www.python.org/dev/peps/pep-0557/#why-not-just-use-attrs>`_ to not vendor ``attrs`` in the standard library was to not impede ``attrs``'s future developement.
+
+
+
 …dicts?
 -------
 
@@ -142,8 +164,6 @@ Dictionaries are not for fixed fields.
 
 If you have a dict, it maps something to something else.
 You should be able to add and remove values.
-
-
 
 ``attrs`` lets you be specific about those expectations; a dictionary does not.
 It gives you a named entity (the class) in your code, which lets you explain in other places whether you take a parameter of that class or return a value of that class.
@@ -155,7 +175,7 @@ So if you never iterate over the keys of a dict, you should use a proper class.
 …hand-written classes?
 ----------------------
 
-While we're fans of all things artisanal, writing the same nine methods all over again doesn't qualify for me.
+While we're fans of all things artisanal, writing the same nine methods again and again doesn't qualify.
 I usually manage to get some typos inside and there's simply more code that can break and thus has to be tested.
 
 To bring it into perspective, the equivalent of
@@ -169,7 +189,7 @@ To bring it into perspective, the equivalent of
    >>> SmartClass(1, 2)
    SmartClass(a=1, b=2)
 
-is
+is roughly
 
 .. doctest::
 
@@ -219,7 +239,7 @@ is
    ...             return NotImplemented
    ...
    ...     def __hash__(self):
-   ...         return hash((self.a, self.b))
+   ...         return hash((self.__class__, self.a, self.b))
    >>> ArtisanalClass(a=1, b=2)
    ArtisanalClass(a=1, b=2)
 

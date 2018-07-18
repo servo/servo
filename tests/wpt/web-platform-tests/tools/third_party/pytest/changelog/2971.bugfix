@@ -1,1 +1,0 @@
-Fix ``ZeroDivisionError`` when using the ``testmon`` plugin when no tests were actually collected.

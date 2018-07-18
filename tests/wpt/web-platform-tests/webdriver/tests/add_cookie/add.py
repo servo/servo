@@ -10,6 +10,20 @@ def add_cookie(session, cookie):
         {"cookie": cookie})
 
 
+def test_null_response_value(session, url):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+    }
+
+    session.url = url("/common/blank.html")
+    clear_all_cookies(session)
+
+    response = add_cookie(session, new_cookie)
+    value = assert_success(response)
+    assert value is None
+
+
 def test_add_domain_cookie(session, url, server_config):
     new_cookie = {
         "name": "hello",

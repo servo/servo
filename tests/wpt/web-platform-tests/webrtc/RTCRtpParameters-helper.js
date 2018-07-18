@@ -8,6 +8,19 @@
 // This file depends on dictionary-helper.js which should
 // be loaded from the main HTML file.
 
+// An offer/answer exchange is necessary for getParameters() to have any
+// negotiated parameters to return.
+async function doOfferAnswerExchange(t, caller) {
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  const offer = await caller.createOffer();
+  await caller.setLocalDescription(offer);
+  await callee.setRemoteDescription(offer);
+  const answer = await callee.createAnswer();
+  await callee.setLocalDescription(answer);
+  await caller.setRemoteDescription(answer);
+}
+
 /*
   Validates the RTCRtpParameters returned from RTCRtpSender.prototype.getParameters
 

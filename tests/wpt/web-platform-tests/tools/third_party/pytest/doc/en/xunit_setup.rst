@@ -6,7 +6,7 @@ classic xunit-style setup
 ========================================
 
 This section describes a classic and popular way how you can implement
-fixtures (setup and teardown test state) on a per-module/class/function basis.  
+fixtures (setup and teardown test state) on a per-module/class/function basis.
 
 
 .. note::

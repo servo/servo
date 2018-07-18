@@ -37,7 +37,7 @@ interface CSSKeyframesRule : CSSRule {
   CSSKeyframeRule? findRule(CSSOMString select);
 };
 
-partial interface GlobalEventHandlers {
+partial interface mixin GlobalEventHandlers {
   attribute EventHandler onanimationstart;
   attribute EventHandler onanimationiteration;
   attribute EventHandler onanimationend;

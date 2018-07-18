@@ -1,1 +1,1 @@
-postMessage('gamma');
+var result = 'gamma/script.js';

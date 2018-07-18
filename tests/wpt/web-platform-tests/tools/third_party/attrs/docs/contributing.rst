@@ -1,5 +1,5 @@
 .. _contributing:
 
-.. include:: ../CONTRIBUTING.rst
+.. include:: ../.github/CONTRIBUTING.rst
 
-.. include:: ../CODE_OF_CONDUCT.rst
+.. include:: ../.github/CODE_OF_CONDUCT.rst

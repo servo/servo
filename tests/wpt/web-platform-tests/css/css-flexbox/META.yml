@@ -1,9 +1,9 @@
+spec: https://drafts.csswg.org/css-flexbox/
 suggested_reviewers:
   - kojiishi
   - plinss
   - mrego
   - cbiesinger
-  - chenxix
   - atanassov
   - fantasai
   - tabatkins

@@ -1,0 +1,35 @@
+sudo: false
+os: linux
+language: python
+
+matrix:
+    include:
+        - os: osx
+          language: generic
+          env: TOXENV_SUFFIX=test
+
+python:
+    - "2.6"
+    - "2.7"
+    - "pypy"
+    - "3.3"
+    - "3.4"
+
+install:
+    - # The OS X VM doesn't have any Python support at all
+      # See https://github.com/travis-ci/travis-ci/issues/2312
+      if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+          brew update;
+          brew install python3;
+          virtualenv -p python3 $HOME/osx-py3;
+          . $HOME/osx-py3/bin/activate;
+          export TRAVIS_PYTHON_VERSION="$(python --version | cut -d ' ' -f 2 | cut -d . -f -2)";
+      fi
+    - pip install tox
+
+script:
+    - export TOX_PY="$(echo py$TRAVIS_PYTHON_VERSION | tr -d . | sed -e 's/pypypy/pypy/')"
+    - tox -e $TOX_PY-test
+    - if [ "$TRAVIS_PYTHON_VERSION" = "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" = ".3.5" ]; then
+          tox -e $TOX_PY-stylecheck;
+      fi

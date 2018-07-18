@@ -263,7 +263,7 @@ document_types().forEach(function (entry, testNumber) {
         return;
 
     var getDocument = entry.create;
-    var docuemntName = entry.name;
+    var documentName = entry.name;
 
     promise_test(function () {
         return getDocument().then(function (doc) {
@@ -282,7 +282,7 @@ document_types().forEach(function (entry, testNumber) {
             assert_equals(instance.localName, name);
             assert_true(instance instanceof HTMLUnknownElement);
         });
-    }, 'document.createElement must report a NotSupportedError when the element is adopted into a ' + docuemntName + ' during construction');
+    }, `document.createElement must report a NotSupportedError when the element is adopted into a ${documentName} during construction`);
 
     promise_test(function () {
         return getDocument().then(function (doc) {
@@ -301,7 +301,7 @@ document_types().forEach(function (entry, testNumber) {
             assert_equals(instance.localName, name);
             assert_true(instance instanceof HTMLUnknownElement);
         });
-    }, 'document.createElement must report a NotSupportedError when the element is inserted into a ' + docuemntName + ' during construction');
+    }, `document.createElement must report a NotSupportedError when the element is inserted into a ${documentName} during construction`);
 
     promise_test(function () {
         return getDocument().then(function (doc) {
@@ -319,7 +319,7 @@ document_types().forEach(function (entry, testNumber) {
             assert_not_reports(function () { instance = document.createElement(name); });
             assert_true(instance instanceof ElementThatGetAdoptedBack);
         });
-    }, 'document.createElement must not report a NotSupportedError when the element is adopted back from a ' + docuemntName + ' during construction');
+    }, `document.createElement must not report a NotSupportedError when the element is adopted back from a ${documentName} during construction`);
 });
 
 test(function () {

@@ -60,11 +60,14 @@
                 // Test clientX and clientY
                 if (event.type != 'pointerout' && event.type != 'pointerleave' ) {
                     test(function () {
-                        assert_true(event.clientX >= targetBoundingClientRect.left && event.clientX < targetBoundingClientRect.right && event.clientY >= targetBoundingClientRect.top && event.clientY < targetBoundingClientRect.bottom, "ClientX/Y should be in the boundaries of the box");
+                        assert_greater_than_equal(event.clientX, targetBoundingClientRect.left, "clientX should be greater or equal than left of the box");
+                        assert_greater_than_equal(event.clientY, targetBoundingClientRect.top, "clientY should be greater or equal than top of the box");
+                        assert_less_than_equal(event.clientX, targetBoundingClientRect.right, "clientX should be less or equal than right of the box");
+                        assert_less_than_equal(event.clientY, targetBoundingClientRect.bottom, "clientY should be less or equal than bottom of the box");
                     }, pointerTestName + "'s ClientX and ClientY attributes are correct.");
                 } else {
                     test(function () {
-                        assert_true(event.clientX < targetBoundingClientRect.left || event.clientX > targetBoundingClientRect.right - 1 || event.clientY < targetBoundingClientRect.top || event.clientY > targetBoundingClientRect.bottom - 1, "ClientX/Y should be out of the boundaries of the box");
+                        assert_true(event.clientX < targetBoundingClientRect.left || event.clientX >= targetBoundingClientRect.right || event.clientY < targetBoundingClientRect.top || event.clientY >= targetBoundingClientRect.bottom, "ClientX/Y should be out of the boundaries of the box");
                     }, pointerTestName + "'s ClientX and ClientY attributes are correct.");
                 }
 

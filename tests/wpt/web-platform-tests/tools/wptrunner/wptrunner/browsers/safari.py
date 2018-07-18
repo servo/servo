@@ -3,13 +3,15 @@ from ..webdriver_server import SafariDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
                                           SeleniumRefTestExecutor)  # noqa: F401
+from ..executors.executorsafari import SafariDriverWdspecExecutor  # noqa: F401
 
 
 __wptrunner__ = {"product": "safari",
                  "check_args": "check_args",
                  "browser": "SafariBrowser",
                  "executor": {"testharness": "SeleniumTestharnessExecutor",
-                              "reftest": "SeleniumRefTestExecutor"},
+                              "reftest": "SeleniumRefTestExecutor",
+                              "wdspec": "SafariDriverWdspecExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_extras": "env_extras",
@@ -27,12 +29,10 @@ def browser_kwargs(test_type, run_info_data, **kwargs):
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                     **kwargs):
-    from selenium.webdriver import DesiredCapabilities
-
     executor_kwargs = base_executor_kwargs(test_type, server_config,
-                                           cache_manager, **kwargs)
+                                           cache_manager, run_info_data, **kwargs)
     executor_kwargs["close_after_done"] = True
-    executor_kwargs["capabilities"] = dict(DesiredCapabilities.SAFARI.items())
+    executor_kwargs["capabilities"] = {}
     if kwargs["binary"] is not None:
         raise ValueError("Safari doesn't support setting executable location")
 
