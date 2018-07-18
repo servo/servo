@@ -131,6 +131,7 @@ struct ImageRequest {
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
     final_url: Option<ServoUrl>,
+    current_pixel_density: Option<f64>,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -142,6 +143,7 @@ pub struct HTMLImageElement {
     generation: Cell<u32>,
     #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
+    last_selected_source: DomRefCell<Option<DOMString>>,
 }
 
 impl HTMLImageElement {
@@ -789,26 +791,39 @@ impl HTMLImageElement {
         // Step 2 abort if user-agent does not supports images
         // NOTE: Servo only supports images, skipping this step
 
-        // step 3, 4
-        // TODO: take srcset and parent images into account
-        if !src.is_empty() {
-            // TODO: take pixel density into account
+        // Step 3, 4
+        let mut selected_source = None;
+        let mut pixel_density = None;
+        let src_set = elem.get_string_attribute(&local_name!("srcset"));
+        let is_parent_picture = elem.upcast::<Node>().GetParentElement()
+            .map_or(false, |p| p.is::<HTMLPictureElement>());
+        if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
+            selected_source = Some(src.clone());
+            pixel_density = Some(1 as f64);
+        };
+
+        // Step 5
+        *self.last_selected_source.borrow_mut() = selected_source.clone();
+
+        // Step 6, check the list of available images
+        if !selected_source.as_ref().map_or(false, |source| source.is_empty()) {
             if let Ok(img_url) = base_url.join(&src) {
-                // step 5, check the list of available images
                 let image_cache = window.image_cache();
                 let response = image_cache.find_image_or_metadata(img_url.clone().into(),
                                                                   UsePlaceholder::No,
                                                                   CanRequestImages::No);
                 if let Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) = response {
-                    // Step 5.3
+                    // Step 6.3
                     let metadata = ImageMetadata { height: image.height, width: image.width };
-                    // Step 5.3.2 abort requests
+                    // Step 6.3.2 abort requests
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Current);
                     self.abort_request(State::CompletelyAvailable, ImageRequestPhase::Pending);
                     let mut current_request = self.current_request.borrow_mut();
                     current_request.final_url = Some(url);
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
+                    // Step 6.3.6
+                    current_request.current_pixel_density = pixel_density;
                     let this = Trusted::new(self);
                     let src = String::from(src);
                     let _ = window.dom_manipulation_task_source().queue(
@@ -829,7 +844,7 @@ impl HTMLImageElement {
                 }
             }
         }
-        // step 6, await a stable state.
+        // step 7, await a stable state.
         self.generation.set(self.generation.get() + 1);
         let task = ImageElementMicrotask::StableStateUpdateImageDataTask {
             elem: DomRoot::from_ref(self),
@@ -850,6 +865,7 @@ impl HTMLImageElement {
                 metadata: None,
                 blocker: None,
                 final_url: None,
+                current_pixel_density: None,
             }),
             pending_request: DomRefCell::new(ImageRequest {
                 state: State::Unavailable,
@@ -859,10 +875,12 @@ impl HTMLImageElement {
                 metadata: None,
                 blocker: None,
                 final_url: None,
+                current_pixel_density: None,
             }),
             form_owner: Default::default(),
             generation: Default::default(),
             source_set: DomRefCell::new(SourceSet::new()),
+            last_selected_source: DomRefCell::new(None),
         }
     }
 
