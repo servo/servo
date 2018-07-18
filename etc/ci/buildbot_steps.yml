@@ -155,8 +155,9 @@ linux-nightly:
 android:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --dev
-  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --dev
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --dev
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
@@ -171,8 +172,9 @@ android-x86:
 android-nightly:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
-  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach build --android --release
-  - env ANDROID_SDK=/home/servo/android/sdk/r25.2.3 ./mach package --android --release
+  - ./etc/ci/bootstrap-android-and-accept-licences.sh
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach build --android --release
+  - env --unset ANDROID_NDK --unset ANDROID_SDK ./mach package --android --release
   - ./mach upload-nightly android
 
 arm32:
