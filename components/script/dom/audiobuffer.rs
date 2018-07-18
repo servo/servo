@@ -17,6 +17,7 @@ use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cmp::min;
 use std::ptr::{self, NonNull};
+use std::mem;
 
 type JSAudioChannel = Heap<*mut JSObject>;
 
@@ -43,7 +44,7 @@ impl AudioBuffer {
         initial_data: Option<&[f32]>,
     ) -> AudioBuffer {
         let cx = global.get_cx();
-        let mut js_channels: Vec<JSAudioChannel> = Vec::with_capacity(number_of_channels as usize);
+        rooted_vec!(let mut js_channels_);
         for channel in 0..number_of_channels {
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
             let offset = (channel * length) as usize;
@@ -69,11 +70,13 @@ impl AudioBuffer {
             }
             let js_channel = Heap::default();
             js_channel.set(array.get());
-            js_channels.push(js_channel);
+            js_channels_.push(js_channel);
         }
+        let js_channels = DomRefCell::new(Vec::new());
+        mem::swap(&mut *js_channels.borrow_mut(), &mut *js_channels_);
         AudioBuffer {
             reflector_: Reflector::new(),
-            js_channels: DomRefCell::new(js_channels),
+            js_channels,
             shared_channels: DomRefCell::new(ServoMediaAudioBuffer::new(
                 number_of_channels as u8,
                 length as usize,
