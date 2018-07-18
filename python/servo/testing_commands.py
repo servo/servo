@@ -562,75 +562,36 @@ class MachCommands(CommandBase):
         if (release and dev) or not (release or dev):
             print("Please specify one of --dev or --release.")
             return 1
+
+        avd = "servo-x86"
         target = "i686-linux-android"
         print("Assuming --target " + target)
+
         env = self.build_env(target=target)
         assert self.handle_android_target(target)
+        binary_path = self.get_binary_path(release, dev, android=True)
+        apk = binary_path + ".apk"
 
-        emulator_port = "5580"
-        adb = [self.android_adb_path(env), "-s", "emulator-" + emulator_port]
-        emulator_process = subprocess.Popen([
-            self.android_emulator_path(env),
-            "@servo-x86",
-            "-no-window",
-            "-gpu", "guest",
-            "-port", emulator_port,
-        ])
+        html = """
+            <script>
+                console.log("JavaScript is running!")
+            </script>
+        """
+        url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
+        py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
+        args = [sys.executable, py, avd, apk, url]
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, env=env)
         try:
-            # This is hopefully enough time for the emulator to exit
-            # if it cannot start because of a configuration problem,
-            # and probably more time than it needs to boot anyway
-            time.sleep(1)
-            if emulator_process.poll() is not None:
-                # The process has terminated already, wait-for-device would block indefinitely
-                return 1
-
-            subprocess.call(adb + ["wait-for-device"])
-
-            # https://stackoverflow.com/a/38896494/1162888
             while 1:
-                stdout, stderr = subprocess.Popen(
-                    adb + ["shell", "getprop", "sys.boot_completed"],
-                    stdout=subprocess.PIPE,
-                ).communicate()
-                if "1" in stdout:
-                    break
-                print("Waiting for the emulator to boot")
-                time.sleep(1)
-
-            binary_path = self.get_binary_path(release, dev, android=True)
-            result = subprocess.call(adb + ["install", "-r", binary_path + ".apk"])
-            if result != 0:
-                return result
-
-            html = """
-                <script>
-                    console.log("JavaScript is running!")
-                </script>
-            """
-            url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
-            result = subprocess.call(adb + ["shell", """
-                mkdir -p /sdcard/Android/data/com.mozilla.servo/files/
-                echo 'servo' > /sdcard/Android/data/com.mozilla.servo/files/android_params
-                echo '%s' >> /sdcard/Android/data/com.mozilla.servo/files/android_params
-                am start com.mozilla.servo/com.mozilla.servo.MainActivity
-            """ % url])
-            if result != 0:
-                return result
-
-            logcat = adb + ["logcat", "RustAndroidGlueStdouterr:D", "*:S", "-v", "raw"]
-            logcat_process = subprocess.Popen(logcat, stdout=subprocess.PIPE)
-            while 1:
-                line = logcat_process.stdout.readline()
+                line = process.stdout.readline()
+                if len(line) == 0:
+                    print("EOF without finding the expected line")
+                    return 1
+                print(line.rstrip())
                 if "JavaScript is running!" in line:
-                    print(line)
                     break
-            logcat_process.kill()
         finally:
-            try:
-                emulator_process.kill()
-            except OSError:
-                pass
+            process.terminate()
 
     @Command('test-jquery',
              description='Run the jQuery test suite',
