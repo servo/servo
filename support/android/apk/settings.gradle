@@ -1,1 +1,1 @@
-include ':servoapp'
+include ':servoapp', ':servoview'
