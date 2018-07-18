@@ -436,7 +436,6 @@ where
             Perspective(ref d) => {
                 let m = create_perspective_matrix(d.to_pixel_length(None)?);
                 m.cast()
-                    .expect("Casting from f32 to f64 should be successful")
             },
             Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
             Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.unwrap_or(sx).into(), 1.),

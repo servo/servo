@@ -2370,7 +2370,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                         clip.size.height.to_f32_px(),
                     );
 
-                    let clip = transform.transform_rect(&clip);
+                    let clip = transform.transform_rect(&clip).unwrap();
 
                     rect(
                         Au::from_f32_px(clip.origin.x),

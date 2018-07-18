@@ -16,7 +16,7 @@ unstable = ["parking_lot/nightly"]
 app_units = "0.6"
 atomic_refcell = "0.1"
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.17"
+euclid = "0.18"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}

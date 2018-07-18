@@ -17,7 +17,7 @@ gecko = []
 app_units = "0.6"
 cssparser = "0.24.0"
 bitflags = "1.0"
-euclid = "0.17"
+euclid = "0.18"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 selectors = { path = "../selectors" }

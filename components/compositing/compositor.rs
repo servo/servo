@@ -771,15 +771,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_touch_move(&mut self, identifier: TouchId, point: DevicePoint) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
-                match point.cast() {
-                    Some(point) => self.on_scroll_window_event(
-                        ScrollLocation::Delta(
-                            LayoutVector2D::from_untyped(&delta.to_untyped())
-                        ),
-                        point
+                self.on_scroll_window_event(
+                    ScrollLocation::Delta(
+                        LayoutVector2D::from_untyped(&delta.to_untyped())
                     ),
-                    None => error!("Point cast failed."),
-                }
+                    point.cast()
+                )
             }
             TouchAction::Zoom(magnification, scroll_delta) => {
                 let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
