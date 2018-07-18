@@ -17,7 +17,7 @@ default = []
 embedder_traits = {path = "../embedder_traits"}
 euclid = "0.18"
 gfx_traits = {path = "../gfx_traits"}
-gleam = {version = "0.5", optional = true}
+gleam = {version = "0.6", optional = true}
 image = "0.19"
 ipc-channel = "0.10"
 libc = "0.2"
