@@ -6,7 +6,6 @@
 package com.mozilla.servoview;
 
 import android.app.Activity;
-import android.os.Build;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.net.Uri;

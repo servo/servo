@@ -214,10 +214,12 @@ class PackageCommands(CommandBase):
             if flavor is not None:
                 flavor_name = flavor.title()
 
-            task_name = "assemble" + flavor_name + build_type + build_mode
+            variant = ":assemble" + flavor_name + build_type + build_mode
+            apk_task_name = ":servoapp" + variant
+            aar_task_name = ":servoview" + variant
             try:
                 with cd(path.join("support", "android", "apk")):
-                    subprocess.check_call(["./gradlew", "--no-daemon", task_name], env=env)
+                    subprocess.check_call(["./gradlew", "--no-daemon", apk_task_name, aar_task_name], env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
