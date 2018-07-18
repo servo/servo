@@ -278,7 +278,7 @@ class MachCommands(CommandBase):
 
         features = self.servo_features()
         if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.servo_manifest()]
+            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.ports_servo_manifest()]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
@@ -598,8 +598,8 @@ class MachCommands(CommandBase):
                 print("Waiting for the emulator to boot")
                 time.sleep(1)
 
-            binary_path = self.get_binary_path(release, dev, android=True)
-            result = subprocess.call(adb + ["install", "-r", binary_path + ".apk"])
+            apk_path = self.get_apk_path(release)
+            result = subprocess.call(adb + ["install", "-r", apk_path])
             if result != 0:
                 return result
 

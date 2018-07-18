@@ -2,9 +2,10 @@
 buildscript {
     repositories {
         jcenter()
+        google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:3.1.3'
     }
 }
 
@@ -14,6 +15,7 @@ allprojects {
         flatDir {
             dirs rootDir.absolutePath + "/../../../target/android_aar"
         }
+        google()
     }
 
     buildDir = rootDir.absolutePath + "/../../../target/gradle"

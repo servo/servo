@@ -401,12 +401,12 @@ impl Window {
         }
     }
 
-    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64", target_os = "android")))]
+    #[cfg(not(any(target_arch = "arm", target_arch = "aarch64")))]
     fn gl_version() -> GlRequest {
         return GlRequest::Specific(Api::OpenGl, (3, 2));
     }
 
-    #[cfg(any(target_arch = "arm", target_arch = "aarch64", target_os = "android"))]
+    #[cfg(any(target_arch = "arm", target_arch = "aarch64"))]
     fn gl_version() -> GlRequest {
         GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
@@ -639,7 +639,6 @@ impl Window {
         }
     }
 
-    /// Has no effect on Android.
     pub fn set_cursor(&self, cursor: CursorKind) {
         match self.kind {
             WindowKind::Window(ref window, ..) => {

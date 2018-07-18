@@ -6,18 +6,15 @@ import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         applicationId "com.mozilla.servo"
         minSdkVersion 18
-        targetSdkVersion 25
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0.0"
-        jackOptions {
-            enabled true
-        }
     }
 
     compileOptions {
@@ -32,6 +29,13 @@ android {
             enable false
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    flavorDimensions "default"
 
     productFlavors {
         main {
@@ -144,25 +148,27 @@ android {
             variant.setIgnore(true);
         }
     }
-    
+
     // Define apk output directory
     applicationVariants.all { variant ->
-        variant.outputs.each { output ->
-            def name = variant.buildType.name
-            output.outputFile = new File(getApkPath(isDebug(name), getArch(name)))
+        variant.outputs.all { output ->
+            Pattern pattern = Pattern.compile(/^[\w\d]+([A-Z][\w\d]+)(Debug|Release)/)
+            Matcher matcher = pattern.matcher(variant.name)
+            if (!matcher.find()) {
+                throw "Invalid variant name for output"
+            }
+            def arch = matcher.group(1)
+            def debug = variant.name.contains("Debug")
+            def path = "../../../../../" + getSubTargetDir(debug, arch) + "/servoapp.apk";
+            outputFileName = new File(path)
         }
     }
 
     // Call our custom NDK Build task using flavor parameters
     tasks.all {
         compileTask ->
-            // Parse architecture name from gradle task name:
-            // Examples: transformJackWithJackForMainArmv7Release, transformJackWithJackForOculusvrArmv7Release
-            Pattern pattern = Pattern.compile(/^transformJackWithJackFor[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)/);
-            Matcher matcher = pattern.matcher(compileTask.name);
-            // You can use this alternative pattern when jackCompiler is disabled
-            // Pattern pattern = Pattern.compile(/^compile([\w\d]+)(Debug|Release)/);
-            // Matcher matcher = pattern.matcher(compileTask.name);
+            Pattern pattern = Pattern.compile(/^compile[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)/)
+            Matcher matcher = pattern.matcher(compileTask.name)
             if (!matcher.find()) {
                 return
             }
@@ -188,18 +194,17 @@ android {
 dependencies {
     //Dependency list
     def deps = [
-       new ServoDependency("blurdroid.jar", "blurdroid")
+            new ServoDependency("blurdroid.jar", "blurdroid")
     ]
-
     // Iterate all build types and dependencies
-    // For each dependency call the proper compile command and set the correct dependency path
+    // For each dependency call the proper implementation command and set the correct dependency path
     def list = ['arm', 'armv7', 'arm64', 'x86']
     for (arch in list) {
         for (debug in [true, false]) {
             String basePath = getTargetDir(debug, arch) + "/build"
-            String cmd = arch + (debug ? "Debug" : "Release") + "Compile"
+            String cmd = arch + (debug ? "Debug" : "Release") + "Implementation"
 
-            for (ServoDependency dep: deps) {
+            for (ServoDependency dep : deps) {
                 String path = findDependencyPath(basePath, dep.fileName, dep.folderFilter)
                 if (path) {
                     "${cmd}" files(path)
@@ -207,35 +212,27 @@ dependencies {
             }
         }
     }
-
-    googlevrCompile 'com.google.vr:sdk-base:1.70.0'
-    googlevrCompile(name:'GVRService', ext:'aar')
-    oculusvrCompile(name:'OVRService', ext:'aar')
+    googlevrImplementation 'com.google.vr:sdk-base:1.140.0'
+    googlevrImplementation(name: 'GVRService', ext: 'aar')
+    oculusvrImplementation(name: 'OVRService', ext: 'aar')
+    implementation 'com.android.support.constraint:constraint-layout:1.1.2'
 }
 
 // Utility methods
 String getTargetDir(boolean debug, String arch) {
     def basePath = project.rootDir.getParentFile().getParentFile().getParentFile().absolutePath
-    return basePath + '/target/' + getRustTarget(arch) + '/' + (debug ? 'debug' : 'release')
+    return basePath + '/target/' + getSubTargetDir(debug, arch)
 }
 
-String getApkPath(boolean debug, String arch) {
-    return getTargetDir(debug, arch) + '/servo.apk'
+String getSubTargetDir(boolean debug, String arch) {
+    return getRustTarget(arch) + '/' + (debug ? 'debug' : 'release')
 }
 
 String getJniLibsPath(boolean debug, String arch) {
     return getTargetDir(debug, arch) + '/apk/jniLibs'
 }
 
-String getArch(String buildType) {
-    return buildType.replaceAll(/(Debug|Release)/, '')
-}
-
-boolean isDebug(String buildType) {
-    return buildType.contains("Debug")
-}
-
-String getRustTarget(String arch) {
+static String getRustTarget(String arch) {
     switch (arch.toLowerCase()) {
         case 'arm' : return 'arm-linux-androideabi'
         case 'armv7' : return 'armv7-linux-androideabi'
@@ -245,7 +242,7 @@ String getRustTarget(String arch) {
     }
 }
 
-String getNDKAbi(String arch) {
+static String getNDKAbi(String arch) {
     switch (arch.toLowerCase()) {
         case 'arm' : return 'armeabi'
         case 'armv7' : return 'armeabi-v7a'
@@ -283,7 +280,7 @@ String getNdkDir() {
 }
 
 // folderFilter can be used to improve search performance
-String findDependencyPath(String basePath, String filename, String folderFilter) {
+static String findDependencyPath(String basePath, String filename, String folderFilter) {
     File path = new File(basePath);
     if (!path.exists()) {
         return ''
@@ -307,7 +304,7 @@ String findDependencyPath(String basePath, String filename, String folderFilter)
 }
 
 class ServoDependency {
-    public ServoDependency(String fileName, String folderFilter = null) {
+    ServoDependency(String fileName, String folderFilter = null) {
         this.fileName = fileName;
         this.folderFilter = folderFilter;
     }
