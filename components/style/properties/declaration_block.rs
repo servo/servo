@@ -64,19 +64,6 @@ pub struct SourcePropertyDeclarationUpdate {
     any_removal: bool,
 }
 
-/// Enum for how a given declaration should be pushed into a declaration block.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-pub enum DeclarationPushMode {
-    /// Mode used when declarations were obtained from CSS parsing.
-    /// If there is an existing declaration of the same property with a higher
-    /// importance, the new declaration will be discarded. Otherwise, it will
-    /// be appended to the end of the declaration block.
-    Parsing,
-    /// In this mode, the new declaration is always pushed to the end of the
-    /// declaration block. This is another possible behavior of CSSOM.
-    Append,
-}
-
 /// A declaration [importance][importance].
 ///
 /// [importance]: https://drafts.csswg.org/css-cascade/#importance
@@ -472,56 +459,36 @@ impl PropertyDeclarationBlock {
         &mut self,
         mut drain: SourcePropertyDeclarationDrain,
         importance: Importance,
-        mode: DeclarationPushMode,
     ) -> bool {
-        match mode {
-            DeclarationPushMode::Parsing => {
-                let all_shorthand_len = match drain.all_shorthand {
-                    AllShorthand::NotSet => 0,
-                    AllShorthand::CSSWideKeyword(_) |
-                    AllShorthand::WithVariables(_) => shorthands::ALL_SHORTHAND_MAX_LEN,
-                };
-                let push_calls_count =
-                    drain.declarations.len() + all_shorthand_len;
+        let all_shorthand_len = match drain.all_shorthand {
+            AllShorthand::NotSet => 0,
+            AllShorthand::CSSWideKeyword(_) |
+            AllShorthand::WithVariables(_) => shorthands::ALL_SHORTHAND_MAX_LEN,
+        };
+        let push_calls_count =
+            drain.declarations.len() + all_shorthand_len;
 
-                // With deduplication the actual length increase may be less than this.
-                self.declarations.reserve(push_calls_count);
-            }
-            _ => {
-                // Don't bother reserving space, since it's usually the case
-                // that CSSOM just overrides properties and we don't need to use
-                // more memory. See bug 1424346 for an example where this
-                // matters.
-                //
-                // TODO: Would it be worth to call reserve() just if it's empty?
-            }
-        }
+        // With deduplication the actual length increase may be less than this.
+        self.declarations.reserve(push_calls_count);
 
         let mut changed = false;
         for decl in &mut drain.declarations {
-            changed |= self.push(
-                decl,
-                importance,
-                mode,
-            );
+            changed |= self.push(decl, importance);
         }
         drain.all_shorthand.declarations().fold(changed, |changed, decl| {
-            changed | self.push(decl, importance, mode)
+            changed | self.push(decl, importance)
         })
     }
 
     /// Adds or overrides the declaration for a given property in this block.
     ///
-    /// Depending on the value of `mode`, this has a different behavior in the
-    /// presence of another declaration with the same ID in the declaration
-    /// block.
-    ///
     /// Returns whether the declaration has changed.
+    ///
+    /// This is only used for parsing and internal use.
     pub fn push(
         &mut self,
         declaration: PropertyDeclaration,
         importance: Importance,
-        mode: DeclarationPushMode,
     ) -> bool {
         if !self.is_definitely_new(&declaration) {
             let mut index_to_remove = None;
@@ -530,28 +497,26 @@ impl PropertyDeclarationBlock {
                     continue;
                 }
 
-                if matches!(mode, DeclarationPushMode::Parsing) {
-                    let important = self.declarations_importance[i];
+                let important = self.declarations_importance[i];
 
-                    // For declarations from parsing, non-important declarations
-                    // shouldn't override existing important one.
-                    if important && !importance.important() {
-                        return false;
-                    }
+                // For declarations from parsing, non-important declarations
+                // shouldn't override existing important one.
+                if important && !importance.important() {
+                    return false;
+                }
 
-                    // As a compatibility hack, specially on Android,
-                    // don't allow to override a prefixed webkit display
-                    // value with an unprefixed version from parsing
-                    // code.
-                    //
-                    // TODO(emilio): Unship.
-                    if let PropertyDeclaration::Display(old_display) = *slot {
-                        use properties::longhands::display::computed_value::T as display;
+                // As a compatibility hack, specially on Android,
+                // don't allow to override a prefixed webkit display
+                // value with an unprefixed version from parsing
+                // code.
+                //
+                // TODO(emilio): Unship.
+                if let PropertyDeclaration::Display(old_display) = *slot {
+                    use properties::longhands::display::computed_value::T as display;
 
-                        if let PropertyDeclaration::Display(new_display) = declaration {
-                            if display::should_ignore_parsed_value(old_display, new_display) {
-                                return false;
-                            }
+                    if let PropertyDeclaration::Display(new_display) = declaration {
+                        if display::should_ignore_parsed_value(old_display, new_display) {
+                            return false;
                         }
                     }
                 }
@@ -1400,7 +1365,6 @@ pub fn parse_property_declaration_list(
                 block.extend(
                     iter.parser.declarations.drain(),
                     importance,
-                    DeclarationPushMode::Parsing,
                 );
             }
             Err((error, slice)) => {
