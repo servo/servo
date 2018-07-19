@@ -51,6 +51,8 @@ def main(avd_name, apk_path, *args):
         wait_for_boot(adb)
 
         check_call(adb + ["install", "-r", apk_path])
+        args = list(args)
+        write_user_stylesheets(adb, args)
         write_args(adb, args)
         check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
                    stdout=sys.stderr)
@@ -120,6 +122,15 @@ def write_args(adb, args):
         check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
 
 
+def write_user_stylesheets(adb, args):
+    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+    check_call(adb + ["shell", "mkdir -p %s" % data_dir])
+    for i, (pos, path) in enumerate(extract_args("--user-stylesheet", args)):
+        remote_path = "%s/user%s.css" % (data_dir, i)
+        args[pos] = remote_path
+        check_call(adb + ["push", path, remote_path], stdout=sys.stderr)
+
+
 def forward_webdriver(adb, args):
     webdriver_port = extract_arg("--webdriver", args)
     if webdriver_port is not None:
@@ -130,15 +141,20 @@ def forward_webdriver(adb, args):
 
 
 def extract_arg(name, args):
+    for _, arg in extract_args(name, args):
+        return arg
+
+
+def extract_args(name, args):
     previous_arg_matches = False
-    for arg in args:
+    for i, arg in enumerate(args):
         if previous_arg_matches:
-            return arg
+            yield i, arg
         previous_arg_matches = arg == name
 
 
 def wait_for_tcp_server(adb, port):
-    while call(adb + ["shell", "nc -z 127.0.0.1 %s" % port]) != 0:
+    while call(adb + ["shell", "nc -z 127.0.0.1 %s" % port], stdout=sys.stderr) != 0:
         time.sleep(1)
 
 
