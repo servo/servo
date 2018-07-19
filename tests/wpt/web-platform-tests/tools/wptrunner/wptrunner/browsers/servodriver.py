@@ -99,6 +99,7 @@ class ServoWebDriverBrowser(Browser):
             str(port)
             for _protocol, ports in self.server_ports.items()
             for port in ports
+            if port
         )
 
         debug_args, command = browser_command(
