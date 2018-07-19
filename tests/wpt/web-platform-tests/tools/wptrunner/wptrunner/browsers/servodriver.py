@@ -38,6 +38,7 @@ def browser_kwargs(test_type, run_info_data, **kwargs):
     return {
         "binary": kwargs["binary"],
         "debug_info": kwargs["debug_info"],
+        "server_config": kwargs["config"],
         "user_stylesheets": kwargs.get("user_stylesheets"),
     }
 
@@ -73,14 +74,14 @@ class ServoWebDriverBrowser(Browser):
     used_ports = set()
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
-                 user_stylesheets=None):
+                 server_config=None, user_stylesheets=None):
         Browser.__init__(self, logger)
         self.binary = binary
         self.webdriver_host = webdriver_host
         self.webdriver_port = None
         self.proc = None
         self.debug_info = debug_info
-        self.hosts_path = write_hosts_file()
+        self.hosts_path = write_hosts_file(server_config)
         self.command = None
         self.user_stylesheets = user_stylesheets if user_stylesheets else []
 
@@ -151,7 +152,7 @@ class ServoWebDriverBrowser(Browser):
 
     def cleanup(self):
         self.stop()
-        shutil.rmtree(os.path.dirname(self.hosts_file))
+        os.remove(self.hosts_path)
 
     def executor_browser(self):
         assert self.webdriver_port is not None

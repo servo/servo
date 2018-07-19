@@ -11,8 +11,10 @@ from .base import (Protocol,
                    TestharnessExecutor,
                    strip_server)
 from ..testrunner import Stop
+from ..webdriver_server import wait_for_service
 
 webdriver = None
+ServoCommandExtensions = None
 
 here = os.path.join(os.path.split(__file__)[0])
 
@@ -22,6 +24,26 @@ extra_timeout = 5
 def do_delayed_imports():
     global webdriver
     import webdriver
+
+    global ServoCommandExtensions
+    class ServoCommandExtensions(object):
+        def __init__(self, session):
+            self.session = session
+
+        @webdriver.client.command
+        def get_prefs(self, *prefs):
+            body = {"prefs": list(prefs)}
+            return self.session.send_command("POST", "servo/prefs/get", body)
+
+        @webdriver.client.command
+        def set_prefs(self, prefs):
+            body = {"prefs": prefs}
+            return self.session.send_command("POST", "servo/prefs/set", body)
+
+        @webdriver.client.command
+        def reset_prefs(self, *prefs):
+            body = {"prefs": list(prefs)}
+            return self.session.send_command("POST", "servo/prefs/reset", body)
 
 
 class ServoWebDriverProtocol(Protocol):
@@ -35,8 +57,7 @@ class ServoWebDriverProtocol(Protocol):
 
     def connect(self):
         """Connect to browser via WebDriver."""
-        self.session = webdriver.Session(self.host, self.port,
-                                         extension=webdriver.servo.ServoCommandExtensions)
+        self.session = webdriver.Session(self.host, self.port, extension=ServoCommandExtensions)
         self.session.start()
 
     def after_connect(self):
