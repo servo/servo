@@ -72,10 +72,6 @@ pub enum DeclarationPushMode {
     /// importance, the new declaration will be discarded. Otherwise, it will
     /// be appended to the end of the declaration block.
     Parsing,
-    /// In this mode, if there is an existing declaration of the same property,
-    /// the value is updated in-place. Otherwise it's appended. This is one
-    /// possible behavior of CSSOM.
-    Update,
     /// In this mode, the new declaration is always pushed to the end of the
     /// declaration block. This is another possible behavior of CSSOM.
     Append,
@@ -468,38 +464,10 @@ impl PropertyDeclarationBlock {
         decl.id().as_longhand().map_or(false, |id| !self.longhands.contains(id))
     }
 
-    /// Returns whether calling extend with `DeclarationPushMode::Update`
-    /// will cause this declaration block to change.
-    pub fn will_change_in_update_mode(
-        &self,
-        source_declarations: &SourcePropertyDeclaration,
-        importance: Importance,
-    ) -> bool {
-        // XXX The type of parameter seems to be necessary because otherwise
-        // the compiler complains about `decl` not living long enough in the
-        // all_shorthand expression. Why?
-        let needs_update = |decl: &_| {
-            if self.is_definitely_new(decl) {
-                return true;
-            }
-            self.declarations.iter().enumerate()
-                .find(|&(_, ref slot)| slot.id() == decl.id())
-                .map_or(true, |(i, slot)| {
-                    let important = self.declarations_importance[i];
-                    *slot != *decl || important != importance.important()
-                })
-        };
-        source_declarations.declarations.iter().any(&needs_update) ||
-            source_declarations.all_shorthand.declarations().any(|decl| needs_update(&decl))
-    }
-
     /// Adds or overrides the declaration for a given property in this block.
     ///
     /// See the documentation of `push` to see what impact `source` has when the
     /// property is already there.
-    ///
-    /// When calling with `DeclarationPushMode::Update`, this should not change
-    /// anything if `will_change_in_update_mode` returns false.
     pub fn extend(
         &mut self,
         mut drain: SourcePropertyDeclarationDrain,
@@ -586,15 +554,6 @@ impl PropertyDeclarationBlock {
                             }
                         }
                     }
-                }
-                if matches!(mode, DeclarationPushMode::Update) {
-                    let important = self.declarations_importance[i];
-                    if *slot == declaration && important == importance.important() {
-                        return false;
-                    }
-                    *slot = declaration;
-                    self.declarations_importance.set(i, importance.important());
-                    return true;
                 }
 
                 index_to_remove = Some(i);
