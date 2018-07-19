@@ -50,16 +50,28 @@ def main(avd_name, apk_path, *args):
         # that might still be in the midle of starting and not be responsive yet.
         wait_for_boot(adb)
 
+        # These steps should happen before application start
         check_call(adb + ["install", "-r", apk_path])
         args = list(args)
         write_user_stylesheets(adb, args)
         write_args(adb, args)
+
         check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
                    stdout=sys.stderr)
 
-        logcat_args = ["RustAndroidGlueStdouterr:D", "*:S", "-v", "raw"]
+        # Start showing logs as soon as the application starts,
+        # in case they say something useful while we wait in subsequent steps.
+        logcat_args = [
+            "--format=raw",  # Print no metadata, only log messages
+            "RustAndroidGlueStdouterr:D",  # Show (debug level) Rust stdio
+            "*:S",  # Hide everything else
+        ]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
+
+            # This step needs to happen after application start
             forward_webdriver(adb, args)
+
+            # logcat normally won't exit on its own, wait until we get a SIGTERM signal.
             logcat.wait()
 
 
@@ -134,7 +146,15 @@ def write_user_stylesheets(adb, args):
 def forward_webdriver(adb, args):
     webdriver_port = extract_arg("--webdriver", args)
     if webdriver_port is not None:
+        # `adb forward` will start accepting TCP connections even if the other side does not.
+        # (If the remote side refuses the connection,
+        # adb will close the local side after accepting it.)
+        # This is incompatible with wptrunner which relies on TCP connection acceptance
+        # to figure out when it can start sending WebDriver requests.
+        #
+        # So wait until the remote side starts listening before setting up the forwarding.
         wait_for_tcp_server(adb, webdriver_port)
+
         port = "tcp:%s" % webdriver_port
         check_call(adb + ["forward", port, port])
         sys.stderr.write("Forwarding WebDriver port %s to the emulator\n" % webdriver_port)
