@@ -28,6 +28,7 @@ pub struct WebGLProgram {
     is_deleted: Cell<bool>,
     link_called: Cell<bool>,
     linked: Cell<bool>,
+    link_generation: Cell<u64>,
     fragment_shader: MutNullableDom<WebGLShader>,
     vertex_shader: MutNullableDom<WebGLShader>,
     #[ignore_malloc_size_of = "Defined in ipc-channel"]
@@ -37,15 +38,14 @@ pub struct WebGLProgram {
 }
 
 impl WebGLProgram {
-    fn new_inherited(renderer: WebGLMsgSender,
-                     id: WebGLProgramId)
-                     -> WebGLProgram {
-        WebGLProgram {
+    fn new_inherited(renderer: WebGLMsgSender, id: WebGLProgramId) -> Self {
+        Self {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             is_deleted: Cell::new(false),
             link_called: Cell::new(false),
             linked: Cell::new(false),
+            link_generation: Default::default(),
             fragment_shader: Default::default(),
             vertex_shader: Default::default(),
             renderer: renderer,
@@ -109,7 +109,9 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
         self.linked.set(false);
-        *self.active_attribs.borrow_mut() = vec![].into();
+        self.link_generation.set(self.link_generation.get().checked_add(1).unwrap());
+        *self.active_attribs.borrow_mut() = Box::new([]);
+        *self.active_uniforms.borrow_mut() = Box::new([]);
 
         match self.fragment_shader.get() {
             Some(ref shader) if shader.successfully_compiled() => {},
@@ -354,7 +356,14 @@ impl WebGLProgram {
             .unwrap();
         let location = receiver.recv().unwrap();
 
-        Ok(Some(WebGLUniformLocation::new(self.global().as_window(), location, self.id, size, type_)))
+        Ok(Some(WebGLUniformLocation::new(
+            self.global().as_window(),
+            location,
+            self.id,
+            self.link_generation.get(),
+            size,
+            type_,
+        )))
     }
 
     /// glGetProgramInfoLog
@@ -387,6 +396,10 @@ impl WebGLProgram {
             (Some(shader), None) | (None, Some(shader)) => vec![shader],
             (None, None) => vec![]
         })
+    }
+
+    pub fn link_generation(&self) -> u64 {
+        self.link_generation.get()
     }
 }
 

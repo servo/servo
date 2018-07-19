@@ -436,7 +436,10 @@ impl WebGLRenderingContext {
             None => return,
         };
         match self.current_program.get() {
-            Some(ref program) if program.id() == location.program_id() => {}
+            Some(ref program) if
+                program.id() == location.program_id() &&
+                program.link_generation() == location.link_generation()
+            => {}
             _ => return self.webgl_error(InvalidOperation),
         }
         handle_potential_webgl_error!(self, f(location));
@@ -3612,7 +3615,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     ) -> JSVal {
         // FIXME(nox): https://github.com/servo/servo/issues/21133
 
-        if program.is_deleted() || !program.is_linked() || program.id() != location.program_id() {
+        if
+            program.is_deleted() ||
+            !program.is_linked() ||
+            program.id() != location.program_id() ||
+            program.link_generation() != location.link_generation()
+        {
             self.webgl_error(InvalidOperation);
             return NullValue();
         }
