@@ -48,28 +48,10 @@ def main(avd_name, apk_path, *args):
 
         # Now `adb shell` will work, but `adb install` needs a system service
         # that might still be in the midle of starting and not be responsive yet.
-
-        # https://stackoverflow.com/a/38896494/1162888
-        while 1:
-            with terminate_on_exit(
-                adb + ["shell", "getprop", "sys.boot_completed"],
-                stdout=subprocess.PIPE,
-            ) as getprop:
-                stdout, stderr = getprop.communicate()
-                if "1" in stdout:
-                    break
-            time.sleep(1)
+        wait_for_boot(adb)
 
         check_call(adb + ["install", "-r", apk_path])
-
-        data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
-        params_file = data_dir + "/android_params"
-
-        check_call(adb + ["shell", "mkdir -p %s" % data_dir])
-        check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
-        for arg in args:
-            check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
-
+        write_args(adb, args)
         check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
                    stdout=sys.stderr)
 
@@ -103,11 +85,38 @@ def terminate_on_exit(*args, **kwargs):
             process.terminate()
 
 
-def check_call(*args, **kwargs):
+# https://stackoverflow.com/a/38896494/1162888
+def wait_for_boot(adb):
+    while 1:
+        with terminate_on_exit(
+            adb + ["shell", "getprop", "sys.boot_completed"],
+            stdout=subprocess.PIPE,
+        ) as getprop:
+            stdout, stderr = getprop.communicate()
+            if "1" in stdout:
+                return
+        time.sleep(1)
+
+
+def call(*args, **kwargs):
     with terminate_on_exit(*args, **kwargs) as process:
-        exit_code = process.wait()
-        if exit_code != 0:
-            sys.exit(exit_code)
+        return process.wait()
+
+
+def check_call(*args, **kwargs):
+    exit_code = call(*args, **kwargs)
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+
+def write_args(adb, args):
+    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+    params_file = data_dir + "/android_params"
+
+    check_call(adb + ["shell", "mkdir -p %s" % data_dir])
+    check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
+    for arg in args:
+        check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
 
 
 # Copied from Python 3.3+'s shlex.quote()
