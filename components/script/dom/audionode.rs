@@ -97,8 +97,22 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output
-    fn Connect_(&self, _: &AudioParam, _: u32) -> Fallible<()> {
-        // TODO
+    fn Connect_(&self, dest: &AudioParam, output: u32) -> Fallible<()> {
+        if self.context != dest.context() {
+            return Err(Error::InvalidAccess);
+        }
+
+        if output >= self.NumberOfOutputs() {
+            return Err(Error::IndexSize);
+        }
+
+        // servo-media takes care of ignoring duplicated connections.
+
+        self.context.audio_context_impl().connect_ports(
+            self.node_id().output(output),
+            dest.node_id().param(dest.param_type()),
+        );
+
         Ok(())
     }
 
@@ -143,14 +157,20 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
-    fn Disconnect_____(&self, _: &AudioParam) -> ErrorResult {
-        // TODO
+    fn Disconnect_____(&self, param: &AudioParam) -> ErrorResult {
+        self.context
+            .audio_context_impl()
+            .disconnect_to(self.node_id(),
+                           param.node_id().param(param.param_type()));
         Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
-    fn Disconnect______(&self, _: &AudioParam, _: u32) -> ErrorResult {
-        // TODO
+    fn Disconnect______(&self, param: &AudioParam, out: u32) -> ErrorResult {
+        self.context
+            .audio_context_impl()
+            .disconnect_output_between_to(self.node_id().output(out),
+                                          param.node_id().param(param.param_type()));
         Ok(())
     }
 

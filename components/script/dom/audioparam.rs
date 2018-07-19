@@ -78,6 +78,18 @@ impl AudioParam {
     fn message_node(&self, message: AudioNodeMessage) {
         self.context.audio_context_impl().message_node(self.node, message);
     }
+
+    pub fn context(&self) -> &BaseAudioContext {
+        &self.context
+    }
+
+    pub fn node_id(&self) -> NodeId {
+        self.node
+    }
+
+    pub fn param_type(&self) -> ParamType {
+        self.param
+    }
 }
 
 impl AudioParamMethods for AudioParam {

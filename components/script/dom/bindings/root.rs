@@ -423,6 +423,13 @@ impl<T> PartialEq for Dom<T> {
     }
 }
 
+impl<'a, T: DomObject> PartialEq<&'a T> for Dom<T> {
+    fn eq(&self, other: &&'a T) -> bool {
+        *self == Dom::from_ref(*other)
+    }
+}
+
+
 impl<T> Eq for Dom<T> {}
 
 impl<T> PartialEq for LayoutDom<T> {
