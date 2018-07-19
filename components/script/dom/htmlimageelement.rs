@@ -517,14 +517,14 @@ impl HTMLImageElement {
         }
     }
 
-    fn evaluate_source_size_list(&self, source_size_list: &mut SourceSizeList, width: Option<Length>) -> Au {
+    fn evaluate_source_size_list(&self, source_size_list: &mut SourceSizeList, _width: Option<Length>) -> Au {
         let document = document_from_node(self);
         let device = document.device();
         if !device.is_some() {
             return Au(1);
         }
         let quirks_mode = document.quirks_mode();
-        source_size_list.set_fallback_value(width);
+        //FIXME https://github.com/whatwg/html/issues/3832
         source_size_list.evaluate(&device.unwrap(), quirks_mode)
     }
 
@@ -603,15 +603,38 @@ impl HTMLImageElement {
                 }
             }
         }
+        let mut max_den = 0f64; //initial value of current_den in Step 5
+        let mut max_index = 0; //initial value of result_index in Step 5
+        let mut current_index = 0;
         let img_sources = &mut vec![];
         for outer_index in 0..len {
             if !repeat_indices.contains(&outer_index) {
                 img_sources.push(&source_set.image_sources[outer_index]);
+                // set max density and index
+                let den = img_sources[current_index].descriptor.den.unwrap();
+                if max_den < den {
+                    max_den = den;
+                    max_index = current_index;
+                }
+                current_index = current_index + 1;
             }
         }
 
-        // TODO Step 5 - select source based on pixel density
-        let selected_source = img_sources.remove(0).clone();
+        // Step 5
+        let mut closest_den = max_den;
+        let mut result_index = max_index;
+        let device = document_from_node(self).device();
+        if device.is_some() {
+            let device_den: f64 = device.unwrap().device_pixel_ratio().get().into();
+            for outer_index in 0..img_sources.len() {
+                let current_den = img_sources[outer_index].descriptor.den.unwrap();
+                if current_den < closest_den && current_den >= device_den {
+                    closest_den = current_den;
+                    result_index = outer_index;
+                }
+            }
+        }
+        let selected_source = img_sources.remove(result_index).clone();
         Some((DOMString::from_string(selected_source.url), selected_source.descriptor.den.unwrap() as f32))
     }
 
