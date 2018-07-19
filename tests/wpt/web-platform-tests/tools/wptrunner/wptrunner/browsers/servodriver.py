@@ -84,6 +84,7 @@ class ServoWebDriverBrowser(Browser):
         self.proc = None
         self.debug_info = debug_info
         self.hosts_path = write_hosts_file(server_config)
+        self.server_ports = server_config.ports if server_config else {}
         self.command = None
         self.user_stylesheets = user_stylesheets if user_stylesheets else []
 
@@ -94,6 +95,11 @@ class ServoWebDriverBrowser(Browser):
         env = os.environ.copy()
         env["HOST_FILE"] = self.hosts_path
         env["RUST_BACKTRACE"] = "1"
+        env["EMULATOR_REVERSE_FORWARD_PORTS"] = ",".join(
+            str(port)
+            for _protocol, ports in self.server_ports.items()
+            for port in ports
+        )
 
         debug_args, command = browser_command(
             self.binary,

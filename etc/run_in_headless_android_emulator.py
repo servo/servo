@@ -139,6 +139,14 @@ def forward_webdriver(adb, args):
         check_call(adb + ["forward", port, port])
         sys.stderr.write("Forwarding WebDriver port %s to the emulator\n" % webdriver_port)
 
+    split = os.environ.get("EMULATOR_REVERSE_FORWARD_PORTS", "").split(",")
+    ports = [int(part) for part in split if part]
+    for port in ports:
+        port = "tcp:%s" % port
+        check_call(adb + ["reverse", port, port])
+    if ports:
+        sys.stderr.write("Reverse-forwarding ports %s\n" % ", ".join(map(str, ports)))
+
 
 def extract_arg(name, args):
     for _, arg in extract_args(name, args):
