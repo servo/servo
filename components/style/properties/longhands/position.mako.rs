@@ -18,7 +18,8 @@
         flags="GETCS_NEEDS_LAYOUT_FLUSH",
         animation_value_type="ComputedValue",
         allow_quirks=True,
-        servo_restyle_damage="reflow_out_of_flow"
+        servo_restyle_damage="reflow_out_of_flow",
+        logical_group="inset",
     )}
 % endfor
 // inset-* logical properties, map to "top" / "left" / "bottom" / "right"
@@ -32,6 +33,7 @@
         alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
         animation_value_type="ComputedValue",
         logical=True,
+        logical_group="inset",
     )}
 % endfor
 
@@ -221,6 +223,7 @@ ${helpers.predefined_type(
             "computed::MozLength::auto()",
             parse_function,
             logical=logical,
+            logical_group="size",
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MozLength",
@@ -234,6 +237,7 @@ ${helpers.predefined_type(
             "computed::MozLength::auto()",
             parse_function,
             logical=logical,
+            logical_group="min-size",
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MozLength",
@@ -245,6 +249,7 @@ ${helpers.predefined_type(
             "computed::MaxLength::none()",
             parse_function,
             logical=logical,
+            logical_group="max-size",
             allow_quirks=not logical,
             spec=spec % size,
             animation_value_type="MaxLength",

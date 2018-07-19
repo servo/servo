@@ -27,6 +27,7 @@
         spec=maybe_logical_spec(side, "color"),
         animation_value_type="AnimatedColor",
         logical=is_logical,
+        logical_group="border-color",
         allow_quirks=not is_logical,
         flags="APPLIES_TO_FIRST_LETTER",
         ignored_when_colors_disabled=True,
@@ -40,6 +41,7 @@
         flags="APPLIES_TO_FIRST_LETTER",
         animation_value_type="discrete" if not is_logical else "none",
         logical=is_logical,
+        logical_group="border-style",
         needs_context=False,
     )}
 
@@ -52,6 +54,7 @@
         spec=maybe_logical_spec(side, "width"),
         animation_value_type="NonNegativeLength",
         logical=is_logical,
+        logical_group="border-width",
         flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
         allow_quirks=not is_logical,
         servo_restyle_damage="reflow rebuild_and_reflow_inline"

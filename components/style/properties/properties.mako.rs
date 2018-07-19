@@ -56,6 +56,7 @@ use style_adjuster::StyleAdjuster;
 pub use self::declaration_block::*;
 
 <%!
+    from collections import defaultdict
     from data import Method, Keyword, to_rust_ident, to_camel_case, SYSTEM_FONT_LONGHANDS
     import os.path
 %>
@@ -841,6 +842,29 @@ bitflags! {
     }
 }
 
+<%
+    logical_groups = defaultdict(list)
+    for prop in data.longhands:
+        if prop.logical_group:
+            logical_groups[prop.logical_group].append(prop)
+
+    for group, props in logical_groups.iteritems():
+        logical_count = sum(1 for p in props if p.logical)
+        if logical_count * 2 != len(props):
+            raise RuntimeError("Logical group {} has ".format(group) +
+                               "unbalanced logical / physical properties")
+%>
+
+/// A group for properties which may override each other
+/// via logical resolution.
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub enum LogicalGroup {
+    % for group in logical_groups.iterkeys():
+    /// ${group}
+    ${to_camel_case(group)},
+    % endfor
+}
+
 /// An identifier for a given longhand property.
 #[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -993,9 +1017,15 @@ impl LonghandId {
         match *self {
             % for property in data.longhands:
             % if property.logical:
+                <% logical_group = property.logical_group %>
                 LonghandId::${property.camel_case} => {
                     <%helpers:logical_setter_helper name="${property.name}">
                     <%def name="inner(physical_ident)">
+                        <%
+                            physical_name = physical_ident.replace("_", "-")
+                            physical_property = data.longhands_by_name[physical_name]
+                            assert logical_group == physical_property.logical_group
+                        %>
                         LonghandId::${to_camel_case(physical_ident)}
                     </%def>
                     </%helpers:logical_setter_helper>
@@ -1004,6 +1034,20 @@ impl LonghandId {
             % endfor
             _ => *self
         }
+    }
+
+    /// Return the logical group of this longhand property.
+    pub fn logical_group(&self) -> Option<LogicalGroup> {
+        const LOGICAL_GROUPS: [Option<LogicalGroup>; ${len(data.longhands)}] = [
+            % for prop in data.longhands:
+            % if prop.logical_group:
+            Some(LogicalGroup::${to_camel_case(prop.logical_group)}),
+            % else:
+            None,
+            % endif
+            % endfor
+        ];
+        LOGICAL_GROUPS[*self as usize]
     }
 
     /// Returns PropertyFlags for given longhand property.

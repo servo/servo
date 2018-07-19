@@ -168,7 +168,7 @@ class Longhand(object):
                  enabled_in="content", need_index=False,
                  gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
-                 logical=False, alias=None, extra_prefixes=None, boxed=False,
+                 logical=False, logical_group=None, alias=None, extra_prefixes=None, boxed=False,
                  flags=None, allowed_in_page_rule=False, allow_quirks=False,
                  ignored_when_colors_disabled=False,
                  vector=False, servo_restyle_damage="repaint"):
@@ -196,6 +196,9 @@ class Longhand(object):
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
+        self.logical_group = logical_group
+        if self.logical:
+            assert logical_group, "Property " + name + " must have a logical group"
         self.alias = parse_property_aliases(alias)
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.boxed = arg_to_bool(boxed)
