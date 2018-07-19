@@ -71,6 +71,16 @@ impl DeepCloneWithLock for DocumentRule {
     }
 }
 
+/// The kind of media document that the rule will match.
+#[derive(Clone, Copy, Debug, Parse, PartialEq, ToCss)]
+#[allow(missing_docs)]
+pub enum MediaDocumentKind {
+    All,
+    Plugin,
+    Image,
+    Video,
+}
+
 /// A matching function for a `@document` rule's condition.
 #[derive(Clone, Debug, ToCss)]
 pub enum DocumentMatchingFunction {
@@ -97,6 +107,9 @@ pub enum DocumentMatchingFunction {
     /// of the document being styled.
     #[css(function)]
     Regexp(String),
+    /// Matching function for a media document.
+    #[css(function)]
+    MediaDocument(MediaDocumentKind)
 }
 
 macro_rules! parse_quoted_or_unquoted_string {
@@ -142,6 +155,12 @@ impl DocumentMatchingFunction {
                     ))
                 })
             }
+            "media-document" => {
+                input.parse_nested_block(|input| {
+                    let kind = MediaDocumentKind::parse(input)?;
+                    Ok(DocumentMatchingFunction::MediaDocument(kind))
+                })
+            }
             _ => {
                 Err(location.new_custom_error(
                     StyleParseErrorKind::UnexpectedFunction(function.clone())
@@ -162,6 +181,7 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::UrlPrefix(_) => GeckoDocumentMatchingFunction::URLPrefix,
             DocumentMatchingFunction::Domain(_) => GeckoDocumentMatchingFunction::Domain,
             DocumentMatchingFunction::Regexp(_) => GeckoDocumentMatchingFunction::RegExp,
+            DocumentMatchingFunction::MediaDocument(_) => GeckoDocumentMatchingFunction::MediaDocument,
         };
 
         let pattern = nsCStr::from(match *self {
@@ -169,6 +189,14 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::UrlPrefix(ref pat) |
             DocumentMatchingFunction::Domain(ref pat) |
             DocumentMatchingFunction::Regexp(ref pat) => pat,
+            DocumentMatchingFunction::MediaDocument(kind) => {
+                match kind {
+                    MediaDocumentKind::All => "all",
+                    MediaDocumentKind::Image => "image",
+                    MediaDocumentKind::Plugin => "plugin",
+                    MediaDocumentKind::Video => "video",
+                }
+            }
         });
         unsafe { Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func) }
     }
