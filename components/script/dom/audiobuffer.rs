@@ -16,8 +16,8 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cmp::min;
-use std::ptr::{self, NonNull};
 use std::mem;
+use std::ptr::{self, NonNull};
 
 type JSAudioChannel = Heap<*mut JSObject>;
 
