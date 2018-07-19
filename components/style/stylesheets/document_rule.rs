@@ -71,9 +71,9 @@ impl DeepCloneWithLock for DocumentRule {
     }
 }
 
-/// A URL matching function for a `@document` rule's condition.
+/// A matching function for a `@document` rule's condition.
 #[derive(Clone, Debug, ToCss)]
-pub enum UrlMatchingFunction {
+pub enum DocumentMatchingFunction {
     /// Exact URL matching function. It evaluates to true whenever the
     /// URL of the document being styled is exactly the URL given.
     Url(CssUrl),
@@ -116,7 +116,7 @@ macro_rules! parse_quoted_or_unquoted_string {
     };
 }
 
-impl UrlMatchingFunction {
+impl DocumentMatchingFunction {
     /// Parse a URL matching function for a`@document` rule's condition.
     pub fn parse<'i, 't>(
         context: &ParserContext,
@@ -126,14 +126,14 @@ impl UrlMatchingFunction {
             .try(|input| input.expect_function_matching("url-prefix"))
             .is_ok()
         {
-            return parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::UrlPrefix);
+            return parse_quoted_or_unquoted_string!(input, DocumentMatchingFunction::UrlPrefix);
         }
 
         if input
             .try(|input| input.expect_function_matching("domain"))
             .is_ok()
         {
-            return parse_quoted_or_unquoted_string!(input, UrlMatchingFunction::Domain);
+            return parse_quoted_or_unquoted_string!(input, DocumentMatchingFunction::Domain);
         }
 
         if input
@@ -141,35 +141,35 @@ impl UrlMatchingFunction {
             .is_ok()
         {
             return input.parse_nested_block(|input| {
-                Ok(UrlMatchingFunction::Regexp(
+                Ok(DocumentMatchingFunction::Regexp(
                     input.expect_string()?.as_ref().to_owned(),
                 ))
             });
         }
 
         let url = CssUrl::parse(context, input)?;
-        Ok(UrlMatchingFunction::Url(url))
+        Ok(DocumentMatchingFunction::Url(url))
     }
 
     #[cfg(feature = "gecko")]
     /// Evaluate a URL matching function.
     pub fn evaluate(&self, device: &Device) -> bool {
         use gecko_bindings::bindings::Gecko_DocumentRule_UseForPresentation;
-        use gecko_bindings::structs::URLMatchingFunction as GeckoUrlMatchingFunction;
+        use gecko_bindings::structs::DocumentMatchingFunction as GeckoDocumentMatchingFunction;
         use nsstring::nsCStr;
 
         let func = match *self {
-            UrlMatchingFunction::Url(_) => GeckoUrlMatchingFunction::eURL,
-            UrlMatchingFunction::UrlPrefix(_) => GeckoUrlMatchingFunction::eURLPrefix,
-            UrlMatchingFunction::Domain(_) => GeckoUrlMatchingFunction::eDomain,
-            UrlMatchingFunction::Regexp(_) => GeckoUrlMatchingFunction::eRegExp,
+            DocumentMatchingFunction::Url(_) => GeckoDocumentMatchingFunction::URL,
+            DocumentMatchingFunction::UrlPrefix(_) => GeckoDocumentMatchingFunction::URLPrefix,
+            DocumentMatchingFunction::Domain(_) => GeckoDocumentMatchingFunction::Domain,
+            DocumentMatchingFunction::Regexp(_) => GeckoDocumentMatchingFunction::RegExp,
         };
 
         let pattern = nsCStr::from(match *self {
-            UrlMatchingFunction::Url(ref url) => url.as_str(),
-            UrlMatchingFunction::UrlPrefix(ref pat) |
-            UrlMatchingFunction::Domain(ref pat) |
-            UrlMatchingFunction::Regexp(ref pat) => pat,
+            DocumentMatchingFunction::Url(ref url) => url.as_str(),
+            DocumentMatchingFunction::UrlPrefix(ref pat) |
+            DocumentMatchingFunction::Domain(ref pat) |
+            DocumentMatchingFunction::Regexp(ref pat) => pat,
         });
         unsafe { Gecko_DocumentRule_UseForPresentation(device.pres_context(), &*pattern, func) }
     }
@@ -190,7 +190,7 @@ impl UrlMatchingFunction {
 /// one of those functions evaluates to true.
 #[css(comma)]
 #[derive(Clone, Debug, ToCss)]
-pub struct DocumentCondition(#[css(iterable)] Vec<UrlMatchingFunction>);
+pub struct DocumentCondition(#[css(iterable)] Vec<DocumentMatchingFunction>);
 
 impl DocumentCondition {
     /// Parse a document condition.
@@ -199,7 +199,7 @@ impl DocumentCondition {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let conditions =
-            input.parse_comma_separated(|input| UrlMatchingFunction::parse(context, input))?;
+            input.parse_comma_separated(|input| DocumentMatchingFunction::parse(context, input))?;
 
         let condition = DocumentCondition(conditions);
         if !condition.allowed_in(context) {
@@ -252,7 +252,7 @@ impl DocumentCondition {
 
         // NOTE(emilio): This technically allows url-prefix("") too, but...
         match self.0[0] {
-            UrlMatchingFunction::UrlPrefix(ref prefix) => prefix.is_empty(),
+            DocumentMatchingFunction::UrlPrefix(ref prefix) => prefix.is_empty(),
             _ => false,
         }
     }
