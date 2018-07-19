@@ -37,6 +37,7 @@ def check_args(**kwargs):
 def browser_kwargs(test_type, run_info_data, **kwargs):
     return {
         "binary": kwargs["binary"],
+        "binary_args": kwargs["binary_args"],
         "debug_info": kwargs["debug_info"],
         "server_config": kwargs["config"],
         "user_stylesheets": kwargs.get("user_stylesheets"),
@@ -74,9 +75,10 @@ class ServoWebDriverBrowser(Browser):
     used_ports = set()
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
-                 server_config=None, user_stylesheets=None):
+                 server_config=None, binary_args=None, user_stylesheets=None):
         Browser.__init__(self, logger)
         self.binary = binary
+        self.binary_args = binary_args or []
         self.webdriver_host = webdriver_host
         self.webdriver_port = None
         self.proc = None
@@ -95,7 +97,7 @@ class ServoWebDriverBrowser(Browser):
 
         debug_args, command = browser_command(
             self.binary,
-            [
+            self.binary_args + [
                 "--hard-fail",
                 "--webdriver", str(self.webdriver_port),
                 "about:blank",
