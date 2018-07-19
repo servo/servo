@@ -11,7 +11,7 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{DetachDataDisposition, Heap, JSContext, JSObject, JS_DetachArrayBuffer};
+use js::jsapi::{DetachDataDisposition, Heap, JSAutoCompartment, JSContext, JSObject, JS_DetachArrayBuffer};
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
@@ -44,6 +44,7 @@ impl AudioBuffer {
         initial_data: Option<&[f32]>,
     ) -> AudioBuffer {
         let cx = global.get_cx();
+        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted_vec!(let mut js_channels_);
         for channel in 0..number_of_channels {
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
