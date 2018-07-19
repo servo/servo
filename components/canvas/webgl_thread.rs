@@ -934,20 +934,6 @@ impl WebGLImpl {
                 }
                 sender.send(value[0]).unwrap()
             }
-            WebGLCommand::GetShaderParameterBool(shader, param, ref sender) => {
-                let mut value = [0];
-                unsafe {
-                    ctx.gl().get_shader_iv(shader.get(), param as u32, &mut value);
-                }
-                sender.send(value[0] != 0).unwrap()
-            }
-            WebGLCommand::GetShaderParameterInt(shader, param, ref sender) => {
-                let mut value = [0];
-                unsafe {
-                    ctx.gl().get_shader_iv(shader.get(), param as u32, &mut value);
-                }
-                sender.send(value[0]).unwrap()
-            }
             WebGLCommand::GetCurrentVertexAttrib(index, ref sender) => {
                 let mut value = [0.; 4];
                 unsafe {

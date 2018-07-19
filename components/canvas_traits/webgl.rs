@@ -274,8 +274,6 @@ pub enum WebGLCommand {
     GetParameterFloat4(ParameterFloat4, WebGLSender<[f32; 4]>),
     GetProgramValidateStatus(WebGLProgramId, WebGLSender<bool>),
     GetProgramActiveUniforms(WebGLProgramId, WebGLSender<i32>),
-    GetShaderParameterBool(WebGLShaderId, ShaderParameterBool, WebGLSender<bool>),
-    GetShaderParameterInt(WebGLShaderId, ShaderParameterInt, WebGLSender<i32>),
     GetCurrentVertexAttrib(u32, WebGLSender<[f32; 4]>),
     GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
@@ -587,18 +585,6 @@ parameters! {
         Float4(ParameterFloat4 {
             BlendColor = gl::BLEND_COLOR,
             ColorClearValue = gl::COLOR_CLEAR_VALUE,
-        }),
-    }
-}
-
-parameters! {
-    ShaderParameter {
-        Bool(ShaderParameterBool {
-            DeleteStatus = gl::DELETE_STATUS,
-            CompileStatus = gl::COMPILE_STATUS,
-        }),
-        Int(ShaderParameterInt {
-            ShaderType = gl::SHADER_TYPE,
         }),
     }
 }
