@@ -57,6 +57,7 @@ def main(avd_name, apk_path, *args):
 
         logcat_args = ["RustAndroidGlueStdouterr:D", "*:S", "-v", "raw"]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
+            forward_webdriver(adb, args)
             logcat.wait()
 
 
@@ -117,6 +118,28 @@ def write_args(adb, args):
     check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
     for arg in args:
         check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
+
+
+def forward_webdriver(adb, args):
+    webdriver_port = extract_arg("--webdriver", args)
+    if webdriver_port is not None:
+        wait_for_tcp_server(adb, webdriver_port)
+        port = "tcp:%s" % webdriver_port
+        check_call(adb + ["forward", port, port])
+        sys.stderr.write("Forwarding WebDriver port %s to the emulator\n" % webdriver_port)
+
+
+def extract_arg(name, args):
+    previous_arg_matches = False
+    for arg in args:
+        if previous_arg_matches:
+            return arg
+        previous_arg_matches = arg == name
+
+
+def wait_for_tcp_server(adb, port):
+    while call(adb + ["shell", "nc -z 127.0.0.1 %s" % port]) != 0:
+        time.sleep(1)
 
 
 # Copied from Python 3.3+'s shlex.quote()
