@@ -931,7 +931,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromCompositorMsg::GetFocusTopLevelBrowsingContext(resp_chan) => {
                 let focus_browsing_context = self.focus_pipeline_id
                     .and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
-                    .map(|pipeline| pipeline.top_level_browsing_context_id);
+                    .map(|pipeline| pipeline.top_level_browsing_context_id)
+                    .filter(|&top_level_browsing_context_id| {
+                        let browsing_context_id =
+                            BrowsingContextId::from(top_level_browsing_context_id);
+                        self.browsing_contexts.contains_key(&browsing_context_id)
+                    });
                 let _ = resp_chan.send(focus_browsing_context);
             }
             FromCompositorMsg::KeyEvent(ch, key, state, modifiers) => {
