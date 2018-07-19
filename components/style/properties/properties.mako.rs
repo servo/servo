@@ -12,6 +12,7 @@
 
 #[cfg(feature = "servo")]
 use app_units::Au;
+use arrayvec::{ArrayVec, Drain as ArrayVecDrain};
 use dom::TElement;
 use custom_properties::CustomPropertiesBuilder;
 use servo_arc::{Arc, UniqueArc};
@@ -1605,6 +1606,15 @@ impl<'a> PropertyDeclarationId<'a> {
             }
         }
     }
+
+    /// Returns longhand id if it is, None otherwise.
+    #[inline]
+    pub fn as_longhand(&self) -> Option<LonghandId> {
+        match *self {
+            PropertyDeclarationId::Longhand(id) => Some(id),
+            _ => None,
+        }
+    }
 }
 
 /// Servo's representation of a CSS property, that is, either a longhand, a
@@ -2266,19 +2276,18 @@ impl PropertyDeclaration {
     }
 }
 
-const MAX_SUB_PROPERTIES_PER_SHORTHAND_EXCEPT_ALL: usize =
-    ${max(len(s.sub_properties) for s in data.shorthands_except_all())};
+type SubpropertiesArray<T> =
+    [T; ${max(len(s.sub_properties) for s in data.shorthands_except_all())}];
 
-type SourcePropertyDeclarationArray =
-    [PropertyDeclaration; MAX_SUB_PROPERTIES_PER_SHORTHAND_EXCEPT_ALL];
+type SubpropertiesVec<T> = ArrayVec<SubpropertiesArray<T>>;
 
 /// A stack-allocated vector of `PropertyDeclaration`
 /// large enough to parse one CSS `key: value` declaration.
 /// (Shorthands expand to multiple `PropertyDeclaration`s.)
 pub struct SourcePropertyDeclaration {
-    declarations: ::arrayvec::ArrayVec<SourcePropertyDeclarationArray>,
+    declarations: SubpropertiesVec<PropertyDeclaration>,
 
-    /// Stored separately to keep MAX_SUB_PROPERTIES_PER_SHORTHAND_EXCEPT_ALL smaller.
+    /// Stored separately to keep SubpropertiesVec smaller.
     all_shorthand: AllShorthand,
 }
 
@@ -2318,7 +2327,7 @@ impl SourcePropertyDeclaration {
 
 /// Return type of SourcePropertyDeclaration::drain
 pub struct SourcePropertyDeclarationDrain<'a> {
-    declarations: ::arrayvec::Drain<'a, SourcePropertyDeclarationArray>,
+    declarations: ArrayVecDrain<'a, SubpropertiesArray<PropertyDeclaration>>,
     all_shorthand: AllShorthand,
 }
 
