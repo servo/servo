@@ -109,7 +109,8 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
         self.linked.set(false);
-        *self.active_attribs.borrow_mut() = vec![].into();
+        *self.active_attribs.borrow_mut() = Box::new([]);
+        *self.active_uniforms.borrow_mut() = Box::new([]);
 
         match self.fragment_shader.get() {
             Some(ref shader) if shader.successfully_compiled() => {},
