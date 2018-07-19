@@ -68,6 +68,9 @@ mac-nightly:
   - env PKG_CONFIG_PATH=/usr/local/opt/zlib/lib/pkgconfig ./mach build --release
   - ./mach package --release
   - ./mach upload-nightly mac
+  - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
+  - ./etc/ci/update-wpt-checkout open-pr
+  - ./etc/ci/update-wpt-checkout cleanup
 
 linux-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
@@ -148,9 +151,6 @@ linux-nightly:
   - python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
   - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
   - rm -rf ./python/_virtualenv
-  - ./etc/ci/update-wpt-checkout fetch-and-update-expectations
-  - ./etc/ci/update-wpt-checkout open-pr
-  - ./etc/ci/update-wpt-checkout cleanup
 
 android:
   - ./mach clean-nightlies --keep 3 --force
