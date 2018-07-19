@@ -6,6 +6,7 @@ import time
 import traceback
 
 from .base import (Protocol,
+                   BaseProtocolPart,
                    RefTestExecutor,
                    RefTestImplementation,
                    TestharnessExecutor,
@@ -46,7 +47,23 @@ def do_delayed_imports():
             return self.session.send_command("POST", "servo/prefs/reset", body)
 
 
+class ServoBaseProtocolPart(BaseProtocolPart):
+    def execute_script(self, script, async=False):
+        pass
+
+    def set_timeout(self, timeout):
+        pass
+
+    def wait(self):
+        pass
+
+    def set_window(self, handle):
+        pass
+
+
 class ServoWebDriverProtocol(Protocol):
+    implements = [ServoBaseProtocolPart]
+
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
         Protocol.__init__(self, executor, browser)
