@@ -116,7 +116,7 @@
         should(
             () => new AudioWorkletNode(context, 'dummy', options1),
             'Creating AudioWorkletNode with channelCountMode "foobar"')
-            .throw('TypeError');
+            .throw(TypeError);
 
         task.done();
       });
@@ -138,7 +138,7 @@
         should(
             () => new AudioWorkletNode(context, 'dummy', options1),
             'Creating AudioWorkletNode with channelCountMode "foobar"')
-            .throw('TypeError');
+            .throw(TypeError);
 
         task.done();
       });

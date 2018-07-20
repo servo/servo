@@ -7,6 +7,8 @@
 <style>
   #one::first-letter { float: left; opacity: 0.5 }
   #two { opacity: 0.5 }
+/* Disable kerning because kerning may differ for different node tree. */
+html { font-kerning: none; font-feature-settings: "kern" off; }
 </style>
 <div id="one">PASS</div>
 <div id="two"></div>

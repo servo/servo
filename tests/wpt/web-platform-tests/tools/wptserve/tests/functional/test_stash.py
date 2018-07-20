@@ -1,4 +1,3 @@
-import sys
 import unittest
 import uuid
 
@@ -15,7 +14,6 @@ class TestResponseSetCookie(TestUsingServer):
         with StashServer(None, authkey=str(uuid.uuid4())):
             super(TestResponseSetCookie, self).run(result)
 
-    @pytest.mark.xfail(sys.version_info >= (3,), reason="wptserve only works on Py2")
     def test_put_take(self):
         @wptserve.handlers.handler
         def handler(request, response):
@@ -33,13 +31,13 @@ class TestResponseSetCookie(TestUsingServer):
         self.server.router.register(*route)
 
         resp = self.request(route[1], method="POST", body={"id": id, "data": "Sample data"})
-        self.assertEqual(resp.read(), "OK")
+        self.assertEqual(resp.read(), b"OK")
 
         resp = self.request(route[1], query="id=" + id)
-        self.assertEqual(resp.read(), "Sample data")
+        self.assertEqual(resp.read(), b"Sample data")
 
         resp = self.request(route[1], query="id=" + id)
-        self.assertEqual(resp.read(), "NOT FOUND")
+        self.assertEqual(resp.read(), b"NOT FOUND")
 
 
 if __name__ == '__main__':

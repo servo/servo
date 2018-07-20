@@ -31,7 +31,7 @@ function validateRtpCapabilities(capabilities) {
     validateCodecCapability(codec);
   }
 
-  assert_greater_than(capabilities.codec, 0,
+  assert_greater_than(capabilities.codecs.length, 0,
     'Expect at least one codec capability available');
 
   assert_array_field(capabilities, 'headerExtensions');

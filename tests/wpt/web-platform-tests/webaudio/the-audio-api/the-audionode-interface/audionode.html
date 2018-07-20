@@ -46,11 +46,11 @@
             // Try calling connect() method with illegal values.
             should(
                 () => audioNode.connect(0, 0, 0), 'audioNode.connect(0, 0, 0)')
-                .throw('TypeError');
+                .throw(TypeError);
             should(
                 () => audioNode.connect(null, 0, 0),
                 'audioNode.connect(null, 0, 0)')
-                .throw('TypeError');
+                .throw(TypeError);
             should(
                 () => audioNode.connect(context.destination, 5, 0),
                 'audioNode.connect(context.destination, 5, 0)')
@@ -77,7 +77,7 @@
             should(
                 () => context3 = new AudioContext(1, 44100, 44100),
                 'context3 = new AudioContext(1, 44100, 44100)')
-                .throw('TypeError');
+                .throw(TypeError);
 
             // Ensure it is an EventTarget
             should(

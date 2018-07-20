@@ -1,0 +1,213 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Animating CSS logical properties using CSS Animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-logical/#box">
+<meta name="assert" content="The specified values of these properties are separate from the specified values of the parallel physical properties, but the flow-relative and physical properties share computed values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../css-animations/support/testcommon.js"></script>
+
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 0px } to { block-size: 100px }',
+  });
+  const div = addDiv(t, { style: 'animation: anim 10s -5s paused linear' });
+  assert_equals(getComputedStyle(div).height, '50px');
+}, 'Logical properties can be animated');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 0px } to { block-size: 100px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear; writing-mode: vertical-rl',
+  });
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Logical properties in animations respect the writing-mode');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim':
+      'from { margin-inline-start: 0px } to { margin-inline-start: 100px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear; direction: rtl',
+  });
+  assert_equals(getComputedStyle(div).marginLeft, '0px');
+  assert_equals(getComputedStyle(div).marginRight, '50px');
+}, 'Logical properties in animations respect the direction');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim':
+      'from { block-size: 0px; height: 200px }'
+      + ' to { block-size: 100px; height: 300px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear',
+  });
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Declaration order is respected within @keyframes declaration blocks');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim':
+      'to { margin-top: 200px;'
+        + ' margin-block-start: 100px }'
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s paused step-start',
+  });
+  assert_equals(getComputedStyle(div).marginTop, '100px');
+}, 'Logical properties are able to override physical properties in'
+   + ' @keyframes declaration blocks');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim':
+      'to {'
+      + ' margin-inline: 200px;'
+      + ' margin-inline-start: 0px;'
+      + ' margin-inline-start: 100px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s paused step-start',
+  });
+  assert_equals(getComputedStyle(div).marginLeft, '100px');
+}, 'Declaration order is respected amongst logical properties within'
+   + ' @keyframes declaration blocks');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 200px } to { height: 300px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear',
+  });
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Physical properties and logical properties can be mixed');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim':
+      'from { height: 100px; block-size: 200px }'
+      + ' to { block-size: 100px; height: 300px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear',
+  });
+  assert_equals(getComputedStyle(div).height, '250px');
+}, 'Declaration order is respected on each keyframe individually');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 0px } to { block-size: 100px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear; width: 0px; height: 0px',
+  });
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '50px');
+
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Animations update when the writing-mode is changed');
+
+promise_test(async t => {
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 0px } to { block-size: 100px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -9.9s linear forwards;'
+      + ' width: 0px; height: 0px',
+  });
+  const watcher = new EventWatcher(t, div, [ 'animationend' ]);
+  await watcher.wait_for('animationend');
+
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '100px');
+
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '100px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Filling animations update when the writing-mode is changed');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'to { block-size: 100px; height: 200px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear; width: 0px; height: 0px',
+  });
+  // Initially we are interpolating the height from 0 to 200px
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '100px');
+
+  // But once we change the writing-mode, we will be interpolating *both*
+  // the height (from 0px to 200px) *and* the width (from 0px to 100px).
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '100px');
+}, 'The number of interpolating properties can be increased when the'
+   + ' writing-mode is changed');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim': 'to { width: 300px; block-size: 200px }',
+  });
+  const div = addDiv(t, {
+    style: 'animation: anim 10s -5s paused linear; width: 100px; height: 100px',
+  });
+  // Initially we are interpolating the width (100px -> 300px) and the height
+  // (100px -> 200px).
+  assert_equals(getComputedStyle(div).width, '200px');
+  assert_equals(getComputedStyle(div).height, '150px');
+
+  // Once we change the writing-mode, we will be interpolating *only* the
+  // width (100px -> 200px).
+  div.style.writingMode = 'vertical-rl';
+  assert_equals(getComputedStyle(div).width, '150px');
+  assert_equals(getComputedStyle(div).height, '100px');
+}, 'The number of interpolating properties can be decreased when the'
+   + ' writing-mode is changed');
+
+test(t => {
+  addStyle(t, { ':root': '--writingMode: horizontal-tb' });
+  addStyle(t, {
+    '@keyframes anim': 'from { block-size: 0px } to { block-size: 100px }',
+  });
+  const div = addDiv(t, {
+    style:
+      'animation: anim 10s -5s paused linear;'
+      + ' width: 0px; height: 0px;'
+      + ' writing-mode: var(--writingMode)'
+  });
+  assert_equals(getComputedStyle(div).width, '0px');
+  assert_equals(getComputedStyle(div).height, '50px');
+
+  div.style.setProperty('--writingMode', 'vertical-rl');
+  assert_equals(getComputedStyle(div).width, '50px');
+  assert_equals(getComputedStyle(div).height, '0px');
+}, 'Animations update when the writing-mode is changed through a CSS variable');
+
+test(t => {
+  addStyle(t, {
+    '@keyframes anim':
+      'from { margin-inline-start: 0px } to { margin-inline-start: 100px }',
+  });
+  const div = addDiv(t, { style: 'animation: anim 10s -5s paused linear' });
+  assert_equals(getComputedStyle(div).marginLeft, '50px');
+  assert_equals(getComputedStyle(div).marginRight, '0px');
+
+  div.style.direction = 'rtl';
+  assert_equals(getComputedStyle(div).marginLeft, '0px');
+  assert_equals(getComputedStyle(div).marginRight, '50px');
+}, 'Animations update when the direction is changed');
+
+</script>

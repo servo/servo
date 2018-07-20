@@ -31,4 +31,9 @@
     validateRtpCapabilities(capabilities);
   }, `RTCRtpSender.getCapabilities('video') should return RTCRtpCapabilities dictionary`);
 
+  test(() => {
+    const capabilities = RTCRtpReceiver.getCapabilities('dummy');
+    assert_equals(capabilities, null);
+  }, `RTCRtpSender.getCapabilities('dummy') should return null`);
+
  </script>

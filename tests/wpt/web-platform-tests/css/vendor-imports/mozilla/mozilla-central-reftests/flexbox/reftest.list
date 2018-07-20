@@ -214,6 +214,9 @@
 == flexbox-root-node-001a.html flexbox-root-node-001-ref.html
 == flexbox-root-node-001b.html flexbox-root-node-001-ref.html
 
+# Tests for <overflow-position> "safe" keyword in CSS Alignment properties
+== flexbox-safe-overflow-position-001.html flexbox-safe-overflow-position-001-ref.html
+
 # Tests for sizing of flex containers, e.g. under min/max size constraints
 == flexbox-sizing-horiz-001.xhtml flexbox-sizing-horiz-001-ref.xhtml
 == flexbox-sizing-horiz-002.xhtml flexbox-sizing-horiz-002-ref.xhtml

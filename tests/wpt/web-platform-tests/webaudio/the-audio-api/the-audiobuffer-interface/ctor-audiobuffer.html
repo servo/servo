@@ -24,13 +24,13 @@
       audit.define('invalid constructor', (task, should) => {
         should(() => {
           new AudioBuffer();
-        }, 'new AudioBuffer()').throw('TypeError');
+        }, 'new AudioBuffer()').throw(TypeError);
         should(() => {
           new AudioBuffer(1);
-        }, 'new AudioBuffer(1)').throw('TypeError');
+        }, 'new AudioBuffer(1)').throw(TypeError);
         should(() => {
           new AudioBuffer(Date, 42);
-        }, 'new AudioBuffer(Date, 42)').throw('TypeError');
+        }, 'new AudioBuffer(Date, 42)').throw(TypeError);
 
         task.done();
       });
@@ -42,19 +42,19 @@
         // optional.
         should(() => {
           new AudioBuffer({});
-        }, 'buffer = new AudioBuffer({})').throw('TypeError');
+        }, 'buffer = new AudioBuffer({})').throw(TypeError);
 
         should(() => {
           new AudioBuffer({length: 1});
-        }, 'buffer = new AudioBuffer({length: 1})').throw('TypeError');
+        }, 'buffer = new AudioBuffer({length: 1})').throw(TypeError);
 
         should(() => {
           new AudioBuffer({sampleRate: 48000});
-        }, 'buffer = new AudioBuffer({sampleRate: 48000})').throw('TypeError');
+        }, 'buffer = new AudioBuffer({sampleRate: 48000})').throw(TypeError);
 
         should(() => {
           buffer = new AudioBuffer({numberOfChannels: 1});
-        }, 'buffer = new AudioBuffer({numberOfChannels: 1}').throw('TypeError');
+        }, 'buffer = new AudioBuffer({numberOfChannels: 1}').throw(TypeError);
 
         // Length and sampleRate are required, but others are optional.
         should(

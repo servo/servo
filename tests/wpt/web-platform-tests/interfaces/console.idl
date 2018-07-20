@@ -1,9 +1,13 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Console Standard" spec.
+// See: https://console.spec.whatwg.org/
+
 [Exposed=(Window,Worker,Worklet)]
 namespace console { // but see namespace object requirements below
   // Logging
   void assert(optional boolean condition = false, any... data);
   void clear();
-  void count(optional DOMString label = "default");
   void debug(any... data);
   void error(any... data);
   void info(any... data);
@@ -14,6 +18,10 @@ namespace console { // but see namespace object requirements below
   void dir(any item, optional object? options);
   void dirxml(any... data);
 
+  // Counting
+  void count(optional DOMString label = "default");
+  void countReset(optional DOMString label = "default");
+
   // Grouping
   void group(any... data);
   void groupCollapsed(any... data);
@@ -21,5 +29,6 @@ namespace console { // but see namespace object requirements below
 
   // Timing
   void time(optional DOMString label = "default");
+  void timeLog(optional DOMString label = "default", any... data);
   void timeEnd(optional DOMString label = "default");
 };

@@ -23,12 +23,12 @@
             // First and only arg should be a dictionary.
             should(() => {
               new OfflineAudioContext(3);
-            }, 'new OfflineAudioContext(3)').throw('TypeError');
+            }, 'new OfflineAudioContext(3)').throw(TypeError);
 
             // Constructor needs 1 or 3 args, so 2 should throw.
             should(() => {
               new OfflineAudioContext(3, 42);
-            }, 'new OfflineAudioContext(3, 42)').throw('TypeError');
+            }, 'new OfflineAudioContext(3, 42)').throw(TypeError);
 
             // Valid constructor
             should(() => {
@@ -63,12 +63,12 @@
             // No args should throw
             should(() => {
               new OfflineAudioContext();
-            }, 'new OfflineAudioContext()').throw('TypeError');
+            }, 'new OfflineAudioContext()').throw(TypeError);
 
             // Empty OfflineAudioContextOptions should throw
             should(() => {
               new OfflineAudioContext({});
-            }, 'new OfflineAudioContext({})').throw('TypeError');
+            }, 'new OfflineAudioContext({})').throw(TypeError);
 
             let options = {length: 42};
             // sampleRate is required.
@@ -77,7 +77,7 @@
                   new OfflineAudioContext(options);
                 },
                 'new OfflineAudioContext(' + JSON.stringify(options) + ')')
-                .throw('TypeError');
+                .throw(TypeError);
 
             options = {sampleRate: 12345};
             // length is required.
@@ -86,7 +86,7 @@
                   new OfflineAudioContext(options);
                 },
                 'new OfflineAudioContext(' + JSON.stringify(options) + ')')
-                .throw('TypeError');
+                .throw(TypeError);
 
             // Valid constructor.  Verify that the resulting context has the
             // correct values.
