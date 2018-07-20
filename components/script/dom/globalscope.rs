@@ -13,6 +13,7 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use dom::bindings::str::DOMString;
+use dom::blob::Blob;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
@@ -44,7 +45,7 @@ use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
-use std::cell::Cell;
+use std::cell::{Cell, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::ffi::CString;
@@ -77,6 +78,9 @@ pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
+
+    /// A place to keep the clones read into this realm rooted.
+    structured_clone_holder: DomRefCell<Vec<DomRoot<Blob>>>,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -149,6 +153,7 @@ impl GlobalScope {
         Self {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
+            structured_clone_holder: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
             pipeline_id,
             devtools_wants_updates: Default::default(),
@@ -164,6 +169,14 @@ impl GlobalScope {
             origin,
             microtask_queue,
             list_auto_close_worker: Default::default(),
+        }
+    }
+
+    pub fn structured_clone_holder(&self) -> Option<RefMut<Vec<DomRoot<Blob>>>> {
+        if let Ok(holder) = self.structured_clone_holder.try_borrow_mut() {
+            Some(holder)
+        } else {
+            None
         }
     }
 
