@@ -73,6 +73,7 @@ def write_hosts_file(config):
 
 class ServoWebDriverBrowser(Browser):
     used_ports = set()
+    init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
                  server_config=None, binary_args=None, user_stylesheets=None):
@@ -166,4 +167,5 @@ class ServoWebDriverBrowser(Browser):
     def executor_browser(self):
         assert self.webdriver_port is not None
         return ExecutorBrowser, {"webdriver_host": self.webdriver_host,
-                                 "webdriver_port": self.webdriver_port}
+                                 "webdriver_port": self.webdriver_port,
+                                 "init_timeout": self.init_timeout}
