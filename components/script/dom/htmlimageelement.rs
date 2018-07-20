@@ -517,14 +517,14 @@ impl HTMLImageElement {
         }
     }
 
-    fn evaluate_source_size_list(&self, source_size_list: &mut SourceSizeList, width: Option<Length>) -> Au {
+    fn evaluate_source_size_list(&self, source_size_list: &mut SourceSizeList, _width: Option<Length>) -> Au {
         let document = document_from_node(self);
         let device = document.device();
         if !device.is_some() {
             return Au(1);
         }
         let quirks_mode = document.quirks_mode();
-        source_size_list.set_fallback_value(width);
+        //FIXME https://github.com/whatwg/html/issues/3832
         source_size_list.evaluate(&device.unwrap(), quirks_mode)
     }
 
@@ -603,15 +603,33 @@ impl HTMLImageElement {
                 }
             }
         }
+
+        let mut max = (0f64, 0);
         let img_sources = &mut vec![];
-        for outer_index in 0..len {
-            if !repeat_indices.contains(&outer_index) {
-                img_sources.push(&source_set.image_sources[outer_index]);
+        for (index, image_source) in source_set.image_sources.iter().enumerate() {
+            if repeat_indices.contains(&index) {
+                continue;
             }
+            let den = image_source.descriptor.den.unwrap();
+            if max.0 < den {
+                max = (den, img_sources.len());
+            }
+            img_sources.push(image_source);
         }
 
-        // TODO Step 5 - select source based on pixel density
-        let selected_source = img_sources.remove(0).clone();
+        // Step 5
+        let mut best_candidate = max;
+        let device = document_from_node(self).device();
+        if let Some(device) = device {
+            let device_den = device.device_pixel_ratio().get() as f64;
+            for (index, image_source) in img_sources.iter().enumerate() {
+                let current_den = image_source.descriptor.den.unwrap();
+                if current_den < best_candidate.0 && current_den >= device_den {
+                    best_candidate = (current_den, index);
+                }
+            }
+        }
+        let selected_source = img_sources.remove(best_candidate.1).clone();
         Some((DOMString::from_string(selected_source.url), selected_source.descriptor.den.unwrap() as f32))
     }
 
