@@ -367,6 +367,21 @@ class MachCommands(CommandBase):
         else:
             return ret
 
+    @Command('test-wpt-android',
+             description='Run the web platform test suite in an Android emulator',
+             category='testing',
+             parser=create_parser_wpt)
+    def test_wpt_android(self, release=False, dev=False, binary_args=None, **kwargs):
+        kwargs.update(
+            release=release,
+            dev=dev,
+            product="servodriver",
+            processes=1,
+            binary_args=self.in_android_emulator(release, dev) + (binary_args or []),
+            binary=sys.executable,
+        )
+        return self._test_wpt(**kwargs)
+
     def _test_wpt(self, **kwargs):
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
         os.environ["hosts_file_path"] = hosts_file_path
@@ -559,28 +574,15 @@ class MachCommands(CommandBase):
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Run the dev build')
     def test_android_startup(self, release, dev):
-        if (release and dev) or not (release or dev):
-            print("Please specify one of --dev or --release.")
-            return 1
-
-        avd = "servo-x86"
-        target = "i686-linux-android"
-        print("Assuming --target " + target)
-
-        env = self.build_env(target=target)
-        assert self.handle_android_target(target)
-        binary_path = self.get_binary_path(release, dev, android=True)
-        apk = binary_path + ".apk"
-
         html = """
             <script>
                 console.log("JavaScript is running!")
             </script>
         """
         url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
-        py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
-        args = [sys.executable, py, avd, apk, url]
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, env=env)
+        args = self.in_android_emulator(release, dev)
+        args = [sys.executable] + args + [url]
+        process = subprocess.Popen(args, stdout=subprocess.PIPE)
         try:
             while 1:
                 line = process.stdout.readline()
@@ -592,6 +594,24 @@ class MachCommands(CommandBase):
                     break
         finally:
             process.terminate()
+
+    def in_android_emulator(self, release, dev):
+        if (release and dev) or not (release or dev):
+            print("Please specify one of --dev or --release.")
+            sys.exit(1)
+
+        avd = "servo-x86"
+        target = "i686-linux-android"
+        print("Assuming --target " + target)
+
+        env = self.build_env(target=target)
+        os.environ["PATH"] = env["PATH"]
+        assert self.handle_android_target(target)
+        binary_path = self.get_binary_path(release, dev, android=True)
+        apk = binary_path + ".apk"
+
+        py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
+        return [py, avd, apk]
 
     @Command('test-jquery',
              description='Run the jQuery test suite',
