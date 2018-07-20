@@ -51,17 +51,17 @@
         should(function() {
           // Two args are required.
           context.createIIRFilter();
-        }, 'createIIRFilter()').throw('TypeError');
+        }, 'createIIRFilter()').throw(TypeError);
 
         should(function() {
           // Two args are required.
           context.createIIRFilter(new Float32Array(1));
-        }, 'createIIRFilter(new Float32Array(1))').throw('TypeError');
+        }, 'createIIRFilter(new Float32Array(1))').throw(TypeError);
 
         should(function() {
           // null is not valid
           context.createIIRFilter(null, null);
-        }, 'createIIRFilter(null, null)').throw('TypeError');
+        }, 'createIIRFilter(null, null)').throw(TypeError);
 
         should(function() {
           // There has to be at least one coefficient.
@@ -127,17 +127,17 @@
         should(function() {
           // Feedback coefficients must be finite.
           context.createIIRFilter([1], [1, Infinity, NaN]);
-        }, 'createIIRFilter([1], [1, NaN, Infinity])').throw('TypeError');
+        }, 'createIIRFilter([1], [1, NaN, Infinity])').throw(TypeError);
 
         should(function() {
           // Feedforward coefficients must be finite.
           context.createIIRFilter([1, Infinity, NaN], [1]);
-        }, 'createIIRFilter([1, NaN, Infinity], [1])').throw('TypeError');
+        }, 'createIIRFilter([1, NaN, Infinity], [1])').throw(TypeError);
 
         should(function() {
           // Test that random junk in the array is converted to NaN.
           context.createIIRFilter([1, 'abc', []], [1]);
-        }, 'createIIRFilter([1, \'abc\', []], [1])').throw('TypeError');
+        }, 'createIIRFilter([1, \'abc\', []], [1])').throw(TypeError);
 
         task.done();
       });
@@ -155,7 +155,7 @@
                   null, new Float32Array(1), new Float32Array(1));
             },
             'getFrequencyResponse(null, new Float32Array(1), new Float32Array(1))')
-            .throw('TypeError');
+            .throw(TypeError);
 
         should(
             function() {
@@ -164,7 +164,7 @@
                   new Float32Array(1), null, new Float32Array(1));
             },
             'getFrequencyResponse(new Float32Array(1), null, new Float32Array(1))')
-            .throw('TypeError');
+            .throw(TypeError);
 
         should(
             function() {
@@ -173,7 +173,7 @@
                   new Float32Array(1), new Float32Array(1), null);
             },
             'getFrequencyResponse(new Float32Array(1), new Float32Array(1), null)')
-            .throw('TypeError');
+            .throw(TypeError);
 
         should(
             function() {

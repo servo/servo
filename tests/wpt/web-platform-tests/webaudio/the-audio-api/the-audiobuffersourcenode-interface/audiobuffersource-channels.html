@@ -28,7 +28,7 @@
             // Make sure we can't set to something which isn't an AudioBuffer.
             should(function() {
               source.buffer = 57;
-            }, 'source.buffer = 57').throw('TypeError');
+            }, 'source.buffer = 57').throw(TypeError);
 
             // It's ok to set the buffer to null.
             should(function() {

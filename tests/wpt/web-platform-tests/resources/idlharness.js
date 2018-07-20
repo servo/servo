@@ -3167,27 +3167,32 @@ IdlNamespace.prototype.test = function ()
  *      as adding objects. Do not call idl_array.test() in the setup; it is
  *      called by this function (idl_test).
  */
-function idl_test(srcs, deps, setup_func, test_name) {
+function idl_test(srcs, deps, idl_setup_func, test_name) {
     return promise_test(function (t) {
         var idl_array = new IdlArray();
         srcs = (srcs instanceof Array) ? srcs : [srcs] || [];
         deps = (deps instanceof Array) ? deps : [deps] || [];
         return Promise.all(
-            srcs.concat(deps).map(function(i) {
-                return fetch('/interfaces/' + i + '.idl').then(function(r) {
+            srcs.concat(deps).map(function(spec) {
+                return fetch('/interfaces/' + spec + '.idl').then(function(r) {
                     return r.text();
                 });
-            })).then(function(idls) {
+            }))
+            .then(function(idls) {
                 for (var i = 0; i < srcs.length; i++) {
                     idl_array.add_idls(idls[i]);
                 }
                 for (var i = srcs.length; i < srcs.length + deps.length; i++) {
                     idl_array.add_dependency_idls(idls[i]);
                 }
-                if (setup_func) {
-                    setup_func(idl_array)
-                };
-                idl_array.test();
+            })
+            .then(function() {
+                return idl_setup_func(idl_array, t);
+            })
+            .then(function() { idl_array.test(); })
+            .catch(function (reason) {
+                idl_array.test(); // Test what we can.
+                return Promise.reject(reason || 'IDL setup failed.');
             });
     }, test_name);
 }

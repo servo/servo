@@ -17,15 +17,15 @@
       let oscTypes = ['sine', 'square', 'sawtooth', 'triangle', 'custom'];
 
       let audit = Audit.createTaskRunner();
-    
+
       audit.define('start/stop exceptions', (task, should) => {
         // We're not going to render anything, so make it simple
         let context = new OfflineAudioContext(1, 1, sampleRate);
         let node = new AudioBufferSourceNode(context);
 
         testStartStop(should, node, [
-          {args: [0, -1], errorType: 'RangeError'},
-          {args: [0, 0, -1], errorType: 'RangeError'}
+          {args: [0, -1], errorType: RangeError},
+          {args: [0, 0, -1], errorType: RangeError}
         ]);
         task.done();
       });

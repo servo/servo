@@ -140,7 +140,7 @@
                   context = new AudioContext({'latencyHint': 'foo'})
                 },
                 'context = new AudioContext({\'latencyHint\': \'foo\'})')
-                .throw('TypeError');
+                .throw(TypeError);
 
             // Verify that no extra options can be passed into the
             // AudioContextOptions.
@@ -149,7 +149,7 @@
                   context = new AudioContext('latencyHint')
                 },
                 'context = new AudioContext(\'latencyHint\')')
-                .throw('TypeError');
+                .throw(TypeError);
 
             Promise.all(closingPromises).then(function() {
               task.done();

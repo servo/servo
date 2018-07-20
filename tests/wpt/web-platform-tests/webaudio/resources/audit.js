@@ -81,6 +81,13 @@ window.Audit = (function() {
           targetString = '' + String(target).split(/[\s\]]/)[1];
         }
         break;
+      case 'function':
+        if (Error.isPrototypeOf(target)) {
+          targetString = "EcmaScript error " + target.name;
+        } else {
+          targetString = String(target);
+        }
+        break;
       default:
         targetString = String(target);
         break;
@@ -267,7 +274,10 @@ window.Audit = (function() {
 
     /**
      * Check if |actual| operation wrapped in a function throws an exception
-     * with a expected error type correctly. |expected| is optional.
+     * with a expected error type correctly. |expected| is optional. If it is a
+     * String, then it is considered to be the name of a DOMException. It can
+     * also be an instance of either an Error or a DOMException, to be more
+     * strict about the actual error type.
      *
      * @example
      *   should(() => { let a = b; }, 'A bad code').throw();
@@ -303,8 +313,15 @@ window.Audit = (function() {
           // The expected error type was not given.
           didThrowCorrectly = true;
           passDetail = '${actual} threw ' + error.name + errorMessage + '.';
-        } else if (error.name === this._expected) {
-          // The expected error type match the actual one.
+        } else if (typeof(this._expected) == "string" &&
+                   error instanceof DOMException &&
+                   error.name === this._expected) {
+          // A DOMException was thrown and expected, and the names match
+          didThrowCorrectly = true;
+          passDetail = '${actual} threw ${expected}' + errorMessage + '.';
+        } else if (this._expected == error.constructor &&
+                   this._expected.name == error.name) {
+          // The expected error type and names match the actual one.
           didThrowCorrectly = true;
           passDetail = '${actual} threw ${expected}' + errorMessage + '.';
         } else {

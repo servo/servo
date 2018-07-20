@@ -68,7 +68,7 @@
                   .linearRampToValueAtTime(2.0, 1.0);
             },
             'Calling setValueAtTime() with a negative end time')
-            .throw('RangeError');
+            .throw(RangeError);
 
         // The first operation succeeds but the second fails due to zero target
         // value for the exponential ramp. Thus only the first should have
@@ -79,7 +79,7 @@
                   0.0, 1.0);
             },
             'Calling exponentialRampToValueAtTime() with a zero target value')
-            .throw('RangeError');
+            .throw(RangeError);
 
         osc.start();
         osc.stop(1.0);

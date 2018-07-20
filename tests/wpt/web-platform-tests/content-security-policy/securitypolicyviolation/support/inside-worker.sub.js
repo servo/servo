@@ -40,5 +40,18 @@ async_test(t => {
     .catch(t.step_func(e => assert_true(e instanceof TypeError)));
 }, "SecurityPolicyViolation event fired on global.");
 
+async_test(t => {
+  var url = "{{location[scheme]}}://{{host}}:{{location[port]}}/common/redirect.py?location={{location[scheme]}}://{{domains[www]}}:{{location[port]}}/content-security-policy/support/ping.js";
+  waitUntilCSPEventForURL(t, url)
+    .then(t.step_func_done(e => {
+      assert_equals(e.blockedURI, url);
+      assert_false(cspEventFiredInDocument);
+    }));
+
+  fetch(url)
+    .then(t.unreached_func("Fetch should not succeed."))
+    .catch(t.step_func(e => assert_true(e instanceof TypeError)));
+}, "SecurityPolicyViolation event fired on global with the correct blockedURI.");
+
 // Worker tests need an explicit `done()`.
 done();

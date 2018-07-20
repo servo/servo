@@ -161,7 +161,7 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, " + JSON.stringify(options) + ")')
-            .throw('TypeError');
+            .throw(TypeError);
 
         // Test channelInterpretation.
         options = {channelInterpretation: 'speakers'};
@@ -190,7 +190,7 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('TypeError');
+            .throw(TypeError);
 
         task.done();
       });

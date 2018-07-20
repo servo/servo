@@ -57,7 +57,7 @@
               node = new IIRFilterNode(context, options);
             },
             'node = new IIRFilterNode(, ' + JSON.stringify(options) + ')')
-            .throw('TypeError');
+            .throw(TypeError);
 
         options = {feedforward: [1, 0.5]};
         should(
@@ -65,7 +65,7 @@
               node = new IIRFilterNode(context, options);
             },
             'node = new IIRFilterNode(c, ' + JSON.stringify(options) + ')')
-            .throw('TypeError');
+            .throw(TypeError);
 
         task.done();
       });

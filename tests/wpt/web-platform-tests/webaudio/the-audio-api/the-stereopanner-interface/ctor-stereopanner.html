@@ -65,7 +65,7 @@
            tests: [
              {value: 'clamped-max'}, {value: 'explicit'},
              {value: 'max', error: 'NotSupportedError'},
-             {value: 'foobar', error: 'TypeError'}
+             {value: 'foobar', error: TypeError}
            ]
          },
          {
@@ -74,7 +74,7 @@
            attribute: 'channelInterpretation',
            tests: [
              {value: 'speakers'}, {value: 'discrete'},
-             {value: 'foobar', error: 'TypeError'}
+             {value: 'foobar', error: TypeError}
            ]
          }].forEach(entry => {
           entry.tests.forEach(testItem => {
