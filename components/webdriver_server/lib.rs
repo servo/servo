@@ -107,14 +107,14 @@ struct WebDriverSession {
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
-    script_timeout: Option<u64>,
+    script_timeout: u64,
 
     /// Time to wait for a page to finish loading upon navigation.
-    load_timeout: Option<u64>,
+    load_timeout: u64,
 
     /// Time to wait for the element location strategy when retrieving elements, and when
     /// waiting for an element to become interactable.
-    implicit_wait_timeout: Option<u64>,
+    implicit_wait_timeout: u64,
 }
 
 impl WebDriverSession {
@@ -127,9 +127,9 @@ impl WebDriverSession {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
 
-            script_timeout: Some(30_000),
-            load_timeout: Some(300_000),
-            implicit_wait_timeout: Some(0),
+            script_timeout: 30_000,
+            load_timeout: 300_000,
+            implicit_wait_timeout: 0,
         }
     }
 }
@@ -140,7 +140,7 @@ struct Handler {
     resize_timeout: u32,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum ServoExtensionRoute {
     GetPrefs,
     SetPrefs,
@@ -171,7 +171,7 @@ impl WebDriverExtensionRoute for ServoExtensionRoute {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 enum ServoExtensionCommand {
     GetPrefs(GetPrefsParameters),
     SetPrefs(SetPrefsParameters),
@@ -188,7 +188,7 @@ impl WebDriverExtensionCommand for ServoExtensionCommand {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct GetPrefsParameters {
     prefs: Vec<String>
 }
@@ -222,7 +222,7 @@ impl ToJson for GetPrefsParameters {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 struct SetPrefsParameters {
     prefs: Vec<(String, PrefValue)>
 }
@@ -371,7 +371,7 @@ impl Handler {
                      -> WebDriverResult<WebDriverResponse> {
         let timeout = self.session()?.load_timeout;
         thread::spawn(move || {
-            thread::sleep(Duration::from_millis(timeout.unwrap()));
+            thread::sleep(Duration::from_millis(timeout));
             let _ = sender.send(LoadStatus::LoadTimeout);
         });
 
@@ -720,9 +720,15 @@ impl Handler {
             .as_mut()
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, ""))?;
 
-        session.script_timeout = parameters.script;
-        session.load_timeout = parameters.page_load;
-        session.implicit_wait_timeout = parameters.implicit;
+        if let Some(timeout) = parameters.script {
+            session.script_timeout = timeout
+        }
+        if let Some(timeout) = parameters.page_load {
+            session.load_timeout = timeout
+        }
+        if let Some(timeout) = parameters.implicit {
+            session.implicit_wait_timeout = timeout
+        }
 
         Ok(WebDriverResponse::Void)
     }
@@ -750,15 +756,10 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
-        let script = match self.session()?.script_timeout {
-            Some(timeout) => {
-                format!("setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
-                        timeout,
-                        func_body,
-                        args_string)
-            }
-            None => format!("(function(callback) {{ {} }})({})", func_body, args_string),
-        };
+        let script = format!("setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
+                             self.session()?.script_timeout,
+                             func_body,
+                             args_string);
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);

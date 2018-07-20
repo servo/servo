@@ -48,33 +48,30 @@ def main(avd_name, apk_path, *args):
 
         # Now `adb shell` will work, but `adb install` needs a system service
         # that might still be in the midle of starting and not be responsive yet.
+        wait_for_boot(adb)
 
-        # https://stackoverflow.com/a/38896494/1162888
-        while 1:
-            with terminate_on_exit(
-                adb + ["shell", "getprop", "sys.boot_completed"],
-                stdout=subprocess.PIPE,
-            ) as getprop:
-                stdout, stderr = getprop.communicate()
-                if "1" in stdout:
-                    break
-            time.sleep(1)
-
+        # These steps should happen before application start
         check_call(adb + ["install", "-r", apk_path])
-
-        data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
-        params_file = data_dir + "/android_params"
-
-        check_call(adb + ["shell", "mkdir -p %s" % data_dir])
-        check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
-        for arg in args:
-            check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
+        args = list(args)
+        write_user_stylesheets(adb, args)
+        write_args(adb, args)
 
         check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
                    stdout=sys.stderr)
 
-        logcat_args = ["RustAndroidGlueStdouterr:D", "*:S", "-v", "raw"]
+        # Start showing logs as soon as the application starts,
+        # in case they say something useful while we wait in subsequent steps.
+        logcat_args = [
+            "--format=raw",  # Print no metadata, only log messages
+            "RustAndroidGlueStdouterr:D",  # Show (debug level) Rust stdio
+            "*:S",  # Hide everything else
+        ]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
+
+            # This step needs to happen after application start
+            forward_webdriver(adb, args)
+
+            # logcat normally won't exit on its own, wait until we get a SIGTERM signal.
             logcat.wait()
 
 
@@ -103,11 +100,90 @@ def terminate_on_exit(*args, **kwargs):
             process.terminate()
 
 
-def check_call(*args, **kwargs):
+# https://stackoverflow.com/a/38896494/1162888
+def wait_for_boot(adb):
+    while 1:
+        with terminate_on_exit(
+            adb + ["shell", "getprop", "sys.boot_completed"],
+            stdout=subprocess.PIPE,
+        ) as getprop:
+            stdout, stderr = getprop.communicate()
+            if "1" in stdout:
+                return
+        time.sleep(1)
+
+
+def call(*args, **kwargs):
     with terminate_on_exit(*args, **kwargs) as process:
-        exit_code = process.wait()
-        if exit_code != 0:
-            sys.exit(exit_code)
+        return process.wait()
+
+
+def check_call(*args, **kwargs):
+    exit_code = call(*args, **kwargs)
+    if exit_code != 0:
+        sys.exit(exit_code)
+
+
+def write_args(adb, args):
+    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+    params_file = data_dir + "/android_params"
+
+    check_call(adb + ["shell", "mkdir -p %s" % data_dir])
+    check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
+    for arg in args:
+        check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
+
+
+def write_user_stylesheets(adb, args):
+    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+    check_call(adb + ["shell", "mkdir -p %s" % data_dir])
+    for i, (pos, path) in enumerate(extract_args("--user-stylesheet", args)):
+        remote_path = "%s/user%s.css" % (data_dir, i)
+        args[pos] = remote_path
+        check_call(adb + ["push", path, remote_path], stdout=sys.stderr)
+
+
+def forward_webdriver(adb, args):
+    webdriver_port = extract_arg("--webdriver", args)
+    if webdriver_port is not None:
+        # `adb forward` will start accepting TCP connections even if the other side does not.
+        # (If the remote side refuses the connection,
+        # adb will close the local side after accepting it.)
+        # This is incompatible with wptrunner which relies on TCP connection acceptance
+        # to figure out when it can start sending WebDriver requests.
+        #
+        # So wait until the remote side starts listening before setting up the forwarding.
+        wait_for_tcp_server(adb, webdriver_port)
+
+        port = "tcp:%s" % webdriver_port
+        check_call(adb + ["forward", port, port])
+        sys.stderr.write("Forwarding WebDriver port %s to the emulator\n" % webdriver_port)
+
+    split = os.environ.get("EMULATOR_REVERSE_FORWARD_PORTS", "").split(",")
+    ports = [int(part) for part in split if part]
+    for port in ports:
+        port = "tcp:%s" % port
+        check_call(adb + ["reverse", port, port])
+    if ports:
+        sys.stderr.write("Reverse-forwarding ports %s\n" % ", ".join(map(str, ports)))
+
+
+def extract_arg(name, args):
+    for _, arg in extract_args(name, args):
+        return arg
+
+
+def extract_args(name, args):
+    previous_arg_matches = False
+    for i, arg in enumerate(args):
+        if previous_arg_matches:
+            yield i, arg
+        previous_arg_matches = arg == name
+
+
+def wait_for_tcp_server(adb, port):
+    while call(adb + ["shell", "nc -z 127.0.0.1 %s" % port], stdout=sys.stderr) != 0:
+        time.sleep(1)
 
 
 # Copied from Python 3.3+'s shlex.quote()
