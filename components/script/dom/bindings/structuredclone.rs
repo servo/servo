@@ -5,6 +5,7 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::DomObject;
@@ -25,6 +26,7 @@ use js::rust::wrappers::{JS_WriteStructuredClone, JS_ReadStructuredClone};
 use libc::size_t;
 use std::os::raw;
 use std::ptr;
+use std::rc::Rc;
 use std::slice;
 
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
@@ -105,13 +107,14 @@ impl StructuredCloneReader {
 
 unsafe fn read_blob(cx: *mut JSContext,
                     r: *mut JSStructuredCloneReader)
-                    -> *mut JSObject {
+                    -> (DomRoot<Blob>, *mut JSObject) {
     let structured_reader = StructuredCloneReader { r: r };
     let blob_buffer = structured_reader.read_bytes();
     let type_str = structured_reader.read_str();
     let target_global = GlobalScope::from_context(cx);
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(blob_buffer), type_str);
-    return blob.reflector().get_jsobject().get()
+    let js_object = blob.reflector().get_jsobject().get();
+    return (blob, js_object)
 }
 
 unsafe fn write_blob(blob: DomRoot<Blob>,
@@ -129,12 +132,15 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    r: *mut JSStructuredCloneReader,
                                    tag: u32,
                                    _data: u32,
-                                   _closure: *mut raw::c_void)
+                                   closure: *mut raw::c_void)
                                    -> *mut JSObject {
     assert!(tag < StructuredCloneTags::Max as u32, "tag should be lower than StructuredCloneTags::Max");
     assert!(tag > StructuredCloneTags::Min as u32, "tag should be higher than StructuredCloneTags::Min");
+    let holder = Rc::from_raw(closure as *const StructuredCloneHolder);
     if tag == StructuredCloneTags::DomBlob as u32 {
-        return read_blob(cx, r)
+        let (rooted_blob, js_object) = read_blob(cx, r);
+        holder.blobs.borrow_mut().push(rooted_blob);
+        return js_object
     }
     return ptr::null_mut()
 }
@@ -191,6 +197,20 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
     freeTransfer: Some(free_transfer_callback),
 };
 
+#[derive(JSTraceable, MallocSizeOf)]
+/// A place to keep the clones read into a realm rooted.
+pub struct StructuredCloneHolder {
+    blobs: DomRefCell<Vec<DomRoot<Blob>>>
+}
+
+impl Default for StructuredCloneHolder {
+    fn default() -> StructuredCloneHolder {
+        StructuredCloneHolder {
+            blobs: Default::default()
+        }
+    }
+}
+
 /// A buffer for a structured clone.
 pub enum StructuredCloneData {
     /// A non-serializable (default) variant
@@ -244,6 +264,8 @@ impl StructuredCloneData {
         let cx = global.get_cx();
         let globalhandle = global.reflector().get_jsobject();
         let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+        let holder = global.structured_clone_holder();
+        let raw_holder = Rc::into_raw(holder) as *mut raw::c_void;
         unsafe {
             assert!(JS_ReadStructuredClone(cx,
                                            data,
@@ -251,7 +273,7 @@ impl StructuredCloneData {
                                            JS_STRUCTURED_CLONE_VERSION,
                                            rval,
                                            &STRUCTURED_CLONE_CALLBACKS,
-                                           ptr::null_mut()));
+                                           raw_holder));
         }
     }
 

@@ -13,6 +13,7 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use dom::bindings::str::DOMString;
+use dom::bindings::structuredclone::StructuredCloneHolder;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
@@ -77,6 +78,10 @@ pub struct GlobalScope {
     eventtarget: EventTarget,
     crypto: MutNullableDom<Crypto>,
     next_worker_id: Cell<WorkerId>,
+
+    /// A place to keep the clones read into this realm rooted.
+    #[ignore_malloc_size_of = "Rc<T> is hard"]
+    structured_clone_holder: Rc<StructuredCloneHolder>,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -149,6 +154,7 @@ impl GlobalScope {
         Self {
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
+            structured_clone_holder: Default::default(),
             next_worker_id: Cell::new(WorkerId(0)),
             pipeline_id,
             devtools_wants_updates: Default::default(),
@@ -165,6 +171,10 @@ impl GlobalScope {
             microtask_queue,
             list_auto_close_worker: Default::default(),
         }
+    }
+
+    pub fn structured_clone_holder(&self) -> Rc<StructuredCloneHolder> {
+        self.structured_clone_holder.clone()
     }
 
     pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
