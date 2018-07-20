@@ -434,7 +434,6 @@ unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
-unsafe_no_jsmanaged_fields!(AudioGraph);
 unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
