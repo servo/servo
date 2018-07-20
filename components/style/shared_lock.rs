@@ -11,6 +11,8 @@ use parking_lot::RwLock;
 use servo_arc::Arc;
 use std::cell::UnsafeCell;
 use std::fmt;
+#[cfg(feature = "servo")]
+use std::mem;
 #[cfg(feature = "gecko")]
 use std::ptr;
 use str::{CssString, CssStringWriter};
@@ -74,7 +76,7 @@ impl SharedRwLock {
     /// Obtain the lock for reading (servo).
     #[cfg(feature = "servo")]
     pub fn read(&self) -> SharedRwLockReadGuard {
-        self.arc.raw_read();
+        mem::forget(self.arc.read());
         SharedRwLockReadGuard(self)
     }
 
@@ -87,7 +89,7 @@ impl SharedRwLock {
     /// Obtain the lock for writing (servo).
     #[cfg(feature = "servo")]
     pub fn write(&self) -> SharedRwLockWriteGuard {
-        self.arc.raw_write();
+        mem::forget(self.arc.write());
         SharedRwLockWriteGuard(self)
     }
 
@@ -107,9 +109,9 @@ pub struct SharedRwLockReadGuard<'a>(AtomicRef<'a, SomethingZeroSizedButTyped>);
 #[cfg(feature = "servo")]
 impl<'a> Drop for SharedRwLockReadGuard<'a> {
     fn drop(&mut self) {
-        // Unsafe: self.lock is private to this module, only ever set after `raw_read()`,
+        // Unsafe: self.lock is private to this module, only ever set after `read()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        unsafe { self.0.arc.raw_unlock_read() }
+        unsafe { self.0.arc.force_unlock_read() }
     }
 }
 
@@ -122,9 +124,9 @@ pub struct SharedRwLockWriteGuard<'a>(AtomicRefMut<'a, SomethingZeroSizedButType
 #[cfg(feature = "servo")]
 impl<'a> Drop for SharedRwLockWriteGuard<'a> {
     fn drop(&mut self) {
-        // Unsafe: self.lock is private to this module, only ever set after `raw_write()`,
+        // Unsafe: self.lock is private to this module, only ever set after `write()`,
         // and never copied or cloned (see `compile_time_assert` below).
-        unsafe { self.0.arc.raw_unlock_write() }
+        unsafe { self.0.arc.force_unlock_write() }
     }
 }
 

@@ -15,7 +15,7 @@ app_units = "0.6"
 cssparser = "0.24.0"
 euclid = "0.18"
 html5ever = "0.22"
-parking_lot = "0.5"
+parking_lot = "0.6"
 rayon = "1"
 serde_json = "1.0"
 selectors = {path = "../../../components/selectors"}
