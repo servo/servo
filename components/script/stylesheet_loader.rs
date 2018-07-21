@@ -193,6 +193,8 @@ impl FetchResponseListener for StylesheetContext {
             elem.upcast::<EventTarget>().fire_event(event);
         }
     }
+
+    fn process_response_done(&mut self, _aborted:bool) {}
 }
 
 pub struct StylesheetLoader<'a> {

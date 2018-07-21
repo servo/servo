@@ -1090,6 +1090,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
             elem.queue_dedicated_media_source_failure_steps();
         }
     }
+
+    fn process_response_done(&mut self, _aborted:bool) {}
 }
 
 impl PreInvoke for HTMLMediaElementContext {

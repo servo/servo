@@ -284,6 +284,7 @@ impl FontCache {
                                                               sender.clone());
                             channel_to_self.send(command).unwrap();
                         }
+                        FetchResponseMsg::ProcessResponseDone(_) => {}
                     }
                 });
             }

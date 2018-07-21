@@ -43,6 +43,8 @@ impl FetchResponseListener for LayoutImageContext {
         self.cache.notify_pending_response(self.id,
                                            FetchResponseMsg::ProcessResponseEOF(response));
     }
+
+    fn process_response_done(&mut self, _aborted:bool) {}
 }
 
 impl PreInvoke for LayoutImageContext {}

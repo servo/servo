@@ -236,6 +236,8 @@ impl FetchResponseListener for FetchContext {
         // TODO
         // ... trailerObject is not supported in Servo yet.
     }
+
+    fn process_response_done(&mut self, _aborted:bool) {}
 }
 
 fn fill_headers_with_metadata(r: DomRoot<Response>, m: Metadata) {
