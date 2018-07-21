@@ -795,7 +795,8 @@ impl HTMLImageElement {
         let mut selected_source = None;
         let mut pixel_density = None;
         let src_set = elem.get_string_attribute(&local_name!("srcset"));
-        let is_parent_picture = elem.upcast::<Node>().GetParentElement().map_or(false, |p| p.is::<HTMLPictureElement>());
+        let is_parent_picture = elem.upcast::<Node>().GetParentElement()
+            .map_or(false, |p| p.is::<HTMLPictureElement>());
         if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
             selected_source = Some(src.clone());
             pixel_density = Some(1 as f64);
