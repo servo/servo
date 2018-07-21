@@ -102,6 +102,7 @@ impl FetchTaskTarget for FetchResponseCollector {
     fn process_response_eof(&mut self, response: &Response) {
         let _ = self.sender.send(response.clone());
     }
+    fn process_response_done(&mut self, aborted: bool) {}
 }
 
 fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
