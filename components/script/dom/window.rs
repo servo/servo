@@ -1116,6 +1116,16 @@ impl Window {
         }
     }
 
+    /// Cancels all the tasks from a given task source.
+    /// This sets the current sentinel value to
+    /// `true` and replaces it with a brand new one for future tasks.
+    pub fn cancel_all_tasks_from_source(&self, task_source_name: TaskSourceName) {
+        let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
+        let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+        let cancelled = mem::replace(&mut *flag, Default::default());
+        cancelled.store(true, Ordering::Relaxed);
+    }
+
     pub fn clear_js_runtime(&self) {
         // We tear down the active document, which causes all the attached
         // nodes to dispose of their layout data. This messages the layout

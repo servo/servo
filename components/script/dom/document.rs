@@ -141,7 +141,7 @@ use style::shared_lock::{SharedRwLock as StyleSharedRwLock, SharedRwLockReadGuar
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{CssRule, Stylesheet, Origin, OriginSet};
-use task_source::TaskSource;
+use task_source::{TaskSource, TaskSourceName};
 use time;
 use timers::OneshotTimerCallback;
 use url::Host;
@@ -2035,8 +2035,7 @@ impl Document {
             self.salvageable.set(false);
         };
 
-        // TODO: https://github.com/servo/servo/issues/15236
-        self.window.cancel_all_tasks();
+        self.window.cancel_all_tasks_from_source(TaskSourceName::Networking);
 
         // Step 3.
         if let Some(parser) = self.get_current_parser() {
