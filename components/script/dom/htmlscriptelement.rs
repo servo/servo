@@ -221,6 +221,8 @@ impl FetchResponseListener for ScriptContext {
 
         document.finish_load(LoadType::Script(self.url.clone()));
     }
+
+    fn process_response_done(&mut self, _aborted: bool) {}
 }
 
 impl PreInvoke for ScriptContext {}

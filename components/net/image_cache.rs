@@ -553,6 +553,7 @@ impl ImageCache for ImageCacheImpl {
                     }
                 }
             }
+            (FetchResponseMsg::ProcessResponseDone(_), _) => {},
         }
     }
 

@@ -390,6 +390,9 @@ impl FetchResponseListener for EventSourceContext {
         }
         self.reestablish_the_connection();
     }
+
+    fn process_response_done(&mut self, _aborted: bool) {}
+
 }
 
 impl PreInvoke for EventSourceContext {

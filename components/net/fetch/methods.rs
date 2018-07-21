@@ -414,6 +414,9 @@ pub fn main_fetch(request: &mut Request,
         }
     }
 
+    // The last step, Step 23(steps out of order with current spec)
+    target.process_response_done(&response);
+
     // Steps 25-27.
     // TODO: remove this line when only asynchronous fetches are used
     response

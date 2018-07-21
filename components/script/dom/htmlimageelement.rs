@@ -170,6 +170,8 @@ impl FetchResponseListener for ImageContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(response));
     }
+
+    fn process_response_done(&mut self, _aborted: bool) {}
 }
 
 impl PreInvoke for ImageContext {}

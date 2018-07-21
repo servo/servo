@@ -737,6 +737,8 @@ impl FetchResponseListener for ParserContext {
             parser.parse_sync();
         }
     }
+
+    fn process_response_done(&mut self, _aborted: bool) {}
 }
 
 impl PreInvoke for ParserContext {}

@@ -39,6 +39,7 @@ use request::{Request, RequestInit};
 use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
+use std::sync::atomic::Ordering;
 use storage_thread::StorageThreadMsg;
 
 pub mod blob_url_store;
@@ -157,6 +158,7 @@ pub enum FetchResponseMsg {
     ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
     ProcessResponseEOF(Result<(), NetworkError>),
+    ProcessResponseDone(bool),
 }
 
 pub trait FetchTaskTarget {
@@ -182,6 +184,11 @@ pub trait FetchTaskTarget {
     ///
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, response: &Response);
+
+    /// https://fetch.spec.whatwg.org/#process-response-done
+    ///
+    /// Currently only used to handle aborted response in script.
+    fn process_response_done(&mut self, response: &Response);
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -207,6 +214,7 @@ pub trait FetchResponseListener {
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
     fn process_response_eof(&mut self, response: Result<(), NetworkError>);
+    fn process_response_done(&mut self, aborted: bool);
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
@@ -233,6 +241,11 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
         }
     }
+
+    fn process_response_done(&mut self, response: &Response) {
+        let aborted = response.aborted.load(Ordering::Relaxed);
+        let _ = self.send(FetchResponseMsg::ProcessResponseDone(aborted));
+    }
 }
 
 
@@ -249,6 +262,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
             FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
+            FetchResponseMsg::ProcessResponseDone(aborted) => listener.process_response_done(aborted),
         }
     }
 }
@@ -502,6 +516,7 @@ pub fn load_whole_resource(request: RequestInit,
             FetchResponseMsg::ProcessResponseEOF(Ok(())) => return Ok((metadata.unwrap(), buf)),
             FetchResponseMsg::ProcessResponse(Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
+            FetchResponseMsg::ProcessResponseDone(_) => (),
         }
     }
 }

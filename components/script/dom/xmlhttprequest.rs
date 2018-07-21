@@ -256,6 +256,8 @@ impl XMLHttpRequest {
                 let rv = self.xhr.root().process_response_complete(self.gen_id, response);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
+
+            fn process_response_done(&mut self, _aborted: bool) {}
         }
 
         impl PreInvoke for XHRContext {

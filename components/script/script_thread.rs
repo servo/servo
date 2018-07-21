@@ -1281,6 +1281,7 @@ impl ScriptThread {
                     FetchResponseMsg::ProcessResponse(metadata) => self.handle_fetch_metadata(id, metadata),
                     FetchResponseMsg::ProcessResponseChunk(chunk) => self.handle_fetch_chunk(id, chunk),
                     FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof),
+                    FetchResponseMsg::ProcessResponseDone(_) => {},
                     _ => unreachable!(),
                 };
             },
