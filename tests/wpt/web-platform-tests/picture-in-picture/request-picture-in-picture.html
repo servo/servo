@@ -33,17 +33,4 @@ promise_test(async t => {
   const video = await loadVideo();
   return promise_rejects(t, 'NotAllowedError', video.requestPictureInPicture());
 }, 'request Picture-in-Picture requires a user gesture');
-
-promise_test(async t => {
-  const video1 = await loadVideo();
-  const video2 = await loadVideo();
-  return callWithTrustedClick(() => {
-    const first = video1.requestPictureInPicture();
-    const second = video2.requestPictureInPicture();
-    return Promise.all([
-      first,
-      promise_rejects(t, 'NotAllowedError', second)
-    ]);
-  });
-}, 'request Picture-in-Picture consumes user gesture');
 </script>

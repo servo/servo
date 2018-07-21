@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<body>
+<script defer src="/resources/testharness.js"></script>
+<script defer src="/resources/testharnessreport.js"></script>
+<script>
+// The test harness scripts above are loaded as <script defer> because
+// they would be blocked if loaded synchronously.
+// Harness scripts should be evaluated before sync-script-test.js, so it
+// is also loaded as <script defer>
+//
+// The other scripts (both inline and external) are testing whether those
+// scripts are blocked or not.
+// sync-script-test.js asserts the results of the other scripts in onload
+// in order to guarantee that all scripts have either loaded or been blocked
+// before verifying the behavior.
+window.didExecuteInlineParsingBlockingScript = true;
+</script>
+<script src="/feature-policy/experimental-features/resources/parser-blocking-script.js"></script>
+<script async src="/feature-policy/experimental-features/resources/async-script.js"></script>
+<script defer src="/feature-policy/experimental-features/resources/defer-script.js"></script>
+<script defer src="/feature-policy/experimental-features/resources/sync-script-test.js"></script>
+</body>

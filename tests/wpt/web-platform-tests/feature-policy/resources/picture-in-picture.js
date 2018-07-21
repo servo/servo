@@ -1,4 +1,7 @@
 function isPictureInPictureAllowed() {
+  if (!('pictureInPictureEnabled' in document))
+    return Promise.resolve(false);
+
   return new Promise(resolve => {
     let video = document.createElement('video');
     video.src = '/media/movie_5.ogv';

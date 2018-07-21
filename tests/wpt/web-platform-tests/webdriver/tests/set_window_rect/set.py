@@ -334,7 +334,7 @@ def test_negative_x_y(session):
     # On macOS, windows can only be moved off the screen on the
     # horizontal axis.  The system menu bar also blocks windows from
     # being moved to (0,0).
-    elif os == "darwin":
+    elif os == "mac":
         assert_success(response, {"x": -8,
                                   "y": 23,
                                   "width": original["width"],
@@ -342,7 +342,7 @@ def test_negative_x_y(session):
 
     # It turns out that Windows is the only platform on which the
     # window can be reliably positioned off-screen.
-    elif os == "windows_nt":
+    elif os == "windows":
         assert_success(response, {"x": -8,
                                   "y": -8,
                                   "width": original["width"],
