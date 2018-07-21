@@ -20,7 +20,9 @@ pub struct EventLoop {
 
 impl Drop for EventLoop {
     fn drop(&mut self) {
-        let _ = self.script_chan.send(ConstellationControlMsg::ExitScriptThread);
+        let _ = self
+            .script_chan
+            .send(ConstellationControlMsg::ExitScriptThread);
     }
 }
 
@@ -43,4 +45,3 @@ impl EventLoop {
         self.script_chan.clone()
     }
 }
-

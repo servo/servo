@@ -44,20 +44,37 @@ impl JointSessionHistory {
         }
     }
 
-    pub fn replace_history_state(&mut self, pipeline_id: PipelineId, history_state_id: HistoryStateId, url: ServoUrl) {
-        if let Some(SessionHistoryDiff::PipelineDiff { ref mut new_history_state_id, ref mut new_url, .. }) =
-            self.past.iter_mut().find(|diff| match diff {
-                SessionHistoryDiff::PipelineDiff { pipeline_reloader: NeedsToReload::No(id), .. } => pipeline_id == *id,
-                _ => false,
+    pub fn replace_history_state(
+        &mut self,
+        pipeline_id: PipelineId,
+        history_state_id: HistoryStateId,
+        url: ServoUrl,
+    ) {
+        if let Some(SessionHistoryDiff::PipelineDiff {
+            ref mut new_history_state_id,
+            ref mut new_url,
+            ..
+        }) = self.past.iter_mut().find(|diff| match diff {
+            SessionHistoryDiff::PipelineDiff {
+                pipeline_reloader: NeedsToReload::No(id),
+                ..
+            } => pipeline_id == *id,
+            _ => false,
         }) {
             *new_history_state_id = history_state_id;
             *new_url = url.clone();
         }
 
-        if let Some(SessionHistoryDiff::PipelineDiff { ref mut old_history_state_id, ref mut old_url, .. }) =
-            self.future.iter_mut().find(|diff| match diff {
-                SessionHistoryDiff::PipelineDiff { pipeline_reloader: NeedsToReload::No(id), .. } => pipeline_id == *id,
-                _ => false,
+        if let Some(SessionHistoryDiff::PipelineDiff {
+            ref mut old_history_state_id,
+            ref mut old_url,
+            ..
+        }) = self.future.iter_mut().find(|diff| match diff {
+            SessionHistoryDiff::PipelineDiff {
+                pipeline_reloader: NeedsToReload::No(id),
+                ..
+            } => pipeline_id == *id,
+            _ => false,
         }) {
             *old_history_state_id = Some(history_state_id);
             *old_url = url;
@@ -65,21 +82,19 @@ impl JointSessionHistory {
     }
 
     pub fn remove_entries_for_browsing_context(&mut self, context_id: BrowsingContextId) {
-        self.past.retain(|diff| {
-            match diff {
-                SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. } => {
-                    *browsing_context_id != context_id
-                },
-                _ => true,
-            }
+        self.past.retain(|diff| match diff {
+            SessionHistoryDiff::BrowsingContextDiff {
+                browsing_context_id,
+                ..
+            } => *browsing_context_id != context_id,
+            _ => true,
         });
-        self.future.retain(|diff| {
-            match diff {
-                SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. } => {
-                    *browsing_context_id != context_id
-                },
-                _ => true,
-            }
+        self.future.retain(|diff| match diff {
+            SessionHistoryDiff::BrowsingContextDiff {
+                browsing_context_id,
+                ..
+            } => *browsing_context_id != context_id,
+            _ => true,
         });
     }
 }
@@ -132,22 +147,17 @@ impl NeedsToReload {
 impl PartialEq for NeedsToReload {
     fn eq(&self, other: &NeedsToReload) -> bool {
         match *self {
-            NeedsToReload::No(pipeline_id) => {
-                match *other {
-                    NeedsToReload::No(other_pipeline_id) => pipeline_id == other_pipeline_id,
-                    _ => false,
-                }
+            NeedsToReload::No(pipeline_id) => match *other {
+                NeedsToReload::No(other_pipeline_id) => pipeline_id == other_pipeline_id,
+                _ => false,
             },
-            NeedsToReload::Yes(pipeline_id, _) => {
-                match *other {
-                    NeedsToReload::Yes(other_pipeline_id, _) => pipeline_id == other_pipeline_id,
-                    _ => false,
-                }
-            }
+            NeedsToReload::Yes(pipeline_id, _) => match *other {
+                NeedsToReload::Yes(other_pipeline_id, _) => pipeline_id == other_pipeline_id,
+                _ => false,
+            },
         }
     }
 }
-
 
 /// Represents a the difference between two adjacent session history entries.
 #[derive(Debug)]
@@ -185,11 +195,11 @@ impl SessionHistoryDiff {
     /// Returns the old pipeline id if that pipeline is still alive, otherwise returns `None`
     pub fn alive_old_pipeline(&self) -> Option<PipelineId> {
         match *self {
-            SessionHistoryDiff::BrowsingContextDiff { ref old_reloader, .. } => {
-                match *old_reloader {
-                    NeedsToReload::No(pipeline_id) => Some(pipeline_id),
-                    NeedsToReload::Yes(..) => None,
-                }
+            SessionHistoryDiff::BrowsingContextDiff {
+                ref old_reloader, ..
+            } => match *old_reloader {
+                NeedsToReload::No(pipeline_id) => Some(pipeline_id),
+                NeedsToReload::Yes(..) => None,
             },
             _ => None,
         }
@@ -198,20 +208,28 @@ impl SessionHistoryDiff {
     /// Returns the new pipeline id if that pipeline is still alive, otherwise returns `None`
     pub fn alive_new_pipeline(&self) -> Option<PipelineId> {
         match *self {
-            SessionHistoryDiff::BrowsingContextDiff { ref new_reloader, .. } => {
-                match *new_reloader {
-                    NeedsToReload::No(pipeline_id) => Some(pipeline_id),
-                    NeedsToReload::Yes(..) => None,
-                }
+            SessionHistoryDiff::BrowsingContextDiff {
+                ref new_reloader, ..
+            } => match *new_reloader {
+                NeedsToReload::No(pipeline_id) => Some(pipeline_id),
+                NeedsToReload::Yes(..) => None,
             },
             _ => None,
         }
     }
 
     /// Replaces all occurances of the replaced pipeline with a new pipeline
-    pub fn replace_reloader(&mut self, replaced_reloader: &NeedsToReload, reloader: &NeedsToReload) {
+    pub fn replace_reloader(
+        &mut self,
+        replaced_reloader: &NeedsToReload,
+        reloader: &NeedsToReload,
+    ) {
         match *self {
-            SessionHistoryDiff::BrowsingContextDiff { ref mut old_reloader, ref mut new_reloader, .. } => {
+            SessionHistoryDiff::BrowsingContextDiff {
+                ref mut old_reloader,
+                ref mut new_reloader,
+                ..
+            } => {
                 if *old_reloader == *replaced_reloader {
                     *old_reloader = reloader.clone();
                 }
@@ -219,12 +237,18 @@ impl SessionHistoryDiff {
                     *new_reloader = reloader.clone();
                 }
             },
-            SessionHistoryDiff::PipelineDiff { ref mut pipeline_reloader, .. } => {
+            SessionHistoryDiff::PipelineDiff {
+                ref mut pipeline_reloader,
+                ..
+            } => {
                 if *pipeline_reloader == *replaced_reloader {
                     *pipeline_reloader = reloader.clone();
                 }
             },
-            SessionHistoryDiff::HashDiff { ref mut pipeline_reloader, .. } => {
+            SessionHistoryDiff::HashDiff {
+                ref mut pipeline_reloader,
+                ..
+            } => {
                 if *pipeline_reloader == *replaced_reloader {
                     *pipeline_reloader = reloader.clone();
                 }

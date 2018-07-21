@@ -190,23 +190,21 @@ impl Pipeline {
     /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
     pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, Error>
-        where LTF: LayoutThreadFactory<Message=Message>,
-              STF: ScriptThreadFactory<Message=Message>
+    where
+        LTF: LayoutThreadFactory<Message = Message>,
+        STF: ScriptThreadFactory<Message = Message>,
     {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
-        let (pipeline_chan, pipeline_port) = ipc::channel()
-            .expect("Pipeline main chan");
+        let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
 
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
         let device_pixel_ratio = state.device_pixel_ratio;
-        let window_size = state.window_size.map(|size| {
-            WindowSizeData {
-                initial_viewport: size,
-                device_pixel_ratio: device_pixel_ratio,
-            }
+        let window_size = state.window_size.map(|size| WindowSizeData {
+            initial_viewport: size,
+            device_pixel_ratio: device_pixel_ratio,
         });
 
         let url = state.load_data.url.clone();
@@ -221,31 +219,42 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     window_size: window_size,
                     pipeline_port: pipeline_port,
-                    content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
+                    content_process_shutdown_chan: Some(
+                        layout_content_process_shutdown_chan.clone(),
+                    ),
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
-                if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
+                if let Err(e) =
+                    script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info))
+                {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
                 script_chan
-            }
+            },
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
 
                 // Route messages coming from content to devtools as appropriate.
                 let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
-                    let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
-                        .expect("Pipeline script to devtools chan");
+                    let (script_to_devtools_chan, script_to_devtools_port) =
+                        ipc::channel().expect("Pipeline script to devtools chan");
                     let devtools_chan = (*devtools_chan).clone();
-                    ROUTER.add_route(script_to_devtools_port.to_opaque(), Box::new(move |message| {
-                        match message.to::<ScriptToDevtoolsControlMsg>() {
-                            Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
-                            Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
-                                warn!("Sending to devtools failed ({})", e)
+                    ROUTER.add_route(
+                        script_to_devtools_port.to_opaque(),
+                        Box::new(
+                            move |message| match message.to::<ScriptToDevtoolsControlMsg>() {
+                                Err(e) => {
+                                    error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e)
+                                },
+                                Ok(message) => if let Err(e) =
+                                    devtools_chan.send(DevtoolsControlMsg::FromScript(message))
+                                {
+                                    warn!("Sending to devtools failed ({})", e)
+                                },
                             },
-                        }
-                    }));
+                        ),
+                    );
                     script_to_devtools_chan
                 });
 
@@ -295,36 +304,39 @@ impl Pipeline {
                 }
 
                 EventLoop::new(script_chan)
-            }
+            },
         };
 
-        Ok(Pipeline::new(state.id,
-                         state.browsing_context_id,
-                         state.top_level_browsing_context_id,
-                         state.parent_info,
-                         script_chan,
-                         pipeline_chan,
-                         state.compositor_proxy,
-                         state.is_private,
-                         url,
-                         state.prev_visibility.unwrap_or(true),
-                         state.load_data))
+        Ok(Pipeline::new(
+            state.id,
+            state.browsing_context_id,
+            state.top_level_browsing_context_id,
+            state.parent_info,
+            script_chan,
+            pipeline_chan,
+            state.compositor_proxy,
+            state.is_private,
+            url,
+            state.prev_visibility.unwrap_or(true),
+            state.load_data,
+        ))
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been
     /// spawned.
-    pub fn new(id: PipelineId,
-               browsing_context_id: BrowsingContextId,
-               top_level_browsing_context_id: TopLevelBrowsingContextId,
-               parent_info: Option<PipelineId>,
-               event_loop: Rc<EventLoop>,
-               layout_chan: IpcSender<LayoutControlMsg>,
-               compositor_proxy: CompositorProxy,
-               is_private: bool,
-               url: ServoUrl,
-               visible: bool,
-               load_data: LoadData)
-               -> Pipeline {
+    pub fn new(
+        id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        top_level_browsing_context_id: TopLevelBrowsingContextId,
+        parent_info: Option<PipelineId>,
+        event_loop: Rc<EventLoop>,
+        layout_chan: IpcSender<LayoutControlMsg>,
+        compositor_proxy: CompositorProxy,
+        is_private: bool,
+        url: ServoUrl,
+        visible: bool,
+        load_data: LoadData,
+    ) -> Pipeline {
         let pipeline = Pipeline {
             id: id,
             browsing_context_id: browsing_context_id,
@@ -334,7 +346,7 @@ impl Pipeline {
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
             url: url,
-            children: vec!(),
+            children: vec![],
             running_animations: false,
             visible: visible,
             is_private: is_private,
@@ -359,7 +371,8 @@ impl Pipeline {
         // It's OK for the constellation to block on the compositor,
         // since the compositor never blocks on the constellation.
         if let Ok((sender, receiver)) = ipc::channel() {
-            self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id, sender));
+            self.compositor_proxy
+                .send(CompositorMsg::PipelineExited(self.id, sender));
             if let Err(e) = receiver.recv() {
                 warn!("Sending exit message failed ({}).", e);
             }
@@ -410,15 +423,25 @@ impl Pipeline {
 
     /// Remove a child browsing context.
     pub fn remove_child(&mut self, browsing_context_id: BrowsingContextId) {
-        match self.children.iter().position(|id| *id == browsing_context_id) {
-            None => return warn!("Pipeline remove child already removed ({:?}).", browsing_context_id),
+        match self
+            .children
+            .iter()
+            .position(|id| *id == browsing_context_id)
+        {
+            None => {
+                return warn!(
+                    "Pipeline remove child already removed ({:?}).",
+                    browsing_context_id
+                )
+            },
             Some(index) => self.children.remove(index),
         };
     }
 
     /// Notify the script thread that this pipeline is visible.
     fn notify_visibility(&self) {
-        let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible);
+        let script_msg =
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible);
         let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, self.visible);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
@@ -435,7 +458,6 @@ impl Pipeline {
         self.visible = visible;
         self.notify_visibility();
     }
-
 }
 
 /// Creating a new pipeline may require creating a new event loop.
@@ -477,57 +499,69 @@ pub struct UnprivilegedPipelineContent {
 
 impl UnprivilegedPipelineContent {
     pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
-        where LTF: LayoutThreadFactory<Message=Message>,
-              STF: ScriptThreadFactory<Message=Message>
+    where
+        LTF: LayoutThreadFactory<Message = Message>,
+        STF: ScriptThreadFactory<Message = Message>,
     {
         let image_cache = Arc::new(ImageCacheImpl::new(self.webrender_api_sender.create_api()));
-        let paint_time_metrics = PaintTimeMetrics::new(self.id,
-                                                       self.time_profiler_chan.clone(),
-                                                       self.layout_to_constellation_chan.clone(),
-                                                       self.script_chan.clone(),
-                                                       self.load_data.url.clone());
-        let layout_pair = STF::create(InitialScriptState {
-            id: self.id,
-            browsing_context_id: self.browsing_context_id,
-            top_level_browsing_context_id: self.top_level_browsing_context_id,
-            parent_info: self.parent_info,
-            control_chan: self.script_chan.clone(),
-            control_port: self.script_port,
-            script_to_constellation_chan: self.script_to_constellation_chan.clone(),
-            layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
-            scheduler_chan: self.scheduler_chan,
-            bluetooth_thread: self.bluetooth_thread,
-            resource_threads: self.resource_threads,
-            image_cache: image_cache.clone(),
-            time_profiler_chan: self.time_profiler_chan.clone(),
-            mem_profiler_chan: self.mem_profiler_chan.clone(),
-            devtools_chan: self.devtools_chan,
-            window_size: self.window_size,
-            pipeline_namespace_id: self.pipeline_namespace_id,
-            content_process_shutdown_chan: self.script_content_process_shutdown_chan,
-            webgl_chan: self.webgl_chan,
-            webvr_chan: self.webvr_chan,
-            webrender_document: self.webrender_document,
-        }, self.load_data.clone());
+        let paint_time_metrics = PaintTimeMetrics::new(
+            self.id,
+            self.time_profiler_chan.clone(),
+            self.layout_to_constellation_chan.clone(),
+            self.script_chan.clone(),
+            self.load_data.url.clone(),
+        );
+        let layout_pair = STF::create(
+            InitialScriptState {
+                id: self.id,
+                browsing_context_id: self.browsing_context_id,
+                top_level_browsing_context_id: self.top_level_browsing_context_id,
+                parent_info: self.parent_info,
+                control_chan: self.script_chan.clone(),
+                control_port: self.script_port,
+                script_to_constellation_chan: self.script_to_constellation_chan.clone(),
+                layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
+                scheduler_chan: self.scheduler_chan,
+                bluetooth_thread: self.bluetooth_thread,
+                resource_threads: self.resource_threads,
+                image_cache: image_cache.clone(),
+                time_profiler_chan: self.time_profiler_chan.clone(),
+                mem_profiler_chan: self.mem_profiler_chan.clone(),
+                devtools_chan: self.devtools_chan,
+                window_size: self.window_size,
+                pipeline_namespace_id: self.pipeline_namespace_id,
+                content_process_shutdown_chan: self.script_content_process_shutdown_chan,
+                webgl_chan: self.webgl_chan,
+                webvr_chan: self.webvr_chan,
+                webrender_document: self.webrender_document,
+            },
+            self.load_data.clone(),
+        );
 
-        LTF::create(self.id,
-                    self.top_level_browsing_context_id,
-                    self.load_data.url,
-                    self.parent_info.is_some(),
-                    layout_pair,
-                    self.pipeline_port,
-                    self.layout_to_constellation_chan,
-                    self.script_chan,
-                    image_cache.clone(),
-                    self.font_cache_thread,
-                    self.time_profiler_chan,
-                    self.mem_profiler_chan,
-                    Some(self.layout_content_process_shutdown_chan),
-                    self.webrender_api_sender,
-                    self.webrender_document,
-                    self.prefs.get("layout.threads").expect("exists").value()
-                        .as_u64().expect("count") as usize,
-                    paint_time_metrics);
+        LTF::create(
+            self.id,
+            self.top_level_browsing_context_id,
+            self.load_data.url,
+            self.parent_info.is_some(),
+            layout_pair,
+            self.pipeline_port,
+            self.layout_to_constellation_chan,
+            self.script_chan,
+            image_cache.clone(),
+            self.font_cache_thread,
+            self.time_profiler_chan,
+            self.mem_profiler_chan,
+            Some(self.layout_content_process_shutdown_chan),
+            self.webrender_api_sender,
+            self.webrender_document,
+            self.prefs
+                .get("layout.threads")
+                .expect("exists")
+                .value()
+                .as_u64()
+                .expect("count") as usize,
+            paint_time_metrics,
+        );
 
         if wait_for_completion {
             let _ = self.script_content_process_shutdown_port.recv();
@@ -543,12 +577,17 @@ impl UnprivilegedPipelineContent {
 
         impl CommandMethods for sandbox::Command {
             fn arg<T>(&mut self, arg: T)
-                where T: AsRef<OsStr> {
+            where
+                T: AsRef<OsStr>,
+            {
                 self.arg(arg);
             }
 
             fn env<T, U>(&mut self, key: T, val: U)
-                where T: AsRef<OsStr>, U: AsRef<OsStr> {
+            where
+                T: AsRef<OsStr>,
+                U: AsRef<OsStr>,
+            {
                 self.env(key, val);
             }
         }
@@ -556,8 +595,7 @@ impl UnprivilegedPipelineContent {
         // Note that this function can panic, due to process creation,
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
-        let (server, token) =
-            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
+        let (server, token) = IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
             .expect("Failed to create IPC one-shot server.");
 
         // If there is a sandbox, use the `gaol` API to create the child process.
@@ -570,11 +608,12 @@ impl UnprivilegedPipelineContent {
                 .start(&mut command)
                 .expect("Failed to start sandboxed child process!");
         } else {
-            let path_to_self = env::current_exe()
-                .expect("Failed to get current executor.");
+            let path_to_self = env::current_exe().expect("Failed to get current executor.");
             let mut child_process = process::Command::new(path_to_self);
             self.setup_common(&mut child_process, token);
-            let _ = child_process.spawn().expect("Failed to start unsandboxed child process!");
+            let _ = child_process
+                .spawn()
+                .expect("Failed to start unsandboxed child process!");
         }
 
         let (_receiver, sender) = server.accept().expect("Server failed to accept.");
@@ -618,7 +657,7 @@ impl UnprivilegedPipelineContent {
     pub fn swmanager_senders(&self) -> SWManagerSenders {
         SWManagerSenders {
             swmanager_sender: self.swmanager_thread.clone(),
-            resource_sender: self.resource_threads.sender()
+            resource_sender: self.resource_threads.sender(),
         }
     }
 }
@@ -627,21 +666,29 @@ impl UnprivilegedPipelineContent {
 trait CommandMethods {
     /// A command line argument.
     fn arg<T>(&mut self, arg: T)
-        where T: AsRef<OsStr>;
+    where
+        T: AsRef<OsStr>;
 
     /// An environment variable.
     fn env<T, U>(&mut self, key: T, val: U)
-        where T: AsRef<OsStr>, U: AsRef<OsStr>;
+    where
+        T: AsRef<OsStr>,
+        U: AsRef<OsStr>;
 }
 
 impl CommandMethods for process::Command {
     fn arg<T>(&mut self, arg: T)
-        where T: AsRef<OsStr> {
+    where
+        T: AsRef<OsStr>,
+    {
         self.arg(arg);
     }
 
     fn env<T, U>(&mut self, key: T, val: U)
-        where T: AsRef<OsStr>, U: AsRef<OsStr> {
+    where
+        T: AsRef<OsStr>,
+        U: AsRef<OsStr>,
+    {
         self.env(key, val);
     }
 }
