@@ -1068,6 +1068,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::LoadComplete => {
                 self.handle_load_complete_msg(source_top_ctx_id, source_pipeline_id)
             }
+            // Handle navigating to a fragment
+            FromScriptMsg::NavigatedToFragment(new_url, replacement_enabled) => {
+                self.handle_navigated_to_fragment(source_pipeline_id, new_url, replacement_enabled);
+            }
             // Handle a forward or back request
             FromScriptMsg::TraverseHistory(direction) => {
                 self.handle_traverse_history_msg(source_top_ctx_id, direction);
@@ -1858,6 +1862,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.handle_subframe_loaded(pipeline_id);
     }
 
+    fn handle_navigated_to_fragment(&mut self, pipeline_id: PipelineId, new_url: ServoUrl, replacement_enabled: bool) {
+        let (top_level_browsing_context_id, old_url) = match self.pipelines.get_mut(&pipeline_id) {
+            Some(pipeline) => {
+                let old_url = replace(&mut pipeline.url, new_url.clone());
+                (pipeline.top_level_browsing_context_id, old_url)
+            }
+            None => return warn!("Pipeline {} navigated to fragment after closure", pipeline_id),
+        };
+
+        if !replacement_enabled {
+            let diff = SessionHistoryDiff::HashDiff {
+                pipeline_reloader: NeedsToReload::No(pipeline_id),
+                new_url,
+                old_url,
+            };
+            self.get_joint_session_history(top_level_browsing_context_id).push_diff(diff);
+            self.notify_history_changed(top_level_browsing_context_id);
+        }
+    }
+
     fn handle_traverse_history_msg(&mut self,
                                    top_level_browsing_context_id: TopLevelBrowsingContextId,
                                    direction: TraversalDirection)
@@ -1879,7 +1903,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         match diff {
                             SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, ref new_reloader, .. } => {
                                 browsing_context_changes.insert(browsing_context_id, new_reloader.clone());
-                            }
+                            },
                             SessionHistoryDiff::PipelineDiff {
                                 ref pipeline_reloader,
                                 new_history_state_id,
@@ -1888,10 +1912,23 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             } => match *pipeline_reloader {
                                 NeedsToReload::No(pipeline_id) => {
                                     pipeline_changes.insert(pipeline_id, (Some(new_history_state_id), new_url.clone()));
-                                }
+                                },
                                 NeedsToReload::Yes(pipeline_id, ..) => {
                                     url_to_load.insert(pipeline_id, new_url.clone());
-                                }
+                                },
+                            },
+                            SessionHistoryDiff::HashDiff {
+                                ref pipeline_reloader,
+                                ref new_url,
+                                ..
+                            } => match *pipeline_reloader {
+                                NeedsToReload::No(pipeline_id) => {
+                                    let state = pipeline_changes.get(&pipeline_id).and_then(|change| change.0);
+                                    pipeline_changes.insert(pipeline_id, (state, new_url.clone()));
+                                },
+                                NeedsToReload::Yes(pipeline_id, ..) => {
+                                    url_to_load.insert(pipeline_id, new_url.clone());
+                                },
                             },
                         }
                         session_history.past.push(diff);
@@ -1917,10 +1954,23 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             } => match *pipeline_reloader {
                                 NeedsToReload::No(pipeline_id) => {
                                     pipeline_changes.insert(pipeline_id, (old_history_state_id, old_url.clone()));
-                                }
+                                },
                                 NeedsToReload::Yes(pipeline_id, ..) => {
                                     url_to_load.insert(pipeline_id, old_url.clone());
-                                }
+                                },
+                            },
+                            SessionHistoryDiff::HashDiff {
+                                ref pipeline_reloader,
+                                ref old_url,
+                                ..
+                            } => match *pipeline_reloader {
+                                NeedsToReload::No(pipeline_id) => {
+                                    let state = pipeline_changes.get(&pipeline_id).and_then(|change| change.0);
+                                    pipeline_changes.insert(pipeline_id, (state, old_url.clone()));
+                                },
+                                NeedsToReload::Yes(pipeline_id, ..) => {
+                                    url_to_load.insert(pipeline_id, old_url.clone());
+                                },
                             },
                         }
                         session_history.future.push(diff);
@@ -2059,7 +2109,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Push history state {} for closed pipeline {}", history_state_id, pipeline_id),
         };
 
-        let session_history = self.get_joint_session_history(top_level_browsing_context_id);
         let diff = SessionHistoryDiff::PipelineDiff {
             pipeline_reloader: NeedsToReload::No(pipeline_id),
             new_history_state_id: history_state_id,
@@ -2067,7 +2116,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             old_history_state_id: old_state_id,
             old_url: old_url,
         };
-        session_history.push_diff(diff);
+        self.get_joint_session_history(top_level_browsing_context_id).push_diff(diff);
+        self.notify_history_changed(top_level_browsing_context_id);
     }
 
     fn handle_replace_history_state_msg(
@@ -2372,7 +2422,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         Some(previous_load_data.clone())
                     }
                 },
-                SessionHistoryDiff::PipelineDiff { .. } => Some(previous_load_data.clone()),
+                _ => Some(previous_load_data.clone()),
             }
         };
 
@@ -2393,7 +2443,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         Some(previous_load_data.clone())
                     }
                 },
-                SessionHistoryDiff::PipelineDiff { .. } => Some(previous_load_data.clone()),
+                _ => Some(previous_load_data.clone()),
             }
         };
 
@@ -2496,13 +2546,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                 if let Some(pipeline_id) = new_reloader.alive_pipeline_id() {
                                     pipelines_to_close.push(pipeline_id);
                                 }
-                            }
+                            },
                             SessionHistoryDiff::PipelineDiff { pipeline_reloader, new_history_state_id, .. } => {
                                 if let Some(pipeline_id) = pipeline_reloader.alive_pipeline_id() {
                                     let states = states_to_close.entry(pipeline_id).or_insert(Vec::new());
                                     states.push(new_history_state_id);
                                 }
-                            }
+                            },
+                            _ => {},
                         }
                     }
 

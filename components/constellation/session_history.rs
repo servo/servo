@@ -70,7 +70,7 @@ impl JointSessionHistory {
                 SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. } => {
                     *browsing_context_id != context_id
                 },
-                SessionHistoryDiff::PipelineDiff { .. } => true,
+                _ => true,
             }
         });
         self.future.retain(|diff| {
@@ -78,7 +78,7 @@ impl JointSessionHistory {
                 SessionHistoryDiff::BrowsingContextDiff { browsing_context_id, .. } => {
                     *browsing_context_id != context_id
                 },
-                SessionHistoryDiff::PipelineDiff { .. } => true,
+                _ => true,
             }
         });
     }
@@ -174,6 +174,11 @@ pub enum SessionHistoryDiff {
         /// The new url
         new_url: ServoUrl,
     },
+    HashDiff {
+        pipeline_reloader: NeedsToReload,
+        old_url: ServoUrl,
+        new_url: ServoUrl,
+    },
 }
 
 impl SessionHistoryDiff {
@@ -186,7 +191,7 @@ impl SessionHistoryDiff {
                     NeedsToReload::Yes(..) => None,
                 }
             },
-            SessionHistoryDiff::PipelineDiff { .. } => None,
+            _ => None,
         }
     }
 
@@ -199,7 +204,7 @@ impl SessionHistoryDiff {
                     NeedsToReload::Yes(..) => None,
                 }
             },
-            SessionHistoryDiff::PipelineDiff { .. } => None,
+            _ => None,
         }
     }
 
@@ -213,12 +218,17 @@ impl SessionHistoryDiff {
                 if *new_reloader == *replaced_reloader {
                     *new_reloader = reloader.clone();
                 }
-            }
+            },
             SessionHistoryDiff::PipelineDiff { ref mut pipeline_reloader, .. } => {
                 if *pipeline_reloader == *replaced_reloader {
                     *pipeline_reloader = reloader.clone();
                 }
-            }
+            },
+            SessionHistoryDiff::HashDiff { ref mut pipeline_reloader, .. } => {
+                if *pipeline_reloader == *replaced_reloader {
+                    *pipeline_reloader = reloader.clone();
+                }
+            },
         }
     }
 }
