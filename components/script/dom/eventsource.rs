@@ -393,7 +393,13 @@ impl FetchResponseListener for EventSourceContext {
         self.reestablish_the_connection();
     }
 
-    fn process_response_done(&mut self, _aborted:bool) {}
+    fn process_response_done(&mut self, aborted:bool) {
+        if aborted {
+            // https://html.spec.whatwg.org/multipage/
+            // server-sent-events.html#sse-processing-model:fail-the-connection
+            self.fail_the_connection();
+        }
+    }
 }
 
 impl PreInvoke for EventSourceContext {
