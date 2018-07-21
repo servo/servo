@@ -795,17 +795,17 @@ impl HTMLImageElement {
         let mut selected_source = None;
         let mut pixel_density = None;
         let src_set = elem.get_string_attribute(&local_name!("srcset"));
-        let is_parent_picture = elem.upcast::<Node>().GetParentElement().unwrap().is::<HTMLPictureElement>();
-        if src_set.is_empty() && !is_parent_picture &&  !src.is_empty() {
+        let is_parent_picture = elem.upcast::<Node>().GetParentElement().map_or(false, |p| p.is::<HTMLPictureElement>());
+        if src_set.is_empty() && !is_parent_picture && !src.is_empty() {
             selected_source = Some(src.clone());
             pixel_density = Some(1 as f64);
         };
 
-        //Step 5
+        // Step 5
         *self.last_selected_source.borrow_mut() = selected_source.clone();
 
         // Step 6, check the list of available images
-        if !selected_source.unwrap().is_empty() {
+        if !selected_source.as_ref().map_or(false, |source| source.is_empty()) {
             if let Ok(img_url) = base_url.join(&src) {
                 let image_cache = window.image_cache();
                 let response = image_cache.find_image_or_metadata(img_url.clone().into(),
@@ -822,7 +822,7 @@ impl HTMLImageElement {
                     current_request.image = Some(image.clone());
                     current_request.metadata = Some(metadata);
                     // Step 6.3.6
-                    (*current_request).current_pixel_density = pixel_density;
+                    current_request.current_pixel_density = pixel_density;
                     let this = Trusted::new(self);
                     let src = String::from(src);
                     let _ = window.dom_manipulation_task_source().queue(
