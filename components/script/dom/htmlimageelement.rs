@@ -714,7 +714,12 @@ impl HTMLImageElement {
                             current_request.source_url = None;
                             current_request.parsed_url = None;
                         }
-                        if this.upcast::<Element>().has_attribute(&local_name!("src")) {
+                        let elem = this.upcast::<Element>();
+                        let src_present = elem.has_attribute(&local_name!("src"));
+                        let srcset_present = elem.has_attribute(&local_name!("srcset"));
+                        let is_parent_picture = elem.upcast::<Node>().GetParentElement()
+                                                .map_or(false, |p| p.is::<HTMLPictureElement>());
+                        if src_present || srcset_present || is_parent_picture {
                             this.upcast::<EventTarget>().fire_event(atom!("error"));
                         }
                         // FIXME(nox): According to the spec, setting the current
