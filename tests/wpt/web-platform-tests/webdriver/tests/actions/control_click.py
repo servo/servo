@@ -18,7 +18,7 @@ def test_control_click(session, test_actions_page, key_chain, mouse_chain, modif
     outer = session.find.css("#outer", all=False)
     mouse_chain.click(element=outer)
     session.actions.perform([key_chain.dict, mouse_chain.dict])
-    if os == "windows_nt":
+    if os == "windows":
         expected = [
             {"type": "mousemove"},
             {"type": "mousedown"},

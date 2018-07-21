@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Test request Picture-in-Picture on two videos</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/picture-in-picture-helpers.js"></script>
+<body></body>
+<script>
+promise_test(async t => {
+  const video1 = await loadVideo();
+  const video2 = await loadVideo();
+  return test_driver.bless(
+    'request picture in picture',
+    async () => {
+      await video1.requestPictureInPicture();
+      promise_rejects(t, 'NotAllowedError', video2.requestPictureInPicture());
+    }
+  );
+}, 'request Picture-in-Picture consumes user gesture');
+</script>

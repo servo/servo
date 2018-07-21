@@ -162,7 +162,6 @@
       'Expect receiver.track to be instance of MediaStreamTrack');
 
     assert_equals(track.kind, 'audio');
-    assert_equals(track.label, 'remote audio');
     assert_equals(track.readyState, 'live');
     assert_equals(track.muted, true);
 
@@ -207,7 +206,6 @@
       'Expect receiver.track to be instance of MediaStreamTrack');
 
     assert_equals(track.kind, 'video');
-    assert_equals(track.label, 'remote video');
     assert_equals(track.readyState, 'live');
     assert_equals(track.muted, true);
 
@@ -270,7 +268,6 @@
     assert_equals(receiverTrack.kind, 'audio',
       `receiver.track should have the same kind as added track's kind`);
 
-    assert_equals(receiverTrack.label, 'remote audio');
     assert_equals(receiverTrack.readyState, 'live');
     assert_equals(receiverTrack.muted, true);
 
