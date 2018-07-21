@@ -5379,21 +5379,21 @@ clip-path
 
     #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
-        use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
+        use gecko_bindings::structs::{nsStyleColumn_kColumnCountAuto, nsStyleColumn_kMaxColumnCount};
 
         self.gecko.mColumnCount = match v {
             ColumnCount::Integer(integer) => {
                 cmp::min(integer.0 as u32, unsafe { nsStyleColumn_kMaxColumnCount })
             },
-            ColumnCount::Auto => NS_STYLE_COLUMN_COUNT_AUTO
+            ColumnCount::Auto => nsStyleColumn_kColumnCountAuto
         };
     }
 
     ${impl_simple_copy('column_count', 'mColumnCount')}
 
     pub fn clone_column_count(&self) -> longhands::column_count::computed_value::T {
-        use gecko_bindings::structs::{NS_STYLE_COLUMN_COUNT_AUTO, nsStyleColumn_kMaxColumnCount};
-        if self.gecko.mColumnCount != NS_STYLE_COLUMN_COUNT_AUTO {
+        use gecko_bindings::structs::{nsStyleColumn_kColumnCountAuto, nsStyleColumn_kMaxColumnCount};
+        if self.gecko.mColumnCount != nsStyleColumn_kColumnCountAuto {
             debug_assert!(self.gecko.mColumnCount >= 1 &&
                           self.gecko.mColumnCount <= nsStyleColumn_kMaxColumnCount);
             ColumnCount::Integer((self.gecko.mColumnCount as i32).into())
