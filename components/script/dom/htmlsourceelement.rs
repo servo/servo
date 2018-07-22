@@ -2,16 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
+use dom::bindings::root::{Dom, Root};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
+use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmediaelement::HTMLMediaElement;
-use dom::node::Node;
+use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -46,11 +50,31 @@ impl HTMLSourceElement {
             HTMLSourceElementBinding::Wrap,
         )
     }
+
+    fn iterate_next_html_image_element_siblings(next_siblings_iterator: impl Iterator<Item=Root<Dom<Node>>>) {
+        for next_sibling in next_siblings_iterator {
+            if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+                html_image_element_sibling.update_the_image_data();
+            }
+        }
+    }
 }
 
 impl VirtualMethods for HTMLSourceElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match attr.local_name() {
+            &local_name!("srcset") | &local_name!("sizes")  |
+            &local_name!("media") | &local_name!("type") => {
+                let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+                HTMLSourceElement::iterate_next_html_image_element_siblings(next_sibling_iterator);
+            },
+            _ => {},
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
@@ -59,6 +83,16 @@ impl VirtualMethods for HTMLSourceElement {
         let parent = self.upcast::<Node>().GetParentNode().unwrap();
         if let Some(media) = parent.downcast::<HTMLMediaElement>() {
             media.handle_source_child_insertion();
+        }
+        let next_sibling_iterator = self.upcast::<Node>().following_siblings();
+        HTMLSourceElement::iterate_next_html_image_element_siblings(next_sibling_iterator);
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        if let Some(next_sibling) = context.next_sibling {
+            let next_sibling_iterator = next_sibling.inclusively_following_siblings();
+            HTMLSourceElement::iterate_next_html_image_element_siblings(next_sibling_iterator);
         }
     }
 }
