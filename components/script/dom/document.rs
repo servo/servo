@@ -392,6 +392,8 @@ pub struct Document {
     salvageable: Cell<bool>,
     /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
+    /// List of responsive images
+    responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2221,6 +2223,22 @@ impl Document {
         let counter = self.throw_on_dynamic_markup_insertion_counter.get();
         self.throw_on_dynamic_markup_insertion_counter.set(counter - 1);
     }
+
+    pub fn react_to_environment_changes(&self) {
+        for image in self.responsive_images.borrow().iter() {
+            image.react_to_environment_changes();
+        }
+    }
+
+    pub fn register_responsive_image(&self, img: &HTMLImageElement) {
+        self.responsive_images.borrow_mut().push(Dom::from_ref(img));
+    }
+
+    pub fn unregister_responsive_image(&self, img: &HTMLImageElement) {
+        if let Some(index) = self.responsive_images.borrow().iter().position(|x| **x == *img) {
+            self.responsive_images.borrow_mut().remove(index);
+        }
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -2465,7 +2483,8 @@ impl Document {
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
-            fired_unload: Cell::new(false)
+            fired_unload: Cell::new(false),
+            responsive_images: Default::default()
         }
     }
 
