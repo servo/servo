@@ -120,19 +120,7 @@ impl EventSourceContext {
         if self.gen_id != event_source.generation_id.get() {
             return;
         }
-        let global = event_source.global();
-        let event_source = self.event_source.clone();
-        // FIXME(nox): Why are errors silenced here?
-        let _ = global.remote_event_task_source().queue(
-            task!(fail_the_event_source_connection: move || {
-                let event_source = event_source.root();
-                if event_source.ready_state.get() != ReadyState::Closed {
-                    event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
-                }
-            }),
-            &global,
-        );
+        event_source.fail_the_connection();
     }
 
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
@@ -392,14 +380,6 @@ impl FetchResponseListener for EventSourceContext {
         }
         self.reestablish_the_connection();
     }
-
-    fn process_response_done(&mut self, aborted: bool) {
-        if aborted {
-            // https://html.spec.whatwg.org/multipage/
-            // #sse-processing-model:fail-the-connection-3
-            self.fail_the_connection();
-        }
-    }
 }
 
 impl PreInvoke for EventSourceContext {
@@ -428,6 +408,29 @@ impl EventSource {
         reflect_dom_object(Box::new(EventSource::new_inherited(url, with_credentials)),
                            global,
                            Wrap)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
+    pub fn cancel(&self) {
+        self.canceller.borrow_mut().cancel();
+        self.fail_the_connection();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#fail-the-connection>
+    pub fn fail_the_connection(&self) {
+        let global = self.global();
+        let event_source = Trusted::new(self);
+        // FIXME(nox): Why are errors silenced here?
+        let _ = global.remote_event_task_source().queue(
+            task!(fail_the_event_source_connection: move || {
+                let event_source = event_source.root();
+                if event_source.ready_state.get() != ReadyState::Closed {
+                    event_source.ready_state.set(ReadyState::Closed);
+                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                }
+            }),
+            &global,
+        );
     }
 
     pub fn request(&self) -> RequestInit {

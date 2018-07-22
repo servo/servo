@@ -178,10 +178,12 @@ impl GlobalScope {
     }
 
     pub fn track_event_source(&self, event_source: &EventSource) {
+        println!("tracking ev");
         self.event_sources.borrow_mut().push(DomRoot::from_ref(event_source));
     }
 
     pub fn close_event_sources(&self) -> bool {
+        println!("tracking ev");
         let mut canceled_any_fetch = false;
         let mut event_sources = self.event_sources.borrow_mut();
         // Draining, because no need to keep a ref to closed ones.
@@ -190,6 +192,7 @@ impl GlobalScope {
             match event_source.ReadyState() {
                 2 => {},
                 _ => {
+                    event_source.cancel();
                     canceled_any_fetch = true;
                 }
             }
