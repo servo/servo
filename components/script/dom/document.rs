@@ -3927,7 +3927,7 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        if self.get_current_parser().map_or(false, |parser| parser.script_nesting_level() > 0) {
+        if self.get_current_parser().map_or(false, |parser| parser.is_active()) {
             // Step 5.
             return Ok(DomRoot::from_ref(self));
         }
