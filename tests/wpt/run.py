@@ -19,15 +19,15 @@ def wpt_path(*args):
 def servo_path(*args):
     return os.path.join(servo_root, *args)
 
+paths = {"include_manifest": wpt_path("include.ini"),
+         "config": wpt_path("config.ini")}
 # Imports
 sys.path.append(wpt_path("web-platform-tests", "tools", "wptrunner"))
 from wptrunner import wptrunner, wptcommandline
 
 
-def run_tests(paths=None, **kwargs):
-    if paths is None:
-        paths = {}
-    set_defaults(paths, kwargs)
+def run_tests(**kwargs):
+    set_defaults(kwargs)
 
     mozlog.commandline.log_formatters["servo"] = \
         (grouping_formatter.GroupingFormatter, "A grouping output formatter")
@@ -47,7 +47,7 @@ def run_tests(paths=None, **kwargs):
     return 0 if success else 1
 
 
-def set_defaults(paths, kwargs):
+def set_defaults(kwargs):
     if kwargs["product"] is None:
         kwargs["product"] = "servo"
 
@@ -75,7 +75,10 @@ def set_defaults(paths, kwargs):
     wptcommandline.check_args(kwargs)
 
 
-def main(paths=None):
+def main():
     parser = wptcommandline.create_parser()
     kwargs = vars(parser.parse_args())
-    return run_tests(paths, **kwargs)
+    return run_tests(**kwargs)
+
+if __name__ == "__main__":
+    sys.exit(0 if main() else 1)
