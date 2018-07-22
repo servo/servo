@@ -385,7 +385,7 @@ class MachCommands(CommandBase):
     def _test_wpt(self, **kwargs):
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
         os.environ["hosts_file_path"] = hosts_file_path
-        run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run_wpt.py"))
+        run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run.py"))
         return self.wptrunner(run_file, **kwargs)
 
     # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.

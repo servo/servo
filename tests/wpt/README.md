@@ -9,8 +9,7 @@ In particular, this folder contains:
 
 * `config.ini`: some configuration for the web-platform-tests.
 * `include.ini`: the subset of web-platform-tests we currently run.
-* `run_wpt.py`: glue code to run the web-platform-tests in Servo.
-* `run.py`: common code used by `run_wpt.py`.
+* `run.py`: run the web-platform-tests in Servo.
 * `web-platform-tests`: copy of the web-platform-tests.
 * `metadata`: expected failures for the web-platform-tests we run.
 * `mozilla`: web-platform-tests that cannot be upstreamed.
@@ -49,7 +48,7 @@ test with `mach test-wpt --release`
 Running the tests without mach
 ------------------------------
 
-When avoiding `mach` for some reason, one can run `run_wpt.py`
+When avoiding `mach` for some reason, one can run `run.py`
 directly. However, this requires that all the dependencies for
 `wptrunner` are avaliable in the current python environment.
 
