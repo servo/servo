@@ -1,0 +1,35 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "CSS Regions Module Level 1" spec.
+// See: https://drafts.csswg.org/css-regions/
+
+partial interface Document {
+  readonly attribute NamedFlowMap namedFlows;
+};
+
+[Exposed=Window,
+ MapClass=(CSSOMString, NamedFlow)] interface NamedFlowMap {
+  NamedFlow? get(CSSOMString flowName);
+  boolean has(CSSOMString flowName);
+  NamedFlowMap set(CSSOMString flowName, NamedFlow flowValue);
+  boolean delete(CSSOMString flowName);
+};
+
+[Exposed=Window]
+interface NamedFlow : EventTarget {
+  readonly attribute CSSOMString name;
+  readonly attribute boolean overset;
+  sequence<Region> getRegions();
+  readonly attribute short firstEmptyRegionIndex;
+  sequence<Node> getContent();
+  sequence<Region> getRegionsByContent(Node node);
+};
+
+[Exposed=Window,
+ NoInterfaceObject]
+interface Region {
+  readonly attribute CSSOMString regionOverset;
+  sequence<Range>? getRegionFlowRanges();
+};
+
+Element implements Region;

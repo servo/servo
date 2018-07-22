@@ -38,7 +38,7 @@
           let nodeOptions = {};
           nodeOptions[attrName] = -1;
           new PannerNode(context, nodeOptions);
-        }, prefix + '-1})').throw('RangeError');
+        }, prefix + '-1})').throw(RangeError);
 
         if (options.isZeroAllowed) {
           should(function() {
@@ -51,7 +51,7 @@
             let nodeOptions = {};
             nodeOptions[attrName] = 0;
             new PannerNode(context, nodeOptions);
-          }, prefix + '0})').throw('RangeError');
+          }, prefix + '0})').throw(RangeError);
         }
 
         // The smallest representable positive single float.
@@ -67,7 +67,7 @@
         panner = new PannerNode(context);
         should(function() {
           panner[attrName] = -1;
-        }, prefix + '-1').throw('RangeError');
+        }, prefix + '-1').throw(RangeError);
 
         if (options.isZeroAllowed) {
           should(function() {
@@ -76,7 +76,7 @@
         } else {
           should(function() {
             panner[attrName] = 0;
-          }, prefix + '0').throw('RangeError');
+          }, prefix + '0').throw(RangeError);
         }
 
         should(function() {

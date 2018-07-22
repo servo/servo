@@ -4,19 +4,17 @@
 // See: https://w3c.github.io/requestidlecallback/
 
 partial interface Window {
-    unsigned long requestIdleCallback(IdleRequestCallback callback,
-                                      optional IdleRequestOptions options);
-    void          cancelIdleCallback(unsigned long handle);
+  unsigned long requestIdleCallback(IdleRequestCallback callback, optional IdleRequestOptions options);
+  void cancelIdleCallback(unsigned long handle);
 };
 
 dictionary IdleRequestOptions {
-    unsigned long timeout;
+  unsigned long timeout;
 };
 
-[Exposed=Window]
-interface IdleDeadline {
-    DOMHighResTimeStamp timeRemaining();
-    readonly attribute boolean didTimeout;
+[Exposed=Window] interface IdleDeadline {
+  DOMHighResTimeStamp timeRemaining();
+  readonly attribute boolean didTimeout;
 };
 
 callback IdleRequestCallback = void (IdleDeadline deadline);
