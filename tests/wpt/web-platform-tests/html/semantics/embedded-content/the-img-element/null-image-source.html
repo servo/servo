@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Loading a null image source with empty src, empty srcset or having parent picture should fire an error</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<img src="">
+<img srcset="">
+<parent><img></parent>
+<script>
+function check(img) {
+    async_test(function(t) {
+        img.onerror = t.step_func(function(e) {
+            assert_equals(e.type, "error", "null image source check failed");
+            t.done();
+        });
+    });
+}
+onload = function() {
+  [].forEach.call(document.querySelectorAll('img'), check);
+  done();
+};
+</script>
