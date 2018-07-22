@@ -190,7 +190,6 @@ impl GlobalScope {
             match event_source.ReadyState() {
                 2 => {},
                 _ => {
-                    event_source.Close();
                     canceled_any_fetch = true;
                 }
             }
