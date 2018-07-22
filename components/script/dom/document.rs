@@ -2030,7 +2030,9 @@ impl Document {
         self.asap_in_order_scripts_list.clear();
         self.deferred_scripts.clear();
         let global_scope = self.window.upcast::<GlobalScope>();
-        if self.loader.borrow_mut().cancel_all_loads() || global_scope.close_event_sources() {
+        let loads_cancelled = self.loader.borrow_mut().cancel_all_loads();
+        let event_sources_canceled = global_scope.close_event_sources();
+        if loads_cancelled || event_sources_canceled {
             // If any loads were canceled.
             self.salvageable.set(false);
         };
