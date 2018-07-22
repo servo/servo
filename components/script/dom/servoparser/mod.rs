@@ -482,6 +482,9 @@ impl ServoParser {
                 self.suspended.set(true);
                 return;
             }
+            if self.aborted.get() {
+                return;
+            }
         }
     }
 
