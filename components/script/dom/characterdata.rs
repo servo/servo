@@ -64,6 +64,7 @@ impl CharacterData {
 
     #[inline]
     pub fn append_data(&self, data: &str) {
+        self.queue_mutation_record();
         self.data.borrow_mut().push_str(data);
         self.content_changed();
     }

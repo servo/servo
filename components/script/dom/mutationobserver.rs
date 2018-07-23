@@ -132,8 +132,8 @@ impl MutationObserver {
                             if *namespace != ns!() {
                                 continue;
                             }
-                            if registered.options.attribute_filter.iter()
-                                .find(|s| &**s == &**name).is_some() {
+                            if !registered.options.attribute_filter.iter()
+                                .any(|s| &**s == &**name) {
                                 continue;
                             }
                         }
@@ -184,7 +184,7 @@ impl MutationObserver {
         }
 
         // Step 4
-        for &(ref observer, ref paired_string) in &interested_observers {
+        for (observer, paired_string) in interested_observers {
             // Steps 4.1-4.7
             let record = match attr_type {
                 Mutation::Attribute { ref name, ref namespace, .. } => {
@@ -193,10 +193,10 @@ impl MutationObserver {
                     } else {
                         None
                     };
-                    MutationRecord::attribute_mutated(target, name, namespace, paired_string.clone())
+                    MutationRecord::attribute_mutated(target, name, namespace, paired_string)
                 },
                 Mutation::CharacterData { .. } => {
-                    MutationRecord::character_data_mutated(target, paired_string.clone())
+                    MutationRecord::character_data_mutated(target, paired_string)
                 }
                 Mutation::ChildList { ref added, ref removed, ref next, ref prev } => {
                     MutationRecord::child_list_mutated(target, *added, *removed, *next, *prev)
