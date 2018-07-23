@@ -1,0 +1,12 @@
+<!doctype html>
+<title>Reference: Inside list marker and normal text render identically: square</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+}
+p::before {
+    content: counter(test, square);
+}
+</style>
+<p> Filler Text

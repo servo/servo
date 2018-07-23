@@ -166,7 +166,7 @@ interface PaymentResponse : EventTarget {
 
 dictionary PaymentValidationErrors {
   PayerErrorFields payer;
-  AddressErrorFields shippingAddress;
+  AddressErrors shippingAddress;
 };
 
 dictionary PayerErrorFields {
