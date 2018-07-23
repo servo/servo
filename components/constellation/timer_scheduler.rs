@@ -75,7 +75,10 @@ impl TimerScheduler {
                         Ok(TimerSchedulerMsg::Request(req)) => {
                             let TimerEventRequest(_, _, _, delay) = req;
                             let schedule = Instant::now() + Duration::from_millis(delay.get());
-                            let event = ScheduledEvent { request: req, for_time: schedule };
+                            let event = ScheduledEvent {
+                                request: req,
+                                for_time: schedule,
+                            };
                             scheduled_events.push(event);
                         },
                         // If there is no incoming event, park the thread,
@@ -86,8 +89,7 @@ impl TimerScheduler {
                             Some(event) => thread::park_timeout(event.for_time - now),
                         },
                         // If the channel is closed or we are shutting down, we are done.
-                        Ok(TimerSchedulerMsg::Exit) |
-                        Err(Disconnected) => break,
+                        Ok(TimerSchedulerMsg::Exit) | Err(Disconnected) => break,
                     }
                 }
                 // This thread can terminate if the req_ipc_sender is dropped.
@@ -109,7 +111,7 @@ impl TimerScheduler {
                     let mut shutting_down = false;
                     match req {
                         TimerSchedulerMsg::Exit => shutting_down = true,
-                        _ => {}
+                        _ => {},
                     }
                     let _ = req_sender.send(req);
                     timeout_thread.unpark();

@@ -34,11 +34,11 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     /// Create a new browsing context.
     /// Note this just creates the browsing context, it doesn't add it to the constellation's set of browsing contexts.
-    pub fn new(id: BrowsingContextId,
-               top_level_id: TopLevelBrowsingContextId,
-               pipeline_id: PipelineId)
-               -> BrowsingContext
-    {
+    pub fn new(
+        id: BrowsingContextId,
+        top_level_id: TopLevelBrowsingContextId,
+        pipeline_id: PipelineId,
+    ) -> BrowsingContext {
         let mut pipelines = HashSet::new();
         pipelines.insert(pipeline_id);
         BrowsingContext {
@@ -84,19 +84,25 @@ impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {
             let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
                 Some(browsing_context) => browsing_context,
                 None => {
-                    warn!("BrowsingContext {:?} iterated after closure.", browsing_context_id);
+                    warn!(
+                        "BrowsingContext {:?} iterated after closure.",
+                        browsing_context_id
+                    );
                     continue;
                 },
             };
             let pipeline = match self.pipelines.get(&browsing_context.pipeline_id) {
                 Some(pipeline) => pipeline,
                 None => {
-                    warn!("Pipeline {:?} iterated after closure.", browsing_context.pipeline_id);
+                    warn!(
+                        "Pipeline {:?} iterated after closure.",
+                        browsing_context.pipeline_id
+                    );
                     continue;
                 },
             };
             self.stack.extend(pipeline.children.iter());
-            return Some(browsing_context)
+            return Some(browsing_context);
         }
     }
 }
@@ -126,15 +132,20 @@ impl<'a> Iterator for AllBrowsingContextsIterator<'a> {
             let browsing_context = match self.browsing_contexts.get(&browsing_context_id) {
                 Some(browsing_context) => browsing_context,
                 None => {
-                    warn!("BrowsingContext {:?} iterated after closure.", browsing_context_id);
+                    warn!(
+                        "BrowsingContext {:?} iterated after closure.",
+                        browsing_context_id
+                    );
                     continue;
                 },
             };
-            let child_browsing_context_ids = browsing_context.pipelines.iter()
+            let child_browsing_context_ids = browsing_context
+                .pipelines
+                .iter()
                 .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
                 .flat_map(|pipeline| pipeline.children.iter());
             self.stack.extend(child_browsing_context_ids);
-            return Some(browsing_context)
+            return Some(browsing_context);
         }
     }
 }

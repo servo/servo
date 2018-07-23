@@ -16,24 +16,31 @@ pub fn content_process_sandbox_profile() -> Profile {
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/System/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from(
-                    "/System/Library/Frameworks/ApplicationServices.framework"))),
+            "/System/Library/Frameworks/ApplicationServices.framework",
+        ))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from(
-                    "/System/Library/Frameworks/CoreGraphics.framework"))),
+            "/System/Library/Frameworks/CoreGraphics.framework",
+        ))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/"))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/Library"))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/System"))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/etc"))),
         Operation::SystemInfoRead,
         Operation::PlatformSpecific(platform::macos::Operation::MachLookup(
-                b"com.apple.FontServer".to_vec())),
+            b"com.apple.FontServer".to_vec(),
+        )),
     ];
 
-    operations.extend(resources::sandbox_access_files().into_iter().map(|p| {
-        Operation::FileReadAll(PathPattern::Literal(p))
-    }));
-    operations.extend(resources::sandbox_access_files_dirs().into_iter().map(|p| {
-        Operation::FileReadAll(PathPattern::Subpath(p))
-    }));
+    operations.extend(
+        resources::sandbox_access_files()
+            .into_iter()
+            .map(|p| Operation::FileReadAll(PathPattern::Literal(p))),
+    );
+    operations.extend(
+        resources::sandbox_access_files_dirs()
+            .into_iter()
+            .map(|p| Operation::FileReadAll(PathPattern::Subpath(p))),
+    );
 
     Profile::new(operations).expect("Failed to create sandbox profile!")
 }
@@ -41,17 +48,20 @@ pub fn content_process_sandbox_profile() -> Profile {
 /// Our content process sandbox profile on Linux. As restrictive as possible.
 #[cfg(not(target_os = "macos"))]
 pub fn content_process_sandbox_profile() -> Profile {
-    let mut operations = vec![
-        Operation::FileReadAll(PathPattern::Literal(PathBuf::from("/dev/urandom"))),
-    ];
+    let mut operations = vec![Operation::FileReadAll(PathPattern::Literal(PathBuf::from(
+        "/dev/urandom",
+    )))];
 
-    operations.extend(resources::sandbox_access_files().into_iter().map(|p| {
-        Operation::FileReadAll(PathPattern::Literal(p))
-    }));
-    operations.extend(resources::sandbox_access_files_dirs().into_iter().map(|p| {
-        Operation::FileReadAll(PathPattern::Subpath(p))
-    }));
+    operations.extend(
+        resources::sandbox_access_files()
+            .into_iter()
+            .map(|p| Operation::FileReadAll(PathPattern::Literal(p))),
+    );
+    operations.extend(
+        resources::sandbox_access_files_dirs()
+            .into_iter()
+            .map(|p| Operation::FileReadAll(PathPattern::Subpath(p))),
+    );
 
     Profile::new(operations).expect("Failed to create sandbox profile!")
 }
-

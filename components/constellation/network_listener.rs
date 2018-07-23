@@ -27,17 +27,19 @@ pub struct NetworkListener {
 }
 
 impl NetworkListener {
-    pub fn new(req_init: RequestInit,
-               pipeline_id: PipelineId,
-               resource_threads: ResourceThreads,
-               sender: Sender<(PipelineId, FetchResponseMsg)>) -> NetworkListener {
+    pub fn new(
+        req_init: RequestInit,
+        pipeline_id: PipelineId,
+        resource_threads: ResourceThreads,
+        sender: Sender<(PipelineId, FetchResponseMsg)>,
+    ) -> NetworkListener {
         NetworkListener {
             res_init: None,
             req_init,
             pipeline_id,
             resource_threads,
             sender,
-            should_send: false
+            should_send: false,
         }
     }
 
@@ -55,35 +57,40 @@ impl NetworkListener {
 
         let msg = match self.res_init {
             Some(ref res_init_) => CoreResourceMsg::FetchRedirect(
-                                   self.req_init.clone(),
-                                   res_init_.clone(),
-                                   ipc_sender, None),
+                self.req_init.clone(),
+                res_init_.clone(),
+                ipc_sender,
+                None,
+            ),
             None => {
                 set_default_accept(Destination::Document, &mut listener.req_init.headers);
                 set_default_accept_language(&mut listener.req_init.headers);
 
                 CoreResourceMsg::Fetch(
-                listener.req_init.clone(),
-                FetchChannels::ResponseMsg(ipc_sender, cancel_chan))
-            }
+                    listener.req_init.clone(),
+                    FetchChannels::ResponseMsg(ipc_sender, cancel_chan),
+                )
+            },
         };
 
-        ROUTER.add_route(ipc_receiver.to_opaque(), Box::new(move |message| {
-            let msg = message.to();
-            match msg {
-                Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
-                Ok(msg_) => listener.send(msg_),
-                Err(e) => warn!("Error while receiving network listener message: {}", e),
-            };
-        }));
+        ROUTER.add_route(
+            ipc_receiver.to_opaque(),
+            Box::new(move |message| {
+                let msg = message.to();
+                match msg {
+                    Ok(FetchResponseMsg::ProcessResponse(res)) => listener.check_redirect(res),
+                    Ok(msg_) => listener.send(msg_),
+                    Err(e) => warn!("Error while receiving network listener message: {}", e),
+                };
+            }),
+        );
 
         if let Err(e) = self.resource_threads.sender().send(msg) {
             warn!("Resource thread unavailable ({})", e);
         }
     }
 
-    fn check_redirect(&mut self,
-                      message: Result<(FetchMetadata), NetworkError>) {
+    fn check_redirect(&mut self, message: Result<(FetchMetadata), NetworkError>) {
         match message {
             Ok(res_metadata) => {
                 let metadata = match res_metadata {
@@ -118,20 +125,23 @@ impl NetworkListener {
                         // Response should be processed by script thread.
                         self.should_send = true;
                         self.send(FetchResponseMsg::ProcessResponse(Ok(res_metadata.clone())));
-                    }
+                    },
                 };
             },
             Err(e) => {
                 self.should_send = true;
                 self.send(FetchResponseMsg::ProcessResponse(Err(e)))
-            }
+            },
         };
     }
 
     fn send(&mut self, msg: FetchResponseMsg) {
         if self.should_send {
             if let Err(e) = self.sender.send((self.pipeline_id, msg)) {
-                warn!("Failed to forward network message to pipeline {}: {:?}", self.pipeline_id, e);
+                warn!(
+                    "Failed to forward network message to pipeline {}: {:?}",
+                    self.pipeline_id, e
+                );
             }
         }
     }
