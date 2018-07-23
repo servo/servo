@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-The Keys implementation.
-"""
+"""The Keys implementation."""
 
 from inspect import getmembers
 import sys
@@ -27,7 +25,7 @@ class Keys(object):
     """
     Set of special keys codes.
 
-    See also https://w3c.github.io/webdriver/webdriver-spec.html#h-keyboard-actions
+    See also https://w3c.github.io/webdriver/#h-keyboard-actions
     """
 
     NULL = u"\ue000"
@@ -742,7 +740,7 @@ ALL_EVENTS = {
     }
 }
 
-if sys.platform == 'darwin':
+if sys.platform == "mac":
     MODIFIER_KEY = Keys.META
 else:
     MODIFIER_KEY = Keys.CONTROL
