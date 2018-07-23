@@ -36,21 +36,19 @@ where
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_version(env: JNIEnv, _class: JClass) -> jstring {
+pub fn Java_com_mozilla_servoview_JNIServo_version(env: JNIEnv, _class: JClass) -> jstring {
     let v = api::servo_version();
     let output = env.new_string(v).expect("Couldn't create java string");
     output.into_inner()
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_init(
+pub fn Java_com_mozilla_servoview_JNIServo_init(
     env: JNIEnv,
     _: JClass,
     activity: JObject,
     args: JString,
     url: JString,
-    wakeup_obj: JObject,
-    readfile_obj: JObject,
     callbacks_obj: JObject,
     width: jint,
     height: jint,
@@ -79,9 +77,11 @@ pub fn Java_com_mozilla_servoview_NativeServo_init(
         Some(env.get_string(url).expect("Couldn't get java string").into())
     };
 
-    let wakeup = Box::new(WakeupCallback::new(wakeup_obj, &env));
-    let readfile = Box::new(ReadFileCallback::new(readfile_obj, &env));
-    let callbacks = Box::new(HostCallbacks::new(callbacks_obj, &env));
+    let callbacks_ref = env.new_global_ref(callbacks_obj).unwrap();
+
+    let wakeup = Box::new(WakeupCallback::new(callbacks_ref.clone(), &env));
+    let readfile = Box::new(ReadFileCallback::new(callbacks_ref.clone(), &env));
+    let callbacks = Box::new(HostCallbacks::new(callbacks_ref, &env));
 
     gl_glue::egl::init().and_then(|gl| {
         api::init(
@@ -99,7 +99,7 @@ pub fn Java_com_mozilla_servoview_NativeServo_init(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_setBatchMode(
+pub fn Java_com_mozilla_servoview_JNIServo_setBatchMode(
     env: JNIEnv,
     _: JClass,
     batch: jboolean,
@@ -109,7 +109,7 @@ pub fn Java_com_mozilla_servoview_NativeServo_setBatchMode(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_resize(
+pub fn Java_com_mozilla_servoview_JNIServo_resize(
     env: JNIEnv,
     _: JClass,
     width: jint,
@@ -120,38 +120,38 @@ pub fn Java_com_mozilla_servoview_NativeServo_resize(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_performUpdates(env: JNIEnv, _class: JClass) {
+pub fn Java_com_mozilla_servoview_JNIServo_performUpdates(env: JNIEnv, _class: JClass) {
     debug!("performUpdates");
     call(env, |s| s.perform_updates());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
+pub fn Java_com_mozilla_servoview_JNIServo_loadUri(env: JNIEnv, _class: JClass, url: JString) {
     debug!("loadUri");
     let url: String = env.get_string(url).unwrap().into();
     call(env, |s| s.load_uri(&url));
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_reload(env: JNIEnv, _class: JClass) {
+pub fn Java_com_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
     debug!("reload");
     call(env, |s| s.reload());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_goBack(env: JNIEnv, _class: JClass) {
+pub fn Java_com_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
     call(env, |s| s.go_back());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_goForward(env: JNIEnv, _class: JClass) {
+pub fn Java_com_mozilla_servoview_JNIServo_goForward(env: JNIEnv, _class: JClass) {
     debug!("goForward");
     call(env, |s| s.go_forward());
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_scrollStart(
+pub fn Java_com_mozilla_servoview_JNIServo_scrollStart(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -164,7 +164,7 @@ pub fn Java_com_mozilla_servoview_NativeServo_scrollStart(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_scrollEnd(
+pub fn Java_com_mozilla_servoview_JNIServo_scrollEnd(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -178,7 +178,7 @@ pub fn Java_com_mozilla_servoview_NativeServo_scrollEnd(
 
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_scroll(
+pub fn Java_com_mozilla_servoview_JNIServo_scroll(
     env: JNIEnv,
     _: JClass,
     dx: jint,
@@ -191,7 +191,7 @@ pub fn Java_com_mozilla_servoview_NativeServo_scroll(
 }
 
 #[no_mangle]
-pub fn Java_com_mozilla_servoview_NativeServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
+pub fn Java_com_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {
     debug!("click");
     call(env, |s| s.click(x as u32, y as u32));
 }
@@ -202,12 +202,9 @@ pub struct WakeupCallback {
 }
 
 impl WakeupCallback {
-    pub fn new(jobject: JObject, env: &JNIEnv) -> WakeupCallback {
+    pub fn new(callback: GlobalRef, env: &JNIEnv) -> WakeupCallback {
         let jvm = Arc::new(env.get_java_vm().unwrap());
-        WakeupCallback {
-            callback: env.new_global_ref(jobject).unwrap(),
-            jvm,
-        }
+        WakeupCallback { callback, jvm }
     }
 }
 
@@ -232,9 +229,9 @@ pub struct ReadFileCallback {
 }
 
 impl ReadFileCallback {
-    pub fn new(jobject: JObject, env: &JNIEnv) -> ReadFileCallback {
+    pub fn new(callback: GlobalRef, env: &JNIEnv) -> ReadFileCallback {
         let jvm = env.get_java_vm().unwrap();
-        let callback = Mutex::new(env.new_global_ref(jobject).unwrap());
+        let callback = Mutex::new(callback);
         ReadFileCallback { callback, jvm }
     }
 }
@@ -259,12 +256,9 @@ impl ReadFileTrait for ReadFileCallback {
 }
 
 impl HostCallbacks {
-    pub fn new(jobject: JObject, env: &JNIEnv) -> HostCallbacks {
+    pub fn new(callbacks: GlobalRef, env: &JNIEnv) -> HostCallbacks {
         let jvm = env.get_java_vm().unwrap();
-        HostCallbacks {
-            callbacks: env.new_global_ref(jobject).unwrap(),
-            jvm,
-        }
+        HostCallbacks { callbacks, jvm }
     }
 }
 
@@ -273,6 +267,13 @@ impl HostTrait for HostCallbacks {
         debug!("flush");
         let env = self.jvm.get_env().unwrap();
         env.call_method(self.callbacks.as_obj(), "flush", "()V", &[])
+            .unwrap();
+    }
+
+    fn make_current(&self) {
+        debug!("make_current");
+        let env = self.jvm.get_env().unwrap();
+        env.call_method(self.callbacks.as_obj(), "makeCurrent", "()V", &[])
             .unwrap();
     }
 

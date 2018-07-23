@@ -38,6 +38,9 @@ pub trait HostTrait {
     /// Will be called from the thread used for the init call.
     /// Will be called when the GL buffer has been updated.
     fn flush(&self);
+    /// Will be called before drawing.
+    /// Time to make the targetted GL context.
+    fn make_current(&self);
     /// Page starts loading.
     /// "Reload button" should be disabled.
     /// "Stop button" should be enabled.
@@ -347,6 +350,7 @@ impl WindowMethods for ServoCallbacks {
         _height: Length<u32, DevicePixel>,
     ) -> bool {
         debug!("WindowMethods::prepare_for_composite");
+        self.host_callbacks.make_current();
         true
     }
 

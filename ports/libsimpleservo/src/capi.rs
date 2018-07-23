@@ -28,6 +28,7 @@ fn call<F>(f: F) where F: Fn(&mut ServoGlue) -> Result<(), &'static str> {
 #[repr(C)]
 pub struct CHostCallbacks {
     pub flush: extern fn(),
+    pub make_current: extern fn(),
     pub on_load_started: extern fn(),
     pub on_load_ended: extern fn(),
     pub on_title_changed: extern fn(title: *const c_char),
@@ -221,6 +222,11 @@ impl HostTrait for HostCallbacks {
     fn flush(&self) {
         debug!("flush");
         (self.0.flush)();
+    }
+
+    fn make_current(&self) {
+        debug!("make_current");
+        (self.0.make_current)();
     }
 
     fn on_load_started(&self) {

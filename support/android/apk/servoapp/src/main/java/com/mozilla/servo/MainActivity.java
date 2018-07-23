@@ -18,8 +18,9 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 
 import com.mozilla.servoview.ServoView;
+import com.mozilla.servoview.Servo;
 
-public class MainActivity extends Activity implements ServoView.Client {
+public class MainActivity extends Activity implements Servo.Client {
 
     private static final String LOGTAG = "MainActivity";
 
@@ -45,16 +46,14 @@ public class MainActivity extends Activity implements ServoView.Client {
         mUrlField = findViewById(R.id.urlfield);
         mProgressBar = findViewById(R.id.progressbar);
 
-        mServoView.setClient(this);
         mBackButton.setEnabled(false);
         mFwdButton.setEnabled(false);
 
+        mServoView.setClient(this);
         mServoView.requestFocus();
 
         String args = getIntent().getStringExtra("servoargs");
-        if (args != null) {
-          mServoView.setServoArgs(args);
-        }
+        mServoView.setServoArgs(args);
 
         setupUrlField();
     }
@@ -91,18 +90,16 @@ public class MainActivity extends Activity implements ServoView.Client {
         mServoView.loadUri(Uri.parse(uri));
     }
 
+    // From activity_main.xml:
     public void onReloadClicked(View v) {
         mServoView.reload();
     }
-
     public void onBackClicked(View v) {
         mServoView.goBack();
     }
-
     public void onForwardClicked(View v) {
         mServoView.goForward();
     }
-
     public void onStopClicked(View v) {
         mServoView.stop();
     }
