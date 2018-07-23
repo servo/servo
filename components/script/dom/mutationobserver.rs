@@ -132,8 +132,8 @@ impl MutationObserver {
                             if *namespace != ns!() {
                                 continue;
                             }
-                            if registered.options.attribute_filter.iter()
-                                .find(|s| &**s == &**name).is_some() {
+                            if !registered.options.attribute_filter.iter()
+                                .any(|s| &**s == &**name) {
                                 continue;
                             }
                         }
