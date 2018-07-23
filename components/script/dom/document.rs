@@ -1765,8 +1765,11 @@ impl Document {
         // Step 10, 14
         if !self.salvageable.get() {
             // https://html.spec.whatwg.org/multipage/#unloading-document-cleanup-steps
+            let global_scope = self.window.upcast::<GlobalScope>();
+            // Step 1 of clean-up steps.
+            global_scope.close_event_sources();
             let msg = ScriptMsg::DiscardDocument;
-            let _ = self.window.upcast::<GlobalScope>().script_to_constellation_chan().send(msg);
+            let _ = global_scope.script_to_constellation_chan().send(msg);
         }
         // Step 15, End
         self.decr_ignore_opens_during_unload_counter();
