@@ -411,7 +411,7 @@ class WdspecTest(Test):
     test_type = "wdspec"
 
     default_timeout = 25
-    long_timeout = 120
+    long_timeout = 180  # 3 minutes
 
 
 manifest_test_cls = {"reftest": ReftestTest,

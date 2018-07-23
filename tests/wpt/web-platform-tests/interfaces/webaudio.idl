@@ -46,8 +46,8 @@ interface BaseAudioContext : EventTarget {
   WaveShaperNode createWaveShaper ();
 
   Promise<AudioBuffer> decodeAudioData (ArrayBuffer audioData,
-                                        optional DecodeSuccessCallback successCallback,
-                                        optional DecodeErrorCallback errorCallback);
+                                        optional DecodeSuccessCallback? successCallback,
+                                        optional DecodeErrorCallback? errorCallback);
   Promise<void> resume ();
 };
 
