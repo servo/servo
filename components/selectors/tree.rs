@@ -129,11 +129,4 @@ pub trait Element: Sized + Clone + Debug {
     fn ignores_nth_child_selectors(&self) -> bool {
         false
     }
-
-    /// Return true if we want to stop lookup ancestor of the current
-    /// element while matching complex selectors with descendant/child
-    /// combinator.
-    fn blocks_ancestor_combinators(&self) -> bool {
-        false
-    }
 }

@@ -8,7 +8,7 @@ use cssparser::{AtRuleParser, CowRcStr, Parser, ParserInput, QualifiedRuleParser
 use cssparser::{parse_one_rule, DeclarationListParser, DeclarationParser, SourceLocation, Token};
 use error_reporting::ContextualParseError;
 use parser::ParserContext;
-use properties::{DeclarationPushMode, Importance, PropertyDeclaration};
+use properties::{Importance, PropertyDeclaration};
 use properties::{LonghandId, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, SourcePropertyDeclaration};
 use properties::LonghandIdSet;
@@ -554,7 +554,6 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
                     block.extend(
                         iter.parser.declarations.drain(),
                         Importance::Normal,
-                        DeclarationPushMode::Parsing,
                     );
                 },
                 Err((error, slice)) => {

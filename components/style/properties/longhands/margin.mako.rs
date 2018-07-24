@@ -20,6 +20,7 @@
         allow_quirks=not side[1],
         animation_value_type="ComputedValue",
         logical=side[1],
+        logical_group="margin",
         spec=spec,
         flags="APPLIES_TO_FIRST_LETTER GETCS_NEEDS_LAYOUT_FLUSH",
         allowed_in_page_rule=True,

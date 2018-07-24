@@ -233,18 +233,23 @@ trait PrivateMatchMethods: TElement {
     fn needs_animations_update(
         &self,
         context: &mut StyleContext<Self>,
-        old_values: Option<&ComputedValues>,
-        new_values: &ComputedValues,
+        old_style: Option<&ComputedValues>,
+        new_style: &ComputedValues,
     ) -> bool {
-        let new_box_style = new_values.get_box();
-        let has_new_animation_style = new_box_style.specifies_animations();
+        let new_box_style = new_style.get_box();
+        let new_style_specifies_animations = new_box_style.specifies_animations();
 
-        let old = match old_values {
+        let old_style = match old_style {
             Some(old) => old,
-            None => return has_new_animation_style,
+            None => return new_style_specifies_animations,
         };
 
-        let old_box_style = old.get_box();
+        let has_animations = self.has_css_animations();
+        if !new_style_specifies_animations && !has_animations {
+            return false;
+        }
+
+        let old_box_style = old_style.get_box();
 
         let keyframes_could_have_changed = context
             .shared
@@ -258,7 +263,7 @@ trait PrivateMatchMethods: TElement {
         //
         // TODO: We should check which @keyframes were added/changed/deleted and
         // update only animations corresponding to those @keyframes.
-        if keyframes_could_have_changed && (has_new_animation_style || self.has_css_animations()) {
+        if keyframes_could_have_changed {
             return true;
         }
 
@@ -272,19 +277,27 @@ trait PrivateMatchMethods: TElement {
 
         // If we were display: none, we may need to trigger animations.
         if old_display == Display::None && new_display != Display::None {
-            return has_new_animation_style;
+            return new_style_specifies_animations;
         }
 
         // If we are becoming display: none, we may need to stop animations.
         if old_display != Display::None && new_display == Display::None {
-            return self.has_css_animations();
+            return has_animations;
+        }
+
+        // We might need to update animations if writing-mode or direction
+        // changed, and any of the animations contained logical properties.
+        //
+        // We may want to be more granular, but it's probably not worth it.
+        if new_style.writing_mode != old_style.writing_mode {
+            return has_animations;
         }
 
         false
     }
 
-    /// Create a SequentialTask for resolving descendants in a SMIL display property
-    /// animation if the display property changed from none.
+    /// Create a SequentialTask for resolving descendants in a SMIL display
+    /// property animation if the display property changed from none.
     #[cfg(feature = "gecko")]
     fn handle_display_change_for_smil_if_needed(
         &self,

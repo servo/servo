@@ -75,7 +75,8 @@ class Keyword(object):
         self.name = name
         self.values = values.split()
         if gecko_constant_prefix and gecko_enum_prefix:
-            raise TypeError("Only one of gecko_constant_prefix and gecko_enum_prefix can be specified")
+            raise TypeError("Only one of gecko_constant_prefix and gecko_enum_prefix "
+                            "can be specified")
         self.gecko_constant_prefix = gecko_constant_prefix or \
             "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.gecko_enum_prefix = gecko_enum_prefix
@@ -116,7 +117,8 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value.replace("-moz-", 'moz-')
+        moz_stripped = (value.replace("-moz-", '')
+                        if self.gecko_strip_moz_prefix else value.replace("-moz-", 'moz-'))
         mapped = self.consts_map.get(value)
         if self.gecko_enum_prefix:
             parts = moz_stripped.replace('-', '_').split('_')
@@ -166,8 +168,9 @@ class Longhand(object):
                  enabled_in="content", need_index=False,
                  gecko_ffi_name=None,
                  allowed_in_keyframe_block=True, cast_type='u8',
-                 logical=False, alias=None, extra_prefixes=None, boxed=False,
-                 flags=None, allowed_in_page_rule=False, allow_quirks=False, ignored_when_colors_disabled=False,
+                 logical=False, logical_group=None, alias=None, extra_prefixes=None, boxed=False,
+                 flags=None, allowed_in_page_rule=False, allow_quirks=False,
+                 ignored_when_colors_disabled=False,
                  vector=False, servo_restyle_damage="repaint"):
         self.name = name
         if not spec:
@@ -193,6 +196,9 @@ class Longhand(object):
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
+        self.logical_group = logical_group
+        if self.logical:
+            assert logical_group, "Property " + name + " must have a logical group"
         self.alias = parse_property_aliases(alias)
         self.extra_prefixes = parse_property_aliases(extra_prefixes)
         self.boxed = arg_to_bool(boxed)
@@ -220,12 +226,6 @@ class Longhand(object):
             and animation_value_type != "discrete"
         self.is_animatable_with_computed_value = animation_value_type == "ComputedValue" \
             or animation_value_type == "discrete"
-        if self.logical:
-            # Logical properties will be animatable (i.e. the animation type is
-            # discrete). For now, it is still non-animatable.
-            self.animatable = False
-            self.transitionable = False
-            self.animation_value_type = None
 
         # See compute_damage for the various values this can take
         self.servo_restyle_damage = servo_restyle_damage
@@ -233,6 +233,20 @@ class Longhand(object):
     @staticmethod
     def type():
         return "longhand"
+
+    # For a given logical property return all the physical
+    # property names corresponding to it.
+    def all_physical_mapped_properties(self):
+        assert self.logical
+        logical_side = None
+        for s in LOGICAL_SIDES + LOGICAL_SIZES:
+            if s in self.name:
+                assert not logical_side
+                logical_side = s
+        assert logical_side
+        physical = PHYSICAL_SIDES if logical_side in LOGICAL_SIDES else PHYSICAL_SIZES
+        return [self.name.replace(logical_side, physical_side).replace("inset-", "")
+                for physical_side in physical]
 
     def experimental(self, product):
         if product == "gecko":

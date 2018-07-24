@@ -33,6 +33,7 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animation_value_type="discrete",
+                         gecko_enum_prefix="StyleColumnFill",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-fill")}
 
 ${helpers.predefined_type("column-rule-width",
@@ -60,6 +61,7 @@ ${helpers.predefined_type(
 
 ${helpers.single_keyword("column-span", "none all",
                          products="gecko", animation_value_type="discrete",
+                         gecko_enum_prefix="StyleColumnSpan",
                          gecko_pref="layout.css.column-span.enabled",
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-span",
                          extra_prefixes="moz:layout.css.column-span.enabled")}

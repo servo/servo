@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
-use style::properties::{DeclarationPushMode, Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
+use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration_into, parse_style_attribute, SourcePropertyDeclaration};
 use style::selector_parser::PseudoElement;
 use style::shared_lock::Locked;
@@ -285,8 +285,14 @@ impl CSSStyleDeclaration {
             let quirks_mode = window.Document().quirks_mode();
             let mut declarations = SourcePropertyDeclaration::new();
             let result = parse_one_declaration_into(
-                &mut declarations, id, &value, &self.owner.base_url(),
-                window.css_error_reporter(), ParsingMode::DEFAULT, quirks_mode);
+                &mut declarations,
+                id,
+                &value,
+                &self.owner.base_url(),
+                window.css_error_reporter(),
+                ParsingMode::DEFAULT,
+                quirks_mode,
+            );
 
             // Step 6
             match result {
@@ -297,13 +303,17 @@ impl CSSStyleDeclaration {
                 }
             }
 
+            let mut updates = Default::default();
+            *changed =
+                pdb.prepare_for_update(&declarations, importance, &mut updates);
+
+            if !*changed {
+                return Ok(());
+            }
+
             // Step 7
             // Step 8
-            *changed = pdb.extend(
-                declarations.drain(),
-                importance,
-                DeclarationPushMode::Update,
-            );
+            pdb.update(declarations.drain(), importance, &mut updates);
 
             Ok(())
         })

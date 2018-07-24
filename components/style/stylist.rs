@@ -20,7 +20,7 @@ use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 #[cfg(feature = "gecko")]
 use malloc_size_of::MallocUnconditionalShallowSizeOf;
 use media_queries::Device;
-use properties::{self, CascadeFlags, ComputedValues};
+use properties::{self, CascadeMode, ComputedValues};
 use properties::{AnimationRules, PropertyDeclarationBlock};
 use rule_cache::{RuleCache, RuleCacheConditions};
 use rule_tree::{CascadeLevel, RuleTree, ShadowCascadeOrder, StrongRuleNode, StyleSource};
@@ -845,55 +845,18 @@ impl Stylist {
     {
         debug_assert!(pseudo.is_some() || element.is_some(), "Huh?");
 
-        let cascade_flags = pseudo.map_or(CascadeFlags::empty(), |p| p.cascade_flags());
-
         // We need to compute visited values if we have visited rules or if our
         // parent has visited values.
-        let mut visited_values = None;
-        if inputs.visited_rules.is_some() || parent_style.and_then(|s| s.visited_style()).is_some()
-        {
-            // At this point inputs may have visited rules, or rules.
-            let rule_node = match inputs.visited_rules.as_ref() {
-                Some(rules) => rules,
-                None => inputs.rules.as_ref().unwrap_or(self.rule_tree.root()),
-            };
-
-            let inherited_style;
-            let inherited_style_ignoring_first_line;
-            let layout_parent_style_for_visited;
-            if pseudo.is_none() && element.unwrap().is_link() {
-                // We just want to use our parent style as our parent.
-                inherited_style = parent_style;
-                inherited_style_ignoring_first_line = parent_style_ignoring_first_line;
-                layout_parent_style_for_visited = layout_parent_style;
-            } else {
-                // We want to use the visited bits (if any) from our parent
-                // style as our parent.
-                inherited_style = parent_style
-                    .map(|parent_style| parent_style.visited_style().unwrap_or(parent_style));
-                inherited_style_ignoring_first_line = parent_style_ignoring_first_line
-                    .map(|parent_style| parent_style.visited_style().unwrap_or(parent_style));
-                layout_parent_style_for_visited = layout_parent_style
-                    .map(|parent_style| parent_style.visited_style().unwrap_or(parent_style));
+        let visited_rules = match inputs.visited_rules.as_ref() {
+            Some(rules) => Some(rules),
+            None => {
+                if parent_style.and_then(|s| s.visited_style()).is_some() {
+                    Some(inputs.rules.as_ref().unwrap_or(self.rule_tree.root()))
+                } else {
+                    None
+                }
             }
-
-            visited_values = Some(properties::cascade::<E>(
-                &self.device,
-                pseudo,
-                rule_node,
-                guards,
-                inherited_style,
-                inherited_style_ignoring_first_line,
-                layout_parent_style_for_visited,
-                None,
-                font_metrics,
-                cascade_flags | CascadeFlags::VISITED_DEPENDENT_ONLY,
-                self.quirks_mode,
-                rule_cache,
-                rule_cache_conditions,
-                element,
-            ));
-        }
+        };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
         // difficult to assert that display: contents nodes never arrive here
@@ -909,9 +872,8 @@ impl Stylist {
             parent_style,
             parent_style_ignoring_first_line,
             layout_parent_style,
-            visited_values,
+            visited_rules,
             font_metrics,
-            cascade_flags,
             self.quirks_mode,
             rule_cache,
             rule_cache_conditions,
@@ -1299,8 +1261,9 @@ impl Stylist {
 
             if let Some(containing_shadow) = rule_hash_target.containing_shadow() {
                 let cascade_data = containing_shadow.style_data();
+                let host = containing_shadow.host();
                 if let Some(map) = cascade_data.normal_rules(pseudo_element) {
-                    context.with_shadow_host(Some(containing_shadow.host()), |context| {
+                    context.with_shadow_host(Some(host), |context| {
                         map.get_all_matching_rules(
                             element,
                             rule_hash_target,
@@ -1314,7 +1277,26 @@ impl Stylist {
                     shadow_cascade_order += 1;
                 }
 
-                match_document_author_rules = false;
+                // NOTE(emilio): Hack so <svg:use> matches document rules as
+                // expected.
+                //
+                // This is not a problem for invalidation and that kind of stuff
+                // because they still don't match rules based on elements
+                // outside of the shadow tree, and because the <svg:use> subtree
+                // is immutable and recreated each time the source tree changes.
+                //
+                // See: https://github.com/w3c/svgwg/issues/504
+                //
+                // Note that we always resolve URLs against the document, so we
+                // can't get into a nested shadow situation here.
+                //
+                // See: https://github.com/w3c/svgwg/issues/505
+                //
+                let host_is_svg_use =
+                    host.is_svg_element() &&
+                    host.local_name() == &*local_name!("use");
+
+                match_document_author_rules = host_is_svg_use;
             }
         }
 
@@ -1581,9 +1563,8 @@ impl Stylist {
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
-            None,
             &metrics,
-            CascadeFlags::empty(),
+            CascadeMode::Unvisited { visited_rules: None },
             self.quirks_mode,
             /* rule_cache = */ None,
             &mut Default::default(),
