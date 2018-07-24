@@ -16,6 +16,7 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSKTableEntry, nsCSSKeyword, nsCSSUnit, nsCSSValue};
 use gecko_bindings::structs::{nsMediaFeature, nsMediaFeature_RangeType};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsPresContext};
+use gecko_bindings::structs::nsCSSKeywordAndBoolTableEntry;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use parser::{Parse, ParserContext};
@@ -374,6 +375,9 @@ pub enum MediaExpressionValue {
     /// An enumerated value, defined by the variant keyword table in the
     /// feature's `mData` member.
     Enumerated(i16),
+    /// Similar to the above Enumerated but the variant keyword table has an
+    /// additional field what the keyword value means in the Boolean Context.
+    BoolEnumerated(i16),
     /// An identifier.
     Ident(Atom),
 }
@@ -420,6 +424,10 @@ impl MediaExpressionValue {
                 let value = css_value.integer_unchecked() as i16;
                 Some(MediaExpressionValue::Enumerated(value))
             },
+            nsMediaFeature_ValueType::eBoolEnumerated => {
+                let value = css_value.integer_unchecked() as i16;
+                Some(MediaExpressionValue::BoolEnumerated(value))
+            },
             nsMediaFeature_ValueType::eIdent => {
                 debug_assert_eq!(css_value.mUnit, nsCSSUnit::eCSSUnit_AtomIdent);
                 Some(MediaExpressionValue::Ident(unsafe {
@@ -457,25 +465,43 @@ impl MediaExpressionValue {
             MediaExpressionValue::Resolution(ref r) => r.to_css(dest),
             MediaExpressionValue::Ident(ref ident) => serialize_atom_identifier(ident, dest),
             MediaExpressionValue::Enumerated(value) => unsafe {
-                use std::{slice, str};
-                use std::os::raw::c_char;
-
-                // NB: All the keywords on nsMediaFeatures are static,
-                // well-formed utf-8.
-                let mut length = 0;
-
-                let (keyword, _value) = find_in_table(
+                let keyword = find_in_table(
                     *for_expr.feature.mData.mKeywordTable.as_ref(),
                     |_kw, val| val == value,
+                    |e| e.keyword(),
                 ).expect("Value not found in the keyword table?");
 
-                let buffer: *const c_char = bindings::Gecko_CSSKeywordString(keyword, &mut length);
-                let buffer = slice::from_raw_parts(buffer as *const u8, length as usize);
-
-                let string = str::from_utf8_unchecked(buffer);
-
-                dest.write_str(string)
+                MediaExpressionValue::keyword_to_css(keyword, dest)
             },
+            MediaExpressionValue::BoolEnumerated(value) => unsafe {
+                let keyword = find_in_table(
+                    *for_expr.feature.mData.mKeywordAndBoolTable.as_ref(),
+                    |_kw, val| val == value,
+                    |e| e.keyword(),
+                ).expect("Value not found in the keyword table?");
+
+                MediaExpressionValue::keyword_to_css(keyword, dest)
+            }
+        }
+    }
+
+    fn keyword_to_css<W>(keyword: nsCSSKeyword, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        use std::{slice, str};
+        use std::os::raw::c_char;
+
+        // NB: All the keywords on nsMediaFeatures are static,
+        // well-formed utf-8.
+        let mut length = 0;
+        unsafe {
+            let buffer: *const c_char = bindings::Gecko_CSSKeywordString(keyword, &mut length);
+            let buffer = slice::from_raw_parts(buffer as *const u8, length as usize);
+
+            let string = str::from_utf8_unchecked(buffer);
+
+            dest.write_str(string)
         }
     }
 }
@@ -496,23 +522,51 @@ where
     None
 }
 
-unsafe fn find_in_table<F>(
-    mut current_entry: *const nsCSSKTableEntry,
-    mut f: F,
-) -> Option<(nsCSSKeyword, i16)>
+trait TableEntry {
+    fn value(&self) -> i16;
+    fn keyword(&self) -> nsCSSKeyword;
+}
+
+impl TableEntry for nsCSSKTableEntry {
+    fn value(&self) -> i16 {
+        self.mValue
+    }
+    fn keyword(&self) -> nsCSSKeyword {
+        self.mKeyword
+    }
+}
+
+impl TableEntry for nsCSSKeywordAndBoolTableEntry {
+    fn value(&self) -> i16 {
+        self._base.mValue
+    }
+    fn keyword(&self) -> nsCSSKeyword {
+        self._base.mKeyword
+    }
+}
+
+unsafe fn find_in_table<T, R, FindFunc, ResultFunc>(
+    current_entry: *const T,
+    find: FindFunc,
+    result_func: ResultFunc,
+) -> Option<R>
 where
-    F: FnMut(nsCSSKeyword, i16) -> bool,
+    T: TableEntry,
+    FindFunc: Fn(nsCSSKeyword, i16) -> bool,
+    ResultFunc: Fn(&T) -> R,
 {
+    let mut current_entry = current_entry;
+
     loop {
-        let value = (*current_entry).mValue;
-        let keyword = (*current_entry).mKeyword;
+        let value = (*current_entry).value();
+        let keyword = (*current_entry).keyword();
 
         if value == -1 {
             return None; // End of the table.
         }
 
-        if f(keyword, value) {
-            return Some((keyword, value));
+        if find(keyword, value) {
+            return Some(result_func(&*current_entry));
         }
 
         current_entry = current_entry.offset(1);
@@ -556,23 +610,20 @@ fn parse_feature_value<'i, 't>(
             MediaExpressionValue::Resolution(Resolution::parse(context, input)?)
         },
         nsMediaFeature_ValueType::eEnumerated => {
-            let location = input.current_source_location();
-            let keyword = input.expect_ident()?;
-            let keyword = unsafe {
-                bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(), keyword.len() as u32)
-            };
-
             let first_table_entry: *const nsCSSKTableEntry =
                 unsafe { *feature.mData.mKeywordTable.as_ref() };
 
-            let value = match unsafe { find_in_table(first_table_entry, |kw, _| kw == keyword) } {
-                Some((_kw, value)) => value,
-                None => {
-                    return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
-                },
-            };
+            let value = parse_keyword(input, first_table_entry)?;
 
             MediaExpressionValue::Enumerated(value)
+        },
+        nsMediaFeature_ValueType::eBoolEnumerated => {
+            let first_table_entry: *const nsCSSKeywordAndBoolTableEntry =
+                unsafe { *feature.mData.mKeywordAndBoolTable.as_ref() };
+
+            let value = parse_keyword(input, first_table_entry)?;
+
+            MediaExpressionValue::BoolEnumerated(value)
         },
         nsMediaFeature_ValueType::eIdent => {
             MediaExpressionValue::Ident(Atom::from(input.expect_ident()?.as_ref()))
@@ -580,6 +631,30 @@ fn parse_feature_value<'i, 't>(
     };
 
     Ok(value)
+}
+
+/// Parse a keyword and returns the corresponding i16 value.
+fn parse_keyword<'i, 't, T>(
+    input: &mut Parser<'i, 't>,
+    first_table_entry: *const T,
+) -> Result<i16, ParseError<'i>>
+where
+    T: TableEntry,
+{
+    let location = input.current_source_location();
+    let keyword = input.expect_ident()?;
+    let keyword = unsafe {
+        bindings::Gecko_LookupCSSKeyword(keyword.as_bytes().as_ptr(), keyword.len() as u32)
+    };
+
+    let value = unsafe {
+        find_in_table(first_table_entry, |kw, _| kw == keyword, |e| e.value())
+    };
+
+    match value {
+        Some(value) => Ok(value),
+        None => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+    }
 }
 
 /// Consumes an operation or a colon, or returns an error.
@@ -834,6 +909,16 @@ impl MediaFeatureExpression {
                         quirks_mode,
                         |context| l.to_computed_value(&context).px() != 0.,
                     ),
+                    BoolEnumerated(value) =>  {
+                        let value = unsafe {
+                            find_in_table(
+                                *self.feature.mData.mKeywordAndBoolTable.as_ref(),
+                                |_kw, val| val == value,
+                                |e| e.mValueInBooleanContext,
+                            )
+                        };
+                        value.expect("Value not found in the keyword table?")
+                    },
                     _ => true,
                 };
             },
@@ -874,6 +959,13 @@ impl MediaFeatureExpression {
                 return one == other;
             },
             (&Enumerated(one), &Enumerated(other)) => {
+                debug_assert_ne!(
+                    self.feature.mRangeType,
+                    nsMediaFeature_RangeType::eMinMaxAllowed
+                );
+                return one == other;
+            },
+            (&BoolEnumerated(one), &BoolEnumerated(other)) => {
                 debug_assert_ne!(
                     self.feature.mRangeType,
                     nsMediaFeature_RangeType::eMinMaxAllowed
