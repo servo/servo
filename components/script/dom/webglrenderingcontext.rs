@@ -2186,31 +2186,29 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         )
     }
 
-    // TODO(emilio): Probably in the future we should keep track of the
-    // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<DomRoot<WebGLBuffer>> {
-        WebGLBuffer::maybe_new(self.global().as_window(), self.webgl_sender.clone())
+        WebGLBuffer::maybe_new(self)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn CreateFramebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
-        WebGLFramebuffer::maybe_new(self.global().as_window(), self.webgl_sender.clone())
+        WebGLFramebuffer::maybe_new(self)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn CreateRenderbuffer(&self) -> Option<DomRoot<WebGLRenderbuffer>> {
-        WebGLRenderbuffer::maybe_new(self.global().as_window(), self.webgl_sender.clone())
+        WebGLRenderbuffer::maybe_new(self)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CreateTexture(&self) -> Option<DomRoot<WebGLTexture>> {
-        WebGLTexture::maybe_new(self.global().as_window(), self.webgl_sender.clone())
+        WebGLTexture::maybe_new(self)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateProgram(&self) -> Option<DomRoot<WebGLProgram>> {
-        WebGLProgram::maybe_new(self.global().as_window(), self.webgl_sender.clone())
+        WebGLProgram::maybe_new(self)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -2222,7 +2220,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return None;
             }
         }
-        WebGLShader::maybe_new(self.global().as_window(), self.webgl_sender.clone(), shader_type)
+        WebGLShader::maybe_new(self, shader_type)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5

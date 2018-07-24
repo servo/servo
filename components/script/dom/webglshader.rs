@@ -3,19 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLMsgSender};
+use canvas_traits::webgl::{WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
 use canvas_traits::webgl::{WebGLVersion, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::webgl_extensions::WebGLExtensions;
 use dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use dom::webglobject::WebGLObject;
-use dom::window::Window;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
 use offscreen_gl_context::GLLimits;
@@ -40,20 +41,19 @@ pub struct WebGLShader {
     is_deleted: Cell<bool>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    renderer: WebGLMsgSender,
 }
 
 static GLSLANG_INITIALIZATION: Once = ONCE_INIT;
 
 impl WebGLShader {
-    fn new_inherited(renderer: WebGLMsgSender,
-                     id: WebGLShaderId,
-                     shader_type: u32)
-                     -> WebGLShader {
+    fn new_inherited(
+        context: &WebGLRenderingContext,
+        id: WebGLShaderId,
+        shader_type: u32,
+    ) -> Self {
         GLSLANG_INITIALIZATION.call_once(|| ::mozangle::shaders::initialize().unwrap());
-        WebGLShader {
-            webgl_object: WebGLObject::new_inherited(),
+        Self {
+            webgl_object: WebGLObject::new_inherited(context),
             id: id,
             gl_type: shader_type,
             source: Default::default(),
@@ -61,29 +61,25 @@ impl WebGLShader {
             is_deleted: Cell::new(false),
             attached_counter: Cell::new(0),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
-            renderer: renderer,
         }
     }
 
-    pub fn maybe_new(window: &Window,
-                     renderer: WebGLMsgSender,
-                     shader_type: u32)
-                     -> Option<DomRoot<WebGLShader>> {
+    pub fn maybe_new(context: &WebGLRenderingContext, shader_type: u32) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
-        renderer.send(WebGLCommand::CreateShader(shader_type, sender)).unwrap();
-
-        let result = receiver.recv().unwrap();
-        result.map(|shader_id| WebGLShader::new(window, renderer, shader_id, shader_type))
+        context.send_command(WebGLCommand::CreateShader(shader_type, sender));
+        receiver.recv().unwrap().map(|id| WebGLShader::new(context, id, shader_type))
     }
 
-    pub fn new(window: &Window,
-               renderer: WebGLMsgSender,
-               id: WebGLShaderId,
-               shader_type: u32)
-               -> DomRoot<WebGLShader> {
-        reflect_dom_object(Box::new(WebGLShader::new_inherited(renderer, id, shader_type)),
-                           window,
-                           WebGLShaderBinding::Wrap)
+    pub fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLShaderId,
+        shader_type: u32,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLShader::new_inherited(context, id, shader_type)),
+            &*context.global(),
+            WebGLShaderBinding::Wrap,
+        )
     }
 }
 
@@ -168,8 +164,9 @@ impl WebGLShader {
                 // NOTE: At this point we should be pretty sure that the compilation in the paint thread
                 // will succeed.
                 // It could be interesting to retrieve the info log from the paint thread though
-                let msg = WebGLCommand::CompileShader(self.id, translated_source);
-                self.renderer.send(msg).unwrap();
+                self.upcast::<WebGLObject>()
+                    .context()
+                    .send_command(WebGLCommand::CompileShader(self.id, translated_source));
                 self.compilation_status.set(ShaderCompilationStatus::Succeeded);
             },
             Err(error) => {
@@ -194,7 +191,9 @@ impl WebGLShader {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(WebGLCommand::DeleteShader(self.id));
+            self.upcast::<WebGLObject>()
+                .context()
+                .send_command(WebGLCommand::DeleteShader(self.id));
         }
     }
 

@@ -4,12 +4,11 @@
 
 use canvas_traits::webgl::WebGLVertexArrayId;
 use dom::bindings::codegen::Bindings::WebGLVertexArrayObjectOESBinding;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::{DomRoot, MutNullableDom};
-use dom::globalscope::GlobalScope;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglobject::WebGLObject;
-use dom::webglrenderingcontext::VertexAttribs;
+use dom::webglrenderingcontext::{VertexAttribs, WebGLRenderingContext};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -24,25 +23,21 @@ pub struct WebGLVertexArrayObjectOES {
 }
 
 impl WebGLVertexArrayObjectOES {
-    fn new_inherited(id: WebGLVertexArrayId, max_vertex_attribs: u32) -> Self {
+    fn new_inherited(context: &WebGLRenderingContext, id: WebGLVertexArrayId) -> Self {
         Self {
-            webgl_object_: WebGLObject::new_inherited(),
+            webgl_object_: WebGLObject::new_inherited(context),
             id: id,
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
-            vertex_attribs: VertexAttribs::new(max_vertex_attribs),
+            vertex_attribs: VertexAttribs::new(context.limits().max_vertex_attribs),
             bound_buffer_element_array: MutNullableDom::new(None),
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        id: WebGLVertexArrayId,
-        max_vertex_attribs: u32,
-    ) -> DomRoot<Self> {
+    pub fn new(context: &WebGLRenderingContext, id: WebGLVertexArrayId) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(WebGLVertexArrayObjectOES::new_inherited(id, max_vertex_attribs)),
-            global,
+            Box::new(WebGLVertexArrayObjectOES::new_inherited(context, id)),
+            &*context.global(),
             WebGLVertexArrayObjectOESBinding::Wrap,
         )
     }

@@ -48,15 +48,7 @@ impl OESVertexArrayObjectMethods for OESVertexArrayObject {
     fn CreateVertexArrayOES(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
         let (sender, receiver) = webgl_channel().unwrap();
         self.ctx.send_command(WebGLCommand::CreateVertexArray(sender));
-
-        let result = receiver.recv().unwrap();
-        result.map(|vao_id| {
-            WebGLVertexArrayObjectOES::new(
-                &self.global(),
-                vao_id,
-                self.ctx.limits().max_vertex_attribs,
-            )
-        })
+        receiver.recv().unwrap().map(|id| WebGLVertexArrayObjectOES::new(&self.ctx, id))
     }
 
     // https://www.khronos.org/registry/webgl/extensions/OES_vertex_array_object/

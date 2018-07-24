@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLMsgSender, WebGLRenderbufferId, WebGLResult};
+use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult};
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
-use dom::window::Window;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -21,41 +22,32 @@ pub struct WebGLRenderbuffer {
     is_deleted: Cell<bool>,
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    renderer: WebGLMsgSender,
 }
 
 impl WebGLRenderbuffer {
-    fn new_inherited(renderer: WebGLMsgSender,
-                     id: WebGLRenderbufferId)
-                     -> WebGLRenderbuffer {
-        WebGLRenderbuffer {
-            webgl_object: WebGLObject::new_inherited(),
+    fn new_inherited(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> Self {
+        Self {
+            webgl_object: WebGLObject::new_inherited(context),
             id: id,
             ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
-            renderer: renderer,
             internal_format: Cell::new(None),
             size: Cell::new(None),
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<DomRoot<WebGLRenderbuffer>> {
+    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
-        renderer.send(WebGLCommand::CreateRenderbuffer(sender)).unwrap();
-
-        let result = receiver.recv().unwrap();
-        result.map(|renderbuffer_id| WebGLRenderbuffer::new(window, renderer, renderbuffer_id))
+        context.send_command(WebGLCommand::CreateRenderbuffer(sender));
+        receiver.recv().unwrap().map(|id| WebGLRenderbuffer::new(context, id))
     }
 
-    pub fn new(window: &Window,
-               renderer: WebGLMsgSender,
-               id: WebGLRenderbufferId)
-               -> DomRoot<WebGLRenderbuffer> {
-        reflect_dom_object(Box::new(WebGLRenderbuffer::new_inherited(renderer, id)),
-                           window,
-                           WebGLRenderbufferBinding::Wrap)
+    pub fn new(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLRenderbuffer::new_inherited(context, id)),
+            &*context.global(),
+            WebGLRenderbufferBinding::Wrap,
+        )
     }
 }
 
@@ -71,14 +63,17 @@ impl WebGLRenderbuffer {
 
     pub fn bind(&self, target: u32) {
         self.ever_bound.set(true);
-        let msg = WebGLCommand::BindRenderbuffer(target, Some(self.id));
-        self.renderer.send(msg).unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
     }
 
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(WebGLCommand::DeleteRenderbuffer(self.id));
+            self.upcast::<WebGLObject>()
+                .context()
+                .send_command(WebGLCommand::DeleteRenderbuffer(self.id));
         }
     }
 
@@ -108,8 +103,14 @@ impl WebGLRenderbuffer {
 
         // FIXME: Invalidate completeness after the call
 
-        let msg = WebGLCommand::RenderbufferStorage(constants::RENDERBUFFER, internal_format, width, height);
-        self.renderer.send(msg).unwrap();
+        self.upcast::<WebGLObject>().context().send_command(
+            WebGLCommand::RenderbufferStorage(
+                constants::RENDERBUFFER,
+                internal_format,
+                width,
+                height,
+            )
+        );
 
         self.size.set(Some((width, height)));
 
