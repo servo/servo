@@ -21,7 +21,7 @@ use dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use dom::bindings::codegen::UnionTypes::Float32ArrayOrUnrestrictedFloatSequence;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::codegen::UnionTypes::Int32ArrayOrLongSequence;
-use dom::bindings::conversions::ToJSValConvertible;
+use dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
@@ -41,6 +41,7 @@ use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
+use dom::webglobject::WebGLObject;
 use dom::webglprogram::WebGLProgram;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
 use dom::webglshader::WebGLShader;
@@ -425,6 +426,16 @@ impl WebGLRenderingContext {
             // The default framebuffer is always complete.
             None => return true,
         }
+    }
+
+    fn validate_ownership<T>(&self, object: &T) -> WebGLResult<()>
+    where
+        T: DerivedFrom<WebGLObject>,
+    {
+        if self != object.upcast().context() {
+            return Err(InvalidOperation);
+        }
+        Ok(())
     }
 
     fn with_location<F>(&self, location: Option<&WebGLUniformLocation>, f: F)
@@ -1766,21 +1777,30 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn AttachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         handle_potential_webgl_error!(self, program.attach_shader(shader));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DetachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         handle_potential_webgl_error!(self, program.detach_shader(shader));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: DOMString) {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BindBuffer(&self, target: u32, buffer: Option<&WebGLBuffer>) {
+        if let Some(buffer) = buffer {
+            handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
+        }
+
         let slot = match target {
             constants::ARRAY_BUFFER => &self.bound_buffer_array,
             constants::ELEMENT_ARRAY_BUFFER => &self.bound_buffer_element_array,
@@ -1802,6 +1822,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
+        if let Some(fb) = framebuffer {
+            handle_potential_webgl_error!(self, self.validate_ownership(fb), return);
+        }
+
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidEnum);
         }
@@ -1828,6 +1852,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn BindRenderbuffer(&self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
+        if let Some(rb) = renderbuffer {
+            handle_potential_webgl_error!(self, self.validate_ownership(rb), return);
+        }
+
         if target != constants::RENDERBUFFER {
             return self.webgl_error(InvalidEnum);
         }
@@ -1850,6 +1878,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
+        if let Some(texture) = texture {
+            handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
+        }
+
         let mut bound_textures = self.bound_textures.borrow_mut();
         let binding = bound_textures.entry(self.bound_texture_unit.get())
                                     .or_insert(TextureUnitBindings::new());
@@ -2175,6 +2207,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CompileShader(&self, shader: &WebGLShader) {
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         handle_potential_webgl_error!(
             self,
             shader.compile(
@@ -2226,6 +2259,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
         if let Some(buffer) = buffer {
+            handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
+
             if buffer.is_attached_to_vao() {
                 // WebGL spec: The buffers attached to VAOs should still not be deleted.
                 // They are deleted after the VAO is deleted.
@@ -2248,6 +2283,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn DeleteFramebuffer(&self, framebuffer: Option<&WebGLFramebuffer>) {
         if let Some(framebuffer) = framebuffer {
+            handle_potential_webgl_error!(self, self.validate_ownership(framebuffer), return);
             handle_object_deletion!(self, self.bound_framebuffer, framebuffer,
                                     Some(WebGLCommand::BindFramebuffer(constants::FRAMEBUFFER,
                                                                        WebGLFramebufferBindingRequest::Default)));
@@ -2258,6 +2294,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn DeleteRenderbuffer(&self, renderbuffer: Option<&WebGLRenderbuffer>) {
         if let Some(renderbuffer) = renderbuffer {
+            handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
             handle_object_deletion!(self, self.bound_renderbuffer, renderbuffer,
                                     Some(WebGLCommand::BindRenderbuffer(constants::RENDERBUFFER, None)));
             // From the GLES 2.0.25 spec, page 113:
@@ -2281,6 +2318,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn DeleteTexture(&self, texture: Option<&WebGLTexture>) {
         if let Some(texture) = texture {
+            handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
+
             // From the GLES 2.0.25 spec, page 85:
             //
             //     "If a texture that is currently bound to one of the targets
@@ -2323,6 +2362,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
+            handle_potential_webgl_error!(self, self.validate_ownership(program), return);
             // FIXME: We should call glUseProgram(0), but
             // WebGLCommand::UseProgram() doesn't take an Option
             // currently.  This is also a problem for useProgram(null)
@@ -2334,6 +2374,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
+            handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
             shader.delete()
         }
     }
@@ -2475,6 +2516,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveUniform(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         match program.get_active_uniform(index) {
             Ok(ret) => Some(ret),
             Err(e) => {
@@ -2486,11 +2528,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetActiveAttrib(&self, program: &WebGLProgram, index: u32) -> Option<DomRoot<WebGLActiveInfo>> {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.get_active_attrib(index).map(Some), None)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetAttribLocation(&self, program: &WebGLProgram, name: DOMString) -> i32 {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return -1);
         handle_potential_webgl_error!(self, program.get_attrib_location(name), -1)
     }
 
@@ -2651,6 +2695,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetProgramInfoLog(&self, program: &WebGLProgram) -> Option<DOMString> {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         match program.get_info_log() {
             Ok(value) => Some(DOMString::from(value)),
             Err(e) => {
@@ -2663,7 +2708,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param: u32) -> JSVal {
-        // FIXME(nox): INVALID_OPERATION if program comes from a different context.
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return NullValue());
         match param {
             constants::DELETE_STATUS => BooleanValue(program.is_deleted()),
             constants::LINK_STATUS => BooleanValue(program.is_linked()),
@@ -2689,13 +2734,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderInfoLog(&self, shader: &WebGLShader) -> Option<DOMString> {
-        // TODO(nox): https://github.com/servo/servo/issues/21133
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return None);
         Some(shader.info_log())
     }
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: &WebGLShader, param: u32) -> JSVal {
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return NullValue());
         if shader.is_deleted() && !shader.is_attached() {
             self.webgl_error(InvalidValue);
             return NullValue();
@@ -2748,6 +2794,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         program: &WebGLProgram,
         name: DOMString,
     ) -> Option<DomRoot<WebGLUniformLocation>> {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
     }
 
@@ -3134,18 +3181,19 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(&self, program: &WebGLProgram) {
-        // FIXME(nox): INVALID_OPERATION if program comes from a different context.
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         handle_potential_webgl_error!(self, program.link());
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn ShaderSource(&self, shader: &WebGLShader, source: DOMString) {
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
         shader.set_source(source)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderSource(&self, shader: &WebGLShader) -> Option<DOMString> {
-        // TODO(nox): https://github.com/servo/servo/issues/21133
+        handle_potential_webgl_error!(self, self.validate_ownership(shader), return None);
         Some(shader.source())
     }
 
@@ -3611,7 +3659,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         program: &WebGLProgram,
         location: &WebGLUniformLocation,
     ) -> JSVal {
-        // FIXME(nox): https://github.com/servo/servo/issues/21133
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return NullValue());
 
         if
             program.is_deleted() ||
@@ -3685,6 +3733,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn UseProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
+            handle_potential_webgl_error!(self, self.validate_ownership(program), return);
             if program.is_deleted() || !program.is_linked() {
                 return self.webgl_error(InvalidOperation);
             }
@@ -3695,6 +3744,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn ValidateProgram(&self, program: &WebGLProgram) {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
         if let Err(e) = program.validate() {
             self.webgl_error(e);
         }
@@ -4133,9 +4183,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn FramebufferRenderbuffer(&self, target: u32, attachment: u32,
-                               renderbuffertarget: u32,
-                               rb: Option<&WebGLRenderbuffer>) {
+    fn FramebufferRenderbuffer(
+        &self,
+        target: u32,
+        attachment: u32,
+        renderbuffertarget: u32,
+        rb: Option<&WebGLRenderbuffer>,
+    ) {
+        if let Some(rb) = rb {
+            handle_potential_webgl_error!(self, self.validate_ownership(rb), return);
+        }
+
         if target != constants::FRAMEBUFFER || renderbuffertarget != constants::RENDERBUFFER {
             return self.webgl_error(InvalidEnum);
         }
@@ -4147,9 +4205,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
-    fn FramebufferTexture2D(&self, target: u32, attachment: u32,
-                            textarget: u32, texture: Option<&WebGLTexture>,
-                            level: i32) {
+    fn FramebufferTexture2D(
+        &self,
+        target: u32,
+        attachment: u32,
+        textarget: u32,
+        texture: Option<&WebGLTexture>,
+        level: i32,
+    ) {
+        if let Some(texture) = texture {
+            handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
+        }
+
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidEnum);
         }
@@ -4161,10 +4228,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetAttachedShaders(
-        &self,
-        program: &WebGLProgram,
-    ) -> Option<Vec<DomRoot<WebGLShader>>> {
+    fn GetAttachedShaders(&self, program: &WebGLProgram) -> Option<Vec<DomRoot<WebGLShader>>> {
+        handle_potential_webgl_error!(self, self.validate_ownership(program), return None);
         handle_potential_webgl_error!(self, program.attached_shaders().map(Some), None)
     }
 }
