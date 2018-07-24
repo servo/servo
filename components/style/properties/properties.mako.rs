@@ -2004,7 +2004,8 @@ impl PropertyDeclaration {
         % if prop.logical:
         % for physical_property in prop.all_physical_mapped_properties():
         % if data.longhands_by_name[physical_property].specified_type() != prop.specified_type():
-            <% raise "Logical property %s should share specified value with physical property %s" % (prop.name, physical_property) %>
+            <% raise "Logical property %s should share specified value with physical property %s" % \
+                     (prop.name, physical_property) %>
         % endif
         % endfor
         % endif
