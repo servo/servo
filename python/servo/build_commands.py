@@ -272,7 +272,6 @@ class MachCommands(CommandBase):
                 sys.exit(1)
 
             android_platform = self.config["android"]["platform"]
-            android_target = self.config["android"]["target"]
             android_toolchain_name = self.config["android"]["toolchain_name"]
             android_toolchain_prefix = self.config["android"]["toolchain_prefix"]
             android_lib = self.config["android"]["lib"]
@@ -331,14 +330,13 @@ class MachCommands(CommandBase):
             host_cc = _get_exec_path(["clang"]) or _get_exec_path(["gcc"])
             host_cxx = _get_exec_path(["clang++"]) or _get_exec_path(["g++"])
 
-            android_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
-                                          android_toolchain_name, "prebuilt", host)
-            gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
-                                      android_toolchain_prefix + "-4.9", "prebuilt", host)
-            gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_target, "4.9.x")
+            llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
+            gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains", android_toolchain_prefix + "-4.9", "prebuilt", host)
+            gcc_libs = path.join(gcc_toolchain, "lib", "gcc", android_toolchain_name, "4.9.x")
 
-            env['PATH'] = (path.join(android_toolchain, "bin") + ':'
-                           + path.join(gcc_toolchain, "bin") + ':' + env['PATH'])
+            env['PATH'] = (path.join(llvm_toolchain, "bin") + ':'
+                           + path.join(gcc_toolchain, "bin") + ':'
+                           + env['PATH'])
             env['ANDROID_SYSROOT'] = path.join(env['ANDROID_NDK'], "platforms",
                                                android_platform, "arch-" + android_arch)
             support_include = path.join(env['ANDROID_NDK'], "sources", "android", "support", "include")
@@ -351,30 +349,42 @@ class MachCommands(CommandBase):
             env['HOST_CXX'] = host_cxx
             env['HOST_CFLAGS'] = ''
             env['HOST_CXXFLAGS'] = ''
-            env['CC'] = 'clang'
-            env['CPP'] = 'clang -E'
-            env['CXX'] = 'clang++'
+            env['CC'] = path.join(llvm_toolchain, "bin", "clang")
+            env['CPP'] = path.join(llvm_toolchain, "bin", "clang") + " -E"
+            env['CXX'] = path.join(llvm_toolchain, "bin", "clang++")
             env['ANDROID_TOOLCHAIN'] = gcc_toolchain
             env['GCC_TOOLCHAIN'] = gcc_toolchain
-            gcc_toolchain_bin = path.join(gcc_toolchain, android_target, "bin")
+            gcc_toolchain_bin = path.join(gcc_toolchain, android_toolchain_name, "bin")
             env['AR'] = path.join(gcc_toolchain_bin, "ar")
             env['RANLIB'] = path.join(gcc_toolchain_bin, "ranlib")
             env['OBJCOPY'] = path.join(gcc_toolchain_bin, "objcopy")
             env['YASM'] = path.join(env['ANDROID_NDK'], 'prebuilt', host, 'bin', 'yasm')
+            # A cheat-sheet for some of the build errors caused by getting the search path wrong...
+            #
+            # fatal error: 'limits' file not found
+            #   -- add -I cxx_include
+            # unknown type name '__locale_t' (when running bindgen in mozjs_sys)
+            #   -- add -isystem sysroot_include
+            # error: use of undeclared identifier 'UINTMAX_C'
+            #   -- add -D__STDC_CONSTANT_MACROS
+            #
+            # Also worth remembering: autoconf uses C for its configuration,
+            # even for C++ builds, so the C flags need to line up with the C++ flags.
             env['CFLAGS'] = ' '.join([
+                "--target=" + target,
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "--gcc-toolchain=" + gcc_toolchain,
-                "-I" + support_include,
-                "-I" + sysroot_include,
+                "-isystem", sysroot_include,
                 "-L" + gcc_libs])
             env['CXXFLAGS'] = ' '.join([
+                "--target=" + target,
                 "--sysroot=" + env['ANDROID_SYSROOT'],
                 "--gcc-toolchain=" + gcc_toolchain,
                 "-I" + support_include,
                 "-I" + cxx_include,
-                "-I" + cxxabi_include,
-                "-I" + sysroot_include,
+                "-isystem", sysroot_include,
                 "-L" + gcc_libs,
+                "-D__STDC_CONSTANT_MACROS",
                 "-D__NDK_FPABI__="])
             env["NDK_ANDROID_VERSION"] = android_platform.replace("android-", "")
             env['CPPFLAGS'] = ' '.join(["--sysroot", env['ANDROID_SYSROOT']])
