@@ -4,17 +4,25 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom::bindings::reflector::Reflector;
+use dom::bindings::root::Dom;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct WebGLObject {
     reflector_: Reflector,
+    context: Dom<WebGLRenderingContext>,
 }
 
 impl WebGLObject {
-    pub fn new_inherited() -> WebGLObject {
+    pub fn new_inherited(context: &WebGLRenderingContext) -> WebGLObject {
         WebGLObject {
             reflector_: Reflector::new(),
+            context: Dom::from_ref(context),
         }
+    }
+
+    pub fn context(&self) -> &WebGLRenderingContext {
+        &self.context
     }
 }

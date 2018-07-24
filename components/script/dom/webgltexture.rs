@@ -5,16 +5,17 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
 use canvas_traits::webgl::{DOMToTextureCommand, TexParameter, TexParameterFloat};
-use canvas_traits::webgl::{TexParameterInt, WebGLCommand, WebGLError, WebGLMsgSender};
+use canvas_traits::webgl::{TexParameterInt, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLTextureId, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
-use dom::window::Window;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::cmp;
@@ -45,18 +46,14 @@ pub struct WebGLTexture {
     // Store information for min and mag filters
     min_filter: Cell<Option<u32>>,
     mag_filter: Cell<Option<u32>>,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    renderer: WebGLMsgSender,
     /// True if this texture is used for the DOMToTexture feature.
     attached_to_dom: Cell<bool>,
 }
 
 impl WebGLTexture {
-    fn new_inherited(renderer: WebGLMsgSender,
-                     id: WebGLTextureId)
-                     -> WebGLTexture {
-        WebGLTexture {
-            webgl_object: WebGLObject::new_inherited(),
+    fn new_inherited(context: &WebGLRenderingContext, id: WebGLTextureId) -> Self {
+        Self {
+            webgl_object: WebGLObject::new_inherited(context),
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
@@ -65,27 +62,22 @@ impl WebGLTexture {
             min_filter: Cell::new(None),
             mag_filter: Cell::new(None),
             image_info_array: DomRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
-            renderer: renderer,
             attached_to_dom: Cell::new(false),
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<DomRoot<WebGLTexture>> {
+    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
-        renderer.send(WebGLCommand::CreateTexture(sender)).unwrap();
-
-        let result = receiver.recv().unwrap();
-        result.map(|texture_id| WebGLTexture::new(window, renderer, texture_id))
+        context.send_command(WebGLCommand::CreateTexture(sender));
+        receiver.recv().unwrap().map(|id| WebGLTexture::new(context, id))
     }
 
-    pub fn new(window: &Window,
-               renderer: WebGLMsgSender,
-               id: WebGLTextureId)
-               -> DomRoot<WebGLTexture> {
-        reflect_dom_object(Box::new(WebGLTexture::new_inherited(renderer, id)),
-                           window,
-                           WebGLTextureBinding::Wrap)
+    pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLTexture::new_inherited(context, id)),
+            &*context.global(),
+            WebGLTextureBinding::Wrap,
+        )
     }
 }
 
@@ -116,8 +108,9 @@ impl WebGLTexture {
             self.target.set(Some(target));
         }
 
-        let msg = WebGLCommand::BindTexture(target, Some(self.id));
-        self.renderer.send(msg).unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::BindTexture(target, Some(self.id)));
 
         Ok(())
     }
@@ -171,7 +164,9 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.renderer.send(WebGLCommand::GenerateMipmap(target)).unwrap();
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::GenerateMipmap(target));
 
         if self.base_mipmap_level + base_image_info.get_max_mimap_levels() == 0 {
             return Err(WebGLError::InvalidOperation);
@@ -184,11 +179,14 @@ impl WebGLTexture {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
+            let context = self.upcast::<WebGLObject>().context();
             // Notify WR to release the frame output when using DOMToTexture feature
             if self.attached_to_dom.get() {
-                let _ = self.renderer.send_dom_to_texture(DOMToTextureCommand::Detach(self.id));
+                let _ = context.webgl_sender().send_dom_to_texture(
+                    DOMToTextureCommand::Detach(self.id),
+                );
             }
-            let _ = self.renderer.send(WebGLCommand::DeleteTexture(self.id));
+            context.send_command(WebGLCommand::DeleteTexture(self.id));
         }
     }
 
@@ -227,9 +225,9 @@ impl WebGLTexture {
                             constants::NEAREST_MIPMAP_LINEAR |
                             constants::LINEAR_MIPMAP_LINEAR => {
                                 self.min_filter.set(Some(int_value as u32));
-                                self.renderer
-                                    .send(WebGLCommand::TexParameteri(target, int_param, int_value))
-                                    .unwrap();
+                                self.upcast::<WebGLObject>()
+                                    .context()
+                                    .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
                                 Ok(())
                             }
                             _ => Err(WebGLError::InvalidEnum),
@@ -239,9 +237,9 @@ impl WebGLTexture {
                         match int_value as u32 {
                             constants::NEAREST | constants::LINEAR => {
                                 self.mag_filter.set(Some(int_value as u32));
-                                self.renderer
-                                    .send(WebGLCommand::TexParameteri(target, int_param, int_value))
-                                    .unwrap();
+                                self.upcast::<WebGLObject>()
+                                    .context()
+                                    .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
                                 Ok(())
                             }
                             _ => return Err(WebGLError::InvalidEnum),
@@ -252,9 +250,9 @@ impl WebGLTexture {
                             constants::CLAMP_TO_EDGE |
                             constants::MIRRORED_REPEAT |
                             constants::REPEAT => {
-                                self.renderer
-                                    .send(WebGLCommand::TexParameteri(target, int_param, int_value))
-                                    .unwrap();
+                                self.upcast::<WebGLObject>()
+                                    .context()
+                                    .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
                                 Ok(())
                             }
                             _ => Err(WebGLError::InvalidEnum),
@@ -264,9 +262,9 @@ impl WebGLTexture {
             }
             TexParameter::Float(float_param @ TexParameterFloat::TextureMaxAnisotropyExt) => {
                 if float_value >= 1. {
-                    self.renderer
-                        .send(WebGLCommand::TexParameterf(target, float_param, float_value))
-                        .unwrap();
+                    self.upcast::<WebGLObject>()
+                        .context()
+                        .send_command(WebGLCommand::TexParameterf(target, float_param, float_value));
                     Ok(())
                 } else {
                     Err(WebGLError::InvalidValue)

@@ -4,17 +4,17 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest, WebGLFramebufferId};
-use canvas_traits::webgl::{WebGLMsgSender, WebGLResult, WebGLError};
-use canvas_traits::webgl::webgl_channel;
+use canvas_traits::webgl::{WebGLResult, WebGLError, webgl_channel};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::{Dom, DomRoot};
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
+use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom::webgltexture::WebGLTexture;
-use dom::window::Window;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -40,9 +40,6 @@ pub struct WebGLFramebuffer {
     is_deleted: Cell<bool>,
     size: Cell<Option<(i32, i32)>>,
     status: Cell<u32>,
-    #[ignore_malloc_size_of = "Defined in ipc-channel"]
-    renderer: WebGLMsgSender,
-
     // The attachment points for textures and renderbuffers on this
     // FBO.
     color: DomRefCell<Option<WebGLFramebufferAttachment>>,
@@ -52,15 +49,12 @@ pub struct WebGLFramebuffer {
 }
 
 impl WebGLFramebuffer {
-    fn new_inherited(renderer: WebGLMsgSender,
-                     id: WebGLFramebufferId)
-                     -> WebGLFramebuffer {
-        WebGLFramebuffer {
-            webgl_object: WebGLObject::new_inherited(),
+    fn new_inherited(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> Self {
+        Self {
+            webgl_object: WebGLObject::new_inherited(context),
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
-            renderer: renderer,
             size: Cell::new(None),
             status: Cell::new(constants::FRAMEBUFFER_UNSUPPORTED),
             color: DomRefCell::new(None),
@@ -70,22 +64,21 @@ impl WebGLFramebuffer {
         }
     }
 
-    pub fn maybe_new(window: &Window, renderer: WebGLMsgSender)
-                     -> Option<DomRoot<WebGLFramebuffer>> {
+    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
-        renderer.send(WebGLCommand::CreateFramebuffer(sender)).unwrap();
-
-        let result = receiver.recv().unwrap();
-        result.map(|fb_id| WebGLFramebuffer::new(window, renderer, fb_id))
+        context.send_command(WebGLCommand::CreateFramebuffer(sender));
+        receiver.recv().unwrap().map(|id| WebGLFramebuffer::new(context, id))
     }
 
-    pub fn new(window: &Window,
-               renderer: WebGLMsgSender,
-               id: WebGLFramebufferId)
-               -> DomRoot<WebGLFramebuffer> {
-        reflect_dom_object(Box::new(WebGLFramebuffer::new_inherited(renderer, id)),
-                           window,
-                           WebGLFramebufferBinding::Wrap)
+    pub fn new(
+        context: &WebGLRenderingContext,
+        id: WebGLFramebufferId,
+    ) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLFramebuffer::new_inherited(context, id)),
+            &*context.global(),
+            WebGLFramebufferBinding::Wrap,
+        )
     }
 }
 
@@ -102,14 +95,17 @@ impl WebGLFramebuffer {
         self.update_status();
 
         self.target.set(Some(target));
-        let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
-        self.renderer.send(cmd).unwrap();
+        self.upcast::<WebGLObject>().context().send_command(
+            WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id)),
+        );
     }
 
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(WebGLCommand::DeleteFramebuffer(self.id));
+            self.upcast::<WebGLObject>()
+                .context()
+                .send_command(WebGLCommand::DeleteFramebuffer(self.id));
         }
     }
 
@@ -210,10 +206,14 @@ impl WebGLFramebuffer {
             }
         };
 
-        self.renderer.send(WebGLCommand::FramebufferRenderbuffer(constants::FRAMEBUFFER,
-                                                                 attachment,
-                                                                 constants::RENDERBUFFER,
-                                                                 rb_id)).unwrap();
+        self.upcast::<WebGLObject>().context().send_command(
+            WebGLCommand::FramebufferRenderbuffer(
+                constants::FRAMEBUFFER,
+                attachment,
+                constants::RENDERBUFFER,
+                rb_id,
+            ),
+        );
 
         self.update_status();
         Ok(())
@@ -305,11 +305,15 @@ impl WebGLFramebuffer {
             }
         };
 
-        self.renderer.send(WebGLCommand::FramebufferTexture2D(constants::FRAMEBUFFER,
-                                                              attachment,
-                                                              textarget,
-                                                              tex_id,
-                                                              level)).unwrap();
+        self.upcast::<WebGLObject>().context().send_command(
+            WebGLCommand::FramebufferTexture2D(
+                constants::FRAMEBUFFER,
+                attachment,
+                textarget,
+                tex_id,
+                level,
+            ),
+        );
 
         self.update_status();
         Ok(())
