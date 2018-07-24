@@ -23,7 +23,7 @@ paths = {"include_manifest": wpt_path("include.ini"),
          "config": wpt_path("config.ini")}
 # Imports
 sys.path.append(wpt_path("web-platform-tests", "tools"))
-import localpaths
+import localpaths  # noqa: flake8
 from wptrunner import wptrunner, wptcommandline
 
 
