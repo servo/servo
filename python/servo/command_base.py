@@ -645,38 +645,30 @@ class CommandBase(object):
         return "emulator"
 
     def handle_android_target(self, target):
-        if target == "arm-linux-androideabi":
+        if target == "armv7-linux-androideabi":
             self.config["android"]["platform"] = "android-18"
             self.config["android"]["target"] = target
-            self.config["android"]["arch"] = "arm"
-            self.config["android"]["lib"] = "armeabi"
-            self.config["android"]["toolchain_name"] = "llvm"
-            self.config["android"]["toolchain_prefix"] = target
-            return True
-        elif target == "armv7-linux-androideabi":
-            self.config["android"]["platform"] = "android-18"
-            self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = "arm-linux-androideabi"
             self.config["android"]["arch"] = "arm"
             self.config["android"]["lib"] = "armeabi-v7a"
-            self.config["android"]["toolchain_name"] = "llvm"
-            self.config["android"]["toolchain_prefix"] = "arm-linux-androideabi"
+            self.config["android"]["toolchain_name"] = "arm-linux-androideabi"
             return True
         elif target == "aarch64-linux-android":
             self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = target
             self.config["android"]["arch"] = "arm64"
             self.config["android"]["lib"] = "arm64-v8a"
-            self.config["android"]["toolchain_name"] = "llvm"
-            self.config["android"]["toolchain_prefix"] = target
+            self.config["android"]["toolchain_name"] = target
             return True
         elif target == "i686-linux-android":
             # https://github.com/jemalloc/jemalloc/issues/1279
             self.config["android"]["platform"] = "android-21"
             self.config["android"]["target"] = target
+            self.config["android"]["toolchain_prefix"] = "x86"
             self.config["android"]["arch"] = "x86"
             self.config["android"]["lib"] = "x86"
-            self.config["android"]["toolchain_name"] = "llvm"
-            self.config["android"]["toolchain_prefix"] = "x86"
+            self.config["android"]["toolchain_name"] = target
             return True
         return False
 
