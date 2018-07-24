@@ -14,7 +14,7 @@ use element_state::{DocumentState, ElementState};
 use fnv::FnvHashMap;
 use invalidation::element::document_state::InvalidationMatchingData;
 use invalidation::element::element_wrapper::ElementSnapshot;
-use properties::{CascadeFlags, ComputedValues, PropertyFlags};
+use properties::{ComputedValues, PropertyFlags};
 use properties::longhands::display::computed_value::T as Display;
 use selector_parser::{AttrValue as SelectorAttrValue, PseudoElementCascadeType, SelectorParser};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};

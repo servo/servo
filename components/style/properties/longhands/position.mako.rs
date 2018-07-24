@@ -257,32 +257,41 @@ ${helpers.predefined_type(
         )}
     % else:
         // servo versions (no keyword support)
-        ${helpers.predefined_type(size,
-                                  "LengthOrPercentageOrAuto",
-                                  "computed::LengthOrPercentageOrAuto::Auto",
-                                  "parse_non_negative",
-                                  spec=spec % size,
-                                  allow_quirks=not logical,
-                                  animation_value_type="ComputedValue", logical = logical,
-                                  servo_restyle_damage = "reflow")}
-        ${helpers.predefined_type("min-%s" % size,
-                                  "LengthOrPercentage",
-                                  "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
-                                  "parse_non_negative",
-                                  spec=spec % ("min-%s" % size),
-                                  animation_value_type="ComputedValue",
-                                  logical=logical,
-                                  allow_quirks=not logical,
-                                  servo_restyle_damage = "reflow")}
-        ${helpers.predefined_type("max-%s" % size,
-                                  "LengthOrPercentageOrNone",
-                                  "computed::LengthOrPercentageOrNone::None",
-                                  "parse_non_negative",
-                                  spec=spec % ("min-%s" % size),
-                                  animation_value_type="ComputedValue",
-                                  logical=logical,
-                                  allow_quirks=not logical,
-                                  servo_restyle_damage = "reflow")}
+        ${helpers.predefined_type(
+            size,
+            "LengthOrPercentageOrAuto",
+            "computed::LengthOrPercentageOrAuto::Auto",
+            "parse_non_negative",
+            spec=spec % size,
+            logical_group="size",
+            allow_quirks=not logical,
+            animation_value_type="ComputedValue", logical = logical,
+            servo_restyle_damage = "reflow",
+        )}
+        ${helpers.predefined_type(
+            "min-%s" % size,
+            "LengthOrPercentage",
+            "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
+            "parse_non_negative",
+            spec=spec % ("min-%s" % size),
+            logical_group="min-size",
+            animation_value_type="ComputedValue",
+            logical=logical,
+            allow_quirks=not logical,
+            servo_restyle_damage = "reflow",
+        )}
+        ${helpers.predefined_type(
+            "max-%s" % size,
+            "LengthOrPercentageOrNone",
+            "computed::LengthOrPercentageOrNone::None",
+            "parse_non_negative",
+            spec=spec % ("max-%s" % size),
+            logical_group="max-size",
+            animation_value_type="ComputedValue",
+            logical=logical,
+            allow_quirks=not logical,
+            servo_restyle_damage = "reflow",
+        )}
     % endif
 % endfor
 
