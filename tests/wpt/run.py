@@ -22,7 +22,8 @@ def servo_path(*args):
 paths = {"include_manifest": wpt_path("include.ini"),
          "config": wpt_path("config.ini")}
 # Imports
-sys.path.append(wpt_path("web-platform-tests", "tools", "wptrunner"))
+sys.path.append(wpt_path("web-platform-tests", "tools"))
+import localpaths
 from wptrunner import wptrunner, wptcommandline
 
 
