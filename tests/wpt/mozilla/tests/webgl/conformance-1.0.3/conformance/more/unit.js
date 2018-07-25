@@ -53,6 +53,10 @@ if (window.internals) {
   window.internals.settings.setWebGLErrorsToConsoleEnabled(false);
 }
 
+if (window.async_test) {
+    var __overall_test = async_test('Overall test');
+}
+
 /* -- end platform specific code --*/
 Tests = {
   autorun : true,
@@ -906,6 +910,9 @@ function reportTestResultsToHarness(success, msg) {
 function notifyFinishedToHarness() {
   if (window.parent.webglTestHarness) {
     window.parent.webglTestHarness.notifyFinished(window.location.pathname);
+  }
+  if (window.__overall_test) {
+    window.__overall_test.done();
   }
 }
 

@@ -13,12 +13,14 @@ KHRONOS_REPO_URL = "https://github.com/KhronosGroup/WebGL.git"
 PATCHES_1X = [
     ("js-test-pre.patch", "resources/js-test-pre.js"),
     ("unit.patch", "conformance/more/unit.js"),
+    ("unit2.patch", "conformance/more/unit.js"),
     ("timeout.patch", None)
 ]
 # Patches for conformance tests 2.0.x
 PATCHES_2X = [
     ("js-test-pre2.patch", "js/js-test-pre.js"),
     ("unit.patch", "conformance/more/unit.js")
+    ("unit2.patch", "conformance/more/unit.js")
 ]
 
 # Fix for 'UnicodeDecodeError: 'ascii' codec can't decode byte'

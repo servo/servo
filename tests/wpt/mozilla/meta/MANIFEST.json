@@ -30472,6 +30472,11 @@
     [
      {}
     ]
+   ],
+   "webgl/tools/unit2.patch": [
+    [
+     {}
+    ]
    ]
   },
   "testharness": {
@@ -73039,7 +73044,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/more/unit.js": [
-   "e0d1158bdc411b87961a4c67abeb3dceed506008",
+   "82efd8b7a11d3ac344a3e1b563e99503f452226e",
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/more/util.js": [
@@ -99147,7 +99152,7 @@
    "testharness"
   ],
   "webgl/tools/import-conformance-tests.py": [
-   "73e9fad27290f3f10246390fca47bfeb64bc86ec",
+   "9e5e82b781ef02299db6406754b7d1d8abeb3c54",
    "support"
   ],
   "webgl/tools/js-test-pre.patch": [
@@ -99164,6 +99169,10 @@
   ],
   "webgl/tools/unit.patch": [
    "1d3713862875b47ae9c07462e6962eb21e40e404",
+   "support"
+  ],
+  "webgl/tools/unit2.patch": [
+   "cdccf819e756a9443f2ccf41b393b76fe5c398e9",
    "support"
   ],
   "webgl/uniformMatrixNfv.html": [
