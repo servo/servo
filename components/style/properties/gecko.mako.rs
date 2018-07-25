@@ -368,6 +368,34 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
+<%def name="impl_cbindgen_keyword(ident, gecko_ffi_name)">
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        // unsafe: cbindgen ensures the representations match.
+        ${set_gecko_property(gecko_ffi_name, "unsafe { transmute(v) }")}
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        // unsafe: cbindgen ensures the representations match.
+        unsafe { transmute(${get_gecko_property(gecko_ffi_name)}) }
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn reset_${ident}(&mut self, other: &Self) {
+        self.copy_${ident}_from(other)
+    }
+</%def>
+
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', on_set=None)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
@@ -3015,7 +3043,7 @@ fn static_assert() {
     }
 </%def>
 
-<% skip_box_longhands= """display overflow-y vertical-align
+<% skip_box_longhands= """display -moz-appearance overflow-y vertical-align
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
@@ -3064,6 +3092,8 @@ fn static_assert() {
         // unsafe: cbindgen ensures the representation is the same.
         unsafe { transmute(self.gecko.mDisplay) }
     }
+
+    ${impl_cbindgen_keyword('_moz_appearance', 'mAppearance')}
 
     <% float_keyword = Keyword("float", "Left Right None", gecko_enum_prefix="StyleFloat") %>
     ${impl_keyword('float', 'mFloat', float_keyword)}
