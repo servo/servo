@@ -163,6 +163,10 @@ linux-nightly:
   - rm -rf ./python/_virtualenv
 
 android:
+ env:
+   CC: gcc-5
+   CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -196,6 +200,10 @@ android-nightly:
   - ./etc/ci/clean_build_artifacts.sh
 
 arm32:
+ env:
+   CC: gcc-5
+   CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -204,6 +212,10 @@ arm32:
   - ./etc/ci/clean_build_artifacts.sh
 
 arm64:
+ env:
+   CC: gcc-5
+   CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
