@@ -41,29 +41,42 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
     }
 }
 
+/// Defines an element’s display type, which consists of
+/// the two basic qualities of how an element generates boxes
+/// <https://drafts.csswg.org/css-display/#propdef-display>
+///
+///
+/// NOTE(emilio): Order is important in Gecko!
+///
+/// If you change it, make sure to take a look at the
+/// FrameConstructionDataByDisplay stuff (both the XUL and non-XUL version), and
+/// ensure it's still correct!
+///
+/// Also, when you change this from Gecko you may need to regenerate the
+/// C++-side bindings (see components/style/cbindgen.toml).
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
          SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-/// Defines an element’s display type, which consists of
-/// the two basic qualities of how an element generates boxes
-/// <https://drafts.csswg.org/css-display/#propdef-display>
+#[repr(u8)]
 pub enum Display {
-    Inline,
+    None = 0,
     Block,
+    #[cfg(feature = "gecko")]
+    FlowRoot,
+    Inline,
     InlineBlock,
+    ListItem,
     Table,
     InlineTable,
     TableRowGroup,
+    TableColumn,
+    TableColumnGroup,
     TableHeaderGroup,
     TableFooterGroup,
     TableRow,
-    TableColumnGroup,
-    TableColumn,
     TableCell,
     TableCaption,
-    ListItem,
-    None,
     #[parse(aliases = "-webkit-flex")]
     Flex,
     #[parse(aliases = "-webkit-inline-flex")]
@@ -84,8 +97,6 @@ pub enum Display {
     RubyTextContainer,
     #[cfg(feature = "gecko")]
     Contents,
-    #[cfg(feature = "gecko")]
-    FlowRoot,
     #[cfg(feature = "gecko")]
     WebkitBox,
     #[cfg(feature = "gecko")]
@@ -119,10 +130,10 @@ pub enum Display {
     MozDeck,
     #[cfg(feature = "gecko")]
     #[parse(condition = "moz_display_values_enabled")]
-    MozPopup,
+    MozGroupbox,
     #[cfg(feature = "gecko")]
     #[parse(condition = "moz_display_values_enabled")]
-    MozGroupbox,
+    MozPopup,
 }
 
 impl Display {
