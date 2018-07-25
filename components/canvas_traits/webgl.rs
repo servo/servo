@@ -225,7 +225,6 @@ pub enum WebGLCommand {
     StencilOp(u32, u32, u32),
     StencilOpSeparate(u32, u32, u32, u32),
     Hint(u32, u32),
-    IsEnabled(u32, WebGLSender<bool>),
     LineWidth(f32),
     PixelStorei(u32, i32),
     LinkProgram(WebGLProgramId, WebGLSender<ProgramLinkInfo>),
@@ -511,15 +510,8 @@ macro_rules! parameters {
 parameters! {
     Parameter {
         Bool(ParameterBool {
-            Blend = gl::BLEND,
-            CullFace = gl::CULL_FACE,
-            DepthTest = gl::DEPTH_TEST,
             DepthWritemask = gl::DEPTH_WRITEMASK,
-            Dither = gl::DITHER,
-            PolygonOffsetFill = gl::POLYGON_OFFSET_FILL,
             SampleCoverageInvert = gl::SAMPLE_COVERAGE_INVERT,
-            ScissorTest = gl::SCISSOR_TEST,
-            StencilTest = gl::STENCIL_TEST,
         }),
         Bool4(ParameterBool4 {
             ColorWritemask = gl::COLOR_WRITEMASK,

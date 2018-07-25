@@ -709,8 +709,6 @@ impl WebGLImpl {
                 ctx.gl().enable_vertex_attrib_array(attrib_id),
             WebGLCommand::Hint(name, val) =>
                 ctx.gl().hint(name, val),
-            WebGLCommand::IsEnabled(cap, ref chan) =>
-                chan.send(ctx.gl().is_enabled(cap) != 0).unwrap(),
             WebGLCommand::LineWidth(width) =>
                 ctx.gl().line_width(width),
             WebGLCommand::PixelStorei(name, val) =>

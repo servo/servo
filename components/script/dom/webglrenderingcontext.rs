@@ -207,6 +207,7 @@ pub struct WebGLRenderingContext {
     #[ignore_malloc_size_of = "Because it's small"]
     current_clear_color: Cell<(f32, f32, f32, f32)>,
     extension_manager: WebGLExtensions,
+    capabilities: Capabilities,
 }
 
 impl WebGLRenderingContext {
@@ -256,6 +257,7 @@ impl WebGLRenderingContext {
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
                 extension_manager: WebGLExtensions::new(webgl_version),
+                capabilities: Default::default(),
             }
         })
     }
@@ -1114,19 +1116,6 @@ impl WebGLRenderingContext {
         self.send_command(msg);
     }
 
-    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14
-    fn validate_feature_enum(&self, cap: u32) -> bool {
-        match cap {
-            constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
-            constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
-            constants::SCISSOR_TEST | constants::STENCIL_TEST => true,
-            _ => {
-                self.webgl_error(InvalidEnum);
-                false
-            },
-        }
-    }
-
     fn get_gl_extensions(&self) -> String {
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::GetExtensions(sender));
@@ -1531,6 +1520,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
         if let Some(limit) = limit {
             return UInt32Value(limit);
+        }
+
+        if let Ok(value) = self.capabilities.is_enabled(parameter) {
+            return BooleanValue(value);
         }
 
         if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
@@ -2190,17 +2183,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    // FIXME: https://github.com/servo/servo/issues/20534
     fn Enable(&self, cap: u32) {
-        if self.validate_feature_enum(cap) {
+        if handle_potential_webgl_error!(self, self.capabilities.set(cap, true), return) {
             self.send_command(WebGLCommand::Enable(cap));
         }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    // FIXME: https://github.com/servo/servo/issues/20534
     fn Disable(&self, cap: u32) {
-        if self.validate_feature_enum(cap) {
+        if handle_potential_webgl_error!(self, self.capabilities.set(cap, false), return) {
             self.send_command(WebGLCommand::Disable(cap));
         }
     }
@@ -2891,15 +2882,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    // FIXME: https://github.com/servo/servo/issues/20534
     fn IsEnabled(&self, cap: u32) -> bool {
-        if self.validate_feature_enum(cap) {
-            let (sender, receiver) = webgl_channel().unwrap();
-            self.send_command(WebGLCommand::IsEnabled(cap, sender));
-            return receiver.recv().unwrap();
-        }
-
-        false
+        handle_potential_webgl_error!(self, self.capabilities.is_enabled(cap), false)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -4437,4 +4421,70 @@ impl VertexAttribData {
             max
         }
     }
+}
+
+#[derive(Default, JSTraceable, MallocSizeOf)]
+struct Capabilities {
+    value: Cell<CapFlags>,
+}
+
+impl Capabilities {
+    fn set(&self, cap: u32, set: bool) -> WebGLResult<bool> {
+        let cap = CapFlags::from_enum(cap)?;
+        let mut value = self.value.get();
+        if value.contains(cap) == set {
+            return Ok(false);
+        }
+        value.set(cap, set);
+        self.value.set(value);
+        Ok(true)
+    }
+
+    fn is_enabled(&self, cap: u32) -> WebGLResult<bool> {
+        Ok(self.value.get().contains(CapFlags::from_enum(cap)?))
+    }
+}
+
+impl Default for CapFlags {
+    fn default() -> Self {
+        CapFlags::DITHER
+    }
+}
+
+macro_rules! capabilities {
+    ($name:ident, $next:ident, $($rest:ident,)*) => {
+        capabilities!($name, $next, $($rest,)* [$name = 1;]);
+    };
+    ($prev:ident, $name:ident, $($rest:ident,)* [$($tt:tt)*]) => {
+        capabilities!($name, $($rest,)* [$($tt)* $name = Self::$prev.bits << 1;]);
+    };
+    ($prev:ident, [$($name:ident = $value:expr;)*]) => {
+        bitflags! {
+            #[derive(JSTraceable, MallocSizeOf)]
+            struct CapFlags: u16 {
+                $(const $name = $value;)*
+            }
+        }
+
+        impl CapFlags {
+            fn from_enum(cap: u32) -> WebGLResult<Self> {
+                match cap {
+                    $(constants::$name => Ok(Self::$name),)*
+                    _ => Err(InvalidEnum),
+                }
+            }
+        }
+    };
+}
+
+capabilities! {
+    BLEND,
+    CULL_FACE,
+    DEPTH_TEST,
+    DITHER,
+    POLYGON_OFFSET_FILL,
+    SAMPLE_ALPHA_TO_COVERAGE,
+    SAMPLE_COVERAGE,
+    SCISSOR_TEST,
+    STENCIL_TEST,
 }
