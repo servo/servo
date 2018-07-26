@@ -327,8 +327,8 @@ class MachCommands(CommandBase):
                 host_suffix = "x86_64"
             host = os_type + "-" + host_suffix
 
-            host_cc = _get_exec_path(["clang"]) or _get_exec_path(["gcc"])
-            host_cxx = _get_exec_path(["clang++"]) or _get_exec_path(["g++"])
+            host_cc = env.get('HOST_CC') or _get_exec_path(["clang"]) or _get_exec_path(["gcc"])
+            host_cxx = env.get('HOST_CXX') or _get_exec_path(["clang++"]) or _get_exec_path(["g++"])
 
             llvm_toolchain = path.join(env['ANDROID_NDK'], "toolchains", "llvm", "prebuilt", host)
             gcc_toolchain = path.join(env['ANDROID_NDK'], "toolchains",
