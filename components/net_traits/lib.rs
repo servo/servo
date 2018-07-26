@@ -209,7 +209,8 @@ pub trait FetchResponseListener {
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
     fn process_response_eof(&mut self, response: Result<(), NetworkError>);
-    fn resource_timing(&mut self) -> &mut ResourceFetchTiming;
+    fn resource_timing(&self) -> &ResourceFetchTiming;
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming;
     fn submit_resource_timing(&mut self);
 }
 
@@ -255,7 +256,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseEOF(data) => {
                 match data {
                     Ok(ref response_resource_timing) => {
-                        *listener.resource_timing() = response_resource_timing.clone();
+                        *listener.resource_timing_mut() = response_resource_timing.clone();
                         listener.process_response_eof(Ok(()));
                         // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
 

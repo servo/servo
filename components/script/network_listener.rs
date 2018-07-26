@@ -27,7 +27,7 @@ pub trait ResourceTimingListener {
     fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
 }
 
-pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &mut T) {
+pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
     let (initiator_type, url) = listener.resource_timing_information();
     let global = listener.resource_timing_global();
     let performance_entry = PerformanceResourceTiming::new(

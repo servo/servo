@@ -960,7 +960,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     if response.is_none() {
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
-                                                  done_chan, context, &mut resource_timing);
+                                                  done_chan, context, &resource_timing);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.safe() {
@@ -1057,7 +1057,7 @@ fn http_network_fetch(request: &Request,
                       credentials_flag: bool,
                       done_chan: &mut DoneChannel,
                       context: &mut FetchContext,
-                      resource_timing: &mut ResourceFetchTiming)
+                      resource_timing: &ResourceFetchTiming)
                       -> Response {
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean

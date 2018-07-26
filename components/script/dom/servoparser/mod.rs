@@ -352,10 +352,6 @@ impl ServoParser {
                      last_chunk_state: LastChunkState,
                      kind: ParserKind)
                      -> Self {
-        // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
-        let performance_entry = PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
-        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
-
         ServoParser {
             reflector: Reflector::new(),
             document: Dom::from_ref(document),
@@ -749,12 +745,19 @@ impl FetchResponseListener for ParserContext {
         }
     }
 
-    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
         &mut self.resource_timing
     }
 
-    // Don't submit a resource timing for this
-    fn submit_resource_timing(&mut self) {}
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
+    }
+
+    // store a PerformanceNavigationTiming entry in the globalscope's Performance buffer
+    fn submit_resource_timing(&mut self) {
+        let performance_entry = PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
+        document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
+    }
 }
 
 impl PreInvoke for ParserContext {}

@@ -1,4 +1,5 @@
 match_block_trailing_comma = true
 binop_separator = "Back"
+required_version = "0.10.0"
 # Turn off import reordering, since the new algorithm clashes with tidy.
 reorder_imports = false

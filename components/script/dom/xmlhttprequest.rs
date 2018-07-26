@@ -259,8 +259,12 @@ impl XMLHttpRequest {
                 *self.sync_status.borrow_mut() = Some(rv);
             }
 
-            fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+            fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
                 &mut self.resource_timing
+            }
+
+            fn resource_timing(&self) -> &ResourceFetchTiming {
+                &self.resource_timing
             }
 
             fn submit_resource_timing(&mut self) {

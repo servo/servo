@@ -394,8 +394,12 @@ impl FetchResponseListener for EventSourceContext {
         self.reestablish_the_connection();
     }
 
-    fn resource_timing(&mut self) -> &mut ResourceFetchTiming {
+    fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
         &mut self.resource_timing
+    }
+
+    fn resource_timing(&self) -> &ResourceFetchTiming {
+        &self.resource_timing
     }
 
     fn submit_resource_timing(&mut self) {
