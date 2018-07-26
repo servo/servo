@@ -164,8 +164,8 @@ linux-nightly:
 
 android:
  env:
-   CC: gcc-5
-   CXX: g++-5
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -178,6 +178,10 @@ android:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-x86:
+ env:
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -190,6 +194,10 @@ android-x86:
   - ./etc/ci/clean_build_artifacts.sh
 
 android-nightly:
+ env:
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
@@ -201,8 +209,8 @@ android-nightly:
 
 arm32:
  env:
-   CC: gcc-5
-   CXX: g++-5
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -213,8 +221,8 @@ arm32:
 
 arm64:
  env:
-   CC: gcc-5
-   CXX: g++-5
+   HOST_CC: gcc-5
+   HOST_CXX: g++-5
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
