@@ -85,89 +85,92 @@ impl Browser {
 
     /// Handle key events before sending them to Servo.
     fn handle_key_from_window(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
-        match (mods, ch, key) {
-            (CMD_OR_CONTROL, Some('r'), _) => {
-                if let Some(id) = self.browser_id {
-                    self.event_queue.push(WindowEvent::Reload(id));
-                }
+        let pressed = state == KeyState::Pressed;
+        // We don't match the state in the parent `match` because we don't want to do anything
+        // on KeyState::Released when it's a combo that we handle on Pressed. For example,
+        // if we catch Alt-Left on pressed, we don't want the Release event to be sent to Servo.
+        match (mods, ch, key, self.browser_id) {
+            (CMD_OR_CONTROL, _, Key::R, Some(id)) => if pressed {
+                self.event_queue.push(WindowEvent::Reload(id));
             }
-            (CMD_OR_CONTROL, Some('l'), _) => {
-                if let Some(id) = self.browser_id {
-                    let url: String = if let Some(ref current_url) = self.current_url {
-                        current_url.to_string()
-                    } else {
-                        String::from("")
-                    };
-                    let title = "URL or search query";
-                    if let Some(input) = get_url_input(title, &url) {
-                        if let Some(url) = sanitize_url(&input) {
-                            self.event_queue.push(WindowEvent::LoadUrl(id, url));
-                        }
+            (CMD_OR_CONTROL, _, Key::L, Some(id)) => if pressed {
+                let url: String = if let Some(ref current_url) = self.current_url {
+                    current_url.to_string()
+                } else {
+                    String::from("")
+                };
+                let title = "URL or search query";
+                if let Some(input) = get_url_input(title, &url) {
+                    if let Some(url) = sanitize_url(&input) {
+                        self.event_queue.push(WindowEvent::LoadUrl(id, url));
                     }
                 }
             }
-            (CMD_OR_CONTROL, Some('q'), _) => {
+            (CMD_OR_CONTROL, _, Key::Q, _) => if pressed {
                 self.event_queue.push(WindowEvent::Quit);
             }
-            (_, Some('3'), _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => {
+            (_, Some('3'), _, _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => if pressed {
                 self.event_queue.push(WindowEvent::CaptureWebRender);
             }
-            (KeyModifiers::CONTROL, None, Key::F10) => {
+            (KeyModifiers::CONTROL, None, Key::F10, _) => if pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
                 self.event_queue.push(event);
             }
-            (KeyModifiers::CONTROL, None, Key::F11) => {
+            (KeyModifiers::CONTROL, None, Key::F11, _) => if pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
                 self.event_queue.push(event);
             }
-            (KeyModifiers::CONTROL, None, Key::F12) => {
+            (KeyModifiers::CONTROL, None, Key::F12, _) => if pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
                 self.event_queue.push(event);
             }
-            (CMD_OR_ALT, None, Key::Right) | (KeyModifiers::NONE, None, Key::NavigateForward) => {
-                if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
-                    self.event_queue.push(event);
-                }
+            (CMD_OR_ALT, None, Key::Right, Some(id)) |
+            (KeyModifiers::NONE, None, Key::NavigateForward, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
+                self.event_queue.push(event);
             }
-            (CMD_OR_ALT, None, Key::Left) | (KeyModifiers::NONE, None, Key::NavigateBackward) => {
-                if let Some(id) = self.browser_id {
-                    let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
-                    self.event_queue.push(event);
-                }
+            (CMD_OR_ALT, None, Key::Left, Some(id)) |
+            (KeyModifiers::NONE, None, Key::NavigateBackward, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                self.event_queue.push(event);
             }
-            (KeyModifiers::NONE, None, Key::Escape) => {
+            (KeyModifiers::NONE, None, Key::Escape, _) => if pressed {
                 self.event_queue.push(WindowEvent::Quit);
             }
             _ => {
-                let event = self.platform_handle_key(key, mods);
-                self.event_queue.push(event.unwrap_or(WindowEvent::KeyEvent(ch, key, state, mods)));
+                self.platform_handle_key(ch, key, mods, state);
             }
         }
-
     }
 
     #[cfg(not(target_os = "win"))]
-    fn platform_handle_key(&self, key: Key, mods: KeyModifiers) -> Option<WindowEvent> {
+    fn platform_handle_key(&mut self, ch: Option<char>, key: Key, mods: KeyModifiers, state: KeyState) {
+        let pressed = state == KeyState::Pressed;
         match (mods, key, self.browser_id) {
-            (CMD_OR_CONTROL, Key::LeftBracket, Some(id)) => {
-                Some(WindowEvent::Navigation(id, TraversalDirection::Back(1)))
+            (CMD_OR_CONTROL, Key::LeftBracket, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                self.event_queue.push(event);
             }
-            (CMD_OR_CONTROL, Key::RightBracket, Some(id)) => {
-                Some(WindowEvent::Navigation(id, TraversalDirection::Forward(1)))
+            (CMD_OR_CONTROL, Key::RightBracket, Some(id)) => if pressed {
+                let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
+                self.event_queue.push(event);
             }
-            _ => None
+            _ => {
+                self.event_queue.push(WindowEvent::KeyEvent(ch, key, state, mods));
+            }
         }
     }
 
     #[cfg(target_os = "win")]
-    fn platform_handle_key(&self, key: Key, mods: KeyModifiers) -> Option<WindowEvent> {
-        None
+    fn platform_handle_key(&mut self, _ch: Option<char>, _key: Key, _mods: KeyModifiers, _state: KeyState) {
     }
 
     /// Handle key events after they have been handled by Servo.
     fn handle_key_from_servo(&mut self, _: Option<BrowserId>, ch: Option<char>,
-                             key: Key, _: KeyState, mods: KeyModifiers) {
+                             key: Key, state: KeyState, mods: KeyModifiers) {
+        if state == KeyState::Pressed {
+            return;
+        }
         match (mods, ch, key) {
             (_, Some('+'), _) => {
                 if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL {
