@@ -54,6 +54,7 @@ def main(avd_name, apk_path, *args):
         check_call(adb + ["install", "-r", apk_path])
         args = list(args)
         write_user_stylesheets(adb, args)
+        write_hosts_file(adb)
         write_args(adb, args)
 
         check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
@@ -141,6 +142,15 @@ def write_user_stylesheets(adb, args):
         remote_path = "%s/user%s.css" % (data_dir, i)
         args[pos] = remote_path
         check_call(adb + ["push", path, remote_path], stdout=sys.stderr)
+
+
+def write_hosts_file(adb):
+    hosts_file = os.environ.get("HOST_FILE")
+    if hosts_file:
+        data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
+        check_call(adb + ["shell", "mkdir -p %s" % data_dir])
+        remote_path = data_dir + "/android_hosts"
+        check_call(adb + ["push", hosts_file, remote_path], stdout=sys.stderr)
 
 
 def forward_webdriver(adb, args):

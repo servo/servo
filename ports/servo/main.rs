@@ -105,6 +105,12 @@ fn main() {
 
     resources::init();
 
+    if cfg!(target_os = "android") && env::var_os("HOST_FILE").is_none() {
+        let mut path = config::basedir::default_config_dir();
+        path.push("android_hosts");
+        env::set_var("HOST_FILE", path);
+    }
+
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
 
