@@ -26,7 +26,7 @@ use html5ever::tendril::{SendTendril, StrTendril, Tendril};
 use html5ever::tendril::fmt::UTF8;
 use html5ever::tokenizer::{Tokenizer as HtmlTokenizer, TokenizerOpts, TokenizerResult};
 use html5ever::tree_builder::{ElementFlags, NodeOrText as HtmlNodeOrText, NextParserState, QuirksMode, TreeSink};
-use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
+use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts, IntendedParent as HtmlIntendedParent};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -57,11 +57,19 @@ struct Attribute {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+enum IntendedParent {
+    None,
+    Parent(ParseNode),
+    Either(ParseNode, ParseNode),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
 enum ParseOperation {
     GetTemplateContents { target: ParseNodeId, contents: ParseNodeId },
 
     CreateElement {
         node: ParseNodeId,
+        parent: IntendedParent,
         name: QualName,
         attrs: Vec<Attribute>,
         current_line: u64
@@ -335,15 +343,23 @@ impl Tokenizer {
                     "Tried to extract contents from non-template element while parsing");
                 self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
             }
-            ParseOperation::CreateElement { node, name, attrs, current_line } => {
+            ParseOperation::CreateElement { node, parent, name, attrs, current_line } => {
                 let attrs = attrs
                     .into_iter()
                     .map(|attr| ElementAttribute::new(attr.name, DOMString::from(attr.value)))
                     .collect();
+                let document = match parent {
+                    IntendedParent::None => DomRoot::from_ref(&*self.document),
+                    IntendedParent::Parent(parent) => self.get_node(&parent.id).owner_doc(),
+                    IntendedParent::Either(element, prev) => {
+                        let node = if self.has_parent_node(element.id) { element } else { prev };
+                        self.get_node(&node.id).owner_doc()
+                    },
+                };
                 let element = create_element_for_token(
                     name,
                     attrs,
-                    &*self.document,
+                    &*document,
                     ElementCreator::ParserCreated(current_line),
                     ParsingAlgorithm::Normal
                 );
@@ -584,8 +600,13 @@ impl TreeSink for Sink {
         target.qual_name.as_ref().expect("Expected qual name of node!").expanded()
     }
 
-    fn create_element(&mut self, name: QualName, html_attrs: Vec<HtmlAttribute>, _flags: ElementFlags)
-        -> Self::Handle {
+    fn create_element(
+        &mut self,
+        name: QualName,
+        html_attrs: Vec<HtmlAttribute>,
+        _flags: ElementFlags,
+        parent: HtmlIntendedParent<&Self::Handle>,
+    ) -> Self::Handle {
         let mut node = self.new_parse_node();
         node.qual_name = Some(name.clone());
         {
@@ -601,8 +622,15 @@ impl TreeSink for Sink {
         let attrs = html_attrs.into_iter()
             .map(|attr| Attribute { name: attr.name, value: String::from(attr.value) }).collect();
 
+        let parent = match parent {
+            HtmlIntendedParent::None => IntendedParent::None,
+            HtmlIntendedParent::Parent(parent) => IntendedParent::Parent(parent.clone()),
+            HtmlIntendedParent::Either(node1, node2) => IntendedParent::Either(node1.clone(), node2.clone()),
+        };
+
         self.send_op(ParseOperation::CreateElement {
             node: node.id,
+            parent: parent,
             name,
             attrs,
             current_line: self.current_line

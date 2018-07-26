@@ -38,7 +38,7 @@ euclid = "0.18"
 fallible = { path = "../fallible" }
 fnv = "1.0"
 hashglobe = { path = "../hashglobe" }
-html5ever = {version = "0.22", optional = true}
+html5ever = {version = "0.23", optional = true}
 itertools = "0.7.6"
 itoa = "0.4"
 lazy_static = "1"

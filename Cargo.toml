@@ -25,3 +25,7 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+
+html5ever = { path = "../html5ever/html5ever" }
+xml5ever = { path = "../html5ever/xml5ever" }
+markup5ever = { path = "../html5ever/markup5ever" }

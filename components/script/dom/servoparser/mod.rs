@@ -35,6 +35,7 @@ use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
 use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
+use html5ever::tree_builder::IntendedParent;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -821,16 +822,30 @@ impl TreeSink for Sink {
         }
     }
 
-    fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>, _flags: ElementFlags)
-            -> Dom<Node> {
+    fn create_element(
+        &mut self,
+        name: QualName,
+        attrs: Vec<Attribute>,
+        _flags: ElementFlags,
+        parent: IntendedParent<&Dom<Node>>
+    ) -> Dom<Node> {
         let attrs = attrs
             .into_iter()
             .map(|attr| ElementAttribute::new(attr.name, DOMString::from(String::from(attr.value))))
             .collect();
+
+        let document = match parent {
+            IntendedParent::None => DomRoot::from_ref(&*self.document),
+            IntendedParent::Parent(parent) => parent.owner_doc(),
+            IntendedParent::Either(element, prev) => {
+                if self.has_parent_node(element) { element.owner_doc() } else { prev.owner_doc() }
+            },
+        };
+
         let element = create_element_for_token(
             name,
             attrs,
-            &*self.document,
+            &*document,
             ElementCreator::ParserCreated(self.current_line),
             self.parsing_algorithm,
         );
