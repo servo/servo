@@ -8,7 +8,7 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use cssparser::Parser;
-use hash::FnvHashMap;
+use hash::FxHashMap;
 use parser::{Parse, ParserContext};
 use selectors::parser::SelectorParseErrorKind;
 use servo_arc::Arc;
@@ -548,7 +548,7 @@ impl TemplateAreas {
         let mut width = 0;
         {
             let mut row = 0u32;
-            let mut area_indices = FnvHashMap::<&str, usize>::default();
+            let mut area_indices = FxHashMap::<&str, usize>::default();
             for string in &strings {
                 let mut current_area_index: Option<usize> = None;
                 row += 1;

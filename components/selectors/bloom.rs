@@ -297,6 +297,9 @@ impl Clone for BloomStorageBool {
 }
 
 fn hash<T: Hash>(elem: &T) -> u32 {
+    // We generally use FxHasher in Stylo because it's faster than FnvHasher,
+    // but the increased collision rate has outsized effect on the bloom
+    // filter, so we use FnvHasher instead here.
     let mut hasher = FnvHasher::default();
     elem.hash(&mut hasher);
     let hash: u64 = hasher.finish();

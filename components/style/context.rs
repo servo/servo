@@ -14,7 +14,7 @@ use dom::{SendElement, TElement};
 use dom::OpaqueNode;
 use euclid::Size2D;
 use euclid::TypedScale;
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs;
@@ -173,11 +173,11 @@ pub struct SharedStyleContext<'a> {
 
     /// The animations that are currently running.
     #[cfg(feature = "servo")]
-    pub running_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    pub running_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
     #[cfg(feature = "servo")]
-    pub expired_animations: Arc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    pub expired_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// Paint worklets
     #[cfg(feature = "servo")]
@@ -570,7 +570,7 @@ type CacheItem<E> = (SendElement<E>, ElementSelectorFlags);
 /// flags until after the traversal.
 pub struct SelectorFlagsMap<E: TElement> {
     /// The hashmap storing the flags to apply.
-    map: FnvHashMap<SendElement<E>, ElementSelectorFlags>,
+    map: FxHashMap<SendElement<E>, ElementSelectorFlags>,
     /// An LRU cache to avoid hashmap lookups, which can be slow if the map
     /// gets big.
     cache: LRUCache<[Entry<CacheItem<E>>; 4 + 1]>,
@@ -587,7 +587,7 @@ impl<E: TElement> SelectorFlagsMap<E> {
     /// Creates a new empty SelectorFlagsMap.
     pub fn new() -> Self {
         SelectorFlagsMap {
-            map: FnvHashMap::default(),
+            map: FxHashMap::default(),
             cache: LRUCache::default(),
         }
     }
@@ -833,7 +833,7 @@ pub trait RegisteredSpeculativePainter: SpeculativePainter {
     /// The name it was registered with
     fn name(&self) -> Atom;
     /// The properties it was registered with
-    fn properties(&self) -> &FnvHashMap<Atom, PropertyId>;
+    fn properties(&self) -> &FxHashMap<Atom, PropertyId>;
 }
 
 /// A set of registered painters

@@ -7,7 +7,7 @@
 //! Can go away when the stdlib gets fallible collections
 //! https://github.com/rust-lang/rfcs/pull/2116
 
-use fnv;
+use fxhash;
 
 #[cfg(feature = "gecko")]
 pub use hashglobe::hash_map::HashMap;
@@ -25,7 +25,7 @@ pub mod map {
     pub use std::collections::hash_map::{Entry, Iter};
 }
 
-/// Hash map that uses the FNV hasher
-pub type FnvHashMap<K, V> = HashMap<K, V, fnv::FnvBuildHasher>;
-/// Hash set that uses the FNV hasher
-pub type FnvHashSet<T> = HashSet<T, fnv::FnvBuildHasher>;
+/// Hash map that uses the Fx hasher
+pub type FxHashMap<K, V> = HashMap<K, V, fxhash::FxBuildHasher>;
+/// Hash set that uses the Fx hasher
+pub type FxHashSet<T> = HashSet<T, fxhash::FxBuildHasher>;

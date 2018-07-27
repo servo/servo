@@ -42,7 +42,7 @@ extern crate cssparser;
 extern crate debug_unreachable;
 extern crate euclid;
 extern crate fallible;
-extern crate fnv;
+extern crate fxhash;
 #[cfg(feature = "gecko")]
 #[macro_use]
 pub mod gecko_string_cache;

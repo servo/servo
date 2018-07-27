@@ -11,7 +11,7 @@ use Atom;
 use CaseSensitivityExt;
 use LocalName as SelectorLocalName;
 use dom::{TDocument, TElement, TNode};
-use fnv::FnvHashSet;
+use fxhash::FxHashSet;
 use invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use invalidation::element::restyle_hints::RestyleHint;
 use media_queries::Device;
@@ -106,9 +106,9 @@ impl Invalidation {
 #[derive(MallocSizeOf)]
 pub struct StylesheetInvalidationSet {
     /// The subtrees we know we have to restyle so far.
-    invalid_scopes: FnvHashSet<Invalidation>,
+    invalid_scopes: FxHashSet<Invalidation>,
     /// The elements we know we have to restyle so far.
-    invalid_elements: FnvHashSet<Invalidation>,
+    invalid_elements: FxHashSet<Invalidation>,
     /// Whether the whole document should be restyled.
     fully_invalid: bool,
 }
@@ -117,8 +117,8 @@ impl StylesheetInvalidationSet {
     /// Create an empty `StylesheetInvalidationSet`.
     pub fn new() -> Self {
         Self {
-            invalid_scopes: FnvHashSet::default(),
-            invalid_elements: FnvHashSet::default(),
+            invalid_scopes: FxHashSet::default(),
+            invalid_elements: FxHashSet::default(),
             fully_invalid: false,
         }
     }

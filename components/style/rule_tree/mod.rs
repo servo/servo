@@ -1146,13 +1146,13 @@ impl StrongRuleNode {
 
     unsafe fn assert_free_list_has_no_duplicates_or_null(&self) {
         assert!(cfg!(debug_assertions), "This is an expensive check!");
-        use hash::FnvHashSet;
+        use hash::FxHashSet;
 
         let me = &*self.ptr();
         assert!(me.is_root());
 
         let mut current = self.ptr();
-        let mut seen = FnvHashSet::default();
+        let mut seen = FxHashSet::default();
         while current != FREE_LIST_SENTINEL {
             let next = (*current).next_free.load(Ordering::Relaxed);
             assert!(!next.is_null());

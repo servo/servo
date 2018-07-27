@@ -62,7 +62,7 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
-use hash::FnvHashMap;
+use hash::FxHashMap;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, LonghandId};
@@ -867,12 +867,12 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
-    fn css_transitions_info(&self) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
+    fn css_transitions_info(&self) -> FxHashMap<LonghandId, Arc<AnimationValue>> {
         use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
         use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
 
         let collection_length = unsafe { Gecko_ElementTransitions_Length(self.0) } as usize;
-        let mut map = FnvHashMap::with_capacity_and_hasher(collection_length, Default::default());
+        let mut map = FxHashMap::with_capacity_and_hasher(collection_length, Default::default());
 
         for i in 0..collection_length {
             let raw_end_value = unsafe { Gecko_ElementTransitions_EndValueAt(self.0, i) };
@@ -893,7 +893,7 @@ impl<'le> GeckoElement<'le> {
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
-        existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>,
+        existing_transitions: &FxHashMap<LonghandId, Arc<AnimationValue>>,
     ) -> bool {
         use values::animated::{Animate, Procedure};
         debug_assert!(!longhand_id.is_logical());
