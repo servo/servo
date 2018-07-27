@@ -12,6 +12,7 @@ use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
+use dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
@@ -27,16 +28,20 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use dom::bindings::weakref::DOMTracker;
 use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::customelementregistry::CustomElementRegistry;
 use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::history::History;
 use dom::location::Location;
-use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
+use dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
+use dom::mediaquerylistevent::MediaQueryListEvent;
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
 use dom::node::{Node, NodeDamage, document_from_node, from_untrusted_node_address};
@@ -260,7 +265,7 @@ pub struct Window {
     scroll_offsets: DomRefCell<HashMap<UntrustedNodeAddress, Vector2D<f32>>>,
 
     /// All the MediaQueryLists we need to update
-    media_query_lists: WeakMediaQueryListVec,
+    media_query_lists: DOMTracker<MediaQueryList>,
 
     test_runner: MutNullableDom<TestRunner>,
 
@@ -1052,7 +1057,7 @@ impl WindowMethods for Window {
             media_queries::MediaList::parse(&context, &mut parser);
         let document = self.Document();
         let mql = MediaQueryList::new(&document, media_query_list);
-        self.media_query_lists.push(&*mql);
+        self.media_query_lists.track(&*mql);
         mql
     }
 
@@ -1771,8 +1776,25 @@ impl Window {
         self.parent_info.is_none()
     }
 
+    /// Evaluate media query lists and report changes
+    /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
     pub fn evaluate_media_queries_and_report_changes(&self) {
-        self.media_query_lists.evaluate_and_report_changes();
+        rooted_vec!(let mut mql_list);
+        self.media_query_lists.for_each(|mql| {
+            if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
+                // Recording list of changed Media Queries
+                mql_list.push(Dom::from_ref(&*mql));
+            }
+        });
+        // Sending change events for all changed Media Queries
+        for mql in mql_list.iter() {
+            let event = MediaQueryListEvent::new(&mql.global(),
+                                                 atom!("change"),
+                                                 false, false,
+                                                 mql.Media(),
+                                                 mql.Matches());
+            event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
+        }
     }
 
     /// Slow down/speed up timers based on visibility.
@@ -1911,7 +1933,7 @@ impl Window {
             ignore_further_async_events: Default::default(),
             error_reporter,
             scroll_offsets: Default::default(),
-            media_query_lists: WeakMediaQueryListVec::new(),
+            media_query_lists: DOMTracker::new(),
             test_runner: Default::default(),
             webgl_chan,
             webvr_chan,
