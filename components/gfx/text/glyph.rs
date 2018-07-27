@@ -4,11 +4,11 @@
 
 use app_units::Au;
 use euclid::Point2D;
+#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
+use packed_simd::u32x4;
 use range::{self, EachIndex, Range, RangeIndex};
 use std::{fmt, mem, u16};
 use std::cmp::{Ordering, PartialOrd};
-#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
-use std::simd::u32x4;
 use std::vec::Vec;
 
 pub use gfx_traits::ByteIndex;
