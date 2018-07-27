@@ -25,7 +25,8 @@ use std::cell::{Cell, Ref};
 pub struct WebGLProgram {
     webgl_object: WebGLObject,
     id: WebGLProgramId,
-    is_deleted: Cell<bool>,
+    is_in_use: Cell<bool>,
+    marked_for_deletion: Cell<bool>,
     link_called: Cell<bool>,
     linked: Cell<bool>,
     link_generation: Cell<u64>,
@@ -40,7 +41,8 @@ impl WebGLProgram {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id: id,
-            is_deleted: Cell::new(false),
+            is_in_use: Default::default(),
+            marked_for_deletion: Cell::new(false),
             link_called: Cell::new(false),
             linked: Cell::new(false),
             link_generation: Default::default(),
@@ -73,25 +75,51 @@ impl WebGLProgram {
     }
 
     /// glDeleteProgram
-    pub fn delete(&self) {
-        if !self.is_deleted.get() {
-            self.is_deleted.set(true);
-            self.upcast::<WebGLObject>()
-                .context()
-                .send_command(WebGLCommand::DeleteProgram(self.id));
-
-            if let Some(shader) = self.fragment_shader.get() {
-                shader.decrement_attached_counter();
-            }
-
-            if let Some(shader) = self.vertex_shader.get() {
-                shader.decrement_attached_counter();
-            }
+    pub fn mark_for_deletion(&self) {
+        if self.marked_for_deletion.get() {
+            return;
+        }
+        self.marked_for_deletion.set(true);
+        self.upcast::<WebGLObject>()
+            .context()
+            .send_command(WebGLCommand::DeleteProgram(self.id));
+        if self.is_deleted() {
+            self.detach_shaders();
         }
     }
 
+    pub fn in_use(&self, value: bool) {
+        if self.is_in_use.get() == value {
+            return;
+        }
+        self.is_in_use.set(value);
+        if self.is_deleted() {
+            self.detach_shaders();
+        }
+    }
+
+    fn detach_shaders(&self) {
+        assert!(self.is_deleted());
+        if let Some(shader) = self.fragment_shader.get() {
+            shader.decrement_attached_counter();
+            self.fragment_shader.set(None);
+        }
+        if let Some(shader) = self.vertex_shader.get() {
+            shader.decrement_attached_counter();
+            self.vertex_shader.set(None);
+        }
+    }
+
+    pub fn is_in_use(&self) -> bool {
+        self.is_in_use.get()
+    }
+
+    pub fn is_marked_for_deletion(&self) -> bool {
+        self.marked_for_deletion.get()
+    }
+
     pub fn is_deleted(&self) -> bool {
-        self.is_deleted.get()
+        self.marked_for_deletion.get() && !self.is_in_use.get()
     }
 
     pub fn is_linked(&self) -> bool {
@@ -99,10 +127,7 @@ impl WebGLProgram {
     }
 
     /// glLinkProgram
-    pub fn link(&self) -> WebGLResult<()>  {
-        if self.is_deleted() {
-            return Err(WebGLError::InvalidOperation);
-        }
+    pub fn link(&self) -> WebGLResult<()> {
         self.linked.set(false);
         self.link_generation.set(self.link_generation.get().checked_add(1).unwrap());
         *self.active_attribs.borrow_mut() = Box::new([]);
@@ -214,10 +239,7 @@ impl WebGLProgram {
         let shader_slot = match shader.gl_type() {
             constants::FRAGMENT_SHADER => &self.fragment_shader,
             constants::VERTEX_SHADER => &self.vertex_shader,
-            _ => {
-                error!("detachShader: Unexpected shader type");
-                return Err(WebGLError::InvalidValue);
-            }
+            _ => return Err(WebGLError::InvalidValue),
         };
 
         match shader_slot.get() {
@@ -389,7 +411,7 @@ impl WebGLProgram {
     }
 
     pub fn attached_shaders(&self) -> WebGLResult<Vec<DomRoot<WebGLShader>>> {
-        if self.is_deleted.get() {
+        if self.marked_for_deletion.get() {
             return Err(WebGLError::InvalidValue);
         }
         Ok(match (self.vertex_shader.get(), self.fragment_shader.get()) {
@@ -408,7 +430,8 @@ impl WebGLProgram {
 
 impl Drop for WebGLProgram {
     fn drop(&mut self) {
-        self.delete();
+        self.in_use(false);
+        self.mark_for_deletion();
     }
 }
 

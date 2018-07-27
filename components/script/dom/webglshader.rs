@@ -38,7 +38,7 @@ pub struct WebGLShader {
     gl_type: u32,
     source: DomRefCell<DOMString>,
     info_log: DomRefCell<DOMString>,
-    is_deleted: Cell<bool>,
+    marked_for_deletion: Cell<bool>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
 }
@@ -58,7 +58,7 @@ impl WebGLShader {
             gl_type: shader_type,
             source: Default::default(),
             info_log: Default::default(),
-            is_deleted: Cell::new(false),
+            marked_for_deletion: Cell::new(false),
             attached_counter: Cell::new(0),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
         }
@@ -101,7 +101,7 @@ impl WebGLShader {
         limits: &GLLimits,
         ext: &WebGLExtensions,
     ) -> WebGLResult<()> {
-        if self.is_deleted.get() && !self.is_attached() {
+        if self.marked_for_deletion.get() && !self.is_attached() {
             return Err(WebGLError::InvalidValue);
         }
         if self.compilation_status.get() != ShaderCompilationStatus::NotCompiled {
@@ -183,9 +183,9 @@ impl WebGLShader {
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
     /// Currently does not check if shader is attached
-    pub fn delete(&self) {
-        if !self.is_deleted.get() {
-            self.is_deleted.set(true);
+    pub fn mark_for_deletion(&self) {
+        if !self.marked_for_deletion.get() {
+            self.marked_for_deletion.set(true);
             self.upcast::<WebGLObject>()
                 .context()
                 .send_command(WebGLCommand::DeleteShader(self.id));
@@ -193,7 +193,7 @@ impl WebGLShader {
     }
 
     pub fn is_deleted(&self) -> bool {
-        self.is_deleted.get()
+        self.marked_for_deletion.get() && !self.is_attached()
     }
 
     pub fn is_attached(&self) -> bool {
@@ -231,7 +231,6 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
-        assert_eq!(self.attached_counter.get(), 0);
-        self.delete();
+        self.mark_for_deletion();
     }
 }
