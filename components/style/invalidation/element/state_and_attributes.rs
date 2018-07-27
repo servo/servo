@@ -208,20 +208,32 @@ where
             }
         }
 
-        debug!("Collecting changes for: {:?}", element);
-        debug!(" > state: {:?}", state_changes);
-        debug!(
-            " > id changed: {:?} -> +{:?} -{:?}",
-            snapshot.id_changed(),
-            id_added,
-            id_removed
-        );
-        debug!(
-            " > class changed: {:?} -> +{:?} -{:?}",
-            snapshot.class_changed(),
-            classes_added,
-            classes_removed
-        );
+        if log_enabled!(::log::Level::Debug) {
+            debug!("Collecting changes for: {:?}", element);
+            if !state_changes.is_empty() {
+                debug!(" > state: {:?}", state_changes);
+            }
+            if snapshot.id_changed() {
+                debug!(
+                    " > id changed: +{:?} -{:?}",
+                    id_added,
+                    id_removed
+                );
+            }
+            if snapshot.class_changed() {
+                debug!(
+                    " > class changed: +{:?} -{:?}",
+                    classes_added,
+                    classes_removed
+                );
+            }
+            if snapshot.other_attr_changed() {
+                debug!(
+                    " > attributes changed, old: {}",
+                    snapshot.debug_list_attributes()
+                )
+            }
+        }
 
         let lookup_element = if element.implemented_pseudo_element().is_some() {
             element.pseudo_element_originating_element().unwrap()

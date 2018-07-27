@@ -562,28 +562,15 @@ pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 
 impl<'le> fmt::Debug for GeckoElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use nsstring::nsCString;
+
         write!(f, "<{}", self.local_name())?;
-        if let Some(id) = self.id() {
-            write!(f, " id={}", id)?;
+
+        let mut attrs = nsCString::new();
+        unsafe {
+            bindings::Gecko_Element_DebugListAttributes(self.0, &mut attrs);
         }
-
-        let mut first = true;
-        let mut any = false;
-        self.each_class(|c| {
-            if first {
-                first = false;
-                any = true;
-                let _ = f.write_str(" class=\"");
-            } else {
-                let _ = f.write_str(" ");
-            }
-            let _ = write!(f, "{}", c);
-        });
-
-        if any {
-            f.write_str("\"")?;
-        }
-
+        write!(f, "{}", attrs)?;
         write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
