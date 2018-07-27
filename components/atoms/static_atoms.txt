@@ -12,6 +12,7 @@ checkbox
 click
 close
 color
+complete
 controllerchange
 cursive
 date

@@ -14,7 +14,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
-use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -35,10 +34,9 @@ pub struct AudioContext {
 impl AudioContext {
     #[allow(unrooted_must_root)]
     // https://webaudio.github.io/web-audio-api/#AudioContext-constructors
-    fn new_inherited(global: &GlobalScope, options: &AudioContextOptions) -> AudioContext {
+    fn new_inherited(options: &AudioContextOptions) -> AudioContext {
         // Steps 1-3.
         let context = BaseAudioContext::new_inherited(
-            global,
             BaseAudioContextOptions::AudioContext(options.into()),
         );
 
@@ -61,9 +59,9 @@ impl AudioContext {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(global: &GlobalScope, options: &AudioContextOptions) -> DomRoot<AudioContext> {
-        let context = AudioContext::new_inherited(global, options);
-        let context = reflect_dom_object(Box::new(context), global, AudioContextBinding::Wrap);
+    pub fn new(window: &Window, options: &AudioContextOptions) -> DomRoot<AudioContext> {
+        let context = AudioContext::new_inherited(options);
+        let context = reflect_dom_object(Box::new(context), window, AudioContextBinding::Wrap);
         context.resume();
         context
     }
@@ -73,8 +71,7 @@ impl AudioContext {
         window: &Window,
         options: &AudioContextOptions,
     ) -> Fallible<DomRoot<AudioContext>> {
-        let global = window.upcast::<GlobalScope>();
-        Ok(AudioContext::new(global, options))
+        Ok(AudioContext::new(window, options))
     }
 
     fn resume(&self) {

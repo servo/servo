@@ -19,6 +19,11 @@ use std::cmp::min;
 use std::mem;
 use std::ptr::{self, NonNull};
 
+// This range is defined by the spec.
+// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
+pub const MIN_SAMPLE_RATE: f32 = 8000.;
+pub const MAX_SAMPLE_RATE: f32 = 96000.;
+
 type JSAudioChannel = Heap<*mut JSObject>;
 
 #[dom_struct]
@@ -112,7 +117,9 @@ impl AudioBuffer {
         window: &Window,
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
-        if options.numberOfChannels > MAX_CHANNEL_COUNT {
+        if options.numberOfChannels > MAX_CHANNEL_COUNT ||
+           *options.sampleRate < MIN_SAMPLE_RATE ||
+           *options.sampleRate > MAX_SAMPLE_RATE {
             return Err(Error::NotSupported);
         }
         Ok(AudioBuffer::new(

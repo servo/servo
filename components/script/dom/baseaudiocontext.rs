@@ -26,7 +26,6 @@ use dom::bindings::root::{DomRoot, MutNullableDom};
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
 use dom::gainnode::GainNode;
-use dom::globalscope::GlobalScope;
 use dom::oscillatornode::OscillatorNode;
 use dom::promise::Promise;
 use dom::window::Window;
@@ -34,7 +33,7 @@ use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
 use servo_media::{Backend, ServoMedia};
-use servo_media::audio::context::{AudioContext, ProcessingState};
+use servo_media::audio::context::{AudioContext, AudioContextOptions, ProcessingState};
 use servo_media::audio::context::{OfflineAudioContextOptions, RealTimeAudioContextOptions};
 use servo_media::audio::decoder::AudioDecoderCallbacks;
 use servo_media::audio::graph::NodeId;
@@ -83,17 +82,16 @@ pub struct BaseAudioContext {
     /// throw when trying to do things on the context when the context has just
     /// been "closed()".
     state: Cell<AudioContextState>,
+    channel_count: u32,
 }
 
 impl BaseAudioContext {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(_: &GlobalScope, options: BaseAudioContextOptions) -> BaseAudioContext {
-        let options = match options {
-            BaseAudioContextOptions::AudioContext(options) => options,
-            BaseAudioContextOptions::OfflineAudioContext(_) => unimplemented!(),
+    pub fn new_inherited(options: BaseAudioContextOptions) -> BaseAudioContext {
+        let (sample_rate, channel_count) = match options {
+            BaseAudioContextOptions::AudioContext(ref opt) => (opt.sample_rate, 2),
+            BaseAudioContextOptions::OfflineAudioContext(ref opt) => (opt.sample_rate, opt.channels),
         };
-
-        let sample_rate = options.sample_rate;
 
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
@@ -108,6 +106,7 @@ impl BaseAudioContext {
             decode_resolvers: Default::default(),
             sample_rate,
             state: Cell::new(AudioContextState::Suspended),
+            channel_count: channel_count.into(),
         };
 
         context
@@ -206,19 +205,19 @@ impl BaseAudioContext {
                 self.take_pending_resume_promises(Ok(()));
                 let _ = task_source.queue(
                     task!(resume_success: move || {
-                    let this = this.root();
-                    this.fulfill_in_flight_resume_promises(|| {
-                        if this.state.get() != AudioContextState::Running {
-                            this.state.set(AudioContextState::Running);
-                            let window = DomRoot::downcast::<Window>(this.global()).unwrap();
-                            window.dom_manipulation_task_source().queue_simple_event(
-                                this.upcast(),
-                                atom!("statechange"),
-                                &window
-                                );
-                        }
-                    });
-                }),
+                        let this = this.root();
+                        this.fulfill_in_flight_resume_promises(|| {
+                            if this.state.get() != AudioContextState::Running {
+                                this.state.set(AudioContextState::Running);
+                                let window = DomRoot::downcast::<Window>(this.global()).unwrap();
+                                window.dom_manipulation_task_source().queue_simple_event(
+                                    this.upcast(),
+                                    atom!("statechange"),
+                                    &window
+                                    );
+                            }
+                        });
+                    }),
                     window.upcast(),
                 );
             },
@@ -291,7 +290,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
         let global = self.global();
         self.destination.or_init(|| {
             let mut options = AudioNodeOptions::empty();
-            options.channelCount = Some(2);
+            options.channelCount = Some(self.channel_count);
             options.channelCountMode = Some(ChannelCountMode::Explicit);
             options.channelInterpretation = Some(ChannelInterpretation::Speakers);
             AudioDestinationNode::new(&global, self, &options)
@@ -439,6 +438,17 @@ impl BaseAudioContextMethods for BaseAudioContext {
 
         // Step 4.
         promise
+    }
+}
+
+impl From<BaseAudioContextOptions> for AudioContextOptions {
+    fn from(options: BaseAudioContextOptions) -> Self {
+        match options {
+            BaseAudioContextOptions::AudioContext(options) =>
+                AudioContextOptions::RealTimeAudioContext(options),
+            BaseAudioContextOptions::OfflineAudioContext(options) =>
+                AudioContextOptions::OfflineAudioContext(options),
+        }
     }
 }
 

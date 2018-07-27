@@ -1310,6 +1310,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "gstreamer-player"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gobject-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-player-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-video 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gstreamer-player-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "glib-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gobject-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-video-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "gstreamer-sys"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1317,6 +1346,37 @@ dependencies = [
  "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gobject-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gstreamer-video"
+version = "0.11.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gobject-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-base 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-base-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-video-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gstreamer-video-sys"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gobject-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-base-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -3076,37 +3136,47 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#9968654a5602adfcdc01d6a9ba9d54fd8b341eaf"
+source = "git+https://github.com/servo/media#dadf87f24830712b75e1d909bad7500f9dae952c"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
 ]
 
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#9968654a5602adfcdc01d6a9ba9d54fd8b341eaf"
+source = "git+https://github.com/servo/media#dadf87f24830712b75e1d909bad7500f9dae952c"
 dependencies = [
  "byte-slice-cast 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "petgraph 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_media_derive 0.1.0 (git+https://github.com/servo/media)",
- "smallvec 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#9968654a5602adfcdc01d6a9ba9d54fd8b341eaf"
+source = "git+https://github.com/servo/media#dadf87f24830712b75e1d909bad7500f9dae952c"
 dependencies = [
  "byte-slice-cast 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-app 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-audio 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gstreamer-player 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
  "zip 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "servo-media-player"
+version = "0.1.0"
+source = "git+https://github.com/servo/media#dadf87f24830712b75e1d909bad7500f9dae952c"
 
 [[package]]
 name = "servo-skia"
@@ -3203,7 +3273,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#9968654a5602adfcdc01d6a9ba9d54fd8b341eaf"
+source = "git+https://github.com/servo/media#dadf87f24830712b75e1d909bad7500f9dae952c"
 dependencies = [
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4213,7 +4283,11 @@ dependencies = [
 "checksum gstreamer-audio-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fd60631f2dd055f0aae2831e86bd6c1d45e24528d4c478002cc07490dd84b56e"
 "checksum gstreamer-base 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "05ec7a84b4160b61c72ea27ccf3f46eb9c8f996c5991746623e69e3e532e3cb5"
 "checksum gstreamer-base-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "501a7add44f256aab6cb5b65ef121c449197cf55087d6a7586846c8d1e42e88b"
+"checksum gstreamer-player 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "63e81d78e9e7ee5d448ba50c52722005bbbf1bfe606767c4c407f45e8996f050"
+"checksum gstreamer-player-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3b9476078cc76164446e88b2c4331e81e24a07f7b7c3a8b4bf8975a47998ebd4"
 "checksum gstreamer-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7b2f51e25a6f97dd4bfd640cba96f192f8759b8766afd66d6d9ea0f82ca14a37"
+"checksum gstreamer-video 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "75300cf1ed8d8d65811349fc755fac22be05ea55df551ab29e43664d4a575c92"
+"checksum gstreamer-video-sys 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3ed798787e78a0f1c8be06bd3adcab03f962f049a820743aae9f690f56a0d538"
 "checksum gvr-sys 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b1334b94d8ce67319ddc44663daef53d8c1538629a11562530c981dbd9085b9a"
 "checksum half 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
 "checksum harfbuzz-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bad27f59fc853bb88eca58088d469cd365ff0ccf362d24c4b1c0cbb1b21b3489"
@@ -4356,6 +4430,7 @@ dependencies = [
 "checksum servo-media 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-audio 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)" = "<none>"
+"checksum servo-media-player 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-skia 0.30000017.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fe33a2592a74f2096daf70bcbee39f2d183efcdc81f536a28af3a357baa6f5b0"
 "checksum servo-websocket 0.21.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6bac1e2295e72f0525147d993c626761811acf0441dac1cee8707f12dc7f3363"
 "checksum servo_media_derive 0.1.0 (git+https://github.com/servo/media)" = "<none>"
