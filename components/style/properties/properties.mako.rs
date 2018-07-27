@@ -410,17 +410,35 @@ pub mod animated_properties {
 #[derive(Clone, Copy, Debug)]
 pub struct NonCustomPropertyId(usize);
 
+% if product == "gecko":
+#[allow(dead_code)]
+unsafe fn static_assert_nscsspropertyid() {
+    % for i, property in enumerate(data.longhands + data.shorthands + data.all_aliases()):
+    ::std::mem::transmute::<[u8; ${i}], [u8; ${property.nscsspropertyid()} as usize]>([0; ${i}]); // ${property.name}
+    % endfor
+}
+% endif
+
 impl NonCustomPropertyId {
     #[cfg(feature = "gecko")]
     #[inline]
     fn to_nscsspropertyid(self) -> nsCSSPropertyID {
-        static MAP: [nsCSSPropertyID; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
-            % for property in data.longhands + data.shorthands + data.all_aliases():
-                ${property.nscsspropertyid()},
-            % endfor
-        ];
+        // unsafe: guaranteed by static_assert_nscsspropertyid above.
+        unsafe { ::std::mem::transmute(self.0 as i32) }
+    }
 
-        MAP[self.0]
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn from_nscsspropertyid(prop: nsCSSPropertyID) -> Result<Self, ()> {
+        let prop = prop as i32;
+        if prop < 0 {
+            return Err(());
+        }
+        if prop >= ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())} {
+            return Err(());
+        }
+        // unsafe: guaranteed by static_assert_nscsspropertyid above.
+        Ok(unsafe { ::std::mem::transmute(prop as usize) })
     }
 
     /// Get the property name.
@@ -428,7 +446,7 @@ impl NonCustomPropertyId {
     fn name(self) -> &'static str {
         static MAP: [&'static str; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
             % for property in data.longhands + data.shorthands + data.all_aliases():
-                "${property.name}",
+            "${property.name}",
             % endfor
         ];
         MAP[self.0]
@@ -464,7 +482,7 @@ impl NonCustomPropertyId {
 
                 PREFS.get(pref).as_boolean().unwrap_or(false)
             % else:
-                unsafe { structs::nsCSSProps_gPropertyEnabled[self.to_nscsspropertyid() as usize] }
+                unsafe { structs::nsCSSProps_gPropertyEnabled[self.0] }
             % endif
         };
 
@@ -584,6 +602,30 @@ impl NonCustomPropertyId {
             % endfor
         ];
         COLLECT_FUNCTIONS[self.0](f);
+    }
+
+    #[inline]
+    fn to_property_id(self) -> PropertyId {
+        use std::mem::transmute;
+        if self.0 < ${len(data.longhands)} {
+            return unsafe {
+                PropertyId::Longhand(transmute(self.0 as u16))
+            }
+        }
+        if self.0 < ${len(data.longhands) + len(data.shorthands)} {
+            return unsafe {
+                PropertyId::Shorthand(transmute((self.0 - ${len(data.longhands)}) as u16))
+            }
+        }
+        assert!(self.0 < ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())});
+        let alias_id: AliasId = unsafe {
+            transmute((self.0 - ${len(data.longhands) + len(data.shorthands)}) as u16)
+        };
+
+        match alias_id.aliased_property() {
+            AliasedPropertyId::Longhand(longhand) => PropertyId::LonghandAlias(longhand, alias_id),
+            AliasedPropertyId::Shorthand(shorthand) => PropertyId::ShorthandAlias(shorthand, alias_id),
+        }
     }
 }
 
@@ -1237,10 +1279,11 @@ where
 
 /// An identifier for a given shorthand property.
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[repr(u16)]
 pub enum ShorthandId {
-    % for property in data.shorthands:
+    % for i, property in enumerate(data.shorthands):
         /// ${property.name}
-        ${property.camel_case},
+        ${property.camel_case} = ${i},
     % endfor
 }
 
@@ -1767,42 +1810,11 @@ impl PropertyId {
     }
 
     /// Returns a property id from Gecko's nsCSSPropertyID.
-    ///
-    /// TODO(emilio): We should be able to make this a single integer cast to
-    /// `NonCustomPropertyId`.
     #[cfg(feature = "gecko")]
     #[allow(non_upper_case_globals)]
+    #[inline]
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
-        use gecko_bindings::structs::*;
-        match id {
-            % for property in data.longhands:
-                ${property.nscsspropertyid()} => {
-                    Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
-                }
-                % for alias in property.alias:
-                    ${alias.nscsspropertyid()} => {
-                        Ok(PropertyId::LonghandAlias(
-                            LonghandId::${property.camel_case},
-                            AliasId::${alias.camel_case}
-                        ))
-                    }
-                % endfor
-            % endfor
-            % for property in data.shorthands:
-                ${property.nscsspropertyid()} => {
-                    Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
-                }
-                % for alias in property.alias:
-                    ${alias.nscsspropertyid()} => {
-                        Ok(PropertyId::ShorthandAlias(
-                            ShorthandId::${property.camel_case},
-                            AliasId::${alias.camel_case}
-                        ))
-                    }
-                % endfor
-            % endfor
-            _ => Err(())
-        }
+        Ok(NonCustomPropertyId::from_nscsspropertyid(id)?.to_property_id())
     }
 
     /// Returns true if the property is a shorthand or shorthand alias.
@@ -4230,6 +4242,7 @@ pub fn adjust_border_width(style: &mut StyleBuilder) {
 /// An identifier for a given alias property.
 #[derive(Clone, Copy, Eq, PartialEq)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+#[repr(u16)]
 pub enum AliasId {
     % for i, property in enumerate(data.all_aliases()):
         /// ${property.name}
@@ -4237,14 +4250,34 @@ pub enum AliasId {
     % endfor
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum AliasedPropertyId {
+    Shorthand(ShorthandId),
+    Longhand(LonghandId),
+}
+
 impl fmt::Debug for AliasId {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let name = match *self {
-            % for property in data.all_aliases():
-                AliasId::${property.camel_case} => "${property.camel_case}",
-            % endfor
-        };
+        let name = NonCustomPropertyId::from(*self).name();
         formatter.write_str(name)
+    }
+}
+
+impl AliasId {
+    /// Returns the property we're aliasing, as a longhand or a shorthand.
+    #[inline]
+    fn aliased_property(self) -> AliasedPropertyId {
+        static MAP: [AliasedPropertyId; ${len(data.all_aliases())}] = [
+        % for alias in data.all_aliases():
+            % if alias.original.type() == "longhand":
+            AliasedPropertyId::Longhand(LonghandId::${alias.original.camel_case}),
+            % else:
+            <% assert alias.original.type() == "shorthand" %>
+            AliasedPropertyId::Shorthand(ShorthandId::${alias.original.camel_case}),
+            % endif
+        % endfor
+        ];
+        MAP[self as usize]
     }
 }
 
