@@ -38,12 +38,12 @@ class MachCommands(CommandBase):
              category='bootstrap')
     def env(self):
         env = self.build_env()
-        print("export RUSTFLAGS=%s" % env["RUSTFLAGS"])
-        print("export PATH=%s" % env["PATH"])
+        print("export RUSTFLAGS=%s" % env.get("RUSTFLAGS", ""))
+        print("export PATH=%s" % env.get("PATH", ""))
         if sys.platform == "darwin":
-            print("export DYLD_LIBRARY_PATH=%s" % env["DYLD_LIBRARY_PATH"])
+            print("export DYLD_LIBRARY_PATH=%s" % env.get("DYLD_LIBRARY_PATH", ""))
         else:
-            print("export LD_LIBRARY_PATH=%s" % env["LD_LIBRARY_PATH"])
+            print("export LD_LIBRARY_PATH=%s" % env.get("LD_LIBRARY_PATH", ""))
 
     @Command('bootstrap',
              description='Install required packages for building.',
