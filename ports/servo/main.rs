@@ -46,7 +46,6 @@ mod resources;
 use backtrace::Backtrace;
 use servo::Servo;
 use servo::compositing::windowing::WindowEvent;
-#[cfg(target_os = "android")]
 use servo::config;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;
@@ -104,6 +103,12 @@ fn main() {
     install_crash_handler();
 
     resources::init();
+
+    if cfg!(target_os = "android") && env::var_os("HOST_FILE").is_none() {
+        let mut path = config::basedir::default_config_dir();
+        path.push("android_hosts");
+        env::set_var("HOST_FILE", path);
+    }
 
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
