@@ -20,7 +20,7 @@ actual_symbols = set()
 
 objdump_output = subprocess.check_output([
     os.path.join(
-        os.environ['ANDROID_NDK'], 'toolchains', 'arm-linux-androideabi-4.9',
+        'android-toolchains', 'ndk', 'toolchains', 'arm-linux-androideabi-4.9',
         'prebuilt', 'linux-x86_64', 'bin', 'arm-linux-androideabi-objdump'),
     '-T',
     'target/armv7-linux-androideabi/debug/libservo.so']
