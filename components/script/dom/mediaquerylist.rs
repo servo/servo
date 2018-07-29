@@ -2,24 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryListMethods};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::DomObject;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::DOMString;
-use dom::bindings::trace::JSTraceable;
-use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::document::Document;
-use dom::event::Event;
 use dom::eventtarget::EventTarget;
-use dom::mediaquerylistevent::MediaQueryListEvent;
 use dom_struct::dom_struct;
-use js::jsapi::JSTracer;
 use std::cell::Cell;
 use std::rc::Rc;
 use style::media_queries::MediaList;
@@ -56,7 +49,7 @@ impl MediaQueryList {
 }
 
 impl MediaQueryList {
-    fn evaluate_changes(&self) -> MediaQueryListMatchState {
+    pub fn evaluate_changes(&self) -> MediaQueryListMatchState {
         let matches = self.evaluate();
 
         let result = if let Some(old_matches) = self.last_match_state.get() {
@@ -114,49 +107,4 @@ impl MediaQueryListMethods for MediaQueryList {
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-onchange
     event_handler!(change, GetOnchange, SetOnchange);
-}
-
-#[derive(MallocSizeOf)]
-pub struct WeakMediaQueryListVec {
-    cell: DomRefCell<WeakRefVec<MediaQueryList>>,
-}
-
-impl WeakMediaQueryListVec {
-    /// Create a new vector of weak references to MediaQueryList
-    pub fn new() -> Self {
-        WeakMediaQueryListVec { cell: DomRefCell::new(WeakRefVec::new()) }
-    }
-
-    pub fn push(&self, mql: &MediaQueryList) {
-        self.cell.borrow_mut().push(WeakRef::new(mql));
-    }
-
-    /// Evaluate media query lists and report changes
-    /// <https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes>
-    pub fn evaluate_and_report_changes(&self) {
-        rooted_vec!(let mut mql_list);
-        self.cell.borrow_mut().update(|mql| {
-            let mql = mql.root().unwrap();
-            if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
-                // Recording list of changed Media Queries
-                mql_list.push(Dom::from_ref(&*mql));
-            }
-        });
-        // Sending change events for all changed Media Queries
-        for mql in mql_list.iter() {
-            let event = MediaQueryListEvent::new(&mql.global(),
-                                                 atom!("change"),
-                                                 false, false,
-                                                 mql.Media(),
-                                                 mql.Matches());
-            event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
-        }
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for WeakMediaQueryListVec {
-    unsafe fn trace(&self, _: *mut JSTracer) {
-        self.cell.borrow_mut().retain_alive()
-    }
 }

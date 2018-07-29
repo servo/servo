@@ -344,6 +344,11 @@ impl ServoParser {
         self.document.set_ready_state(DocumentReadyState::Interactive);
     }
 
+    // https://html.spec.whatwg.org/multipage/#active-parser
+    pub fn is_active(&self) -> bool {
+        self.script_nesting_level() > 0 && !self.aborted.get()
+    }
+
     #[allow(unrooted_must_root)]
     fn new_inherited(document: &Document,
                      tokenizer: Tokenizer,
@@ -475,6 +480,9 @@ impl ServoParser {
 
             if self.document.has_pending_parsing_blocking_script() {
                 self.suspended.set(true);
+                return;
+            }
+            if self.aborted.get() {
                 return;
             }
         }

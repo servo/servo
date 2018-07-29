@@ -300,7 +300,7 @@ impl HTMLImageElement {
 
         // This is a background load because the load blocker already fulfills the
         // purpose of delaying the document's load event.
-        document.loader().fetch_async_background(request, action_sender);
+        document.loader_mut().fetch_async_background(request, action_sender);
     }
 
     /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
