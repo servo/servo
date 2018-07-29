@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(feature = "unstable", feature(stdsimd))]
 #![deny(unsafe_code)]
 
 extern crate app_units;
@@ -43,6 +42,8 @@ extern crate log;
 extern crate malloc_size_of;
 extern crate net_traits;
 extern crate ordered_float;
+#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
+extern crate packed_simd;
 extern crate range;
 #[macro_use] extern crate serde;
 extern crate servo_arc;
