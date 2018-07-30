@@ -192,6 +192,10 @@ impl WebGLShader {
         }
     }
 
+    pub fn is_marked_for_deletion(&self) -> bool {
+        self.marked_for_deletion.get()
+    }
+
     pub fn is_deleted(&self) -> bool {
         self.marked_for_deletion.get() && !self.is_attached()
     }

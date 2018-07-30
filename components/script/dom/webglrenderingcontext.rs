@@ -5,8 +5,7 @@
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{ActiveAttribInfo, DOMToTextureCommand, Parameter};
-use canvas_traits::webgl::{ShaderParameter, TexParameter, WebGLCommand};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
 use canvas_traits::webgl::{WebGLVersion, WebVRCommand, webgl_channel};
@@ -2737,16 +2736,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.webgl_error(InvalidValue);
             return NullValue();
         }
-        match handle_potential_webgl_error!(self, ShaderParameter::from_u32(param), return NullValue()) {
-            ShaderParameter::Bool(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetShaderParameterBool(shader.id(), param, sender));
-                BooleanValue(receiver.recv().unwrap())
-            }
-            ShaderParameter::Int(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetShaderParameterInt(shader.id(), param, sender));
-                Int32Value(receiver.recv().unwrap())
+        match param {
+            constants::DELETE_STATUS => BooleanValue(shader.is_marked_for_deletion()),
+            constants::COMPILE_STATUS => BooleanValue(shader.successfully_compiled()),
+            constants::SHADER_TYPE => UInt32Value(shader.gl_type()),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                NullValue()
             }
         }
     }
