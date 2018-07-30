@@ -350,7 +350,7 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
             WindowEvent::SendError(ctx, e) => {
                 let msg = ConstellationMsg::SendError(ctx, e);
                 if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending CloseBrowser message to constellation failed ({}).", e);
+                    warn!("Sending SendError message to constellation failed ({}).", e);
                 }
             }
         }
