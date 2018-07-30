@@ -177,11 +177,6 @@ impl WebGLShader {
 
         *self.info_log.borrow_mut() = validator.info_log().into();
 
-        // TODO(emilio): More data (like uniform data) should be collected
-        // here to properly validate uniforms.
-        //
-        // This requires a more complex interface with ANGLE, using C++
-        // bindings and being extremely cautious about destructing things.
         Ok(())
     }
 
