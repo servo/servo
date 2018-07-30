@@ -427,9 +427,10 @@ impl NonCustomPropertyId {
         unsafe { ::std::mem::transmute(self.0 as i32) }
     }
 
+    /// Convert an `nsCSSPropertyID` into a `NonCustomPropertyId`.
     #[cfg(feature = "gecko")]
     #[inline]
-    fn from_nscsspropertyid(prop: nsCSSPropertyID) -> Result<Self, ()> {
+    pub fn from_nscsspropertyid(prop: nsCSSPropertyID) -> Result<Self, ()> {
         let prop = prop as i32;
         if prop < 0 {
             return Err(());
@@ -443,7 +444,7 @@ impl NonCustomPropertyId {
 
     /// Get the property name.
     #[inline]
-    fn name(self) -> &'static str {
+    pub fn name(self) -> &'static str {
         static MAP: [&'static str; ${len(data.longhands) + len(data.shorthands) + len(data.all_aliases())}] = [
             % for property in data.longhands + data.shorthands + data.all_aliases():
             "${property.name}",
