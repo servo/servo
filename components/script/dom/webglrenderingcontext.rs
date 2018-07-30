@@ -2874,7 +2874,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
-        buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+        buffer.map_or(false, |buf| {
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -2884,27 +2886,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
-        frame_buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+        frame_buffer.map_or(false, |buf| {
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
-        program.map_or(false, |p| !p.is_deleted())
+        program.map_or(false, |p| self.validate_ownership(p).is_ok() && !p.is_deleted())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
-        render_buffer.map_or(false, |buf| buf.ever_bound() && !buf.is_deleted())
+        render_buffer.map_or(false, |buf| {
+            self.validate_ownership(buf).is_ok() && buf.ever_bound() && !buf.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
-        shader.map_or(false, |s| !s.is_deleted())
+        shader.map_or(false, |s| self.validate_ownership(s).is_ok() && !s.is_deleted())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
-        texture.map_or(false, |tex| tex.target().is_some() && !tex.is_deleted())
+        texture.map_or(false, |tex| {
+            self.validate_ownership(tex).is_ok() && tex.target().is_some() && !tex.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
