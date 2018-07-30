@@ -16,7 +16,6 @@ use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cmp::min;
-use std::mem;
 use std::ptr::{self, NonNull};
 
 // This range is defined by the spec.
@@ -42,47 +41,14 @@ impl AudioBuffer {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     pub fn new_inherited(
-        global: &Window,
         number_of_channels: u32,
         length: u32,
         sample_rate: f32,
-        initial_data: Option<&[f32]>,
     ) -> AudioBuffer {
-        let cx = global.get_cx();
-        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
-        rooted_vec!(let mut js_channels_);
-        for channel in 0..number_of_channels {
-            rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            let offset = (channel * length) as usize;
-            match initial_data {
-                Some(data) => {
-                    let _ = unsafe {
-                        Float32Array::create(
-                            cx,
-                            CreateWith::Slice(&data[offset..offset + (length as usize) - 1]),
-                            array.handle_mut(),
-                        )
-                    };
-                },
-                None => {
-                    let _ = unsafe {
-                        Float32Array::create(
-                            cx,
-                            CreateWith::Slice(&vec![0.; length as usize]),
-                            array.handle_mut(),
-                        )
-                    };
-                }
-            }
-            let js_channel = Heap::default();
-            js_channel.set(array.get());
-            js_channels_.push(js_channel);
-        }
-        let js_channels = DomRefCell::new(Vec::new());
-        mem::swap(&mut *js_channels.borrow_mut(), &mut *js_channels_);
+        let vec = (0..number_of_channels).map(|_| Heap::default()).collect();
         AudioBuffer {
             reflector_: Reflector::new(),
-            js_channels,
+            js_channels: DomRefCell::new(vec),
             shared_channels: DomRefCell::new(ServoMediaAudioBuffer::new(
                 number_of_channels as u8,
                 length as usize,
@@ -103,13 +69,13 @@ impl AudioBuffer {
         initial_data: Option<&[f32]>,
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(
-            global,
             number_of_channels,
             length,
             sample_rate,
-            initial_data,
         );
-        reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap)
+        let buffer = reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap);
+        buffer.set_channels(initial_data);
+        buffer
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audiobuffer-audiobuffer
@@ -129,6 +95,39 @@ impl AudioBuffer {
             *options.sampleRate,
             None,
         ))
+    }
+
+    #[allow(unsafe_code)]
+    pub fn set_channels(&self, initial_data: Option<&[f32]>) {
+        let global = self.global();
+        let cx = global.get_cx();
+        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
+        let chans = self.js_channels.borrow_mut();
+        for channel in 0..self.number_of_channels {
+            rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
+            let offset = (channel * self.length) as usize;
+            match initial_data {
+                Some(data) => {
+                    let _ = unsafe {
+                        Float32Array::create(
+                            cx,
+                            CreateWith::Slice(&data[offset..offset + (self.length as usize) - 1]),
+                            array.handle_mut(),
+                        )
+                    };
+                },
+                None => {
+                    let _ = unsafe {
+                        Float32Array::create(
+                            cx,
+                            CreateWith::Slice(&vec![0.; self.length as usize]),
+                            array.handle_mut(),
+                        )
+                    };
+                }
+            }
+            chans[channel as usize].set(array.get());
+        }
     }
 
     #[allow(unsafe_code)]
