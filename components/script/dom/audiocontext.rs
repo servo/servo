@@ -241,7 +241,7 @@ impl From<AudioContextLatencyCategory> for LatencyCategory {
 impl<'a> From<&'a AudioContextOptions> for RealTimeAudioContextOptions {
     fn from(options: &AudioContextOptions) -> Self {
         Self {
-            sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(48000.)),
+            sample_rate: *options.sampleRate.unwrap_or(Finite::wrap(44100.)),
             latency_hint: options.latencyHint.into(),
         }
     }
