@@ -39663,19 +39663,25 @@
    "webgl/conformance-1.0.3/conformance/context/context-creation-and-destruction.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/context/context-creation-and-destruction.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/context/context-creation.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/context/context-creation.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/context/context-eviction-with-garbage-collection.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/context/context-eviction-with-garbage-collection.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/context/context-hidden-alpha.html": [
@@ -41919,7 +41925,9 @@
    "webgl/conformance-1.0.3/conformance/ogles/GL/acos/acos_001_to_006.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/ogles/GL/acos/acos_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/ogles/GL/all/all_001_to_004.html": [
@@ -41943,7 +41951,9 @@
    "webgl/conformance-1.0.3/conformance/ogles/GL/asin/asin_001_to_006.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/ogles/GL/asin/asin_001_to_006.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/ogles/GL/atan/atan_001_to_008.html": [
@@ -42399,7 +42409,9 @@
    "webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_001_to_008.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_001_to_008.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_009_to_012.html": [
@@ -71412,15 +71424,15 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-creation-and-destruction.html": [
-   "6e329116409fae60838c3d4e63f84999b06cf1b5",
+   "1e2f82c2d11385b6549af174e4bcfe3399bdfbf4",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-creation.html": [
-   "2a6ebdcb04a602ae7b73a7a0385533f72c89c212",
+   "3443e38ef598fea1d78a5eb1c7ee63daf4de23e0",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-eviction-with-garbage-collection.html": [
-   "9eac94ca3bc359985efc1ac0e7e7c37ec2599278",
+   "c1300e9bcb26729faf65393d83541cb01fc08205",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/context/context-hidden-alpha.html": [
@@ -73112,7 +73124,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/acos/acos_001_to_006.html": [
-   "85555ba68d88a743a41b691e864f5e2305c03bc3",
+   "2d9c0b4a7a750b9e12c0e17bf4492da1d5f0768f",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/acos/acos_float_frag_xvary.frag": [
@@ -73280,7 +73292,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/asin/asin_001_to_006.html": [
-   "5ddd8eac037ae86a0f82aaebcd05f1702b4598ce",
+   "5ee97ea5fe44026d9ff65c37f3b56cb322fa2441",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/asin/asin_float_frag_xvary.frag": [
@@ -76444,7 +76456,7 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_001_to_008.html": [
-   "cadfc9c0ab49a1de7ee8ef91c49c20da40b405b4",
+   "2434d881b2ba6c153c45d5862da70e760dae4e44",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/log2/log2_009_to_012.html": [
@@ -99164,7 +99176,7 @@
    "support"
   ],
   "webgl/tools/timeout.patch": [
-   "88da623430c6ab2c3738433604a5077a24a7a7a0",
+   "2690553f288896aaaf368475e307da2000fccfa4",
    "support"
   ],
   "webgl/tools/unit.patch": [

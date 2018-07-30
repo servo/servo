@@ -30,7 +30,7 @@ index a02dd2d14c..47099e57bd 100644
  <html>
  <head>
  <meta charset="utf-8">
-+<meta name="timeout" value="content">
++<meta name="timeout" content="long">
  <title>Test that contexts are freed and garbage collected reasonably</title>
  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
@@ -42,7 +42,7 @@ index 04b138daf4..703bcfa8dc 100644
  <html>
  <head>
  <meta charset="utf-8">
-+<meta name="timeout" value="content">
++<meta name="timeout" content="long">
  <title>Test that you can create large numbers of WebGL contexts.</title>
  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
@@ -54,7 +54,7 @@ index 3989c7679a..b52e3a9e9f 100644
  <html>
  <head>
  <meta charset="utf-8">
-+<meta name="timeout" value="content">
++<meta name="timeout" content="long">
  <title>Test that context eviction and garbage collection do not interfere with each other</title>
  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
@@ -66,7 +66,7 @@ index 99de4e0a79..71c8990638 100644
  <html>
  <head>
  <meta charset="utf-8">
-+<meta name="timeout" value="content">
++<meta name="timeout" content="long">
  <title>WebGL GLSL conformance test: acos_001_to_006.html</title>
  <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
  <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
@@ -78,7 +78,7 @@ index 5af87433aa..79afd9f430 100644
  <html>
  <head>
  <meta charset="utf-8">
-+<meta name="timeout" value="content">
++<meta name="timeout" content="long">
  <title>WebGL GLSL conformance test: asin_001_to_006.html</title>
  <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
  <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
@@ -90,7 +90,7 @@ index 5552a4f82e..539cb33214 100644
  <html>
  <head>
  <meta charset="utf-8">
-+<meta name="timeout" value="content">
++<meta name="timeout" content="long">
  <title>WebGL GLSL conformance test: log2_001_to_008.html</title>
  <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
  <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
