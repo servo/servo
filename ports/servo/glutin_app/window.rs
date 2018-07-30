@@ -412,29 +412,23 @@ impl Window {
     }
 
     fn handle_received_character(&self, ch: char) {
-        let modifiers = keyutils::winit_mods_to_script_mods(self.key_modifiers.get());
-        if keyutils::is_identifier_ignorable(&ch) {
-            return
-        }
-        if let Some(last_pressed_key) = self.last_pressed_key.get() {
-            let event = WindowEvent::KeyEvent(Some(ch), last_pressed_key, KeyState::Pressed, modifiers);
-            self.event_queue.borrow_mut().push(event);
+        let last_key = if let Some(key) = self.last_pressed_key.get() {
+            key
         } else {
-            // Only send the character if we can print it (by ignoring characters like backspace)
-            if !ch.is_control() {
-                match keyutils::char_to_script_key(ch) {
-                    Some(key) => {
-                        let event = WindowEvent::KeyEvent(Some(ch),
-                                                          key,
-                                                          KeyState::Pressed,
-                                                          modifiers);
-                        self.event_queue.borrow_mut().push(event);
-                    }
-                    None => {}
-                }
-            }
-        }
+            return;
+        };
+
         self.last_pressed_key.set(None);
+
+        let (key, ch) = if let Some(key) = keyutils::char_to_script_key(ch) {
+            (key, Some(ch))
+        } else {
+            (last_key, None)
+        };
+
+        let modifiers = keyutils::winit_mods_to_script_mods(self.key_modifiers.get());
+        let event = WindowEvent::KeyEvent(ch, key, KeyState::Pressed, modifiers);
+        self.event_queue.borrow_mut().push(event);
     }
 
     fn toggle_keyboard_modifiers(&self, virtual_key_code: VirtualKeyCode) {
@@ -459,13 +453,14 @@ impl Window {
                 ElementState::Pressed => KeyState::Pressed,
                 ElementState::Released => KeyState::Released,
             };
-            if element_state == ElementState::Pressed {
-                if keyutils::is_printable(virtual_key_code) {
-                    self.last_pressed_key.set(Some(key));
-                }
+            if element_state == ElementState::Pressed && keyutils::is_printable(virtual_key_code) {
+                // If pressed and printable, we expect a ReceivedCharacter event.
+                self.last_pressed_key.set(Some(key));
+            } else {
+                self.last_pressed_key.set(None);
+                let modifiers = keyutils::winit_mods_to_script_mods(self.key_modifiers.get());
+                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
             }
-            let modifiers = keyutils::winit_mods_to_script_mods(self.key_modifiers.get());
-            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
         }
     }
 

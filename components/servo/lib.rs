@@ -367,10 +367,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
                 (EmbedderMsg::KeyEvent(ch, key, state, modified),
                  ShutdownState::NotShuttingDown) => {
-                    if state == KeyState::Pressed {
-                        let event = (top_level_browsing_context, EmbedderMsg::KeyEvent(ch, key, state, modified));
-                        self.embedder_events.push(event);
-                    }
+                    let event = (top_level_browsing_context, EmbedderMsg::KeyEvent(ch, key, state, modified));
+                    self.embedder_events.push(event);
                 },
 
                 (msg, ShutdownState::NotShuttingDown) => {
