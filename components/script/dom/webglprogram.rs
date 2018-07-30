@@ -192,8 +192,6 @@ impl WebGLProgram {
             }
         };
 
-        // TODO(emilio): Differentiate between same shader already assigned and other previous
-        // shader.
         if shader_slot.get().is_some() {
             return Err(WebGLError::InvalidOperation);
         }
