@@ -1870,6 +1870,18 @@ impl PropertyId {
         id.enabled_for_all_content()
     }
 
+    /// Converts this PropertyId in nsCSSPropertyID, resolving aliases to the
+    /// resolved property, and returning eCSSPropertyExtra_variable for custom
+    /// properties.
+    #[cfg(feature = "gecko")]
+    #[inline]
+    pub fn to_nscsspropertyid_resolving_aliases(&self) -> nsCSSPropertyID {
+        match self.non_custom_non_alias_id() {
+            Some(id) => id.to_nscsspropertyid(),
+            None => nsCSSPropertyID::eCSSPropertyExtra_variable,
+        }
+    }
+
     fn allowed_in(&self, context: &ParserContext) -> bool {
         let id = match self.non_custom_id() {
             // Custom properties are allowed everywhere
