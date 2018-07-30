@@ -276,7 +276,7 @@ impl Browser {
                 EmbedderMsg::AllowNavigation(_url, sender) => {
                     if let Err(e) = sender.send(true) {
                         warn!("Failed to send AllowNavigation response: {}", e);
-                    };
+                    }
                 }
                 EmbedderMsg::KeyEvent(ch, key, state, modified) => {
                     self.handle_key_from_servo(browser_id, ch, key, state, modified);
