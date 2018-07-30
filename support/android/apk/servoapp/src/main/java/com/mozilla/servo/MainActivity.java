@@ -11,6 +11,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -21,6 +23,8 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 
 import com.mozilla.servoview.ServoView;
+
+import java.io.File;
 
 public class MainActivity extends Activity implements ServoView.Client {
 
@@ -53,6 +57,16 @@ public class MainActivity extends Activity implements ServoView.Client {
         mFwdButton.setEnabled(false);
 
         mServoView.requestFocus();
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+          File sdcard = getExternalFilesDir("");
+          String host = sdcard.toPath().resolve("android_hosts").toString();
+          try {
+            Os.setenv("HOST_FILE", host, false);
+          } catch (ErrnoException e) {
+            e.printStackTrace();
+          }
+        }
 
         String args = getIntent().getStringExtra("servoargs");
         if (args != null) {
