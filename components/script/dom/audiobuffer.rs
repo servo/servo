@@ -11,8 +11,10 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::window::Window;
 use dom_struct::dom_struct;
-use js::jsapi::{DetachDataDisposition, Heap, JSAutoCompartment, JSContext, JSObject, JS_DetachArrayBuffer};
+use js::jsapi::{DetachDataDisposition, Heap, JSAutoCompartment, JSContext, JSObject};
+use js::jsapi::JS_GetArrayBufferViewBuffer;
 use js::rust::CustomAutoRooterGuard;
+use js::rust::wrappers::JS_DetachArrayBuffer;
 use js::typedarray::{CreateWith, Float32Array};
 use servo_media::audio::buffer_source_node::AudioBuffer as ServoMediaAudioBuffer;
 use std::cmp::min;
@@ -160,8 +162,12 @@ impl AudioBuffer {
                 typedarray!(in(cx) let array: Float32Array = channel.get());
                 if let Ok(array) = array {
                     let data = array.to_vec();
-                    let _ =
-                        JS_DetachArrayBuffer(cx, channel.handle(), DetachDataDisposition::KeepData);
+                    let mut is_shared = false;
+                    rooted!(in (cx) let view_buffer =
+                        JS_GetArrayBufferViewBuffer(cx, channel.handle(), &mut is_shared));
+                    // This buffer is always created unshared
+                    debug_assert!(!is_shared);
+                    let _ = JS_DetachArrayBuffer(cx, view_buffer.handle(), DetachDataDisposition::KeepData);
                     data
                 } else {
                     return None;
