@@ -55,10 +55,10 @@ def main(avd_name, apk_path, *args):
         args = list(args)
         write_user_stylesheets(adb, args)
         write_hosts_file(adb)
-        write_args(adb, args)
 
-        check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
-                   stdout=sys.stderr)
+        cmd_args = "-e servoargs \'" + " ".join(args) + "\'" if args else ""
+        cmd = ["am start " + cmd_args + " com.mozilla.servo/com.mozilla.servo.MainActivity"]
+        check_call(adb + ["shell", cmd], stdout=sys.stderr)
 
         # Start showing logs as soon as the application starts,
         # in case they say something useful while we wait in subsequent steps.
@@ -123,16 +123,6 @@ def check_call(*args, **kwargs):
     exit_code = call(*args, **kwargs)
     if exit_code != 0:
         sys.exit(exit_code)
-
-
-def write_args(adb, args):
-    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
-    params_file = data_dir + "/android_params"
-
-    check_call(adb + ["shell", "mkdir -p %s" % data_dir])
-    check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
-    for arg in args:
-        check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
 
 
 def write_user_stylesheets(adb, args):

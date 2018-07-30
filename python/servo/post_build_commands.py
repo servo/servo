@@ -89,9 +89,7 @@ class PostBuildCommands(CommandBase):
             script = [
                 "am force-stop com.mozilla.servo",
             ]
-            extra = ""
-            if params:
-                extra += "-e servoargs \'" + " ".join(params) + "\'"
+            extra = "-e servoargs \'" + " ".join(params) + "\'" if params else ""
             script += [
                 "am start " + extra + " com.mozilla.servo/com.mozilla.servo.MainActivity",
                 "sleep 0.5",
