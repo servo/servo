@@ -41,22 +41,32 @@ pub struct OfflineAudioContext {
 
 impl OfflineAudioContext {
     #[allow(unrooted_must_root)]
-    fn new_inherited(options: &OfflineAudioContextOptions) -> OfflineAudioContext {
+    fn new_inherited(channel_count: u32,
+                     length: u32,
+                     sample_rate: f32) -> OfflineAudioContext {
+        let options = ServoMediaOfflineAudioContextOptions {
+            channels: channel_count as u8,
+            length: length as usize,
+            sample_rate,
+        };
         let context = BaseAudioContext::new_inherited(
-            BaseAudioContextOptions::OfflineAudioContext(options.into()),
+            BaseAudioContextOptions::OfflineAudioContext(options),
         );
         OfflineAudioContext {
             context,
-            channel_count: options.numberOfChannels,
-            length: options.length,
+            channel_count,
+            length,
             rendering_started: Cell::new(false),
             pending_rendering_promise: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    fn new(window: &Window, options: &OfflineAudioContextOptions) -> DomRoot<OfflineAudioContext> {
-        let context = OfflineAudioContext::new_inherited(options);
+    fn new(window: &Window,
+           channel_count: u32,
+           length: u32,
+           sample_rate: f32) -> DomRoot<OfflineAudioContext> {
+        let context = OfflineAudioContext::new_inherited(channel_count, length, sample_rate);
         reflect_dom_object(Box::new(context), window, OfflineAudioContextBinding::Wrap)
     }
 
@@ -64,7 +74,7 @@ impl OfflineAudioContext {
         window: &Window,
         options: &OfflineAudioContextOptions,
     ) -> Fallible<DomRoot<OfflineAudioContext>> {
-        Ok(OfflineAudioContext::new(window, options))
+        Ok(OfflineAudioContext::new(window, options.numberOfChannels, options.length, *options.sampleRate))
     }
 
     pub fn Constructor_(
@@ -82,11 +92,7 @@ impl OfflineAudioContext {
             return Err(Error::NotSupported);
         }
 
-        let mut options = OfflineAudioContextOptions::empty();
-        options.numberOfChannels = number_of_channels;
-        options.length = length;
-        options.sampleRate = sample_rate;
-        Ok(OfflineAudioContext::new(window, &options))
+        Ok(OfflineAudioContext::new(window, number_of_channels, length, *sample_rate))
     }
 }
 
@@ -164,15 +170,5 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
         }
 
         promise
-    }
-}
-
-impl<'a> From<&'a OfflineAudioContextOptions> for ServoMediaOfflineAudioContextOptions {
-    fn from(options: &OfflineAudioContextOptions) -> Self {
-        Self {
-            channels: options.numberOfChannels as u8,
-            length: options.length as usize,
-            sample_rate: *options.sampleRate,
-        }
     }
 }

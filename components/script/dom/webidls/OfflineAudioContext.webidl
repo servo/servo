@@ -8,12 +8,12 @@
 
 dictionary OfflineAudioContextOptions {
   unsigned long numberOfChannels = 1;
-  unsigned long length = 0;
-  float sampleRate = 48000.;
+  required unsigned long length;
+  required float sampleRate;
 };
 
 [Exposed=Window,
- Constructor (optional OfflineAudioContextOptions contextOptions),
+ Constructor (OfflineAudioContextOptions contextOptions),
  Constructor (unsigned long numberOfChannels, unsigned long length, float sampleRate)]
 interface OfflineAudioContext : BaseAudioContext {
   readonly attribute unsigned long length;
