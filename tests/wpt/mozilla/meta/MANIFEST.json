@@ -42951,7 +42951,9 @@
    "webgl/conformance-1.0.3/conformance/rendering/many-draw-calls.html": [
     [
      "/_mozilla/webgl/conformance-1.0.3/conformance/rendering/many-draw-calls.html",
-     {}
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "webgl/conformance-1.0.3/conformance/rendering/more-than-65536-indices.html": [
@@ -79880,7 +79882,7 @@
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/rendering/many-draw-calls.html": [
-   "8741d2e2bfb2da2adecfd0067bc0df4eebdb369e",
+   "3ce5f470ddef3d5b56dba9b58ffc5096496b747a",
    "testharness"
   ],
   "webgl/conformance-1.0.3/conformance/rendering/more-than-65536-indices.html": [
@@ -99176,7 +99178,7 @@
    "support"
   ],
   "webgl/tools/timeout.patch": [
-   "2690553f288896aaaf368475e307da2000fccfa4",
+   "ab9852e736bf43a9b7dbe312012ca09396a8626b",
    "support"
   ],
   "webgl/tools/unit.patch": [
