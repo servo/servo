@@ -40,11 +40,7 @@ pub struct AudioBuffer {
 impl AudioBuffer {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    pub fn new_inherited(
-        number_of_channels: u32,
-        length: u32,
-        sample_rate: f32,
-    ) -> AudioBuffer {
+    pub fn new_inherited(number_of_channels: u32, length: u32, sample_rate: f32) -> AudioBuffer {
         let vec = (0..number_of_channels).map(|_| Heap::default()).collect();
         AudioBuffer {
             reflector_: Reflector::new(),
@@ -68,11 +64,7 @@ impl AudioBuffer {
         sample_rate: f32,
         initial_data: Option<&[f32]>,
     ) -> DomRoot<AudioBuffer> {
-        let buffer = AudioBuffer::new_inherited(
-            number_of_channels,
-            length,
-            sample_rate,
-        );
+        let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
         let buffer = reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap);
         buffer.set_channels(initial_data);
         buffer
@@ -84,8 +76,9 @@ impl AudioBuffer {
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
         if options.numberOfChannels > MAX_CHANNEL_COUNT ||
-           *options.sampleRate < MIN_SAMPLE_RATE ||
-           *options.sampleRate > MAX_SAMPLE_RATE {
+            *options.sampleRate < MIN_SAMPLE_RATE ||
+            *options.sampleRate > MAX_SAMPLE_RATE
+        {
             return Err(Error::NotSupported);
         }
         Ok(AudioBuffer::new(
@@ -124,7 +117,7 @@ impl AudioBuffer {
                             array.handle_mut(),
                         )
                     };
-                }
+                },
             }
             chans[channel as usize].set(array.get());
         }
@@ -167,7 +160,8 @@ impl AudioBuffer {
                 typedarray!(in(cx) let array: Float32Array = channel.get());
                 if let Ok(array) = array {
                     let data = array.to_vec();
-                    let _ = JS_DetachArrayBuffer(cx, channel.handle(), DetachDataDisposition::KeepData);
+                    let _ =
+                        JS_DetachArrayBuffer(cx, channel.handle(), DetachDataDisposition::KeepData);
                     data
                 } else {
                     return None;

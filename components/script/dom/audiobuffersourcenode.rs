@@ -179,9 +179,27 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
     fn Start(
         &self,
         when: Finite<f64>,
-        _offset: Option<Finite<f64>>,
-        _duration: Option<Finite<f64>>,
+        offset: Option<Finite<f64>>,
+        duration: Option<Finite<f64>>,
     ) -> Fallible<()> {
+        if *when < 0. {
+            return Err(Error::Range("'when' must be a positive value".to_owned()));
+        }
+
+        if let Some(offset) = offset {
+            if *offset < 0. {
+                return Err(Error::Range("'offset' must be a positive value".to_owned()));
+            }
+        }
+
+        if let Some(duration) = duration {
+            if *duration < 0. {
+                return Err(Error::Range(
+                    "'duration' must be a positive value".to_owned(),
+                ));
+            }
+        }
+
         if let Some(buffer) = self.buffer.get() {
             let buffer = buffer.acquire_contents();
             self.source_node
