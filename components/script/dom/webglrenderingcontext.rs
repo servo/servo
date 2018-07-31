@@ -5,8 +5,7 @@
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{ActiveAttribInfo, DOMToTextureCommand, Parameter};
-use canvas_traits::webgl::{ShaderParameter, TexParameter, WebGLCommand};
-use canvas_traits::webgl::{WebGLContextShareMode, WebGLError};
+use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
 use canvas_traits::webgl::{WebGLVersion, WebVRCommand, webgl_channel};
@@ -2354,11 +2353,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, self.validate_ownership(program), return);
-            // FIXME: We should call glUseProgram(0), but
-            // WebGLCommand::UseProgram() doesn't take an Option
-            // currently.  This is also a problem for useProgram(null)
-            handle_object_deletion!(self, self.current_program, program, None);
-            program.delete()
+            program.mark_for_deletion()
         }
     }
 
@@ -2366,7 +2361,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
             handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
-            shader.delete()
+            shader.mark_for_deletion()
         }
     }
 
@@ -2700,8 +2695,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: &WebGLProgram, param: u32) -> JSVal {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return NullValue());
+        if program.is_deleted() {
+            self.webgl_error(InvalidOperation);
+            return NullValue();
+        }
         match param {
-            constants::DELETE_STATUS => BooleanValue(program.is_deleted()),
+            constants::DELETE_STATUS => BooleanValue(program.is_marked_for_deletion()),
             constants::LINK_STATUS => BooleanValue(program.is_linked()),
             constants::VALIDATE_STATUS => {
                 // FIXME(nox): This could be cached on the DOM side when we call validateProgram
@@ -2733,20 +2732,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: &WebGLShader, param: u32) -> JSVal {
         handle_potential_webgl_error!(self, self.validate_ownership(shader), return NullValue());
-        if shader.is_deleted() && !shader.is_attached() {
+        if shader.is_deleted() {
             self.webgl_error(InvalidValue);
             return NullValue();
         }
-        match handle_potential_webgl_error!(self, ShaderParameter::from_u32(param), return NullValue()) {
-            ShaderParameter::Bool(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetShaderParameterBool(shader.id(), param, sender));
-                BooleanValue(receiver.recv().unwrap())
-            }
-            ShaderParameter::Int(param) => {
-                let (sender, receiver) = webgl_channel().unwrap();
-                self.send_command(WebGLCommand::GetShaderParameterInt(shader.id(), param, sender));
-                Int32Value(receiver.recv().unwrap())
+        match param {
+            constants::DELETE_STATUS => BooleanValue(shader.is_marked_for_deletion()),
+            constants::COMPILE_STATUS => BooleanValue(shader.successfully_compiled()),
+            constants::SHADER_TYPE => UInt32Value(shader.gl_type()),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                NullValue()
             }
         }
     }
@@ -2878,7 +2874,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
-        buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+        buffer.map_or(false, |buf| {
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -2888,27 +2886,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
-        frame_buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+        frame_buffer.map_or(false, |buf| {
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsProgram(&self, program: Option<&WebGLProgram>) -> bool {
-        program.map_or(false, |p| !p.is_deleted())
+        program.map_or(false, |p| self.validate_ownership(p).is_ok() && !p.is_deleted())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
     fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
-        render_buffer.map_or(false, |buf| buf.ever_bound() && !buf.is_deleted())
+        render_buffer.map_or(false, |buf| {
+            self.validate_ownership(buf).is_ok() && buf.ever_bound() && !buf.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
-        shader.map_or(false, |s| !s.is_deleted() || s.is_attached())
+        shader.map_or(false, |s| self.validate_ownership(s).is_ok() && !s.is_deleted())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
-        texture.map_or(false, |tex| tex.target().is_some() && !tex.is_deleted())
+        texture.map_or(false, |tex| {
+            self.validate_ownership(tex).is_ok() && tex.target().is_some() && !tex.is_deleted()
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -3166,6 +3170,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(&self, program: &WebGLProgram) {
         handle_potential_webgl_error!(self, self.validate_ownership(program), return);
+        if program.is_deleted() {
+            return self.webgl_error(InvalidValue);
+        }
         handle_potential_webgl_error!(self, program.link());
     }
 
@@ -3721,6 +3728,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             if program.is_deleted() || !program.is_linked() {
                 return self.webgl_error(InvalidOperation);
             }
+            if program.is_in_use() {
+                return;
+            }
+            program.in_use(true);
+        }
+        match self.current_program.get() {
+            Some(ref current) if program != Some(&**current) => current.in_use(false),
+            _ => {}
         }
         self.send_command(WebGLCommand::UseProgram(program.map(|p| p.id())));
         self.current_program.set(program);
