@@ -9,6 +9,7 @@
 
 from __future__ import print_function, unicode_literals
 
+import json
 import os
 import os.path as path
 import subprocess
@@ -32,6 +33,13 @@ def read_file(filename, if_exists=False):
         return None
     with open(filename) as f:
         return f.read()
+
+
+# Copied from Python 3.3+'s shlex.quote()
+def shell_quote(arg):
+    # use single quotes, and put single quotes into double quotes
+    # the string $'b is then quoted as '$'"'"'b'
+    return "'" + arg.replace("'", "'\"'\"'") + "'"
 
 
 @CommandProvider
@@ -88,15 +96,11 @@ class PostBuildCommands(CommandBase):
                 return
             script = [
                 "am force-stop com.mozilla.servo",
-                "echo servo >/sdcard/Android/data/com.mozilla.servo/files/android_params"
             ]
-            for param in params:
-                script += [
-                    "echo '%s' >>/sdcard/Android/data/com.mozilla.servo/files/android_params"
-                    % param.replace("'", "\\'")
-                ]
+            json_params = shell_quote(json.dumps(params))
+            extra = "-e servoargs " + json_params
             script += [
-                "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
+                "am start " + extra + " com.mozilla.servo/com.mozilla.servo.MainActivity",
                 "sleep 0.5",
                 "echo Servo PID: $(pidof com.mozilla.servo)",
                 "exit"
@@ -257,7 +261,7 @@ class PostBuildCommands(CommandBase):
                         copy2(full_name, destination)
 
         return self.call_rustup_run(
-            ["cargo", "doc", "--manifest-path", self.servo_manifest()] + params,
+            ["cargo", "doc", "--manifest-path", self.ports_servo_manifest()] + params,
             env=self.build_env()
         )
 
