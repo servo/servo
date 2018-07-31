@@ -6,41 +6,33 @@
 //! For linux based platforms, it uses the XDG base directory spec but provides
 //! similar abstractions for non-linux platforms.
 
-#[cfg(target_os = "android")]
-use android_injected_glue;
-#[cfg(target_os = "android")]
-use std::ffi::CStr;
 use std::path::PathBuf;
 
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
-pub fn default_config_dir() -> PathBuf {
+pub fn default_config_dir() -> Option<PathBuf> {
     let mut config_dir = ::dirs::config_dir().unwrap();
     config_dir.push("servo");
     config_dir.push("default");
-    config_dir
+    Some(config_dir)
 }
 
 #[cfg(target_os = "android")]
-#[allow(unsafe_code)]
-pub fn default_config_dir() -> PathBuf {
-    let dir = unsafe {
-        CStr::from_ptr((*android_injected_glue::get_app().activity).externalDataPath)
-    };
-    PathBuf::from(dir.to_str().unwrap())
+pub fn default_config_dir() -> Option<PathBuf> {
+    None
 }
 
 #[cfg(target_os = "macos")]
-pub fn default_config_dir() -> PathBuf {
+pub fn default_config_dir() -> Option<PathBuf> {
     // FIXME: use `config_dir()` ($HOME/Library/Preferences)
     // instead of `data_dir()` ($HOME/Library/Application Support) ?
     let mut config_dir = ::dirs::data_dir().unwrap();
     config_dir.push("Servo");
-    config_dir
+    Some(config_dir)
 }
 
 #[cfg(target_os = "windows")]
-pub fn default_config_dir() -> PathBuf {
+pub fn default_config_dir() -> Option<PathBuf> {
     let mut config_dir = ::dirs::config_dir().unwrap();
     config_dir.push("Servo");
-    config_dir
+    Some(config_dir)
 }

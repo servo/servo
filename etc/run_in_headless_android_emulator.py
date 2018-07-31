@@ -10,6 +10,7 @@
 # except according to those terms.
 
 import contextlib
+import json
 import os
 import signal
 import subprocess
@@ -55,16 +56,17 @@ def main(avd_name, apk_path, *args):
         args = list(args)
         write_user_stylesheets(adb, args)
         write_hosts_file(adb)
-        write_args(adb, args)
 
-        check_call(adb + ["shell", "am start com.mozilla.servo/com.mozilla.servo.MainActivity"],
-                   stdout=sys.stderr)
+        json_params = shell_quote(json.dumps(args))
+        extra = "-e servoargs " + json_params
+        cmd = "am start " + extra + " com.mozilla.servo/com.mozilla.servo.MainActivity"
+        check_call(adb + ["shell", cmd], stdout=sys.stderr)
 
         # Start showing logs as soon as the application starts,
         # in case they say something useful while we wait in subsequent steps.
         logcat_args = [
             "--format=raw",  # Print no metadata, only log messages
-            "RustAndroidGlueStdouterr:D",  # Show (debug level) Rust stdio
+            "simpleservo:D",  # Show (debug level) Rust stdio
             "*:S",  # Hide everything else
         ]
         with terminate_on_exit(adb + ["logcat"] + logcat_args) as logcat:
@@ -123,16 +125,6 @@ def check_call(*args, **kwargs):
     exit_code = call(*args, **kwargs)
     if exit_code != 0:
         sys.exit(exit_code)
-
-
-def write_args(adb, args):
-    data_dir = "/sdcard/Android/data/com.mozilla.servo/files"
-    params_file = data_dir + "/android_params"
-
-    check_call(adb + ["shell", "mkdir -p %s" % data_dir])
-    check_call(adb + ["shell", "echo 'servo' > %s" % params_file])
-    for arg in args:
-        check_call(adb + ["shell", "echo %s >> %s" % (shell_quote(arg), params_file)])
 
 
 def write_user_stylesheets(adb, args):

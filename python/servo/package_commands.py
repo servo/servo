@@ -42,7 +42,7 @@ from servo.util import delete
 
 PACKAGES = {
     'android': [
-        'target/armv7-linux-androideabi/release/servo.apk',
+        'target/armv7-linux-androideabi/release/servoapp.apk',
     ],
     'linux': [
         'target/release/servo-tech-demo.tar.gz',
@@ -421,7 +421,7 @@ class PackageCommands(CommandBase):
                 return 1
 
         if android:
-            pkg_path = binary_path + ".apk"
+            pkg_path = self.get_apk_path(release)
             exec_command = [self.android_adb_path(env)]
             if emulator and usb:
                 print("Cannot install to both emulator and USB at the same time.")

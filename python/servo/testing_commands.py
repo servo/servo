@@ -278,7 +278,7 @@ class MachCommands(CommandBase):
 
         features = self.servo_features()
         if len(packages) > 0 or len(in_crate_packages) > 0:
-            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.servo_manifest()]
+            args = ["cargo", "bench" if bench else "test", "--manifest-path", self.ports_servo_manifest()]
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             for crate in in_crate_packages:
@@ -576,7 +576,7 @@ class MachCommands(CommandBase):
     def test_android_startup(self, release, dev):
         html = """
             <script>
-                console.log("JavaScript is running!")
+                window.alert("JavaScript is running!")
             </script>
         """
         url = "data:text/html;base64," + html.encode("base64").replace("\n", "")
@@ -607,8 +607,7 @@ class MachCommands(CommandBase):
         env = self.build_env(target=target)
         os.environ["PATH"] = env["PATH"]
         assert self.handle_android_target(target)
-        binary_path = self.get_binary_path(release, dev, android=True)
-        apk = binary_path + ".apk"
+        apk = self.get_apk_path(release)
 
         py = path.join(self.context.topdir, "etc", "run_in_headless_android_emulator.py")
         return [py, avd, apk]

@@ -30,7 +30,7 @@ matrix:
       script:
          # see https://github.com/servo/servo/issues/20664
          #- ./mach cargo check -p compositing --no-default-features
-         - ./mach build -d --verbose
+         - ./mach build -d --verbose -p servo
          - ./mach test-unit
          - ./mach clean
          - bash etc/ci/lockfile_changed.sh

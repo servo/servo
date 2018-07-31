@@ -30,6 +30,3 @@ embedder_traits = { path = "../embedder_traits", features = ["tests"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 dirs = "1.0"
-
-[target.'cfg(target_os = "android")'.dependencies]
-android_injected_glue = "0.2"

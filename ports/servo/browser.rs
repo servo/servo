@@ -17,9 +17,7 @@ use servo::servo_url::ServoUrl;
 use servo::webrender_api::ScrollLocation;
 use std::mem;
 use std::rc::Rc;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use std::thread;
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 
 pub struct Browser {
@@ -100,7 +98,8 @@ impl Browser {
                     String::from("")
                 };
                 let title = "URL or search query";
-                if let Some(input) = get_url_input(title, &url) {
+                let input = tinyfiledialogs::input_box(title, title, &url);
+                if let Some(input) = input {
                     if let Some(url) = sanitize_url(&input) {
                         self.event_queue.push(WindowEvent::LoadUrl(id, url));
                     }
@@ -263,7 +262,11 @@ impl Browser {
                     self.window.set_inner_size(size);
                 }
                 EmbedderMsg::Alert(message, sender) => {
-                    display_alert_dialog(message.to_owned());
+                    if !opts::get().headless {
+                        let _ = thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
+                            tinyfiledialogs::message_box_ok("Alert!", &message, MessageBoxIcon::Warning);
+                        }).unwrap().join().expect("Thread spawning failed");
+                    }
                     if let Err(e) = sender.send(()) {
                         let reason = format!("Failed to send Alert response: {}", e);
                         self.event_queue.push(WindowEvent::SendError(browser_id, reason));
@@ -324,8 +327,7 @@ impl Browser {
                     };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
-                    let res = match (opts::get().headless,
-                                     platform_get_selected_files(patterns, multiple_files)) {
+                    let res = match (opts::get().headless, get_selected_files(patterns, multiple_files)) {
                         (true, _) | (false, None) => sender.send(None),
                         (false, Some(files)) => sender.send(Some(files))
                     };
@@ -344,31 +346,6 @@ impl Browser {
         }
     }
 
-}
-
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn display_alert_dialog(message: String) {
-    if !opts::get().headless {
-        let _ = thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
-            tinyfiledialogs::message_box_ok("Alert!", &message, MessageBoxIcon::Warning);
-        }).unwrap().join().expect("Thread spawning failed");
-    }
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn display_alert_dialog(_message: String) {
-    // tinyfiledialogs not supported on Android
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn get_url_input(_title: &str, _url: &str) -> Option<String> {
-    // tinyfiledialogs not supported on Android
-    None
-}
-
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn get_url_input(title: &str, url: &str) -> Option<String> {
-    tinyfiledialogs::input_box(title, title, url)
 }
 
 #[cfg(target_os = "linux")]
@@ -403,10 +380,7 @@ fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
     None
 }
 
-#[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
-fn platform_get_selected_files(patterns: Vec<FilterPattern>,
-                               multiple_files: bool)
-                               -> Option<Vec<String>> {
+fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Option<Vec<String>> {
     let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
     thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
         let mut filters = vec![];
@@ -424,14 +398,6 @@ fn platform_get_selected_files(patterns: Vec<FilterPattern>,
             file.map(|x| vec![x])
         }
     }).unwrap().join().expect("Thread spawning failed")
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
-fn platform_get_selected_files(_patterns: Vec<FilterPattern>,
-                               _multiple_files: bool)
-                               -> Option<Vec<String>> {
-    warn!("File picker not implemented");
-    None
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {
