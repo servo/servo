@@ -63,10 +63,10 @@ impl<T, C> FromJSValConvertible for MozMap<T>
         let ids = IdVector::new(cx);
         if !GetPropertyKeys(cx, object.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, ids.get()) {
             // TODO: can GetPropertyKeys fail?
-	    // (it does so if the object has duplicate keys)
-	    report_pending_exception(cx, false);
+            // (it does so if the object has duplicate keys)
+            report_pending_exception(cx, false);
             return Ok(ConversionResult::Failure("Getting MozMap value property keys failed".into()));
-	}
+        }
 
         let mut map = HashMap::new();
         for id in &*ids {
