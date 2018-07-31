@@ -17,6 +17,13 @@ matrix:
         - sudo add-apt-repository 'deb http://apt.llvm.org/precise/ llvm-toolchain-precise-3.9 main' -y
         - sudo apt-get update -q
         - sudo apt-get install clang-3.9 llvm-3.9 llvm-3.9-runtime -y
+        - curl -L https://github.com/ferjm/gstreamer-1.14.1-ubuntu-trusty/raw/master/gstreamer.tar.gz | tar xz
+        - sed -i "s;prefix=/root/gstreamer;prefix=$PWD/gstreamer;g" $PWD/gstreamer/lib/x86_64-linux-gnu/pkgconfig/*.pc
+        - export PKG_CONFIG_PATH=$PWD/gstreamer/lib/x86_64-linux-gnu/pkgconfig
+        - export GST_PLUGIN_SYSTEM_PATH=$PWD/gstreamer/lib/x86_64-linux-gnu/gstreamer-1.0
+        - export GST_PLUGIN_SCANNER=$PWD/gstreamer/libexec/gstreamer-1.0/gst-plugin-scanner
+        - export PATH=$PATH:$PWD/gstreamer/bin
+        - export LD_LIBRARY_PATH=$PWD/gstreamer/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
         - export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
         - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
         - source ~/.profile
@@ -52,6 +59,7 @@ matrix:
             - ccache
             - libdbus-glib-1-dev
             - libedit-dev
+            - libglib2.0-dev
 
 branches:
   only:

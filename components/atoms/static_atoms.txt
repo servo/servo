@@ -12,6 +12,7 @@ checkbox
 click
 close
 color
+complete
 controllerchange
 cursive
 date
@@ -19,6 +20,7 @@ datetime-local
 dir
 email
 emptied
+ended
 error
 fantasy
 fetch

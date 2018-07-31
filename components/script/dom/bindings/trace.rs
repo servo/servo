@@ -90,6 +90,11 @@ use selectors::matching::ElementSelectorFlags;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
+use servo_media::Backend;
+use servo_media::audio::buffer_source_node::AudioBuffer;
+use servo_media::audio::context::AudioContext;
+use servo_media::audio::graph::NodeId;
+use servo_media::audio::param::ParamType;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
 use std::cell::{Cell, RefCell, UnsafeCell};
@@ -429,6 +434,10 @@ unsafe_no_jsmanaged_fields!(InteractiveMetrics);
 unsafe_no_jsmanaged_fields!(InteractiveWindow);
 unsafe_no_jsmanaged_fields!(CanvasId);
 unsafe_no_jsmanaged_fields!(SourceSet);
+unsafe_no_jsmanaged_fields!(AudioBuffer);
+unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
+unsafe_no_jsmanaged_fields!(NodeId);
+unsafe_no_jsmanaged_fields!(ParamType);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
