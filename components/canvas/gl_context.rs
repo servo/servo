@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{WebGLCommand, WebGLVersion};
+use canvas_traits::webgl::{WebGLCommand, WebGLVersion, WebGLCommandBacktrace};
 use compositing::compositor_thread::{CompositorProxy, self};
 use euclid::Size2D;
 use gleam::gl;
@@ -144,13 +144,18 @@ impl GLContextWrapper {
         }
     }
 
-    pub fn apply_command(&self, cmd: WebGLCommand, state: &mut GLState) {
+    pub fn apply_command(
+        &self,
+        cmd: WebGLCommand,
+        backtrace: WebGLCommandBacktrace,
+        state: &mut GLState
+    ) {
         match *self {
             GLContextWrapper::Native(ref ctx) => {
-                WebGLImpl::apply(ctx, state, cmd);
+                WebGLImpl::apply(ctx, state, cmd, backtrace);
             }
             GLContextWrapper::OSMesa(ref ctx) => {
-                WebGLImpl::apply(ctx, state, cmd);
+                WebGLImpl::apply(ctx, state, cmd, backtrace);
             }
         }
     }

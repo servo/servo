@@ -24,6 +24,14 @@ pub use ::webgl_channel::WebGLPipeline;
 /// Entry point channel type used for sending WebGLMsg messages to the WebGL renderer.
 pub use ::webgl_channel::WebGLChan;
 
+#[derive(Clone, Deserialize, Serialize)]
+pub struct WebGLCommandBacktrace {
+    #[cfg(feature = "webgl_backtrace")]
+    pub backtrace: String,
+    #[cfg(feature = "webgl_backtrace")]
+    pub js_backtrace: Option<String>,
+}
+
 /// WebGL Message API
 #[derive(Deserialize, Serialize)]
 pub enum WebGLMsg {
@@ -35,7 +43,7 @@ pub enum WebGLMsg {
     /// Drops a WebGLContext.
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
-    WebGLCommand(WebGLContextId, WebGLCommand),
+    WebGLCommand(WebGLContextId, WebGLCommand, WebGLCommandBacktrace),
     /// Runs a WebVRCommand in a specific WebGLContext.
     WebVRCommand(WebGLContextId, WebVRCommand),
     /// Locks a specific WebGLContext. Lock messages are used for a correct synchronization
@@ -121,8 +129,8 @@ impl WebGLMsgSender {
 
     /// Send a WebGLCommand message
     #[inline]
-    pub fn send(&self, command: WebGLCommand) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::WebGLCommand(self.ctx_id, command))
+    pub fn send(&self, command: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
+        self.sender.send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
     }
 
     /// Send a WebVRCommand message

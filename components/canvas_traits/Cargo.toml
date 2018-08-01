@@ -9,6 +9,9 @@ publish = false
 name = "canvas_traits"
 path = "lib.rs"
 
+[features]
+webgl_backtrace = []
+
 [dependencies]
 cssparser = "0.24.0"
 euclid = "0.19"

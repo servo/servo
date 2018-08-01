@@ -24,6 +24,11 @@ unstable = [
     "profile/unstable",
     "script/unstable",
 ]
+webgl_backtrace = [
+    "script/webgl_backtrace",
+    "canvas/webgl_backtrace",
+    "canvas_traits/webgl_backtrace",
+]
 
 [dependencies]
 bluetooth_traits = {path = "../bluetooth_traits"}
