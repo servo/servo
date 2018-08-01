@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use blob_loader::load_blob_sync;
+use crossbeam_channel::{Sender, Receiver};
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
@@ -30,7 +31,6 @@ use std::mem;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
 
 pub type Target<'a> = &'a mut (FetchTaskTarget + Send);

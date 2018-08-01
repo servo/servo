@@ -448,11 +448,11 @@ impl HTMLFormElement {
                 pipeline_id,
                 load_data,
                 false,
-            )).unwrap();
+            ));
         });
 
         // Step 3.
-        window.dom_manipulation_task_source().queue(task, window.upcast()).unwrap();
+        window.dom_manipulation_task_source().queue(task, window.upcast());
     }
 
     /// Interactively validate the constraints of form elements

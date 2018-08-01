@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::Sender;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable, EventTask};
@@ -12,8 +13,6 @@ use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::MainThreadScriptMsg;
 use servo_atoms::Atom;
 use std::fmt;
-use std::result::Result;
-use std::sync::mpsc::Sender;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
 
@@ -33,7 +32,7 @@ impl TaskSource for UserInteractionTaskSource {
         &self,
         task: T,
         canceller: &TaskCanceller,
-    ) -> Result<(), ()>
+    )
     where
         T: TaskOnce + 'static,
     {
@@ -42,7 +41,7 @@ impl TaskSource for UserInteractionTaskSource {
             Box::new(canceller.wrap_task(task)),
             Some(self.1)
         ));
-        self.0.send(msg).map_err(|_| ())
+        self.0.send(msg)
     }
 }
 

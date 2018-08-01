@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::webgl::{webgl_channel, WebGLReceiver, WebVRCommand};
+use crossbeam_channel::{self, Sender};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceBinding::PerformanceMethods;
@@ -40,7 +41,6 @@ use std::cell::Cell;
 use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
-use std::sync::mpsc;
 use std::thread;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
@@ -504,7 +504,7 @@ impl VRDisplay {
         // while the render thread is syncing the VRFrameData to be used for the current frame.
         // This thread runs until the user calls ExitPresent, the tab is closed or some unexpected error happened.
         thread::Builder::new().name("WebVR_RAF".into()).spawn(move || {
-            let (raf_sender, raf_receiver) = mpsc::channel();
+            let (raf_sender, raf_receiver) = crossbeam_channel::unbounded();
             let mut near = near_init;
             let mut far = far_init;
 
@@ -517,7 +517,7 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id))).unwrap();
+                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id)));
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
@@ -573,7 +573,7 @@ impl VRDisplay {
         self.frame_data_status.set(status);
     }
 
-    fn handle_raf(&self, end_sender: &mpsc::Sender<Result<(f64, f64), ()>>) {
+    fn handle_raf(&self, end_sender: &Sender<Result<(f64, f64), ()>>) {
         self.frame_data_status.set(VRFrameDataStatus::Waiting);
         self.running_display_raf.set(true);
 
@@ -599,12 +599,12 @@ impl VRDisplay {
         match self.frame_data_status.get() {
             VRFrameDataStatus::Synced => {
                 // Sync succeeded. Notify RAF thread.
-                end_sender.send(Ok((self.depth_near.get(), self.depth_far.get()))).unwrap();
+                end_sender.send(Ok((self.depth_near.get(), self.depth_far.get())));
             },
             VRFrameDataStatus::Exit | VRFrameDataStatus::Waiting => {
                 // ExitPresent called or some error ocurred.
                 // Notify VRDisplay RAF thread to stop.
-                end_sender.send(Err(())).unwrap();
+                end_sender.send(Err(()));
             }
         }
     }

@@ -6,6 +6,7 @@ use CompositionPipeline;
 use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg};
+use crossbeam_channel::Sender;
 use euclid::{TypedPoint2D, TypedVector2D, TypedScale};
 use gfx_traits::Epoch;
 #[cfg(feature = "gleam")]
@@ -31,7 +32,6 @@ use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::time::Instant;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use style_traits::cursor::CursorKind;
@@ -356,9 +356,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
-        if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
-            warn!("Sending exit message to constellation failed ({}).", e);
-        }
+        self.constellation_chan.send(ConstellationMsg::Exit);
 
         self.shutdown_state = ShutdownState::ShuttingDown;
     }
@@ -607,9 +605,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let msg = ConstellationMsg::WindowSize(top_level_browsing_context_id, data, size_type);
 
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending window resize to constellation failed ({}).", e);
-        }
+        self.constellation_chan.send(msg);
     }
 
     pub fn on_resize_window_event(&mut self) {
@@ -673,9 +669,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let pipeline_id = PipelineId::from_webrender(result.pipeline);
         let msg = ConstellationMsg::ForwardEvent(pipeline_id, event_to_send);
-        if let Err(e) = self.constellation_chan.send(msg) {
-            warn!("Sending event to constellation failed ({}).", e);
-        }
+        self.constellation_chan.send(msg);
     }
 
     fn hit_test_at_point(&self, point: DevicePoint) -> HitTestResult {
@@ -716,15 +710,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let event = MouseMoveEvent(Some(item.point_in_viewport.to_untyped()), node_address);
             let pipeline_id = PipelineId::from_webrender(item.pipeline);
             let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({}).", e);
-            }
+            self.constellation_chan.send(msg);
 
             if let Some(cursor) =  CursorKind::from_u8(item.tag.1 as _).ok() {
                 let msg = ConstellationMsg::SetCursor(cursor);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending event to constellation failed ({}).", e);
-                }
+                self.constellation_chan.send(msg);
             }
         }
     }
@@ -745,9 +735,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             );
             let pipeline_id = PipelineId::from_webrender(item.pipeline);
             let msg = ConstellationMsg::ForwardEvent(pipeline_id, event);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending event to constellation failed ({}).", e);
-            }
+            self.constellation_chan.send(msg);
         }
     }
 
@@ -972,18 +960,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let animation_callbacks_running = self.pipeline_details(pipeline_id).animation_callbacks_running;
         if animation_callbacks_running {
             let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
-            }
+            self.constellation_chan.send(msg);
         }
 
         // We may need to tick animations in layout. (See #12749.)
         let animations_running = self.pipeline_details(pipeline_id).animations_running;
         if animations_running {
             let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Layout);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({}).", e);
-            }
+            self.constellation_chan.send(msg);
         }
     }
 
@@ -1115,9 +1099,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
                 let msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Sending ready to save to constellation failed ({}).", e);
-                }
+                self.constellation_chan.send(msg);
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
                 Err(NotReadyToPaint::JustNotifiedConstellation)
             }

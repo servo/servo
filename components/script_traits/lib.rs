@@ -12,6 +12,7 @@
 extern crate bluetooth_traits;
 extern crate canvas_traits;
 extern crate cookie as cookie_rs;
+extern crate crossbeam_channel;
 extern crate devtools_traits;
 extern crate embedder_traits;
 extern crate euclid;
@@ -41,6 +42,7 @@ pub mod webdriver_msg;
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use crossbeam_channel::{Receiver, Sender};
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
@@ -65,7 +67,6 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, RecvTimeoutError};
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
 use style_traits::cursor::CursorKind;
@@ -785,12 +786,6 @@ pub enum PaintWorkletError {
     Timeout,
     /// No such worklet.
     WorkletNotFound,
-}
-
-impl From<RecvTimeoutError> for PaintWorkletError {
-    fn from(_: RecvTimeoutError) -> PaintWorkletError {
-        PaintWorkletError::Timeout
-    }
 }
 
 /// Execute paint code in the worklet thread pool.

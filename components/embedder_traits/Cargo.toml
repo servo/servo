@@ -13,9 +13,9 @@ path = "lib.rs"
 tests = []
 
 [dependencies]
+crossbeam-channel = "0.2"
 ipc-channel = "0.10"
 lazy_static = "1"
-log = "0.4"
 msg = {path = "../msg"}
 serde = "1.0"
 servo_url = {path = "../url"}

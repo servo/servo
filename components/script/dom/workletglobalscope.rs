@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::root::DomRoot;
@@ -30,7 +31,6 @@ use servo_url::ImmutableOrigin;
 use servo_url::MutableOrigin;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -105,7 +105,6 @@ impl WorkletGlobalScope {
                 properties,
                 painter,
             })
-            .expect("Worklet thread outlived script thread.");
     }
 
     /// The base URL of this global.
