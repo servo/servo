@@ -898,7 +898,6 @@ impl Stylist {
     where
         E: TElement,
     {
-        let pseudo = pseudo.canonical();
         debug_assert!(pseudo.is_lazy());
 
         // Apply the selector flags. We should be in sequential mode
@@ -1892,7 +1891,7 @@ impl ElementAndPseudoRules {
         let map = match pseudo_element {
             None => &mut self.element_map,
             Some(pseudo) => self.pseudos_map
-                .get_or_insert_with(&pseudo.canonical(), || Box::new(SelectorMap::new())),
+                .get_or_insert_with(pseudo, || Box::new(SelectorMap::new())),
         };
 
         map.insert(rule, quirks_mode)
@@ -1906,7 +1905,7 @@ impl ElementAndPseudoRules {
     #[inline]
     fn rules(&self, pseudo: Option<&PseudoElement>) -> Option<&SelectorMap<Rule>> {
         match pseudo {
-            Some(pseudo) => self.pseudos_map.get(&pseudo.canonical()).map(|p| &**p),
+            Some(pseudo) => self.pseudos_map.get(pseudo).map(|p| &**p),
             None => Some(&self.element_map),
         }
     }
@@ -2190,7 +2189,7 @@ impl CascadeData {
                                 precomputed_pseudo_element_decls
                                     .as_mut()
                                     .expect("Expected precomputed declarations for the UA level")
-                                    .get_or_insert_with(&pseudo.canonical(), Vec::new)
+                                    .get_or_insert_with(pseudo, Vec::new)
                                     .push(ApplicableDeclarationBlock::new(
                                         StyleSource::from_rule(locked.clone()),
                                         self.rules_source_order,

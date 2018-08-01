@@ -162,15 +162,6 @@ impl PseudoElement {
         self.is_anon_box() && !self.is_tree_pseudo_element()
     }
 
-    /// Covert non-canonical pseudo-element to canonical one, and keep a
-    /// canonical one as it is.
-    pub fn canonical(&self) -> PseudoElement {
-        match *self {
-            PseudoElement::MozPlaceholder => PseudoElement::Placeholder,
-            _ => self.clone(),
-        }
-    }
-
     /// Property flag that properties must have to apply to this pseudo-element.
     #[inline]
     pub fn property_restriction(&self) -> Option<PropertyFlags> {

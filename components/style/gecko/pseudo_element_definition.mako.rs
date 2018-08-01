@@ -234,6 +234,9 @@ impl PseudoElement {
             "-moz-selection" => {
                 return Some(PseudoElement::Selection);
             }
+            "-moz-placeholder" => {
+                return Some(PseudoElement::Placeholder);
+            }
             _ => {
                 // FIXME: -moz-tree check should probably be
                 // ascii-case-insensitive.
