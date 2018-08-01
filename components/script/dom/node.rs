@@ -2669,7 +2669,7 @@ pub struct UnbindContext<'a> {
 
 impl<'a> UnbindContext<'a> {
     /// Create a new `UnbindContext` value.
-    fn new(parent: &'a Node,
+    pub fn new(parent: &'a Node,
            prev_sibling: Option<&'a Node>,
            cached_index: Option<u32>) -> Self {
         UnbindContext {

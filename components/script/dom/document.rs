@@ -66,7 +66,7 @@ use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{self, CloneChildrenFlag, document_from_node, window_from_node};
-use dom::node::{Node, NodeDamage, NodeFlags, LayoutNodeHelpers};
+use dom::node::{Node, NodeDamage, NodeFlags, LayoutNodeHelpers, UnbindContext};
 use dom::node::VecPreOrderInsertionHelper;
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
@@ -85,7 +85,7 @@ use dom::touchevent::TouchEvent;
 use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
-use dom::virtualmethods::vtable_for;
+use dom::virtualmethods::{vtable_for, VirtualMethods};
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use dom::windowproxy::WindowProxy;
@@ -392,6 +392,8 @@ pub struct Document {
     salvageable: Cell<bool>,
     /// Whether the unload event has already been fired.
     fired_unload: Cell<bool>,
+    /// List of responsive images
+    responsive_images: Vec<Dom<HTMLImageElement>>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2221,6 +2223,30 @@ impl Document {
         let counter = self.throw_on_dynamic_markup_insertion_counter.get();
         self.throw_on_dynamic_markup_insertion_counter.set(counter - 1);
     }
+
+    pub fn responsive_images(&self) {
+        for image in self.responsive_images.iter() {
+            (*image).react_to_environment_changes();
+        }
+    }
+
+    pub fn register_responsive_images(&self) {
+        for image in self.responsive_images.iter() {
+            (**image).bind_to_tree(true);
+        }
+    }
+
+    pub fn unregister_responsive_images(&self) {
+        let mut i = 0;
+        for image in self.responsive_images.iter() {
+            let elem = image.upcast::<Node>();
+            let parent = elem.GetParentNode().unwrap();
+            let prev_sibling = elem.GetPreviousSibling();
+            let context = UnbindContext::new(&*parent, prev_sibling.r(), Some(i as u32));
+            i = i + 1;
+            (**image).unbind_from_tree(&context);
+        }
+    }
 }
 
 #[derive(MallocSizeOf, PartialEq)]
@@ -2465,7 +2491,8 @@ impl Document {
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
-            fired_unload: Cell::new(false)
+            fired_unload: Cell::new(false),
+            responsive_images: Default::default()
         }
     }
 

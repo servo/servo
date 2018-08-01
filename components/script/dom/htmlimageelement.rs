@@ -33,7 +33,7 @@ use dom::htmlmapelement::HTMLMapElement;
 use dom::htmlpictureelement::HTMLPictureElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mouseevent::MouseEvent;
-use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node, UnbindContext};
 use dom::progressevent::ProgressEvent;
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
@@ -44,7 +44,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
-use mime::{Mime, TopLevel};
+use mime::{Mime, TopLevel, SubLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
@@ -120,7 +120,7 @@ enum ImageRequestPhase {
     Pending,
     Current
 }
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 #[must_root]
 struct ImageRequest {
     state: State,
@@ -271,6 +271,68 @@ impl HTMLImageElement {
         }
     }
 
+    fn fetch_image_for_environment_change(&self, img_url: &ServoUrl) {
+        fn add_cache_listener_for_element(image_cache: Arc<ImageCache>,
+                                          id: PendingImageId,
+                                          elem: &HTMLImageElement) {
+            let trusted_node = Trusted::new(elem);
+            let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+
+            let window = window_from_node(elem);
+            let task_source = window.networking_task_source();
+            let task_canceller = window.task_canceller(TaskSourceName::Networking);
+            let generation = elem.generation.get();
+            ROUTER.add_route(responder_receiver.to_opaque(), Box::new(move |message| {
+                debug!("Got image {:?}", message);
+                // Return the image via a message to the script thread, which marks
+                // the element as dirty and triggers a reflow.
+                let element = trusted_node.clone();
+                let image = message.to().unwrap();
+                let _ = task_source.queue_with_canceller(
+                    task!(process_image_response_for_environment_change: move || {
+                        let element = element.root();
+                        // Ignore any image response for a previous request that has been discarded.
+                        if generation == element.generation.get() {
+                            element.process_image_response_for_environment_change(image);
+                        }
+                    }),
+                    &task_canceller,
+                );
+            }));
+
+            image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
+        }
+
+        let window = window_from_node(self);
+        let image_cache = window.image_cache();
+        let response =
+            image_cache.find_image_or_metadata(img_url.clone().into(),
+                                               UsePlaceholder::Yes,
+                                               CanRequestImages::Yes);
+        match response {
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
+                self.process_image_response_for_environment_change(ImageResponse::Loaded(image, url));
+            }
+
+            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+                self.process_image_response_for_environment_change(ImageResponse::MetadataLoaded(m));
+            }
+
+            Err(ImageState::Pending(id)) => {
+                add_cache_listener_for_element(image_cache.clone(), id, self);
+            }
+
+            Err(ImageState::LoadError) => {
+                self.process_image_response_for_environment_change(ImageResponse::None);
+            }
+
+            Err(ImageState::NotRequested(id)) => {
+                add_cache_listener_for_element(image_cache, id, self);
+                self.fetch_request(img_url, id);
+            }
+        }
+    }
+
     fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
         let document = document_from_node(self);
         let window = window_from_node(self);
@@ -373,6 +435,22 @@ impl HTMLImageElement {
         // Trigger reflow
         let window = window_from_node(self);
         window.add_pending_reflow();
+    }
+
+    fn process_image_response_for_environment_change(&self, image: ImageResponse) {
+        let element = self.upcast::<Element>();
+        let is_multipart_x_mixed_replace = HTMLImageElement::check_mutipart_x_mixed_replace(element);
+        if is_multipart_x_mixed_replace {
+            self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
+        }
+
+        match (image, self.image_request.get()) {
+            (ImageResponse::Loaded(_image, _url), ImageRequestPhase::Current) |
+            (ImageResponse::Loaded(_image, _url), ImageRequestPhase::Pending) => { },
+            (_, _) => {
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
+            },
+        };
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-the-image-request>
@@ -667,7 +745,7 @@ impl HTMLImageElement {
                     (Some(parsed_url), State::PartiallyAvailable) => {
                         // Step 14
                         if parsed_url == *url {
-                            // 15 abort pending request
+                            // Step 15 abort pending request
                             pending_request.image = None;
                             pending_request.parsed_url = None;
                             LoadBlocker::terminate(&mut pending_request.blocker);
@@ -755,7 +833,7 @@ impl HTMLImageElement {
         let parsed_url = base_url.join(&src);
         match parsed_url {
             Ok(url) => {
-                // Step 13
+                // Step 13-17
                 self.prepare_image_request(&url, &src);
             },
             Err(_) => {
@@ -872,7 +950,7 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-environment-changes>
-    fn react_to_environment_changes(&self) {
+    pub fn react_to_environment_changes(&self) {
         // Step 1
         let task = ImageElementMicrotask::EnvironmentChangesTask {
             elem: DomRoot::from_ref(self),
@@ -882,36 +960,24 @@ impl HTMLImageElement {
     }
 
     /// Step 3-12 of https://html.spec.whatwg.org/multipage/#img-environment-changes
-    fn react_to_environment_changes_sync_steps(&self, generation: &u32) {
-        let mut selected_source = None;
-        let mut selected_pixel_density = None;
+    fn react_to_environment_changes_sync_steps(&self, generation: u32) {
         let elem = self.upcast::<Element>();
         let document = document_from_node(elem);
         let base_url = document.base_url();
-        match self.select_image_source() {
-            Some(src) => {
-                // Step 3
-                selected_source = Some(src.0);
-                selected_pixel_density = Some(src.1);
-            },
-            _ => ()
-        }
-
-        // Step 4
-        let src = match selected_source {
-            Some(src) => src,
-            _ => return,
+        let (selected_source, selected_pixel_density) = match self.select_image_source() {
+            Some(selected) => selected,
+            None => return,
         };
 
         // Step 5
         let same_source = match *self.last_selected_source.borrow() {
-            Some(ref last_src) => *last_src == src,
+            Some(ref last_src) => *last_src == selected_source,
             _ => false,
         };
 
-        let same_selected_pixel_density = match selected_pixel_density {
-            Some(den) => self.current_request.borrow().current_pixel_density.map_or(false, |density| density == den),
-            _ => self.current_request.borrow().current_pixel_density.map_or(true, |_den| false),
+        let same_selected_pixel_density = match self.current_request.borrow().current_pixel_density {
+            Some(den) => selected_pixel_density == den,
+            _ => false,
         };
 
         if same_source && same_selected_pixel_density {
@@ -919,117 +985,98 @@ impl HTMLImageElement {
         }
 
         // Step 6
-        if let Ok(img_url) = base_url.join(&String::from(src.clone())) {
-            // Step 12
-            *self.pending_request.borrow_mut() = ImageRequest {
-                state: State::Unavailable,
-                parsed_url: Some(img_url.clone()),
-                source_url: None,
-                image: None,
-                metadata: None,
-                blocker: None,
-                final_url: None,
-                current_pixel_density: None,
-            };
+        let img_url = match base_url.join(&selected_source) {
+            Ok(url) => url,
+            Err(_) => return,
+        };
 
-            let window = window_from_node(self);
-            let image_cache = window.image_cache();
-            // Step 14
-            let response =
-                image_cache.find_image_or_metadata(img_url.clone().into(),
-                                                   UsePlaceholder::No,
-                                                   CanRequestImages::No);
-            if let Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) = response {} else {
-                let window = window_from_node(self);
-                let image_cache = window.image_cache();
-                // Step 14.1
-                let response =
-                    image_cache.find_image_or_metadata(img_url.clone().into(),
-                                                       UsePlaceholder::Yes,
-                                                       CanRequestImages::Yes);
-                match response {
-                    // TODO Handle multipart/x-mixtape
-                    Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {}
-                    Ok(ImageOrMetadataAvailable::MetadataAvailable(_m)) => { }
-                    Err(ImageState::Pending(_id)) => { }
-                    Err(ImageState::NotRequested(_id)) => { }
-                    Err(ImageState::LoadError) => {
-                        *self.pending_request.borrow_mut() = ImageRequest {
-                            state: State::Unavailable,
-                            parsed_url: None,
-                            source_url: None,
-                            image: None,
-                            metadata: None,
-                            blocker: None,
-                            final_url: None,
-                            current_pixel_density: None,
-                        };
-                    }
+        // Step 12
+        self.image_request.set(ImageRequestPhase::Pending);
+        self.init_image_request(&mut self.pending_request.borrow_mut(), &img_url, &selected_source);
 
-                }
+        let window = window_from_node(self);
+        let image_cache = window.image_cache();
+        // Step 14
+        let response =
+            image_cache.find_image_or_metadata(img_url.clone().into(),
+                                               UsePlaceholder::Yes,
+                                               CanRequestImages::Yes);
+        match response {
+            Ok(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
+                // Step 15
+                self.finish_reacting_to_environment_change(selected_source, generation, selected_pixel_density);
             }
-
-            let this = Trusted::new(self);
-            let new_selected_source = src.to_string();
-            let relevant_mutation = self.generation.get() != *generation;
-            // Step 15
-            let _ = window.dom_manipulation_task_source().queue(
-                task!(image_load_event: move || {
-                            let this = this.root();
-                            // Step 15.1
-                            if relevant_mutation {
-                                let mut _pending_request =
-                                    &*this.pending_request.borrow_mut();
-                                    _pending_request = &ImageRequest {
-                                    state: State::Unavailable,
-                                    parsed_url: None,
-                                    source_url: None,
-                                    image: None,
-                                    metadata: None,
-                                    blocker: None,
-                                    final_url: None,
-                                    current_pixel_density: None,
-                                };
-                                return;
-                            }
-
-                            // Step 15.2
-                            *this.last_selected_source.borrow_mut() = Some(DOMString::from_string(new_selected_source));
-                            let mut current_request = this.current_request.borrow_mut();
-                            current_request.current_pixel_density = selected_pixel_density;
-
-                            // Step 15.3
-                            this.current_request.borrow_mut().state = State::CompletelyAvailable;
-
-                            // Step 15.4
-                            // Already a part of the list of available images due to Step 14
-
-                            // Step 15.5
-                            current_request = this.pending_request.borrow_mut();
-                            *this.pending_request.borrow_mut() = ImageRequest {
-                                state: State::Unavailable,
-                                parsed_url: None,
-                                source_url: None,
-                                image: None,
-                                metadata: None,
-                                blocker: None,
-                                final_url: None,
-                                current_pixel_density: None,
-                            };
-
-                            // Step 15.6
-                            this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-
-                            // Step 15.7
-                            this.upcast::<EventTarget>().fire_event(atom!("load"));
-                }),
-                window.upcast(),
-            );
-
+            _ => {
+                // Step 14.1
+                self.fetch_image_for_environment_change(&img_url);
+                self.finish_reacting_to_environment_change(selected_source, generation, selected_pixel_density);
+            }
         }
-        return;
     }
 
+    /// Step 15 for <https://html.spec.whatwg.org/multipage/#img-environment-changes>
+    fn finish_reacting_to_environment_change(&self, src: DOMString, generation: u32, selected_pixel_density: f64) {
+        let this = Trusted::new(self);
+        let new_selected_source = src.to_string();
+        let window = window_from_node(self);
+        let relevant_mutation = self.generation.get() != generation;
+        let _ = window.dom_manipulation_task_source().queue(
+            task!(image_load_event: move || {
+                let this = this.root();
+                let mut pending_request = this.pending_request.borrow_mut();
+
+                // Step 15.1
+                if relevant_mutation {
+                    this.abort_request(State::Unavailable, ImageRequestPhase::Pending);
+                }
+
+                // Step 15.2
+                *this.last_selected_source.borrow_mut() = Some(DOMString::from_string(new_selected_source));
+                pending_request.current_pixel_density = Some(selected_pixel_density);
+
+                // Step 15.3
+                pending_request.state = State::CompletelyAvailable;
+
+                // Step 15.4
+                // Already a part of the list of available images due to Step 14
+
+                // Step 15.5
+                *this.current_request.borrow_mut() = (*pending_request).clone();
+                *this.pending_request.borrow_mut() = ImageRequest {
+                    state: State::Unavailable,
+                    parsed_url: None,
+                    source_url: None,
+                    image: None,
+                    metadata: None,
+                    blocker: None,
+                    final_url: None,
+                    current_pixel_density: None,
+                };
+
+                // Step 15.6
+                this.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+
+                // Step 15.7
+                this.upcast::<EventTarget>().fire_event(atom!("load"));
+            }),
+            window.upcast(),
+        );
+    }
+
+    fn check_mutipart_x_mixed_replace(element: &Element) -> bool {
+        let mut match_resource_type = false;
+        if let Some(x) = (*element).get_attribute(&ns!(), &local_name!("type")) {
+            let mime = x.value().parse::<Mime>();
+            let mime_type = String::from("x-mixed-replace");
+            if let Ok(mime) = mime {
+                match_resource_type = match mime {
+                    Mime(TopLevel::Multipart, SubLevel::Ext(s), _) => (s == mime_type),
+                    _ => false
+                }
+            }
+        }
+        match_resource_type
+    }
 
     fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
@@ -1102,9 +1149,9 @@ impl HTMLImageElement {
         }
 
         let useMapElements = document_from_node(self).upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(DomRoot::downcast::<HTMLMapElement>)
-            .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
+                    .traverse_preorder()
+                    .filter_map(DomRoot::downcast::<HTMLMapElement>)
+                    .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
@@ -1141,7 +1188,6 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                 }
             },
             &ImageElementMicrotask::EnvironmentChangesTask { ref elem, ref generation } => {
-                // TODO: Handle multipart/x-mixed-replace
                 // Step 2 of https://html.spec.whatwg.org/multipage/#img-environment-changes,
                 let element = elem.upcast::<Element>();
                 let has_src = element.has_attribute(&local_name!("srcset"));
@@ -1150,9 +1196,9 @@ impl MicrotaskRunnable for ImageElementMicrotask {
                     ImageRequestPhase::Pending => true,
                     _ => false
                 };
-
-                if document.is_active() && has_src && !has_pending_request {
-                    elem.react_to_environment_changes_sync_steps(generation);
+                let match_resource_type = HTMLImageElement::check_mutipart_x_mixed_replace(element);
+                if match_resource_type && document.is_active() && has_src && !has_pending_request {
+                    elem.react_to_environment_changes_sync_steps(*generation);
                 }
             },
         }
@@ -1397,35 +1443,45 @@ impl VirtualMethods for HTMLImageElement {
             return
         }
 
-        let area_elements = self.areas();
-        let elements = match area_elements {
-            Some(x) => x,
-            None => return,
-        };
+       let area_elements = self.areas();
+       let elements = match area_elements {
+           Some(x) => x,
+           None => return,
+       };
 
-        // Fetch click coordinates
-        let mouse_event = match event.downcast::<MouseEvent>() {
-            Some(x) => x,
-            None => return,
-        };
+       // Fetch click coordinates
+       let mouse_event = match event.downcast::<MouseEvent>() {
+           Some(x) => x,
+           None => return,
+       };
 
-        let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
-                                 mouse_event.ClientY().to_f32().unwrap());
-        let bcr = self.upcast::<Element>().GetBoundingClientRect();
-        let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
+       let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
+                                mouse_event.ClientY().to_f32().unwrap());
+       let bcr = self.upcast::<Element>().GetBoundingClientRect();
+       let bcr_p = Point2D::new(bcr.X() as f32, bcr.Y() as f32);
 
-        // Walk HTMLAreaElements
-        for element in elements {
-            let shape = element.get_shape_from_coords();
-            let shp = match shape {
-                Some(x) => x.absolute_coords(bcr_p),
-                None => return,
-            };
-            if shp.hit_test(&point) {
-                element.activation_behavior(event, self.upcast());
-                return
-            }
+       // Walk HTMLAreaElements
+       for element in elements {
+           let shape = element.get_shape_from_coords();
+           let shp = match shape {
+               Some(x) => x.absolute_coords(bcr_p),
+               None => return,
+           };
+           if shp.hit_test(&point) {
+               element.activation_behavior(event, self.upcast());
+               return
+           }
+       }
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
     }
 }
 
