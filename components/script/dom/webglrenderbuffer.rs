@@ -4,13 +4,14 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult};
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGl2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
@@ -61,6 +62,10 @@ impl WebGLRenderbuffer {
         self.size.get()
     }
 
+    pub fn internal_format(&self) -> u32 {
+        self.internal_format.get().unwrap_or(constants::RGBA4)
+    }
+
     pub fn bind(&self, target: u32) {
         self.ever_bound.set(true);
         self.upcast::<WebGLObject>()
@@ -88,25 +93,39 @@ impl WebGLRenderbuffer {
     pub fn storage(&self, internal_format: u32, width: i32, height: i32) -> WebGLResult<()> {
         // Validate the internal_format, and save it for completeness
         // validation.
-        match internal_format {
+        let actual_format = match internal_format {
             constants::RGBA4 |
-            constants::RGB565 |
-            constants::RGB5_A1 |
             constants::DEPTH_COMPONENT16 |
             constants::STENCIL_INDEX8 |
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.7
-            constants::DEPTH_STENCIL => {
-                self.internal_format.set(Some(internal_format))
+            constants::DEPTH_STENCIL => internal_format,
+            constants::RGB5_A1 => {
+                // 16-bit RGBA formats are not supported on desktop GL.
+                if is_gles() {
+                    constants::RGB5_A1
+                } else {
+                    WebGl2Constants::RGBA8
+                }
+            }
+            constants::RGB565 => {
+                // RGB565 is not supported on desktop GL.
+                if is_gles() {
+                    constants::RGB565
+                } else {
+                    WebGl2Constants::RGB8
+                }
             }
             _ => return Err(WebGLError::InvalidEnum),
         };
+
+        self.internal_format.set(Some(internal_format));
 
         // FIXME: Invalidate completeness after the call
 
         self.upcast::<WebGLObject>().context().send_command(
             WebGLCommand::RenderbufferStorage(
                 constants::RENDERBUFFER,
-                internal_format,
+                actual_format,
                 width,
                 height,
             )
