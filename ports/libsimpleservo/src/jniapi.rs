@@ -277,6 +277,13 @@ impl HostTrait for HostCallbacks {
             .unwrap();
     }
 
+    fn make_current(&self) {
+        debug!("make_current");
+        let env = self.jvm.get_env().unwrap();
+        env.call_method(self.callbacks.as_obj(), "makeCurrent", "()V", &[])
+            .unwrap();
+    }
+
     fn on_load_started(&self) {
         debug!("on_load_started");
         let env = self.jvm.get_env().unwrap();
