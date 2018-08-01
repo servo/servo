@@ -95,12 +95,14 @@ pub fn init(
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReader(readfile)));
 
-    let mut args: Vec<String> = serde_json::from_str(&argsline).map_err(|_| {
-        "Invalid arguments. Servo arguments must be formatted as a JSON array"
-    })?;
-    // opts::from_cmdline_args expects the first argument to be the binary name.
-    args.insert(0, "servo".to_string());
-    opts::from_cmdline_args(&args);
+    if !argsline.is_empty() {
+        let mut args: Vec<String> = serde_json::from_str(&argsline).map_err(|_| {
+            "Invalid arguments. Servo arguments must be formatted as a JSON array"
+        })?;
+        // opts::from_cmdline_args expects the first argument to be the binary name.
+        args.insert(0, "servo".to_string());
+        opts::from_cmdline_args(&args);
+    }
 
     let embedder_url = embedder_url.as_ref().and_then(|s| {
         ServoUrl::parse(s).ok()
