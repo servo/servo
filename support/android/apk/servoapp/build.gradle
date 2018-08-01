@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
-import groovy.io.FileType
-import org.apache.tools.ant.taskdefs.condition.Os
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
 android {
     compileSdkVersion 27
     buildToolsVersion '27.0.3'
+
+    buildDir = rootDir.absolutePath + "/../../../target/gradle/servoapp"
 
     defaultConfig {
         applicationId "com.mozilla.servo"
@@ -18,23 +18,11 @@ android {
     }
 
     compileOptions {
-        incremental false
-    }
-
-    splits {
-        density {
-            enable false
-        }
-        abi {
-            enable false
-        }
-    }
-
-    compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    // Share all of that with servoview
     flavorDimensions "default"
 
     productFlavors {
@@ -48,41 +36,25 @@ android {
         }
     }
 
+   splits {
+       density {
+           enable false
+       }
+       abi {
+           enable false
+       }
+   }
+
     sourceSets {
         main {
             java.srcDirs = ['src/main/java']
             assets.srcDirs = ['../../../../resources']
         }
-        armDebug {
-            jniLibs.srcDirs = [getJniLibsPath(true, 'arm')]
-        }
-        armRelease {
-            jniLibs.srcDirs = [getJniLibsPath(false, 'arm')]
-        }
-        armv7Debug {
-            jniLibs.srcDirs = [getJniLibsPath(true, 'armv7')]
-        }
-        armv7Release {
-            jniLibs.srcDirs = [getJniLibsPath(false, 'armv7')]
-        }
-        arm64Debug {
-            jniLibs.srcDirs = [getJniLibsPath(true, 'arm64')]
-        }
-        arm64Release {
-            jniLibs.srcDirs = [getJniLibsPath(false, 'arm64')]
-        }
-        x86Debug {
-            jniLibs.srcDirs = [getJniLibsPath(true, 'x86')]
-        }
-        x86Release {
-            jniLibs.srcDirs = [getJniLibsPath(false, 'x86')]
-        }
     }
 
+
     buildTypes {
-        // Default debug and release build types are used as templates
         debug {
-            jniDebuggable true
         }
 
         release {
@@ -94,51 +66,28 @@ android {
         // Custom build types
         armDebug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('arm')
-            }
         }
+
         armRelease {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('arm')
-            }
         }
         armv7Debug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('armv7')
-            }
         }
         armv7Release {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('armv7')
-            }
         }
         arm64Debug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('arm64')
-            }
         }
         arm64Release {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('arm64')
-            }
         }
         x86Debug {
             initWith(debug)
-            ndk {
-                abiFilters getNDKAbi('x86')
-            }
         }
         x86Release {
             initWith(release)
-            ndk {
-                abiFilters getNDKAbi('x86')
-            }
         }
     }
 
@@ -149,165 +98,31 @@ android {
         }
     }
 
-    // Define apk output directory
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
+    project.afterEvaluate {
+        android.applicationVariants.all { variant ->
             Pattern pattern = Pattern.compile(/^[\w\d]+([A-Z][\w\d]+)(Debug|Release)/)
             Matcher matcher = pattern.matcher(variant.name)
             if (!matcher.find()) {
-                throw "Invalid variant name for output"
+                throw new GradleException("Invalid variant name for output: " + variant.name)
             }
             def arch = matcher.group(1)
             def debug = variant.name.contains("Debug")
-            def path = "../../../../../" + getSubTargetDir(debug, arch) + "/servoapp.apk";
-            outputFileName = new File(path)
-        }
-    }
-
-    // Call our custom NDK Build task using flavor parameters
-    tasks.all {
-        compileTask ->
-            Pattern pattern = Pattern.compile(/^compile[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)/)
-            Matcher matcher = pattern.matcher(compileTask.name)
-            if (!matcher.find()) {
-                return
-            }
-
-            def taskName = "ndkbuild" + compileTask.name
-            tasks.create(name: taskName, type: Exec) {
-                def debug = compileTask.name.contains("Debug")
-                def arch = matcher.group(1)
-                commandLine getNdkDir(),
-                        'APP_BUILD_SCRIPT=../jni/Android.mk',
-                        'NDK_APPLICATION_MK=../jni/Application.mk',
-                        'NDK_LIBS_OUT=' + getJniLibsPath(debug, arch),
-                        'NDK_OUT=' + getTargetDir(debug, arch) + '/apk/obj',
-                        'NDK_DEBUG=' + (debug ? '1' : '0'),
-                        'APP_ABI=' + getNDKAbi(arch),
-                        'SERVO_TARGET_DIR=' + getTargetDir(debug, arch)
-            }
-
-            compileTask.dependsOn taskName
+            def finalFolder = getTargetDir(debug, arch)
+            def finalFile = new File(finalFolder, "servoapp.apk")
+            variant.outputs.all { output ->
+                Task copyAndRenameAPKTask = project.task("copyAndRename${variant.name.capitalize()}APK", type: Copy) {
+                    from output.outputFile.getParent()
+                    into finalFolder
+                    include output.outputFileName
+                    rename(output.outputFileName, finalFile.getName())
+                }
+            variant.assemble.finalizedBy(copyAndRenameAPKTask)
+          }
+      }
     }
 }
 
 dependencies {
-    //Dependency list
-    def deps = [
-            new ServoDependency("blurdroid.jar", "blurdroid")
-    ]
-    // Iterate all build types and dependencies
-    // For each dependency call the proper implementation command and set the correct dependency path
-    def list = ['arm', 'armv7', 'arm64', 'x86']
-    for (arch in list) {
-        for (debug in [true, false]) {
-            String basePath = getTargetDir(debug, arch) + "/build"
-            String cmd = arch + (debug ? "Debug" : "Release") + "Implementation"
-
-            for (ServoDependency dep : deps) {
-                String path = findDependencyPath(basePath, dep.fileName, dep.folderFilter)
-                if (path) {
-                    "${cmd}" files(path)
-                }
-            }
-        }
-    }
-    googlevrImplementation 'com.google.vr:sdk-base:1.140.0'
-    googlevrImplementation(name: 'GVRService', ext: 'aar')
-    oculusvrImplementation(name: 'OVRService', ext: 'aar')
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
-}
-
-// Utility methods
-String getTargetDir(boolean debug, String arch) {
-    def basePath = project.rootDir.getParentFile().getParentFile().getParentFile().absolutePath
-    return basePath + '/target/' + getSubTargetDir(debug, arch)
-}
-
-String getSubTargetDir(boolean debug, String arch) {
-    return getRustTarget(arch) + '/' + (debug ? 'debug' : 'release')
-}
-
-String getJniLibsPath(boolean debug, String arch) {
-    return getTargetDir(debug, arch) + '/apk/jniLibs'
-}
-
-static String getRustTarget(String arch) {
-    switch (arch.toLowerCase()) {
-        case 'arm' : return 'arm-linux-androideabi'
-        case 'armv7' : return 'armv7-linux-androideabi'
-        case 'arm64' : return 'aarch64-linux-android'
-        case 'x86' : return 'i686-linux-android'
-        default: throw new GradleException("Invalid target architecture " + arch)
-    }
-}
-
-static String getNDKAbi(String arch) {
-    switch (arch.toLowerCase()) {
-        case 'arm' : return 'armeabi'
-        case 'armv7' : return 'armeabi-v7a'
-        case 'arm64' : return 'arm64-v8a'
-        case 'x86' : return 'x86'
-        default: throw new GradleException("Invalid target architecture " + arch)
-    }
-}
-
-String getNdkDir() {
-    // Read environment variable used in rust build system
-    String ndkDir = System.getenv('ANDROID_NDK')
-    if (ndkDir == null) {
-        ndkDir = System.getenv('ANDROID_NDK_HOME')
-    }
-    if (ndkDir == null) {
-        // Fallback to ndkDir in local.properties
-        def rootDir = project.rootDir
-        def localProperties = new File(rootDir, "local.properties")
-        Properties properties = new Properties()
-        localProperties.withInputStream { instr ->
-            properties.load(instr)
-        }
-
-        ndkDir = properties.getProperty('ndk.dir')
-    }
-
-    def cmd = Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build'
-    def ndkbuild = new File(ndkDir + '/' + cmd)
-    if (!ndkbuild.exists()) {
-        throw new GradleException("Please set a valid NDK_HOME environment variable" +
-                "or ndk.dir path in local.properties file");
-    }
-    return ndkbuild.absolutePath
-}
-
-// folderFilter can be used to improve search performance
-static String findDependencyPath(String basePath, String filename, String folderFilter) {
-    File path = new File(basePath);
-    if (!path.exists()) {
-        return ''
-    }
-
-    if (folderFilter) {
-        path.eachDir {
-            if (it.name.contains(folderFilter)) {
-                path = new File(it.absolutePath)
-            }
-        }
-    }
-    def result = ''
-    path.eachFileRecurse(FileType.FILES) {
-        if(it.name.equals(filename)) {
-            result = it.absolutePath
-        }
-    }
-
-    return result
-}
-
-class ServoDependency {
-    ServoDependency(String fileName, String folderFilter = null) {
-        this.fileName = fileName;
-        this.folderFilter = folderFilter;
-    }
-    public String fileName;
-    public String folderFilter;
+    implementation project(':servoview')
 }

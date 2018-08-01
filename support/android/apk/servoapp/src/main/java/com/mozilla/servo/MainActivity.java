@@ -3,17 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 package com.mozilla.servo;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.system.ErrnoException;
 import android.system.Os;
-import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -44,13 +41,13 @@ public class MainActivity extends Activity implements ServoView.Client {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mServoView = (ServoView)findViewById(R.id.servoview);
-        mBackButton = (Button)findViewById(R.id.backbutton);
-        mFwdButton = (Button)findViewById(R.id.forwardbutton);
-        mReloadButton = (Button)findViewById(R.id.reloadbutton);
-        mStopButton = (Button)findViewById(R.id.stopbutton);
-        mUrlField = (EditText)findViewById(R.id.urlfield);
-        mProgressBar = (ProgressBar)findViewById(R.id.progressbar);
+        mServoView = findViewById(R.id.servoview);
+        mBackButton = findViewById(R.id.backbutton);
+        mFwdButton = findViewById(R.id.forwardbutton);
+        mReloadButton = findViewById(R.id.reloadbutton);
+        mStopButton = findViewById(R.id.stopbutton);
+        mUrlField = findViewById(R.id.urlfield);
+        mProgressBar = findViewById(R.id.progressbar);
 
         mServoView.setClient(this);
         mBackButton.setEnabled(false);
