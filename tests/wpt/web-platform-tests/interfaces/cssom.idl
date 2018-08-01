@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the CSS Object Model (CSSOM) spec.
-// See https://drafts.csswg.org/cssom/
+// Content of this file was automatically extracted from the
+// "CSS Object Model (CSSOM)" spec.
+// See: https://drafts.csswg.org/cssom/
 
 typedef USVString CSSOMString;
 
@@ -42,14 +43,11 @@ partial interface Document {
   [SameObject] readonly attribute StyleSheetList styleSheets;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface LinkStyle {
+interface mixin LinkStyle {
   readonly attribute StyleSheet? sheet;
 };
 
-ProcessingInstruction implements LinkStyle;
-
+ProcessingInstruction includes LinkStyle;
 [Exposed=Window]
 interface CSSRuleList {
   getter CSSRule? item(unsigned long index);
@@ -123,21 +121,19 @@ interface CSSStyleDeclaration {
   [CEReactions] attribute [TreatNullAs=EmptyString] CSSOMString cssFloat;
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface ElementCSSInlineStyle {
+interface mixin ElementCSSInlineStyle {
   [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
 };
 
-HTMLElement implements ElementCSSInlineStyle;
+HTMLElement includes ElementCSSInlineStyle;
 
-SVGElement implements ElementCSSInlineStyle;
+SVGElement includes ElementCSSInlineStyle;
 
 partial interface Window {
   [NewObject] CSSStyleDeclaration getComputedStyle(Element elt, optional CSSOMString? pseudoElt);
 };
 
 [Exposed=Window]
-interface CSS {
-  static CSSOMString escape(CSSOMString ident);
+namespace CSS {
+  CSSOMString escape(CSSOMString ident);
 };

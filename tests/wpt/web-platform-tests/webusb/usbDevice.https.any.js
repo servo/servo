@@ -1,6 +1,5 @@
 // META: script=/webusb/resources/fake-devices.js
 // META: script=/webusb/resources/usb-helpers.js
-// META: global=sharedworker
 'use strict';
 
 function assertRejectsWithNotFoundError(promise) {

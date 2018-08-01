@@ -5,7 +5,7 @@
 <div id="log"></div>
 <script>
 async_test(function() {
-  postMessage('', [], {targetOrigin: location.protocol + '//' + location.host + '//'});
+  postMessage('', {targetOrigin: location.protocol + '//' + location.host + '//'});
   onmessage = this.step_func(function(e) {
     assert_equals(e.origin, location.protocol + '//' + location.host);
     this.done();

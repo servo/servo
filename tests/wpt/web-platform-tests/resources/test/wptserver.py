@@ -9,12 +9,15 @@ import urllib2
 class WPTServer(object):
     def __init__(self, wpt_root):
         self.wpt_root = wpt_root
+
+        # This is a terrible hack to get the default config of wptserve.
         sys.path.insert(0, os.path.join(wpt_root, "tools"))
-        from serve.serve import Config
-        config = Config()
-        self.host = config["browser_host"]
-        self.http_port = config["ports"]["http"][0]
-        self.https_port = config["ports"]["https"][0]
+        from serve.serve import build_config
+        with build_config() as config:
+            self.host = config["browser_host"]
+            self.http_port = config["ports"]["http"][0]
+            self.https_port = config["ports"]["https"][0]
+
         self.base_url = 'http://%s:%s' % (self.host, self.http_port)
         self.https_base_url = 'https://%s:%s' % (self.host, self.https_port)
 

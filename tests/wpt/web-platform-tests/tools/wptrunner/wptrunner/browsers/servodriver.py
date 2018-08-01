@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import tempfile
 
@@ -34,7 +33,7 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(test_type, run_info_data, **kwargs):
+def browser_kwargs(test_type, run_info_data, config, **kwargs):
     return {
         "binary": kwargs["binary"],
         "binary_args": kwargs["binary_args"],

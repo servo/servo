@@ -11,11 +11,6 @@ def get_window_rect(session):
 
 
 def test_no_browsing_context(session, create_window):
-    """
-    1. If the current top-level browsing context is no longer open,
-    return error with error code no such window.
-
-    """
     session.window_handle = create_window()
     session.close()
     response = get_window_rect(session)
@@ -23,33 +18,6 @@ def test_no_browsing_context(session, create_window):
 
 
 def test_payload(session):
-    """
-    3. Return success with the JSON serialization of the current top-level
-    browsing context's window rect.
-
-    [...]
-
-    A top-level browsing context's window rect is defined as a
-    dictionary of the screenX, screenY, width and height attributes of
-    the WindowProxy. Its JSON representation is the following:
-
-    "x"
-        WindowProxy's screenX attribute.
-
-    "y"
-        WindowProxy's screenY attribute.
-
-    "width"
-        Width of the top-level browsing context's outer dimensions,
-        including any browser chrome and externally drawn window
-        decorations in CSS reference pixels.
-
-    "height"
-        Height of the top-level browsing context's outer dimensions,
-        including any browser chrome and externally drawn window
-        decorations in CSS reference pixels.
-
-    """
     response = get_window_rect(session)
 
     assert response.status == 200

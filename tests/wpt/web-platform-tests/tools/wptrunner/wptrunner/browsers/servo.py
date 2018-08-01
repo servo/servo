@@ -27,13 +27,13 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(test_type, run_info_data, **kwargs):
+def browser_kwargs(test_type, run_info_data, config, **kwargs):
     return {
         "binary": kwargs["binary"],
         "debug_info": kwargs["debug_info"],
         "binary_args": kwargs["binary_args"],
         "user_stylesheets": kwargs.get("user_stylesheets"),
-        "ca_certificate_path": kwargs["ssl_env"].ca_cert_path(),
+        "ca_certificate_path": config.ssl_config["ca_cert_path"],
     }
 
 

@@ -16,7 +16,7 @@ function euckrDecoder(stream) {
 	stream = stream.replace(/%/g, " ");
 	stream = stream.replace(/[\s]+/g, " ").trim();
 	var bytes = stream.split(" ");
-	for (i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
+	for (var i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
 	var out = "";
 	var lead, byte, offset, ptr, cp;
 	var euckrLead = 0x00;
@@ -41,7 +41,7 @@ function euckrDecoder(stream) {
 			lead = euckrLead;
 			ptr = null;
 			euckrLead = 0x00;
-			if (byte >= 0x41 || byte <= 0xfe)
+			if (byte >= 0x41 && byte <= 0xfe)
 				ptr = (lead - 0x81) * 190 + (byte - 0x41);
 			if (ptr == null) cp = null;
 			else cp = euckr[ptr];
