@@ -175,7 +175,11 @@ impl WebGLFramebuffer {
         self.size.set(fb_size);
 
         if has_c || has_z || has_zs || has_s {
-            self.status.set(constants::FRAMEBUFFER_COMPLETE);
+            if self.size.get().map_or(false, |(w, h)| w != 0 && h != 0) {
+                self.status.set(constants::FRAMEBUFFER_COMPLETE);
+            } else {
+                self.status.set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+            }
         } else {
             self.status.set(constants::FRAMEBUFFER_UNSUPPORTED);
         }
