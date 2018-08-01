@@ -17,6 +17,7 @@ webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 debugmozjs = ["script/debugmozjs"]
 googlevr = ["webvr/googlevr"]
+js_backtrace = ["script/js_backtrace"]
 webrender_debugger = ["webrender/debugger"]
 oculusvr = ["webvr/oculusvr"]
 unstable = [

@@ -32,6 +32,14 @@ android = false
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false
 
+# When a GL error occurs as a result of a WebGL operation, print the stack trace for the content
+# JS and native Rust code that triggered the failed operation. Warning: very slow.
+webgl-backtrace = false
+
+# When a DOM exception is reported, print the stack trace for the content JS and native Rust code
+# that triggered it.
+dom-backtrace = false
+
 # Set to the path to your ccache binary to enable caching of compiler outputs
 #ccache = "/usr/local/bin/ccache"
 

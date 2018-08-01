@@ -4,6 +4,10 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
+#[cfg(feature = "js_backtrace")]
+use backtrace::Backtrace;
+#[cfg(feature = "js_backtrace")]
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::codegen::PrototypeList::proto_id_to_name;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
@@ -23,6 +27,11 @@ use js::rust::wrappers::JS_GetPendingException;
 use js::rust::wrappers::JS_SetPendingException;
 use libc::c_uint;
 use std::slice::from_raw_parts;
+
+/// An optional stringified JS backtrace and stringified native backtrace from the
+/// the last DOM exception that was reported.
+#[cfg(feature = "js_backtrace")]
+thread_local!(static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None));
 
 /// DOM exceptions that can be thrown by a native DOM method.
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -90,6 +99,16 @@ pub type ErrorResult = Fallible<()>;
 
 /// Set a pending exception for the given `result` on `cx`.
 pub unsafe fn throw_dom_exception(cx: *mut JSContext, global: &GlobalScope, result: Error) {
+    #[cfg(feature = "js_backtrace")]
+    {
+        capture_stack!(in(cx) let stack);
+        let js_stack = stack.and_then(|s| s.as_string(None));
+        let rust_stack = Backtrace::new();
+        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
+            *backtrace.borrow_mut() = Some((js_stack, format!("{:?}", rust_stack)));
+        });
+    }
+
     let code = match result {
         Error::IndexSize => DOMErrorName::IndexSizeError,
         Error::NotFound => DOMErrorName::NotFoundError,
@@ -244,6 +263,17 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
         "Error at {}:{}:{} {}",
         error_info.filename, error_info.lineno, error_info.column, error_info.message
     );
+    #[cfg(feature = "js_backtrace")]
+    {
+        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
+            if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
+                if let Some(stack) = js_backtrace {
+                    eprintln!("JS backtrace:\n{}", stack);
+                }
+                eprintln!("Rust backtrace:\n{}", rust_backtrace);
+            }
+        });
+    }
 
     if dispatch_event {
         GlobalScope::from_context(cx).report_an_error(error_info, value.handle());

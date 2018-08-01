@@ -17,6 +17,7 @@ unstable = []
 unrooted_must_root_lint = ["script_plugins/unrooted_must_root_lint"]
 default = ["unrooted_must_root_lint"]
 webgl_backtrace = ["backtrace", "canvas_traits/webgl_backtrace"]
+js_backtrace = ["backtrace"]
 
 [build-dependencies]
 cmake = "0.1"

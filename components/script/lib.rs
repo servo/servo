@@ -19,7 +19,7 @@
 
 extern crate app_units;
 extern crate audio_video_metadata;
-#[cfg(feature = "webgl_backtrace")]
+#[cfg(any(feature = "webgl_backtrace", feature = "js_backtrace"))]
 extern crate backtrace;
 extern crate base64;
 #[macro_use]
