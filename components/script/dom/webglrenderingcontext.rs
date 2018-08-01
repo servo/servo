@@ -4,7 +4,7 @@
 
 use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
-use canvas_traits::webgl::{ActiveAttribInfo, DOMToTextureCommand, Parameter};
+use canvas_traits::webgl::{DOMToTextureCommand, Parameter};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferBindingRequest, WebGLMsg, WebGLMsgSender};
 use canvas_traits::webgl::{WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSender};
@@ -13,6 +13,7 @@ use canvas_traits::webgl::WebGLError::*;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
+use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
@@ -24,7 +25,7 @@ use dom::bindings::conversions::{DerivedFrom, ToJSValConvertible};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use dom::bindings::root::{Dom, DomOnceCell, DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -47,6 +48,7 @@ use dom::webglshader::WebGLShader;
 use dom::webglshaderprecisionformat::WebGLShaderPrecisionFormat;
 use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
+use dom::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
@@ -61,11 +63,10 @@ use js::typedarray::{TypedArray, TypedArrayElementCreator};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use ref_filter_map::ref_filter_map;
 use script_layout_interface::HTMLCanvasDataSource;
 use serde::{Deserialize, Serialize};
 use servo_config::prefs::PREFS;
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use webrender_api;
@@ -95,17 +96,6 @@ macro_rules! handle_object_deletion {
     };
 }
 
-macro_rules! object_binding_to_js_or_null {
-    ($cx: expr, $binding:expr) => {
-        {
-            rooted!(in($cx) let mut rval = NullValue());
-            if let Some(bound_object) = $binding.get() {
-                bound_object.to_jsval($cx, rval.handle_mut());
-            }
-            rval.get()
-        }
-    };
-}
 
 macro_rules! optional_root_object_to_js_or_null {
     ($cx: expr, $binding:expr) => {
@@ -196,9 +186,8 @@ pub struct WebGLRenderingContext {
     bound_textures: DomRefCell<FnvHashMap<u32, TextureUnitBindings>>,
     bound_texture_unit: Cell<u32>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
-    bound_buffer_element_array: MutNullableDom<WebGLBuffer>,
-    vertex_attribs: VertexAttribs,
     current_program: MutNullableDom<WebGLProgram>,
+    /// https://www.khronos.org/webgl/wiki/WebGL_and_OpenGL_Differences#Vertex_Attribute_0
     #[ignore_malloc_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
     #[ignore_malloc_size_of = "Because it's small"]
@@ -207,6 +196,8 @@ pub struct WebGLRenderingContext {
     current_clear_color: Cell<(f32, f32, f32, f32)>,
     extension_manager: WebGLExtensions,
     capabilities: Capabilities,
+    default_vao: DomOnceCell<WebGLVertexArrayObjectOES>,
+    current_vao: MutNullableDom<WebGLVertexArrayObjectOES>,
 }
 
 impl WebGLRenderingContext {
@@ -239,7 +230,6 @@ impl WebGLRenderingContext {
                 share_mode: ctx_data.share_mode,
                 webgl_version,
                 glsl_version: ctx_data.glsl_version,
-                vertex_attribs: VertexAttribs::new(ctx_data.limits.max_vertex_attribs),
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -249,7 +239,6 @@ impl WebGLRenderingContext {
                 bound_textures: DomRefCell::new(Default::default()),
                 bound_texture_unit: Cell::new(constants::TEXTURE0),
                 bound_buffer_array: MutNullableDom::new(None),
-                bound_buffer_element_array: MutNullableDom::new(None),
                 bound_renderbuffer: MutNullableDom::new(None),
                 current_program: MutNullableDom::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
@@ -257,6 +246,8 @@ impl WebGLRenderingContext {
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
                 extension_manager: WebGLExtensions::new(webgl_version),
                 capabilities: Default::default(),
+                default_vao: Default::default(),
+                current_vao: Default::default(),
             }
         })
     }
@@ -288,6 +279,14 @@ impl WebGLRenderingContext {
         &self.limits
     }
 
+    fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
+        self.current_vao.or_init(|| {
+            DomRoot::from_ref(
+                self.default_vao.init_once(|| WebGLVertexArrayObjectOES::new(self, None)),
+            )
+        })
+    }
+
     fn bound_texture(&self, target: u32) -> Option<DomRoot<WebGLTexture>> {
         match target {
             constants::TEXTURE_2D => {
@@ -316,18 +315,6 @@ impl WebGLRenderingContext {
                 TexImageTarget::CubeMapNegativeZ => binding.bound_texture_cube_map.get(),
             }
         })
-    }
-
-    pub fn vertex_attribs(&self) -> &VertexAttribs {
-        &self.vertex_attribs
-    }
-
-    pub fn bound_buffer_element_array(&self) -> Option<DomRoot<WebGLBuffer>> {
-        self.bound_buffer_element_array.get()
-    }
-
-    pub fn set_bound_buffer_element_array(&self, buffer: Option<&WebGLBuffer>) {
-        self.bound_buffer_element_array.set(buffer);
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
@@ -380,10 +367,6 @@ impl WebGLRenderingContext {
     #[inline]
     pub fn send_vr_command(&self, command: WebVRCommand) {
         self.webgl_sender.send_vr(command).unwrap();
-    }
-
-    pub fn get_extension_manager<'a>(&'a self) -> &'a WebGLExtensions {
-        &self.extension_manager
     }
 
     pub fn webgl_error(&self, err: WebGLError) {
@@ -1183,7 +1166,7 @@ impl WebGLRenderingContext {
 
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.validate_for_draw(required_len, primcount as u32, &current_program.active_attribs()),
+            self.current_vao().validate_for_draw(required_len, primcount as u32, &current_program.active_attribs()),
             return
         );
 
@@ -1234,7 +1217,7 @@ impl WebGLRenderingContext {
         );
 
         if count > 0 && primcount > 0 {
-            if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+            if let Some(array_buffer) = self.current_vao().element_array_buffer().get() {
                 // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
                 let val = offset as u64 + (count as u64 * type_size as u64);
                 if val > array_buffer.capacity() as u64 {
@@ -1253,7 +1236,7 @@ impl WebGLRenderingContext {
         // TODO(nox): Pass the correct number of vertices required.
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.validate_for_draw(0, primcount as u32, &current_program.active_attribs()),
+            self.current_vao().validate_for_draw(0, primcount as u32, &current_program.active_attribs()),
             return
         );
 
@@ -1276,7 +1259,7 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.vertex_attribs.set_divisor(index, divisor);
+        self.current_vao().vertex_attrib_divisor(index, divisor);
         self.send_command(WebGLCommand::VertexAttribDivisor { index, divisor });
     }
 
@@ -1312,12 +1295,64 @@ impl WebGLRenderingContext {
         Some(receiver.recv().unwrap().into())
     }
 
+    pub fn array_buffer(&self) -> Option<DomRoot<WebGLBuffer>> {
+        self.bound_buffer_array.get()
+    }
+
     pub fn bound_buffer(&self, target: u32) -> WebGLResult<Option<DomRoot<WebGLBuffer>>> {
         match target {
             constants::ARRAY_BUFFER => Ok(self.bound_buffer_array.get()),
-            constants::ELEMENT_ARRAY_BUFFER => Ok(self.bound_buffer_element_array.get()),
+            constants::ELEMENT_ARRAY_BUFFER => Ok(self.current_vao().element_array_buffer().get()),
             _ => Err(WebGLError::InvalidEnum),
         }
+    }
+
+    pub fn create_vertex_array(&self) -> Option<DomRoot<WebGLVertexArrayObjectOES>> {
+        let (sender, receiver) = webgl_channel().unwrap();
+        self.send_command(WebGLCommand::CreateVertexArray(sender));
+        receiver.recv().unwrap().map(|id| WebGLVertexArrayObjectOES::new(self, Some(id)))
+    }
+
+    pub fn delete_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
+        if let Some(vao) = vao {
+            handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
+            // The default vertex array has no id and should never be passed around.
+            assert!(vao.id().is_some());
+            if vao.is_deleted() {
+                return;
+            }
+            if vao == &*self.current_vao() {
+                // Setting it to None will make self.current_vao() reset it to the default one
+                // next time it is called.
+                self.current_vao.set(None);
+                self.send_command(WebGLCommand::BindVertexArray(None));
+            }
+            vao.delete();
+        }
+    }
+
+    pub fn is_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) -> bool {
+        vao.map_or(false, |vao| {
+            // The default vertex array has no id and should never be passed around.
+            assert!(vao.id().is_some());
+            self.validate_ownership(vao).is_ok() && vao.ever_bound() && !vao.is_deleted()
+        })
+    }
+
+    pub fn bind_vertex_array(&self, vao: Option<&WebGLVertexArrayObjectOES>) {
+        if let Some(vao) = vao {
+            // The default vertex array has no id and should never be passed around.
+            assert!(vao.id().is_some());
+            handle_potential_webgl_error!(self, self.validate_ownership(vao), return);
+            if vao.is_deleted() {
+                return self.webgl_error(InvalidOperation);
+            }
+            vao.set_ever_bound();
+        }
+        self.send_command(WebGLCommand::BindVertexArray(vao.and_then(|vao| vao.id())));
+        // Setting it to None will make self.current_vao() reset it to the default one
+        // next time it is called.
+        self.current_vao.set(vao);
     }
 
     fn validate_blend_mode(&self, mode: u32) -> WebGLResult<()> {
@@ -1414,29 +1449,40 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     unsafe fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
-        // Handle the GL_*_BINDING without going all the way
-        // to the GL, since we would just need to map back from GL's
-        // returned ID to the WebGL* object we're tracking.
+        if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
+            self.webgl_error(WebGLError::InvalidEnum);
+            return NullValue();
+        }
+
         match parameter {
-            constants::ARRAY_BUFFER_BINDING =>
-                return object_binding_to_js_or_null!(cx, &self.bound_buffer_array),
-            constants::CURRENT_PROGRAM => {
-                return object_binding_to_js_or_null!(cx, &self.current_program);
+            constants::ARRAY_BUFFER_BINDING => {
+                return optional_root_object_to_js_or_null!(cx, &self.bound_buffer_array.get());
             }
-            constants::ELEMENT_ARRAY_BUFFER_BINDING =>
-                return object_binding_to_js_or_null!(cx, &self.bound_buffer_element_array),
-            constants::FRAMEBUFFER_BINDING =>
-                return object_binding_to_js_or_null!(cx, &self.bound_framebuffer),
-            constants::RENDERBUFFER_BINDING =>
-                return object_binding_to_js_or_null!(cx, &self.bound_renderbuffer),
+            constants::CURRENT_PROGRAM => {
+                return optional_root_object_to_js_or_null!(cx, &self.current_program.get());
+            }
+            constants::ELEMENT_ARRAY_BUFFER_BINDING => {
+                let buffer = self.current_vao().element_array_buffer().get();
+                return optional_root_object_to_js_or_null!(cx, buffer);
+            }
+            constants::FRAMEBUFFER_BINDING => {
+                return optional_root_object_to_js_or_null!(cx, &self.bound_framebuffer.get());
+            }
+            constants::RENDERBUFFER_BINDING => {
+                return optional_root_object_to_js_or_null!(cx, &self.bound_renderbuffer.get());
+            }
             constants::TEXTURE_BINDING_2D => {
                 let texture = self.bound_texture(constants::TEXTURE_2D);
-                return optional_root_object_to_js_or_null!(cx, texture)
-            },
+                return optional_root_object_to_js_or_null!(cx, texture);
+            }
             constants::TEXTURE_BINDING_CUBE_MAP => {
                 let texture = self.bound_texture(constants::TEXTURE_CUBE_MAP);
-                return optional_root_object_to_js_or_null!(cx, texture)
-            },
+                return optional_root_object_to_js_or_null!(cx, texture);
+            }
+            OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES => {
+                let vao = self.current_vao.get().filter(|vao| vao.id().is_some());
+                return optional_root_object_to_js_or_null!(cx, vao);
+            }
             // In readPixels we currently support RGBA/UBYTE only.  If
             // we wanted to support other formats, we could ask the
             // driver, but we would need to check for
@@ -1523,24 +1569,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         if let Ok(value) = self.capabilities.is_enabled(parameter) {
             return BooleanValue(value);
-        }
-
-        if !self.extension_manager.is_get_parameter_name_enabled(parameter) {
-            self.webgl_error(WebGLError::InvalidEnum);
-            return NullValue();
-        }
-
-        // Handle GetParameter getters injected via WebGL extensions
-        if let Some(query_handler) = self.extension_manager.get_query_parameter_handler(parameter) {
-            match query_handler(cx, &self) {
-                Ok(value) => {
-                    return value;
-                },
-                Err(error) => {
-                    self.webgl_error(error);
-                    return NullValue();
-                }
-            }
         }
 
         match handle_potential_webgl_error!(self, Parameter::from_u32(parameter), return NullValue()) {
@@ -1793,23 +1821,30 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
         }
 
+        let current_vao;
         let slot = match target {
-            constants::ARRAY_BUFFER => &self.bound_buffer_array,
-            constants::ELEMENT_ARRAY_BUFFER => &self.bound_buffer_element_array,
-
+            constants::ARRAY_BUFFER => {
+                &self.bound_buffer_array
+            }
+            constants::ELEMENT_ARRAY_BUFFER => {
+                current_vao = self.current_vao();
+                current_vao.element_array_buffer()
+            }
             _ => return self.webgl_error(InvalidEnum),
         };
 
         if let Some(buffer) = buffer {
-            match buffer.bind(target) {
-                Ok(_) => slot.set(Some(buffer)),
-                Err(e) => return self.webgl_error(e),
+            if buffer.is_marked_for_deletion() {
+                return self.webgl_error(InvalidOperation);
             }
-        } else {
-            slot.set(None);
-            // Unbind the current buffer
-            self.send_command(WebGLCommand::BindBuffer(target, None));
+            handle_potential_webgl_error!(self, buffer.set_target(target), return);
+            buffer.increment_attached_counter();
         }
+        self.send_command(WebGLCommand::BindBuffer(target, buffer.map(|b| b.id())));
+        if let Some(old) = slot.get() {
+            old.decrement_attached_counter();
+        }
+        slot.set(buffer);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -2248,26 +2283,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn DeleteBuffer(&self, buffer: Option<&WebGLBuffer>) {
-        if let Some(buffer) = buffer {
-            handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
-
-            if buffer.is_attached_to_vao() {
-                // WebGL spec: The buffers attached to VAOs should still not be deleted.
-                // They are deleted after the VAO is deleted.
-                buffer.set_pending_delete();
-                return;
-            }
-
-            // Remove deleted buffer from bound attrib buffers.
-            self.vertex_attribs.delete_buffer(buffer);
-
-            // Delete buffer.
-            handle_object_deletion!(self, self.bound_buffer_array, buffer,
-                                    Some(WebGLCommand::BindBuffer(constants::ARRAY_BUFFER, None)));
-            handle_object_deletion!(self, self.bound_buffer_element_array, buffer,
-                                    Some(WebGLCommand::BindBuffer(constants::ELEMENT_ARRAY_BUFFER, None)));
-            buffer.delete()
+        let buffer = match buffer {
+            Some(buffer) => buffer,
+            None => return,
+        };
+        handle_potential_webgl_error!(self, self.validate_ownership(buffer), return);
+        if buffer.is_marked_for_deletion() {
+            return;
         }
+        self.current_vao().unbind_buffer(buffer);
+        if self.bound_buffer_array.get().map_or(false, |b| buffer == &*b) {
+            self.bound_buffer_array.set(None);
+            buffer.decrement_attached_counter();
+        }
+        buffer.mark_for_deletion();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -2398,7 +2427,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.validate_for_draw(required_len, 1, &current_program.active_attribs()),
+            self.current_vao().validate_for_draw(required_len, 1, &current_program.active_attribs()),
             return
         );
 
@@ -2449,7 +2478,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         );
 
         if count > 0 {
-            if let Some(array_buffer) = self.bound_buffer_element_array.get() {
+            if let Some(array_buffer) = self.current_vao().element_array_buffer().get() {
                 // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
                 let val = offset as u64 + (count as u64 * type_size as u64);
                 if val > array_buffer.capacity() as u64 {
@@ -2468,7 +2497,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // TODO(nox): Pass the correct number of vertices required.
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.validate_for_draw(0, 1, &current_program.active_attribs()),
+            self.current_vao().validate_for_draw(0, 1, &current_program.active_attribs()),
             return
         );
 
@@ -2486,7 +2515,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.vertex_attribs.enabled_as_array(attrib_id, true);
+        self.current_vao().enabled_vertex_attrib_array(attrib_id, true);
         self.send_command(WebGLCommand::EnableVertexAttribArray(attrib_id));
     }
 
@@ -2496,7 +2525,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        self.vertex_attribs.enabled_as_array(attrib_id, false);
+        self.current_vao().enabled_vertex_attrib_array(attrib_id, false);
         self.send_command(WebGLCommand::DisableVertexAttribArray(attrib_id));
     }
 
@@ -2788,9 +2817,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, param: u32) -> JSVal {
+        let current_vao = self.current_vao();
         let data = handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.get(index).ok_or(InvalidValue),
+            current_vao.get_vertex_attrib(index).ok_or(InvalidValue),
             return NullValue()
         );
         if param == constants::CURRENT_VERTEX_ATTRIB {
@@ -2824,15 +2854,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::VERTEX_ATTRIB_ARRAY_STRIDE => Int32Value(data.stride as i32),
             constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
                 rooted!(in(cx) let mut jsval = NullValue());
-                if let Some(data) = self.vertex_attribs.get(index) {
-                    if let Some(buffer) = data.buffer() {
-                        buffer.to_jsval(cx, jsval.handle_mut());
-                    }
+                if let Some(buffer) = data.buffer() {
+                    buffer.to_jsval(cx, jsval.handle_mut());
                 }
                 jsval.get()
             }
             ANGLEInstancedArraysConstants::VERTEX_ATTRIB_ARRAY_DIVISOR_ANGLE => {
-                Int32Value(data.divisor as i32)
+                UInt32Value(data.divisor)
             }
             _ => {
                 self.webgl_error(InvalidEnum);
@@ -2847,9 +2875,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.webgl_error(InvalidEnum);
             return 0;
         }
+        let vao = self.current_vao();
         let data = handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.get(index).ok_or(InvalidValue),
+            vao.get_vertex_attrib(index).ok_or(InvalidValue),
             return 0
         );
         data.offset as i64
@@ -2875,7 +2904,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
         buffer.map_or(false, |buf| {
-            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_marked_for_deletion()
         })
     }
 
@@ -3829,19 +3858,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     ) {
         handle_potential_webgl_error!(
             self,
-            self.vertex_attribs.set_pointer(
+            self.current_vao().vertex_attrib_pointer(
                 index,
                 size,
                 type_,
                 normalized,
                 stride,
                 offset,
-                self.bound_buffer_array.get().as_ref().map(|buffer| &**buffer),
-            ),
-            return
+            )
         );
-
-        self.send_command(WebGLCommand::VertexAttribPointer(index, size, type_, normalized, stride, offset as u32));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
@@ -4242,199 +4267,6 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<WebGLRenderingContex
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(&self) -> HTMLCanvasDataSource {
         HTMLCanvasDataSource::WebGL((*self.unsafe_get()).layout_handle())
-    }
-}
-
-#[derive(JSTraceable, MallocSizeOf)]
-#[must_root]
-pub struct VertexAttribs {
-    attribs: DomRefCell<Box<[VertexAttribData]>>,
-}
-
-impl VertexAttribs {
-    pub fn new(max: u32) -> Self {
-        // High-end GPUs have 16 of those, let's just use a boxed slice.
-        Self { attribs: DomRefCell::new(vec![Default::default(); max as usize].into()) }
-    }
-
-    pub fn clear(&self) {
-        for attrib in &mut **self.attribs.borrow_mut() {
-            *attrib = Default::default();
-        }
-    }
-
-    pub fn clone_from(&self, other: &Self) {
-        self.attribs.borrow_mut().clone_from_slice(&other.attribs.borrow());
-    }
-
-    pub fn set_pointer(
-        &self,
-        index: u32,
-        size: i32,
-        type_: u32,
-        normalized: bool,
-        stride: i32,
-        offset: i64,
-        buffer: Option<&WebGLBuffer>,
-    ) -> WebGLResult<()> {
-        let mut attribs = self.attribs.borrow_mut();
-        let data = attribs.get_mut(index as usize).ok_or(InvalidValue)?;
-
-        if size < 1 || size > 4 {
-            return Err(InvalidValue);
-        }
-
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#BUFFER_OFFSET_AND_STRIDE
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#VERTEX_STRIDE
-        if stride < 0 || stride > 255 || offset < 0 {
-            return Err(InvalidValue);
-        }
-        let bytes_per_component: i32 = match type_ {
-            constants::BYTE | constants::UNSIGNED_BYTE => 1,
-            constants::SHORT | constants::UNSIGNED_SHORT => 2,
-            constants::FLOAT => 4,
-            _ => return Err(InvalidEnum),
-        };
-        if offset % bytes_per_component as i64 > 0 || stride % bytes_per_component > 0 {
-            return Err(InvalidOperation);
-        }
-
-        let buffer = buffer.ok_or(InvalidOperation)?;
-
-        *data = VertexAttribData {
-            enabled_as_array: data.enabled_as_array,
-            size: size as u8,
-            type_,
-            bytes_per_vertex: size as u8 * bytes_per_component as u8,
-            normalized,
-            stride: stride as u8,
-            offset: offset as u32,
-            buffer: Some(Dom::from_ref(buffer)),
-            divisor: data.divisor,
-        };
-        Ok(())
-    }
-
-    pub fn borrow(&self) -> Ref<[VertexAttribData]> {
-        Ref::map(self.attribs.borrow(), |attribs| &**attribs)
-    }
-
-    fn delete_buffer(&self, buffer: &WebGLBuffer) {
-        for attrib in &mut **self.attribs.borrow_mut() {
-            if attrib.buffer().map_or(false, |b| b.id() == buffer.id()) {
-                attrib.buffer = None;
-            }
-        }
-    }
-
-    fn get(&self, index: u32) -> Option<Ref<VertexAttribData>> {
-        ref_filter_map(self.attribs.borrow(), |attribs| attribs.get(index as usize))
-    }
-
-    fn enabled_as_array(&self, index: u32, value: bool) {
-        self.attribs.borrow_mut()[index as usize].enabled_as_array = value;
-    }
-
-    fn set_divisor(&self, index: u32, value: u32) {
-        self.attribs.borrow_mut()[index as usize].divisor = value;
-    }
-
-    fn validate_for_draw(
-        &self,
-        required_len: u32,
-        instance_count: u32,
-        active_attribs: &[ActiveAttribInfo],
-    ) -> WebGLResult<()> {
-        // TODO(nox): Cache limits per VAO.
-        let attribs = self.attribs.borrow();
-        // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.2
-        if attribs.iter().any(|data| data.enabled_as_array && data.buffer.is_none()) {
-            return Err(InvalidOperation);
-        }
-        let mut has_active_attrib = false;
-        let mut has_divisor_0 = false;
-        for active_info in active_attribs {
-            if active_info.location < 0 {
-                continue;
-            }
-            has_active_attrib = true;
-            let attrib = &attribs[active_info.location as usize];
-            if attrib.divisor == 0 {
-                has_divisor_0 = true;
-            }
-            if !attrib.enabled_as_array {
-                continue;
-            }
-            // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.6
-            if required_len > 0 && instance_count > 0 {
-                let max_vertices = attrib.max_vertices();
-                if attrib.divisor == 0 {
-                    if max_vertices < required_len {
-                        return Err(InvalidOperation);
-                    }
-                } else if max_vertices.checked_mul(attrib.divisor).map_or(false, |v| v < instance_count) {
-                    return Err(InvalidOperation);
-                }
-            }
-        }
-        if has_active_attrib && !has_divisor_0 {
-            return Err(InvalidOperation);
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, JSTraceable, MallocSizeOf)]
-#[must_root]
-pub struct VertexAttribData {
-    enabled_as_array: bool,
-    size: u8,
-    type_: u32,
-    bytes_per_vertex: u8,
-    normalized: bool,
-    stride: u8,
-    offset: u32,
-    buffer: Option<Dom<WebGLBuffer>>,
-    divisor: u32,
-}
-
-impl Default for VertexAttribData {
-    #[allow(unrooted_must_root)]
-    fn default() -> Self {
-        Self {
-            enabled_as_array: false,
-            size: 4,
-            type_: constants::FLOAT,
-            bytes_per_vertex: 16,
-            normalized: false,
-            stride: 0,
-            offset: 0,
-            buffer: None,
-            divisor: 0,
-        }
-    }
-}
-
-impl VertexAttribData {
-    pub fn buffer(&self) -> Option<&WebGLBuffer> {
-        self.buffer.as_ref().map(|b| &**b)
-    }
-
-    fn max_vertices(&self) -> u32 {
-        let capacity = (self.buffer().unwrap().capacity() as u32).saturating_sub(self.offset);
-        if capacity < self.bytes_per_vertex as u32 {
-            0
-        } else if self.stride == 0 {
-            capacity / self.bytes_per_vertex as u32
-        } else if self.stride < self.bytes_per_vertex {
-            (capacity - (self.bytes_per_vertex - self.stride) as u32) / self.stride as u32
-        } else {
-            let mut max = capacity / self.stride as u32;
-            if capacity % self.stride as u32 >= self.bytes_per_vertex as u32 {
-                max += 1;
-            }
-            max
-        }
     }
 }
 
