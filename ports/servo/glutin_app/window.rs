@@ -14,7 +14,7 @@ use osmesa_sys;
 use servo::compositing::windowing::{AnimationState, MouseWindowEvent, WindowEvent};
 use servo::compositing::windowing::{EmbedderCoordinates, WindowMethods};
 use servo::embedder_traits::EventLoopWaker;
-use servo::msg::constellation_msg::{Key, KeyState};
+use servo::msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo::script_traits::TouchEventType;
 use servo::servo_config::opts;
 use servo::servo_geometry::DeviceIndependentPixel;
@@ -31,13 +31,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use std::time;
-use super::keyutils::{self, WinitKeyModifiers};
+use super::keyutils;
 #[cfg(target_os = "windows")]
 use user32;
 #[cfg(target_os = "windows")]
 use winapi;
 use winit;
-use winit::{ElementState, Event, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
+use winit::{ElementState, Event, ModifiersState, MouseButton, MouseScrollDelta, TouchPhase, VirtualKeyCode};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use winit::os::macos::{ActivationPolicy, WindowBuilderExt};
@@ -152,7 +152,7 @@ pub struct Window {
     mouse_down_point: Cell<TypedPoint2D<i32, DevicePixel>>,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<TypedPoint2D<i32, DevicePixel>>,
-    key_modifiers: Cell<WinitKeyModifiers>,
+    key_modifiers: Cell<KeyModifiers>,
     last_pressed_key: Cell<Option<Key>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
@@ -284,7 +284,7 @@ impl Window {
             mouse_down_point: Cell::new(TypedPoint2D::new(0, 0)),
 
             mouse_pos: Cell::new(TypedPoint2D::new(0, 0)),
-            key_modifiers: Cell::new(WinitKeyModifiers::empty()),
+            key_modifiers: Cell::new(KeyModifiers::empty()),
 
             last_pressed_key: Cell::new(None),
             gl: gl.clone(),
@@ -426,39 +426,32 @@ impl Window {
             (last_key, None)
         };
 
-        let modifiers = keyutils::winit_mods_to_script_mods(self.key_modifiers.get());
+        let modifiers = self.key_modifiers.get();
         let event = WindowEvent::KeyEvent(ch, key, KeyState::Pressed, modifiers);
         self.event_queue.borrow_mut().push(event);
     }
 
-    fn toggle_keyboard_modifiers(&self, virtual_key_code: VirtualKeyCode) {
-        match virtual_key_code {
-            VirtualKeyCode::LControl => self.toggle_modifier(WinitKeyModifiers::LEFT_CONTROL),
-            VirtualKeyCode::RControl => self.toggle_modifier(WinitKeyModifiers::RIGHT_CONTROL),
-            VirtualKeyCode::LShift => self.toggle_modifier(WinitKeyModifiers::LEFT_SHIFT),
-            VirtualKeyCode::RShift => self.toggle_modifier(WinitKeyModifiers::RIGHT_SHIFT),
-            VirtualKeyCode::LAlt => self.toggle_modifier(WinitKeyModifiers::LEFT_ALT),
-            VirtualKeyCode::RAlt => self.toggle_modifier(WinitKeyModifiers::RIGHT_ALT),
-            VirtualKeyCode::LWin => self.toggle_modifier(WinitKeyModifiers::LEFT_SUPER),
-            VirtualKeyCode::RWin => self.toggle_modifier(WinitKeyModifiers::RIGHT_SUPER),
-            _ => {}
-        }
+    fn toggle_keyboard_modifiers(&self, mods: ModifiersState) {
+        self.toggle_modifier(KeyModifiers::CONTROL, mods.ctrl);
+        self.toggle_modifier(KeyModifiers::SHIFT, mods.shift);
+        self.toggle_modifier(KeyModifiers::ALT, mods.alt);
+        self.toggle_modifier(KeyModifiers::SUPER, mods.logo);
     }
 
-    fn handle_keyboard_input(&self, element_state: ElementState, virtual_key_code: VirtualKeyCode) {
-        self.toggle_keyboard_modifiers(virtual_key_code);
+    fn handle_keyboard_input(&self, element_state: ElementState, code: VirtualKeyCode, mods: ModifiersState) {
+        self.toggle_keyboard_modifiers(mods);
 
-        if let Ok(key) = keyutils::winit_key_to_script_key(virtual_key_code) {
+        if let Ok(key) = keyutils::winit_key_to_script_key(code) {
             let state = match element_state {
                 ElementState::Pressed => KeyState::Pressed,
                 ElementState::Released => KeyState::Released,
             };
-            if element_state == ElementState::Pressed && keyutils::is_printable(virtual_key_code) {
+            if element_state == ElementState::Pressed && keyutils::is_printable(code) {
                 // If pressed and printable, we expect a ReceivedCharacter event.
                 self.last_pressed_key.set(Some(key));
             } else {
                 self.last_pressed_key.set(None);
-                let modifiers = keyutils::winit_mods_to_script_mods(self.key_modifiers.get());
+                let modifiers = self.key_modifiers.get();
                 self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(None, key, state, modifiers));
             }
         }
@@ -473,10 +466,10 @@ impl Window {
             Event::WindowEvent {
                 event: winit::WindowEvent::KeyboardInput {
                     input: winit::KeyboardInput {
-                        state, virtual_keycode: Some(virtual_keycode), ..
+                        state, virtual_keycode: Some(virtual_keycode), modifiers, ..
                     }, ..
                 }, ..
-            } => self.handle_keyboard_input(state, virtual_keycode),
+            } => self.handle_keyboard_input(state, virtual_keycode, modifiers),
             Event::WindowEvent {
                 event: winit::WindowEvent::MouseInput {
                     state, button, ..
@@ -576,9 +569,13 @@ impl Window {
         }
     }
 
-    fn toggle_modifier(&self, modifier: WinitKeyModifiers) {
+    fn toggle_modifier(&self, modifier: KeyModifiers, pressed: bool) {
         let mut modifiers = self.key_modifiers.get();
-        modifiers.toggle(modifier);
+        if pressed {
+            modifiers.insert(modifier);
+        } else {
+            modifiers.remove(modifier);
+        }
         self.key_modifiers.set(modifiers);
     }
 

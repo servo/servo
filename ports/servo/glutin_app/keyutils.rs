@@ -5,19 +5,6 @@
 use servo::msg::constellation_msg::{self, Key, KeyModifiers};
 use winit::VirtualKeyCode;
 
-bitflags! {
-    pub struct WinitKeyModifiers: u8 {
-        const LEFT_CONTROL = 1;
-        const RIGHT_CONTROL = 2;
-        const LEFT_SHIFT = 4;
-        const RIGHT_SHIFT = 8;
-        const LEFT_ALT = 16;
-        const RIGHT_ALT = 32;
-        const LEFT_SUPER = 64;
-        const RIGHT_SUPER = 128;
-    }
-}
-
 // Some shortcuts use Cmd on Mac and Control on other systems.
 #[cfg(target_os = "macos")]
 pub const CMD_OR_CONTROL: KeyModifiers = KeyModifiers::SUPER;
@@ -241,23 +228,6 @@ pub fn winit_key_to_script_key(key: VirtualKeyCode) -> Result<constellation_msg:
         NavigateForward => Key::NavigateForward,
         _ => return Err(()),
     })
-}
-
-pub fn winit_mods_to_script_mods(modifiers: WinitKeyModifiers) -> constellation_msg::KeyModifiers {
-    let mut result = constellation_msg::KeyModifiers::empty();
-    if modifiers.intersects(WinitKeyModifiers::LEFT_SHIFT | WinitKeyModifiers::RIGHT_SHIFT) {
-        result.insert(KeyModifiers::SHIFT);
-    }
-    if modifiers.intersects(WinitKeyModifiers::LEFT_CONTROL | WinitKeyModifiers::RIGHT_CONTROL) {
-        result.insert(KeyModifiers::CONTROL);
-    }
-    if modifiers.intersects(WinitKeyModifiers::LEFT_ALT | WinitKeyModifiers::RIGHT_ALT) {
-        result.insert(KeyModifiers::ALT);
-    }
-    if modifiers.intersects(WinitKeyModifiers::LEFT_SUPER | WinitKeyModifiers::RIGHT_SUPER) {
-        result.insert(KeyModifiers::SUPER);
-    }
-    result
 }
 
 pub fn is_printable(key_code: VirtualKeyCode) -> bool {
