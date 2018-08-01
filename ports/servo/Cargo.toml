@@ -33,7 +33,6 @@ unstable = ["libservo/unstable"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"
-bitflags = "1.0"
 euclid = "0.18"
 gleam = "0.6"
 glutin = "0.17"

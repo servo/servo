@@ -3144,7 +3144,6 @@ name = "servo"
 version = "0.0.1"
 dependencies = [
  "backtrace 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.18.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",

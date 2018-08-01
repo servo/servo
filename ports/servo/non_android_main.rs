@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate backtrace;
-#[macro_use] extern crate bitflags;
 extern crate euclid;
 #[cfg(target_os = "windows")] extern crate gdi32;
 extern crate gleam;
