@@ -9,12 +9,14 @@ var prefixedLocalStorage = new PrefixedLocalStorageResource({
 });
 function checkOpener () {
   if (window.name == 'iShouldSetOpenerToNull') {
+    var opener_ = window.opener;
     window.opener = null;
-    return prefixedLocalStorage.setItem('openerIsNull', window.opener === null);
+    return prefixedLocalStorage.setItem('openerIsNull', window.opener === null && opener === null);
   }
   if (window.name == 'iShouldSetOpenerToTest') {
+    var opener_ = window.opener;
     window.opener = 'test';
-    return prefixedLocalStorage.setItem('openerIsTest', window.opener === "test");
+    return prefixedLocalStorage.setItem('openerIsTest', window.opener === "test" && opener_ !== 'test');
   }
 }
 </script>
