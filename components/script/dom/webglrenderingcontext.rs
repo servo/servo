@@ -440,22 +440,22 @@ impl WebGLRenderingContext {
         handle_potential_webgl_error!(self, f(location));
     }
 
-    fn tex_parameter(&self, target: u32, name: u32, value: TexParameterValue) {
+    fn tex_parameter(&self, target: u32, param: u32, value: TexParameterValue) {
         let texture = match target {
             constants::TEXTURE_2D |
             constants::TEXTURE_CUBE_MAP => self.bound_texture(target),
             _ => return self.webgl_error(InvalidEnum),
         };
 
-        if !self.extension_manager.is_get_tex_parameter_name_enabled(name) {
-            return self.webgl_error(InvalidEnum);
-        }
-
-        let param = handle_potential_webgl_error!(self, TexParameter::from_u32(name), return);
         let texture = match texture {
             Some(tex) => tex,
             None => return self.webgl_error(InvalidOperation),
         };
+
+        if !self.extension_manager.is_get_tex_parameter_name_enabled(param) {
+            return self.webgl_error(InvalidEnum);
+        }
+
         handle_potential_webgl_error!(self, texture.tex_parameter(param, value), return);
 
         // Validate non filterable TEXTURE_2D data_types
@@ -1658,9 +1658,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return NullValue();
         }
 
-        if self.bound_texture(target).is_none() {
-            self.webgl_error(InvalidOperation);
-            return NullValue();
+        let texture = match self.bound_texture(target) {
+            Some(texture) => texture,
+            None => {
+                self.webgl_error(InvalidOperation);
+                return NullValue();
+            }
+        };
+
+        match pname {
+            constants::TEXTURE_MAG_FILTER => return UInt32Value(texture.mag_filter()),
+            constants::TEXTURE_MIN_FILTER => return UInt32Value(texture.min_filter()),
+            _ => {}
         }
 
         match handle_potential_webgl_error!(self, TexParameter::from_u32(pname), return NullValue()) {
