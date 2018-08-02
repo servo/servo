@@ -64,7 +64,7 @@ use js::jsapi::{JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
-use js::rust::wrappers::JS_SetProperty;
+use js::rust::wrappers::JS_DefineProperty;
 use layout_image::fetch_image_for_layout;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
@@ -591,7 +591,13 @@ impl WindowMethods for Window {
         // Step 2.
         println!("Step 2");
         let obj = self.reflector().get_jsobject();
-        assert!(JS_SetProperty(cx, obj, "opener".as_ptr() as *const i8, value));
+        assert!(JS_DefineProperty(cx,
+                                  obj,
+                                  "opener".as_ptr() as *const libc::c_char,
+                                  value,
+                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
+                                  None,
+                                  None));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
