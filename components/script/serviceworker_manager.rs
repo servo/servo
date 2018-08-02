@@ -188,7 +188,6 @@ impl ServiceWorkerManager {
         select! {
             recv(self.own_port, msg) => msg.map(Message::FromConstellation),
             recv(self.resource_receiver, msg) => msg.map(Message::FromResource),
-            default => None,
         }
     }
 }
