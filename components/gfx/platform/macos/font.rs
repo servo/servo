@@ -195,8 +195,8 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
 
-    fn family_name(&self) -> String {
-        self.ctfont.family_name()
+    fn family_name(&self) -> Option<String> {
+        Some(self.ctfont.family_name())
     }
 
     fn face_name(&self) -> Option<String> {

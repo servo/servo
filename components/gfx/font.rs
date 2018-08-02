@@ -56,7 +56,7 @@ pub trait FontHandleMethods: Sized {
     ) -> Result<Self, ()>;
 
     fn template(&self) -> Arc<FontTemplateData>;
-    fn family_name(&self) -> String;
+    fn family_name(&self) -> Option<String>;
     fn face_name(&self) -> Option<String>;
 
     fn style(&self) -> font_style::T;
@@ -289,7 +289,8 @@ impl Font {
 
         debug!("{} font table[{}] with family={}, face={}",
                status, tag.tag_to_str(),
-               self.handle.family_name(), self.handle.face_name().unwrap_or("unavailable".to_owned()));
+               self.handle.family_name().unwrap_or("unavailable".to_owned()),
+               self.handle.face_name().unwrap_or("unavailable".to_owned()));
 
         result
     }
