@@ -26,7 +26,7 @@ mod glutin_app;
 mod resources;
 
 use backtrace::Backtrace;
-use servo::Servo;
+use servo::{Servo, BrowserId};
 use servo::compositing::windowing::WindowEvent;
 use servo::config::opts::{self, ArgumentParsingResult, parse_url_or_filename};
 use servo::config::servo_version;

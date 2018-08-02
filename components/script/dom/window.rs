@@ -61,11 +61,12 @@ use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
-use js::jsapi::{JS_GC, JS_GetRuntime};
+use js::jsapi::{JS_GC, JS_GetRuntime, JSPROP_ENUMERATE, JSPROP_PERMANENT};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_DefineProperty;
 use layout_image::fetch_image_for_layout;
+use libc;
 use microtask::MicrotaskQueue;
 use msg::constellation_msg::PipelineId;
 use net_traits::{ResourceThreads, ReferrerPolicy};
@@ -595,7 +596,7 @@ impl WindowMethods for Window {
                                   obj,
                                   "opener".as_ptr() as *const libc::c_char,
                                   value,
-                                  JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT,
+                                  JSPROP_ENUMERATE | JSPROP_PERMANENT,
                                   None,
                                   None));
     }
