@@ -18,23 +18,21 @@ class GetUpdatePropertyList(Step):
 class UpdateExpected(Step):
     """Do the metadata update on the local checkout"""
 
-    provides = ["needs_human"]
-
     def create(self, state):
         if state.sync_tree is not None:
             sync_root = state.sync_tree.root
         else:
             sync_root = None
 
-        state.needs_human = metadata.update_expected(state.paths,
-                                                     state.serve_root,
-                                                     state.run_log,
-                                                     rev_old=None,
-                                                     ignore_existing=state.ignore_existing,
-                                                     sync_root=sync_root,
-                                                     property_order=state.property_order,
-                                                     boolean_properties=state.boolean_properties,
-                                                     stability=state.stability)
+        metadata.update_expected(state.paths,
+                                 state.serve_root,
+                                 state.run_log,
+                                 rev_old=None,
+                                 ignore_existing=state.ignore_existing,
+                                 sync_root=sync_root,
+                                 property_order=state.property_order,
+                                 boolean_properties=state.boolean_properties,
+                                 stability=state.stability)
 
 
 class CreateMetadataPatch(Step):

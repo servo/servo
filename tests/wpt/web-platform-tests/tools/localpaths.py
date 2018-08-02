@@ -18,5 +18,12 @@ sys.path.insert(0, os.path.join(here, "third_party", "pytest"))
 sys.path.insert(0, os.path.join(here, "third_party", "pytest", "src"))
 sys.path.insert(0, os.path.join(here, "third_party", "six"))
 sys.path.insert(0, os.path.join(here, "third_party", "webencodings"))
+sys.path.insert(0, os.path.join(here, "third_party", "h2"))
+sys.path.insert(0, os.path.join(here, "third_party", "hpack"))
+sys.path.insert(0, os.path.join(here, "third_party", "hyperframe"))
+sys.path.insert(0, os.path.join(here, "third_party", "certifi"))
 sys.path.insert(0, os.path.join(here, "webdriver"))
 sys.path.insert(0, os.path.join(here, "wptrunner"))
+
+if sys.version_info[0] == 2:
+    sys.path.insert(0, os.path.join(here, "third_party", "enum"))

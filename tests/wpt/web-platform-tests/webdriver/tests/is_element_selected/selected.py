@@ -2,12 +2,16 @@ from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
 
 
-check_doc = inline("<input id=checked type=checkbox checked/><input id=notChecked type=checkbox/>")
-option_doc = inline("""<select>
-                        <option id=notSelected>r-</option>
-                        <option id=selected selected>r+</option>
-                       </select>
-                    """)
+check_doc = inline("""
+    <input id=checked type=checkbox checked>
+    <input id=notChecked type=checkbox>
+    """)
+option_doc = inline("""
+    <select>
+      <option id=notSelected>r-
+      <option id=selected selected>r+
+    </select>
+    """)
 
 
 def is_element_selected(session, element_id):
@@ -18,7 +22,6 @@ def is_element_selected(session, element_id):
 
 
 def test_no_browsing_context(session, create_window):
-    # 13.1 step 1
     session.window_handle = create_window()
     session.close()
 
@@ -27,7 +30,6 @@ def test_no_browsing_context(session, create_window):
 
 
 def test_element_stale(session):
-    # 13.1 step 4
     session.url = check_doc
     element = session.find.css("#checked", all=False)
     session.refresh()
@@ -37,7 +39,6 @@ def test_element_stale(session):
 
 
 def test_element_checked(session):
-    # 13.1 step 5
     session.url = check_doc
     element = session.find.css("#checked", all=False)
 
@@ -46,7 +47,6 @@ def test_element_checked(session):
 
 
 def test_checkbox_not_selected(session):
-    # 13.1 step 5
     session.url = check_doc
     element = session.find.css("#notChecked", all=False)
 
@@ -55,7 +55,6 @@ def test_checkbox_not_selected(session):
 
 
 def test_element_selected(session):
-    # 13.1 step 5
     session.url = option_doc
     element = session.find.css("#selected", all=False)
 
@@ -64,7 +63,6 @@ def test_element_selected(session):
 
 
 def test_element_not_selected(session):
-    # 13.1 step 5
     session.url = option_doc
     element = session.find.css("#notSelected", all=False)
 

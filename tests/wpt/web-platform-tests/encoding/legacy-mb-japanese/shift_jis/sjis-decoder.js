@@ -16,7 +16,7 @@ function sjisDecoder(stream) {
 	stream = stream.replace(/%/g, " ");
 	stream = stream.replace(/[\s]+/g, " ").trim();
 	var bytes = stream.split(" ");
-	for (i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
+	for (var i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
 	var out = "";
 	var lead, byte, leadoffset, offset, ptr, cp;
 	var sjisLead = 0x00;
@@ -46,7 +46,7 @@ function sjisDecoder(stream) {
 			else leadoffset = 0xc1;
 			if ((byte >= 0x40 && byte <= 0x7e) || (byte >= 0x80 && byte <= 0xfc))
 				ptr = (lead - leadoffset) * 188 + byte - offset;
-			if (cp == null && ptr >= 8836 && ptr <= 10528) {
+			if (ptr != null && ptr >= 8836 && ptr <= 10715) {
 				out += dec2char(0xe000 + ptr - 8836);
 				continue;
 			}

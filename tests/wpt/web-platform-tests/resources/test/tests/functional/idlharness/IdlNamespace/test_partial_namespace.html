@@ -54,6 +54,15 @@
         partial namespace D {};`);
       idlArray.collapse_partials();
     })();
+
+    // Original is an interface, not a namespace.
+    (() => {
+      const idlArray = new IdlArray();
+      idlArray.add_idls(`
+        partial namespace E {};
+        interface E {};`);
+      idlArray.collapse_partials();
+    })();
   </script>
   <script type="text/json" id="expected">
 {
@@ -103,6 +112,12 @@
       "status_string": "FAIL",
       "properties": {},
       "message": "Partial D namespace is exposed to 'DedicatedWorker', the original namespace is not."
+    },
+    {
+      "name": "Partial namespace E: original namespace defined",
+      "status_string": "FAIL",
+      "properties": {},
+      "message": "assert_true: Original E definition should have type namespace expected true got false"
     }
   ],
   "type": "complete"

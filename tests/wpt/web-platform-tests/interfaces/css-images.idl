@@ -1,0 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "CSS Images Module Level 4" spec.
+// See: https://drafts.csswg.org/css-images-4/
+
+partial namespace CSS {
+  // [SameObject] readonly attribute Map elementSources;
+};

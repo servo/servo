@@ -17,8 +17,23 @@ def get_source_file(source_files, tests_root, manifest, path):
     return source_files[path]
 
 
+item_types = {}
+
+
+class ManifestItemMeta(ABCMeta):
+    """Custom metaclass that registers all the subclasses in the
+    item_types dictionary according to the value of their item_type
+    attribute, and otherwise behaves like an ABCMeta."""
+
+    def __new__(cls, name, bases, attrs, **kwargs):
+        rv = ABCMeta.__new__(cls, name, bases, attrs, **kwargs)
+        item_types[rv.item_type] = rv
+
+        return rv
+
+
 class ManifestItem(object):
-    __metaclass__ = ABCMeta
+    __metaclass__ = ManifestItemMeta
 
     item_type = None
 

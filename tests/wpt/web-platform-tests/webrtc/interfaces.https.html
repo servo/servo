@@ -11,7 +11,7 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   generateAnswer()
-  //   generateMediaStreamTrack()
+  //   getNoiseStream()
 
   // Put the global IDL test objects under a parent object.
   // This allows easier search for the test cases when
@@ -155,10 +155,7 @@
 
       'RTCIceTransport': ['idlTestObjects.iceTransport'],
 
-      // Test on both MediaStreamTrack from getUserMedia and transceiver
-      'MediaStreamTrack': [
-        `idlTestObjects.mediaStreamTrack`,
-        `generateMediaStreamTrack('audio')`]
+      'MediaStreamTrack': ['idlTestObjects.mediaStreamTrack']
     });
 
     idlArray.test();

@@ -62,11 +62,14 @@ class MockVRService {
 }
 
 // Implements both VRDisplayHost and VRMagicWindowProvider. Maintains a mock for
-// VRPresentationProvider.
+// XRPresentationProvider.
 class MockDevice {
   constructor(fakeDeviceInit, service) {
     this.displayClient_ = new device.mojom.VRDisplayClientPtr();
-    this.presentation_provider_ = new MockVRPresentationProvider();
+    this.presentation_provider_ = new MockXRPresentationProvider();
+
+    this.pose_ = null;
+    this.next_frame_id_ = 0;
 
     this.service_ = service;
 
@@ -99,9 +102,9 @@ class MockDevice {
   // Test methods.
   setXRPresentationFrameData(poseMatrix, views) {
     if (poseMatrix == null) {
-      this.presentation_provider_.pose_ = null;
+      this.pose_ = null;
     } else {
-      this.presentation_provider_.setPoseFromMatrix(poseMatrix);
+      this.setPoseFromMatrix(poseMatrix);
     }
 
     if (views) {
@@ -119,6 +122,49 @@ class MockDevice {
       if (changed) {
         this.displayClient_.onChanged(this.displayInfo_);
       }
+    }
+  }
+
+
+  setPoseFromMatrix(poseMatrix) {
+    this.pose_ = {
+      orientation: null,
+      position: null,
+      angularVelocity: null,
+      linearVelocity: null,
+      angularAcceleration: null,
+      linearAcceleration: null,
+      inputState: null,
+      poseIndex: 0
+    };
+
+    let pose = this.poseFromMatrix(poseMatrix);
+    for (let field in pose) {
+      if (this.pose_.hasOwnProperty(field)) {
+        this.pose_[field] = pose[field];
+      }
+    }
+  }
+
+  poseFromMatrix(m) {
+    let orientation = [];
+
+    let m00 = m[0];
+    let m11 = m[5];
+    let m22 = m[10];
+    // The max( 0, ... ) is just a safeguard against rounding error.
+    orientation[3] = Math.sqrt(Math.max(0, 1 + m00 + m11 + m22)) / 2;
+    orientation[0] = Math.sqrt(Math.max(0, 1 + m00 - m11 - m22)) / 2;
+    orientation[1] = Math.sqrt(Math.max(0, 1 - m00 + m11 - m22)) / 2;
+    orientation[2] = Math.sqrt(Math.max(0, 1 - m00 - m11 + m22)) / 2;
+
+    let position = [];
+    position[0] = m[12];
+    position[1] = m[13];
+    position[2] = m[14];
+
+    return {
+      orientation, position
     }
   }
 
@@ -202,158 +248,7 @@ class MockDevice {
 
   // Mojo function implementations.
 
-  // VRMagicWindowProvider implementation.
-
-  getFrameData() {
-    // Convert current document time to monotonic time.
-    let now = window.performance.now() / 1000.0;
-    let diff = now - internals.monotonicTimeToZeroBasedDocumentTime(now);
-    now += diff;
-    now *= 1000000;
-
-    return Promise.resolve({
-      frameData: {
-        pose: this.presentation_provider_.pose_,
-        bufferHolder: null,
-        bufferSize: {},
-        timeDelta: [],
-        projectionMatrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
-      }
-    });
-  }
-
-  updateSessionGeometry(frame_size, display_rotation) {
-    // This function must exist to ensure that calls to it do not crash, but we
-    // do not have any use for this data at present.
-  }
-
-  // VRDisplayHost implementation.
-
-  requestSession(sessionOptions, was_activation) {
-    return this.supportsSession(sessionOptions).then((result) => {
-      // The JavaScript bindings convert c_style_names to camelCase names.
-      let options = new device.mojom.VRDisplayFrameTransportOptions();
-      options.transportMethod =
-          device.mojom.VRDisplayFrameTransportMethod.SUBMIT_AS_MAILBOX_HOLDER;
-      options.waitForTransferNotification = true;
-      options.waitForRenderNotification = true;
-
-      let connection;
-      if (result.supportsSession) {
-        connection = {
-          clientRequest: this.presentation_provider_.getClientRequest(),
-          provider: this.presentation_provider_.bindProvider(sessionOptions),
-          transportOptions: options
-        };
-
-        let magicWindowPtr = new device.mojom.VRMagicWindowProviderPtr();
-        let magicWindowRequest = mojo.makeRequest(magicWindowPtr);
-        let magicWindowBinding = new mojo.Binding(
-            device.mojom.VRMagicWindowProvider, this, magicWindowRequest);
-
-        return Promise.resolve({
-          session:
-              {connection: connection, magicWindowProvider: magicWindowPtr}
-        });
-      } else {
-        return Promise.resolve({session: null});
-      }
-    });
-  }
-
-  supportsSession(options) {
-    return Promise.resolve({
-      supportsSession:
-          !options.exclusive || this.displayInfo_.capabilities.canPresent
-    });
-  };
-}
-
-class MockVRPresentationProvider {
-  constructor() {
-    this.binding_ = new mojo.Binding(device.mojom.VRPresentationProvider, this);
-    this.pose_ = null;
-    this.next_frame_id_ = 0;
-    this.submit_frame_count_ = 0;
-    this.missing_frame_count_ = 0;
-  }
-
-  bindProvider(request) {
-    let providerPtr = new device.mojom.VRPresentationProviderPtr();
-    let providerRequest = mojo.makeRequest(providerPtr);
-
-    this.binding_.close();
-
-    this.binding_ = new mojo.Binding(
-        device.mojom.VRPresentationProvider, this, providerRequest);
-
-    return providerPtr;
-  }
-
-  getClientRequest() {
-    this.submitFrameClient_ = new device.mojom.VRSubmitFrameClientPtr();
-    return mojo.makeRequest(this.submitFrameClient_);
-  }
-
-  setPoseFromMatrix(poseMatrix) {
-    this.pose_ = {
-      orientation: null,
-      position: null,
-      angularVelocity: null,
-      linearVelocity: null,
-      angularAcceleration: null,
-      linearAcceleration: null,
-      inputState: null,
-      poseIndex: 0
-    };
-
-    let pose = this.poseFromMatrix(poseMatrix);
-    for (let field in pose) {
-      if (this.pose_.hasOwnProperty(field)) {
-        this.pose_[field] = pose[field];
-      }
-    }
-  }
-
-  poseFromMatrix(m) {
-    let orientation = [];
-
-    let m00 = m[0];
-    let m11 = m[5];
-    let m22 = m[10];
-    // The max( 0, ... ) is just a safeguard against rounding error.
-    orientation[3] = Math.sqrt(Math.max(0, 1 + m00 + m11 + m22)) / 2;
-    orientation[0] = Math.sqrt(Math.max(0, 1 + m00 - m11 - m22)) / 2;
-    orientation[1] = Math.sqrt(Math.max(0, 1 - m00 + m11 - m22)) / 2;
-    orientation[2] = Math.sqrt(Math.max(0, 1 - m00 - m11 + m22)) / 2;
-
-    let position = [];
-    position[0] = m[12];
-    position[1] = m[13];
-    position[2] = m[14];
-
-    return {
-      orientation, position
-    }
-  }
-
-  // VRPresentationProvider mojo implementation
-  submitFrameMissing(frameId, mailboxHolder, timeWaited) {
-    this.missing_frame_count_++;
-  }
-
-  submitFrame(frameId, mailboxHolder, timeWaited) {
-    this.submit_frame_count_++;
-
-    // Trigger the submit completion callbacks here. WARNING: The
-    // Javascript-based mojo mocks are *not* re-entrant. It's OK to
-    // wait for these notifications on the next frame, but waiting
-    // within the current frame would never finish since the incoming
-    // calls would be queued until the current execution context finishes.
-    this.submitFrameClient_.onSubmitFrameTransferred(true);
-    this.submitFrameClient_.onSubmitFrameRendered();
-  }
-
+  // XRFrameDataProvider implementation.
   getFrameData() {
     if (this.pose_) {
       this.pose_.poseIndex++;
@@ -377,6 +272,105 @@ class MockVRPresentationProvider {
         bufferSize: {}
       }
     });
+  }
+
+  updateSessionGeometry(frame_size, display_rotation) {
+    // This function must exist to ensure that calls to it do not crash, but we
+    // do not have any use for this data at present.
+  }
+
+  // VRDisplayHost implementation.
+
+  requestSession(sessionOptions, was_activation) {
+    return this.supportsSession(sessionOptions).then((result) => {
+      // The JavaScript bindings convert c_style_names to camelCase names.
+      let options = new device.mojom.XRPresentationTransportOptions();
+      options.transportMethod =
+          device.mojom.XRPresentationTransportMethod.SUBMIT_AS_MAILBOX_HOLDER;
+      options.waitForTransferNotification = true;
+      options.waitForRenderNotification = true;
+
+      let submit_frame_sink;
+      if (result.supportsSession) {
+        submit_frame_sink = {
+          clientRequest: this.presentation_provider_.getClientRequest(),
+          provider: this.presentation_provider_.bindProvider(sessionOptions),
+          transportOptions: options
+        };
+
+        let dataProviderPtr = new device.mojom.XRFrameDataProviderPtr();
+        let dataProviderRequest = mojo.makeRequest(dataProviderPtr);
+        let dataProviderBinding = new mojo.Binding(
+            device.mojom.XRFrameDataProvider, this, dataProviderRequest);
+
+        let enviromentProviderPtr =
+            new device.mojom.XREnviromentIntegrationProviderPtr();
+        let enviromentProviderRequest = mojo.makeRequest(enviromentProviderPtr);
+        let enviromentProviderBinding = new mojo.Binding(
+            device.mojom.XREnviromentIntegrationProvider, this,
+            enviromentProviderRequest);
+
+        return Promise.resolve({
+          session: {
+            submitFrameSink: submit_frame_sink,
+            dataProvider: dataProviderPtr,
+            enviromentProvider: enviromentProviderPtr
+          }
+        });
+      } else {
+        return Promise.resolve({session: null});
+      }
+    });
+  }
+
+  supportsSession(options) {
+    return Promise.resolve({
+      supportsSession:
+          !options.exclusive || this.displayInfo_.capabilities.canPresent
+    });
+  };
+}
+
+class MockXRPresentationProvider {
+  constructor() {
+    this.binding_ = new mojo.Binding(device.mojom.XRPresentationProvider, this);
+
+    this.submit_frame_count_ = 0;
+    this.missing_frame_count_ = 0;
+  }
+
+  bindProvider(request) {
+    let providerPtr = new device.mojom.XRPresentationProviderPtr();
+    let providerRequest = mojo.makeRequest(providerPtr);
+
+    this.binding_.close();
+
+    this.binding_ = new mojo.Binding(
+        device.mojom.XRPresentationProvider, this, providerRequest);
+
+    return providerPtr;
+  }
+
+  getClientRequest() {
+    this.submitFrameClient_ = new device.mojom.XRPresentationClientPtr();
+    return mojo.makeRequest(this.submitFrameClient_);
+  }
+
+  // XRPresentationProvider mojo implementation
+  submitFrameMissing(frameId, mailboxHolder, timeWaited) {
+    this.missing_frame_count_++;
+  }
+
+  submitFrame(frameId, mailboxHolder, timeWaited) {
+    this.submit_frame_count_++;
+
+    // Trigger the submit completion callbacks here. WARNING: The
+    // Javascript-based mojo mocks are *not* re-entrant. It's OK to
+    // wait for these notifications on the next frame, but waiting
+    // within the current frame would never finish since the incoming
+    // calls would be queued until the current execution context finishes.
+    this.submitFrameClient_.onSubmitFrameTransferred(true);
+    this.submitFrameClient_.onSubmitFrameRendered();
   }
 }
 

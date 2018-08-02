@@ -285,6 +285,8 @@ class Request(object):
         self._cookies = None
         self._auth = None
 
+        self.h2_stream_id = request_handler.h2_stream_id if hasattr(request_handler, 'h2_stream_id') else None
+
         self.server = Server(self)
 
     def __repr__(self):
