@@ -27,7 +27,7 @@ use dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::RootedTraceableBox;
-use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use dom::bindings::utils::{GlobalStaticData, set_dictionary_property, WindowProxyHandler};
 use dom::bindings::weakref::DOMTracker;
 use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::crypto::Crypto;
@@ -590,7 +590,7 @@ impl WindowMethods for Window {
         }
         // Step 2.
         let obj = self.reflector().get_jsobject();
-        assert!(JS_SetProperty(cx, obj, "opener".as_ptr() as *const i8, value));
+        assert!(set_dictionary_property(cx, obj, "opener", value).is_ok());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-closed
