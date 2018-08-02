@@ -285,7 +285,6 @@ impl DedicatedWorkerGlobalScope {
             recv(scope.from_devtools_sender().map(|_| devtools_port), msg) => {
                 msg.map(MixedMessage::FromDevtools)
             }
-            default => None
         }
     }
 
