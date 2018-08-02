@@ -87,7 +87,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, Metadata, Record};
-use msg::constellation_msg::PipelineNamespace;
+use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId};
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
