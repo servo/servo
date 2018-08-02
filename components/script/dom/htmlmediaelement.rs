@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use audio_video_metadata;
 use document_loader::{LoadBlocker, LoadType};
 use dom::attr::Attr;
 use dom::bindings::cell::DomRefCell;
@@ -40,6 +39,8 @@ use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_thread::ScriptThread;
+use servo_media::player::{PlaybackState, Player, PlayerEvent};
+use servo_media::ServoMedia;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::VecDeque;
@@ -48,6 +49,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
 use time::{self, Timespec, Duration};
+
+unsafe_no_jsmanaged_fields!(Arc<Mutex<Box<Player>>>);
 
 #[dom_struct]
 // FIXME(nox): A lot of tasks queued for this element should probably be in the
@@ -82,6 +85,10 @@ pub struct HTMLMediaElement {
     /// Play promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_play_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
+    /// Whether the media metadata has been completely received.
+    have_metadata: Cell<bool>,
+    #[ignore_malloc_size_of = "servo_media"]
+    player: Arc<Mutex<Box<Player>>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -126,6 +133,10 @@ impl HTMLMediaElement {
             delaying_the_load_event_flag: Default::default(),
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
+            have_metadata: Cell::new(false),
+            player: Arc::new(Mutex::new(
+                ServoMedia::get().unwrap().create_player().unwrap(),
+            )),
         }
     }
 
@@ -223,7 +234,9 @@ impl HTMLMediaElement {
                         return;
                     }
 
-                    this.fulfill_in_flight_play_promises(|| ());
+                    this.fulfill_in_flight_play_promises(|| {
+                        this.player.lock().unwrap().play();
+                    });
                 }),
                 window.upcast(),
             ).unwrap();
@@ -269,6 +282,9 @@ impl HTMLMediaElement {
                         // Step 2.3.2.
                         this.upcast::<EventTarget>().fire_event(atom!("pause"));
 
+                        //FIXME(victor)
+                        //this.player.lock().unwrap().pause();
+
                         // Step 2.3.3.
                         // Done after running this closure in
                         // `fulfill_in_flight_play_promises`.
@@ -304,6 +320,7 @@ impl HTMLMediaElement {
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1.
                     this.upcast::<EventTarget>().fire_event(atom!("playing"));
+                    this.player.lock().unwrap().play();
 
                     // Step 2.2.
                     // Done after running this closure in
@@ -603,6 +620,7 @@ impl HTMLMediaElement {
                     .. RequestInit::default()
                 };
 
+                self.setup_media_player();
                 let context = Arc::new(Mutex::new(HTMLMediaElementContext::new(self)));
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let window = window_from_node(self);
@@ -658,6 +676,8 @@ impl HTMLMediaElement {
 
                     // Step 5.
                     this.upcast::<EventTarget>().fire_event(atom!("error"));
+
+                    this.player.lock().unwrap().stop();
 
                     // Step 6.
                     // Done after running this closure in
@@ -816,6 +836,72 @@ impl HTMLMediaElement {
             return;
         }
         self.media_element_load_algorithm();
+    }
+
+    // servo media player
+    fn setup_media_player(&self) {
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+
+        self.player
+            .lock()
+            .unwrap()
+            .register_event_handler(action_sender);
+        self.player.lock().unwrap().setup().unwrap();
+
+        let trusted_node = Trusted::new(self);
+        let window = window_from_node(self);
+        let task_source = window.dom_manipulation_task_source();
+        let task_canceller = window.task_canceller(TaskSourceName::DOMManipulation);
+        ROUTER.add_route(
+            action_receiver.to_opaque(),
+            Box::new(move |message| {
+                let event: PlayerEvent = message.to().unwrap();
+                let this = trusted_node.clone();
+                task_source
+                    .queue_with_canceller(
+                        task!(handle_player_event: move || {
+                            this.root().handle_player_event(&event);
+                        }),
+                        &task_canceller,
+                    ).unwrap();
+            }),
+        );
+    }
+
+    fn handle_player_event(&self, event: &PlayerEvent) {
+        match *event {
+            PlayerEvent::MetadataUpdated(ref metadata) => {
+                if !self.have_metadata.get() {
+                    // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+                    // => "Once enough of the media data has been fetched to determine the duration..."
+                    if let Some(_dur) = metadata.duration {
+                        // Setp 6.
+                        self.change_ready_state(ReadyState::HaveMetadata);
+                        self.have_metadata.set(true);
+                    }
+                } else {
+                    // => set the element's delaying-the-load-event flag to false
+                    self.change_ready_state(ReadyState::HaveCurrentData);
+                }
+            }
+            PlayerEvent::StateChanged(ref state) => match *state {
+                PlaybackState::Paused => {
+                    if self.ready_state.get() == ReadyState::HaveMetadata {
+                        self.change_ready_state(ReadyState::HaveEnoughData);
+                    }
+                }
+                _ => {}
+            },
+            PlayerEvent::EndOfStream => {}
+            PlayerEvent::FrameUpdated => {}
+            PlayerEvent::Error => {
+                self.error.set(Some(&*MediaError::new(
+                    &*window_from_node(self),
+                    MEDIA_ERR_DECODE,
+                )));
+                self.upcast::<EventTarget>().fire_event(atom!("error"));
+            }
+        }
     }
 }
 
@@ -977,16 +1063,12 @@ enum Resource {
 struct HTMLMediaElementContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLMediaElement>,
-    /// The response body received to date.
-    data: Vec<u8>,
     /// The response metadata received to date.
     metadata: Option<Metadata>,
     /// The generation of the media element when this fetch started.
     generation_id: u32,
     /// Time of last progress notification.
     next_progress_event: Timespec,
-    /// Whether the media metadata has been completely received.
-    have_metadata: bool,
     /// True if this response is invalid and should be ignored.
     ignore_response: bool,
 }
@@ -1018,22 +1100,17 @@ impl FetchResponseListener for HTMLMediaElementContext {
         }
     }
 
-    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, payload: Vec<u8>) {
         if self.ignore_response {
             // An error was received previously, skip processing the payload.
             return;
         }
 
-        self.data.append(&mut payload);
-
         let elem = self.elem.root();
 
-        // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-        // => "Once enough of the media data has been fetched to determine the duration..."
-        if !self.have_metadata {
-            self.check_metadata(&elem);
-        } else {
-            elem.change_ready_state(ReadyState::HaveCurrentData);
+        // push input data into the player
+        if let Err(_) = elem.player.lock().unwrap().push_data(payload) {
+            eprintln!("Couldn't push input data to player");
         }
 
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
@@ -1056,14 +1133,20 @@ impl FetchResponseListener for HTMLMediaElementContext {
             return;
         }
         let elem = self.elem.root();
+        let player = elem.player.lock().unwrap();
+
+        // signal the eos to player
+        if let Err(_) = player.end_of_stream() {
+            eprintln!("Couldn't signal EOS to player");
+        }
 
         // => "If the media data can be fetched but is found by inspection to be in an unsupported
         //     format, or can otherwise not be rendered at all"
-        if !self.have_metadata {
+        if !elem.have_metadata.get() {
+            // FIXME(victor): adjust player's max-size (or buffering)
             elem.queue_dedicated_media_source_failure_steps();
-        }
         // => "Once the entire media resource has been fetched..."
-        else if status.is_ok() {
+        } else if status.is_ok() {
             elem.change_ready_state(ReadyState::HaveEnoughData);
 
             elem.upcast::<EventTarget>().fire_event(atom!("progress"));
@@ -1104,20 +1187,10 @@ impl HTMLMediaElementContext {
     fn new(elem: &HTMLMediaElement) -> HTMLMediaElementContext {
         HTMLMediaElementContext {
             elem: Trusted::new(elem),
-            data: vec![],
             metadata: None,
             generation_id: elem.generation_id.get(),
             next_progress_event: time::get_time() + Duration::milliseconds(350),
-            have_metadata: false,
             ignore_response: false,
-        }
-    }
-
-    fn check_metadata(&mut self, elem: &HTMLMediaElement) {
-        if audio_video_metadata::get_format_from_slice(&self.data).is_ok() {
-            // Step 6.
-            elem.change_ready_state(ReadyState::HaveMetadata);
-            self.have_metadata = true;
         }
     }
 }
