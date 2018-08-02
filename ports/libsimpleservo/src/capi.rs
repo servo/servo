@@ -139,6 +139,12 @@ pub extern "C" fn reload() {
 }
 
 #[no_mangle]
+pub extern "C" fn stop() {
+    debug!("stop");
+    call(|s| s.stop());
+}
+
+#[no_mangle]
 pub extern "C" fn go_back() {
     debug!("go_back");
     call(|s| s.go_back());
