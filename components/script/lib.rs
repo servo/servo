@@ -18,7 +18,6 @@
 )]
 
 extern crate app_units;
-extern crate audio_video_metadata;
 extern crate base64;
 #[macro_use]
 extern crate bitflags;
