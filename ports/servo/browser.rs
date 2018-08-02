@@ -297,7 +297,9 @@ impl Browser {
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
                     // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
-                    self.browser_id = Some(new_browser_id);
+                    if self.browser_id.is_none() {
+                        self.browser_id = Some(new_browser_id);
+                    }
                     self.event_queue.push(WindowEvent::SelectBrowser(new_browser_id));
                 }
                 EmbedderMsg::KeyEvent(ch, key, state, modified) => {

@@ -74,7 +74,7 @@ pub enum WindowEvent {
     /// Sent when Ctr+R/Apple+R is called to reload the current page.
     Reload(TopLevelBrowsingContextId),
     /// Create a new top level browsing context
-    NewBrowser(ServoUrl),
+    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.

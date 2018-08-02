@@ -150,8 +150,8 @@ pub fn main() {
     let target_url = cmdline_url.or(pref_url).or(blank_url).unwrap();
 
     let mut servo = Servo::new(window.clone());
-
-    servo.handle_events(vec![WindowEvent::NewBrowser(target_url)]);
+    let browser_id = BrowserId::new();
+    servo.handle_events(vec![WindowEvent::NewBrowser(target_url, browser_id)]);
 
     servo.setup_logging();
 

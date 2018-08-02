@@ -148,7 +148,8 @@ pub fn init(
             events: vec![],
             current_url: Some(url.clone()),
         };
-        let _ = servo_glue.process_event(WindowEvent::NewBrowser(url));
+        let browser_id = BrowserId::new();
+        let _ = servo_glue.process_event(WindowEvent::NewBrowser(url, browser_id));
         *s.borrow_mut() = Some(servo_glue);
     });
 
@@ -345,7 +346,9 @@ impl ServoGlue {
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
                     // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
-                    self.browser_id = Some(new_browser_id);
+                    if self.browser_id.is_none() {
+                        self.browser_id = Some(new_browser_id);
+                    }
                     self.events.push(WindowEvent::SelectBrowser(new_browser_id));
                 },
                 EmbedderMsg::CloseBrowser => {

@@ -87,6 +87,7 @@ use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use log::{Log, Metadata, Record};
+use msg::constellation_msg::PipelineNamespace;
 use net::resource_thread::new_resource_threads;
 use net_traits::IpcSend;
 use profile::mem as profile_mem;
@@ -134,6 +135,9 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
 
         // Make sure the gl context is made current.
         window.prepare_for_composite(Length::new(0), Length::new(0));
+
+        // Reserving a namespace to create TopLevelBrowserContextId.
+        PipelineNamespace::install(PipelineNamespaceId(0));
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -326,8 +330,8 @@ impl<Window> Servo<Window> where Window: WindowMethods + 'static {
                 self.compositor.capture_webrender();
             }
 
-            WindowEvent::NewBrowser(url) => {
-                let msg = ConstellationMsg::NewBrowser(url);
+            WindowEvent::NewBrowser(url, browser_id) => {
+                let msg = ConstellationMsg::NewBrowser(url, browser_id);
                 if let Err(e) = self.constellation_chan.send(msg) {
                     warn!("Sending NewBrowser message to constellation failed ({}).", e);
                 }
