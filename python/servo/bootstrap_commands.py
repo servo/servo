@@ -366,14 +366,15 @@ class MachCommands(CommandBase):
             elif os.path.isdir(path.join(git_db_dir, d)):
                 packages["git"][crate_name]["exist"].append(("del", d, ""))
 
-        for d in os.listdir(crates_src_dir):
-            crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
-            if not packages["crates"].get(crate_name, False):
-                packages["crates"][crate_name] = {
-                    "current": [],
-                    "exist": [],
-                }
-            packages["crates"][crate_name]["exist"].append(d)
+        if crates_src_dir:
+            for d in os.listdir(crates_src_dir):
+                crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
+                if not packages["crates"].get(crate_name, False):
+                    packages["crates"][crate_name] = {
+                       "current": [],
+                        "exist": [],
+                    }
+                packages["crates"][crate_name]["exist"].append(d)
 
         total_size = 0
         for packages_type in ["git", "crates"]:
