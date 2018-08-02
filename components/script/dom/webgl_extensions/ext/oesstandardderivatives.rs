@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
@@ -37,11 +37,8 @@ impl WebGLExtension for OESStandardDerivatives {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        if cfg!(any(target_os = "android", target_os = "ios")) {
-            return ext.supports_any_gl_extension(&["GL_OES_standard_derivatives"]);
-        }
         // The standard derivatives are always available in desktop OpenGL.
-        true
+        !is_gles() || ext.supports_any_gl_extension(&["GL_OES_standard_derivatives"])
     }
 
     fn enable(ext: &WebGLExtensions) {

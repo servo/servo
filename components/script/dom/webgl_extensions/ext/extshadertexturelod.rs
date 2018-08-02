@@ -6,7 +6,7 @@ use canvas_traits::webgl::WebGLVersion;
 use dom::bindings::codegen::Bindings::EXTShaderTextureLodBinding;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
@@ -37,11 +37,8 @@ impl WebGLExtension for EXTShaderTextureLod {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        if cfg!(any(target_os = "android", target_os = "ios")) {
-            return ext.supports_gl_extension("GL_EXT_shader_texture_lod");
-        }
         // This extension is always available on desktop GL.
-        true
+        !is_gles() || ext.supports_gl_extension("GL_EXT_shader_texture_lod")
     }
 
     fn enable(_ext: &WebGLExtensions) {}

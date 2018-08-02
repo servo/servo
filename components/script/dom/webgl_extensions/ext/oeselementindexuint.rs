@@ -6,7 +6,7 @@ use canvas_traits::webgl::WebGLVersion;
 use dom::bindings::codegen::Bindings::OESElementIndexUintBinding;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::root::DomRoot;
-use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use super::{WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
@@ -37,11 +37,8 @@ impl WebGLExtension for OESElementIndexUint {
     }
 
     fn is_supported(ext: &WebGLExtensions) -> bool {
-        if cfg!(any(target_os = "android", target_os = "ios")) {
-            return ext.supports_gl_extension("GL_OES_element_index_uint");
-        }
         // This extension is always available in desktop OpenGL.
-        true
+        !is_gles() || ext.supports_gl_extension("GL_OES_element_index_uint")
     }
 
     fn enable(ext: &WebGLExtensions) {

@@ -71,6 +71,12 @@ use std::cmp;
 use std::ptr::{self, NonNull};
 use webrender_api;
 
+pub fn is_gles() -> bool {
+    // TODO: align this with the actual kind of graphics context in use, rather than
+    // making assumptions based on platform
+    cfg!(any(target_os = "android", target_os = "ios"))
+}
+
 type ImagePixelResult = Result<(Vec<u8>, Size2D<i32>, bool), ()>;
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
@@ -2702,10 +2708,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return NullValue();
         }
 
-        let (sender, receiver) = webgl_channel().unwrap();
-        self.send_command(WebGLCommand::GetRenderbufferParameter(target, pname, sender));
+        let result = if pname == constants::RENDERBUFFER_INTERNAL_FORMAT {
+            let rb = self.bound_renderbuffer.get().unwrap();
+            rb.internal_format() as i32
+        } else {
+            let (sender, receiver) = webgl_channel().unwrap();
+            self.send_command(WebGLCommand::GetRenderbufferParameter(target, pname, sender));
+            receiver.recv().unwrap()
+        };
 
-        Int32Value(receiver.recv().unwrap())
+
+        Int32Value(result)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
