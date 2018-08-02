@@ -371,7 +371,7 @@ class MachCommands(CommandBase):
                 crate_name = re.sub(r"\-\d+(\.\d+){1,3}.+", "", d)
                 if not packages["crates"].get(crate_name, False):
                     packages["crates"][crate_name] = {
-                       "current": [],
+                        "current": [],
                         "exist": [],
                     }
                 packages["crates"][crate_name]["exist"].append(d)
