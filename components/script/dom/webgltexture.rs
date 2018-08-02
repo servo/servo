@@ -44,8 +44,8 @@ pub struct WebGLTexture {
     face_count: Cell<u8>,
     base_mipmap_level: u32,
     // Store information for min and mag filters
-    min_filter: Cell<Option<u32>>,
-    mag_filter: Cell<Option<u32>>,
+    min_filter: Cell<u32>,
+    mag_filter: Cell<u32>,
     /// True if this texture is used for the DOMToTexture feature.
     attached_to_dom: Cell<bool>,
 }
@@ -59,8 +59,8 @@ impl WebGLTexture {
             is_deleted: Cell::new(false),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
-            min_filter: Cell::new(None),
-            mag_filter: Cell::new(None),
+            min_filter: Cell::new(constants::NEAREST_MIPMAP_LINEAR),
+            mag_filter: Cell::new(constants::LINEAR),
             image_info_array: DomRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             attached_to_dom: Cell::new(false),
         }
@@ -215,6 +215,16 @@ impl WebGLTexture {
 
         match param {
             TexParameter::Int(int_param) => {
+                let update_filter = |filter: &Cell<u32>| {
+                    if filter.get() == int_value as u32 {
+                        return Ok(());
+                    }
+                    filter.set(int_value as u32);
+                    self.upcast::<WebGLObject>()
+                        .context()
+                        .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
+                    Ok(())
+                };
                 match int_param {
                     TexParameterInt::TextureMinFilter => {
                         match int_value as u32 {
@@ -223,25 +233,13 @@ impl WebGLTexture {
                             constants::NEAREST_MIPMAP_NEAREST |
                             constants::LINEAR_MIPMAP_NEAREST |
                             constants::NEAREST_MIPMAP_LINEAR |
-                            constants::LINEAR_MIPMAP_LINEAR => {
-                                self.min_filter.set(Some(int_value as u32));
-                                self.upcast::<WebGLObject>()
-                                    .context()
-                                    .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
-                                Ok(())
-                            }
+                            constants::LINEAR_MIPMAP_LINEAR => update_filter(&self.min_filter),
                             _ => Err(WebGLError::InvalidEnum),
                         }
                     }
                     TexParameterInt::TextureMagFilter => {
                         match int_value as u32 {
-                            constants::NEAREST | constants::LINEAR => {
-                                self.mag_filter.set(Some(int_value as u32));
-                                self.upcast::<WebGLObject>()
-                                    .context()
-                                    .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
-                                Ok(())
-                            }
+                            constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
                             _ => return Err(WebGLError::InvalidEnum),
                         }
                     }
@@ -277,10 +275,10 @@ impl WebGLTexture {
         let filters = [self.min_filter.get(), self.mag_filter.get()];
         filters.iter().any(|filter| {
             match *filter {
-                Some(constants::LINEAR) |
-                Some(constants::NEAREST_MIPMAP_LINEAR) |
-                Some(constants::LINEAR_MIPMAP_NEAREST) |
-                Some(constants::LINEAR_MIPMAP_LINEAR) => true,
+                constants::LINEAR |
+                constants::NEAREST_MIPMAP_LINEAR |
+                constants::LINEAR_MIPMAP_NEAREST |
+                constants::LINEAR_MIPMAP_LINEAR => true,
                 _=> false
             }
         })
