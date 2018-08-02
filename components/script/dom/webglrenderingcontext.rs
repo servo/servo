@@ -1180,9 +1180,15 @@ impl WebGLRenderingContext {
             return;
         }
 
-        self.send_command(
-            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount },
-        );
+        if count == 0 || primcount == 0 {
+            return;
+        }
+
+        self.send_command(if primcount == 1 {
+            WebGLCommand::DrawArrays { mode, first, count }
+        } else {
+            WebGLCommand::DrawArraysInstanced { mode, first, count, primcount }
+        });
         self.mark_as_dirty();
     }
 
@@ -1210,6 +1216,7 @@ impl WebGLRenderingContext {
         let type_size = match type_ {
             constants::UNSIGNED_BYTE => 1,
             constants::UNSIGNED_SHORT => 2,
+            constants::UNSIGNED_INT if self.extension_manager.is_element_index_uint_enabled() => 4,
             _ => return self.webgl_error(InvalidEnum),
         };
         if offset % type_size != 0 {
@@ -1224,17 +1231,12 @@ impl WebGLRenderingContext {
 
         if count > 0 && primcount > 0 {
             if let Some(array_buffer) = self.current_vao().element_array_buffer().get() {
-                // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
+                // This operation cannot overflow in u64 and we know all those values are nonnegative.
                 let val = offset as u64 + (count as u64 * type_size as u64);
                 if val > array_buffer.capacity() as u64 {
                     return self.webgl_error(InvalidOperation);
                 }
             } else {
-                // From the WebGL spec
-                //
-                //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
-                //      or an INVALID_OPERATION error will be generated.
-                //
                 return self.webgl_error(InvalidOperation);
             }
         }
@@ -1250,12 +1252,15 @@ impl WebGLRenderingContext {
             return;
         }
 
-        self.send_command(WebGLCommand::DrawElementsInstanced {
-            mode,
-            count,
-            type_,
-            offset: offset as u32,
-            primcount,
+        if count == 0 || primcount == 0 {
+            return;
+        }
+
+        let offset = offset as u32;
+        self.send_command(if primcount == 1 {
+            WebGLCommand::DrawElements { mode, count, type_, offset }
+        } else {
+            WebGLCommand::DrawElementsInstanced { mode, count, type_, offset, primcount }
         });
         self.mark_as_dirty();
     }
@@ -2411,117 +2416,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
-        match mode {
-            constants::POINTS | constants::LINE_STRIP |
-            constants::LINE_LOOP | constants::LINES |
-            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {},
-            _ => {
-                return self.webgl_error(InvalidEnum);
-            }
-        }
-        if first < 0 || count < 0 {
-            return self.webgl_error(InvalidValue);
-        }
-
-        let current_program = handle_potential_webgl_error!(
-            self,
-            self.current_program.get().ok_or(InvalidOperation),
-            return
-        );
-
-        let required_len = if count > 0 {
-            handle_potential_webgl_error!(
-                self,
-                first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation),
-                return
-            )
-        } else {
-            0
-        };
-
-        handle_potential_webgl_error!(
-            self,
-            self.current_vao().validate_for_draw(required_len, 1, &current_program.active_attribs()),
-            return
-        );
-
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
-
-        self.send_command(WebGLCommand::DrawArrays(mode, first, count));
-        self.mark_as_dirty();
+        self.draw_arrays_instanced(mode, first, count, 1);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
-        match mode {
-            constants::POINTS | constants::LINE_STRIP |
-            constants::LINE_LOOP | constants::LINES |
-            constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
-            constants::TRIANGLES => {},
-            _ => return self.webgl_error(InvalidEnum),
-        }
-
-        // From the GLES 2.0.25 spec, page 21:
-        //
-        //     "type must be one of UNSIGNED_BYTE or UNSIGNED_SHORT"
-        let type_size = match type_ {
-            constants::UNSIGNED_BYTE => 1,
-            constants::UNSIGNED_SHORT => 2,
-            constants::UNSIGNED_INT if self.extension_manager.is_element_index_uint_enabled() => 4,
-            _ => return self.webgl_error(InvalidEnum),
-        };
-
-        if offset % type_size != 0 {
-            return self.webgl_error(InvalidOperation);
-        }
-
-        if count < 0 {
-            return self.webgl_error(InvalidValue);
-        }
-
-        if offset < 0 {
-            return self.webgl_error(InvalidValue);
-        }
-
-        let current_program = handle_potential_webgl_error!(
-            self,
-            self.current_program.get().ok_or(InvalidOperation),
-            return
-        );
-
-        if count > 0 {
-            if let Some(array_buffer) = self.current_vao().element_array_buffer().get() {
-                // WebGL Spec: check buffer overflows, must be a valid multiple of the size.
-                let val = offset as u64 + (count as u64 * type_size as u64);
-                if val > array_buffer.capacity() as u64 {
-                    return self.webgl_error(InvalidOperation);
-                }
-            } else {
-                // From the WebGL spec
-                //
-                //      a non-null WebGLBuffer must be bound to the ELEMENT_ARRAY_BUFFER binding point
-                //      or an INVALID_OPERATION error will be generated.
-                //
-                return self.webgl_error(InvalidOperation);
-            }
-        }
-
-        // TODO(nox): Pass the correct number of vertices required.
-        handle_potential_webgl_error!(
-            self,
-            self.current_vao().validate_for_draw(0, 1, &current_program.active_attribs()),
-            return
-        );
-
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
-
-        self.send_command(WebGLCommand::DrawElements(mode, count, type_, offset));
-        self.mark_as_dirty();
+        self.draw_elements_instanced(mode, count, type_, offset, 1);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
