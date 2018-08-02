@@ -9,18 +9,13 @@
 <script>
 "use strict";
 
-promise_test(async () => {
-  const idl_array = new IdlArray();
-  const dom_idl = await fetch("/interfaces/dom.idl").then(r => r.text());
-  const webxr_idl = await fetch("/interfaces/webxr.idl").then(r => r.text());
-
-  idl_array.add_untested_idls(dom_idl);
-  idl_array.add_untested_idls("interface Navigator {};");
-  idl_array.add_idls(webxr_idl);
-  idl_array.add_idls("dictionary WebGLContextAttributes {};");
-  idl_array.add_objects({
-    Navigator:['navigator'],
-  });
-  idl_array.test();
-}, "Test IDL implementation of WebXR API");
+idl_test(
+  ['webxr'],
+  ['webgl1', 'html', 'dom'],
+  idl_array => {
+    idl_array.add_objects({
+      Navigator:['navigator'],
+    });
+  },
+  'Test IDL implementation of WebXR API');
 </script>

@@ -2,9 +2,7 @@
 
 import pytest
 
-from webdriver import error
-
-from tests.support.asserts import assert_success
+from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
 
 
 def execute_script(session, script, args=None):
@@ -19,83 +17,88 @@ def execute_script(session, script, args=None):
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": "accept"})
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_accept(session, dialog_type):
-    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
-    assert_success(response, None)
+@pytest.mark.parametrize("dialog_type, retval", [
+    ("alert", None),
+    ("confirm", True),
+    ("prompt", ""),
+])
+def test_handle_prompt_accept(session, create_dialog, dialog_type, retval):
+    create_dialog(dialog_type, text=dialog_type)
 
-    session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.accept()
+    response = execute_script(session, "window.result = 1; return 1;")
+    assert_success(response, 1)
+
+    assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
+
+    assert session.execute_script("return window.result;") == 1
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": "accept and notify"})
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_accept_and_notify(session, dialog_type):
-    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
-    assert_success(response, None)
+@pytest.mark.parametrize("dialog_type, retval", [
+    ("alert", None),
+    ("confirm", True),
+    ("prompt", ""),
+])
+def test_handle_prompt_accept_and_notify(session, create_dialog, dialog_type, retval):
+    create_dialog(dialog_type, text=dialog_type)
 
-    with pytest.raises(error.UnexpectedAlertOpenException):
-        session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.accept()
+    response = execute_script(session, "window.result = 1; return 1;")
+    assert_error(response, "unexpected alert open")
+
+    assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
+
+    assert session.execute_script("return window.result;") is None
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": "dismiss"})
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_dismiss(session, dialog_type):
-    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
-    assert_success(response, None)
+@pytest.mark.parametrize("dialog_type, retval", [
+    ("alert", None),
+    ("confirm", False),
+    ("prompt", None),
+])
+def test_handle_prompt_dismiss(session, create_dialog, dialog_type, retval):
+    create_dialog(dialog_type, text=dialog_type)
 
-    session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.dismiss()
+    response = execute_script(session, "window.result = 1; return 1;")
+    assert_success(response, 1)
+
+    assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
+
+    assert session.execute_script("return window.result;") == 1
 
 
 @pytest.mark.capabilities({"unhandledPromptBehavior": "dismiss and notify"})
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_dismiss_and_notify(session, dialog_type):
-    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
-    assert_success(response, None)
+@pytest.mark.parametrize("dialog_type, retval", [
+    ("alert", None),
+    ("confirm", False),
+    ("prompt", None),
+])
+def test_handle_prompt_dissmiss_and_notify(session, create_dialog, dialog_type, retval):
+    create_dialog(dialog_type, text=dialog_type)
 
-    with pytest.raises(error.UnexpectedAlertOpenException):
-        session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.dismiss()
+    response = execute_script(session, "window.result = 1; return 1;")
+    assert_error(response, "unexpected alert open")
 
+    assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
-@pytest.mark.capabilities({"unhandledPromptBehavior": "ignore"})
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_ignore(session, dialog_type):
-    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
-    assert_success(response, None)
-
-    with pytest.raises(error.UnexpectedAlertOpenException):
-        session.title
-    session.alert.dismiss()
+    assert session.execute_script("return window.result;") is None
 
 
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_default(session, dialog_type):
-    response = execute_script(session, "window.{}('Hello');".format(dialog_type))
-    assert_success(response, None)
-
-    with pytest.raises(error.UnexpectedAlertOpenException):
-        session.title
-    with pytest.raises(error.NoSuchAlertException):
-        session.alert.dismiss()
+def test_handle_prompt_ignore():
+    """TODO"""
 
 
-@pytest.mark.capabilities({"unhandledPromptBehavior": "accept"})
-@pytest.mark.parametrize("dialog_type", ["alert", "confirm", "prompt"])
-def test_handle_prompt_twice(session, dialog_type):
-    response = execute_script(
-        session, "window.{0}('Hello');window.{0}('Bye');".format(dialog_type))
-    assert_success(response, None)
+@pytest.mark.parametrize("dialog_type, retval", [
+    ("alert", None),
+    ("confirm", False),
+    ("prompt", None),
+])
+def test_handle_prompt_default(session, create_dialog, dialog_type, retval):
+    create_dialog(dialog_type, text=dialog_type)
 
-    session.alert.dismiss()
-    # The first alert has been accepted by the user prompt handler, the second one remains.
-    # FIXME: this is how browsers currently work, but the spec should clarify if this is the
-    #        expected behavior, see https://github.com/w3c/webdriver/issues/1153.
-    assert session.alert.text == "Bye"
-    session.alert.dismiss()
+    response = execute_script(session, "window.result = 1; return 1;")
+    assert_error(response, "unexpected alert open")
+
+    assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
+
+    assert session.execute_script("return window.result;") is None

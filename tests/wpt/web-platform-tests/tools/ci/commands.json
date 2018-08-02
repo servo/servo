@@ -3,7 +3,5 @@
                   "virtualenv": false},
     "check-stability": {"path": "check_stability.py", "script": "run", "parser": "get_parser", "parse_known": true, "help": "Check test stability",
                         "virtualenv": true, "install": ["requests"], "requirements": ["../wptrunner/requirements.txt"]},
-    "make-hosts-file": {"path": "make_hosts_file.py", "script": "run", "parser": "create_parser", "help": "Output a hosts file to stdout", "virtualenv": false},
-    "make-tasks": {"path": "taskgraph.py", "script": "run", "parser": "get_parser", "parse_known": true, "help": "Generate taskcluster.yml file containing the run tasks",
-                        "virtualenv": true, "install": ["pyyaml"]}
+    "make-hosts-file": {"path": "make_hosts_file.py", "script": "run", "parser": "create_parser", "help": "Output a hosts file to stdout", "virtualenv": false}
 }

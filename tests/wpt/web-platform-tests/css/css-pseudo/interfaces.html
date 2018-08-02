@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<h1>CSS Pseudo-Elements IDL tests</h1>
+<div id=log></div>
+
+<script>
+'use strict';
+
+idl_test(
+  ['css-pseudo'],
+  ['cssom', 'html', 'dom'],
+  async idlArray => {
+    idlArray.add_objects({
+      Window: ['window'],
+      // TODO: CSSPseudoElement + CSSPseudoElementList
+    });
+  },
+  'CSS Pseudo-Elements interfaces'
+);
+</script>

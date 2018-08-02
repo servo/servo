@@ -1,0 +1,9 @@
+exclude enum/*
+include setup.py
+include README
+include enum/__init__.py
+include enum/test.py
+include enum/LICENSE
+include enum/README
+include enum/doc/enum.pdf
+include enum/doc/enum.rst

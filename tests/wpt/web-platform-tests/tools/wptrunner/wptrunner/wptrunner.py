@@ -4,6 +4,8 @@ import json
 import os
 import sys
 
+from wptserve import sslutils
+
 import environment as env
 import products
 import testloader
@@ -39,7 +41,7 @@ def setup_logging(*args, **kwargs):
     logger = wptlogging.setup(*args, **kwargs)
 
 
-def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, **kwargs):
+def get_loader(test_paths, product, debug=None, run_info_extras=None, **kwargs):
     if run_info_extras is None:
         run_info_extras = {}
 
@@ -62,6 +64,7 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
     if kwargs["tags"]:
         meta_filters.append(testloader.TagFilter(tags=kwargs["tags"]))
 
+    ssl_enabled = sslutils.get_cls(kwargs["ssl_type"]).ssl_enabled
     test_loader = testloader.TestLoader(test_manifests,
                                         kwargs["test_types"],
                                         run_info,
@@ -70,7 +73,7 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
                                         chunk_type=kwargs["chunk_type"],
                                         total_chunks=kwargs["total_chunks"],
                                         chunk_number=kwargs["this_chunk"],
-                                        include_https=ssl_env.ssl_enabled,
+                                        include_https=ssl_enabled,
                                         skip_timeout=kwargs["skip_timeout"])
     return run_info, test_loader
 
@@ -78,11 +81,9 @@ def get_loader(test_paths, product, ssl_env, debug=None, run_info_extras=None, *
 def list_test_groups(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
 
-    ssl_env = env.ssl_env(logger, **kwargs)
-
     run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
 
-    run_info, test_loader = get_loader(test_paths, product, ssl_env,
+    run_info, test_loader = get_loader(test_paths, product,
                                        run_info_extras=run_info_extras, **kwargs)
 
     for item in sorted(test_loader.groups(kwargs["test_types"])):
@@ -96,9 +97,7 @@ def list_disabled(test_paths, product, **kwargs):
 
     run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
 
-    ssl_env = env.ssl_env(logger, **kwargs)
-
-    run_info, test_loader = get_loader(test_paths, product, ssl_env,
+    run_info, test_loader = get_loader(test_paths, product,
                                        run_info_extras=run_info_extras, **kwargs)
 
     for test_type, tests in test_loader.disabled_tests.iteritems():
@@ -110,11 +109,9 @@ def list_disabled(test_paths, product, **kwargs):
 def list_tests(test_paths, product, **kwargs):
     env.do_delayed_imports(logger, test_paths)
 
-    ssl_env = env.ssl_env(logger, **kwargs)
-
     run_info_extras = products.load_product(kwargs["config"], product)[-1](**kwargs)
 
-    run_info, test_loader = get_loader(test_paths, product, ssl_env,
+    run_info, test_loader = get_loader(test_paths, product,
                                        run_info_extras=run_info_extras, **kwargs)
 
     for test in test_loader.test_ids:
@@ -141,7 +138,6 @@ def run_tests(config, test_paths, product, **kwargs):
          executor_classes, get_executor_kwargs,
          env_options, get_env_extras, run_info_extras) = products.load_product(config, product)
 
-        ssl_env = env.ssl_env(logger, **kwargs)
         env_extras = get_env_extras(**kwargs)
 
         check_args(**kwargs)
@@ -161,7 +157,6 @@ def run_tests(config, test_paths, product, **kwargs):
         else:
             run_info, test_loader = get_loader(test_paths,
                                                product,
-                                               ssl_env,
                                                run_info_extras=run_info_extras(**kwargs),
                                                **kwargs)
 
@@ -180,11 +175,17 @@ def run_tests(config, test_paths, product, **kwargs):
 
         kwargs["pause_after_test"] = get_pause_after_test(test_loader, **kwargs)
 
+        ssl_config = {"type": kwargs["ssl_type"],
+                      "openssl": {"openssl_binary": kwargs["openssl_binary"]},
+                      "pregenerated": {"host_key_path": kwargs["host_key_path"],
+                                       "host_cert_path": kwargs["host_cert_path"],
+                                       "ca_cert_path": kwargs["ca_cert_path"]}}
+
         with env.TestEnvironment(test_paths,
-                                 ssl_env,
                                  kwargs["pause_after_test"],
                                  kwargs["debug_info"],
                                  env_options,
+                                 ssl_config,
                                  env_extras) as test_environment:
             try:
                 test_environment.ensure_started()
@@ -205,7 +206,8 @@ def run_tests(config, test_paths, product, **kwargs):
 
                 test_count = 0
                 unexpected_count = 0
-                logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info)
+                logger.suite_start(test_loader.test_ids, name='web-platform-test', run_info=run_info,
+                                   extra={"run_by_dir": kwargs["run_by_dir"]})
                 for test_type in kwargs["test_types"]:
                     logger.info("Running %s tests" % test_type)
 
@@ -221,7 +223,6 @@ def run_tests(config, test_paths, product, **kwargs):
 
                     browser_kwargs = get_browser_kwargs(test_type,
                                                         run_info,
-                                                        ssl_env=ssl_env,
                                                         config=test_environment.config,
                                                         **kwargs)
 
@@ -315,6 +316,7 @@ def check_stability(**kwargs):
                                      repeat_restart=kwargs['verify_repeat_restart'],
                                      output_results=kwargs['verify_output_results'],
                                      **kwargs)
+
 
 def start(**kwargs):
     if kwargs["list_test_groups"]:
