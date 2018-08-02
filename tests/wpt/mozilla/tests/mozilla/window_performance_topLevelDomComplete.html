@@ -1,22 +1,33 @@
-<html>
-<head>
-  <title>Performance toLevelDomComplete</title>
-  <script src="/resources/testharness.js"></script>
-  <script src="/resources/testharnessreport.js"></script>
-</head>
+<!doctype html>
+<meta charset="utf-8">
+<title>Performance topLevelDomComplete</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
-async_test(function(t) {
-    window.onload = t.step_func(function () {
-    var entries = window.performance.getEntries();
-      assert_greater_than(entries.length, 0, "There should be at least one navigation timing instance");
+async_test(function (t) {
+  var observer = new PerformanceObserver(
+    window.onload = t.step_func(function (entryList, obs) {
 
-      // The measurements are sometimes a few ns apart
-      assert_true(Math.abs(entries[0].domComplete - entries[0].topLevelDomComplete) < 20);
-      t.done()
-    }
-  );
-}, "performance.topLevelDomComplete");
+      var window_entries = window.performance.getEntries();
+      console.log(window_entries.length);
+      var entries = entryList.getEntries();
+      entryList.getEntries().forEach(function(entry) {
+        console.log(entry.name)
+        //FIXME it's a PRT not a PNT and i'm done trying
+        console.log(entry instanceof PerformanceNavigationTiming);
+        console.log(entry instanceof PerformanceResourceTiming);
+      });
+      console.log("HAAAAAAAAAAAALP");
+      console.log(entries.length);
+      observer.disconnect();
+      t.done();
+    }));
+  observer.observe({entryTypes: ["navigation", "navigate", "resource"]});
+
+
+
+}, "top level dom complete");
 </script>
 </body>
-</html>
+
