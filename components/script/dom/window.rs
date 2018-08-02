@@ -61,7 +61,7 @@ use fetch;
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
-use js::jsapi::{JS_GC, JS_GetRuntime, JSPROP_ENUMERATE, JSPROP_PERMANENT};
+use js::jsapi::{JS_GC, JS_GetRuntime, JSPROP_ENUMERATE};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_DefineProperty;
@@ -594,9 +594,9 @@ impl WindowMethods for Window {
         let obj = self.reflector().get_jsobject();
         assert!(JS_DefineProperty(cx,
                                   obj,
-                                  "opener".as_ptr() as *const libc::c_char,
+                                  "opener\0".as_ptr() as *const libc::c_char,
                                   value,
-                                  JSPROP_ENUMERATE | JSPROP_PERMANENT,
+                                  JSPROP_ENUMERATE,
                                   None,
                                   None));
     }
