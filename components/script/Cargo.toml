@@ -30,7 +30,6 @@ tinyfiledialogs = "3.0"
 
 [dependencies]
 app_units = "0.7"
-audio-video-metadata = "0.1.4"
 backtrace = {version = "0.3", optional = true}
 base64 = "0.6"
 bitflags = "1.0"
