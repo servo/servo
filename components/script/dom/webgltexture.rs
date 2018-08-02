@@ -4,10 +4,10 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 
-use canvas_traits::webgl::{DOMToTextureCommand, TexParameter, TexParameterFloat};
-use canvas_traits::webgl::{TexParameterInt, WebGLCommand, WebGLError};
+use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLTextureId, webgl_channel};
 use dom::bindings::cell::DomRefCell;
+use dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::inheritance::Castable;
@@ -203,7 +203,7 @@ impl WebGLTexture {
     ///
     pub fn tex_parameter(
         &self,
-        param: TexParameter,
+        param: u32,
         value: TexParameterValue,
     ) -> WebGLResult<()> {
         let target = self.target().unwrap();
@@ -213,62 +213,67 @@ impl WebGLTexture {
             TexParameterValue::Float(float_value) => (float_value as i32, float_value),
         };
 
+        let update_filter = |filter: &Cell<u32>| {
+            if filter.get() == int_value as u32 {
+                return Ok(());
+            }
+            filter.set(int_value as u32);
+            self.upcast::<WebGLObject>()
+                .context()
+                .send_command(WebGLCommand::TexParameteri(target, param, int_value));
+            Ok(())
+        };
         match param {
-            TexParameter::Int(int_param) => {
-                let update_filter = |filter: &Cell<u32>| {
-                    if filter.get() == int_value as u32 {
-                        return Ok(());
-                    }
-                    filter.set(int_value as u32);
-                    self.upcast::<WebGLObject>()
-                        .context()
-                        .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
-                    Ok(())
-                };
-                match int_param {
-                    TexParameterInt::TextureMinFilter => {
-                        match int_value as u32 {
-                            constants::NEAREST |
-                            constants::LINEAR |
-                            constants::NEAREST_MIPMAP_NEAREST |
-                            constants::LINEAR_MIPMAP_NEAREST |
-                            constants::NEAREST_MIPMAP_LINEAR |
-                            constants::LINEAR_MIPMAP_LINEAR => update_filter(&self.min_filter),
-                            _ => Err(WebGLError::InvalidEnum),
-                        }
-                    }
-                    TexParameterInt::TextureMagFilter => {
-                        match int_value as u32 {
-                            constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
-                            _ => return Err(WebGLError::InvalidEnum),
-                        }
-                    }
-                    TexParameterInt::TextureWrapS | TexParameterInt::TextureWrapT => {
-                        match int_value as u32 {
-                            constants::CLAMP_TO_EDGE |
-                            constants::MIRRORED_REPEAT |
-                            constants::REPEAT => {
-                                self.upcast::<WebGLObject>()
-                                    .context()
-                                    .send_command(WebGLCommand::TexParameteri(target, int_param, int_value));
-                                Ok(())
-                            }
-                            _ => Err(WebGLError::InvalidEnum),
-                        }
-                    }
+            constants::TEXTURE_MIN_FILTER => {
+                match int_value as u32 {
+                    constants::NEAREST |
+                    constants::LINEAR |
+                    constants::NEAREST_MIPMAP_NEAREST |
+                    constants::LINEAR_MIPMAP_NEAREST |
+                    constants::NEAREST_MIPMAP_LINEAR |
+                    constants::LINEAR_MIPMAP_LINEAR => update_filter(&self.min_filter),
+                    _ => Err(WebGLError::InvalidEnum),
                 }
             }
-            TexParameter::Float(float_param @ TexParameterFloat::TextureMaxAnisotropyExt) => {
-                if float_value >= 1. {
-                    self.upcast::<WebGLObject>()
-                        .context()
-                        .send_command(WebGLCommand::TexParameterf(target, float_param, float_value));
-                    Ok(())
-                } else {
-                    Err(WebGLError::InvalidValue)
+            constants::TEXTURE_MAG_FILTER => {
+                match int_value as u32 {
+                    constants::NEAREST | constants::LINEAR => update_filter(&self.mag_filter),
+                    _ => return Err(WebGLError::InvalidEnum),
                 }
             }
+            constants::TEXTURE_WRAP_S | constants::TEXTURE_WRAP_T => {
+                match int_value as u32 {
+                    constants::CLAMP_TO_EDGE |
+                    constants::MIRRORED_REPEAT |
+                    constants::REPEAT => {
+                        self.upcast::<WebGLObject>()
+                            .context()
+                            .send_command(WebGLCommand::TexParameteri(target, param, int_value));
+                        Ok(())
+                    }
+                    _ => Err(WebGLError::InvalidEnum),
+                }
+            }
+            EXTTextureFilterAnisotropicConstants::TEXTURE_MAX_ANISOTROPY_EXT => {
+                // NaN is not less than 1., what a time to be alive.
+                if !(float_value >= 1.) {
+                    return Err(WebGLError::InvalidValue);
+                }
+                self.upcast::<WebGLObject>()
+                    .context()
+                    .send_command(WebGLCommand::TexParameterf(target, param, float_value));
+                Ok(())
+            }
+            _ => Err(WebGLError::InvalidEnum),
         }
+    }
+
+    pub fn min_filter(&self) -> u32 {
+        self.min_filter.get()
+    }
+
+    pub fn mag_filter(&self) -> u32 {
+        self.mag_filter.get()
     }
 
     pub fn is_using_linear_filtering(&self) -> bool {
