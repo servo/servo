@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::root::MutNullableDom;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use js::jsapi::JSObject;
@@ -85,13 +85,5 @@ impl<T> WebGLExtensionWrapper for TypedWebGLExtensionWrapper<T>
 
     fn as_any<'a>(&'a self) -> &'a Any {
         self
-    }
-}
-
-impl<T> TypedWebGLExtensionWrapper<T>
-    where T: WebGLExtension + JSTraceable + MallocSizeOf + 'static
-{
-    pub fn dom_object(&self) -> Option<DomRoot<T::Extension>> {
-        self.extension.get()
     }
 }

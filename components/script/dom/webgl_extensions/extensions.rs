@@ -2,24 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::webgl::{WebGLError, WebGLVersion};
+use canvas_traits::webgl::WebGLVersion;
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
 use dom::bindings::codegen::Bindings::OESStandardDerivativesBinding::OESStandardDerivativesConstants;
 use dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
+use dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use fnv::{FnvHashMap, FnvHashSet};
 use gleam::gl::GLenum;
-use js::jsapi::JSContext;
 use js::jsapi::JSObject;
-use js::jsval::JSVal;
 use malloc_size_of::MallocSizeOf;
-use ref_filter_map::ref_filter_map;
-use std::cell::Ref;
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::ptr::NonNull;
@@ -43,9 +39,10 @@ const DEFAULT_NOT_FILTERABLE_TEX_TYPES: [GLenum; 2] = [
 // Param names that are implemented for glGetParameter in a WebGL 1.0 context
 // but must trigger a InvalidEnum error until the related WebGL Extensions are enabled.
 // Example: https://www.khronos.org/registry/webgl/extensions/OES_standard_derivatives/
-const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 2] = [
+const DEFAULT_DISABLED_GET_PARAMETER_NAMES_WEBGL1: [GLenum; 3] = [
     EXTTextureFilterAnisotropicConstants::MAX_TEXTURE_MAX_ANISOTROPY_EXT,
     OESStandardDerivativesConstants::FRAGMENT_SHADER_DERIVATIVE_HINT_OES,
+    OESVertexArrayObjectConstants::VERTEX_ARRAY_BINDING_OES,
 ];
 
 // Param names that are implemented for glGetTexParameter in a WebGL 1.0 context
@@ -69,7 +66,6 @@ struct WebGLExtensionFeatures {
     disabled_tex_types: FnvHashSet<GLenum>,
     not_filterable_tex_types: FnvHashSet<GLenum>,
     effective_tex_internal_formats: FnvHashMap<TexFormatType, u32>,
-    query_parameter_handlers: FnvHashMap<GLenum, WebGLQueryParameterHandler>,
     /// WebGL Hint() targets enabled by extensions.
     hint_targets: FnvHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
@@ -120,7 +116,6 @@ impl WebGLExtensionFeatures {
             disabled_tex_types,
             not_filterable_tex_types: DEFAULT_NOT_FILTERABLE_TEX_TYPES.iter().cloned().collect(),
             effective_tex_internal_formats: Default::default(),
-            query_parameter_handlers: Default::default(),
             hint_targets: Default::default(),
             disabled_get_parameter_names,
             disabled_get_tex_parameter_names,
@@ -196,18 +191,6 @@ impl WebGLExtensions {
         self.extensions.borrow().get(&name).map_or(false, |ext| { ext.is_enabled() })
     }
 
-    pub fn get_dom_object<T>(&self) -> Option<DomRoot<T::Extension>>
-    where
-        T: 'static + WebGLExtension + JSTraceable + MallocSizeOf
-    {
-        let name = T::name().to_uppercase();
-        self.extensions.borrow().get(&name).and_then(|extension| {
-            extension.as_any().downcast_ref::<TypedWebGLExtensionWrapper<T>>().and_then(|extension| {
-                extension.dom_object()
-            })
-        })
-    }
-
     pub fn supports_gl_extension(&self, name: &str) -> bool {
         self.features.borrow().gl_extensions.contains(name)
     }
@@ -250,19 +233,6 @@ impl WebGLExtensions {
 
     pub fn is_filterable(&self, text_data_type: u32) -> bool {
         self.features.borrow().not_filterable_tex_types.get(&text_data_type).is_none()
-    }
-
-    pub fn add_query_parameter_handler(&self, name: GLenum, f: Box<WebGLQueryParameterFunc>) {
-        let handler = WebGLQueryParameterHandler {
-            func: f
-        };
-        self.features.borrow_mut().query_parameter_handlers.insert(name, handler);
-    }
-
-    pub fn get_query_parameter_handler(&self, name: GLenum) -> Option<Ref<Box<WebGLQueryParameterFunc>>> {
-        ref_filter_map(self.features.borrow(), |features| {
-            features.query_parameter_handlers.get(&name).map(|item| &item.func)
-        })
     }
 
     pub fn enable_hint_target(&self, name: GLenum) {
@@ -331,14 +301,3 @@ impl WebGLExtensions {
 // Helper structs
 #[derive(Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
 struct TexFormatType(u32, u32);
-
-type WebGLQueryParameterFunc = Fn(*mut JSContext, &WebGLRenderingContext)
-                               -> Result<JSVal, WebGLError>;
-
-#[derive(MallocSizeOf)]
-struct WebGLQueryParameterHandler {
-    #[ignore_malloc_size_of = "Closures are hard"]
-    func: Box<WebGLQueryParameterFunc>
-}
-
-unsafe_no_jsmanaged_fields!(WebGLQueryParameterHandler);
