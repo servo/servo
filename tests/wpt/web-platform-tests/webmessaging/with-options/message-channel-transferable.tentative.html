@@ -6,7 +6,7 @@
 <script>
 async_test(function(t) {
   var channel = new MessageChannel();
-  postMessage('', [channel.port1, channel.port2], {targetOrigin: '*'});
+  postMessage('', {targetOrigin: '*', transfer: [channel.port1, channel.port2]});
   onmessage = t.step_func(function(e) {
     assert_equals(e.ports.length, 2);
     t.done();

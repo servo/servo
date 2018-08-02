@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "CSSOM View Module" spec.
+// See: https://drafts.csswg.org/cssom-view/
+
 enum ScrollBehavior { "auto", "instant", "smooth" };
 
 dictionary ScrollOptions {
@@ -131,7 +136,6 @@ partial interface Range {
   [NewObject] DOMRect getBoundingClientRect();
 };
 
-/* TODO This is commented out because: "Partial interface MouseEvent with no original interface"
 partial interface MouseEvent {
   readonly attribute double screenX;
   readonly attribute double screenY;
@@ -151,7 +155,6 @@ partial dictionary MouseEventInit {
   double clientX = 0.0;
   double clientY = 0.0;
 };
-*/
 
 enum CSSBoxType { "margin", "border", "padding", "content" };
 dictionary BoxQuadOptions {
@@ -164,20 +167,16 @@ dictionary ConvertCoordinateOptions {
   CSSBoxType toBox = "border";
 };
 
-[Exposed=Window,
- NoInterfaceObject]
-interface GeometryUtils {
+interface mixin GeometryUtils {
   sequence<DOMQuad> getBoxQuads(optional BoxQuadOptions options);
   DOMQuad convertQuadFromNode(DOMQuadInit quad, GeometryNode from, optional ConvertCoordinateOptions options);
   DOMQuad convertRectFromNode(DOMRectReadOnly rect, GeometryNode from, optional ConvertCoordinateOptions options);
   DOMPoint convertPointFromNode(DOMPointInit point, GeometryNode from, optional ConvertCoordinateOptions options); // XXX z,w turns into 0
 };
 
-Text implements GeometryUtils; // like Range
-Element implements GeometryUtils;
-/* TODO Commented out because: "CSSPseudoElement implements GeometryUtils, but CSSPseudoElement is undefined."
-CSSPseudoElement implements GeometryUtils;
-*/
-Document implements GeometryUtils;
+Text includes GeometryUtils; // like Range
+Element includes GeometryUtils;
+CSSPseudoElement includes GeometryUtils;
+Document includes GeometryUtils;
 
 typedef (Text or Element or CSSPseudoElement or Document) GeometryNode;

@@ -19,6 +19,7 @@ default_script_timeout = 30
 default_page_load_timeout = 300
 default_implicit_wait_timeout = 0
 
+default_window_size = (800, 600)
 
 _current_session = None
 _custom_session = False
@@ -72,7 +73,7 @@ def cleanup_session(session):
         This also includes bringing it out of maximized, minimized,
         or fullscreened state.
         """
-        session.window.size = (800, 600)
+        session.window.size = default_window_size
 
     @ignore_exceptions
     def _restore_windows(session):
@@ -134,6 +135,18 @@ def add_event_listeners(session):
             }
             """, args=(element, tracked_events))
     return add_event_listeners
+
+
+def create_cookie(session, url):
+    """Create a cookie"""
+    def create_cookie(name, value, **kwargs):
+        if kwargs.get("path", None) is not None:
+            session.url = url(kwargs["path"])
+
+        session.set_cookie(name, value, **kwargs)
+        return session.cookies(name)
+
+    return create_cookie
 
 
 def create_frame(session):
@@ -213,6 +226,9 @@ def session(capabilities, configuration, request):
         if not _current_session.session_id:
             raise
 
+    # Enforce a fixed default window size
+    _current_session.window.size = default_window_size
+
     yield _current_session
 
     cleanup_session(_current_session)
@@ -237,7 +253,7 @@ def create_dialog(session):
     function to validate that the dialog has been "handled" (either accepted or
     dismissed) by returning some value."""
 
-    def create_dialog(dialog_type, text=None, result_var=None):
+    def create_dialog(dialog_type, text=None):
         assert dialog_type in ("alert", "confirm", "prompt"), (
             "Invalid dialog type: '%s'" % dialog_type)
 
@@ -246,18 +262,15 @@ def create_dialog(session):
 
         assert isinstance(text, basestring), "`text` parameter must be a string"
 
-        if result_var is None:
-            result_var = "__WEBDRIVER"
-
-        assert re.search(r"^[_$a-z$][_$a-z0-9]*$", result_var, re.IGNORECASE), (
-            'The `result_var` must be a valid JavaScript identifier')
-
         # Script completes itself when the user prompt has been opened.
         session.execute_async_script("""
-            setTimeout(function() {{
-                window.{0} = window.{1}("{2}");
-            }}, 0);
-            """.format(result_var, dialog_type, text))
+            let dialog_type = arguments[0];
+            let text = arguments[1];
+
+            setTimeout(function() {
+              window.dialog_return_value = window[dialog_type](text);
+            }, 0);
+            """, args=(dialog_type, text))
 
         wait(session,
              lambda s: s.alert.text == text,

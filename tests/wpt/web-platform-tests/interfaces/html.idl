@@ -1357,9 +1357,7 @@ interface TextMetrics {
   readonly attribute double actualBoundingBoxDescent;
   readonly attribute double emHeightAscent;
   readonly attribute double emHeightDescent;
-  readonly attribute double hangingBaseline;
-  readonly attribute double alphabeticBaseline;
-  readonly attribute double ideographicBaseline;
+  Baselines getBaselines();
 };
 
 [Constructor(unsigned long sw, unsigned long sh),

@@ -16,8 +16,9 @@ function eucjpDecoder(stream) {
     stream = stream.replace(/%/g, " ");
     stream = stream.replace(/[\s]+/g, " ").trim();
     var bytes = stream.split(" ");
-    for (i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
+    for (var i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
     var out = "";
+
     var lead, byte, offset, ptr, cp;
     var jis0212flag = false;
     var eucjpLead = 0x00;
@@ -68,6 +69,7 @@ function eucjpDecoder(stream) {
             }
             if (byte >= 0x00 && byte <= 0x7f) bytes.unshift(byte);
             out += "�";
+            continue;
         }
         if (byte >= 0x00 && byte <= 0x7f) {
             out += dec2char(byte);

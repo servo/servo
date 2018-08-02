@@ -7,6 +7,7 @@
 <div style=height:10000px></div>
 <div id=&#xFF;></div>
 <div id=&#xFEFF;></div>
+<div id=&#x2661;&#x00FF;><div>
 <script>
 function goToTop() {
   location.hash = "top";
@@ -34,4 +35,16 @@ test(() => {
   location.hash = "%FF";
   assert_equals(self.scrollY, 0, "#%FF");
 }, "%FF should not find U+00FF as decoding it gives U+FFFD");
+
+test(() => {
+  goToTop();
+
+  // U+2661 in UTF-8 + %FF.
+  // Chrome had an issue that the following fragment was decoded as U+2661 U+00FF.
+  // https://github.com/whatwg/html/pull/3111
+  location.hash = "%E2%99%A1%FF";
+  assert_equals(self.scrollY, 0, "%E2%99%A1%FF");
+
+  goToTop();
+}, "Valid UTF-8 + invalid UTF-8 should not be matched to the utf8-decoded former + the isomorphic-decoded latter");
 </script>

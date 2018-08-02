@@ -91,12 +91,17 @@ otherwise install OpenSSL and ensure that it's on your $PATH.""")
 
 def check_environ(product):
     if product not in ("firefox", "servo"):
-        config = serve.load_config(os.path.join(wpt_root, "config.json"))
-        expected_hosts = set(config.domains_set)
+        config_builder = serve.build_config(os.path.join(wpt_root, "config.json"))
+        # Ovveride the ports to avoid looking for free ports
+        config_builder.ssl = {"type": "none"}
+        config_builder.ports = {"http": [8000]}
+
         is_windows = platform.uname()[0] == "Windows"
 
-        if is_windows:
-            expected_hosts.update(config.not_domains_set)
+        with config_builder as config:
+            expected_hosts = set(config.domains_set)
+            if is_windows:
+                expected_hosts.update(config.not_domains_set)
 
         missing_hosts = set(expected_hosts)
         if is_windows:

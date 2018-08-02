@@ -3,6 +3,7 @@ import pytest
 from tests.support.fixtures import (
     add_event_listeners,
     configuration,
+    create_cookie,
     create_dialog,
     create_frame,
     create_window,
@@ -33,6 +34,7 @@ def pytest_generate_tests(metafunc):
 
 pytest.fixture()(add_event_listeners)
 pytest.fixture(scope="session")(configuration)
+pytest.fixture()(create_cookie)
 pytest.fixture()(create_dialog)
 pytest.fixture()(create_frame)
 pytest.fixture()(create_window)

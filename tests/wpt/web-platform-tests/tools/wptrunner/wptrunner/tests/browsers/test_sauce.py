@@ -8,7 +8,7 @@ sys.path.insert(0, join(dirname(__file__), "..", "..", ".."))
 
 sauce = pytest.importorskip("wptrunner.browsers.sauce")
 
-from wptserve.config import Config
+from wptserve.config import ConfigBuilder
 
 
 def test_sauceconnect_success():
@@ -27,10 +27,10 @@ def test_sauceconnect_success():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = Config(browser_host="example.net")
-        sauce_connect(None, env_config)
-        with sauce_connect:
-            pass
+        with ConfigBuilder(browser_host="example.net") as env_config:
+            sauce_connect(None, env_config)
+            with sauce_connect:
+                pass
 
 
 @pytest.mark.parametrize("readyfile,returncode", [
@@ -56,14 +56,15 @@ def test_sauceconnect_failure_exit(readyfile, returncode):
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = Config(browser_host="example.net")
-        sauce_connect(None, env_config)
-        with pytest.raises(sauce.SauceException):
-            with sauce_connect:
-                pass
+        with ConfigBuilder(browser_host="example.net") as env_config:
+            sauce_connect(None, env_config)
+            with pytest.raises(sauce.SauceException):
+                with sauce_connect:
+                    pass
 
         # Given we appear to exit immediately with these mocks, sleep shouldn't be called
         sleep.assert_not_called()
+
 
 def test_sauceconnect_cleanup():
     """Ensure that execution pauses when the process is closed while exiting
@@ -83,11 +84,11 @@ def test_sauceconnect_cleanup():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = Config(browser_host="example.net")
-        sauce_connect(None, env_config)
-        with sauce_connect:
-            Popen.return_value.poll.return_value = None
-            sleep.assert_not_called()
+        with ConfigBuilder(browser_host="example.net") as env_config:
+            sauce_connect(None, env_config)
+            with sauce_connect:
+                Popen.return_value.poll.return_value = None
+                sleep.assert_not_called()
 
         sleep.assert_called()
 
@@ -107,11 +108,11 @@ def test_sauceconnect_failure_never_ready():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = Config(browser_host="example.net")
-        sauce_connect(None, env_config)
-        with pytest.raises(sauce.SauceException):
-            with sauce_connect:
-                pass
+        with ConfigBuilder(browser_host="example.net") as env_config:
+            sauce_connect(None, env_config)
+            with pytest.raises(sauce.SauceException):
+                with sauce_connect:
+                    pass
 
         # We should sleep while waiting for it to create the readyfile
         sleep.assert_called()
@@ -135,24 +136,24 @@ def test_sauceconnect_tunnel_domains():
             sauce_tunnel_id="ccc",
             sauce_connect_binary="ddd")
 
-        env_config = Config(browser_host="example.net",
-                            alternate_hosts={"alt": "example.org"},
-                            subdomains={"a", "b"},
-                            not_subdomains={"x", "y"})
-        sauce_connect(None, env_config)
-        with sauce_connect:
-            Popen.assert_called_once()
-            args, kwargs = Popen.call_args
-            cmd = args[0]
-            assert "--tunnel-domains" in cmd
-            i = cmd.index("--tunnel-domains")
-            rest = cmd[i+1:]
-            assert len(rest) >= 1
-            if len(rest) > 1:
-                assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
-            assert set(rest[0].split(",")) == {'example.net',
-                                               'a.example.net',
-                                               'b.example.net',
-                                               'example.org',
-                                               'a.example.org',
-                                               'b.example.org'}
+        with ConfigBuilder(browser_host="example.net",
+                           alternate_hosts={"alt": "example.org"},
+                           subdomains={"a", "b"},
+                           not_subdomains={"x", "y"}) as env_config:
+            sauce_connect(None, env_config)
+            with sauce_connect:
+                Popen.assert_called_once()
+                args, kwargs = Popen.call_args
+                cmd = args[0]
+                assert "--tunnel-domains" in cmd
+                i = cmd.index("--tunnel-domains")
+                rest = cmd[i+1:]
+                assert len(rest) >= 1
+                if len(rest) > 1:
+                    assert rest[1].startswith("-"), "--tunnel-domains takes a comma separated list (not a space separated list)"
+                assert set(rest[0].split(",")) == {'example.net',
+                                                   'a.example.net',
+                                                   'b.example.net',
+                                                   'example.org',
+                                                   'a.example.org',
+                                                   'b.example.org'}

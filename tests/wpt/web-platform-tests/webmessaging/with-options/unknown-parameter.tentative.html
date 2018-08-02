@@ -5,7 +5,7 @@
 <div id="log"></div>
 <script>
 async_test(function() {
-  postMessage('', [], {someBogusParameterOnThisDictionary: 'food'});
+  postMessage('', {someBogusParameterOnThisDictionary: 'food'});
   onmessage = this.step_func(function(e) {
     assert_equals(e.data, '');
     this.done();

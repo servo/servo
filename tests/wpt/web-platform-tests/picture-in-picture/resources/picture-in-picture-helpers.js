@@ -17,6 +17,6 @@ function loadVideo(activeDocument, sourceUrl) {
 // Calls requestPictureInPicture() in a context that's 'allowed to request PiP'.
 function requestPictureInPictureWithTrustedClick(videoElement) {
   return test_driver.bless(
-    'request picture in picture',
+    'request Picture-in-Picture',
     () => videoElement.requestPictureInPicture());
 }

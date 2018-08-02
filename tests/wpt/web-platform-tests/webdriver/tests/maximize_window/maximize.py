@@ -8,20 +8,17 @@ def maximize(session):
 
 
 def is_fullscreen(session):
-    # At the time of writing, WebKit does not conform to the Fullscreen API specification.
-    # Remove the prefixed fallback when https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
-    return session.execute_script("return !!(window.fullScreen || document.webkitIsFullScreen)")
-
-
-# 10.7.3 Maximize Window
+    # At the time of writing, WebKit does not conform to the
+    # Fullscreen API specification.
+    #
+    # Remove the prefixed fallback when
+    # https://bugs.webkit.org/show_bug.cgi?id=158125 is fixed.
+    return session.execute_script("""
+        return !!(window.fullScreen || document.webkitIsFullScreen)
+        """)
 
 
 def test_no_browsing_context(session, create_window):
-    """
-    2. If the current top-level browsing context is no longer open,
-    return error with error code no such window.
-
-    """
     session.window_handle = create_window()
     session.close()
     response = maximize(session)
@@ -29,21 +26,6 @@ def test_no_browsing_context(session, create_window):
 
 
 def test_fully_exit_fullscreen(session):
-    """
-    4. Fully exit fullscreen.
-
-    [...]
-
-    To fully exit fullscreen a document document, run these steps:
-
-      1. If document's fullscreen element is null, terminate these steps.
-
-      2. Unfullscreen elements whose fullscreen flag is set, within
-      document's top layer, except for document's fullscreen element.
-
-      3. Exit fullscreen document.
-
-    """
     session.window.fullscreen()
     assert is_fullscreen(session) is True
 
@@ -53,19 +35,6 @@ def test_fully_exit_fullscreen(session):
 
 
 def test_restore_the_window(session):
-    """
-    5. Restore the window.
-
-    [...]
-
-    To restore the window, given an operating system level window with
-    an associated top-level browsing context, run implementation-specific
-    steps to restore or unhide the window to the visible screen.  Do not
-    return from this operation until the visibility state of the top-level
-    browsing context's active document has reached the visible state,
-    or until the operation times out.
-
-    """
     session.window.minimize()
     assert session.execute_script("return document.hidden") is True
 
@@ -74,22 +43,6 @@ def test_restore_the_window(session):
 
 
 def test_maximize(session):
-    """
-    6. Maximize the window of the current browsing context.
-
-    [...]
-
-    To maximize the window, given an operating system level window with an
-    associated top-level browsing context, run the implementation-specific
-    steps to transition the operating system level window into the
-    maximized window state.  If the window manager supports window
-    resizing but does not have a concept of window maximation, the window
-    dimensions must be increased to the maximum available size permitted
-    by the window manager for the current screen.  Return when the window
-    has completed the transition, or within an implementation-defined
-    timeout.
-
-    """
     before_size = session.window.size
 
     response = maximize(session)
@@ -99,38 +52,10 @@ def test_maximize(session):
 
 
 def test_payload(session):
-    """
-    7. Return success with the JSON serialization of the current top-level
-    browsing context's window rect.
-
-    [...]
-
-    A top-level browsing context's window rect is defined as a
-    dictionary of the screenX, screenY, width and height attributes of
-    the WindowProxy. Its JSON representation is the following:
-
-    "x"
-        WindowProxy's screenX attribute.
-
-    "y"
-        WindowProxy's screenY attribute.
-
-    "width"
-        Width of the top-level browsing context's outer dimensions,
-        including any browser chrome and externally drawn window
-        decorations in CSS reference pixels.
-
-    "height"
-        Height of the top-level browsing context's outer dimensions,
-        including any browser chrome and externally drawn window
-        decorations in CSS reference pixels.
-
-    """
     before_size = session.window.size
 
     response = maximize(session)
 
-    # step 5
     assert response.status == 200
     assert isinstance(response.body["value"], dict)
 
