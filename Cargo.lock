@@ -1428,7 +1428,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "harfbuzz-sys"
 version = "0.2.1"
-source = "git+https://github.com/asajeffrey/rust-harfbuzz.git?branch=android-clang#d15aa6d045ec9490c358eb5458ea913a3819d26a"
+source = "git+https://github.com/asajeffrey/rust-harfbuzz.git?branch=android-clang#58f29a965f175d7641bcd2b474a5125e052973aa"
 dependencies = [
  "cmake 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
