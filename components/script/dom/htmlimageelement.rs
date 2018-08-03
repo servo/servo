@@ -491,9 +491,9 @@ impl HTMLImageElement {
                 let src_attribute = element.get_string_attribute(&local_name!("src"));
                 let is_src_empty = src_attribute.is_empty();
                 let no_density_source_of_1 = source_set.image_sources.iter()
-                    .all(|source| source.descriptor.den != Some(1.));
+                                                .all(|source| source.descriptor.den != Some(1.));
                 let no_width_descriptor = source_set.image_sources.iter()
-                    .all(|source| source.descriptor.wid.is_none());
+                                            .all(|source| source.descriptor.wid.is_none());
                 if !is_src_empty && no_density_source_of_1 && no_width_descriptor {
                     source_set.image_sources.push(ImageSource {
                         url: src_attribute.to_string(),
@@ -1157,9 +1157,9 @@ impl HTMLImageElement {
         }
 
         let useMapElements = document_from_node(self).upcast::<Node>()
-                    .traverse_preorder()
-                    .filter_map(DomRoot::downcast::<HTMLMapElement>)
-                    .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
+                                .traverse_preorder()
+                                .filter_map(DomRoot::downcast::<HTMLMapElement>)
+                                .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
