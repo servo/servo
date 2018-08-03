@@ -40,8 +40,11 @@ num = [
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
+  "crossbeam-epoch",
+  "crossbeam-utils",
   "log",
   "num-traits",
+  "parking_lot",
   "rand",
   "winapi",
 
