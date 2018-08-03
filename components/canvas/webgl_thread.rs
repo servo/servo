@@ -87,6 +87,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     }
 
     /// Handles a generic WebGLMsg message
+    #[allow(unsafe_code)]
     #[inline]
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         match msg {

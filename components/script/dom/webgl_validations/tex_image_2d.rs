@@ -122,7 +122,7 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
             }
         };
 
-        let texture = self.context.bound_texture_for_target(&target);
+        let texture = self.context.textures().active_texture_for_image_target(target);
         let limits = self.context.limits();
 
         let max_size = if target.is_cubic() {
