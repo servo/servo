@@ -66,7 +66,9 @@ pub struct WebGLCreateContextResult {
     /// How the WebGLContext is shared with WebRender.
     pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
-    pub glsl_version: WebGLSLVersion
+    pub glsl_version: WebGLSLVersion,
+    /// The maximum number of combined texture image units.
+    pub max_combined_texture_image_units: u32,
 }
 
 #[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]

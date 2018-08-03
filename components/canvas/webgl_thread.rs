@@ -87,6 +87,7 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
     }
 
     /// Handles a generic WebGLMsg message
+    #[allow(unsafe_code)]
     #[inline]
     fn handle_msg(&mut self, msg: WebGLMsg, webgl_chan: &WebGLChan) -> bool {
         match msg {
@@ -97,11 +98,20 @@ impl<VR: WebVRRenderHandler + 'static, OB: WebGLThreadObserver> WebGLThread<VR, 
                                     .expect("WebGLContext not found");
                     let glsl_version = Self::get_glsl_version(ctx);
 
+                    let mut max_combined_texture_image_units = [0];
+                    unsafe {
+                        ctx.gl().get_integer_v(
+                            gl::MAX_COMBINED_TEXTURE_IMAGE_UNITS,
+                            &mut max_combined_texture_image_units,
+                        );
+                    }
+
                     WebGLCreateContextResult {
                         sender: WebGLMsgSender::new(id, webgl_chan.clone()),
                         limits,
                         share_mode,
                         glsl_version,
+                        max_combined_texture_image_units: max_combined_texture_image_units[0] as u32,
                     }
                 })).unwrap();
             },
