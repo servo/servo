@@ -1073,7 +1073,7 @@ impl HTMLImageElement {
                 // Already a part of the list of available images due to Step 14
 
                 // Step 15.5
-                mem::swap(&mut *this.current_request.borrow_mut(), &mut *this.pending_request.borrow_mut());
+                mem::swap(&mut this.current_request.borrow_mut(), &mut pending_request);
                 this.abort_request(State::Unavailable, ImageRequestPhase::Pending);
 
                 // Step 15.6
