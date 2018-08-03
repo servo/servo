@@ -182,10 +182,6 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         offset: Option<Finite<f64>>,
         duration: Option<Finite<f64>>,
     ) -> Fallible<()> {
-        if *when < 0. {
-            return Err(Error::Range("'when' must be a positive value".to_owned()));
-        }
-
         if let Some(offset) = offset {
             if *offset < 0. {
                 return Err(Error::Range("'offset' must be a positive value".to_owned()));
@@ -200,14 +196,17 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
             }
         }
 
-        if let Some(buffer) = self.buffer.get() {
-            let buffer = buffer.acquire_contents();
-            self.source_node
-                .node()
-                .message(AudioNodeMessage::AudioBufferSourceNode(
-                    AudioBufferSourceNodeMessage::SetBuffer(buffer),
-                ));
+        if *when > 0. {
+            if let Some(buffer) = self.buffer.get() {
+                let buffer = buffer.acquire_contents();
+                self.source_node
+                    .node()
+                    .message(AudioNodeMessage::AudioBufferSourceNode(
+                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
+                    ));
+            }
         }
+
         self.source_node
             .upcast::<AudioScheduledSourceNode>()
             .Start(when)
