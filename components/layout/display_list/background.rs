@@ -13,7 +13,7 @@
 
 use app_units::Au;
 use display_list::ToLayout;
-use display_list::items::{BorderDetails, Gradient, RadialGradient, WebRenderImageInfo};
+use display_list::items::WebRenderImageInfo;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
 use model::{self, MaybeAuto};
 use style::computed_values::background_attachment::single_value::T as BackgroundAttachment;
@@ -34,8 +34,9 @@ use style::values::generics::image::EndingShape as GenericEndingShape;
 use style::values::generics::image::GradientItem as GenericGradientItem;
 use style::values::specified::background::BackgroundRepeatKeyword;
 use style::values::specified::position::{X, Y};
-use webrender_api::{BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode, GradientStop};
-use webrender_api::{LayoutSize, NinePatchBorder, NinePatchBorderSource, NormalBorder};
+use webrender_api::{BorderDetails, BorderRadius, BorderSide, BorderStyle, ColorF, ExtendMode};
+use webrender_api::{Gradient, GradientStop, LayoutSize, NinePatchBorder, NinePatchBorderSource};
+use webrender_api::{NormalBorder, RadialGradient};
 
 /// A helper data structure for gradients.
 #[derive(Clone, Copy)]
@@ -543,7 +544,7 @@ pub fn convert_linear_gradient(
     stops: &[GradientItem],
     direction: LineDirection,
     repeating: bool,
-) -> Gradient {
+) -> (Gradient, Vec<GradientStop>) {
     let angle = match direction {
         LineDirection::Angle(angle) => angle.radians(),
         LineDirection::Horizontal(x) => match x {
@@ -591,12 +592,14 @@ pub fn convert_linear_gradient(
 
     let center = Point2D::new(size.width / 2, size.height / 2);
 
-    Gradient {
-        start_point: (center - delta).to_layout(),
-        end_point: (center + delta).to_layout(),
+    (
+        Gradient {
+            start_point: (center - delta).to_layout(),
+            end_point: (center + delta).to_layout(),
+            extend_mode: as_gradient_extend_mode(repeating),
+        },
         stops,
-        extend_mode: as_gradient_extend_mode(repeating),
-    }
+    )
 }
 
 pub fn convert_radial_gradient(
@@ -606,7 +609,7 @@ pub fn convert_radial_gradient(
     shape: EndingShape,
     center: Position,
     repeating: bool,
-) -> RadialGradient {
+) -> (RadialGradient, Vec<GradientStop>) {
     let center = Point2D::new(
         center.horizontal.to_used_value(size.width),
         center.vertical.to_used_value(size.height),
@@ -629,12 +632,17 @@ pub fn convert_radial_gradient(
 
     let stops = convert_gradient_stops(style, stops, radius.width);
 
-    RadialGradient {
-        center: center.to_layout(),
-        radius: radius.to_layout(),
-        stops: stops,
-        extend_mode: as_gradient_extend_mode(repeating),
-    }
+    (
+        RadialGradient {
+            center: center.to_layout(),
+            radius: radius.to_layout(),
+            extend_mode: as_gradient_extend_mode(repeating),
+            // FIXME(pyfisch): These values are calculated by WR.
+            start_offset: 0.0,
+            end_offset: 0.0,
+        },
+        stops,
+    )
 }
 
 /// Returns the the distance to the nearest or farthest corner depending on the comperator.
@@ -799,7 +807,7 @@ pub fn build_image_border_details(
     let corners = &border_style_struct.border_image_slice.offsets;
     let border_image_repeat = &border_style_struct.border_image_repeat;
     if let Some(image_key) = webrender_image.key {
-        Some(BorderDetails::Image(NinePatchBorder {
+        Some(BorderDetails::NinePatch(NinePatchBorder {
             source: NinePatchBorderSource::Image(image_key),
             width: webrender_image.width,
             height: webrender_image.height,
