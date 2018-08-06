@@ -12,7 +12,7 @@ test = false
 doctest = false
 
 [dependencies]
-euclid = "0.18"
+euclid = "0.19"
 embedder_traits = { path = "../embedder_traits" }
 getopts = "0.2.11"
 lazy_static = "1"

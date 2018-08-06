@@ -14,10 +14,10 @@ servo = ["serde", "servo_atoms", "cssparser/serde", "webrender_api", "servo_url"
 gecko = []
 
 [dependencies]
-app_units = "0.6"
+app_units = "0.7"
 cssparser = "0.24.0"
 bitflags = "1.0"
-euclid = "0.18"
+euclid = "0.19"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 selectors = { path = "../selectors" }

@@ -10,8 +10,8 @@ name = "servo_geometry"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.6"
-euclid = "0.18"
+app_units = "0.7"
+euclid = "0.19"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 style_traits = { path = "../style_traits" }
