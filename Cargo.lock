@@ -3181,13 +3181,13 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-fontconfig-sys 4.0.4 (git+https://github.com/servo/libfontconfig.git?branch=android-clang)",
+ "servo-fontconfig-sys 4.0.4 (git+https://github.com/asajeffrey/libfontconfig.git?branch=android-clang)",
 ]
 
 [[package]]
 name = "servo-fontconfig-sys"
 version = "4.0.4"
-source = "git+https://github.com/servo/libfontconfig.git?branch=android-clang#c70603eb666d338be3f31a0038511d8ee3898d2a"
+source = "git+https://github.com/asajeffrey/libfontconfig.git?branch=android-clang#624ff110f29551364826d33bea9a269b562bef1b"
 dependencies = [
  "expat-sys 2.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3263,7 +3263,7 @@ dependencies = [
  "io-surface 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-fontconfig-sys 4.0.4 (git+https://github.com/servo/libfontconfig.git?branch=android-clang)",
+ "servo-fontconfig-sys 4.0.4 (git+https://github.com/asajeffrey/libfontconfig.git?branch=android-clang)",
  "servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.17.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -4507,7 +4507,7 @@ dependencies = [
 "checksum serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "5c508584d9913df116b91505eec55610a2f5b16e9ed793c46e4d0152872b3e74"
 "checksum servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
-"checksum servo-fontconfig-sys 4.0.4 (git+https://github.com/servo/libfontconfig.git?branch=android-clang)" = "<none>"
+"checksum servo-fontconfig-sys 4.0.4 (git+https://github.com/asajeffrey/libfontconfig.git?branch=android-clang)" = "<none>"
 "checksum servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 "checksum servo-media 0.1.0 (git+https://github.com/servo/media)" = "<none>"
 "checksum servo-media-audio 0.1.0 (git+https://github.com/servo/media)" = "<none>"

@@ -22,7 +22,7 @@ opt-level = 3
 mozjs_sys = { git = "https://github.com/asajeffrey/mozjs.git", branch = "smup" }
 mozjs = { git = "https://github.com/asajeffrey/rust-mozjs.git", branch = "smup" }
 mozangle = { git = "https://github.com/asajeffrey/mozangle.git", branch = "smup" }
-servo-fontconfig-sys = { git = "https://github.com/servo/libfontconfig.git", branch = "android-clang" }
+servo-fontconfig-sys = { git = "https://github.com/asajeffrey/libfontconfig.git", branch = "android-clang" }
 servo-skia = { git = "https://github.com/asajeffrey/skia.git", branch = "clang-build" }
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
