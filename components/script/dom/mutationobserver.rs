@@ -79,13 +79,17 @@ impl MutationObserver {
         }
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-mutationobserver-mutationobserver>
     pub fn Constructor(
         global: &Window,
         callback: Rc<MutationCallback>,
     ) -> Fallible<DomRoot<MutationObserver>> {
         global.set_exists_mut_observer();
+        // Step 1
         let observer = MutationObserver::new(global, callback);
+        // Step 2
         ScriptThread::add_mutation_observer(&*observer);
+        // Step 3
         Ok(observer)
     }
 
