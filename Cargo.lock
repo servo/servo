@@ -2169,8 +2169,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mozangle"
-version = "0.1.6"
-source = "git+https://github.com/asajeffrey/mozangle.git?branch=smup#486625e2d64d1f0cdd6bc55d30f5fec0657d30d3"
+version = "0.1.7"
+source = "git+https://github.com/asajeffrey/mozangle.git?branch=smup#ceeb100c8c0daf159342d04db6217b49d513d52d"
 dependencies = [
  "cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2957,7 +2957,7 @@ dependencies = [
  "mime 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime_guess 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozangle 0.1.6 (git+https://github.com/asajeffrey/mozangle.git?branch=smup)",
+ "mozangle 0.1.7 (git+https://github.com/asajeffrey/mozangle.git?branch=smup)",
  "mozjs 0.8.0 (git+https://github.com/asajeffrey/rust-mozjs.git?branch=smup)",
  "msg 0.0.1",
  "net_traits 0.0.1",
@@ -4425,7 +4425,7 @@ dependencies = [
 "checksum mio 0.6.12 (registry+https://github.com/rust-lang/crates.io-index)" = "75f72a93f046f1517e3cfddc0a096eb756a2ba727d36edc8227dee769a50a9b0"
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
-"checksum mozangle 0.1.6 (git+https://github.com/asajeffrey/mozangle.git?branch=smup)" = "<none>"
+"checksum mozangle 0.1.7 (git+https://github.com/asajeffrey/mozangle.git?branch=smup)" = "<none>"
 "checksum mozjs 0.8.0 (git+https://github.com/asajeffrey/rust-mozjs.git?branch=smup)" = "<none>"
 "checksum mozjs_sys 0.60.0 (git+https://github.com/asajeffrey/mozjs.git?branch=smup)" = "<none>"
 "checksum mp3-metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4ab5f1d2693586420208d1200ce5a51cd44726f055b635176188137aff42c7de"
