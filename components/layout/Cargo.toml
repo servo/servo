@@ -12,11 +12,11 @@ test = false
 doctest = false
 
 [dependencies]
-app_units = "0.6.1"
+app_units = "0.7"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
-euclid = "0.18"
+euclid = "0.19"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}

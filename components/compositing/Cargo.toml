@@ -15,7 +15,7 @@ default = []
 
 [dependencies]
 embedder_traits = {path = "../embedder_traits"}
-euclid = "0.18"
+euclid = "0.19"
 gfx_traits = {path = "../gfx_traits"}
 gleam = {version = "0.6", optional = true}
 image = "0.19"

@@ -23,9 +23,9 @@ servo = [
 ]
 
 [dependencies]
-app_units = "0.6"
+app_units = "0.7"
 cssparser = "0.24.0"
-euclid = "0.18"
+euclid = "0.19"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.10", optional = true }
 hyper_serde = { version = "0.8", optional = true }

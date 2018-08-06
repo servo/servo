@@ -33,14 +33,14 @@ unstable = ["libservo/unstable"]
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = "0.3"
-euclid = "0.18"
+euclid = "0.19"
 gleam = "0.6"
-glutin = "0.17"
+glutin = "0.18"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
 log = "0.4"
 tinyfiledialogs = "3.0"
-winit = {version = "0.16", features = ["icon_loading"]}
+winit = {version = "0.17", features = ["icon_loading"]}
 sig = "0.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
