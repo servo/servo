@@ -1958,30 +1958,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn first_child_element(&self) -> Option<Self> {
-        let mut child = self.as_node().first_child();
-        while let Some(child_node) = child {
-            if let Some(el) = child_node.as_element() {
-                return Some(el);
-            }
-            child = child_node.next_sibling();
-        }
-        None
-    }
-
-    #[inline]
-    fn last_child_element(&self) -> Option<Self> {
-        let mut child = self.as_node().last_child();
-        while let Some(child_node) = child {
-            if let Some(el) = child_node.as_element() {
-                return Some(el);
-            }
-            child = child_node.prev_sibling();
-        }
-        None
-    }
-
-    #[inline]
     fn prev_sibling_element(&self) -> Option<Self> {
         let mut sibling = self.as_node().prev_sibling();
         while let Some(sibling_node) = sibling {

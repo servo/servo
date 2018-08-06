@@ -283,16 +283,6 @@ where
         Some(Self::new(host, self.snapshot_map))
     }
 
-    fn first_child_element(&self) -> Option<Self> {
-        let child = self.element.first_child_element()?;
-        Some(Self::new(child, self.snapshot_map))
-    }
-
-    fn last_child_element(&self) -> Option<Self> {
-        let child = self.element.last_child_element()?;
-        Some(Self::new(child, self.snapshot_map))
-    }
-
     fn prev_sibling_element(&self) -> Option<Self> {
         let sibling = self.element.prev_sibling_element()?;
         Some(Self::new(sibling, self.snapshot_map))

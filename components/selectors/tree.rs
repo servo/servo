@@ -46,12 +46,6 @@ pub trait Element: Sized + Clone + Debug {
     }
 
     /// Skips non-element nodes
-    fn first_child_element(&self) -> Option<Self>;
-
-    /// Skips non-element nodes
-    fn last_child_element(&self) -> Option<Self>;
-
-    /// Skips non-element nodes
     fn prev_sibling_element(&self) -> Option<Self>;
 
     /// Skips non-element nodes
