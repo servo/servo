@@ -558,6 +558,11 @@ impl ServoParser {
                 Err(script) => script,
             };
 
+            // https://html.spec.whatwg.org/multipage/#scriptEndTag
+            if is_execution_stack_empty() {
+                self.document.window().upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+            }
+
             let script_nesting_level = self.script_nesting_level.get();
 
             self.script_nesting_level.set(script_nesting_level + 1);
