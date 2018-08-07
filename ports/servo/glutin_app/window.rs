@@ -305,7 +305,7 @@ impl Window {
     }
 
     pub fn page_height(&self) -> f32 {
-        let dpr = self.hidpi_factor();
+        let dpr = self.servo_hidpi_factor();
         match self.kind {
             WindowKind::Window(ref window, _) => {
                 let size = window.get_inner_size().expect("Failed to get window inner size.");
@@ -325,14 +325,14 @@ impl Window {
 
     pub fn set_inner_size(&self, size: DeviceUintSize) {
         if let WindowKind::Window(ref window, _) = self.kind {
-            let size = size.to_f32() / self.hidpi_factor();
+            let size = size.to_f32() / self.device_hidpi_factor();
             window.set_inner_size(LogicalSize::new(size.width.into(), size.height.into()))
         }
     }
 
     pub fn set_position(&self, point: DeviceIntPoint) {
         if let WindowKind::Window(ref window, _) = self.kind {
-            let point = point.to_f32() / self.hidpi_factor();
+            let point = point.to_f32() / self.device_hidpi_factor();
             window.set_position(LogicalPosition::new(point.x.into(), point.y.into()))
         }
     }
@@ -486,7 +486,7 @@ impl Window {
                 },
                 ..
             } => {
-                let pos = position.to_physical(self.hidpi_factor().get() as f64);
+                let pos = position.to_physical(self.device_hidpi_factor().get() as f64);
                 let (x, y): (i32, i32) = pos.into();
                 self.mouse_pos.set(TypedPoint2D::new(x, y));
                 self.event_queue.borrow_mut().push(
@@ -499,7 +499,7 @@ impl Window {
                 let (mut dx, mut dy) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(position) => {
-                        let position = position.to_physical(self.hidpi_factor().get() as f64);
+                        let position = position.to_physical(self.device_hidpi_factor().get() as f64);
                         (position.x as f32, position.y as f32)
                     }
                 };
@@ -524,7 +524,7 @@ impl Window {
 
                 let phase = winit_phase_to_touch_event_type(touch.phase);
                 let id = TouchId(touch.id as i32);
-                let position = touch.location.to_physical(self.hidpi_factor().get() as f64);
+                let position = touch.location.to_physical(self.device_hidpi_factor().get() as f64);
                 let point = TypedPoint2D::new(position.x as f32, position.y as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
             }
@@ -542,10 +542,10 @@ impl Window {
                 event: winit::WindowEvent::Resized(size),
                 ..
             } => {
-                // width and height are DeviceIndependentPixel.
+                // size is DeviceIndependentPixel.
                 // window.resize() takes DevicePixel.
                 if let WindowKind::Window(ref window, _) = self.kind {
-                    let size = size.to_physical(self.hidpi_factor().get() as f64);
+                    let size = size.to_physical(self.device_hidpi_factor().get() as f64);
                     window.resize(size);
                 }
                 // window.set_inner_size() takes DeviceIndependentPixel.
@@ -585,7 +585,7 @@ impl Window {
                     coords: TypedPoint2D<i32, DevicePixel>) {
         use servo::script_traits::MouseButton;
 
-        let max_pixel_dist = 10.0 * self.hidpi_factor().get();
+        let max_pixel_dist = 10.0 * self.servo_hidpi_factor().get();
         let event = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
@@ -614,19 +614,23 @@ impl Window {
         self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
-    fn hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+    fn device_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
+        match self.kind {
+            WindowKind::Window(ref window, ..) => {
+                TypedScale::new(window.get_hidpi_factor() as f32)
+            }
+            WindowKind::Headless(..) => {
+                TypedScale::new(1.0)
+            }
+        }
+    }
+
+    fn servo_hidpi_factor(&self) -> TypedScale<f32, DeviceIndependentPixel, DevicePixel> {
         match opts::get().device_pixels_per_px {
             Some(device_pixels_per_px) => TypedScale::new(device_pixels_per_px),
-            None => match opts::get().output_file {
+            _ => match opts::get().output_file {
                 Some(_) => TypedScale::new(1.0),
-                None => match self.kind {
-                    WindowKind::Window(ref window, ..) => {
-                        TypedScale::new(window.get_hidpi_factor() as f32)
-                    }
-                    WindowKind::Headless(..) => {
-                        TypedScale::new(1.0)
-                    }
-                }
+                None => self.device_hidpi_factor()
             }
         }
     }
@@ -687,10 +691,10 @@ impl WindowMethods for Window {
     }
 
     fn get_coordinates(&self) -> EmbedderCoordinates {
-        let dpr = self.hidpi_factor();
         match self.kind {
             WindowKind::Window(ref window, _) => {
                 // TODO(ajeffrey): can this fail?
+                let dpr = self.device_hidpi_factor();
                 let LogicalSize { width, height } = window.get_outer_size().expect("Failed to get window outer size.");
                 let LogicalPosition { x, y } = window.get_position().unwrap_or(LogicalPosition::new(0., 0.));
                 let win_size = (TypedSize2D::new(width as f32, height as f32) * dpr).to_u32();
@@ -709,10 +713,11 @@ impl WindowMethods for Window {
                     screen: screen,
                     // FIXME: Glutin doesn't have API for available size. Fallback to screen size
                     screen_avail: screen,
-                    hidpi_factor: dpr,
+                    hidpi_factor: self.servo_hidpi_factor(),
                 }
             },
             WindowKind::Headless(ref context) => {
+                let dpr = self.servo_hidpi_factor();
                 let size = (TypedSize2D::new(context.width, context.height).to_f32() * dpr).to_u32();
                 EmbedderCoordinates {
                     viewport: DeviceUintRect::new(TypedPoint2D::zero(), size),
