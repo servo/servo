@@ -411,6 +411,8 @@ impl HTMLScriptElement {
 
         // Step 4-5.
         let text = self.Text();
+
+        // Step 5.
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
@@ -423,7 +425,7 @@ impl HTMLScriptElement {
         let script_type = if let Some(ty) = self.get_script_type() {
             ty
         } else {
-            // Step 7.
+            // Step 7
             return;
         };
 
@@ -780,7 +782,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        // Steps 4-10
+        // Steps 4-8, 10-11
         let window = window_from_node(self);
         let line_number = if script.external {
             1
