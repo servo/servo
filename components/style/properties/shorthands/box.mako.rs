@@ -20,30 +20,36 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         % if product == "gecko":
-            let moz_kw_found = input.try(|input| {
-                try_match_ident_ignore_ascii_case! { input,
-                    "-moz-scrollbars-horizontal" => {
-                        Ok(expanded! {
-                            overflow_x: SpecifiedValue::Scroll,
-                            overflow_y: SpecifiedValue::Hidden,
-                        })
+            use gecko_bindings::structs;
+            let moz_kw_enabled = unsafe {
+                structs::StaticPrefs_sVarCache_layout_css_overflow_moz_scrollbars_enabled
+            };
+            if moz_kw_enabled {
+                let moz_kw_found = input.try(|input| {
+                    try_match_ident_ignore_ascii_case! { input,
+                        "-moz-scrollbars-horizontal" => {
+                            Ok(expanded! {
+                                overflow_x: SpecifiedValue::Scroll,
+                                overflow_y: SpecifiedValue::Hidden,
+                            })
+                        }
+                        "-moz-scrollbars-vertical" => {
+                            Ok(expanded! {
+                                overflow_x: SpecifiedValue::Hidden,
+                                overflow_y: SpecifiedValue::Scroll,
+                            })
+                        }
+                        "-moz-scrollbars-none" => {
+                            Ok(expanded! {
+                                overflow_x: SpecifiedValue::Hidden,
+                                overflow_y: SpecifiedValue::Hidden,
+                            })
+                        }
                     }
-                    "-moz-scrollbars-vertical" => {
-                        Ok(expanded! {
-                            overflow_x: SpecifiedValue::Hidden,
-                            overflow_y: SpecifiedValue::Scroll,
-                        })
-                    }
-                    "-moz-scrollbars-none" => {
-                        Ok(expanded! {
-                            overflow_x: SpecifiedValue::Hidden,
-                            overflow_y: SpecifiedValue::Hidden,
-                        })
-                    }
+                });
+                if moz_kw_found.is_ok() {
+                    return moz_kw_found
                 }
-            });
-            if moz_kw_found.is_ok() {
-                return moz_kw_found
             }
         % endif
         let overflow_x = parse_overflow(context, input)?;
