@@ -6,7 +6,7 @@
 //! changes.
 
 use {Atom, WeakAtom};
-use context::{QuirksMode, SharedStyleContext};
+use context::SharedStyleContext;
 use data::ElementData;
 use dom::TElement;
 use element_state::ElementState;
@@ -18,13 +18,11 @@ use invalidation::element::restyle_hints::RestyleHint;
 use selector_map::SelectorMap;
 use selector_parser::Snapshot;
 use selectors::NthIndexCache;
-use selectors::OpaqueElement;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{MatchingContext, MatchingMode, VisitedHandlingMode};
 use selectors::matching::matches_selector;
 use smallvec::SmallVec;
 use stylesheets::origin::{Origin, OriginSet};
-use stylist::CascadeData;
 
 #[derive(Debug, PartialEq)]
 enum VisitedDependent {
@@ -56,19 +54,15 @@ where
 /// changes.
 pub struct StateAndAttrInvalidationProcessor<'a, 'b: 'a, E: TElement> {
     shared_context: &'a SharedStyleContext<'b>,
-    shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode, Option<OpaqueElement>)],
-    matches_document_author_rules: bool,
     element: E,
     data: &'a mut ElementData,
     matching_context: MatchingContext<'a, E::Impl>,
 }
 
-impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
+impl<'a, 'b: 'a, E: TElement + 'b> StateAndAttrInvalidationProcessor<'a, 'b, E> {
     /// Creates a new StateAndAttrInvalidationProcessor.
     pub fn new(
         shared_context: &'a SharedStyleContext<'b>,
-        shadow_rule_datas: &'a [(&'b CascadeData, QuirksMode, Option<OpaqueElement>)],
-        matches_document_author_rules: bool,
         element: E,
         data: &'a mut ElementData,
         nth_index_cache: &'a mut NthIndexCache,
@@ -83,8 +77,6 @@ impl<'a, 'b: 'a, E: TElement> StateAndAttrInvalidationProcessor<'a, 'b, E> {
 
         Self {
             shared_context,
-            shadow_rule_datas,
-            matches_document_author_rules,
             element,
             data,
             matching_context,
@@ -157,6 +149,7 @@ where
         descendant_invalidations: &mut DescendantInvalidationLists<'a>,
         sibling_invalidations: &mut InvalidationVector<'a>,
     ) -> bool {
+        debug_assert_eq!(element, self.element);
         debug_assert!(element.has_snapshot(), "Why bothering?");
 
         let wrapper = ElementWrapper::new(element, &*self.shared_context.snapshot_map);
@@ -241,6 +234,13 @@ where
             element
         };
 
+        let mut shadow_rule_datas = SmallVec::<[_; 3]>::new();
+        let matches_document_author_rules =
+            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
+                shadow_rule_datas.push((data, quirks_mode, host.map(|h| h.opaque())))
+            });
+
+
         let invalidated_self = {
             let mut collector = Collector {
                 wrapper,
@@ -258,7 +258,7 @@ where
                 invalidates_self: false,
             };
 
-            let document_origins = if !self.matches_document_author_rules {
+            let document_origins = if !matches_document_author_rules {
                 Origin::UserAgent.into()
             } else {
                 OriginSet::all()
@@ -271,7 +271,7 @@ where
                 }
             }
 
-            for &(ref data, quirks_mode, ref host) in self.shadow_rule_datas {
+            for &(ref data, quirks_mode, ref host) in &shadow_rule_datas {
                 // FIXME(emilio): Replace with assert / remove when we figure
                 // out what to do with the quirks mode mismatches
                 // (that is, when bug 1406875 is properly fixed).
