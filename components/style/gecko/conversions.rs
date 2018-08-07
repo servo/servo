@@ -659,7 +659,7 @@ pub mod basic_shape {
                 StyleShapeSourceType::None => Some(ShapeSource::None),
                 StyleShapeSourceType::Box => Some(ShapeSource::Box(self.mReferenceBox.into())),
                 StyleShapeSourceType::Shape => {
-                    let other_shape = unsafe { &*self.mBasicShape.mPtr };
+                    let other_shape = unsafe { &*self.__bindgen_anon_1.mBasicShape.as_ref().mPtr };
                     let shape = other_shape.into();
                     let reference_box = if self.mReferenceBox == StyleGeometryBox::NoBox {
                         None
@@ -677,7 +677,7 @@ pub mod basic_shape {
         fn from(other: &'a StyleShapeSource) -> Self {
             match other.mType {
                 StyleShapeSourceType::URL => unsafe {
-                    let shape_image = &*other.mShapeImage.mPtr;
+                    let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
                     let other_url = RefPtr::new(*shape_image.__bindgen_anon_1.mURLValue.as_ref());
                     let url = ComputedUrl::from_url_value(other_url);
                     ShapeSource::ImageOrUrl(url)
@@ -699,7 +699,7 @@ pub mod basic_shape {
                     unreachable!("FloatAreaShape doesn't support URL!");
                 },
                 StyleShapeSourceType::Image => unsafe {
-                    let shape_image = &*other.mShapeImage.mPtr;
+                    let shape_image = &*other.__bindgen_anon_1.mShapeImage.as_ref().mPtr;
                     let image = shape_image.into_image().expect("Cannot convert to Image");
                     ShapeSource::ImageOrUrl(image)
                 },

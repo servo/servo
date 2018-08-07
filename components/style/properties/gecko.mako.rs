@@ -4960,7 +4960,7 @@ fn static_assert() {
             ShapeSource::ImageOrUrl(image) => {
                 unsafe {
                     bindings::Gecko_NewShapeImage(${ident});
-                    let style_image = &mut *${ident}.mShapeImage.mPtr;
+                    let style_image = &mut *${ident}.__bindgen_anon_1.mShapeImage.as_mut().mPtr;
                     style_image.set(image);
                 }
             }
@@ -4980,7 +4980,7 @@ fn static_assert() {
                         // Create StyleBasicShape in StyleShapeSource. mReferenceBox and mType
                         // will be set manually later.
                         Gecko_NewBasicShape(${ident}, basic_shape_type);
-                        &mut *${ident}.mBasicShape.mPtr
+                        &mut *${ident}.__bindgen_anon_1.mBasicShape.as_mut().mPtr
                     }
                 }
                 match servo_shape {
