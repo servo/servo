@@ -448,9 +448,9 @@ impl Flow for TableFlow {
                         .sum::<f32>();
 
                     for &index in &constrained_column_inline_sizes_indices {
+                        let inline_size = self.column_computed_inline_sizes[index].size.0;
                         self.column_computed_inline_sizes[index].size +=
-                            remaining_inline_size.scale_by(
-                                self.column_computed_inline_sizes[index].size.0 as f32 / total_minimum_size);
+                            remaining_inline_size.scale_by(inline_size as f32 / total_minimum_size);
                     }
                 }
             }
@@ -531,7 +531,7 @@ impl Flow for TableFlow {
         self.block_flow.build_display_list_for_block(state, border_painting_mode);
 
         let iter = TableCellStyleIterator::new(&self);
-        for mut style in iter {
+        for style in iter {
             style.build_display_list(state)
         }
     }
@@ -964,7 +964,7 @@ impl<'a> Iterator for TableRowAndGroupIterator<'a> {
         match self.kids.next() {
             Some(kid) => {
                 if kid.is_table_rowgroup() {
-                    let mut rowgroup = kid.as_table_rowgroup();
+                    let rowgroup = kid.as_table_rowgroup();
                     let iter = rowgroup.block_flow.base.child_iter();
                     self.group = Some((&rowgroup.block_flow.fragment, iter));
                     self.next()
@@ -1010,7 +1010,7 @@ impl<'a> Iterator for MutTableRowAndGroupIterator<'a> {
         match self.kids.next() {
             Some(kid) => {
                 if kid.is_table_rowgroup() {
-                    let mut rowgroup = kid.as_mut_table_rowgroup();
+                    let rowgroup = kid.as_mut_table_rowgroup();
                     let iter = rowgroup.block_flow.base.child_iter_mut();
                     self.group = Some((&rowgroup.block_flow.fragment, iter));
                     self.next()
