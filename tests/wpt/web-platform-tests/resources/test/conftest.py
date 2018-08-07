@@ -1,6 +1,8 @@
 import io
 import json
 import os
+import ssl
+import urllib2
 
 import html5lib
 import pytest
@@ -8,7 +10,6 @@ from selenium import webdriver
 
 from wptserver import WPTServer
 
-ENC = 'utf8'
 HERE = os.path.dirname(os.path.abspath(__file__))
 WPT_ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 HARNESS = os.path.join(HERE, 'harness.html')
@@ -30,6 +31,16 @@ def pytest_configure(config):
     config.driver = webdriver.Firefox(firefox_binary=config.getoption("--binary"))
     config.server = WPTServer(WPT_ROOT)
     config.server.start()
+    # Although the name of the `_create_unverified_context` method suggests
+    # that it is not intended for external consumption, the standard library's
+    # documentation explicitly endorses its use:
+    #
+    # > To revert to the previous, unverified, behavior
+    # > ssl._create_unverified_context() can be passed to the context
+    # > parameter.
+    #
+    # https://docs.python.org/2/library/httplib.html#httplib.HTTPSConnection
+    config.ssl_context = ssl._create_unverified_context()
     config.add_cleanup(config.server.stop)
     config.add_cleanup(config.driver.quit)
 
@@ -45,15 +56,21 @@ def resolve_uri(context, uri):
 
 class HTMLItem(pytest.Item, pytest.Collector):
     def __init__(self, filename, test_type, parent):
-        self.filename = filename
+        self.url = parent.session.config.server.url(filename)
         self.type = test_type
         self.variants = []
+        # Some tests are reliant on the WPT servers substitution functionality,
+        # so tests must be retrieved from the server rather than read from the
+        # file system directly.
+        handle = urllib2.urlopen(self.url,
+                                 context=parent.session.config.ssl_context)
+        try:
+            markup = handle.read()
+        finally:
+            handle.close()
 
         if test_type not in TEST_TYPES:
             raise ValueError('Unrecognized test type: "%s"' % test_type)
-
-        with io.open(filename, encoding=ENC) as f:
-            markup = f.read()
 
         parsed = html5lib.parse(markup, namespaceHTMLElements=False)
         name = None
@@ -94,7 +111,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
 
 
     def reportinfo(self):
-        return self.fspath, None, self.filename
+        return self.fspath, None, self.url
 
     def repr_failure(self, excinfo):
         return pytest.Collector.repr_failure(self, excinfo)
@@ -113,7 +130,9 @@ class HTMLItem(pytest.Item, pytest.Collector):
 
         driver.get(server.url(HARNESS))
 
-        actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % server.url(str(self.filename)))
+        actual = driver.execute_async_script(
+            'runTest("%s", "foo", arguments[0])' % self.url
+        )
 
         summarized = self._summarize(actual)
 
@@ -132,7 +151,7 @@ class HTMLItem(pytest.Item, pytest.Collector):
 
         driver.get(server.url(HARNESS))
 
-        test_url = server.url(str(self.filename) + variant)
+        test_url = self.url + variant
         actual = driver.execute_async_script('runTest("%s", "foo", arguments[0])' % test_url)
 
         # Test object ordering is not guaranteed. This weak assertion verifies
