@@ -14,8 +14,8 @@ use dom::{SendElement, TElement};
 use dom::OpaqueNode;
 use euclid::Size2D;
 use euclid::TypedScale;
-use fxhash::FxHashMap;
 use font_metrics::FontMetricsProvider;
+use fxhash::FxHashMap;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs;
 use parallel::{STACK_SAFETY_MARGIN_KB, STYLE_THREAD_STACK_SIZE_KB};

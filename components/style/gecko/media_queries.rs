@@ -16,8 +16,8 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::{nsCSSKTableEntry, nsCSSKeyword, nsCSSUnit, nsCSSValue};
 use gecko_bindings::structs::{nsMediaFeature, nsMediaFeature_RangeType};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsPresContext};
-use gecko_bindings::structs::nsCSSKeywordAndBoolTableEntry;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::nsCSSKeywordAndBoolTableEntry;
 use media_queries::MediaType;
 use parser::{Parse, ParserContext};
 use properties::ComputedValues;
@@ -909,7 +909,7 @@ impl MediaFeatureExpression {
                         quirks_mode,
                         |context| l.to_computed_value(&context).px() != 0.,
                     ),
-                    BoolEnumerated(value) =>  {
+                    BoolEnumerated(value) => {
                         let value = unsafe {
                             find_in_table(
                                 *self.feature.mData.mKeywordAndBoolTable.as_ref(),
