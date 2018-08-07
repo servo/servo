@@ -293,8 +293,12 @@ SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
 SET TIMEOUT: resources/chromium/*
 SET TIMEOUT: resources/test/tests/functional/add_cleanup.html
+SET TIMEOUT: resources/test/tests/functional/add_cleanup_async.html
+SET TIMEOUT: resources/test/tests/functional/add_cleanup_async_rejection.html
+SET TIMEOUT: resources/test/tests/functional/add_cleanup_async_rejection_after_load.html
 SET TIMEOUT: resources/test/tests/functional/api-tests-1.html
 SET TIMEOUT: resources/test/tests/functional/worker.js
+SET TIMEOUT: resources/test/tests/unit/exceptional-cases.html
 SET TIMEOUT: resources/testharness.js
 
 # setTimeout use in reftests
