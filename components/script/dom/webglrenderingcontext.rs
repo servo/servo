@@ -1979,7 +1979,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
         let data_vec = match array_buffer {
-            Ok(mut data) => data.to_vec(),
+            Ok(data) => data.to_vec(),
             Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
         };
 
@@ -2016,8 +2016,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
         let data_vec = match data {
             // Typed array is rooted, so we can safely temporarily retrieve its slice
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(mut inner) => inner.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(mut inner) => inner.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(inner) => inner.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(inner) => inner.to_vec(),
         };
 
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);

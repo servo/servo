@@ -1117,7 +1117,7 @@ impl Window {
     pub fn cancel_all_tasks(&self) {
         let mut ignore_flags = self.ignore_further_async_events.borrow_mut();
         for task_source_name in TaskSourceName::all() {
-            let mut flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
+            let flag = ignore_flags.entry(task_source_name).or_insert(Default::default());
             let cancelled = mem::replace(&mut *flag, Default::default());
             cancelled.store(true, Ordering::Relaxed);
         }
