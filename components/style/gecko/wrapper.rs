@@ -379,7 +379,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
             self.0
                 .mFirstChild.raw::<nsIContent>()
                 .as_ref()
-                .map(GeckoNode::from_content) }
+                .map(GeckoNode::from_content)
+        }
     }
 
     #[inline]
@@ -398,7 +399,8 @@ impl<'ln> TNode for GeckoNode<'ln> {
             self.0
                 .mNextSibling.raw::<nsIContent>()
                 .as_ref()
-                .map(GeckoNode::from_content) }
+                .map(GeckoNode::from_content)
+        }
     }
 
     #[inline]
