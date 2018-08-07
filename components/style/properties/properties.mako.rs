@@ -605,8 +605,9 @@ impl NonCustomPropertyId {
         COLLECT_FUNCTIONS[self.0](f);
     }
 
+    /// Turns this `NonCustomPropertyId` into a `PropertyId`.
     #[inline]
-    fn to_property_id(self) -> PropertyId {
+    pub fn to_property_id(self) -> PropertyId {
         use std::mem::transmute;
         if self.0 < ${len(data.longhands)} {
             return unsafe {
@@ -2412,7 +2413,7 @@ pub use gecko_properties::style_structs;
 /// The module where all the style structs are defined.
 #[cfg(feature = "servo")]
 pub mod style_structs {
-    use fx::FxHasher;
+    use fxhash::FxHasher;
     use super::longhands;
     use std::hash::{Hash, Hasher};
     use logical_geometry::WritingMode;
@@ -4265,6 +4266,7 @@ pub enum AliasId {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum AliasedPropertyId {
+    #[allow(dead_code)] // Servo doesn't have aliased shorthands.
     Shorthand(ShorthandId),
     Longhand(LonghandId),
 }

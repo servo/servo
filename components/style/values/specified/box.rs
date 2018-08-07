@@ -19,7 +19,6 @@ use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use values::specified::{AllowQuirks, Number};
 use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
-#[cfg(feature = "gecko")]
 fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
     use stylesheets::Origin;
     context.stylesheet_origin == Origin::UserAgent ||

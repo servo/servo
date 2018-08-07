@@ -93,6 +93,7 @@ extern crate string_cache;
 #[macro_use]
 extern crate style_derive;
 extern crate style_traits;
+#[cfg(feature = "gecko")]
 extern crate thin_slice;
 extern crate time;
 extern crate uluru;
