@@ -120,7 +120,6 @@ mod bindings {
         let mut file = File::open(&path).unwrap();
         let mut content = String::new();
         file.read_to_string(&mut content).unwrap();
-        println!("cargo:rerun-if-changed={}", path.to_str().unwrap());
         added_paths.insert(path);
         // Find all includes and add them recursively
         for cap in INCLUDE_RE.captures_iter(&content) {
@@ -286,6 +285,7 @@ mod bindings {
                 );
             },
         };
+
         for fixup in fixups.iter() {
             result = Regex::new(&fixup.pat)
                 .unwrap()
@@ -601,6 +601,10 @@ mod bindings {
             generate_structs(),
             generate_bindings(),
             generate_atoms(),
+        }
+
+        for path in ADDED_PATHS.lock().unwrap().iter() {
+            println!("cargo:rerun-if-changed={}", path.to_str().unwrap());
         }
     }
 }
