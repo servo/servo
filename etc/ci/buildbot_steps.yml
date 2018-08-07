@@ -215,6 +215,8 @@ arm32:
  env:
    CC: gcc-5
    CXX: g++-5
+   CFLAGS=--target=arm-unknown-linux-gnueabihf
+   CXXFLAGS=--target=arm-unknown-linux-gnueabihf
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -227,6 +229,8 @@ arm64:
  env:
    CC: gcc-5
    CXX: g++-5
+   CFLAGS=--target=aarch64-unknown-linux-gnu
+   CXXFLAGS=--target=aarch64-unknown-linux-gnu
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
