@@ -81,8 +81,8 @@ linux-rel-intermittent:
 
 linux-rel-nogate:
  env:
-   HOST_CC: gcc-5
-   HOST_CXX: g++-5
+   CC: gcc-5
+   CXX: g++-5
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -213,8 +213,8 @@ android-nightly:
 
 arm32:
  env:
-   HOST_CC: gcc-5
-   HOST_CXX: g++-5
+   CC: gcc-5
+   CXX: g++-5
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -225,8 +225,8 @@ arm32:
 
 arm64:
  env:
-   HOST_CC: gcc-5
-   HOST_CXX: g++-5
+   CC: gcc-5
+   CXX: g++-5
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
