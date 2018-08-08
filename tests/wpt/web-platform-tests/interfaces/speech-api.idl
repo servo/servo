@@ -1,0 +1,174 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Web Speech API" spec.
+// See: https://w3c.github.io/speech-api/
+
+[Exposed=Window, Constructor]
+interface SpeechRecognition : EventTarget {
+    // recognition parameters
+    attribute SpeechGrammarList grammars;
+    attribute DOMString lang;
+    attribute boolean continuous;
+    attribute boolean interimResults;
+    attribute unsigned long maxAlternatives;
+    attribute DOMString serviceURI;
+
+    // methods to drive the speech interaction
+    void start();
+    void stop();
+    void abort();
+
+    // event methods
+    attribute EventHandler onaudiostart;
+    attribute EventHandler onsoundstart;
+    attribute EventHandler onspeechstart;
+    attribute EventHandler onspeechend;
+    attribute EventHandler onsoundend;
+    attribute EventHandler onaudioend;
+    attribute EventHandler onresult;
+    attribute EventHandler onnomatch;
+    attribute EventHandler onerror;
+    attribute EventHandler onstart;
+    attribute EventHandler onend;
+};
+
+enum SpeechRecognitionErrorCode {
+    "no-speech",
+    "aborted",
+    "audio-capture",
+    "network",
+    "not-allowed",
+    "service-not-allowed",
+    "bad-grammar",
+    "language-not-supported"
+};
+
+[Exposed=Window]
+interface SpeechRecognitionErrorEvent : Event {
+    readonly attribute SpeechRecognitionErrorCode error;
+    readonly attribute DOMString message;
+};
+
+// Item in N-best list
+[Exposed=Window]
+interface SpeechRecognitionAlternative {
+    readonly attribute DOMString transcript;
+    readonly attribute float confidence;
+};
+
+// A complete one-shot simple response
+[Exposed=Window]
+interface SpeechRecognitionResult {
+    readonly attribute unsigned long length;
+    getter SpeechRecognitionAlternative item(unsigned long index);
+    readonly attribute boolean isFinal;
+};
+
+// A collection of responses (used in continuous mode)
+[Exposed=Window]
+interface SpeechRecognitionResultList {
+    readonly attribute unsigned long length;
+    getter SpeechRecognitionResult item(unsigned long index);
+};
+
+// A full response, which could be interim or final, part of a continuous response or not
+[Exposed=Window]
+interface SpeechRecognitionEvent : Event {
+    readonly attribute unsigned long resultIndex;
+    readonly attribute SpeechRecognitionResultList results;
+    readonly attribute any interpretation;
+    readonly attribute Document? emma;
+};
+
+// The object representing a speech grammar
+[Exposed=Window, Constructor]
+interface SpeechGrammar {
+    attribute DOMString src;
+    attribute float weight;
+};
+
+// The object representing a speech grammar collection
+[Exposed=Window, Constructor]
+interface SpeechGrammarList {
+    readonly attribute unsigned long length;
+    getter SpeechGrammar item(unsigned long index);
+    void addFromURI(DOMString src,
+                    optional float weight);
+    void addFromString(DOMString string,
+                    optional float weight);
+};
+
+[Exposed=Window]
+interface SpeechSynthesis : EventTarget {
+    readonly attribute boolean pending;
+    readonly attribute boolean speaking;
+    readonly attribute boolean paused;
+
+    attribute EventHandler onvoiceschanged;
+
+    void speak(SpeechSynthesisUtterance utterance);
+    void cancel();
+    void pause();
+    void resume();
+    sequence<SpeechSynthesisVoice> getVoices();
+};
+
+partial interface Window {
+    [SameObject] readonly attribute SpeechSynthesis speechSynthesis;
+};
+
+[Exposed=Window,
+  Constructor,
+  Constructor(DOMString text)]
+interface SpeechSynthesisUtterance : EventTarget {
+    attribute DOMString text;
+    attribute DOMString lang;
+    attribute SpeechSynthesisVoice? voice;
+    attribute float volume;
+    attribute float rate;
+    attribute float pitch;
+
+    attribute EventHandler onstart;
+    attribute EventHandler onend;
+    attribute EventHandler onerror;
+    attribute EventHandler onpause;
+    attribute EventHandler onresume;
+    attribute EventHandler onmark;
+    attribute EventHandler onboundary;
+};
+
+[Exposed=Window]
+interface SpeechSynthesisEvent : Event {
+    readonly attribute SpeechSynthesisUtterance utterance;
+    readonly attribute unsigned long charIndex;
+    readonly attribute float elapsedTime;
+    readonly attribute DOMString name;
+};
+
+enum SpeechSynthesisErrorCode {
+    "canceled",
+    "interrupted",
+    "audio-busy",
+    "audio-hardware",
+    "network",
+    "synthesis-unavailable",
+    "synthesis-failed",
+    "language-unavailable",
+    "voice-unavailable",
+    "text-too-long",
+    "invalid-argument",
+};
+
+[Exposed=Window]
+interface SpeechSynthesisErrorEvent : SpeechSynthesisEvent {
+    readonly attribute SpeechSynthesisErrorCode error;
+};
+
+[Exposed=Window]
+interface SpeechSynthesisVoice {
+    readonly attribute DOMString voiceURI;
+    readonly attribute DOMString name;
+    readonly attribute DOMString lang;
+    readonly attribute boolean localService;
+    readonly attribute boolean default;
+};

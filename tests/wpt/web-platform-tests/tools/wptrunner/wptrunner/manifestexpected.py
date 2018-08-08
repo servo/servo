@@ -61,9 +61,24 @@ def prefs(node):
 
     try:
         node_prefs = node.get("prefs")
-        rv = dict(value(item) for item in node_prefs)
+        if type(node_prefs) in (str, unicode):
+            rv = dict(value(node_prefs))
+        else:
+            rv = dict(value(item) for item in node_prefs)
     except KeyError:
         rv = {}
+    return rv
+
+
+def lsan_allowed(node):
+    try:
+        node_items = node.get("lsan-allowed")
+        if isinstance(node_items, (str, unicode)):
+            rv = {node_items}
+        else:
+            rv = set(node_items)
+    except KeyError:
+        rv = set()
     return rv
 
 
@@ -137,6 +152,10 @@ class ExpectedManifest(ManifestItem):
     def prefs(self):
         return prefs(self)
 
+    @property
+    def lsan_allowed(self):
+        return lsan_allowed(self)
+
 
 class DirectoryManifest(ManifestItem):
     @property
@@ -166,6 +185,10 @@ class DirectoryManifest(ManifestItem):
     @property
     def prefs(self):
         return prefs(self)
+
+    @property
+    def lsan_allowed(self):
+        return lsan_allowed(self)
 
 
 class TestNode(ManifestItem):
@@ -224,6 +247,10 @@ class TestNode(ManifestItem):
     def prefs(self):
         return prefs(self)
 
+    @property
+    def lsan_allowed(self):
+        return lsan_allowed(self)
+
     def append(self, node):
         """Add a subtest to the current test
 
@@ -274,6 +301,7 @@ def get_manifest(metadata_root, test_path, url_base, run_info):
                                   url_base=url_base)
     except IOError:
         return None
+
 
 def get_dir_manifest(path, run_info):
     """Get the ExpectedManifest for a particular test path, or None if there is no

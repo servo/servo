@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Test: 'contain: layout' on element that overflows and its parent has 'overflow: auto'</title>
+
+  <link rel="author" title="Morgan Rae Reschenberg" href="mailto:mreschenberg@berkeley.edu">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-overflow-3/#ink-overflow">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-layout">
+  <link rel="match" href="reference/contain-layout-ink-overflow-020-ref.html">
+
+  <meta content="This test checks that when the contents of an element with 'contain: layout' overflows, its overflowing content must be treated as ink overflow. Such overflowing content therefore can not be reached and can not be accessed by the scrollbars or by the scrolling mechanism of the parent of such element. In this test, the parent has 'overflow: auto' and therefore will not create scrollbars or a scrolling mechanism because the ink overflow is not a scrollable region for the parent." name="assert">
+
+  <style>
+  div
+    {
+      height: 100px;
+      width: 100px;
+    }
+
+    /* this means that each and all 4 div's use the same definite height and width */
+
+  div#parent-with-overflow-auto
+    {
+      overflow: auto;
+    }
+
+  div#contain
+    {
+      contain: layout;
+    }
+
+  div#pass
+    {
+      background-color: green;
+    }
+
+  div#fail
+    {
+      background-color: red;
+    }
+  </style>
+
+  <!--
+
+    25px  : height of a very tall horizontal scrollbar
+ +
+   100px  : height of div#fail
+  =======
+   125px
+
+  -->
+
+  <body onload="document.getElementById('parent-with-overflow-auto').scrollLeft = 100; document.getElementById('parent-with-overflow-auto').scrollTop = 125;">
+
+  <p>Test passes if there is a filled green square, <strong>no scrollbar around it</strong> and <strong>no red</strong>.
+
+  <div id="parent-with-overflow-auto">
+
+    <div id="contain">
+
+      <div id="pass"></div>
+
+      <div id="fail"></div>
+
+    </div>
+
+  </div>

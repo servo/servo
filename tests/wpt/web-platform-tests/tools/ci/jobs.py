@@ -23,7 +23,7 @@ job_path_map = {
                   "!css/[^/]*$"],
     "lint": [".*"],
     "manifest_upload": [".*"],
-    "resources_unittest": ["resources/"],
+    "resources_unittest": ["resources/", "tools/"],
     "tools_unittest": ["tools/"],
     "wptrunner_unittest": ["tools/wptrunner/*"],
     "build_css": ["css/"],

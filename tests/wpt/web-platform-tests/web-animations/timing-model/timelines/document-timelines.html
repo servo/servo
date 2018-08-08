@@ -10,8 +10,8 @@
 'use strict';
 
 async_test(t => {
-  assert_true(document.timeline.currentTime > 0,
-    'The current time is initially is positive');
+  assert_greater_than_equal(document.timeline.currentTime, 0,
+    'The current time is initially is positive or zero');
   // document.timeline.currentTime should be set even before document
   // load fires. We expect this code to be run before document load and hence
   // the above assertion is sufficient.

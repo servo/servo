@@ -26,7 +26,15 @@ class ConditionalValue(object):
 
     @value.setter
     def value(self, value):
-        self.value_node.data = value
+        if isinstance(self.value_node, ValueNode):
+            self.value_node.data = value
+        else:
+            assert(isinstance(self.value_node, ListNode))
+            while self.value_node.children:
+                self.value_node.children[0].remove()
+            assert len(self.value_node.children) == 0
+            for list_value in value:
+                self.value_node.append(ValueNode(list_value))
 
     def __call__(self, run_info):
         return self.condition_func(run_info)
@@ -267,7 +275,12 @@ class ManifestItem(object):
             node = KeyValueNode(key)
             self.node.append(node)
 
-        value_node = ValueNode(unicode(value))
+        if isinstance(value, list):
+            value_node = ListNode()
+            for item in value:
+                value_node.append(ValueNode(unicode(item)))
+        else:
+            value_node = ValueNode(unicode(value))
         if condition is not None:
             conditional_node = ConditionalNode()
             conditional_node.append(condition)
@@ -328,7 +341,10 @@ class ManifestItem(object):
             yield item
 
     def remove_value(self, key, value):
-        self._data[key].remove(value)
+        try:
+            self._data[key].remove(value)
+        except ValueError:
+            return
         if not self._data[key]:
             del self._data[key]
         value.remove()

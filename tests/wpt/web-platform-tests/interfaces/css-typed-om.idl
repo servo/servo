@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the CSS Typed OM spec.
-// See https://drafts.css-houdini.org/css-typed-om/
+// Content of this file was automatically extracted from the
+// "CSS Typed OM Level 1" spec.
+// See: https://drafts.css-houdini.org/css-typed-om-1/
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSStyleValue {
@@ -153,6 +154,14 @@ interface CSSMathMax : CSSMathValue {
     readonly attribute CSSNumericArray values;
 };
 
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
+ Constructor(CSSNumberish min, CSSNumberish val, CSSNumberish max)]
+interface CSSMathClamp : CSSMathValue {
+    readonly attribute CSSNumericValue min;
+    readonly attribute CSSNumericValue val;
+    readonly attribute CSSNumericValue max;
+};
+
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSNumericArray {
     iterable<CSSNumericValue>;
@@ -167,11 +176,9 @@ enum CSSMathOperator {
     "invert",
     "min",
     "max",
+    "clamp",
 };
 
-// FIXME: Uncomment this when IDLHarness supports CSS namespaces:
-// https://github.com/web-platform-tests/wpt/issues/7583
-/*
 partial namespace CSS {
     CSSUnitValue number(double value);
     CSSUnitValue percent(double value);
@@ -220,7 +227,6 @@ partial namespace CSS {
     // <flex>
     CSSUnitValue fr(double value);
 };
-*/
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
  Constructor(sequence<CSSTransformComponent> transforms)]

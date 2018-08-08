@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>SpeechRecognition basics</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  const reco = new SpeechRecognition();
+  assert_equals(reco.grammars.length, 0, 'SpeechRecognition.grammars.length');
+  assert_equals(reco.lang, '', 'SpeechRecognition.lang');
+  assert_false(reco.continuous, 'SpeechRecognition.continuous');
+  assert_false(reco.interimResults, 'SpeechRecognition.interimResults');
+  assert_equals(reco.maxAlternatives, 1, 'SpeechRecognition.maxAlternatives');
+});
+</script>

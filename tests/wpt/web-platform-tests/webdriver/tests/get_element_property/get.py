@@ -12,12 +12,9 @@ def get_element_property(session, element_id, prop):
             prop=prop))
 
 
-def test_no_browsing_context(session, create_window):
-    session.window_handle = create_window()
-    session.close()
-
-    result = get_element_property(session, "foo", "id")
-    assert_error(result, "no such window")
+def test_no_browsing_context(session, closed_window):
+    response = get_element_property(session, "foo", "id")
+    assert_error(response, "no such window")
 
 
 def test_element_not_found(session):

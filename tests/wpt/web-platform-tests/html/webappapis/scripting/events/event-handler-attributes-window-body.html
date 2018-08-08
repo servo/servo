@@ -3,32 +3,47 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="resources/event-handler-body.js"></script>
 <div id="log"></div>
 <body>
 <script>
+setup({ explicit_done: true });
+
 function f() {
   return 0;
 }
 
-var handlers = ['blur','error','focus','load','resize','scroll',
-                'afterprint','beforeprint','beforeunload','hashchange',
-                'languagechange','message','offline','online','pagehide',
-                'pageshow','popstate','storage','unload'];
-handlers.forEach(function(handler) {
-  test(function() {
-    window['on' + handler] = f;
-    assert_equals(document.body['on' + handler], f);
-  }, handler);
-});
+handlersListPromise.then(({ shadowedHandlers, notShadowedHandlers }) => {
+  const body = document.createElement("body");
 
-handlers.forEach(function(handler) {
+  shadowedHandlers.forEach(function(handler) {
+    test(function() {
+      window['on' + handler] = f;
+      assert_equals(document.body['on' + handler], f, "document.body should reflect");
+      assert_equals(body['on' + handler], f, "document.createElement('body') should reflect");
+    }, `shadowed ${handler}`);
+  });
+  notShadowedHandlers.forEach(function(handler) {
+    test(function() {
+      window['on' + handler] = f;
+      assert_equals(document.body['on' + handler], null, "document.body should reflect");
+      assert_equals(body['on' + handler], null, "document.createElement('body') should reflect");
+    }, `not shadowed ${handler}`);
+  });
+
+  [...shadowedHandlers, ...notShadowedHandlers].forEach(function(handler) {
     window['on' + handler] = null;
-});
+  });
 
-handlers.forEach(function(handler) {
-  test(function() {
-    assert_equals(window['on' + handler], null);
-    assert_equals(document.body['on' + handler], null);
-  }, handler + " removal");
+  shadowedHandlers.forEach(function(handler) {
+    test(function() {
+      assert_equals(window['on' + handler], null, "window should reflect changes to itself");
+      assert_equals(document.body['on' + handler], null, "document.body should reflect");
+      assert_equals(body['on' + handler], null, "document.createElement('body') should reflect");
+    }, `shadowed ${handler} removal`);
+  });
+
+  done();
 });
 </script>

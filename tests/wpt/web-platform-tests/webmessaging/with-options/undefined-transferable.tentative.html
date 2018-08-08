@@ -5,7 +5,7 @@
 <div id=log></div>
 <script>
 async_test(function() {
-  postMessage('', undefined);
+  postMessage('', {transfer: undefined});
   onmessage = this.step_func(function(e) {
     assert_array_equals(e.ports, []);
     this.done();

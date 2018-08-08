@@ -17,7 +17,9 @@ window.setMessageListener(function(event) {
 
 window.win = window.open("%(abs_url)s", "%(window_id)s");
 
-window.timer = setTimeout(function() {
-  window.win.timeout();
-  window.win.close();
-}, %(timeout)s);
+if (%(timeout)s != null) {
+  window.timer = setTimeout(function() {
+    window.win.timeout();
+    window.win.close();
+  }, %(timeout)s);
+}

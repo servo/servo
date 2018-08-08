@@ -56,9 +56,11 @@ class Git(object):
         return self.git("show", "HEAD:%s" % path)
 
     def __iter__(self):
-        cmd = ["ls-tree", "-r", "-z", "--name-only", "HEAD"]
+        cmd = ["ls-tree", "-r", "-z", "HEAD"]
         local_changes = self._local_changes()
-        for rel_path in self.git(*cmd).split("\0")[:-1]:
+        for result in self.git(*cmd).split("\0")[:-1]:
+            rel_path = result.split("\t")[-1]
+            hash = result.split()[2]
             if not os.path.isdir(os.path.join(self.root, rel_path)):
                 if rel_path in local_changes:
                     contents = self._show_file(rel_path)
@@ -67,6 +69,7 @@ class Git(object):
                 yield SourceFile(self.root,
                                  rel_path,
                                  self.url_base,
+                                 hash,
                                  contents=contents)
 
 
@@ -75,21 +78,19 @@ class FileSystem(object):
         self.root = root
         self.url_base = url_base
         from gitignore import gitignore
-        self.path_filter = gitignore.PathFilter(self.root)
+        self.path_filter = gitignore.PathFilter(self.root, extras=[".git/"])
 
     def __iter__(self):
-        is_root = True
-        for dir_path, dir_names, filenames in os.walk(self.root):
-            rel_root = os.path.relpath(dir_path, self.root)
+        paths = self.get_paths()
+        for path in paths:
+            yield SourceFile(self.root, path, self.url_base)
 
-            if is_root:
-                dir_names[:] = [item for item in dir_names if item not in
-                                ["tools", "resources", ".git"]]
-                is_root = False
-
+    def get_paths(self):
+        for dirpath, dirnames, filenames in os.walk(self.root):
             for filename in filenames:
-                rel_path = os.path.join(rel_root, filename)
-                if self.path_filter(rel_path):
-                    yield SourceFile(self.root,
-                                     rel_path,
-                                     self.url_base)
+                path = os.path.relpath(os.path.join(dirpath, filename), self.root)
+                if self.path_filter(path):
+                    yield path
+
+            dirnames[:] = [item for item in dirnames if self.path_filter(
+                           os.path.relpath(os.path.join(dirpath, item), self.root) + "/")]

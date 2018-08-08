@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  async_test(t => {
+    var policy = window.trustedTypes.createPolicy('SomeName')
+        .then(t.step_func_done(policy => {
+           assert_true(policy instanceof TrustedTypePolicy);
+           assert_equals(policy.name, 'SomeName');
+    }));
+  }, "policy.name = name");
+</script>

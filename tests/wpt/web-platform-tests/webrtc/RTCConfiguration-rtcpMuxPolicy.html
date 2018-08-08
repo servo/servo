@@ -140,4 +140,56 @@
       Tested    2
       Total     2
    */
+  const FINGERPRINT_SHA256 = '00:00:00:00:00:00:00:00:00:00:00:00:00' +
+      ':00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00';
+  const ICEUFRAG = 'someufrag';
+  const ICEPWD = 'somelongpwdwithenoughrandomness';
+
+  promise_test(async t => {
+    // audio-only SDP offer without BUNDLE and rtcp-mux.
+    const sdp = 'v=0\r\n' +
+        'o=- 166855176514521964 2 IN IP4 127.0.0.1\r\n' +
+        's=-\r\n' +
+        't=0 0\r\n' +
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' +
+        'c=IN IP4 0.0.0.0\r\n' +
+        'a=rtcp:9 IN IP4 0.0.0.0\r\n' +
+        'a=ice-ufrag:' + ICEUFRAG + '\r\n' +
+        'a=ice-pwd:' + ICEPWD + '\r\n' +
+        'a=fingerprint:sha-256 ' + FINGERPRINT_SHA256 + '\r\n' +
+        'a=setup:actpass\r\n' +
+        'a=mid:audio1\r\n' +
+        'a=sendonly\r\n' +
+        'a=rtcp-rsize\r\n' +
+        'a=rtpmap:111 opus/48000/2\r\n';
+    const pc = new RTCPeerConnection({rtcpMuxPolicy: 'require'});
+    t.add_cleanup(() => pc.close());
+
+    return promise_rejects(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'offer', sdp}));
+  }, 'setRemoteDescription throws InvalidAccessError when called with an offer without rtcp-mux and rtcpMuxPolicy is set to require');
+
+  promise_test(async t => {
+    // audio-only SDP answer without BUNDLE and rtcp-mux.
+    // Also omitting a=mid in order to avoid parsing it from the offer as this needs to match.
+    const sdp = 'v=0\r\n' +
+        'o=- 166855176514521964 2 IN IP4 127.0.0.1\r\n' +
+        's=-\r\n' +
+        't=0 0\r\n' +
+        'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n' +
+        'c=IN IP4 0.0.0.0\r\n' +
+        'a=rtcp:9 IN IP4 0.0.0.0\r\n' +
+        'a=ice-ufrag:' + ICEUFRAG + '\r\n' +
+        'a=ice-pwd:' + ICEPWD + '\r\n' +
+        'a=fingerprint:sha-256 ' + FINGERPRINT_SHA256 + '\r\n' +
+        'a=setup:active\r\n' +
+        'a=sendonly\r\n' +
+        'a=rtcp-rsize\r\n' +
+        'a=rtpmap:111 opus/48000/2\r\n';
+    const pc = new RTCPeerConnection({rtcpMuxPolicy: 'require'});
+    t.add_cleanup(() => pc.close());
+
+    await pc.createOffer({offerToReceiveAudio: true})
+      .then(offer => pc.setLocalDescription(offer));
+    return promise_rejects(t, 'InvalidAccessError', pc.setRemoteDescription({type: 'answer', sdp}));
+  }, 'setRemoteDescription throws InvalidAccessError when called with an answer without rtcp-mux and rtcpMuxPolicy is set to require');
 </script>

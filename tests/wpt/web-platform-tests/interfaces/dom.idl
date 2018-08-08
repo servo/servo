@@ -1,9 +1,14 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "DOM Standard" spec.
+// See: https://dom.spec.whatwg.org/
+
 [Constructor(DOMString type, optional EventInit eventInitDict),
- Exposed=(Window,Worker)]
+ Exposed=(Window,Worker,AudioWorklet)]
 interface Event {
   readonly attribute DOMString type;
   readonly attribute EventTarget? target;
-  readonly attribute EventTarget? srcElement;
+  readonly attribute EventTarget? srcElement; // historical
   readonly attribute EventTarget? currentTarget;
   sequence<EventTarget> composedPath();
 
@@ -14,31 +19,31 @@ interface Event {
   readonly attribute unsigned short eventPhase;
 
   void stopPropagation();
+           attribute boolean cancelBubble; // historical alias of .stopPropagation
   void stopImmediatePropagation();
 
   readonly attribute boolean bubbles;
   readonly attribute boolean cancelable;
-           attribute boolean returnValue;
+           attribute boolean returnValue;  // historical
   void preventDefault();
   readonly attribute boolean defaultPrevented;
   readonly attribute boolean composed;
 
   [Unforgeable] readonly attribute boolean isTrusted;
-  readonly attribute DOMTimeStamp timeStamp;
+  readonly attribute DOMHighResTimeStamp timeStamp;
 
-  void initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false);
+  void initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false); // historical
 };
 
 dictionary EventInit {
   boolean bubbles = false;
   boolean cancelable = false;
+  boolean composed = false;
 };
-
 
 partial interface Window {
-  [Replaceable] readonly attribute any event;
+  [Replaceable] readonly attribute any event; // historical
 };
-
 
 [Constructor(DOMString type, optional CustomEventInit eventInitDict),
  Exposed=(Window,Worker)]
@@ -52,11 +57,10 @@ dictionary CustomEventInit : EventInit {
   any detail = null;
 };
 
-
 [Constructor,
- Exposed=(Window,Worker)]
+ Exposed=(Window,Worker,AudioWorklet)]
 interface EventTarget {
-  void addEventListener(DOMString type, EventListener? callback, optional (EventListenerOptions or boolean) options);
+  void addEventListener(DOMString type, EventListener? callback, optional (AddEventListenerOptions or boolean) options);
   void removeEventListener(DOMString type, EventListener? callback, optional (EventListenerOptions or boolean) options);
   boolean dispatchEvent(Event event);
 };
@@ -66,10 +70,13 @@ callback interface EventListener {
 };
 
 dictionary EventListenerOptions {
-  boolean capture;
-  boolean passive;
+  boolean capture = false;
 };
 
+dictionary AddEventListenerOptions : EventListenerOptions {
+  boolean passive = false;
+  boolean once = false;
+};
 
 [Constructor,
  Exposed=(Window,Worker)]
@@ -78,28 +85,22 @@ interface AbortController {
 
   void abort();
 };
-
-
 [Exposed=(Window,Worker)]
 interface AbortSignal : EventTarget {
   readonly attribute boolean aborted;
 
   attribute EventHandler onabort;
 };
-
-
 interface mixin NonElementParentNode {
   Element? getElementById(DOMString elementId);
 };
 Document includes NonElementParentNode;
 DocumentFragment includes NonElementParentNode;
 
-
 interface mixin DocumentOrShadowRoot {
 };
 Document includes DocumentOrShadowRoot;
 ShadowRoot includes DocumentOrShadowRoot;
-
 
 interface mixin ParentNode {
   [SameObject] readonly attribute HTMLCollection children;
@@ -107,8 +108,8 @@ interface mixin ParentNode {
   readonly attribute Element? lastElementChild;
   readonly attribute unsigned long childElementCount;
 
-  [Unscopable] void prepend((Node or DOMString)... nodes);
-  [Unscopable] void append((Node or DOMString)... nodes);
+  [CEReactions, Unscopable] void prepend((Node or DOMString)... nodes);
+  [CEReactions, Unscopable] void append((Node or DOMString)... nodes);
 
   Element? querySelector(DOMString selectors);
   [NewObject] NodeList querySelectorAll(DOMString selectors);
@@ -117,7 +118,6 @@ Document includes ParentNode;
 DocumentFragment includes ParentNode;
 Element includes ParentNode;
 
-
 interface mixin NonDocumentTypeChildNode {
   readonly attribute Element? previousElementSibling;
   readonly attribute Element? nextElementSibling;
@@ -125,24 +125,21 @@ interface mixin NonDocumentTypeChildNode {
 Element includes NonDocumentTypeChildNode;
 CharacterData includes NonDocumentTypeChildNode;
 
-
 interface mixin ChildNode {
-  [Unscopable] void before((Node or DOMString)... nodes);
-  [Unscopable] void after((Node or DOMString)... nodes);
-  [Unscopable] void replaceWith((Node or DOMString)... nodes);
-  [Unscopable] void remove();
+  [CEReactions, Unscopable] void before((Node or DOMString)... nodes);
+  [CEReactions, Unscopable] void after((Node or DOMString)... nodes);
+  [CEReactions, Unscopable] void replaceWith((Node or DOMString)... nodes);
+  [CEReactions, Unscopable] void remove();
 };
 DocumentType includes ChildNode;
 Element includes ChildNode;
 CharacterData includes ChildNode;
-
 
 interface mixin Slotable {
   readonly attribute HTMLSlotElement? assignedSlot;
 };
 Element includes Slotable;
 Text includes Slotable;
-
 
 [Exposed=Window]
 interface NodeList {
@@ -151,7 +148,6 @@ interface NodeList {
 //  iterable<Node>;
 };
 
-
 [Exposed=Window, LegacyUnenumerableNamedProperties]
 interface HTMLCollection {
   readonly attribute unsigned long length;
@@ -159,8 +155,8 @@ interface HTMLCollection {
   getter Element? namedItem(DOMString name);
 };
 
-
-[Constructor(MutationCallback callback)]
+[Constructor(MutationCallback callback),
+ Exposed=Window]
 interface MutationObserver {
   void observe(Node target, optional MutationObserverInit options);
   void disconnect();
@@ -179,7 +175,6 @@ dictionary MutationObserverInit {
   sequence<DOMString> attributeFilter;
 };
 
-
 [Exposed=Window]
 interface MutationRecord {
   readonly attribute DOMString type;
@@ -193,11 +188,10 @@ interface MutationRecord {
   readonly attribute DOMString? oldValue;
 };
 
-
 [Exposed=Window]
 interface Node : EventTarget {
   const unsigned short ELEMENT_NODE = 1;
-  const unsigned short ATTRIBUTE_NODE = 2; // historical
+  const unsigned short ATTRIBUTE_NODE = 2;
   const unsigned short TEXT_NODE = 3;
   const unsigned short CDATA_SECTION_NODE = 4;
   const unsigned short ENTITY_REFERENCE_NODE = 5; // historical
@@ -211,7 +205,7 @@ interface Node : EventTarget {
   readonly attribute unsigned short nodeType;
   readonly attribute DOMString nodeName;
 
-  readonly attribute DOMString baseURI;
+  readonly attribute USVString baseURI;
 
   readonly attribute boolean isConnected;
   readonly attribute Document? ownerDocument;
@@ -225,11 +219,11 @@ interface Node : EventTarget {
   readonly attribute Node? previousSibling;
   readonly attribute Node? nextSibling;
 
-           attribute DOMString? nodeValue;
-           attribute DOMString? textContent;
-  void normalize();
+  [CEReactions] attribute DOMString? nodeValue;
+  [CEReactions] attribute DOMString? textContent;
+  [CEReactions] void normalize();
 
-  [NewObject] Node cloneNode(optional boolean deep = false);
+  [CEReactions, NewObject] Node cloneNode(optional boolean deep = false);
   boolean isEqualNode(Node? otherNode);
   boolean isSameNode(Node? otherNode); // historical alias of ===
 
@@ -246,10 +240,10 @@ interface Node : EventTarget {
   DOMString? lookupNamespaceURI(DOMString? prefix);
   boolean isDefaultNamespace(DOMString? namespace);
 
-  Node insertBefore(Node node, Node? child);
-  Node appendChild(Node node);
-  Node replaceChild(Node node, Node child);
-  Node removeChild(Node child);
+  [CEReactions] Node insertBefore(Node node, Node? child);
+  [CEReactions] Node appendChild(Node node);
+  [CEReactions] Node replaceChild(Node node, Node child);
+  [CEReactions] Node removeChild(Node child);
 };
 
 dictionary GetRootNodeOptions {
@@ -260,9 +254,9 @@ dictionary GetRootNodeOptions {
  Exposed=Window]
 interface Document : Node {
   [SameObject] readonly attribute DOMImplementation implementation;
-  readonly attribute DOMString URL;
-  readonly attribute DOMString documentURI;
-  readonly attribute DOMString origin;
+  readonly attribute USVString URL;
+  readonly attribute USVString documentURI;
+  readonly attribute USVString origin;
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
   readonly attribute DOMString charset; // historical alias of .characterSet
@@ -275,16 +269,16 @@ interface Document : Node {
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 
-  [NewObject] Element createElement(DOMString localName, optional (DOMString or ElementCreationOptions) options);
-  [NewObject] Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional (DOMString or ElementCreationOptions) options);
+  [CEReactions, NewObject] Element createElement(DOMString localName, optional (DOMString or ElementCreationOptions) options);
+  [CEReactions, NewObject] Element createElementNS(DOMString? namespace, DOMString qualifiedName, optional (DOMString or ElementCreationOptions) options);
   [NewObject] DocumentFragment createDocumentFragment();
   [NewObject] Text createTextNode(DOMString data);
   [NewObject] CDATASection createCDATASection(DOMString data);
   [NewObject] Comment createComment(DOMString data);
   [NewObject] ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
-  [NewObject] Node importNode(Node node, optional boolean deep = false);
-  Node adoptNode(Node node);
+  [CEReactions, NewObject] Node importNode(Node node, optional boolean deep = false);
+  [CEReactions] Node adoptNode(Node node);
 
   [NewObject] Attr createAttribute(DOMString localName);
   [NewObject] Attr createAttributeNS(DOMString? namespace, DOMString qualifiedName);
@@ -305,7 +299,6 @@ dictionary ElementCreationOptions {
   DOMString is;
 };
 
-
 [Exposed=Window]
 interface DOMImplementation {
   [NewObject] DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId, DOMString systemId);
@@ -315,7 +308,6 @@ interface DOMImplementation {
   boolean hasFeature(); // useless; always returns true
 };
 
-
 [Exposed=Window]
 interface DocumentType : Node {
   readonly attribute DOMString name;
@@ -323,12 +315,10 @@ interface DocumentType : Node {
   readonly attribute DOMString systemId;
 };
 
-
 [Constructor,
  Exposed=Window]
 interface DocumentFragment : Node {
 };
-
 
 [Exposed=Window]
 interface ShadowRoot : DocumentFragment {
@@ -338,7 +328,6 @@ interface ShadowRoot : DocumentFragment {
 
 enum ShadowRootMode { "open", "closed" };
 
-
 [Exposed=Window]
 interface Element : Node {
   readonly attribute DOMString? namespaceURI;
@@ -346,29 +335,29 @@ interface Element : Node {
   readonly attribute DOMString localName;
   readonly attribute DOMString tagName;
 
-           attribute DOMString id;
-           attribute DOMString className;
+  [CEReactions] attribute DOMString id;
+  [CEReactions] attribute DOMString className;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList classList;
-  [Unscopable] attribute DOMString slot;
+  [CEReactions, Unscopable] attribute DOMString slot;
 
   boolean hasAttributes();
   [SameObject] readonly attribute NamedNodeMap attributes;
   sequence<DOMString> getAttributeNames();
   DOMString? getAttribute(DOMString qualifiedName);
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
-  void setAttribute(DOMString qualifiedName, DOMString value);
-  void setAttributeNS(DOMString? namespace, DOMString qualifiedName, DOMString value);
-  void removeAttribute(DOMString qualifiedName);
-  void removeAttributeNS(DOMString? namespace, DOMString localName);
-  boolean toggleAttribute(DOMString qualifiedName, optional boolean force);
+  [CEReactions] void setAttribute(DOMString qualifiedName, DOMString value);
+  [CEReactions] void setAttributeNS(DOMString? namespace, DOMString qualifiedName, DOMString value);
+  [CEReactions] void removeAttribute(DOMString qualifiedName);
+  [CEReactions] void removeAttributeNS(DOMString? namespace, DOMString localName);
+  [CEReactions] boolean toggleAttribute(DOMString qualifiedName, optional boolean force);
   boolean hasAttribute(DOMString qualifiedName);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
   Attr? getAttributeNode(DOMString qualifiedName);
   Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
-  Attr? setAttributeNode(Attr attr);
-  Attr? setAttributeNodeNS(Attr attr);
-  Attr removeAttributeNode(Attr attr);
+  [CEReactions] Attr? setAttributeNode(Attr attr);
+  [CEReactions] Attr? setAttributeNodeNS(Attr attr);
+  [CEReactions] Attr removeAttributeNode(Attr attr);
 
   ShadowRoot attachShadow(ShadowRootInit init);
   readonly attribute ShadowRoot? shadowRoot;
@@ -381,27 +370,26 @@ interface Element : Node {
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
 
-  Element? insertAdjacentElement(DOMString where, Element element); // historical
+  [CEReactions] Element? insertAdjacentElement(DOMString where, Element element); // historical
   void insertAdjacentText(DOMString where, DOMString data); // historical
 };
 
 dictionary ShadowRootInit {
-//  required ShadowRootMode mode;
+  required ShadowRootMode mode;
 };
 
-
-[Exposed=Window, LegacyUnenumerableNamedProperties]
+[Exposed=Window,
+ LegacyUnenumerableNamedProperties]
 interface NamedNodeMap {
   readonly attribute unsigned long length;
   getter Attr? item(unsigned long index);
   getter Attr? getNamedItem(DOMString qualifiedName);
   Attr? getNamedItemNS(DOMString? namespace, DOMString localName);
-  Attr? setNamedItem(Attr attr);
-  Attr? setNamedItemNS(Attr attr);
-  Attr removeNamedItem(DOMString qualifiedName);
-  Attr removeNamedItemNS(DOMString? namespace, DOMString localName);
+  [CEReactions] Attr? setNamedItem(Attr attr);
+  [CEReactions] Attr? setNamedItemNS(Attr attr);
+  [CEReactions] Attr removeNamedItem(DOMString qualifiedName);
+  [CEReactions] Attr removeNamedItemNS(DOMString? namespace, DOMString localName);
 };
-
 
 [Exposed=Window]
 interface Attr : Node {
@@ -409,13 +397,12 @@ interface Attr : Node {
   readonly attribute DOMString? prefix;
   readonly attribute DOMString localName;
   readonly attribute DOMString name;
-           attribute DOMString value;
+  [CEReactions] attribute DOMString value;
 
   readonly attribute Element? ownerElement;
 
   readonly attribute boolean specified; // useless; always returns true
 };
-
 [Exposed=Window]
 interface CharacterData : Node {
   attribute [TreatNullAs=EmptyString] DOMString data;
@@ -427,28 +414,23 @@ interface CharacterData : Node {
   void replaceData(unsigned long offset, unsigned long count, DOMString data);
 };
 
-
 [Constructor(optional DOMString data = ""),
  Exposed=Window]
 interface Text : CharacterData {
   [NewObject] Text splitText(unsigned long offset);
   readonly attribute DOMString wholeText;
 };
-
 [Exposed=Window]
 interface CDATASection : Text {
 };
-
 [Exposed=Window]
 interface ProcessingInstruction : CharacterData {
   readonly attribute DOMString target;
 };
-
 [Constructor(optional DOMString data = ""),
  Exposed=Window]
 interface Comment : CharacterData {
 };
-
 
 [Exposed=Window]
 interface AbstractRange {
@@ -484,11 +466,11 @@ interface Range : AbstractRange {
   const unsigned short END_TO_START = 3;
   short compareBoundaryPoints(unsigned short how, Range sourceRange);
 
-  void deleteContents();
-  [NewObject] DocumentFragment extractContents();
-  [NewObject] DocumentFragment cloneContents();
-  void insertNode(Node node);
-  void surroundContents(Node newParent);
+  [CEReactions] void deleteContents();
+  [CEReactions, NewObject] DocumentFragment extractContents();
+  [CEReactions, NewObject] DocumentFragment cloneContents();
+  [CEReactions] void insertNode(Node node);
+  [CEReactions] void surroundContents(Node newParent);
 
   [NewObject] Range cloneRange();
   void detach();
@@ -500,7 +482,6 @@ interface Range : AbstractRange {
 
   stringifier;
 };
-
 
 [Exposed=Window]
 interface NodeIterator {
@@ -515,7 +496,6 @@ interface NodeIterator {
 
   void detach();
 };
-
 
 [Exposed=Window]
 interface TreeWalker {
@@ -532,7 +512,6 @@ interface TreeWalker {
   Node? previousNode();
   Node? nextNode();
 };
-
 [Exposed=Window]
 callback interface NodeFilter {
   // Constants for acceptNode()
@@ -543,7 +522,7 @@ callback interface NodeFilter {
   // Constants for whatToShow
   const unsigned long SHOW_ALL = 0xFFFFFFFF;
   const unsigned long SHOW_ELEMENT = 0x1;
-  const unsigned long SHOW_ATTRIBUTE = 0x2; // historical
+  const unsigned long SHOW_ATTRIBUTE = 0x2;
   const unsigned long SHOW_TEXT = 0x4;
   const unsigned long SHOW_CDATA_SECTION = 0x8;
   const unsigned long SHOW_ENTITY_REFERENCE = 0x10; // historical
@@ -558,7 +537,7 @@ callback interface NodeFilter {
   unsigned short acceptNode(Node node);
 };
 
-
+[Exposed=Window]
 interface DOMTokenList {
   readonly attribute unsigned long length;
   getter DOMString? item(unsigned long index);

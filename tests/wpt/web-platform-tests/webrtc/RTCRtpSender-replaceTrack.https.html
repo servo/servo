@@ -3,15 +3,11 @@
 <title>RTCRtpSender.prototype.replaceTrack</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
-
-  // The following helper functions are called from RTCPeerConnection-helper.js:
-  // generateMediaStreamTrack
 
   /*
     5.2.  RTCRtpSender Interface
@@ -31,10 +27,12 @@
       4.  If connection's [[isClosed]] slot is true, return a promise rejected
           with a newly created InvalidStateError and abort these steps.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
 
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
@@ -50,10 +48,12 @@
           transceiver kind of transceiver, return a promise rejected with a
           newly created TypeError.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('video');
+    const stream = await navigator.mediaDevices.getUserMedia({video: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
 
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
@@ -67,10 +67,12 @@
       5.  If transceiver.stopped is true, return a promise rejected with a newly
           created InvalidStateError.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
 
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
@@ -86,10 +88,12 @@
           (section 3.4.1.), then set sender's track attribute to withTrack, and
           return a promise resolved with undefined.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
 
     const transceiver = pc.addTransceiver('audio');
     const { sender } = transceiver;
@@ -101,11 +105,15 @@
     });
   }, 'Calling replaceTrack on sender with null track and not set to session description should resolve with sender.track set to given track');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track1 = generateMediaStreamTrack('audio');
-    const track2 = generateMediaStreamTrack('audio');
+    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream2.getTracks();
 
     const transceiver = pc.addTransceiver(track1);
     const { sender } = transceiver;
@@ -118,10 +126,12 @@
     });
   }, 'Calling replaceTrack on sender not set to session description should resolve with sender.track set to given track');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
 
     const transceiver = pc.addTransceiver(track);
     const { sender } = transceiver;
@@ -145,10 +155,12 @@
           3.  Queue a task that runs the following steps:
               2.  Set sender's track attribute to withTrack.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track = generateMediaStreamTrack('audio');
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+    const [track] = stream.getTracks();
 
     const transceiver = pc.addTransceiver(track);
     const { sender } = transceiver;
@@ -175,11 +187,15 @@
           3.  Queue a task that runs the following steps:
               2.  Set sender's track attribute to withTrack.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track1 = generateMediaStreamTrack('audio');
-    const track2 = generateMediaStreamTrack('audio');
+    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream1.getTracks();
 
     const transceiver = pc.addTransceiver(track1);
     const { sender } = transceiver;
@@ -207,11 +223,15 @@
           3.  Queue a task that runs the following steps:
               2.  Set sender's track attribute to withTrack.
    */
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const track1 = generateMediaStreamTrack('audio');
-    const track2 = generateMediaStreamTrack('audio');
+    const stream1 = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
+    const [track1] = stream1.getTracks();
+    const stream2 = await navigator.mediaDevices.getUserMedia({audio: true});
+    t.add_cleanup(() => stream2.getTracks().forEach(track => track.stop()));
+    const [track2] = stream1.getTracks();
 
     const transceiver = pc.addTransceiver(track1);
     const { sender } = transceiver;

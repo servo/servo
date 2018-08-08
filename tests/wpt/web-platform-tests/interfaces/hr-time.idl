@@ -1,17 +1,18 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the High Resolution Time spec.
-// See https://w3c.github.io/hr-time/
+// Content of this file was automatically extracted from the
+// "High Resolution Time Level 2" spec.
+// See: https://w3c.github.io/hr-time/
 
 typedef double DOMHighResTimeStamp;
 
 [Exposed=(Window,Worker)]
 interface Performance : EventTarget {
-    DOMHighResTimeStamp now ();
+    DOMHighResTimeStamp now();
     readonly attribute DOMHighResTimeStamp timeOrigin;
     [Default] object toJSON();
 };
 
-partial interface WindowOrWorkerGlobalScope {
+partial interface mixin WindowOrWorkerGlobalScope {
     [Replaceable]
     readonly    attribute Performance performance;
 };

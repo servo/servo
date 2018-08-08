@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 
 from webdriver.transport import HTTPWireProtocol
@@ -66,13 +64,3 @@ def fixture_new_session(request, configuration, current_session):
     if custom_session.get("session") is not None:
         _delete_session(custom_session["session"]["sessionId"])
         custom_session = None
-
-
-@pytest.fixture(scope="session")
-def platform_name():
-    return {
-        "linux2": "linux",
-        "win32": "windows",
-        "cygwin": "windows",
-        "darwin": "mac"
-    }.get(sys.platform)
