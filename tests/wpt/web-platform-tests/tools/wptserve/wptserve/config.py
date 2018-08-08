@@ -1,10 +1,11 @@
+import copy
 import logging
 import os
 
 from collections import defaultdict, Mapping
-from six import iteritems, itervalues
+from six import integer_types, iteritems, itervalues, string_types
 
-from .sslutils import environments
+from . import sslutils
 from .utils import get_port
 
 
@@ -31,6 +32,83 @@ class Config(Mapping):
     """wptserve config
 
     Inherits from Mapping for backwards compatibility with the old dict-based config"""
+    def __init__(self, logger_name, data):
+        self.__dict__["_logger_name"] = logger_name
+        self.__dict__.update(data)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def __setattr__(self, key, value):
+        raise ValueError("Config is immutable")
+
+    def __setitem__(self, key):
+        raise ValueError("Config is immutable")
+
+    def __getitem__(self, key):
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            raise ValueError
+
+    def __contains__(self, key):
+        return key in self.__dict__
+
+    def __iter__(self):
+        return (x for x in self.__dict__ if not x.startswith("_"))
+
+    def __len__(self):
+        return len([item for item in self])
+
+    @property
+    def logger(self):
+        logger = logging.getLogger(self._logger_name)
+        logger.setLevel(self.log_level.upper())
+        return logger
+
+    def as_dict(self):
+        return json_types(self.__dict__)
+
+
+def json_types(obj):
+    if isinstance(obj, dict):
+        return {key: json_types(value) for key, value in iteritems(obj)}
+    if (isinstance(obj, string_types) or
+        isinstance(obj, integer_types) or
+        isinstance(obj, float)):
+        return obj
+    if isinstance(obj, list) or hasattr(obj, "__iter__"):
+        return [json_types(value) for value in obj]
+    raise ValueError
+
+
+class ConfigBuilder(object):
+    """Builder object for setting the wptsync config.
+
+    Configuration can be passed in as a dictionary to the constructor, or
+    set via attributes after construction. Configuration options must match
+    the keys on the _default class property.
+
+    The generated configuration is obtained by using the builder
+    object as a context manager; this returns a Config object
+    containing immutable configuration that may be shared between
+    threads and processes. In general the configuration is only valid
+    for the context used to obtain it.
+
+    with ConfigBuilder() as config:
+        # Use the configuration
+        print config.browser_host
+
+    The properties on the final configuration include those explicitly
+    supplied and computed properties. The computed properties are
+    defined byt the computed_properites attribute on the class. This
+    is a list of property names, each corresponding to a _get_<name>
+    method on the class. These methods are called in the order defined
+    in computed_properties and are passed a single argument, a
+    dictionary containing the current set of properties. Thus computed
+    properties later in the list may depend on the value of earlier
+    ones.
+    """
 
     _default = {
         "browser_host": "localhost",
@@ -44,6 +122,7 @@ class Config(Mapping):
         "ssl": {
             "type": "none",
             "encrypt_after_connect": False,
+            "none": {},
             "openssl": {
                 "openssl_binary": "openssl",
                 "base_path": "_certs",
@@ -57,14 +136,34 @@ class Config(Mapping):
         },
         "aliases": []
     }
+    default_config_cls = Config
+
+    # Configuration properties that are computed. Each corresponds to a method
+    # _get_foo, which is called with the current data dictionary. The properties
+    # are computed in the order specified in the list.
+    computed_properties = ["log_level",
+                           "paths",
+                           "server_host",
+                           "ports",
+                           "domains",
+                           "not_domains",
+                           "all_domains",
+                           "domains_set",
+                           "not_domains_set",
+                           "all_domains_set",
+                           "ssl_config"]
 
     def __init__(self,
                  logger=None,
                  subdomains=set(),
                  not_subdomains=set(),
+                 config_cls=None,
                  **kwargs):
 
-        self.log_level = kwargs.get("log_level", "DEBUG")
+        self._data = self._default.copy()
+        self._ssl_env = None
+
+        self._config_cls = config_cls or self.default_config_cls
 
         if logger is None:
             self._logger_name = "web-platform-tests"
@@ -75,10 +174,10 @@ class Config(Mapping):
             self._logger_name = logger.name
 
         for k, v in iteritems(self._default):
-            setattr(self, k, kwargs.pop(k, v))
+            self._data[k] = kwargs.pop(k, v)
 
-        self.subdomains = subdomains
-        self.not_subdomains = not_subdomains
+        self._data["subdomains"] = subdomains
+        self._data["not_subdomains"] = not_subdomains
 
         for k, new_k in iteritems(_renamed_props):
             if k in kwargs:
@@ -88,24 +187,22 @@ class Config(Mapping):
                         new_k
                     )
                 )
-                setattr(self, new_k, kwargs.pop(k))
-
-        self.override_ssl_env = kwargs.pop("override_ssl_env", None)
+                self._data[new_k] = kwargs.pop(k)
 
         if kwargs:
             raise TypeError("__init__() got unexpected keyword arguments %r" % (tuple(kwargs),))
 
-    def __getitem__(self, k):
-        try:
-            return getattr(self, k)
-        except AttributeError:
-            raise KeyError(k)
+    def __setattr__(self, key, value):
+        if not key[0] == "_":
+            self._data[key] = value
+        else:
+            self.__dict__[key] = value
 
-    def __iter__(self):
-        return iter([x for x in dir(self) if not x.startswith("_")])
-
-    def __len__(self):
-        return len([x for x in dir(self) if not x.startswith("_")])
+    @property
+    def logger(self):
+        logger = logging.getLogger(self._logger_name)
+        logger.setLevel(self._data["log_level"].upper())
+        return logger
 
     def update(self, override):
         """Load an overrides dict to override config values"""
@@ -130,155 +227,97 @@ class Config(Mapping):
             raise KeyError("unknown config override '%s'" % k)
 
     def _set_override(self, k, v):
-        old_v = getattr(self, k)
+        old_v = self._data[k]
         if isinstance(old_v, dict):
-            setattr(self, k, _merge_dict(old_v, v))
+            self._data[k] = _merge_dict(old_v, v)
         else:
-            setattr(self, k, v)
+            self._data[k] = v
 
-    @property
-    def ports(self):
-        # To make this method thread-safe, we write to a temporary dict first,
-        # and change self._computed_ports to the new dict at last atomically.
+    def __enter__(self):
+        if self._ssl_env is not None:
+            raise ValueError("Tried to re-enter configuration")
+        data = self._data.copy()
+        prefix = "_get_"
+        for key in self.computed_properties:
+            data[key] = getattr(self, prefix + key)(data)
+        return self._config_cls(self._logger_name, data)
+
+    def __exit__(self, *args):
+        self._ssl_env.__exit__(*args)
+        self._ssl_env = None
+
+    def _get_log_level(self, data):
+        return data["log_level"].upper()
+
+    def _get_paths(self, data):
+        return {"doc_root": data["doc_root"]}
+
+    def _get_server_host(self, data):
+        return data["server_host"] if data.get("server_host") is not None else data["browser_host"]
+
+    def _get_ports(self, data):
         new_ports = defaultdict(list)
-
-        try:
-            old_ports = self._computed_ports
-        except AttributeError:
-            old_ports = {}
-
-        for scheme, ports in iteritems(self._ports):
+        for scheme, ports in iteritems(data["ports"]):
+            if scheme in ["wss", "https"] and not sslutils.get_cls(data["ssl"]["type"]).ssl_enabled:
+                continue
             for i, port in enumerate(ports):
-                if scheme in ["wss", "https"] and not self.ssl_env.ssl_enabled:
-                    port = None
-                if port == "auto":
-                    try:
-                        port = old_ports[scheme][i]
-                    except (KeyError, IndexError):
-                        port = get_port()
-                else:
-                    port = port
-                new_ports[scheme].append(port)
+                real_port = get_port("") if port == "auto" else port
+                new_ports[scheme].append(real_port)
+        return new_ports
 
-        self._computed_ports = new_ports
-        return self._computed_ports
-
-    @ports.setter
-    def ports(self, v):
-        self._ports = v
-
-    @property
-    def doc_root(self):
-        return self._doc_root
-
-    @doc_root.setter
-    def doc_root(self, v):
-        self._doc_root = v
-
-    @property
-    def server_host(self):
-        return self._server_host if self._server_host is not None else self.browser_host
-
-    @server_host.setter
-    def server_host(self, v):
-        self._server_host = v
-
-    @property
-    def domains(self):
-        hosts = self.alternate_hosts.copy()
+    def _get_domains(self, data):
+        hosts = data["alternate_hosts"].copy()
         assert "" not in hosts
-        hosts[""] = self.browser_host
+        hosts[""] = data["browser_host"]
 
         rv = {}
         for name, host in iteritems(hosts):
             rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
-                        for subdomain in self.subdomains}
+                        for subdomain in data["subdomains"]}
             rv[name][""] = host
         return rv
 
-    @property
-    def not_domains(self):
-        hosts = self.alternate_hosts.copy()
+    def _get_not_domains(self, data):
+        hosts = data["alternate_hosts"].copy()
         assert "" not in hosts
-        hosts[""] = self.browser_host
+        hosts[""] = data["browser_host"]
 
         rv = {}
         for name, host in iteritems(hosts):
             rv[name] = {subdomain: (subdomain.encode("idna").decode("ascii") + u"." + host)
-                        for subdomain in self.not_subdomains}
+                        for subdomain in data["not_subdomains"]}
         return rv
 
-    @property
-    def all_domains(self):
-        rv = self.domains.copy()
-        nd = self.not_domains
+    def _get_all_domains(self, data):
+        rv = copy.deepcopy(data["domains"])
+        nd = data["not_domains"]
         for host in rv:
             rv[host].update(nd[host])
         return rv
 
-    @property
-    def domains_set(self):
+    def _get_domains_set(self, data):
         return {domain
-                for per_host_domains in itervalues(self.domains)
+                for per_host_domains in itervalues(data["domains"])
                 for domain in itervalues(per_host_domains)}
 
-    @property
-    def not_domains_set(self):
+    def _get_not_domains_set(self, data):
         return {domain
-                for per_host_domains in itervalues(self.not_domains)
+                for per_host_domains in itervalues(data["not_domains"])
                 for domain in itervalues(per_host_domains)}
 
-    @property
-    def all_domains_set(self):
-        return self.domains_set | self.not_domains_set
+    def _get_all_domains_set(self, data):
+        return data["domains_set"] | data["not_domains_set"]
 
-    @property
-    def paths(self):
-        return {"doc_root": self.doc_root}
-
-    @property
-    def ssl_env(self):
-        try:
-            if self.override_ssl_env is not None:
-                return self.override_ssl_env
-        except AttributeError:
-            pass
-
-        implementation_type = self.ssl["type"]
-
-        try:
-            cls = environments[implementation_type]
-        except KeyError:
-            raise ValueError("%s is not a vaid ssl type." % implementation_type)
-        kwargs = self.ssl.get(implementation_type, {}).copy()
-        return cls(self.logger, **kwargs)
-
-    @property
-    def ssl_config(self):
-        key_path, cert_path = self.ssl_env.host_cert_path(self.domains_set)
-        return {"key_path": key_path,
-                "cert_path": cert_path,
-                "encrypt_after_connect": self.ssl["encrypt_after_connect"]}
-
-    @property
-    def log_level(self):
-        return getattr(logging, self._log_level)
-
-    @log_level.setter
-    def log_level(self, value):
-        self._log_level = value.upper()
-
-    @property
-    def logger(self):
-        logger = logging.getLogger(self._logger_name)
-        logger.setLevel(self.log_level)
-        return logger
-
-    def as_dict(self):
-        rv = {
-            "domains": list(self.domains),
-            "sundomains": list(self.subdomains),
-        }
-        for item in self._default.iterkeys():
-            rv[item] = getattr(self, item)
-        return rv
+    def _get_ssl_config(self, data):
+        ssl_type = data["ssl"]["type"]
+        ssl_cls = sslutils.get_cls(ssl_type)
+        kwargs = data["ssl"].get(ssl_type, {})
+        self._ssl_env = ssl_cls(self.logger, **kwargs)
+        self._ssl_env.__enter__()
+        if self._ssl_env.ssl_enabled:
+            key_path, cert_path = self._ssl_env.host_cert_path(data["domains_set"])
+            ca_cert_path = self._ssl_env.ca_cert_path()
+            return {"key_path": key_path,
+                    "ca_cert_path": ca_cert_path,
+                    "cert_path": cert_path,
+                    "encrypt_after_connect": data["ssl"].get("encrypt_after_connect", False)}

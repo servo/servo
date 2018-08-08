@@ -1,6 +1,6 @@
 import webdriver.protocol as protocol
 
-from tests.support.asserts import assert_success
+from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline, iframe
 
 
@@ -19,3 +19,8 @@ def test_null_response_value(session):
     response = switch_to_frame(session, frame_element)
     value = assert_success(response)
     assert value is None
+
+
+def test_no_browsing_context(session, closed_window):
+    response = switch_to_frame(session, 1)
+    assert_error(response, "no such window")

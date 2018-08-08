@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: strict' and table caption</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#contain-property">
+  <link rel="match" href="reference/contain-paint-size-001-ref.html">
+
+  <meta name="flags" content="">
+
+  <style>
+  table
+    {
+      table-layout: fixed;
+      width: 206px;
+    }
+
+  caption
+    {
+      background-color: red;
+      border: green solid 1em;
+      color: red;
+      contain: strict;
+      font-size: 20px;
+    }
+  </style>
+
+  <p>Test passes if there is a short horizontal green stripe and <strong>no red</strong>.
+
+  <table>
+
+  <caption>FAIL FAIL FAIL FAIL FAIL FAIL</caption>
+
+    <tr><td>&nbsp;<td>&nbsp;
+
+    <tr><td>&nbsp;<td>&nbsp;
+
+  </table>

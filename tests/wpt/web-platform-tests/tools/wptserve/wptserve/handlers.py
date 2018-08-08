@@ -322,7 +322,7 @@ class AsIsHandler(object):
 
         try:
             with open(path) as f:
-                response.writer.write_content(f.read())
+                response.writer.write_raw_content(f.read())
             wrap_pipeline(path, request, response)
             response.close_connection = True
         except IOError:

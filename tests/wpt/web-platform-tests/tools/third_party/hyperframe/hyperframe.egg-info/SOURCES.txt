@@ -1,0 +1,17 @@
+CONTRIBUTORS.rst
+HISTORY.rst
+LICENSE
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+hyperframe/__init__.py
+hyperframe/exceptions.py
+hyperframe/flags.py
+hyperframe/frame.py
+hyperframe.egg-info/PKG-INFO
+hyperframe.egg-info/SOURCES.txt
+hyperframe.egg-info/dependency_links.txt
+hyperframe.egg-info/top_level.txt
+test/test_flags.py
+test/test_frames.py

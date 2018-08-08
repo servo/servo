@@ -1,0 +1,3 @@
+{
+  "content-security-policy": [{ "policy": "script-src 'self' 'unsafe-inline'" }]
+}

@@ -28,7 +28,7 @@ promise_test(function() {
   return Promise.all([fetchData("/interfaces/html.idl"),
                       fetchData("/interfaces/dom.idl"),
                       fetchData("/interfaces/cssom.idl"),
-                      fetchData("/interfaces/touchevents.idl"),
+                      fetchData("/interfaces/touch-events.idl"),
                       fetchData("/interfaces/uievents.idl")])
                 .then(doTest);
 }, "Test driver");

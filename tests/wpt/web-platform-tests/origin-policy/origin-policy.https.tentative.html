@@ -1,0 +1,143 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <div id=log></div>
+  <iframe id=frame></iframe>
+  <script>
+    // Navigate the frame to a test page with the given policy and wait for
+    // postMessage to arrive. Resolve the result promise with the message.
+    function navigate(policy) {
+      return new Promise(resolve => {
+        window.addEventListener("message", event => { resolve(event.data); },
+                                { once: true });
+        document.getElementById("frame").src =
+            "/origin-policy/sec-origin-policy-header.html.py?policy=" + policy;
+      });
+    }
+
+    // Check whether the message returned from the frame meets our expectations.
+    function expect(expect_script, expect_eval, message) {
+      assert_own_property(message, "inline_allowed");
+      assert_own_property(message, "eval_allowed");
+      assert_equals(message.inline_allowed, expect_script);
+      assert_equals(message.eval_allowed, expect_eval);
+    }
+
+    // Generate a more descriptive error message. Re-throw the error.
+    function descriptive_message(policy, expect_inline, expect_eval,
+                                 index, error) {
+      error.message = `Error occured on entry #${index + 1} ["${policy
+          }", ${expect_inline}, ${expect_eval}]: "${error}".`;
+      throw(error);
+    }
+
+    // Run the navigation + expectation checking for one test case line.
+    function test_case_entry([policy, expect_inline, expect_eval], index) {
+      return navigate(policy)
+          .then(message => expect(expect_inline, expect_eval, message))
+
+          // This catch handler merely logs a more friendly message,
+          // pointing you to the exact line of the failing test.
+          .catch(error => descriptive_message(policy, expect_inline,
+                                              expect_eval, index, error));
+    }
+
+    function origin_policy_csp_test_case(test_case_list) {
+      return t => {
+        // Setup the promise chain for the test.
+        let chain = Promise.resolve();
+        for ([index, val] of test_case_list.entries())
+          chain = chain.then(test_case_entry.bind(this, val, index));
+
+        // Delete the policy as the last element of the chain, on both
+        // resolve + reject paths, so that a left-over policy won't break
+        // subsequent tests.
+        return chain.then(() => navigate("0"),
+                          (error) => { navigate("0"); throw error; });
+      }
+    }
+
+
+    // Sanity check: A request with no policy.
+    promise_test(origin_policy_csp_test_case([
+        ["", true, true],  // No policy.
+    ]), "sanity check");
+
+    // Basic functionality. A policy should have an effect.
+    promise_test(origin_policy_csp_test_case([
+        ["",             true, true],  // No policy.
+        ["policy-csp-1", true, false], // policy-csp-1, which forbids eval.
+        ["0",            true, true],  // Delete the policy again.
+      ]), "The basics: A policy should have an effect..");
+
+    // Basic functionality. Set a policy. Make sure it "sticks".
+    promise_test(origin_policy_csp_test_case([
+        ["",             true, true],  // No policy.
+        ["policy-csp-1", true, false], // policy-csp-1, which forbids eval.
+        ["",             true, false], // No policy. Should remember p...-csp-1.
+        ["0",            true, true],  // Delete the policy again.
+      ]), "The basics: A policy should stick.");
+
+    // Set, update, and delete a policy.
+    promise_test(origin_policy_csp_test_case([
+        ["",             true,  true],
+        ["policy-csp-1", true,  false], // policy-csp-1, which forbids eval.
+        ["policy-csp-2", false, false], // policy-csp-2, forbids script + eval.
+        ["0",            true,  true],  // Delete the policy.
+      ]), "Policy set, update, and delete.");
+
+    // Set, update, and delete a policy. Check on each step whether it 'sticks'.
+    promise_test(origin_policy_csp_test_case([
+        ["",             true,  true],
+        ["policy-csp-1", true,  false], // policy-csp-1, which forbids eval.
+        ["",             true,  false],
+        ["policy-csp-2", false, false], // Forbid script + eval.
+        ["",             false, false],
+        ["0",            true,  true],  // Delete the policy.
+        ["",             true,  true],
+      ]), "Policy set-update-delete cycle with checks.");
+
+    // Set a policy, update, then revert to the old one.
+    promise_test(origin_policy_csp_test_case([
+        ["",             true,  true],
+        ["policy-csp-1", true,  false], // policy-csp-1, which forbids eval.
+        ["policy-csp-2", false, false], // Forbid script + eval.
+        ["policy-csp-1", true,  false], // policy-csp-1 again.
+        ["0",            true,  true],
+      ]), "Policy set-update-delete cycle.");
+
+    // Set, delete, re-set, and re-delete a policy.
+    promise_test(origin_policy_csp_test_case([
+        ["",             true, true],  // No policy.
+        ["policy-csp-1", true, false], // policy-csp-1, which forbids eval.
+        ["",             true, false],
+        ["0",            true, true],  // Delete the policy.
+        ["",             true, true],
+        ["policy-csp-1", true, false], // Set policy after policy was deleted.
+        ["",             true, false],
+        ["0",            true, true],  // Delete the policy again.
+        ["",             true, true],
+      ]), "Policy re-set and re-delete.");
+
+    // We've had some bugs with repeated policies being set, so lets just
+    // run through a set-update-delete cycle but with every request being
+    // made twice.
+    promise_test(origin_policy_csp_test_case([
+        ["",             true,  true],
+        ["",             true,  true],
+        ["policy-csp-1", true,  false],
+        ["policy-csp-1", true,  false],
+        ["policy-csp-2", false, false],
+        ["policy-csp-2", false, false],
+        ["0",            true,  true],
+        ["0",            true,  true],
+        ["",             true,  true],
+        ["",             true,  true],
+      ]), "Double Trouble");
+  </script>
+</body>
+</html>

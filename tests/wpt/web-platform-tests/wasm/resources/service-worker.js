@@ -24,3 +24,7 @@ self.addEventListener('message', function(e) {
             .catch(e => port.postMessage({type:"OTHER ERROR"}));
     }
 });
+
+self.addEventListener('messageerror', function(e) {
+  port.postMessage({type:"RECEIVE ERROR"});
+});

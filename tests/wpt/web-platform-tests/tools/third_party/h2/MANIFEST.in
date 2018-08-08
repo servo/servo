@@ -1,0 +1,7 @@
+include README.rst LICENSE CONTRIBUTORS.rst HISTORY.rst tox.ini test_requirements.txt .coveragerc Makefile
+recursive-include test *.py
+graft docs
+prune docs/build
+graft visualizer
+recursive-include examples *.py *.crt *.key *.pem *.csr
+recursive-include utils *.sh

@@ -1,0 +1,13 @@
+MANIFEST.in
+README
+setup.py
+enum/LICENSE
+enum/README
+enum/__init__.py
+enum/test.py
+enum/doc/enum.pdf
+enum/doc/enum.rst
+enum34.egg-info/PKG-INFO
+enum34.egg-info/SOURCES.txt
+enum34.egg-info/dependency_links.txt
+enum34.egg-info/top_level.txt

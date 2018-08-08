@@ -44,5 +44,10 @@ expected to fail.
 Tests in `/encoding` and `/html/infrastructure/urls/resolving-urls/query-encoding/` cover the
 encoding argument to the URL parser.
 
+## Specification
+
+The tests in this directory assert conformance with [the URL Standard][URL].
+
 [parsing]: https://url.spec.whatwg.org/#concept-basic-url-parser
 [API]: https://url.spec.whatwg.org/#api
+[URL]: https://url.spec.whatwg.org/

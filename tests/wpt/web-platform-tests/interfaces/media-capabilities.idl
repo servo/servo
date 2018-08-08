@@ -48,20 +48,20 @@ interface MediaCapabilitiesInfo {
   readonly attribute boolean powerEfficient;
 };
 
-[Exposed=(Window)]
+[Exposed=Window]
 partial interface Navigator {
   [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
 };
 
-[Exposed=(Worker)]
+[Exposed=Worker]
 partial interface WorkerNavigator {
   [SameObject] readonly attribute MediaCapabilities mediaCapabilities;
 };
 
 [Exposed=(Window, Worker)]
 interface MediaCapabilities {
-  Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
-  Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
+  [NewObject] Promise<MediaCapabilitiesInfo> decodingInfo(MediaDecodingConfiguration configuration);
+  [NewObject] Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };
 
 interface ScreenLuminance {

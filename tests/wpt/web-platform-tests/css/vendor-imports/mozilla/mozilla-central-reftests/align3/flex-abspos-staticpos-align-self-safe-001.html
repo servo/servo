@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!--
+    Any copyright is dedicated to the Public Domain.
+    http://creativecommons.org/publicdomain/zero/1.0
+-->
+<html>
+<head>
+  <title>CSS Test: Testing safe overflow-position for align-self in absolutely positioned boxes in flex containers</title>
+  <link rel="author" title="Mihir Iyer" href="mailto:miyer@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#overflow-values">
+  <link rel="match" href="flex-abspos-staticpos-align-self-safe-001-ref.html">
+  <meta charset="utf-8">
+  <style>
+    .flex {
+      display: flex;
+      height: 50px;
+      width: 50px;
+      border: 3px solid black;
+      vertical-align: top;
+      margin: 20px;
+      position: relative;
+    }
+    .child {
+      border: 2px dotted purple;
+      background: teal;
+      width: 65px;
+      height: 65px;
+      align-self: safe center;
+      position: absolute;
+      background: yellow;
+    }
+    .rowDir {
+      flex-direction: row;
+    }
+    .colDir {
+      flex-direction: column;
+    }
+    .vertRL {
+      writing-mode: vertical-rl;
+    }
+  </style>
+</head>
+<body>
+  <div class="flex rowDir"><div class="child"></div></div>
+  <div class="flex colDir"><div class="child"></div></div>
+  <div class="flex rowDir vertRL"><div class="child"></div></div>
+  <div class="flex colDir vertRL"><div class="child"></div></div>
+</body>
+</html>

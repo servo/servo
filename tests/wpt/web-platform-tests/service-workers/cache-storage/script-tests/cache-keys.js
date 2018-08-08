@@ -179,6 +179,20 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
         });
   }, 'Cache.keys without parameters');
 
+prepopulated_cache_test(vary_entries, function(cache, entries) {
+    return cache.keys()
+      .then(function(result) {
+          assert_request_array_equals(
+            result,
+            [
+              entries.vary_cookie_is_cookie.request,
+              entries.vary_cookie_is_good.request,
+              entries.vary_cookie_absent.request,
+            ],
+            'Cache.keys without parameters should match all entries.');
+        });
+  }, 'Cache.keys without parameters and VARY entries');
+
 prepopulated_cache_test(simple_entries, function(cache, entries) {
     return cache.keys(new Request(entries.cat.request.url, {method: 'HEAD'}))
       .then(function(result) {

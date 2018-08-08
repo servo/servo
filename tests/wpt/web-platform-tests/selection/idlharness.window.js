@@ -13,7 +13,6 @@ idl_test(
       Window: ['window'],
       Document: ['document'],
       Selection: ['getSelection()'],
-      GlobalEventHandlers: ['self'],
     });
   },
   'selection-api interfaces'

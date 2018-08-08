@@ -36,6 +36,10 @@ class ConditionError(Exception):
         self.cond = cond
 
 
+class UpdateError(Exception):
+    pass
+
+
 Value = namedtuple("Value", ["run_info", "value"])
 
 
@@ -75,6 +79,9 @@ class ExpectedManifest(ManifestItem):
         self.modified = False
         self.boolean_properties = boolean_properties
         self.property_order = property_order
+        self.update_properties = {
+            "lsan": LsanUpdate(self),
+        }
 
     def append(self, child):
         ManifestItem.append(self, child)
@@ -91,7 +98,7 @@ class ExpectedManifest(ManifestItem):
 
         :param test_id: The id of the test to look up"""
 
-        return self.child_map[test_id]
+        return self.child_map.get(test_id)
 
     def has_test(self, test_id):
         """Boolean indicating whether the current test has a known child test
@@ -105,6 +112,19 @@ class ExpectedManifest(ManifestItem):
     def url(self):
         return urlparse.urljoin(self.url_base,
                                 "/".join(self.test_path.split(os.path.sep)))
+
+    def set_lsan(self, run_info, result):
+        """Set the result of the test in a particular run
+
+        :param run_info: Dictionary of run_info parameters corresponding
+                         to this run
+        :param result: Lsan violations detected"""
+
+        self.update_properties["lsan"].set(run_info, result)
+
+    def coalesce_properties(self, stability):
+        for prop_update in self.update_properties.itervalues():
+            prop_update.coalesce(stability)
 
 
 class TestNode(ManifestItem):
@@ -148,7 +168,6 @@ class TestNode(ManifestItem):
     @property
     def test_type(self):
         """The type of the test represented by this TestNode"""
-
         return self.get("type", None)
 
     @property
@@ -331,9 +350,15 @@ class PropertyUpdate(object):
             update_default, new_default_value = self.update_default()
             if update_default:
                 if new_default_value != self.default_value:
-                    self.node.set(self.property_name, self.update_value(None, new_default_value), condition=None)
+                    self.node.set(self.property_name,
+                                  self.update_value(unconditional_value, new_default_value),
+                                  condition=None)
             else:
-                self.add_new(unconditional_value, stability)
+                try:
+                    self.add_new(unconditional_value, stability)
+                except UpdateError as e:
+                    print("%s for %s, cannot update %s" % (e, self.node.root.test_path,
+                                                           self.property_name))
 
         # Remove cases where the value matches the default
         if (self.property_name in self.node._data and
@@ -357,7 +382,7 @@ class PropertyUpdate(object):
                   should be updated, and new_default_value is the value to set if it should."""
         raise NotImplementedError
 
-    def add_new(self, unconditional_value, stability=False):
+    def add_new(self, unconditional_value, stability):
         """Add new conditional values for the property.
 
         Subclasses need not implement this if they only ever update the default value."""
@@ -389,7 +414,7 @@ class ExpectedUpdate(PropertyUpdate):
         new_value = self.new[0].value
         return update_default, new_value
 
-    def add_new(self, unconditional_value, stability=False):
+    def add_new(self, unconditional_value, stability):
         try:
             conditionals = group_conditionals(
                 self.new,
@@ -400,8 +425,7 @@ class ExpectedUpdate(PropertyUpdate):
                 self.node.set("disabled", stability or "unstable", e.cond.children[0])
                 self.node.new_disabled = True
             else:
-                print "Conflicting metadata values for %s, cannot update" % self.root.test_path
-                return
+                raise UpdateError("Conflicting metadata values")
         for conditional_node, value in conditionals:
             if value != unconditional_value:
                 self.node.set(self.property_name, value, condition=conditional_node.children[0])
@@ -413,12 +437,13 @@ class MaxAssertsUpdate(PropertyUpdate):
     value_type = int
 
     def update_value(self, old_value, new_value):
+        new_value = self.value_type(new_value)
         if old_value is not None:
             old_value = self.value_type(old_value)
-        if old_value and old_value < new_value:
-            return new_value
+        if old_value is not None and old_value < new_value:
+            return new_value + 1
         if old_value is None:
-            return new_value
+            return new_value + 1
         return old_value
 
     def update_default(self):
@@ -434,8 +459,8 @@ class MaxAssertsUpdate(PropertyUpdate):
                                if item.condition_node is None]
             if current_default:
                 values.append(int(current_default[0].value))
-        values.extend(item.value + 1 for item in self.new)
-        values.extend(item.value + 1 for item in
+        values.extend(item.value for item in self.new)
+        values.extend(item.value for item in
                       itertools.chain.from_iterable(results for _, results in self.updated))
         new_value = max(values)
         return True, new_value
@@ -447,13 +472,14 @@ class MinAssertsUpdate(PropertyUpdate):
     value_type = int
 
     def update_value(self, old_value, new_value):
+        new_value = self.value_type(new_value)
         if old_value is not None:
             old_value = self.value_type(old_value)
-        if old_value and new_value < old_value:
+        if old_value is not None and new_value < old_value:
             return 0
         if old_value is None:
             # If we are getting some asserts for the first time, set the minimum to 0
-            return 0
+            return new_value
         return old_value
 
     def update_default(self):
@@ -468,11 +494,49 @@ class MinAssertsUpdate(PropertyUpdate):
                                if item.condition_node is None]
         if current_default:
             values.append(current_default[0].value_as(self.value_type))
-        values.extend(max(0, item.value - 1) for item in self.new)
-        values.extend(max(0, item.value - 1) for item in
+        values.extend(max(0, item.value) for item in self.new)
+        values.extend(max(0, item.value) for item in
                       itertools.chain.from_iterable(results for _, results in self.updated))
         new_value = min(values)
         return True, new_value
+
+
+class LsanUpdate(PropertyUpdate):
+    property_name = "lsan-allowed"
+    cls_default_value = None
+
+    def get_value(self, result):
+        # If we have an allowed_match that matched, return None
+        # This value is ignored later (because it matches the default)
+        # We do that because then if we allow a failure in foo/__dir__.ini
+        # we don't want to update foo/bar/__dir__.ini with the same rule
+        if result[1]:
+            return None
+        # Otherwise return the topmost stack frame
+        # TODO: there is probably some improvement to be made by looking for a "better" stack frame
+        return result[0][0]
+
+    def update_value(self, old_value, new_value):
+        if isinstance(new_value, (str, unicode)):
+            new_value = {new_value}
+        else:
+            new_value = set(new_value)
+        if old_value is None:
+            old_value = set()
+        old_value = set(old_value)
+        return sorted((old_value | new_value) - {None})
+
+    def update_default(self):
+        current_default = None
+        if self.property_name in self.node._data:
+            current_default = [item for item in
+                               self.node._data[self.property_name]
+                               if item.condition_node is None]
+        if current_default:
+            current_default = current_default[0].value
+        new_values = [item.value for item in self.new]
+        new_value = self.update_value(current_default, new_values)
+        return True, new_value if new_value else None
 
 
 def group_conditionals(values, property_order=None, boolean_properties=None):

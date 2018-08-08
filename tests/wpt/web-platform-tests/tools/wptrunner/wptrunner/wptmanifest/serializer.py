@@ -6,6 +6,7 @@ atom_names = {v:"@%s" % k for (k,v) in atoms.iteritems()}
 named_escapes = set(["\a", "\b", "\f", "\n", "\r", "\t", "\v"])
 
 def escape(string, extras=""):
+    # Assumes input bytes are either UTF8 bytes or unicode.
     rv = ""
     for c in string:
         if c in named_escapes:
@@ -18,7 +19,10 @@ def escape(string, extras=""):
             rv += "\\" + c
         else:
             rv += c
-    return rv.encode("utf8")
+    if isinstance(rv, unicode):
+        return rv.encode("utf8")
+    else:
+        return rv
 
 
 class ManifestSerializer(NodeVisitor):

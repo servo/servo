@@ -33,7 +33,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const video = await loadVideo();
-  return test_driver.bless('request picture in picture', async () => {
+  return test_driver.bless('request Picture-in-Picture', async () => {
     const promise = video.requestPictureInPicture();
     video.disablePictureInPicture = true;
     await promise_rejects(t, 'InvalidStateError', promise);

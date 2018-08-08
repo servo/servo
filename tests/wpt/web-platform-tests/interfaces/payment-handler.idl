@@ -4,83 +4,87 @@
 // See: https://w3c.github.io/payment-handler/
 
 partial interface ServiceWorkerRegistration {
-    [SameObject]
-    readonly attribute PaymentManager paymentManager;
+  [SameObject] readonly attribute PaymentManager paymentManager;
 };
-[SecureContext,
- Exposed=(Window,Worker)]
+
+[SecureContext, Exposed=(Window,Worker)]
 interface PaymentManager {
-    [SameObject]
-    readonly attribute PaymentInstruments instruments;
-    [Exposed=Window] static Promise<PermissionState> requestPermission();
-             attribute DOMString          userHint;
+  [SameObject] readonly attribute PaymentInstruments instruments;
+  [Exposed=Window] static Promise<PermissionState> requestPermission();
+  attribute DOMString userHint;
 };
-[SecureContext,
- Exposed=(Window,Worker)]
+
+[SecureContext, Exposed=(Window,Worker)]
 interface PaymentInstruments {
-    Promise<boolean>             delete(DOMString instrumentKey);
-    Promise<any>                 get(DOMString instrumentKey);
+    Promise<boolean> delete(DOMString instrumentKey);
+    Promise<any> get(DOMString instrumentKey);
     Promise<sequence<DOMString>> keys();
-    Promise<boolean>             has(DOMString instrumentKey);
-    Promise<void>                set(DOMString instrumentKey,
-                                     PaymentInstrument details);
-    Promise<void>                clear();
+    Promise<boolean> has(DOMString instrumentKey);
+    Promise<void> set(DOMString instrumentKey, PaymentInstrument details);
+    Promise<void> clear();
 };
+
 dictionary PaymentInstrument {
-    required DOMString             name;
-             sequence<ImageObject> icons;
-             DOMString             method;
-             object                capabilities;
+  required DOMString name;
+  sequence<ImageObject> icons;
+  DOMString method;
+  object capabilities;
 };
+
 dictionary ImageObject {
     required USVString src;
-             DOMString sizes;
-             DOMString type;
+    DOMString sizes;
+    DOMString type;
 };
+
 partial interface ServiceWorkerGlobalScope {
-    attribute EventHandler oncanmakepayment;
+  attribute EventHandler oncanmakepayment;
 };
-[Constructor(DOMString type, CanMakePaymentEventInit eventInitDict),
- Exposed=ServiceWorker]
+
+[Constructor(DOMString type, CanMakePaymentEventInit eventInitDict), Exposed=ServiceWorker]
 interface CanMakePaymentEvent : ExtendableEvent {
-    readonly attribute USVString                           topOrigin;
-    readonly attribute USVString                           paymentRequestOrigin;
-    readonly attribute FrozenArray<PaymentMethodData>      methodData;
-    readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
-    void respondWith(Promise<boolean> canMakePaymentResponse);
+  readonly attribute USVString topOrigin;
+  readonly attribute USVString paymentRequestOrigin;
+  readonly attribute FrozenArray<PaymentMethodData> methodData;
+  readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
+  void respondWith(Promise<boolean> canMakePaymentResponse);
 };
+
 dictionary CanMakePaymentEventInit : ExtendableEventInit {
-    USVString                        topOrigin;
-    USVString                        paymentRequestOrigin;
-    sequence<PaymentMethodData>      methodData;
-    sequence<PaymentDetailsModifier> modifiers;
+  USVString topOrigin;
+  USVString paymentRequestOrigin;
+  sequence<PaymentMethodData> methodData;
+  sequence<PaymentDetailsModifier> modifiers;
 };
+
 partial interface ServiceWorkerGlobalScope {
-    attribute EventHandler onpaymentrequest;
+  attribute EventHandler onpaymentrequest;
 };
-[Constructor(DOMString type, PaymentRequestEventInit eventInitDict),
- Exposed=ServiceWorker]
+
+[Constructor(DOMString type, PaymentRequestEventInit eventInitDict), Exposed=ServiceWorker]
 interface PaymentRequestEvent : ExtendableEvent {
-    readonly attribute USVString                           topOrigin;
-    readonly attribute USVString                           paymentRequestOrigin;
-    readonly attribute DOMString                           paymentRequestId;
-    readonly attribute FrozenArray<PaymentMethodData>      methodData;
-    readonly attribute object                              total;
-    readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
-    readonly attribute DOMString                           instrumentKey;
-    Promise<WindowClient?> openWindow(USVString url);
-    void                   respondWith(Promise<PaymentHandlerResponse> handlerResponsePromise);
+  readonly attribute USVString topOrigin;
+  readonly attribute USVString paymentRequestOrigin;
+  readonly attribute DOMString paymentRequestId;
+  readonly attribute FrozenArray<PaymentMethodData> methodData;
+  readonly attribute object total;
+  readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
+  readonly attribute DOMString instrumentKey;
+  Promise<WindowClient?> openWindow(USVString url);
+  void respondWith(Promise<PaymentHandlerResponse> handlerResponsePromise);
 };
+
 dictionary PaymentRequestEventInit : ExtendableEventInit {
-    USVString                        topOrigin;
-    USVString                        paymentRequestOrigin;
-    DOMString                        paymentRequestId;
-    sequence<PaymentMethodData>      methodData;
-    PaymentCurrencyAmount            total;
-    sequence<PaymentDetailsModifier> modifiers;
-    DOMString                        instrumentKey;
+  USVString topOrigin;
+  USVString paymentRequestOrigin;
+  DOMString paymentRequestId;
+  sequence<PaymentMethodData> methodData;
+  PaymentCurrencyAmount total;
+  sequence<PaymentDetailsModifier> modifiers;
+  DOMString instrumentKey;
 };
+
 dictionary PaymentHandlerResponse {
-    DOMString methodName;
-    object    details;
+DOMString methodName;
+object details;
 };

@@ -8,10 +8,12 @@ enum ReadyState {
     "open",
     "ended"
 };
+
 enum EndOfStreamError {
     "network",
     "decode"
 };
+
 [Constructor]
 interface MediaSource : EventTarget {
     readonly attribute SourceBufferList    sourceBuffers;
@@ -28,10 +30,12 @@ interface MediaSource : EventTarget {
     void         clearLiveSeekableRange();
     static boolean isTypeSupported(DOMString type);
 };
+
 enum AppendMode {
     "segments",
     "sequence"
 };
+
 interface SourceBuffer : EventTarget {
              attribute AppendMode          mode;
     readonly attribute boolean             updating;
@@ -51,22 +55,27 @@ interface SourceBuffer : EventTarget {
     void abort();
     void remove(double start, unrestricted double end);
 };
+
 interface SourceBufferList : EventTarget {
     readonly attribute unsigned long length;
              attribute EventHandler  onaddsourcebuffer;
              attribute EventHandler  onremovesourcebuffer;
     getter SourceBuffer (unsigned long index);
 };
+
 [Exposed=Window]
 partial interface URL {
     static DOMString createObjectURL(MediaSource mediaSource);
 };
+
 partial interface AudioTrack {
     readonly attribute SourceBuffer? sourceBuffer;
 };
+
 partial interface VideoTrack {
     readonly attribute SourceBuffer? sourceBuffer;
 };
+
 partial interface TextTrack {
     readonly attribute SourceBuffer? sourceBuffer;
 };

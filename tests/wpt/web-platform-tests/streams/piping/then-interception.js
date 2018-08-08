@@ -36,6 +36,8 @@ promise_test(async () => {
   const intercepted = interceptThen();
 
   await rs.pipeTo(ws);
+  delete Object.prototype.then;
+
 
   assert_array_equals(intercepted, [], 'nothing should have been intercepted');
   assert_array_equals(ws.events, ['write', 'a', 'close'], 'written chunk should be "a"');
@@ -55,6 +57,7 @@ promise_test(async () => {
   const intercepted = interceptThen();
 
   await branch1.pipeTo(ws);
+  delete Object.prototype.then;
   branch2.cancel();
 
   assert_array_equals(intercepted, [], 'nothing should have been intercepted');

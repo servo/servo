@@ -1,3 +1,9 @@
+---
+layout: page
+title: testdriver.js Tutorial
+order: 8.6
+---
+
 # Adding new commands to testdriver.js
 
 ## Assumptions

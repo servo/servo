@@ -18,31 +18,24 @@ def test_null_response_value(session, url):
     assert value is None
 
 
+def test_no_browsing_context(session, closed_window):
+    response = send_alert_text(session, "foo")
+    assert_error(response, "no such window")
+
+
 @pytest.mark.parametrize("text", [None, {}, [], 42, True])
 def test_invalid_input(session, text):
-    # 18.4 step 2
     session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Name');</script>")
     response = send_alert_text(session, text)
     assert_error(response, "invalid argument")
 
 
-def test_no_browsing_context(session, create_window):
-    # 18.4 step 3
-    session.window_handle = create_window()
-    session.close()
-
-    response = send_alert_text(session, "Federer")
-    assert_error(response, "no such window")
-
-
 def test_no_user_prompt(session):
-    # 18.4 step 4
     response = send_alert_text(session, "Federer")
     assert_error(response, "no such alert")
 
 
 def test_alert_element_not_interactable(session):
-    # 18.4 step 5
     session.url = inline("<script>window.alert('Hello');</script>")
 
     response = send_alert_text(session, "Federer")
@@ -50,7 +43,6 @@ def test_alert_element_not_interactable(session):
 
 
 def test_confirm_element_not_interactable(session):
-    # 18.4 step 5
     session.url = inline("<script>window.confirm('Hello');</script>")
 
     response = send_alert_text(session, "Federer")
@@ -58,7 +50,6 @@ def test_confirm_element_not_interactable(session):
 
 
 def test_send_alert_text(session):
-    # 18.4 step 6
     session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Name');</script>")
 
     send_response = send_alert_text(session, "Federer")
@@ -71,7 +62,6 @@ def test_send_alert_text(session):
 
 
 def test_send_alert_text_with_whitespace(session):
-    # 18.4 step 6
     session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Name');</script>")
 
     send_response = send_alert_text(session, " Fed erer ")
