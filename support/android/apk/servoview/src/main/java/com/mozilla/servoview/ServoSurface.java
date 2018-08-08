@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.Surface;
 
 import com.mozilla.servoview.Servo.Client;
 import com.mozilla.servoview.Servo.GfxCallbacks;
@@ -74,6 +75,26 @@ public class ServoSurface {
         mServo.stop();
     }
 
+    public void loadUri(String uri) {
+        mServo.loadUri(uri);
+    }
+
+    public void scrollStart(int dx, int dy, int x, int y) {
+        mServo.scrollStart(dx, dy, x, y);
+    }
+
+    public void scroll(int dx, int dy, int x, int y) {
+        mServo.scroll(dx, dy, x, y);
+    }
+
+    public void scrollEnd(int dx, int dy, int x, int y) {
+        mServo.scrollEnd(dx, dy, x, y);
+    }
+
+    public void click(int x, int y) {
+        mServo.click(x, y);
+    }
+
     public void onSurfaceResized(int width, int height) {
         mServo.resize(width, height);
     }
@@ -86,7 +107,7 @@ public class ServoSurface {
         }
     }
 
-    static class Surface implements GfxCallbacks {
+    static class GLSurface implements GfxCallbacks {
         private static final String LOGTAG = "ServoSurface";
 
         private EGLConfig[] mEGLConfigs;
@@ -94,7 +115,7 @@ public class ServoSurface {
         private EGLContext mEglContext;
         private EGLSurface mEglSurface;
 
-        Surface(Surface surface) {
+        GLSurface(Surface surface) {
             mEglDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY);
             int[] version = new int[2];
             if (!EGL14.eglInitialize(mEglDisplay, version, 0, version, 1)) {
@@ -169,7 +190,7 @@ public class ServoSurface {
         public void run() {
             Looper.prepare();
 
-            Surface surface = new Surface(mASurface);
+            GLSurface surface = new GLSurface(mASurface);
 
             final boolean showLogs = true;
             String uri = mInitialUri == null ? null : mInitialUri.toString();
