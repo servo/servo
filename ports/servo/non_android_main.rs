@@ -8,7 +8,6 @@ extern crate euclid;
 extern crate gleam;
 extern crate glutin;
 #[macro_use] extern crate lazy_static;
-// The window backed by glutin
 #[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
 extern crate servo;
 #[cfg(feature = "unstable")]
@@ -20,8 +19,12 @@ extern crate winit;
 #[cfg(target_os = "windows")] extern crate winapi;
 #[cfg(target_os = "windows")] extern crate user32;
 
+// The window backed by glutin
 mod glutin_app;
+
 mod resources;
+
+mod browser;
 
 use backtrace::Backtrace;
 use servo::Servo;
@@ -35,8 +38,6 @@ use std::env;
 use std::panic;
 use std::process;
 use std::thread;
-
-mod browser;
 
 pub mod platform {
     #[cfg(target_os = "macos")]
