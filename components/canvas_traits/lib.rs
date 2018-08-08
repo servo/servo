@@ -8,7 +8,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate crossbeam_channel;
 extern crate cssparser;
 extern crate euclid;
 extern crate gleam;

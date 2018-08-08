@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crossbeam_channel::{self, Sender, Receiver};
 use serde::{Deserialize, Serialize};
 use serde::{Deserializer, Serializer};
+use std::sync::mpsc::{self, Sender, Receiver};
 
 #[macro_use]
 macro_rules! unreachable_serializable {
@@ -30,20 +30,20 @@ pub struct WebGLReceiver<T>(Receiver<T>);
 
 impl<T> WebGLSender<T> {
     #[inline]
-    pub fn send(&self, data: T) {
+    pub fn send(&self, data: T) -> Result<(), mpsc::SendError<T>> {
         self.0.send(data)
     }
 }
 
 impl<T> WebGLReceiver<T> {
     #[inline]
-    pub fn recv(&self) -> Option<T> {
+    pub fn recv(&self) -> Result<T, mpsc::RecvError> {
         self.0.recv()
     }
 }
 
 pub fn webgl_channel<T>() -> Result<(WebGLSender<T>, WebGLReceiver<T>), ()> {
-    let (sender, receiver) = crossbeam_channel::unbounded();
+    let (sender, receiver) = mpsc::channel();
     Ok((WebGLSender(sender), WebGLReceiver(receiver)))
 }
 

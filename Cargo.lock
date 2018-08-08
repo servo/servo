@@ -344,7 +344,6 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.24.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
