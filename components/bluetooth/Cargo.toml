@@ -12,7 +12,6 @@ path = "lib.rs"
 [dependencies]
 bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
-compositing = {path = "../compositing"}
 device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
 embedder_traits = {path = "../embedder_traits"}
 ipc-channel = "0.10"
