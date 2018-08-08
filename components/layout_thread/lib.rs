@@ -12,6 +12,7 @@ extern crate atomic_refcell;
 extern crate embedder_traits;
 extern crate euclid;
 extern crate fnv;
+extern crate fxhash;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate histogram;
@@ -59,6 +60,7 @@ use dom_wrapper::drop_style_and_layout_data;
 use embedder_traits::resources::{self, Resource};
 use euclid::{Point2D, Rect, Size2D, TypedScale, TypedSize2D};
 use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -223,10 +225,10 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The list of currently-running animations.
-    running_animations: ServoArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    running_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// The list of animations that have expired since the last style recalculation.
-    expired_animations: ServoArc<RwLock<FnvHashMap<OpaqueNode, Vec<Animation>>>>,
+    expired_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -503,7 +505,7 @@ impl LayoutThread {
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
-            registered_painters: RegisteredPaintersImpl(FnvHashMap::default()),
+            registered_painters: RegisteredPaintersImpl(Default::default()),
             image_cache: image_cache.clone(),
             font_cache_thread: font_cache_thread,
             first_reflow: Cell::new(true),
@@ -517,8 +519,8 @@ impl LayoutThread {
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             root_flow: RefCell::new(None),
             document_shared_lock: None,
-            running_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
-            expired_animations: ServoArc::new(RwLock::new(FnvHashMap::default())),
+            running_animations: ServoArc::new(RwLock::new(Default::default())),
+            expired_animations: ServoArc::new(RwLock::new(Default::default())),
             epoch: Cell::new(Epoch(0)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api: webrender_api_sender.create_api(),
@@ -1813,7 +1815,8 @@ lazy_static! {
 struct RegisteredPainterImpl {
     painter: Box<Painter>,
     name: Atom,
-    properties: FnvHashMap<Atom, PropertyId>,
+    // FIXME: Should be a PrecomputedHashMap.
+    properties: FxHashMap<Atom, PropertyId>,
 }
 
 impl SpeculativePainter for RegisteredPainterImpl {
@@ -1823,7 +1826,7 @@ impl SpeculativePainter for RegisteredPainterImpl {
 }
 
 impl RegisteredSpeculativePainter for RegisteredPainterImpl {
-    fn properties(&self) -> &FnvHashMap<Atom, PropertyId> {
+    fn properties(&self) -> &FxHashMap<Atom, PropertyId> {
         &self.properties
     }
     fn name(&self) -> Atom {

@@ -30,7 +30,7 @@ use gecko::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
-use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetNextStyleChild};
+use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetPreviousSibling, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
@@ -62,7 +62,7 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsIDocument_DocumentTheme as DocumentTheme;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::sugar::ownership::{HasArcFFI, HasSimpleFFI};
-use hash::FnvHashMap;
+use hash::FxHashMap;
 use logical_geometry::WritingMode;
 use media_queries::Device;
 use properties::{ComputedValues, LonghandId};
@@ -375,7 +375,12 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     #[inline]
     fn first_child(&self) -> Option<Self> {
-        unsafe { self.0.mFirstChild.as_ref().map(GeckoNode::from_content) }
+        unsafe {
+            self.0
+                .mFirstChild.raw::<nsIContent>()
+                .as_ref()
+                .map(GeckoNode::from_content)
+        }
     }
 
     #[inline]
@@ -385,17 +390,17 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     #[inline]
     fn prev_sibling(&self) -> Option<Self> {
-        unsafe {
-            self.0
-                .mPreviousSibling
-                .as_ref()
-                .map(GeckoNode::from_content)
-        }
+        unsafe { Gecko_GetPreviousSibling(self.0).map(GeckoNode) }
     }
 
     #[inline]
     fn next_sibling(&self) -> Option<Self> {
-        unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
+        unsafe {
+            self.0
+                .mNextSibling.raw::<nsIContent>()
+                .as_ref()
+                .map(GeckoNode::from_content)
+        }
     }
 
     #[inline]
@@ -562,28 +567,15 @@ pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 
 impl<'le> fmt::Debug for GeckoElement<'le> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use nsstring::nsCString;
+
         write!(f, "<{}", self.local_name())?;
-        if let Some(id) = self.id() {
-            write!(f, " id={}", id)?;
+
+        let mut attrs = nsCString::new();
+        unsafe {
+            bindings::Gecko_Element_DebugListAttributes(self.0, &mut attrs);
         }
-
-        let mut first = true;
-        let mut any = false;
-        self.each_class(|c| {
-            if first {
-                first = false;
-                any = true;
-                let _ = f.write_str(" class=\"");
-            } else {
-                let _ = f.write_str(" ");
-            }
-            let _ = write!(f, "{}", c);
-        });
-
-        if any {
-            f.write_str("\"")?;
-        }
-
+        write!(f, "{}", attrs)?;
         write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
@@ -867,12 +859,12 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
-    fn css_transitions_info(&self) -> FnvHashMap<LonghandId, Arc<AnimationValue>> {
+    fn css_transitions_info(&self) -> FxHashMap<LonghandId, Arc<AnimationValue>> {
         use gecko_bindings::bindings::Gecko_ElementTransitions_EndValueAt;
         use gecko_bindings::bindings::Gecko_ElementTransitions_Length;
 
         let collection_length = unsafe { Gecko_ElementTransitions_Length(self.0) } as usize;
-        let mut map = FnvHashMap::with_capacity_and_hasher(collection_length, Default::default());
+        let mut map = FxHashMap::with_capacity_and_hasher(collection_length, Default::default());
 
         for i in 0..collection_length {
             let raw_end_value = unsafe { Gecko_ElementTransitions_EndValueAt(self.0, i) };
@@ -893,7 +885,7 @@ impl<'le> GeckoElement<'le> {
         combined_duration: f32,
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
-        existing_transitions: &FnvHashMap<LonghandId, Arc<AnimationValue>>,
+        existing_transitions: &FxHashMap<LonghandId, Arc<AnimationValue>>,
     ) -> bool {
         use values::animated::{Animate, Procedure};
         debug_assert!(!longhand_id.is_logical());
@@ -1968,30 +1960,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn first_child_element(&self) -> Option<Self> {
-        let mut child = self.as_node().first_child();
-        while let Some(child_node) = child {
-            if let Some(el) = child_node.as_element() {
-                return Some(el);
-            }
-            child = child_node.next_sibling();
-        }
-        None
-    }
-
-    #[inline]
-    fn last_child_element(&self) -> Option<Self> {
-        let mut child = self.as_node().last_child();
-        while let Some(child_node) = child {
-            if let Some(el) = child_node.as_element() {
-                return Some(el);
-            }
-            child = child_node.prev_sibling();
-        }
-        None
-    }
-
-    #[inline]
     fn prev_sibling_element(&self) -> Option<Self> {
         let mut sibling = self.as_node().prev_sibling();
         while let Some(sibling_node) = sibling {
@@ -2087,15 +2055,15 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
 
     #[inline]
     fn is_root(&self) -> bool {
-        let parent_node = match self.as_node().parent_node() {
-            Some(parent_node) => parent_node,
-            None => return false,
-        };
-
-        if !parent_node.is_document() {
+        if self.as_node().get_bool_flag(nsINode_BooleanFlag::ParentIsContent) {
             return false;
         }
 
+        if !self.as_node().is_in_document() {
+            return false;
+        }
+
+        debug_assert!(self.as_node().parent_node().map_or(false, |p| p.is_document()));
         unsafe { bindings::Gecko_IsRootElement(self.0) }
     }
 
@@ -2280,7 +2248,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         // match the proper pseudo-element, given how we rulehash the stuff
         // based on the pseudo.
         match self.implemented_pseudo_element() {
-            Some(ref pseudo) => *pseudo == pseudo_element.canonical(),
+            Some(ref pseudo) => *pseudo == *pseudo_element,
             None => false,
         }
     }

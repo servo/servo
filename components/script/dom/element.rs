@@ -2640,14 +2640,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
         false
     }
 
-    fn first_child_element(&self) -> Option<DomRoot<Element>> {
-        self.node.child_elements().next()
-    }
-
-    fn last_child_element(&self) -> Option<DomRoot<Element>> {
-        self.node.rev_children().filter_map(DomRoot::downcast).next()
-    }
-
     fn prev_sibling_element(&self) -> Option<DomRoot<Element>> {
         self.node.preceding_siblings().filter_map(DomRoot::downcast).next()
     }

@@ -7,7 +7,7 @@ use context::QuirksMode;
 use cssparser::{Parser, ParserInput, RuleListParser};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use fallible::FallibleVec;
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use invalidation::media_queries::{MediaListKey, ToMediaListKey};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOfOps, MallocUnconditionalShallowSizeOf};
@@ -42,7 +42,7 @@ pub struct UserAgentStylesheets {
 #[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<Namespace>,
-    pub prefixes: FnvHashMap<Prefix, Namespace>,
+    pub prefixes: FxHashMap<Prefix, Namespace>,
 }
 
 /// The contents of a given stylesheet. This effectively maps to a

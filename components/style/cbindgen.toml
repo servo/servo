@@ -1,0 +1,26 @@
+header = """/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"""
+autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen.
+ * To generate this file:
+ *   1. Get the latest cbindgen using `cargo install --force cbindgen`
+ *      a. Alternatively, you can clone `https://github.com/eqrion/cbindgen` and use a tagged release
+ *   2. Run `rustup run nightly cbindgen toolkit/library/rust/ --lockfile Cargo.lock --crate style -o layout/style/ServoStyleConsts.h`
+ */"""
+include_version = true
+braces = "SameLine"
+line_length = 80
+tab_width = 2
+language = "C++"
+namespaces = ["mozilla"]
+
+[struct]
+derive_eq = true
+
+[enum]
+derive_helper_methods = true
+
+[export]
+prefix = "Style"
+include = ["StyleDisplay", "StyleAppearance"]
+item_types = ["enums"]

@@ -16,7 +16,6 @@ use selector_parser::{PseudoElement, RestyleDamage, EAGER_PSEUDO_COUNT};
 use selectors::NthIndexCache;
 use servo_arc::Arc;
 use shared_lock::StylesheetGuards;
-use smallvec::SmallVec;
 use std::fmt;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -273,16 +272,8 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        let mut non_document_styles = SmallVec::<[_; 3]>::new();
-        let matches_doc_author_rules =
-            element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
-                non_document_styles.push((data, quirks_mode, host.map(|h| h.opaque())))
-            });
-
         let mut processor = StateAndAttrInvalidationProcessor::new(
             shared_context,
-            &non_document_styles,
-            matches_doc_author_rules,
             element,
             self,
             nth_index_cache,

@@ -43,6 +43,11 @@ pub trait ElementSnapshot: Sized {
     /// If this snapshot contains attribute information.
     fn has_attrs(&self) -> bool;
 
+    /// Gets the attribute information of the snapshot as a string.
+    ///
+    /// Only for debugging purposes.
+    fn debug_list_attributes(&self) -> String { String::new() }
+
     /// The ID attribute per this snapshot. Should only be called if
     /// `has_attrs()` returns true.
     fn id_attr(&self) -> Option<&WeakAtom>;
@@ -276,16 +281,6 @@ where
     fn containing_shadow_host(&self) -> Option<Self> {
         let host = self.element.containing_shadow_host()?;
         Some(Self::new(host, self.snapshot_map))
-    }
-
-    fn first_child_element(&self) -> Option<Self> {
-        let child = self.element.first_child_element()?;
-        Some(Self::new(child, self.snapshot_map))
-    }
-
-    fn last_child_element(&self) -> Option<Self> {
-        let child = self.element.last_child_element()?;
-        Some(Self::new(child, self.snapshot_map))
     }
 
     fn prev_sibling_element(&self) -> Option<Self> {

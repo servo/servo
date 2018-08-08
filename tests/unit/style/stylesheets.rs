@@ -98,7 +98,6 @@ fn test_parse_stylesheet() {
                             }),
                             Component::AttributeInNoNamespace {
                                 local_name: local_name!("type"),
-                                local_name_lower: local_name!("type"),
                                 operator: AttrSelectorOperator::Equal,
                                 value: "hidden".to_owned(),
                                 case_sensitivity: ParsedCaseSensitivity::AsciiCaseInsensitive,

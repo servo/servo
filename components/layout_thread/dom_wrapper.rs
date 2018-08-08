@@ -675,14 +675,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         None
     }
 
-    fn first_child_element(&self) -> Option<ServoLayoutElement<'le>> {
-        self.as_node().dom_children().filter_map(|n| n.as_element()).next()
-    }
-
-    fn last_child_element(&self) -> Option<ServoLayoutElement<'le>> {
-        self.as_node().rev_children().filter_map(|n| n.as_element()).next()
-    }
-
     fn prev_sibling_element(&self) -> Option<ServoLayoutElement<'le>> {
         let mut node = self.as_node();
         while let Some(sibling) = node.prev_sibling() {
@@ -1220,17 +1212,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn containing_shadow_host(&self) -> Option<Self> {
-        None
-    }
-
-    fn first_child_element(&self) -> Option<Self> {
-        warn!("ServoThreadSafeLayoutElement::first_child_element called");
-        None
-    }
-
-    // Skips non-element nodes
-    fn last_child_element(&self) -> Option<Self> {
-        warn!("ServoThreadSafeLayoutElement::last_child_element called");
         None
     }
 

@@ -156,6 +156,15 @@ impl GeckoElementSnapshot {
 }
 
 impl ElementSnapshot for GeckoElementSnapshot {
+    fn debug_list_attributes(&self) -> String {
+        use nsstring::nsCString;
+        let mut string = nsCString::new();
+        unsafe {
+            bindings::Gecko_Snapshot_DebugListAttributes(self, &mut string);
+        }
+        String::from_utf8_lossy(&*string).into_owned()
+    }
+
     fn state(&self) -> Option<ElementState> {
         if self.has_any(Flags::State) {
             Some(ElementState::from_bits_truncate(self.mState))

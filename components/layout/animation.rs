@@ -7,7 +7,7 @@
 use context::LayoutContext;
 use display_list::items::OpaqueNode;
 use flow::{Flow, GetBaseFlow};
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
@@ -26,8 +26,8 @@ use style::timer::Timer;
 pub fn update_animation_state<E>(
     constellation_chan: &IpcSender<ConstellationMsg>,
     script_chan: &IpcSender<ConstellationControlMsg>,
-    running_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
-    expired_animations: &mut FnvHashMap<OpaqueNode, Vec<Animation>>,
+    running_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
+    expired_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
     mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
     new_animations_receiver: &Receiver<Animation>,
     pipeline_id: PipelineId,
@@ -153,7 +153,7 @@ where
 pub fn recalc_style_for_animations<E>(
     context: &LayoutContext,
     flow: &mut Flow,
-    animations: &FnvHashMap<OpaqueNode, Vec<Animation>>,
+    animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
 )
 where
     E: TElement,

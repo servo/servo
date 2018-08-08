@@ -37,6 +37,7 @@ servo_arc = { path = "../servo_arc" }
 smallbitvec = "2.1.0"
 smallvec = "0.6"
 string_cache = { version = "0.7", optional = true }
+thin-slice = "0.1.0"
 time = { version = "0.1.17", optional = true }
 url = { version = "1.2", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", features = ["ipc"], optional = true }

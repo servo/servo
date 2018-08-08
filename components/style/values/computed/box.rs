@@ -10,7 +10,7 @@ use values::generics::box_::AnimationIterationCount as GenericAnimationIteration
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
 
-pub use values::specified::box_::{AnimationName, Contain, Display, OverflowClipBox};
+pub use values::specified::box_::{AnimationName, Appearance, Contain, Display, OverflowClipBox};
 pub use values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
 pub use values::specified::box_::{OverscrollBehavior, ScrollSnapType, TouchAction, TransitionProperty, WillChange};
 

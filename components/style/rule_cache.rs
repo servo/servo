@@ -5,7 +5,7 @@
 //! A cache from rule node to computed values, in order to cache reset
 //! properties.
 
-use fnv::FnvHashMap;
+use fxhash::FxHashMap;
 use logical_geometry::WritingMode;
 use properties::{ComputedValues, StyleBuilder};
 use rule_tree::StrongRuleNode;
@@ -71,14 +71,14 @@ impl RuleCacheConditions {
 /// A TLS cache from rules matched to computed values.
 pub struct RuleCache {
     // FIXME(emilio): Consider using LRUCache or something like that?
-    map: FnvHashMap<StrongRuleNode, SmallVec<[(RuleCacheConditions, Arc<ComputedValues>); 1]>>,
+    map: FxHashMap<StrongRuleNode, SmallVec<[(RuleCacheConditions, Arc<ComputedValues>); 1]>>,
 }
 
 impl RuleCache {
     /// Creates an empty `RuleCache`.
     pub fn new() -> Self {
         Self {
-            map: FnvHashMap::default(),
+            map: FxHashMap::default(),
         }
     }
 

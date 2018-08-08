@@ -36,7 +36,7 @@ new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.7", optional = true}
 euclid = "0.19"
 fallible = { path = "../fallible" }
-fnv = "1.0"
+fxhash = "0.2"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.22", optional = true}
 itertools = "0.7.6"
@@ -65,6 +65,7 @@ string_cache = { version = "0.7", optional = true }
 style_derive = {path = "../style_derive"}
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url", optional = true}
+thin-slice = "0.1.0"
 time = "0.1"
 uluru = "0.2"
 unicode-bidi = "0.3"

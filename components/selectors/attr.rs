@@ -7,20 +7,20 @@ use parser::SelectorImpl;
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct AttrSelectorWithNamespace<Impl: SelectorImpl> {
-    pub namespace: NamespaceConstraint<(Impl::NamespacePrefix, Impl::NamespaceUrl)>,
+pub struct AttrSelectorWithOptionalNamespace<Impl: SelectorImpl> {
+    pub namespace: Option<NamespaceConstraint<(Impl::NamespacePrefix, Impl::NamespaceUrl)>>,
     pub local_name: Impl::LocalName,
     pub local_name_lower: Impl::LocalName,
     pub operation: ParsedAttrSelectorOperation<Impl::AttrValue>,
     pub never_matches: bool,
 }
 
-impl<Impl: SelectorImpl> AttrSelectorWithNamespace<Impl> {
-    pub fn namespace(&self) -> NamespaceConstraint<&Impl::NamespaceUrl> {
-        match self.namespace {
+impl<Impl: SelectorImpl> AttrSelectorWithOptionalNamespace<Impl> {
+    pub fn namespace(&self) -> Option<NamespaceConstraint<&Impl::NamespaceUrl>> {
+        self.namespace.as_ref().map(|ns| match ns {
             NamespaceConstraint::Any => NamespaceConstraint::Any,
             NamespaceConstraint::Specific((_, ref url)) => NamespaceConstraint::Specific(url),
-        }
+        })
     }
 }
 

@@ -368,6 +368,34 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
+<%def name="impl_cbindgen_keyword(ident, gecko_ffi_name)">
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        // unsafe: cbindgen ensures the representations match.
+        ${set_gecko_property(gecko_ffi_name, "unsafe { transmute(v) }")}
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        // unsafe: cbindgen ensures the representations match.
+        unsafe { transmute(${get_gecko_property(gecko_ffi_name)}) }
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn reset_${ident}(&mut self, other: &Self) {
+        self.copy_${ident}_from(other)
+    }
+</%def>
+
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', on_set=None)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
@@ -3015,7 +3043,7 @@ fn static_assert() {
     }
 </%def>
 
-<% skip_box_longhands= """display overflow-y vertical-align
+<% skip_box_longhands= """display -moz-appearance overflow-y vertical-align
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
@@ -3031,57 +3059,41 @@ fn static_assert() {
                           shape-outside contain touch-action translate
                           scale""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
-
-    // We manually-implement the |display| property until we get general
-    // infrastructure for preffing certain values.
-    <% display_keyword = Keyword("display", "inline block inline-block table inline-table table-row-group " +
-                                            "table-header-group table-footer-group table-row table-column-group " +
-                                            "table-column table-cell table-caption list-item flex none " +
-                                            "inline-flex grid inline-grid ruby ruby-base ruby-base-container " +
-                                            "ruby-text ruby-text-container contents flow-root -webkit-box " +
-                                            "-webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid " +
-                                            "-moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck " +
-                                            "-moz-popup -moz-groupbox",
-                                            gecko_enum_prefix="StyleDisplay",
-                                            gecko_strip_moz_prefix=False) %>
-
-    fn match_display_keyword(
-        v: longhands::display::computed_value::T
-    ) -> structs::root::mozilla::StyleDisplay {
-        use properties::longhands::display::computed_value::T as Keyword;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match v {
-            % for value in display_keyword.values_for('gecko'):
-                Keyword::${to_camel_case(value)} =>
-                    structs::${display_keyword.gecko_constant(value)},
-            % endfor
-        }
-    }
-
+    #[inline]
     pub fn set_display(&mut self, v: longhands::display::computed_value::T) {
-        let result = Self::match_display_keyword(v);
-        self.gecko.mDisplay = result;
-        self.gecko.mOriginalDisplay = result;
+        // unsafe: cbindgen ensures the representation is the same.
+        self.gecko.mDisplay = unsafe { transmute(v) };
+        self.gecko.mOriginalDisplay = unsafe { transmute(v) };
     }
 
+    #[inline]
     pub fn copy_display_from(&mut self, other: &Self) {
         self.gecko.mDisplay = other.gecko.mDisplay;
         self.gecko.mOriginalDisplay = other.gecko.mDisplay;
     }
 
+    #[inline]
     pub fn reset_display(&mut self, other: &Self) {
         self.copy_display_from(other)
     }
 
+    #[inline]
     pub fn set_adjusted_display(
         &mut self,
         v: longhands::display::computed_value::T,
         _is_item_or_root: bool
     ) {
-        self.gecko.mDisplay = Self::match_display_keyword(v);
+        // unsafe: cbindgen ensures the representation is the same.
+        self.gecko.mDisplay = unsafe { transmute(v) };
     }
 
-    <%call expr="impl_keyword_clone('display', 'mDisplay', display_keyword)"></%call>
+    #[inline]
+    pub fn clone_display(&self) -> longhands::display::computed_value::T {
+        // unsafe: cbindgen ensures the representation is the same.
+        unsafe { transmute(self.gecko.mDisplay) }
+    }
+
+    ${impl_cbindgen_keyword('_moz_appearance', 'mAppearance')}
 
     <% float_keyword = Keyword("float", "Left Right None", gecko_enum_prefix="StyleFloat") %>
     ${impl_keyword('float', 'mFloat', float_keyword)}
