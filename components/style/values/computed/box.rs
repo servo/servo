@@ -9,6 +9,7 @@ use values::computed::length::{LengthOrPercentage, NonNegativeLength};
 use values::generics::box_::AnimationIterationCount as GenericAnimationIterationCount;
 use values::generics::box_::Perspective as GenericPerspective;
 use values::generics::box_::VerticalAlign as GenericVerticalAlign;
+use values::specified::box_ as specified;
 
 pub use values::specified::box_::{AnimationName, Appearance, Contain, Display, OverflowClipBox};
 pub use values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
@@ -136,6 +137,60 @@ impl ToComputedValue for SpecifiedClear {
             Clear::Left => SpecifiedClear::Left,
             Clear::Right => SpecifiedClear::Right,
             Clear::Both => SpecifiedClear::Both,
+        }
+    }
+}
+
+/// A computed value for the `resize` property.
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, ToCss)]
+pub enum Resize {
+    None,
+    Both,
+    Horizontal,
+    Vertical,
+}
+
+impl ToComputedValue for specified::Resize {
+    type ComputedValue = Resize;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Resize {
+        let is_vertical = context.style().writing_mode.is_vertical();
+        match self {
+            specified::Resize::Inline => {
+                context.rule_cache_conditions.borrow_mut()
+                    .set_writing_mode_dependency(context.builder.writing_mode);
+                if is_vertical {
+                    Resize::Vertical
+                } else {
+                    Resize::Horizontal
+                }
+            }
+            specified::Resize::Block => {
+                context.rule_cache_conditions.borrow_mut()
+                    .set_writing_mode_dependency(context.builder.writing_mode);
+                if is_vertical {
+                    Resize::Horizontal
+                } else {
+                    Resize::Vertical
+                }
+            }
+            specified::Resize::None => Resize::None,
+            specified::Resize::Both => Resize::Both,
+            specified::Resize::Horizontal => Resize::Horizontal,
+            specified::Resize::Vertical => Resize::Vertical,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Resize) -> specified::Resize {
+        match computed {
+            Resize::None => specified::Resize::None,
+            Resize::Both => specified::Resize::Both,
+            Resize::Horizontal => specified::Resize::Horizontal,
+            Resize::Vertical => specified::Resize::Vertical,
         }
     }
 }

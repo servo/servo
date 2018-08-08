@@ -325,6 +325,7 @@ class Longhand(object):
                 "OverflowClipBox",
                 "OverscrollBehavior",
                 "Percentage",
+                "Resize",
                 "SVGOpacity",
                 "SVGPaintOrder",
                 "ScrollSnapType",

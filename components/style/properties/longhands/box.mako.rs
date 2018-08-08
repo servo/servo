@@ -422,17 +422,21 @@ ${helpers.single_keyword("page-break-inside",
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
-// FIXME support logical values `block` and `inline` (https://drafts.csswg.org/css-logical-props/#resize)
 //
 // This is APPLIES_TO_PLACEHOLDER so we can override, in the UA sheet, the
 // 'resize' property we'd inherit from textarea otherwise.  Basically, just
 // makes the UA rules easier to write.
-${helpers.single_keyword("resize",
-                         "none both horizontal vertical",
-                         products="gecko",
-                         spec="https://drafts.csswg.org/css-ui/#propdef-resize",
-                         flags="APPLIES_TO_PLACEHOLDER",
-                         animation_value_type="discrete")}
+${helpers.predefined_type(
+    "resize",
+    "Resize",
+    "computed::Resize::None",
+    products="gecko",
+    animation_value_type="discrete",
+    needs_context=False,
+    gecko_ffi_name="mResize",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-ui/#propdef-resize",
+)}
 
 ${helpers.predefined_type(
     "perspective",

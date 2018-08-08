@@ -3106,6 +3106,9 @@ fn static_assert() {
     ) %>
     ${impl_keyword('clear', 'mBreakType', clear_keyword)}
 
+    <% resize_keyword = Keyword("resize", "None Both Horizontal Vertical") %>
+    ${impl_keyword('resize', 'mResize', resize_keyword)}
+
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
     pub fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
         use properties::longhands::overflow_x::computed_value::T as BaseType;
