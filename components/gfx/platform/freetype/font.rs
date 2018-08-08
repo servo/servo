@@ -148,9 +148,14 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
 
-    fn family_name(&self) -> String {
+    fn family_name(&self) -> Option<String> {
         unsafe {
-            c_str_to_string((*self.face).family_name as *const c_char)
+            let family_name = (*self.face).family_name;
+            if !family_name.is_null() {
+                Some(c_str_to_string(family_name as *const c_char))
+            } else {
+                None
+            }
         }
     }
 
