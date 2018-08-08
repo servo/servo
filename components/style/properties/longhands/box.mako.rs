@@ -448,7 +448,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "perspective-origin",
-    "position::Position",
+    "Position",
     "computed::position::Position::center()",
     boxed=True,
     extra_prefixes=transform_extra_prefixes,

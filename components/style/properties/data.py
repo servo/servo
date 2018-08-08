@@ -290,14 +290,22 @@ class Longhand(object):
                 "AlignContent",
                 "AlignItems",
                 "AlignSelf",
+                "Appearance",
                 "BackgroundRepeat",
                 "BorderImageRepeat",
                 "BorderStyle",
+                "Clear",
                 "ColumnCount",
                 "Contain",
+                "Display",
+                "Float",
+                "FontSizeAdjust",
+                "FontStretch",
+                "FontStyle",
                 "FontStyleAdjust",
                 "FontSynthesis",
                 "FontWeight",
+                "GreaterThanOrEqualToOneNumber",
                 "GridAutoFlow",
                 "InitialLetter",
                 "Integer",
@@ -311,10 +319,13 @@ class Longhand(object):
                 "NonNegativeNumber",
                 "Opacity",
                 "OutlineStyle",
+                "OverflowClipBox",
                 "OverscrollBehavior",
                 "Percentage",
+                "SVGOpacity",
                 "SVGPaintOrder",
                 "ScrollSnapType",
+                "TextAlign",
                 "TextDecorationLine",
                 "TouchAction",
                 "TransformStyle",
@@ -322,6 +333,8 @@ class Longhand(object):
                 "XTextZoom",
                 "ZIndex",
             }
+        if self.name == "overflow-y":
+            return True
         return bool(self.keyword)
 
     def animated_type(self):
