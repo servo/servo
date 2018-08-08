@@ -212,30 +212,18 @@ android-nightly:
   - ./etc/ci/clean_build_artifacts.sh
 
 arm32:
- env:
-   CC: gcc-5
-   CXX: g++-5
-   CFLAGS: --target=arm-unknown-linux-gnueabihf
-   CXXFLAGS: --target=arm-unknown-linux-gnueabihf
- commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - env --unset CC_arm-unknown-linux-gnueabihf --unset CXX_arm-unknown-linux-gnueabihf ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
 arm64:
- env:
-   CC: gcc-5
-   CXX: g++-5
-   CFLAGS: --target=aarch64-unknown-linux-gnu
-   CXXFLAGS: --target=aarch64-unknown-linux-gnu
- commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - env --unset CC_aarch64-unknown-linux-gnueabihf --unset CXX_aarch64-unknown-linux-gnueabihf ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
