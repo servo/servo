@@ -9,7 +9,6 @@ extern crate gleam;
 extern crate glutin;
 #[macro_use] extern crate lazy_static;
 // The window backed by glutin
-#[macro_use] extern crate log;
 #[cfg(any(target_os = "linux", target_os = "macos"))] extern crate osmesa_sys;
 extern crate servo;
 #[cfg(feature = "unstable")]
