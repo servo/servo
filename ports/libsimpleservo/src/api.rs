@@ -194,6 +194,12 @@ impl ServoGlue {
         self.process_event(event)
     }
 
+    /// Stop loading the page.
+    pub fn stop(&mut self) -> Result<(), &'static str> {
+        debug!("TODO can't stop won't stop");
+        Ok(())
+    }
+
     /// Go back in history.
     pub fn go_back(&mut self) -> Result<(), &'static str> {
         debug!("go_back");

@@ -140,6 +140,12 @@ pub fn Java_com_mozilla_servoview_JNIServo_reload(env: JNIEnv, _class: JClass) {
 }
 
 #[no_mangle]
+pub fn Java_com_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
+    debug!("stop");
+    call(env, |s| s.stop());
+}
+
+#[no_mangle]
 pub fn Java_com_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
     call(env, |s| s.go_back());
