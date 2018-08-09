@@ -147,7 +147,7 @@ android {
     // Call our custom NDK Build task using flavor parameters
     tasks.all {
         compileTask ->
-            Pattern pattern = Pattern.compile(/^compile[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)/)
+            Pattern pattern = Pattern.compile(/^compile[A-Z][\w\d]+([A-Z][\w\d]+)(Debug|Release)Ndk/)
             Matcher matcher = pattern.matcher(compileTask.name)
             if (!matcher.find()) {
                 return
