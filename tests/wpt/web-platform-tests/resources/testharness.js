@@ -650,7 +650,7 @@ policies and contribution forms [3].
 
         /**
          * Returns a Promise that will resolve after the specified event or
-         * series of events has occured.
+         * series of events has occurred.
          *
          * @param options An optional options object. If the 'record' property
          *                on this object has the value 'all', when the Promise
@@ -1059,7 +1059,7 @@ policies and contribution forms [3].
     function assert_array_approx_equals(actual, expected, epsilon, description)
     {
         /*
-         * Test if two primitive arrays are equal withing +/- epsilon
+         * Test if two primitive arrays are equal within +/- epsilon
          */
         assert(actual.length === expected.length,
                "assert_array_approx_equals", description,
@@ -1087,7 +1087,7 @@ policies and contribution forms [3].
     function assert_approx_equals(actual, expected, epsilon, description)
     {
         /*
-         * Test if two primitive numbers are equal withing +/- epsilon
+         * Test if two primitive numbers are equal within +/- epsilon
          */
         assert(typeof actual === "number",
                "assert_approx_equals", description,

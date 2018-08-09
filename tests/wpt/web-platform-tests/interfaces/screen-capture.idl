@@ -1,0 +1,27 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Screen Capture" spec.
+// See: https://w3c.github.io/mediacapture-screen-share/
+
+partial interface Navigator {
+    Promise<MediaStream> getDisplayMedia(optional MediaStreamConstraints constraints);
+};
+
+partial dictionary MediaTrackConstraintSet {
+             ConstrainDOMString displaySurface;
+             ConstrainBoolean logicalSurface;
+             ConstrainDOMString cursor;
+};
+
+enum DisplayCaptureSurfaceType {
+    "monitor",
+    "window",
+    "application",
+    "browser"
+};
+
+enum CursorCaptureConstraint {
+    "never",
+    "always",
+    "motion"
+};

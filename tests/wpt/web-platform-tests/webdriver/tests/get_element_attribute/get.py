@@ -12,12 +12,10 @@ def get_element_attribute(session, element, attr):
             attr=attr))
 
 
-def test_no_browsing_context(session, create_window):
-    session.window_handle = create_window()
-    session.close()
+def test_no_browsing_context(session, closed_window):
+    response = get_element_attribute(session, "foo", "id")
+    assert_error(response, "no such window")
 
-    result = get_element_attribute(session, "foo", "id")
-    assert_error(result, "no such window")
 
 def test_element_not_found(session):
     # 13.2 Step 3

@@ -157,7 +157,7 @@ class SourceFile(object):
                          ("css", "CSS2", "archive"),
                          ("css", "common")}
 
-    def __init__(self, tests_root, rel_path, url_base, contents=None):
+    def __init__(self, tests_root, rel_path, url_base, hash=None, contents=None):
         """Object representing a file in a source tree.
 
         :param tests_root: Path to the root of the source tree
@@ -188,6 +188,7 @@ class SourceFile(object):
         self.meta_flags = self.name.split(".")[1:]
 
         self.items_cache = None
+        self._hash = hash
 
     def __getstate__(self):
         # Remove computed properties if we pickle this class
@@ -237,8 +238,12 @@ class SourceFile(object):
 
     @cached_property
     def hash(self):
-        with self.open() as f:
-            return hashlib.sha1(f.read()).hexdigest()
+        if not self._hash:
+            with self.open() as f:
+                content = f.read()
+            data = "".join(("blob ", str(len(content)), "\0", content))
+            self._hash = hashlib.sha1(data).hexdigest()
+        return self._hash
 
     def in_non_test_dir(self):
         if self.dir_path == "":

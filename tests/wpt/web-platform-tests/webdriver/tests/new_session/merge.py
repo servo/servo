@@ -3,13 +3,13 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_success
-from conftest import platform_name
+from tests.support import platform_name
 
 
-@pytest.mark.skipif(platform_name() is None, reason="Unsupported platform")
+@pytest.mark.skipif(platform_name is None, reason="Unsupported platform {}".format(platform_name))
 @pytest.mark.parametrize("body", [lambda key, value: {"alwaysMatch": {key: value}},
                                   lambda key, value: {"firstMatch": [{key: value}]}])
-def test_platform_name(new_session, add_browser_capabilities, platform_name, body):
+def test_platform_name(new_session, add_browser_capabilities, body):
     capabilities = body("platformName", platform_name)
     if "alwaysMatch" in capabilities:
         capabilities["alwaysMatch"] = add_browser_capabilities(capabilities["alwaysMatch"])
@@ -40,8 +40,8 @@ def test_merge_invalid(new_session, add_browser_capabilities, key, value):
     assert_error(response, "invalid argument")
 
 
-@pytest.mark.skipif(platform_name() is None, reason="Unsupported platform")
-def test_merge_platformName(new_session, add_browser_capabilities, platform_name):
+@pytest.mark.skipif(platform_name is None, reason="Unsupported platform {}".format(platform_name))
+def test_merge_platformName(new_session, add_browser_capabilities):
     response, _ = new_session({"capabilities": {
         "alwaysMatch": add_browser_capabilities({"timeouts": {"script": 10}}),
         "firstMatch": [{

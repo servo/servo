@@ -1,0 +1,19 @@
+<!doctype html>
+<title>CSS Parser API IDL tests</title>
+<link rel="help" href="https://wicg.github.io/CSS-Parser-API/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<script>
+  'use strict';
+
+  idl_test(
+    ['CSS-Parser-API'],
+    ['cssom'],
+    idl_array => {
+      // No objects
+    },
+    'CSS-Parser-API interfaces'
+  );
+</script>

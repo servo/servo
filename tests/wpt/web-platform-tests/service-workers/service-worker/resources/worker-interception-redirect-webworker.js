@@ -39,4 +39,6 @@ self.onconnect = async function(e) {
   const response = await fetch(fetch_url);
   const text = await response.text();
   port.postMessage('fetch(): ' + text);
+
+  port.postMessage(self.location.href);
 };

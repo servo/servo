@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Shrink-to-fit float inside inline inside a shrink-to-fit-container</title>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<meta name="assert" content="This tests that intrinsic size calculation realizes that the four words are going to fit on the same line in final layout">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#intrinsic-sizes" title="4.1. Intrinsic Sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="float:left; height:100px; background:red;">
+  <span>
+    <div style="float:left; writing-mode:vertical-rl; height:100%; line-height:100px; background:green;">
+      &nbsp; &nbsp; &nbsp; &nbsp;
+    </div>
+  </span>
+</div>

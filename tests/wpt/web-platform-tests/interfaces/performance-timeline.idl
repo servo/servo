@@ -7,7 +7,8 @@ partial interface Performance {
   PerformanceEntryList getEntries();
   PerformanceEntryList getEntriesByType(DOMString type);
   PerformanceEntryList getEntriesByName(DOMString name, optional DOMString type);
-};typedef sequence<PerformanceEntry> PerformanceEntryList;
+};
+typedef sequence<PerformanceEntry> PerformanceEntryList;
 
 [Exposed=(Window,Worker)]
 interface PerformanceEntry {

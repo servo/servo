@@ -14,6 +14,8 @@ def vcs(bin_name):
 
         repo = kwargs.pop("repo", None)
         log_error = kwargs.pop("log_error", True)
+        stdout = kwargs.pop("stdout", None)
+        stdin = kwargs.pop("stdin", None)
         if kwargs:
             raise TypeError(kwargs)
 
@@ -22,11 +24,16 @@ def vcs(bin_name):
         proc_kwargs = {}
         if repo is not None:
             proc_kwargs["cwd"] = repo
+        if stdout is not None:
+            proc_kwargs["stdout"] = stdout
+        if stdin is not None:
+            proc_kwargs["stdin"] = stdin
 
         command_line = [bin_name, command] + args
         logger.debug(" ".join(command_line))
         try:
-            return subprocess.check_output(command_line, stderr=subprocess.STDOUT, **proc_kwargs)
+            func = subprocess.check_output if not stdout else subprocess.check_call
+            return func(command_line, stderr=subprocess.STDOUT, **proc_kwargs)
         except OSError as e:
             if log_error:
                 logger.error(e)

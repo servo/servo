@@ -10,13 +10,7 @@ def close(session):
         "DELETE", "session/{session_id}/window".format(**vars(session)))
 
 
-def test_no_browsing_context(session, create_window):
-    new_handle = create_window()
-
-    session.window_handle = new_handle
-    session.close()
-    assert new_handle not in session.handles
-
+def test_no_browsing_context(session, closed_window):
     response = close(session)
     assert_error(response, "no such window")
 

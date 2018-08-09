@@ -2,6 +2,8 @@
 
 import pytest
 
+from webdriver import Element
+
 from tests.support.asserts import (
     assert_element_has_focus,
     assert_error,
@@ -44,12 +46,8 @@ def test_null_response_value(session):
     assert value is None
 
 
-def test_closed_context(session, create_window):
-    new_window = create_window()
-    session.window_handle = new_window
-    session.url = inline("<input>")
-    element = session.find.css("input", all=False)
-    session.close()
+def test_no_browsing_context(session, closed_window):
+    element = Element("foo", session)
 
     response = element_clear(session, element)
     assert_error(response, "no such window")
