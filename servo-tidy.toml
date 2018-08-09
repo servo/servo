@@ -40,7 +40,6 @@ num = [
 packages = [
   "bitflags",
   "log",
-  "num-traits",
   "rand",
   "winapi",
 

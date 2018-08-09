@@ -19,7 +19,7 @@ fnv = "1.0"
 gleam = "0.6"
 ipc-channel = "0.10"
 log = "0.4"
-num-traits = "0.1.32"
+num-traits = "0.2"
 offscreen_gl_context = {version = "0.21", features = ["serde", "osmesa"]}
 serde_bytes = "0.10"
 servo_config = {path = "../config"}
