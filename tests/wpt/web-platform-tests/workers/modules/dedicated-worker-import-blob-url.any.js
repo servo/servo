@@ -11,7 +11,10 @@ function import_blob_url_test(testCase) {
     const blobURL = URL.createObjectURL(blob);
 
     const worker = new Worker(blobURL, { type: 'module'});
-    const msgEvent = await new Promise(resolve => worker.onmessage = resolve);
+    const msgEvent = await new Promise((resolve, reject) => {
+      worker.onmessage = resolve;
+      worker.onerror = (error) => reject(error && error.message);
+    });
     assert_array_equals(msgEvent.data, testCase.expectation);
   }, testCase.description);
 }

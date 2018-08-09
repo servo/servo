@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Test: Changing ::first-letter color while sibling changes display type.</title>
+<link rel="author" title="Rune Lillesveen" href="mailto:futhark@chromium.org">
+<link rel="match" href="first-letter-block-to-inline-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-letter-pseudo">
+<style>
+  div { color: green }
+  div::first-letter { color: red }
+  .green::first-letter { color: green }
+</style>
+<div>This text should be green.<span></span></div>
+<script>
+  document.body.offsetTop;
+  document.querySelector("span").style.display = "block";
+  document.querySelector("div").className = "green";
+</script>

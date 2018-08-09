@@ -7,7 +7,6 @@ def get_timeouts(session):
 
 
 def test_get_timeouts(session):
-    # 8.4 step 1
     response = get_timeouts(session)
 
     assert_success(response)

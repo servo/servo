@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.error import NoSuchWindowException
+
 from tests.actions.support.mouse import get_inview_center, get_viewport_rect
 from tests.actions.support.refine import get_events, filter_dict
 from tests.support.asserts import assert_move_to_coordinates
@@ -18,6 +20,11 @@ def test_null_response_value(session, mouse_chain):
 
     value = session.actions.release()
     assert value is None
+
+
+def test_no_browsing_context(session, closed_window, mouse_chain):
+    with pytest.raises(NoSuchWindowException):
+        mouse_chain.click().perform()
 
 
 def test_click_at_coordinates(session, test_actions_page, mouse_chain):

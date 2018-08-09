@@ -87,7 +87,7 @@ class Browser(object):
         return {}
 
     @abstractmethod
-    def start(self, **kwargs):
+    def start(self, group_metadata, **kwargs):
         """Launch the browser object and get it into a state where is is ready to run tests"""
         pass
 

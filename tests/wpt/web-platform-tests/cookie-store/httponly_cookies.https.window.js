@@ -45,3 +45,25 @@ cookie_test(async t => {
     eventPromise, {changed: [{name: 'TEST', value: 'dummy'}]},
     'HttpOnly cookie deletion was not observed');
 }, 'HttpOnly cookies are not observed');
+
+
+cookie_test(async t => {
+  document.cookie = 'cookie1=value1; path=/';
+  document.cookie = 'cookie2=value2; path=/; httponly';
+  document.cookie = 'cookie3=value3; path=/';
+  assert_equals(
+    await getCookieStringHttp(), 'cookie1=value1; cookie3=value3',
+    'Trying to store an HttpOnly cookie with document.cookie fails');
+}, 'HttpOnly cookies can not be set by document.cookie');
+
+
+// Historical: Early iterations of the proposal included an httpOnly option.
+cookie_test(async t => {
+  await cookieStore.set('cookie1', 'value1');
+  await cookieStore.set('cookie2', 'value2', {httpOnly: true});
+  await cookieStore.set('cookie3', 'value3');
+  assert_equals(
+    await getCookieStringHttp(),
+    'cookie1=value1; cookie2=value2; cookie3=value3',
+    'httpOnly is not an option for CookieStore.set()');
+}, 'HttpOnly cookies can not be set by CookieStore');

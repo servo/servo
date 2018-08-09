@@ -15,59 +15,32 @@
 <div id=log></div>
 
 <script>
-"use strict";
+'use strict';
 
-function doTest([html, dom, uievents, cssom, cssom_view]) {
+const waitForLoad = new Promise(resolve => { addEventListener('load', resolve); });
 
-  var idlArray = new IdlArray();
-  var svg = "interface SVGElement : Element {};";
-  idlArray.add_untested_idls(html + dom + svg + cssom);
-  idlArray.add_untested_idls(uievents, { only: [
-    'UIEvent',
-    'UIEventInit',
-    'MouseEvent',
-    'MouseEventInit',
-    'EventModifierInit']
-  });
-  idlArray.add_idls(cssom_view);
+idl_test(
+  ['cssom-view'],
+  ['css-pseudo', 'cssom', 'uievents', 'SVG', 'html', 'dom'],
+  async idlArray => {
+    idlArray.add_objects({
+      Window: ['window'],
+      MediaQueryList: ['matchMedia("all")'],
+      MediaQueryListEvent: ['new MediaQueryListEvent("change")'],
+      Screen: ['screen'],
+      Document: ['document'],
+      CaretPosition: ['document.caretPositionFromPoint(5, 5)'],
+      Element: ['document.createElementNS("x", "y")'],
+      HTMLElement: ['document.createElement("div")'],
+      HTMLImageElement: ['document.createElement("img")'],
+      Range: ['new Range()'],
+      // MouseEvent: ['new MouseEvent("foo")'],
+      Text: ['document.createTextNode("x")'],
+      // CSSPseudoElement: [],
+    });
 
-  idlArray.add_objects({
-    "Window": ["window"],
-    "MediaQueryList": ["matchMedia('all')"],
-    "MediaQueryListEvent": ["new MediaQueryListEvent('change')"],
-    "Screen": ["screen"],
-    "Document": ["document"],
-    "CaretPosition": ["document.caretPositionFromPoint(5, 5)"],
-    "Element": ["document.createElementNS('x', 'y')"],
-    "HTMLElement": ["document.createElement('div')"],
-    "HTMLImageElement": ["document.createElement('img')"],
-    "Range": ["new Range()"],
-    // "MouseEvent": ["new MouseEvent('foo')"],
-    "Text": ["document.createTextNode('x')"],
-    // "CSSPseudoElement": [],
-  });
-  idlArray.test();
-};
-
-function fetchData(url) {
-  return fetch(url).then((response) => response.text());
-}
-
-function waitForLoad() {
-  return new Promise(function(resolve) {
-    addEventListener("load", resolve);
-  });
-}
-
-promise_test(function() {
-  // Have to wait for onload
-  return Promise.all([fetchData("/interfaces/html.idl"),
-                      fetchData("/interfaces/dom.idl"),
-                      fetchData("/interfaces/uievents.idl"),
-                      fetchData("/interfaces/cssom.idl"),
-                      fetchData("/interfaces/cssom-view.idl"),
-                      waitForLoad()])
-                .then(doTest);
-}, "Test driver");
-
+    await waitForLoad;
+  },
+  'cssom-view interfaces'
+);
 </script>

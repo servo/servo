@@ -455,6 +455,7 @@ def iterfilter(filters, iter):
     for item in iter:
         yield item
 
+
 class TestLoader(object):
     def __init__(self,
                  test_manifests,
@@ -515,7 +516,7 @@ class TestLoader(object):
     def load_dir_metadata(self, test_manifest, metadata_path, test_path):
         rv = []
         path_parts = os.path.dirname(test_path).split(os.path.sep)
-        for i in xrange(1,len(path_parts) + 1):
+        for i in xrange(len(path_parts) + 1):
             path = os.path.join(metadata_path, os.path.sep.join(path_parts[:i]), "__dir__.ini")
             if path not in self.directory_manifests:
                 self.directory_manifests[path] = manifestexpected.get_dir_manifest(path,
@@ -597,6 +598,10 @@ class TestSource(object):
     def make_queue(cls, tests, **kwargs):
         pass
 
+    @classmethod
+    def group_metadata(cls, state):
+        return {"scope": "/"}
+
     def group(self):
         if not self.current_group or len(self.current_group) == 0:
             try:
@@ -620,7 +625,8 @@ class GroupedSource(TestSource):
 
         for test in tests:
             if cls.new_group(state, test, **kwargs):
-                groups.append((deque(), {}))
+                group_metadata = cls.group_metadata(state)
+                groups.append((deque(), group_metadata))
 
             group, metadata = groups[-1]
             group.append(test)
@@ -637,7 +643,7 @@ class SingleTestSource(TestSource):
         test_queue = Queue()
         processes = kwargs["processes"]
         queues = [deque([]) for _ in xrange(processes)]
-        metadatas = [{} for _ in xrange(processes)]
+        metadatas = [cls.group_metadata(None) for _ in xrange(processes)]
         for test in tests:
             idx = hash(test.id) % processes
             group = queues[idx]
@@ -655,9 +661,13 @@ class PathGroupedSource(GroupedSource):
     @classmethod
     def new_group(cls, state, test, **kwargs):
         depth = kwargs.get("depth")
-        if depth is True:
+        if depth is True or depth == 0:
             depth = None
         path = urlparse.urlsplit(test.url).path.split("/")[1:-1][:depth]
         rv = path != state.get("prev_path")
         state["prev_path"] = path
         return rv
+
+    @classmethod
+    def group_metadata(cls, state):
+        return {"scope": "/%s" % "/".join(state["prev_path"])}

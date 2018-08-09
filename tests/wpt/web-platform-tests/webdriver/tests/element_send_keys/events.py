@@ -5,8 +5,9 @@ from tests.support.asserts import (
     assert_events_equal,
     assert_success,
 )
-
 from tests.support.inline import inline
+
+from . import map_files_to_multiline_text
 
 
 @pytest.fixture
@@ -30,19 +31,19 @@ def element_send_keys(session, element, text):
         {"text": text})
 
 
-def test_file_upload(session, create_file, add_event_listeners, tracked_events):
+def test_file_upload(session, create_files, add_event_listeners, tracked_events):
     expected_events = [
         "input",
         "change",
     ]
 
-    single_file = create_file("foo")
+    files = create_files(["foo", "bar"])
 
     session.url = inline("<input type=file multiple>")
     element = session.find.css("input", all=False)
     add_event_listeners(element, tracked_events)
 
-    response = element_send_keys(session, element, str(single_file))
+    response = element_send_keys(session, element, map_files_to_multiline_text(files))
     assert_success(response)
 
     assert_events_equal(session, expected_events)

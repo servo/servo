@@ -1,3 +1,8 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "WebXR Device API" spec.
+// See: https://immersive-web.github.io/webxr/
+
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   // Methods
   Promise<XRDevice?> requestDevice();
@@ -22,11 +27,18 @@ dictionary XRSessionCreationOptions {
   XRPresentationContext outputContext;
 };
 
+enum XREnvironmentBlendMode {
+  "opaque",
+  "additive",
+  "alpha-blend",
+};
+
 [SecureContext, Exposed=Window] interface XRSession : EventTarget {
   // Attributes
   readonly attribute XRDevice device;
   readonly attribute boolean immersive;
   readonly attribute XRPresentationContext outputContext;
+  readonly attribute XREnvironmentBlendMode environmentBlendMode;
 
   attribute double depthNear;
   attribute double depthFar;
@@ -34,6 +46,8 @@ dictionary XRSessionCreationOptions {
 
   // Methods
   Promise<XRFrameOfReference> requestFrameOfReference(XRFrameOfReferenceType type, optional XRFrameOfReferenceOptions options);
+
+  FrozenArray<XRInputSource> getInputSources();
 
   long requestAnimationFrame(XRFrameRequestCallback callback);
   void cancelAnimationFrame(long handle);
@@ -45,14 +59,19 @@ dictionary XRSessionCreationOptions {
   attribute EventHandler onfocus;
   attribute EventHandler onresetpose;
   attribute EventHandler onend;
+  attribute EventHandler onselect;
+  attribute EventHandler onselectstart;
+  attribute EventHandler onselectend;
 };
 
 callback XRFrameRequestCallback = void (DOMHighResTimeStamp time, XRFrame frame);
 
 [SecureContext, Exposed=Window] interface XRFrame {
+  readonly attribute XRSession session;
   readonly attribute FrozenArray<XRView> views;
 
   XRDevicePose? getDevicePose(XRCoordinateSystem coordinateSystem);
+  XRInputPose? getInputPose(XRInputSource inputSource, XRCoordinateSystem coordinateSystem);
 };
 
 [SecureContext, Exposed=Window] interface XRCoordinateSystem : EventTarget {
@@ -109,6 +128,38 @@ enum XREye {
   Float32Array getViewMatrix(XRView view);
 };
 
+enum XRHandedness {
+  "",
+  "left",
+  "right"
+};
+
+enum XRTargetRayMode {
+  "gaze",
+  "tracked-pointer",
+  "screen"
+};
+
+[SecureContext, Exposed=Window]
+interface XRInputSource {
+  readonly attribute XRHandedness handedness;
+  readonly attribute XRTargetRayMode targetRayMode;
+};
+
+[SecureContext, Exposed=Window]
+interface XRRay {
+  readonly attribute DOMPointReadOnly origin;
+  readonly attribute DOMPointReadOnly direction;
+  readonly attribute Float32Array transformMatrix;
+};
+
+[SecureContext, Exposed=Window]
+interface XRInputPose {
+  readonly attribute boolean emulatedPosition;
+  readonly attribute XRRay targetRay;
+  readonly attribute Float32Array? gripMatrix;
+};
+
 [SecureContext, Exposed=Window] interface XRLayer {};
 
 typedef (WebGLRenderingContext or
@@ -120,7 +171,7 @@ dictionary XRWebGLLayerInit {
   boolean stencil = false;
   boolean alpha = true;
   boolean multiview = false;
-  double framebufferScaleFactor;
+  double framebufferScaleFactor = 1.0;
 };
 
 [SecureContext, Exposed=Window, Constructor(XRSession session,
@@ -143,6 +194,9 @@ interface XRWebGLLayer : XRLayer {
   // Methods
   XRViewport? getViewport(XRView view);
   void requestViewportScaling(double viewportScaleFactor);
+
+  // Static Methods
+  static double getNativeFramebufferScaleFactor(XRSession session);
 };
 
 partial dictionary WebGLContextAttributes {
@@ -164,6 +218,17 @@ interface XRSessionEvent : Event {
 
 dictionary XRSessionEventInit : EventInit {
   required XRSession session;
+};
+
+[SecureContext, Exposed=Window, Constructor(DOMString type, XRInputSourceEventInit eventInitDict)]
+interface XRInputSourceEvent : Event {
+  readonly attribute XRFrame frame;
+  readonly attribute XRInputSource inputSource;
+};
+
+dictionary XRInputSourceEventInit : EventInit {
+  required XRFrame frame;
+  required XRInputSource inputSource;
 };
 
 [SecureContext, Exposed=Window, Constructor(DOMString type, XRCoordinateSystemEventInit eventInitDict)]

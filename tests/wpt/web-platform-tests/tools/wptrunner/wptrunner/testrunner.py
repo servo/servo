@@ -174,7 +174,7 @@ class BrowserManager(object):
         self.last_test = test
         return restart_required
 
-    def init(self):
+    def init(self, group_metadata):
         """Launch the browser that is being tested,
         and the TestRunner process that will run the tests."""
         # It seems that this lock is helpful to prevent some race that otherwise
@@ -192,7 +192,7 @@ class BrowserManager(object):
             if self.init_timer is not None:
                 self.init_timer.start()
             self.logger.debug("Starting browser with settings %r" % self.browser_settings)
-            self.browser.start(**self.browser_settings)
+            self.browser.start(group_metadata=group_metadata, **self.browser_settings)
             self.browser_pid = self.browser.pid()
         except Exception:
             self.logger.warning("Failure during init %s" % traceback.format_exc())
@@ -451,7 +451,7 @@ class TestRunnerManager(threading.Thread):
 
         self.browser.update_settings(self.state.test)
 
-        result = self.browser.init()
+        result = self.browser.init(self.state.group_metadata)
         if result is Stop:
             return RunnerManagerState.error()
         elif not result:

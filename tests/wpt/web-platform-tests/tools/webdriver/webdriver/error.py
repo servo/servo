@@ -92,6 +92,11 @@ class NoSuchAlertException(WebDriverException):
     status_code = "no such alert"
 
 
+class NoSuchCookieException(WebDriverException):
+    http_status = 404
+    status_code = "no such cookie"
+
+
 class NoSuchElementException(WebDriverException):
     http_status = 404
     status_code = "no such element"

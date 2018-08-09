@@ -11,6 +11,20 @@
 <script>
 
 test(function () {
+    var shadowHost = document.createElement('div');
+    document.body.appendChild(shadowHost);
+
+    var shadowRoot = shadowHost.attachShadow({mode: 'open'});
+    shadowRoot.innerHTML = '<div class="shadowChild">content</div>';
+
+    var shadowChild = shadowRoot.querySelector('.shadowChild');
+    assert_equals(shadowChild.getRootNode({composed: true}), document, "getRootNode() must return context object's shadow-including root if options's composed is true");
+    assert_equals(shadowChild.getRootNode({composed: false}), shadowRoot, "getRootNode() must return context object's root if options's composed is false");
+    assert_equals(shadowChild.getRootNode(), shadowRoot, "getRootNode() must return context object's root if options's composed is default false");
+
+}, "getRootNode() must return context object's shadow-including root if options's composed is true, and context object's root otherwise");
+
+test(function () {
     var element = document.createElement('div');
     assert_equals(element.getRootNode(), element, 'getRootNode() on an element without a parent must return the element itself');
 
