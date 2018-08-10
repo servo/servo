@@ -14,6 +14,7 @@ from time import time
 import sys
 import urllib2
 import json
+import subprocess
 
 from mach.decorators import (
     CommandArgument,
@@ -227,7 +228,7 @@ class MachCommands(CommandBase):
 
         with cd(self.context.topdir):
             return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())
-
+          
     @Command('rustfmt',
              description='Format the Rust code using Cargo fmt',
              category='devenv')
@@ -240,3 +241,26 @@ class MachCommands(CommandBase):
 
         with cd(self.context.topdir):
             return self.call_rustup_run(["cargo", "fmt", "--", directory], env=self.build_env())
+          
+    @Command('ndk-stack',
+             description='Invoke the ndk-stack tool with the expected symbol paths',
+             category='devenv')
+    @CommandArgument('--release', action='store_true', help="Use release build symbols")
+    @CommandArgument('--target', action='store', default="armv7-linux-androideabi",
+                     help="Build target")
+    @CommandArgument('logfile', action='store', help="Path to logcat output with crash report")
+    def stack(self, release, target, logfile):
+        if not path.isfile(logfile):
+            print(logfile + " doesn't exist")
+            return -1
+        env = self.build_env(target=target)
+        ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
+        sym_path = path.join(
+            "target",
+            target,
+            "release" if release else "debug",
+            "apk",
+            "obj",
+            "local",
+            "armeabi-v7a")
+        print(subprocess.check_output([ndk_stack, "-sym", sym_path, "-dump", logfile]))
