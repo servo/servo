@@ -34,27 +34,6 @@ errors = {
 }
 
 
-# WebDriver specification ID: dfn-send-an-error
-#
-# > When required to send an error, with error code, a remote end must run the
-# > following steps:
-# >
-# > 1. Let http status and name be the error response data for error code.
-# > 2. Let message be an implementation-defined string containing a
-# >    human-readable description of the reason for the error.
-# > 3. Let stacktrace be an implementation-defined string containing a stack
-# >    trace report of the active stack frames at the time when the error
-# >    occurred.
-# > 4. Let data be a new JSON Object initialised with the following properties:
-# >
-# >     error
-# >         name
-# >     message
-# >         message
-# >     stacktrace
-# >         stacktrace
-# >
-# > 5. Send a response with status and data as arguments.
 def assert_error(response, error_code):
     """
     Verify that the provided webdriver.Response instance described
@@ -87,17 +66,19 @@ def assert_success(response, value=None):
     return response.body.get("value")
 
 
-def assert_dialog_handled(session, expected_text):
+def assert_dialog_handled(session, expected_text, expected_retval):
     # If there were any existing dialogs prior to the creation of this
     # fixture's dialog, then the "Get Alert Text" command will return
     # successfully. In that case, the text must be different than that
     # of this fixture's dialog.
     try:
         assert session.alert.text != expected_text, (
-            "User prompt with text '%s' was not handled." % expected_text)
+            "User prompt with text '{}' was not handled.".format(expected_text))
 
     except NoSuchAlertException:
-        pass
+        # If dialog has been closed and no other one is open, check its return value
+        prompt_retval = session.execute_script(" return window.dialog_return_value;")
+        assert prompt_retval == expected_retval
 
 
 def assert_files_uploaded(session, element, files):

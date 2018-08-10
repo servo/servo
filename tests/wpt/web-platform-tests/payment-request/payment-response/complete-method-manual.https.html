@@ -14,12 +14,13 @@ async function runManualTest({ completeWith: result }, button) {
   promise_test(async t => {
     try {
       // We .complete() as normal, using the passed test value
-      const promise = response.complete(result);
-      assert_true(promise instanceof Promise, "returns a promise");
+      const completePromise = response.complete(result);
+      assert_true(completePromise instanceof Promise, "returns a promise");
       // Immediately calling complete() again yields a rejected promise.
-      await promise_rejects(t, "InvalidStateError", response.complete(result));
+      const invalidComplete = response.complete(result);
+      await promise_rejects(t, "InvalidStateError", invalidComplete);
       // but the original promise is unaffected
-      const returnedValue = await promise;
+      const returnedValue = await completePromise;
       assert_equals(
         returnedValue,
         undefined,
@@ -27,12 +28,23 @@ async function runManualTest({ completeWith: result }, button) {
       );
       // We now call .complete() again, to force an exception
       // because [[complete]] is true.
-      await promise_rejects(t, "InvalidStateError", response.complete(result));
+      const afterComplete = response.complete(result);
+      await promise_rejects(t, "InvalidStateError", afterComplete);
       button.innerHTML = `✅  ${button.textContent}`;
     } catch (err) {
       button.innerHTML = `❌  ${button.textContent}`;
       assert_unreached("Unexpected exception: " + err.message);
     }
+    const allPromises = new Set([
+      completePromise,
+      invalidComplete,
+      afterComplete,
+    ]);
+    assert_equals(
+      allPromises.length,
+      3,
+      "Calling complete() multiple times is always a new object."
+    );
   }, button.textContent.trim());
 }
 </script>

@@ -1,23 +1,42 @@
 // META: global=window,worker
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
+// META: script=/service-workers/service-worker/resources/test-helpers.sub.js
 
 // https://w3c.github.io/push-api/
 
-promise_test(async () => {
-  const srcs = [
-    'push-api',
-    'service-workers',
-    'dom',
-    'html'
-  ];
-  const [idl, worker, dom, html] = await Promise.all(
-    srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
+idl_test(
+  ['push-api'],
+  ['service-workers', 'html', 'dom'],
+  async (idl_array, t) => {
+    const isServiceWorker = 'ServiceWorkerGlobalScope' in self
+      && self instanceof ServiceWorkerGlobalScope;
+    if (isServiceWorker) {
+      idl_array.add_objects({
+        ServiceWorkerGlobalScope: ['self'],
+        PushEvent: ['new PushEvent("type")'],
+        PushSubscriptionChangeEvent: [
+          'new PushSubscriptionChangeEvent("pushsubscriptionchange")'
+        ],
+      })
+    }
+    if (GLOBAL.isWindow() || isServiceWorker) {
+      idl_array.add_objects({
+        // self.registration set for window below, and registration is already
+        // part of ServiceWorkerGlobalScope.
+        ServiceWorkerRegistration: ['registration'],
+        PushManager: ['registration.pushManager'],
+      });
+    }
 
-  const idl_array = new IdlArray();
-  idl_array.add_idls(idl);
-  idl_array.add_dependency_idls(worker);
-  idl_array.add_dependency_idls(dom);
-  idl_array.add_dependency_idls(html);
-  idl_array.test();
-}, 'push-api interfaces');
+    if (GLOBAL.isWindow()) {
+      const scope = '/service-workers/service-worker/resources/';
+      const worker = `${scope}empty-worker.js`;
+      return service_worker_unregister_and_register(t, worker, scope)
+        .then(registration => {
+          self.registration = registration;
+          t.add_cleanup(function () { registration.unregister(); });
+        });
+    }
+  }
+);

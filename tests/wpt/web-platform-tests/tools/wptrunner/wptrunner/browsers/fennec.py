@@ -83,7 +83,7 @@ class FennecProfile(FirefoxProfile):
 def check_args(**kwargs):
     pass
 
-def browser_kwargs(test_type, run_info_data, **kwargs):
+def browser_kwargs(test_type, run_info_data, config, **kwargs):
     return {"package_name": kwargs["package_name"],
             "device_serial": kwargs["device_serial"],
             "prefs_root": kwargs["prefs_root"],
@@ -102,7 +102,7 @@ def browser_kwargs(test_type, run_info_data, **kwargs):
             "leak_check": kwargs["leak_check"],
             "stylo_threads": kwargs["stylo_threads"],
             "chaos_mode_flags": kwargs["chaos_mode_flags"],
-            "config": kwargs["config"]}
+            "config": config}
 
 
 def env_extras(**kwargs):

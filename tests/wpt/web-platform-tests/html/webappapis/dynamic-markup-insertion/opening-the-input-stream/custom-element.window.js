@@ -16,7 +16,7 @@ class CustomElement extends HTMLElement {
   constructor() {
     super();
     try {
-      document.open();
+      assert_equals(document.open(), document);
     } catch (e) {
       err = e;
     }

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from tests.support.asserts import assert_success
+from tests.support.asserts import assert_error, assert_success
 from tests.support.fixtures import clear_all_cookies
 
 
@@ -22,6 +22,16 @@ def test_null_response_value(session, url):
     response = add_cookie(session, new_cookie)
     value = assert_success(response)
     assert value is None
+
+
+def test_no_browsing_context(session, closed_window):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+    }
+
+    response = add_cookie(session, new_cookie)
+    assert_error(response, "no such window")
 
 
 def test_add_domain_cookie(session, url, server_config):

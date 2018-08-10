@@ -1,0 +1,15 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: CSS Properties and Values API Level 1 (https://drafts.css-houdini.org/css-properties-values-api-1/)
+
+dictionary PropertyDescriptor {
+  required DOMString name;
+           DOMString syntax       = "*";
+  required boolean   inherits;
+           DOMString initialValue;
+};
+
+partial namespace CSS {
+  void registerProperty(PropertyDescriptor descriptor);
+};

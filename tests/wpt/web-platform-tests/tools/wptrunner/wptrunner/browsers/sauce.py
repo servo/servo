@@ -95,7 +95,7 @@ def check_args(**kwargs):
     require_arg(kwargs, "sauce_key")
 
 
-def browser_kwargs(test_type, run_info_data, **kwargs):
+def browser_kwargs(test_type, run_info_data, config, **kwargs):
     sauce_config = get_sauce_config(**kwargs)
 
     return {"sauce_config": sauce_config}
@@ -233,7 +233,7 @@ class SauceBrowser(Browser):
         Browser.__init__(self, logger)
         self.sauce_config = sauce_config
 
-    def start(self):
+    def start(self, **kwargs):
         pass
 
     def stop(self, force=False):

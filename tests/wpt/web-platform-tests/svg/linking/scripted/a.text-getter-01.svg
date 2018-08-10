@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>SVGAElement.text getting</title>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#InterfaceSVGAElement"/>
+  </metadata>
+  <script>var b</script>
+  <g id="test">
+    <a href="a">a b c </a>
+    <a href="b">a <!--b-->b c </a>
+    <a href="c">a <b>b</b> c </a>
+    <a href="d">a <script>b</script> c </a>
+    <script><![CDATA[
+        var e = document.getElementById("test")
+                        .appendChild(document.createElementNS("http://www.w3.org/2000/svg","a"));
+        e.href.baseVal = "d";
+        e.appendChild(document.createTextNode("a "));
+        e.appendChild(document.createTextNode("b "));
+        e.appendChild(document.createTextNode("c "));
+    ]]></script>
+  </g>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <script><![CDATA[
+    test(function() {
+        var list = document.getElementById("test")
+                            .getElementsByTagName("a");
+        for (var i = 0, il = list.length; i < il; ++i) {
+            test(function() {
+                assert_equals(list[i].text, list[i].textContent);
+                assert_equals(list[i].text, "a b c ");
+            }, "Test for anchor " + i);
+        }
+    });
+  ]]></script>
+</svg>

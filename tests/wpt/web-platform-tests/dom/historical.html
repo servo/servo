@@ -67,6 +67,12 @@ test(function() {
 }, "document.load");
 
 test(function() {
+  // https://github.com/whatwg/html/commit/523f7a8773d2ab8a1eb0da6510651e8c5d2a7531
+  var doc = document.implementation.createDocument(null, null, null);
+  assert_false("load" in doc);
+}, "XMLDocument.load");
+
+test(function() {
   assert_equals(document.implementation["getFeature"], undefined)
 }, "DOMImplementation.getFeature() must be nuked.")
 

@@ -37,6 +37,42 @@
             .then(() => task.done());
       });
 
+      audit.define('stop before start', (task, should) => {
+        let context = new OfflineAudioContext(1, renderFrames, sampleRate);
+        let node = new ConstantSourceNode(context, {offset: 1});
+        node.connect(context.destination);
+        node.start(61 / context.sampleRate);
+        node.stop(31 / context.sampleRate);
+
+        context.startRendering()
+            .then(function(buffer) {
+                let actual = buffer.getChannelData(0);
+                should(actual,
+                       "ConstantSourceNode with stop before " +
+                           "start must output silence")
+                  .beConstantValueOf(0);
+            })
+            .then(() => task.done());
+      });
+
+      audit.define('stop equal to start', (task, should) => {
+          let context = new OfflineAudioContext(1, renderFrames, sampleRate);
+          let node = new ConstantSourceNode(context, {offset: 1});
+          node.connect(context.destination);
+          node.start(31 / context.sampleRate);
+          node.stop(31 / context.sampleRate);
+
+          context.startRendering()
+              .then(function(buffer) {
+                  let actual = buffer.getChannelData(0);
+                  should(actual,
+                         "ConstantSourceNode with stop equal to start " +
+                             " must output silence")
+                      .beConstantValueOf(0);
+          })
+          .then(() => task.done());
+      });
+
       audit.define('start/stop', (task, should) => {
         // Verify a constant source starts and stops at the correct time and has
         // the correct (fixed) value.
@@ -62,22 +98,20 @@
               }
 
               let prefix = 'start/stop: ';
-              should(actual.slice(
-                         0, startFrame,
-                         prefix + 'ConstantSourceNode frames [0, ' +
-                             startFrame + ')'))
+              should(actual.slice(0, startFrame),
+                     prefix + 'ConstantSourceNode frames [0, ' +
+                       startFrame + ')')
                   .beConstantValueOf(0);
 
-              should(actual.slice(
-                         startFrame, stopFrame,
-                         prefix + 'ConstantSourceNode frames [' + startFrame +
-                             ', ' + stopFrame + ')'))
+              should(actual.slice(startFrame, stopFrame),
+                     prefix + 'ConstantSourceNode frames [' +
+                         startFrame + ', ' + stopFrame + ')')
                   .beConstantValueOf(1);
 
               should(
                   actual.slice(stopFrame),
-                  prefix + 'ConstantSourceNode frames [' + stopFrame + ', ' +
-                      renderFrames + ')')
+                  prefix + 'ConstantSourceNode frames [' + stopFrame +
+                      ', ' + renderFrames + ')')
                   .beConstantValueOf(0);
             })
             .then(() => task.done());
@@ -105,18 +139,16 @@
               let rampEndFrame = Math.ceil(rampEndTime * context.sampleRate);
               let prefix = 'Automation: ';
 
-              should(actual.slice(
-                         0, rampEndFrame,
-                         prefix + 'ConstantSourceNode.linearRamp(1, 0.5)'))
+              should(actual.slice(0, rampEndFrame),
+                     prefix + 'ConstantSourceNode.linearRamp(1, 0.5)')
                   .beCloseToArray(expected, {
-                    // Experimentally determined threshold..
+                    // Experimentally determined threshold.
                     relativeThreshold: 7.1610e-7
                   });
 
-              should(
-                  actual.slice(rampEndFrame),
-                  prefix + 'ConstantSourceNode after ramp')
-                  .beConstantValueOf(1);
+              should(actual.slice(rampEndFrame),
+                     prefix + 'ConstantSourceNode after ramp')
+                .beConstantValueOf(1);
             })
             .then(() => task.done());
       });

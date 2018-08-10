@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Fullscreen API Standard" spec.
-// See: https://fullscreen.spec.whatwg.org/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Fullscreen API Standard (https://fullscreen.spec.whatwg.org/)
 
 partial interface Element {
   Promise<void> requestFullscreen();

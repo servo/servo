@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Secure Contexts" spec.
-// See: https://w3c.github.io/webappsec-secure-contexts/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Secure Contexts (https://w3c.github.io/webappsec-secure-contexts/)
 
 partial interface WindowOrWorkerGlobalScope {
   readonly attribute boolean isSecureContext;

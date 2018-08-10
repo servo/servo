@@ -23,7 +23,7 @@ function test_constructor(ctor) {
     assert_equals(object.ownerDocument, document);
   }, "new " + ctor + "(): no arguments");
 
-  var arguments = [
+  var testArgs = [
     [undefined, ""],
     [null, "null"],
     [42, "42"],
@@ -37,7 +37,7 @@ function test_constructor(ctor) {
     ["&amp;", "&amp;"],
   ];
 
-  arguments.forEach(function(a) {
+  testArgs.forEach(function(a) {
     var argument = a[0], expected = a[1];
     test(function() {
       var object = new window[ctor](argument);

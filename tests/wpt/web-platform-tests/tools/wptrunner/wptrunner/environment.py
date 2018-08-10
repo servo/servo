@@ -10,7 +10,6 @@ from mozlog import get_default_logger, handlers, proxy
 
 from wptlogging import LogLevelRewriter
 from wptserve.handlers import StringHandler
-from wptserve import sslutils
 
 here = os.path.split(__file__)[0]
 repo_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir, os.pardir))
@@ -19,7 +18,7 @@ serve = None
 
 
 def do_delayed_imports(logger, test_paths):
-    global serve, sslutils
+    global serve
 
     serve_root = serve_path(test_paths)
     sys.path.insert(0, serve_root)
@@ -42,34 +41,17 @@ def serve_path(test_paths):
     return test_paths["/"]["tests_path"]
 
 
-def get_ssl_kwargs(**kwargs):
-    if kwargs["ssl_type"] == "openssl":
-        args = {"openssl_binary": kwargs["openssl_binary"]}
-    elif kwargs["ssl_type"] == "pregenerated":
-        args = {"host_key_path": kwargs["host_key_path"],
-                "host_cert_path": kwargs["host_cert_path"],
-                "ca_cert_path": kwargs["ca_cert_path"]}
-    else:
-        args = {}
-    return args
-
-
-def ssl_env(logger, **kwargs):
-    ssl_env_cls = sslutils.environments[kwargs["ssl_type"]]
-    return ssl_env_cls(logger, **get_ssl_kwargs(**kwargs))
-
-
 class TestEnvironmentError(Exception):
     pass
 
 
 class TestEnvironment(object):
-    def __init__(self, test_paths, ssl_env, pause_after_test, debug_info, options, env_extras):
+    def __init__(self, test_paths, pause_after_test, debug_info, options, ssl_config, env_extras):
         """Context manager that owns the test environment i.e. the http and
         websockets servers"""
         self.test_paths = test_paths
-        self.ssl_env = ssl_env
         self.server = None
+        self.config_ctx = None
         self.config = None
         self.pause_after_test = pause_after_test
         self.test_server_port = options.pop("test_server_port", True)
@@ -80,14 +62,16 @@ class TestEnvironment(object):
         self.stash = serve.stash.StashServer()
         self.env_extras = env_extras
         self.env_extras_cms = None
-
+        self.ssl_config = ssl_config
 
     def __enter__(self):
+        self.config_ctx = self.build_config()
+
+        self.config = self.config_ctx.__enter__()
+
         self.stash.__enter__()
-        self.ssl_env.__enter__()
         self.cache_manager.__enter__()
 
-        self.config = self.load_config()
         self.setup_server_logging()
 
         assert self.env_extras_cms is None, (
@@ -101,7 +85,6 @@ class TestEnvironment(object):
             self.env_extras_cms.append(cm)
 
         self.servers = serve.start(self.config,
-                                   self.ssl_env,
                                    self.get_routes())
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
@@ -119,8 +102,8 @@ class TestEnvironment(object):
         self.env_extras_cms = None
 
         self.cache_manager.__exit__(exc_type, exc_val, exc_tb)
-        self.ssl_env.__exit__(exc_type, exc_val, exc_tb)
         self.stash.__exit__()
+        self.config_ctx.__exit__(exc_type, exc_val, exc_tb)
 
     def ignore_interrupts(self):
         signal.signal(signal.SIGINT, signal.SIG_IGN)
@@ -128,10 +111,10 @@ class TestEnvironment(object):
     def process_interrupts(self):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-    def load_config(self):
+    def build_config(self):
         override_path = os.path.join(serve_path(self.test_paths), "config.json")
 
-        config = serve.Config(override_ssl_env=self.ssl_env)
+        config = serve.ConfigBuilder()
 
         config.ports = {
             "http": [8000, 8001],
@@ -146,7 +129,10 @@ class TestEnvironment(object):
             config.update(override_obj)
 
         config.check_subdomains = False
-        config.ssl = {}
+
+        ssl_config = self.ssl_config.copy()
+        ssl_config["encrypt_after_connect"] = self.options.get("encrypt_after_connect", False)
+        config.ssl = ssl_config
 
         if "browser_host" in self.options:
             config.browser_host = self.options["browser_host"]
@@ -155,7 +141,6 @@ class TestEnvironment(object):
             config.bind_address = self.options["bind_address"]
 
         config.server_host = self.options.get("server_host", None)
-        config.ssl["encrypt_after_connect"] = self.options.get("encrypt_after_connect", False)
         config.doc_root = serve_path(self.test_paths)
 
         return config

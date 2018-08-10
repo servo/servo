@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Test#add_cleanup with Promise-returning functions</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+"use strict";
+var completeCount = 0;
+var counts = {
+    afterTick: null,
+    afterFirst: null
+};
+
+add_result_callback(function(result_t) {
+  completeCount += 1;
+});
+
+promise_test(function(t) {
+  t.add_cleanup(function() {
+    return new Promise(function(resolve) {
+      setTimeout(function() {
+        counts.afterTick = completeCount;
+        resolve();
+      }, 0);
+    });
+  });
+  t.add_cleanup(function() {
+    return new Promise(function(resolve) {
+
+      setTimeout(function() {
+        counts.afterFirst = completeCount;
+        resolve();
+      }, 0);
+    });
+  });
+
+  return Promise.resolve();
+}, 'promise_test with asynchronous cleanup');
+
+promise_test(function() {
+  assert_equals(
+    counts.afterTick,
+    0,
+    "test is not asynchronously considered 'complete'"
+  );
+  assert_equals(
+    counts.afterFirst,
+    0,
+    "test is not considered 'complete' following fulfillment of first promise"
+  );
+  assert_equals(completeCount, 1);
+
+  return Promise.resolve();
+}, "synchronously-defined promise_test");
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "status_string": "PASS",
+      "name": "promise_test with asynchronous cleanup",
+      "message": null,
+      "properties": {}
+    },
+    {
+      "status_string": "PASS",
+      "name": "synchronously-defined promise_test",
+      "message": null,
+      "properties": {}
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

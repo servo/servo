@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "PointerEvents - Level 2 - Extensions" spec.
-// See: https://w3c.github.io/pointerevents/extension.html
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: PointerEvents - Level 2 - Extensions (https://w3c.github.io/pointerevents/extension.html)
 
 partial dictionary PointerEventInit {
     sequence<PointerEvent> coalescedEvents = [];

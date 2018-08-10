@@ -215,6 +215,16 @@ class Test(object):
         return 0
 
     @property
+    def lsan_allowed(self):
+        lsan_allowed = set()
+        for meta in self.itermeta():
+            lsan_allowed |= meta.lsan_allowed
+            if atom_reset in lsan_allowed:
+                lsan_allowed.remove(atom_reset)
+                break
+        return lsan_allowed
+
+    @property
     def tags(self):
         tags = set()
         for meta in self.itermeta():

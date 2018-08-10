@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCIceTransport-extensions.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// These tests are based on the following extension specification:
+// https://w3c.github.io/webrtc-ice/
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+}, 'RTCIceTransport constructor does not throw.');
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  assert_equals(iceTransport.role, null, 'Expect role to be null');
+  assert_equals(iceTransport.state, 'new', `Expect state to be 'new'`);
+  assert_equals(iceTransport.gatheringState, 'new',
+    `Expect gatheringState to be 'new'`);
+  assert_array_equals(iceTransport.getLocalCandidates(), [],
+    'Expect no local candidates');
+  assert_array_equals(iceTransport.getRemoteCandidates(), [],
+    'Expect no remote candidates');
+  assert_equals(iceTransport.getSelectedCandidatePair(), null,
+    'Expect no selected candidate pair');
+  assert_equals(iceTransport.getLocalParameters(), null,
+    'Expect no local parameters');
+  assert_equals(iceTransport.getRemoteParameters(), null,
+    'Expect no remote parameters');
+}, 'RTCIceTransport initial properties are set.');
+
+</script>

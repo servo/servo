@@ -318,6 +318,16 @@ the test result is known. For example:
   }, "Calling document.getElementById with a null argument.");
 ```
 
+If the test was created using the `promise_test` API, then cleanup functions
+may optionally return a "thenable" value (i.e. an object which defines a `then`
+method). `testharness.js` will assume that such values conform to [the
+ECMAScript standard for
+Promises](https://tc39.github.io/ecma262/#sec-promise-objects) and delay the
+completion of the test until all "thenables" provided in this way have settled.
+All callbacks will be invoked synchronously; tests that require more complex
+cleanup behavior should manage execution order explicitly. If any of the
+eventual values are rejected, the test runner will report an error.
+
 ## Timeouts in Tests ##
 
 In general the use of timeouts in tests is discouraged because this is

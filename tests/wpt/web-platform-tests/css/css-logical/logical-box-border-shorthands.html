@@ -9,7 +9,7 @@
 
 <div id="log"></div>
 
-<script src="./resources/test-box-properties.js"></script>
-<script>
+<script type="module">
+import {runTests, createBoxPropertyGroup} from "./resources/test-box-properties.js";
 runTests(createBoxPropertyGroup("border-*", {type: ["length", "border-style", "color"]}));
 </script>
