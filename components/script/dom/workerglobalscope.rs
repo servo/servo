@@ -407,8 +407,6 @@ impl WorkerGlobalScope {
                 reports_chan.send(reports);
             },
         }
-
-        // FIXME(jdm): Should we do a microtask checkpoint here?
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
