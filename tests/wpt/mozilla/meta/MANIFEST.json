@@ -39218,6 +39218,12 @@
      {}
     ]
    ],
+   "mozilla/task_queue_throttling.html": [
+    [
+     "/_mozilla/mozilla/task_queue_throttling.html",
+     {}
+    ]
+   ],
    "mozilla/textcontent.html": [
     [
      "/_mozilla/mozilla/textcontent.html",
@@ -70924,6 +70930,10 @@
   "mozilla/table_valign_uneven_height_ref.html": [
    "321132b7e7e21d542ce86e4322db04aba3e9d11e",
    "support"
+  ],
+  "mozilla/task_queue_throttling.html": [
+   "8bfc66ef4898ab03ef0b52e72870d0ef4fcdc1f1",
+   "testharness"
   ],
   "mozilla/test.jpg": [
    "110b3d6b666d35a117ca8c8ada32bf1002943044",

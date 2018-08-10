@@ -1,0 +1,52 @@
+<html>
+<head>
+  <title>Throttling task queues</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<script>
+  var counter = 0;
+  var incrementCounter = function() {
+    counter++;
+  }
+  onload = function () {
+    async_test(function(t) {
+      function perf_observer(list, observer) {
+        // The timeline event should be throttled,
+        // while the event-loop is busy,
+        // and only handled after all img error related events,
+        // across two iterations of the event-loop.
+        assert_equals(counter, 20)
+        t.done();
+      }
+      var observer2 = new PerformanceObserver(perf_observer);
+      observer2.observe({entryTypes: ["mark"]});
+
+      for (var i = 0; i < 10; i++) {
+        var img = document.createElement("img");
+        img.src = "";
+        document.body.appendChild(img);
+        img.addEventListener("error", incrementCounter);
+      }
+
+      // Do this in the current iteration of the event-loop.
+      performance.mark("start");
+
+      setTimeout(function() {
+        // Below will happen in a subsequent iteration of the event-loop
+        for (var i = 0; i < 10; i++) {
+          var img = document.createElement("img");
+          img.src = "";
+          document.body.appendChild(img);
+          img.addEventListener("error", incrementCounter);
+        }
+      }, 0)
+
+    });
+  }
+
+</script>
+</body>
+</html>
