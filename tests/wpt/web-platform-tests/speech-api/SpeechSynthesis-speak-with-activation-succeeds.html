@@ -1,0 +1,15 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<script>
+async_test(t => {
+  test_driver.bless('speechSynthesis.speak', t.step_func(() => {
+    const utter = new SpeechSynthesisUtterance('1');
+    utter.onend = t.step_func_done();
+    speechSynthesis.speak(utter);
+  }));
+}, 'speechSynthesis.speak requires user activation');
+</script>

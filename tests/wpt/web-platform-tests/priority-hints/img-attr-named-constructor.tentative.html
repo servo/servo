@@ -19,6 +19,8 @@
     assert_equals(img5.importance, "auto", "missing importance reflects as 'auto' IDL attribute on the image element");
   }, "importance attribute on <img> elements should reflect valid IDL values");
 
-  const img = new Image();
-  assert_equals(img.importance, "auto");
+  test(() => {
+    const img = new Image();
+    assert_equals(img.importance, "auto");
+  }, "importance of new Image() is 'auto'");
 </script>

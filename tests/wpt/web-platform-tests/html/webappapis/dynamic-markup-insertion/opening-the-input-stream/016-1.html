@@ -3,7 +3,9 @@ window.test_prop = 1;
 </script>
 <script>
 onload = function() {
-  document.open();
+  parent.tests[0].step(function() {
+    parent.assert_equals(document.open(), document);
+  });
   document.write("<script>test_prop = 2; timeout_fired=false;<\/script>");
   document.close();
 

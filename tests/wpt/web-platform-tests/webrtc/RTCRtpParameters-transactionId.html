@@ -112,9 +112,9 @@
 
     param.transactionId = undefined;
 
-    return promise_rejects(t, 'InvalidModificationError',
+    return promise_rejects(t, new TypeError(),
       sender.setParameters(param));
-  }, `sender.setParameters() with transaction ID unset should reject with InvalidModificationError`);
+  }, `sender.setParameters() with transaction ID unset should reject with TypeError`);
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();

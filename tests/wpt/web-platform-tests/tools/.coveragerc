@@ -8,7 +8,6 @@ omit =
   pywebsocket/*
   six/*
   webdriver/*
-  wptserve/*
   */site-packages/*
   */lib_pypy/*
 

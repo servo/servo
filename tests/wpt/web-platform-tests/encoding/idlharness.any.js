@@ -10,6 +10,5 @@ idl_test(
       TextEncoder: ['new TextEncoder()'],
       TextDecoder: ['new TextDecoder()']
     });
-  },
-  'Encoding Standard IDL'
+  }
 );

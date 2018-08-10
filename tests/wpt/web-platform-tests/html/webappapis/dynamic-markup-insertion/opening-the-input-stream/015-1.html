@@ -2,7 +2,7 @@
 onload = function() {
   window.test_prop = 1;
   parent.tests[0].step(function() {parent.assert_equals(test_prop, 1)});
-  document.open();
+  parent.tests[0].step(function() {parent.assert_equals(document.open(), document)});
   document.write("<script>test_prop = 2;<\/script>");
   document.close();
   parent.tests[0].step(function() {parent.assert_equals(test_prop, 1)});

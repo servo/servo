@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+  <iframe id=frame></iframe>
+  <script>
+    async_test(t => {
+      let violations = [];
+      window.addEventListener("message", (e) => {
+        violations.push(e);
+        t.step_timeout(() => {
+          assert_equals(violations.length, 1);
+          t.done();
+        });
+      });
+
+      let forbidden_image = "<img src=https://127.0.0.1:1234/bla.jpg>";
+      let event_bouncer = "<script>document.addEventListener(" +
+          "'securitypolicyviolation'," +
+          "(e) => window.parent.postMessage(e.blockedURI, '*'));</sc" +
+          "ript>";
+      document.getElementById("frame").src =
+        "data:text/html;charset=utf-8," + event_bouncer + forbidden_image;
+    }, "Origin-Policy-based CSP violation should trigger 1 violation event");
+  </script>
+</body>
+</html>

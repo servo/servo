@@ -27,6 +27,7 @@ def do_delayed_imports():
     import webdriver
 
     global ServoCommandExtensions
+
     class ServoCommandExtensions(object):
         def __init__(self, session):
             self.session = session

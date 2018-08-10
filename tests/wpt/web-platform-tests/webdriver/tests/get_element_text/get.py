@@ -1,10 +1,5 @@
-import pytest
-
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
-
-# For failing tests, the Get Element Text end-point is used
-# directly. In all other cases, the Element.text() function is used.
 
 
 def get_element_text(session, element_id):
@@ -12,6 +7,11 @@ def get_element_text(session, element_id):
         "GET", "session/{session_id}/element/{element_id}/text".format(
             session_id=session.session_id,
             element_id=element_id))
+
+
+def test_no_browsing_context(session, closed_window):
+    response = get_element_text(session, "foo")
+    assert_error(response, "no such window")
 
 
 def test_getting_text_of_a_non_existant_element_is_an_error(session):

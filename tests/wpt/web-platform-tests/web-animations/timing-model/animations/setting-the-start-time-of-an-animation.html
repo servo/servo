@@ -64,7 +64,7 @@ test(t => {
 }, 'Setting an unresolved start time an animation without an active timeline'
    + ' does not clear the current time');
 
-   test(t => {
+test(t => {
   const animation =
     new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
                   document.timeline);
@@ -166,6 +166,28 @@ promise_test(async t => {
   assert_true(readyPromiseCallbackCalled,
               'Ready promise callback called after setting startTime');
 }, 'Setting the start time resolves a pending pause task');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  document.timeline);
+
+  // Put the animation in the play-pending state
+  animation.play();
+
+  // Sanity check
+  assert_true(animation.pending, 'Animation is pending');
+  assert_equals(animation.playState, 'running',
+                'Animation is play-pending');
+  assert_equals(animation.startTime, null, 'Start time is null');
+
+  // Even though the startTime is already null, setting it to the same value
+  // should still cancel the pending task.
+  animation.startTime = null;
+  assert_false(animation.pending, 'Animation is no longer pending');
+  assert_equals(animation.playState, 'paused', 'Animation is paused');
+}, 'Setting an unresolved start time on a play-pending animation makes it'
+   + ' paused');
 
 promise_test(async t => {
   const animation =

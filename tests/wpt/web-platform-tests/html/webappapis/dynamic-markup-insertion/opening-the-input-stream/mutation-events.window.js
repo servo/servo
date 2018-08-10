@@ -13,7 +13,7 @@ test(t => {
   frame.contentWindow.addEventListener("DOMSubtreeModified", t.unreached_func());
   frame.contentWindow.addEventListener("DOMSubtreeModified", t.unreached_func(), true);
   assert_equals(frame.contentDocument.documentElement.localName, "html");
-  frame.contentDocument.open();
+  assert_equals(frame.contentDocument.open(), frame.contentDocument);
   assert_equals(frame.contentDocument.documentElement, null);
   frame.contentDocument.write("<div>heya</div>");
   frame.contentDocument.close();

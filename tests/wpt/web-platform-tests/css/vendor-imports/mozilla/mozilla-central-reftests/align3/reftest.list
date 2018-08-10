@@ -24,6 +24,7 @@
 == flex-abspos-staticpos-align-self-rtl-002.html flex-abspos-staticpos-align-self-rtl-002-ref.html
 == flex-abspos-staticpos-align-self-rtl-003.html flex-abspos-staticpos-align-self-rtl-003-ref.html
 == flex-abspos-staticpos-align-self-rtl-004.html flex-abspos-staticpos-align-self-rtl-004-ref.html
+== flex-abspos-staticpos-align-self-safe-001.html flex-abspos-staticpos-align-self-safe-001-ref.html
 == flex-abspos-staticpos-align-self-vertWM-001.html flex-abspos-staticpos-align-self-vertWM-001-ref.html
 == flex-abspos-staticpos-align-self-vertWM-002.html flex-abspos-staticpos-align-self-vertWM-002-ref.html
 == flex-abspos-staticpos-align-self-vertWM-003.html flex-abspos-staticpos-align-self-vertWM-003-ref.html
@@ -58,6 +59,7 @@
 == grid-abspos-staticpos-align-self-rtl-002.html grid-abspos-staticpos-align-self-rtl-002-ref.html
 == grid-abspos-staticpos-align-self-rtl-003.html grid-abspos-staticpos-align-self-rtl-003-ref.html
 == grid-abspos-staticpos-align-self-rtl-004.html grid-abspos-staticpos-align-self-rtl-004-ref.html
+== grid-abspos-staticpos-align-self-safe-001.html grid-abspos-staticpos-align-self-safe-001-ref.html
 == grid-abspos-staticpos-align-self-vertWM-001.html grid-abspos-staticpos-align-self-vertWM-001-ref.html
 == grid-abspos-staticpos-align-self-vertWM-002.html grid-abspos-staticpos-align-self-vertWM-002-ref.html
 == grid-abspos-staticpos-align-self-vertWM-003.html grid-abspos-staticpos-align-self-vertWM-003-ref.html

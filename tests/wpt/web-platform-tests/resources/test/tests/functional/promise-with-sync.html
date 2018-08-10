@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Promise Tests and Synchronous Tests</title>
+<script src="../../variants.js"></script>
+</head>
+<body>
+<h1>Promise Tests</h1>
+<p>This test demonstrates the use of <tt>promise_test</tt> alongside synchronous tests.</p>
+<div id="log"></div>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+<script>
+"use strict";
+var sequence = [];
+
+test(function(t) {
+  assert_array_equals(sequence, []);
+  sequence.push(1);
+}, "first synchronous test");
+
+promise_test(function() {
+  assert_array_equals(sequence, [1, 2]);
+
+  return Promise.resolve()
+    .then(function() {
+        assert_array_equals(sequence, [1, 2]);
+        sequence.push(3);
+      });
+}, "first promise_test");;
+
+test(function(t) {
+  assert_array_equals(sequence, [1]);
+  sequence.push(2);
+}, "second synchronous test");
+
+promise_test(function() {
+  assert_array_equals(sequence, [1, 2, 3]);
+
+  return Promise.resolve()
+    .then(function() {
+        assert_array_equals(sequence, [1, 2, 3]);
+      });
+}, "second promise_test");;
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "message": null,
+    "status_string": "OK"
+  },
+  "summarized_tests": [
+    {
+      "message": null,
+      "properties": {},
+      "name": "first promise_test",
+      "status_string": "PASS"
+    },
+    {
+      "message": null,
+      "properties": {},
+      "name": "first synchronous test",
+      "status_string": "PASS"
+    },
+    {
+      "message": null,
+      "properties": {},
+      "name": "second promise_test",
+      "status_string": "PASS"
+    },
+    {
+      "message": null,
+      "properties": {},
+      "name": "second synchronous test",
+      "status_string": "PASS"
+    }
+  ],
+  "type": "complete"
+}
+</script>

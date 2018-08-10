@@ -299,36 +299,57 @@ IdlArray.prototype.add_dependency_idls = function(raw_idls, options)
     // Maps name -> [parsed_idl, ...]
     const skipped = new Map();
     const process = function(parsed) {
-        let name = parsed.name
-            || parsed.type == "implements" && parsed.target
-            || parsed.type == "includes" && parsed.target;
-        if (!name || should_skip(name) || !all_deps.has(name)) {
-            name &&
-                skipped.has(name)
-                    ? skipped.get(name).push(parsed)
-                    : skipped.set(name, [parsed]);
-            return;
+        var deps = [];
+        if (parsed.name) {
+            deps.push(parsed.name);
+        } else if (parsed.type === "implements") {
+            deps.push(parsed.target);
+            deps.push(parsed.implements);
+        } else if (parsed.type === "includes") {
+            deps.push(parsed.target);
+            deps.push(parsed.includes);
         }
 
-        new_options.only.push(name);
-        const follow_up = [];
-        for (const dep_type of ["inheritance", "implements", "includes"]) {
-            if (parsed[dep_type]) {
-                const dep = parsed[dep_type];
-                new_options.only.push(dep);
-                all_deps.add(dep);
-                follow_up.push(dep);
+        deps = deps.filter(function(name) {
+            if (!name || should_skip(name) || !all_deps.has(name)) {
+                // Flag as skipped, if it's not already processed, so we can
+                // come back to it later if we retrospectively call it a dep.
+                if (name && !(name in this.members)) {
+                    skipped.has(name)
+                        ? skipped.get(name).push(parsed)
+                        : skipped.set(name, [parsed]);
+                }
+                return false;
             }
-        }
+            return true;
+        }.bind(this));
 
-        for (const deferred of follow_up) {
-            if (skipped.has(deferred)) {
-                const next = skipped.get(deferred);
-                skipped.delete(deferred);
-                next.forEach(process);
+        deps.forEach(function(name) {
+            new_options.only.push(name);
+
+            const follow_up = new Set();
+            for (const dep_type of ["inheritance", "implements", "includes"]) {
+                if (parsed[dep_type]) {
+                    const inheriting = parsed[dep_type];
+                    const inheritor = parsed.name || parsed.target;
+                    for (const dep of [inheriting, inheritor]) {
+                        new_options.only.push(dep);
+                        all_deps.add(dep);
+                        follow_up.add(dep);
+                    }
+                }
             }
-        }
-    }
+
+            for (const deferred of follow_up) {
+                if (skipped.has(deferred)) {
+                    const next = skipped.get(deferred);
+                    skipped.delete(deferred);
+                    next.forEach(process);
+                }
+            }
+        });
+    }.bind(this);
+
     for (let parsed of parsed_idls) {
         process(parsed);
     }
@@ -370,8 +391,13 @@ IdlArray.prototype.internal_add_idls = function(parsed_idls, options)
 
     parsed_idls.forEach(function(parsed_idl)
     {
-        if (parsed_idl.partial
-            && ["interface", "dictionary", "namespace"].includes(parsed_idl.type))
+        var partial_types = [
+            "interface",
+            "interface mixin",
+            "dictionary",
+            "namespace",
+        ];
+        if (parsed_idl.partial && partial_types.includes(parsed_idl.type))
         {
             if (should_skip(parsed_idl.name))
             {
@@ -870,6 +896,16 @@ IdlArray.prototype.collapse_partials = function()
 
             test(function () {
                 assert_true(originalExists, `Original ${parsed_idl.type} should be defined`);
+
+                var expected = IdlInterface;
+                switch (parsed_idl.type) {
+                    case 'interface': expected = IdlInterface; break;
+                    case 'dictionary': expected = IdlDictionary; break;
+                    case 'namespace': expected = IdlNamespace; break;
+                }
+                assert_true(
+                    expected.prototype.isPrototypeOf(this.members[parsed_idl.name]),
+                    `Original ${parsed_idl.name} definition should have type ${parsed_idl.type}`);
             }.bind(this), `Partial ${parsed_idl.type} ${partialTestName}: original ${parsed_idl.type} defined`);
         }
         if (!originalExists) {
@@ -2073,7 +2109,12 @@ IdlInterface.prototype.test_member_attribute = function(member)
                 "The interface object must have a property " +
                 format_value(member.name));
             a_test.done();
-        } else if (this.is_global()) {
+            return;
+        }
+
+        this.do_member_unscopable_asserts(member);
+
+        if (this.is_global()) {
             assert_own_property(self, member.name,
                 "The global object must have a property " +
                 format_value(member.name));
@@ -2134,13 +2175,8 @@ IdlInterface.prototype.test_member_attribute = function(member)
               // since it will call done() on a_test.
               this.do_interface_attribute_asserts(self[this.name].prototype, member, a_test);
             }
-
         }
     }.bind(this));
-
-    subsetTestByKey(this.name, test, function () {
-        this.do_member_unscopable_asserts(member);
-    }.bind(this), 'Unscopable handled correctly for ' + member.name + ' property on ' + this.name);
 };
 
 //@}
@@ -2206,16 +2242,9 @@ IdlInterface.prototype.test_member_operation = function(member)
                     "interface prototype object missing non-static operation");
             memberHolderObject = self[this.name].prototype;
         }
+        this.do_member_unscopable_asserts(member);
         this.do_member_operation_asserts(memberHolderObject, member, a_test);
     }.bind(this));
-
-    subsetTestByKey(this.name, test, function () {
-        this.do_member_unscopable_asserts(member);
-    }.bind(this),
-         'Unscopable handled correctly for ' + member.name + "(" +
-         member.arguments.map(
-             function(m) {return m.idlType.idlType; } ).join(", ")
-         + ")" + ' on ' + this.name);
 };
 
 IdlInterface.prototype.do_member_unscopable_asserts = function(member)
@@ -2332,10 +2361,11 @@ IdlInterface.prototype.add_iterable_members = function(member)
 };
 
 IdlInterface.prototype.test_to_json_operation = function(memberHolderObject, member) {
-    var instanceName = memberHolderObject.constructor.name;
+    var instanceName = memberHolderObject && memberHolderObject.constructor.name
+        || member.name + " object";
     if (member.has_extended_attribute("Default")) {
-        var map = this.default_to_json_operation();
         subsetTestByKey(this.name, test, function() {
+            var map = this.default_to_json_operation();
             var json = memberHolderObject.toJSON();
             map.forEach(function(type, k) {
                 assert_true(k in json, "property " + JSON.stringify(k) + " should be present in the output of " + this.name + ".prototype.toJSON()");
@@ -3172,11 +3202,10 @@ function idl_test(srcs, deps, idl_setup_func, test_name) {
         var idl_array = new IdlArray();
         srcs = (srcs instanceof Array) ? srcs : [srcs] || [];
         deps = (deps instanceof Array) ? deps : [deps] || [];
+        var setup_error = null;
         return Promise.all(
             srcs.concat(deps).map(function(spec) {
-                return fetch('/interfaces/' + spec + '.idl').then(function(r) {
-                    return r.text();
-                });
+                return fetch_spec(spec);
             }))
             .then(function(idls) {
                 for (var i = 0; i < srcs.length; i++) {
@@ -3187,13 +3216,33 @@ function idl_test(srcs, deps, idl_setup_func, test_name) {
                 }
             })
             .then(function() {
-                return idl_setup_func(idl_array, t);
+                if (idl_setup_func) {
+                    return idl_setup_func(idl_array, t);
+                }
             })
-            .then(function() { idl_array.test(); })
-            .catch(function (reason) {
-                idl_array.test(); // Test what we can.
-                return Promise.reject(reason || 'IDL setup failed.');
+            .catch(function(e) { setup_error = e || 'IDL setup failed.'; })
+            .finally(function () {
+                var error = setup_error;
+                try {
+                    idl_array.test(); // Test what we can.
+                } catch (e) {
+                    // If testing fails hard here, the original setup error
+                    // is more likely to be the real cause.
+                    error = error || e;
+                }
+                if (error) {
+                    throw error;
+                }
             });
-    }, test_name);
+    }, test_name || 'idl_test setup');
+}
+
+/**
+ * fetch_spec is a shorthand for a Promise that fetches the spec's content.
+ */
+function fetch_spec(spec) {
+    return fetch('/interfaces/' + spec + '.idl').then(function (r) {
+        return r.text();
+    });
 }
 // vim: set expandtab shiftwidth=4 tabstop=4 foldmarker=@{,@} foldmethod=marker:

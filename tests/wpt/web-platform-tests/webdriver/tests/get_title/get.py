@@ -12,13 +12,9 @@ def get_title(session):
         "GET", "session/{session_id}/title".format(**vars(session)))
 
 
-def test_no_browsing_context(session, create_window):
-    new_window = create_window()
-    session.window_handle = new_window
-    session.close()
-
-    result = get_title(session)
-    assert_error(result, "no such window")
+def test_no_browsing_context(session, closed_window):
+    response = get_title(session)
+    assert_error(response, "no such window")
 
 
 def test_title_from_top_context(session):

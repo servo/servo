@@ -29,15 +29,7 @@ def assert_is_active_element(session, response):
         assert_same_element(session, response.body["value"], from_js)
 
 
-def test_closed_context(session, create_window):
-    """
-    > 1. If the current browsing context is no longer open, return error with
-    >    error code no such window.
-    """
-    new_window = create_window()
-    session.window_handle = new_window
-    session.close()
-
+def test_no_browsing_context(session, closed_window):
     response = get_active_element(session)
     assert_error(response, "no such window")
 
