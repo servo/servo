@@ -228,7 +228,7 @@ class MachCommands(CommandBase):
 
         with cd(self.context.topdir):
             return self.call_rustup_run(["cargo", "fetch"], env=self.build_env())
-          
+
     @Command('rustfmt',
              description='Format the Rust code using Cargo fmt',
              category='devenv')
@@ -241,7 +241,7 @@ class MachCommands(CommandBase):
 
         with cd(self.context.topdir):
             return self.call_rustup_run(["cargo", "fmt", "--", directory], env=self.build_env())
-          
+
     @Command('ndk-stack',
              description='Invoke the ndk-stack tool with the expected symbol paths',
              category='devenv')
