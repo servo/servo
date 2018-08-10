@@ -7,7 +7,7 @@
 <%helpers:shorthand
     name="overflow"
     flags="SHORTHAND_IN_GETCS"
-    sub_properties="overflow-x overflow-y"
+    sub_properties="overflow-y overflow-x"
     spec="https://drafts.csswg.org/css-overflow/#propdef-overflow"
 >
     use properties::longhands::overflow_x::parse as parse_overflow;
@@ -52,9 +52,9 @@
                 }
             }
         % endif
-        let overflow_x = parse_overflow(context, input)?;
-        let overflow_y =
-            input.try(|i| parse_overflow(context, i)).unwrap_or(overflow_x);
+        let overflow_y = parse_overflow(context, input)?;
+        let overflow_x =
+            input.try(|i| parse_overflow(context, i)).unwrap_or(overflow_y);
         Ok(expanded! {
             overflow_x: overflow_x,
             overflow_y: overflow_y,
@@ -63,10 +63,10 @@
 
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: fmt::Write {
-            self.overflow_x.to_css(dest)?;
+            self.overflow_y.to_css(dest)?;
             if self.overflow_x != self.overflow_y {
                 dest.write_char(' ')?;
-                self.overflow_y.to_css(dest)?;
+                self.overflow_x.to_css(dest)?;
             }
             Ok(())
         }
