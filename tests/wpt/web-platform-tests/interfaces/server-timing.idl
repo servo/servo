@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Server Timing" spec.
-// See: https://w3c.github.io/server-timing/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Server Timing (https://w3c.github.io/server-timing/)
 
 [Exposed=(Window,Worker)]
 interface PerformanceServerTiming {

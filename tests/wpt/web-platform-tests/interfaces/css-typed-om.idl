@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "CSS Typed OM Level 1" spec.
-// See: https://drafts.css-houdini.org/css-typed-om-1/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: CSS Typed OM Level 1 (https://drafts.css-houdini.org/css-typed-om-1/)
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSStyleValue {

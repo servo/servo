@@ -148,17 +148,10 @@ def run_tests(config, test_paths, product, **kwargs):
                 ahem=os.path.join(kwargs["tests_root"], "fonts/Ahem.ttf")
             ))
 
-        if "test_loader" in kwargs:
-            run_info = wpttest.get_run_info(kwargs["run_info"], product,
-                                            browser_version=kwargs.get("browser_version"),
-                                            debug=None,
-                                            extras=run_info_extras(**kwargs))
-            test_loader = kwargs["test_loader"]
-        else:
-            run_info, test_loader = get_loader(test_paths,
-                                               product,
-                                               run_info_extras=run_info_extras(**kwargs),
-                                               **kwargs)
+        run_info, test_loader = get_loader(test_paths,
+                                           product,
+                                           run_info_extras=run_info_extras(**kwargs),
+                                           **kwargs)
 
         test_source_kwargs = {"processes": kwargs["processes"]}
         if kwargs["run_by_dir"] is False:

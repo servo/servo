@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Notifications API Standard" spec.
-// See: https://notifications.spec.whatwg.org/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Notifications API Standard (https://notifications.spec.whatwg.org/)
 
 [Constructor(DOMString title, optional NotificationOptions options),
  Exposed=(Window,Worker)]

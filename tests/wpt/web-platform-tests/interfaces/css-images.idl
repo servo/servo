@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "CSS Images Module Level 4" spec.
-// See: https://drafts.csswg.org/css-images-4/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: CSS Images Module Level 4 (https://drafts.csswg.org/css-images-4/)
 
 partial namespace CSS {
   // [SameObject] readonly attribute Map elementSources;

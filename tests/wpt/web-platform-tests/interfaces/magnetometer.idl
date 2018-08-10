@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Magnetometer" spec.
-// See: https://w3c.github.io/magnetometer/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Magnetometer (https://w3c.github.io/magnetometer/)
 
 [Constructor(optional MagnetometerSensorOptions sensorOptions), SecureContext,
   Exposed=Window]
