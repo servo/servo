@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+button {
+    color: green;
+}
+
+button:disabled {
+    color: red;
+}
+
+</style>
+</head>
+<body style="color: green">
+<button inert>The test passes if this is in green.</button>
+<script>
+test(function() {
+    button = document.querySelector('button');
+    color = document.defaultView.getComputedStyle(button).getPropertyValue('color');
+    assert_false(button.matches(':disabled'));
+}, 'Tests that inert elements do not match the :disabled selector.');
+</script>
+</body>
+</html>

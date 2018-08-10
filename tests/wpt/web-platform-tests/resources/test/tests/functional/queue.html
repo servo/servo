@@ -1,0 +1,132 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta name="variant" content="?keep-promise">
+<title>Test queuing synchronous tests</title>
+<script src="../../variants.js"></script>
+<script src="../../../testharness.js"></script>
+<script src="../../../testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+
+<script>
+"use strict";
+var inInitialTurn = true;
+
+test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+}, "First synchronous test");
+
+test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+}, "Second synchronous test");
+
+async_test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+  t.done();
+}, "First async_test (run in parallel)");
+
+async_test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+  t.done();
+}, "Second async_test (run in parallel)");
+
+test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+}, "Third synchronous test");
+
+promise_test(function(t) {
+  assert_false(
+    inInitialTurn, "should not execute in the initial turn of the event loop"
+  );
+
+  return Promise.resolve();
+}, "promise_test");
+
+async_test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+  t.done();
+}, "Third async_test (run in parallel)");
+
+test(function(t) {
+  assert_true(
+    inInitialTurn, "should execute in the initial turn of the event loop"
+  );
+}, "Fourth synchronous test");
+
+inInitialTurn = false;
+</script>
+<script type="text/json" id="expected">
+{
+  "summarized_status": {
+    "status_string": "OK",
+    "message": null
+  },
+  "summarized_tests": [
+    {
+      "properties": {},
+      "name": "First async_test (run in parallel)",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "First synchronous test",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "Fourth synchronous test",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "Second async_test (run in parallel)",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "Second synchronous test",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "Third async_test (run in parallel)",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "Third synchronous test",
+      "status_string": "PASS",
+      "message": null
+    },
+    {
+      "properties": {},
+      "name": "promise_test",
+      "status_string": "PASS",
+      "message": null
+    }
+  ],
+  "type": "complete"
+}
+</script>
+</body>
+</html>

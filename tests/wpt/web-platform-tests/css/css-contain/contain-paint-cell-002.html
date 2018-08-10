@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: paint' and table-cell elements</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-paint">
+  <link rel="match" href="reference/contain-paint-047-ref.html">
+
+  <meta content="This test checks that the paint containment applies to table-cell elements. Therefore the content of the table-cell element should be clipped to the padding edge of its principal box." name="assert">
+  <meta name="flags" content="">
+
+  <style>
+  table
+    {
+      border-spacing: 0px;
+      /* to help reuse an already created reference file */
+      font-family: monospace;
+      font-size: 100px;
+      table-layout: fixed;
+      width: 4ch;
+    }
+
+  td
+    {
+      padding: 0px;
+      /* to help reuse an already created reference file */
+    }
+
+  col#middle-column
+    {
+      width: 4ch;
+    }
+
+  td#test
+    {
+      color: green;
+      contain: paint;
+  }
+
+  span
+    {
+      background-color: red;
+      color: yellow;
+    }
+  </style>
+
+  <p>Test passes if there is <strong>no red</strong>.
+
+  <table>
+
+    <col><col id="middle-column"><col>
+
+    <tr><td><td><td>
+
+    <tr><td><td id="test">PASS<span>FAIL</span><td>
+
+    <tr><td><td><td>
+
+  </table>

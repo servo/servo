@@ -6,18 +6,42 @@
 'use strict';
 
 promise_test(async () => {
-  const idl = await fetch('/interfaces/media-capabilities.idl').then(r => r.text());
-  const html = await fetch('/interfaces/html.idl').then(r => r.text());
-  const cssomView = await fetch('/interfaces/cssom-view.idl').then(r => r.text());
+  try {
+    const video = {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    };
+    self.decodingInfo = await navigator.mediaCapabilities.decodingInfo({
+      type: 'file',
+      video: video,
+    });
+    self.encodingInfo = await navigator.mediaCapabilities.encodingInfo({
+      type: 'record',
+      video: video
+    });
+  } catch (e) {
+    // Will be surfaced when encodingInfo/decodingInfo is undefined below.
+  }
 
-  var idl_array = new IdlArray();
-  idl_array.add_idls(idl);
-  idl_array.add_dependency_idls(html);
-  idl_array.add_dependency_idls(cssomView);
-
-  idl_array.add_objects({
-    Navigator: ['navigator']
-  });
-
-  idl_array.test();
-}, 'Test IDL implementation of Media Capabilities');
+  idl_test(
+    ['media-capabilities'],
+    ['html', 'cssom-view'],
+    idl_array => {
+      if (self.GLOBAL.isWorker()) {
+        idl_array.add_objects({ WorkerNavigator: ['navigator'] });
+      } else {
+        idl_array.add_objects({ Navigator: ['navigator'] });
+      }
+      idl_array.add_objects({
+        MediaCapabilities: ['navigator.mediaCapabilities'],
+        MediaCapabilitiesInfo: ['decodingInfo', 'encodingInfo'],
+        Screen: ['screen'],
+        ScreenLuminance: ['screen.luminance'],
+      });
+    },
+    'Test IDL implementation of Media Capabilities'
+  );
+});

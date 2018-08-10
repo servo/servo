@@ -7,6 +7,8 @@ def test_testharness():
     assert jobs.get_jobs(["resources/testharness.js"]) == default_jobs | set(["resources_unittest"])
     assert jobs.get_jobs(["resources/testharness.js"],
                          includes=["resources_unittest"]) == set(["resources_unittest"])
+    assert jobs.get_jobs(["tools/wptserve/wptserve/config.py"],
+                         includes=["resources_unittest"]) == set(["resources_unittest"])
     assert jobs.get_jobs(["foo/resources/testharness.js"],
                          includes=["resources_unittest"]) == set()
 

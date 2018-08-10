@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Indexed Database API 3.0" spec.
-// See: https://w3c.github.io/IndexedDB/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Indexed Database API 3.0 (https://w3c.github.io/IndexedDB/)
 
 [Exposed=(Window,Worker)]
 interface IDBRequest : EventTarget {

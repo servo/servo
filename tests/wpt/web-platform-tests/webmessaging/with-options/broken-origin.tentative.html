@@ -6,7 +6,7 @@
 <script>
 test(function() {
   assert_throws('SYNTAX_ERR', function() {
-    postMessage('', [], {targetOrigin: 'http://foo bar'});
+    postMessage('', {targetOrigin: 'http://foo bar'});
   }, 'should have failed to resolve');
 });
 </script>

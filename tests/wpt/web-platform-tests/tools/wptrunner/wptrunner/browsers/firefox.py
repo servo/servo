@@ -10,7 +10,7 @@ import mozleak
 from mozprocess import ProcessHandler
 from mozprofile import FirefoxProfile, Preferences
 from mozrunner import FirefoxRunner
-from mozrunner.utils import get_stack_fixer_function
+from mozrunner.utils import test_environment, get_stack_fixer_function
 from mozcrash import mozcrash
 
 from .base import (get_free_port,
@@ -63,7 +63,7 @@ def check_args(**kwargs):
     require_arg(kwargs, "binary")
 
 
-def browser_kwargs(test_type, run_info_data, **kwargs):
+def browser_kwargs(test_type, run_info_data, config, **kwargs):
     return {"binary": kwargs["binary"],
             "prefs_root": kwargs["prefs_root"],
             "extra_prefs": kwargs["extra_prefs"],
@@ -72,7 +72,7 @@ def browser_kwargs(test_type, run_info_data, **kwargs):
             "symbols_path": kwargs["symbols_path"],
             "stackwalk_binary": kwargs["stackwalk_binary"],
             "certutil_binary": kwargs["certutil_binary"],
-            "ca_certificate_path": kwargs["ssl_env"].ca_cert_path(),
+            "ca_certificate_path": config.ssl_config["ca_cert_path"],
             "e10s": kwargs["gecko_e10s"],
             "stackfix_dir": kwargs["stackfix_dir"],
             "binary_args": kwargs["binary_args"],
@@ -80,9 +80,10 @@ def browser_kwargs(test_type, run_info_data, **kwargs):
                                                          run_info_data,
                                                          **kwargs),
             "leak_check": kwargs["leak_check"],
+            "asan": run_info_data.get("asan"),
             "stylo_threads": kwargs["stylo_threads"],
             "chaos_mode_flags": kwargs["chaos_mode_flags"],
-            "config": kwargs["config"]}
+            "config": config}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
@@ -114,6 +115,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     if capabilities:
         executor_kwargs["capabilities"] = capabilities
     executor_kwargs["debug"] = run_info_data["debug"]
+    executor_kwargs["ccov"] = run_info_data.get("ccov", False)
     return executor_kwargs
 
 
@@ -134,6 +136,7 @@ def env_options():
 
 def run_info_extras(**kwargs):
     return {"e10s": kwargs["gecko_e10s"],
+            "wasm": kwargs.get("wasm", True),
             "verify": kwargs["verify"],
             "headless": "MOZ_HEADLESS" in os.environ}
 
@@ -145,14 +148,14 @@ def update_properties():
 
 class FirefoxBrowser(Browser):
     used_ports = set()
-    init_timeout = 60
-    shutdown_timeout = 60
+    init_timeout = 70
+    shutdown_timeout = 70
 
     def __init__(self, logger, binary, prefs_root, test_type, extra_prefs=None, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,
                  ca_certificate_path=None, e10s=False, stackfix_dir=None,
-                 binary_args=None, timeout_multiplier=None, leak_check=False, stylo_threads=1,
-                 chaos_mode_flags=None, config=None):
+                 binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
+                 stylo_threads=1, chaos_mode_flags=None, config=None):
         Browser.__init__(self, logger)
         self.binary = binary
         self.prefs_root = prefs_root
@@ -178,23 +181,38 @@ class FirefoxBrowser(Browser):
         if timeout_multiplier:
             self.init_timeout = self.init_timeout * timeout_multiplier
 
-        self.leak_report_file = None
+        self.asan = asan
+        self.lsan_allowed = None
         self.leak_check = leak_check
+        self.leak_report_file = None
+        self.lsan_handler = None
         self.stylo_threads = stylo_threads
         self.chaos_mode_flags = chaos_mode_flags
 
     def settings(self, test):
-        return {"check_leaks": self.leak_check and not test.leaks}
+        self.lsan_allowed = test.lsan_allowed
+        return {"check_leaks": self.leak_check and not test.leaks,
+                "lsan_allowed": test.lsan_allowed}
 
-    def start(self, **kwargs):
+    def start(self, group_metadata=None, **kwargs):
+        if group_metadata is None:
+            group_metadata = {}
+
         if self.marionette_port is None:
             self.marionette_port = get_free_port(2828, exclude=self.used_ports)
             self.used_ports.add(self.marionette_port)
 
-        env = os.environ.copy()
-        env["MOZ_CRASHREPORTER"] = "1"
-        env["MOZ_CRASHREPORTER_SHUTDOWN"] = "1"
-        env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
+        if self.asan:
+            print "Setting up LSAN"
+            self.lsan_handler = mozleak.LSANLeaks(self.logger,
+                                                  scope=group_metadata.get("scope", "/"),
+                                                  allowed=self.lsan_allowed)
+
+        env = test_environment(xrePath=os.path.dirname(self.binary),
+                               debugger=self.debug_info is not None,
+                               log=self.logger,
+                               lsanPath=self.prefs_root)
+
         env["STYLO_THREADS"] = str(self.stylo_threads)
         if self.chaos_mode_flags is not None:
             env["MOZ_CHAOSMODE"] = str(self.chaos_mode_flags)
@@ -215,8 +233,8 @@ class FirefoxBrowser(Browser):
         if self.test_type == "reftest":
             self.profile.set_preferences({"layout.interruptible-reflow.enabled": False})
 
-        if self.leak_check and kwargs.get("check_leaks", True):
-            self.leak_report_file = os.path.join(self.profile.profile, "runtests_leaks.log")
+        if self.leak_check:
+            self.leak_report_file = os.path.join(self.profile.profile, "runtests_leaks_%s.log" % os.getpid())
             if os.path.exists(self.leak_report_file):
                 os.remove(self.leak_report_file)
             env["XPCOM_MEM_BLOAT_LOG"] = self.leak_report_file
@@ -295,24 +313,26 @@ class FirefoxBrowser(Browser):
             except OSError:
                 # This can happen on Windows if the process is already dead
                 pass
+        self.process_leaks()
         self.logger.debug("stopped")
 
     def process_leaks(self):
         self.logger.debug("PROCESS LEAKS %s" % self.leak_report_file)
-        if self.leak_report_file is None:
-            return
-        mozleak.process_leak_log(
-            self.leak_report_file,
-            leak_thresholds={
-                "default": 0,
-                "tab": 10000,  # See dependencies of bug 1051230.
-                # GMP rarely gets a log, but when it does, it leaks a little.
-                "geckomediaplugin": 20000,
-            },
-            ignore_missing_leaks=["geckomediaplugin"],
-            log=self.logger,
-            stack_fixer=self.stack_fixer
-        )
+        if self.lsan_handler:
+            self.lsan_handler.process()
+        if self.leak_report_file is not None:
+            mozleak.process_leak_log(
+                self.leak_report_file,
+                leak_thresholds={
+                    "default": 0,
+                    "tab": 10000,  # See dependencies of bug 1051230.
+                    # GMP rarely gets a log, but when it does, it leaks a little.
+                    "geckomediaplugin": 20000,
+                },
+                ignore_missing_leaks=["geckomediaplugin"],
+                log=self.logger,
+                stack_fixer=self.stack_fixer
+            )
 
     def pid(self):
         if self.runner.process_handler is None:
@@ -331,18 +351,20 @@ class FirefoxBrowser(Browser):
             data = line.decode("utf8", "replace")
             if self.stack_fixer:
                 data = self.stack_fixer(data)
-            self.logger.process_output(self.pid(),
-                                      data,
-                                      command=" ".join(self.runner.command))
+            if self.lsan_handler:
+                data = self.lsan_handler.log(data)
+            if data is not None:
+                self.logger.process_output(self.pid(),
+                                           data,
+                                           command=" ".join(self.runner.command))
 
     def is_alive(self):
         if self.runner:
             return self.runner.is_running()
         return False
 
-    def cleanup(self):
-        self.stop()
-        self.process_leaks()
+    def cleanup(self, force=False):
+        self.stop(force)
 
     def executor_browser(self):
         assert self.marionette_port is not None

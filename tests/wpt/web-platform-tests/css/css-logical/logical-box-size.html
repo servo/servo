@@ -9,8 +9,8 @@
 
 <div id="log"></div>
 
-<script src="./resources/test-box-properties.js"></script>
-<script>
+<script type="module">
+import {runTests, createSizingPropertyGroup} from "./resources/test-box-properties.js";
 runTests(createSizingPropertyGroup(""));
 runTests(createSizingPropertyGroup("max-"));
 runTests(createSizingPropertyGroup("min-"));

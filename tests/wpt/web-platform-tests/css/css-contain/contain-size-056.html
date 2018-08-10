@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Containment Test: 'contain: size' applies to caption element</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-contain-1/#containment-size">
+  <link rel="match" href="reference/contain-size-056-ref.html">
+
+  <meta name="flags" content="">
+
+  <style>
+  table
+    {
+      width: 400px;
+    }
+
+  caption
+    {
+      border: orange solid 3px;
+      color: blue;
+      contain: size;
+      font-size: 32px;
+    }
+  </style>
+
+  <p>Test passes if the words "Table caption" are below a thick orange line. Test fails if, instead of a thick orange line, there is an orange rectangle with the words "Table caption" in it.
+
+  <table>
+    <caption>Table caption</caption>
+  </table>

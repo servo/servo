@@ -15,7 +15,10 @@ setup({
   explicit_timeout: true,
 });
 const basicCard = Object.freeze({ supportedMethods: "basic-card" });
-const defaultMethods = Object.freeze([basicCard]);
+const applePay = Object.freeze({
+  supportedMethods: "https://apple.com/apple-pay",
+});
+const defaultMethods = Object.freeze([basicCard, applePay]);
 const defaultDetails = Object.freeze({
   total: {
     label: "Total",
@@ -26,53 +29,53 @@ const defaultDetails = Object.freeze({
   },
 });
 
-window.onload = async () => {
-  promise_test(async t => {
-    // request is in "created" state
+promise_test(async t => {
+  // request is in "created" state
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  await promise_rejects(t, "InvalidStateError", request.abort());
+}, `Throws if the promise [[state]] is not "interactive"`);
+
+promise_test(async t => {
+  return test_driver.bless("show payment request", async () => {
+    const request = new PaymentRequest(defaultMethods, defaultDetails);
+    const acceptPromise = request.show();
+    try {
+      await request.abort();
+    } catch (err) {
+      assert_unreached("Unexpected promise rejection: " + err.message);
+    }
+    await promise_rejects(t, "AbortError", acceptPromise);
+    // As request is now "closed", trying to show it will fail
+    await promise_rejects(t, "InvalidStateError", request.show());
+  });
+});
+
+promise_test(async t => {
+  return test_driver.bless("show payment request", async () => {
+    // request is in "created" state.
     const request = new PaymentRequest(defaultMethods, defaultDetails);
     await promise_rejects(t, "InvalidStateError", request.abort());
-  }, `Throws if the promise [[state]] is not "interactive"`);
-
-  const button = document.getElementById("button");
-
-  promise_test(async t => {
-    button.onclick = async () => {
-      const request = new PaymentRequest(defaultMethods, defaultDetails);
-      const acceptPromise = request.show();
-      try {
-        await request.abort();
-      } catch (err) {
-        assert_unreached("Unexpected promise rejection: " + err.message);
-      }
-      await promise_rejects(t, "AbortError", acceptPromise);
-      // As request is now "closed", trying to show it will fail
-      await promise_rejects(t, "InvalidStateError", request.show());
-    };
-    await test_driver.click(button);
+    // Call it again, for good measure.
+    await promise_rejects(t, "InvalidStateError", request.abort());
+    // The request's state is "created", so let's show it
+    // which changes the state to "interactive.".
+    const acceptPromise = request.show();
+    // Let's set request the state to "closed" by calling .abort()
+    try {
+      await request.abort();
+    } catch (err) {
+      assert_unreached("Unexpected promise rejection: " + err.message);
+    }
+    // The request is now "closed", so...
+    await promise_rejects(t, "InvalidStateError", request.abort());
+    await promise_rejects(t, "AbortError", acceptPromise);
   });
+});
 
-  promise_test(async t => {
-    button.onclick = async () => {
-      // request is in "created" state.
-      const request = new PaymentRequest(defaultMethods, defaultDetails);
-      await promise_rejects(t, "InvalidStateError", request.abort());
-      // Call it again, for good measure.
-      await promise_rejects(t, "InvalidStateError", request.abort());
-      // The request's state is "created", so let's show it
-      // which changes the state to "interactive.".
-      const acceptPromise = request.show();
-      // Let's set request the state to "closed" by calling .abort()
-      try {
-        await request.abort();
-      } catch (err) {
-        assert_unreached("Unexpected promise rejection: " + err.message);
-      }
-      // The request is now "closed", so...
-      await promise_rejects(t, "InvalidStateError", request.abort());
-      await promise_rejects(t, "AbortError", acceptPromise);
-    };
-    await test_driver.click(button);
-  });
-};
+promise_test(async t => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const promises = new Set([request.abort(), request.abort(), request.abort()]);
+  assert_equals(promises.size, 3, "Must have three unique objects");
+}, "Calling abort() multiple times is always a new object.");
 </script>
-<button id="button"></button>
+

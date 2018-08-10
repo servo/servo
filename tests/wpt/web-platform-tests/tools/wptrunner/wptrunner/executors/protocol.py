@@ -303,3 +303,20 @@ class AssertsProtocolPart(ProtocolPart):
     def get(self):
         """Get a count of assertions since the last browser start"""
         pass
+
+
+class CoverageProtocolPart(ProtocolPart):
+    """Protocol part for collecting per-test coverage data."""
+    __metaclass__ = ABCMeta
+
+    name = "coverage"
+
+    @abstractmethod
+    def reset(self):
+        """Reset coverage counters"""
+        pass
+
+    @abstractmethod
+    def dump(self):
+        """Dump coverage counters"""
+        pass

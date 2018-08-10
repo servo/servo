@@ -9,11 +9,15 @@
   <link rel=help href="https://drafts.csswg.org/css-contain-1/#containment-layout">
 
 <style>
-span {
+#pa {
   contain: layout;
   height: 100vh; /*If layout containment applies, the span becomes a BFC, height applies, and knocks SS off the page */
+}
+
+#ss {
+  vertical-align: bottom;
 }
 </style>
 
 <p>Test passes if there is the word "PASS" below.</p>
-<div><span>PA</span>SS</div>
+<div><span id="pa">PA</span><span id="ss">SS</span></div>

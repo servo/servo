@@ -1,4 +1,6 @@
-from tests.support.asserts import assert_success
+from webdriver import Element
+
+from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
 
 
@@ -16,3 +18,10 @@ def test_null_response_value(session):
     response = element_click(session, element)
     value = assert_success(response)
     assert value is None
+
+
+def test_no_browsing_context(session, closed_window):
+    element = Element("foo", session)
+
+    response = element_click(session, element)
+    assert_error(response, "no such window")

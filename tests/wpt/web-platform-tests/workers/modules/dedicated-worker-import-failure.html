@@ -35,7 +35,10 @@ promise_test(async () => {
   const worker = new Worker('resources/dynamic-import-given-url-worker.js',
                             { type: 'module' });
   worker.postMessage(scriptURL);
-  const msg_event = await new Promise(resolve => worker.onmessage = resolve);
+  const msg_event = await new Promise((resolve, reject) => {
+    worker.onmessage = resolve;
+    worker.onerror = (error) => reject(error && error.message);
+  });
   assert_equals(msg_event.data, 'TypeError');
 }, 'Dynamic import for non-existent script should throw an exception.');
 

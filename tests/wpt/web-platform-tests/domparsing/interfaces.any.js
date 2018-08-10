@@ -5,12 +5,15 @@
 
 // https://w3c.github.io/DOM-Parsing/
 
-promise_test(async () => {
-  const dom = await fetch('/interfaces/dom.idl').then(r => r.text());
-  const idl = await fetch('/interfaces/DOM-Parsing.idl').then(r => r.text());
-  const idlArray = new IdlArray();
-  idlArray.add_untested_idls(dom);
-  idlArray.add_idls(idl);
-  idlArray.test();
-  done();
-}, 'Test driver');
+idl_test(
+  ['DOM-Parsing'],
+  ['dom'],
+  idlArray => {
+    idlArray.add_objects({
+      DOMParser: ['new DOMParser()'],
+      Element: ['document.createElement("div")'],
+      Range: ['new Range()'],
+      XMLSerializer: ['new XMLSerializer()'],
+    })
+  },
+  'DOM-Parsing interfaces');

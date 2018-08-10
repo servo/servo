@@ -22,7 +22,6 @@ interface WorkletAnimation : Animation {
         readonly attribute DOMString animatorName;
 };
 
-
 interface WorkletGroupEffectReadOnly :  GroupEffectReadOnly {};
 
 interface WorkletGroupEffect :  WorkletGroupEffectReadOnly {};

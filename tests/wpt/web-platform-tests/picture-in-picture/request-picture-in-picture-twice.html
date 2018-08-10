@@ -11,9 +11,9 @@ promise_test(async t => {
   const video1 = await loadVideo();
   const video2 = await loadVideo();
   return test_driver.bless(
-    'request picture in picture',
+    'request Picture-in-Picture',
     async () => {
-      await video1.requestPictureInPicture();
+      video1.requestPictureInPicture();
       promise_rejects(t, 'NotAllowedError', video2.requestPictureInPicture());
     }
   );

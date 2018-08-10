@@ -1,17 +1,15 @@
 'use strict';
 
-importScripts('interfaces-idls.js');
 importScripts('worker-testharness.js');
 importScripts('/resources/WebIDLParser.js');
 importScripts('/resources/idlharness.js');
 
 promise_test(async (t) => {
-  const srcs = ['dom', 'service-workers'];
-  const [dom, serviceWorkerIdl] = await Promise.all(
+  const srcs = ['dom', 'html', 'service-workers', 'dedicated-workers'];
+  const [dom, html, serviceWorkerIdl, dedicated] = await Promise.all(
     srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
 
   var idlArray = new IdlArray();
-  idlArray.add_untested_idls(idls.untested);
   idlArray.add_idls(serviceWorkerIdl, { only: [
     'ServiceWorkerGlobalScope',
     'Client',
@@ -26,7 +24,9 @@ promise_test(async (t) => {
     'Cache',
     'CacheStorage',
   ]});
+  idlArray.add_dependency_idls(dedicated);
   idlArray.add_dependency_idls(dom);
+  idlArray.add_dependency_idls(html);
   idlArray.add_objects({
     ServiceWorkerGlobalScope: ['self'],
     Clients: ['self.clients'],
@@ -93,3 +93,7 @@ test(function() {
 test(() => {
     assert_false('XMLHttpRequest' in self);
   }, 'xhr is not exposed');
+
+test(() => {
+    assert_false('createObjectURL' in self.URL);
+  }, 'URL.createObjectURL is not exposed')

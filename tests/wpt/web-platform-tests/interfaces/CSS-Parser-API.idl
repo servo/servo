@@ -1,0 +1,69 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: CSS Parser API (https://wicg.github.io/CSS-Parser-API/)
+
+typedef (DOMString or ReadableStream) CSSStringSource;
+typedef (DOMString or CSSStyleValue or CSSParserValue) CSSToken;
+
+partial namespace CSS {
+  Promise<sequence<CSSParserRule>> parseStylesheet(CSSStringSource css, optional CSSParserOptions options);
+  Promise<sequence<CSSParserRule>> parseRuleList(CSSStringSource css, optional CSSParserOptions options);
+  Promise<CSSParserRule> parseRule(CSSStringSource css, optional CSSParserOptions options);
+  Promise<sequence<CSSParserRule>> parseDeclarationList(CSSStringSource css, optional CSSParserOptions options);
+  CSSParserDeclaration parseDeclaration(DOMString css, optional CSSParserOptions options);
+  CSSToken parseValue(DOMString css);
+  sequence<CSSToken> parseValueList(DOMString css);
+  sequence<sequence<CSSToken>> parseCommaValueList(DOMString css);
+};
+
+dictionary CSSParserOptions {
+  object atRules;
+  /* dict of at-rule name => at-rule type
+     (contains decls or contains qualified rules) */
+};
+
+interface CSSParserRule {
+  /* Just a superclass. */
+};
+
+[Constructor(DOMString name, sequence<CSSToken> prelude, optional sequence<CSSParserRule>? body)]
+interface CSSParserAtRule : CSSParserRule {
+  readonly attribute DOMString name;
+  readonly attribute FrozenArray<CSSParserValue> prelude;
+  readonly attribute FrozenArray<CSSParserRule>? body;
+  /* nullable to handle at-statements */
+  stringifier;
+};
+
+[Constructor(sequence<CSSToken> prelude, optional sequence<CSSParserRule>? body)]
+interface CSSParserQualifiedRule : CSSParserRule {
+  readonly attribute FrozenArray<CSSParserValue> prelude;
+  readonly attribute FrozenArray<CSSParserRule> body;
+  stringifier;
+};
+
+[Constructor(DOMString name, optional sequence<CSSParserRule> body)]
+interface CSSParserDeclaration : CSSParserRule {
+  readonly attribute DOMString name;
+  readonly attribute FrozenArray<CSSParserValue> body;
+  stringifier;
+};
+
+interface CSSParserValue {
+  /* Just a superclass. */
+};
+
+[Constructor(DOMString name, sequence<CSSParserValue> body)]
+interface CSSParserBlock : CSSParserValue {
+  readonly attribute DOMString name; /* "[]", "{}", or "()" */
+  readonly attribute FrozenArray<CSSParserValue> body;
+  stringifier;
+};
+
+[Constructor(DOMString name, sequence<sequence<CSSParserValue>> args)]
+interface CSSParserFunction : CSSParserValue {
+  readonly attribute DOMString name;
+  readonly attribute FrozenArray<FrozenArray<CSSParserValue>> args;
+  stringifier;
+};

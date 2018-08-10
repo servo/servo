@@ -8,15 +8,15 @@
 <div id="test-div"></div>
 <script>
 let div = document.getElementById("test-div");
-function testOverflowShorthand(x, y) {
+function testOverflowShorthand(y, x) {
   test(function() {
     div.style.overflowX = x;
     div.style.overflowY = y;
 
     let expectedX = getComputedStyle(div).overflowX;
     let expectedY = getComputedStyle(div).overflowY;
-    let expectedComputedSerialization = expectedX == expectedY ? expectedX : `${expectedX} ${expectedY}`;
-    let expectedSpecifiedSerialization = x == y ? x : `${x} ${y}`;
+    let expectedComputedSerialization = expectedX == expectedY ? expectedX : `${expectedY} ${expectedX}`;
+    let expectedSpecifiedSerialization = x == y ? x : `${y} ${x}`;
 
     assert_equals(div.style.overflow, expectedSpecifiedSerialization);
     assert_equals(getComputedStyle(div).overflow, expectedComputedSerialization);
@@ -25,18 +25,18 @@ function testOverflowShorthand(x, y) {
     div.style.overflowY = "";
     assert_equals(div.style.overflow, "");
 
-    div.style.overflow = `${x} ${y}`;
+    div.style.overflow = `${y} ${x}`;
     assert_equals(div.style.overflow, expectedSpecifiedSerialization);
     assert_equals(div.style.overflowX, x);
     assert_equals(div.style.overflowY, y);
     assert_equals(getComputedStyle(div).overflow, expectedComputedSerialization);
     assert_equals(getComputedStyle(div).overflowX, expectedX);
     assert_equals(getComputedStyle(div).overflowY, expectedY);
-  }, `overflow: ${x} ${y} works`);
+  }, `overflow: ${y} ${x} works`);
 }
 
 let OVERFLOW_VALUES = [ "auto", "hidden", "scroll", "visible" ];
 for (let x of OVERFLOW_VALUES)
   for (let y of OVERFLOW_VALUES)
-    testOverflowShorthand(x, y);
+    testOverflowShorthand(y, x);
 </script>

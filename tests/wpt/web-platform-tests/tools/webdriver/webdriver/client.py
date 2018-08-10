@@ -422,13 +422,16 @@ class Session(object):
         return value
 
     def end(self):
+        """Tries to close the active session."""
         if self.session_id is None:
             return
 
-        url = "session/%s" % self.session_id
-        self.send_command("DELETE", url)
-
-        self.session_id = None
+        try:
+            self.send_command("DELETE", "session/%s" % self.session_id)
+        except error.SessionNotCreatedException:
+            pass
+        finally:
+            self.session_id = None
 
     def send_command(self, method, url, body=None):
         """
