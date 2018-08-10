@@ -212,6 +212,23 @@ android-nightly:
   - ./etc/ci/clean_build_artifacts.sh
 
 arm32:
+ # Won't build ATM because the x-compile libraries aren't installed by salt
+ env:
+  AR: /usr/bin/arm-linux-gnueabihf-ar
+  AS: /usr/bin/arm-linux-gnueabihf-as
+  CC: /usr/bin/clang
+  CFLAGS: "--target=arm-unknown-linux-gnueabihf -march=armv7 -I/usr/arm-linux-gnueabihf/include -fuse-ld=/usr/bin/arm-linux-gnueabihf-ld"
+  CPP: "/usr/bin/clang -E"
+  CPPFLAGS: "-I/usr/arm-linux-gnueabihf/include"
+  CXX: /usr/bin/clang++
+  CXXFLAGS: "--target=arm-unknown-linux-gnueabihf -march=armv7 -I/usr/arm-linux-gnueabihf/include/ -I/usr/arm-linux-gnueabihf/include/c++/5/arm-linux-gnueabihf -fuse-ld=/usr/bin/arm-linux-gnueabihf-ld"
+  LD: /usr/bin/arm-linux-gnueabihf-ld
+  OBJCOPY: /usr/bin/arm-linux-gnueabihf-objcopy
+  OBJDUMP: /usr/bin/arm-linux-gnueabihf-objdump
+  PKG_CONFIG_ALLOW_CROSS: 1
+  RANLIB: /usr/bin/arm-linux-gnueabihf-ranlib
+  STRIP: /usr/bin/arm-linux-gnueabihf-strip
+ commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
