@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::abstractworker::WorkerScriptMsg;
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::DomObject;
-use dom::bindings::trace::JSTraceable;
+use dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
+use dom::worker::TrustedWorkerAddress;
 use script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -13,14 +12,15 @@ use std::sync::mpsc::{Receiver, Sender};
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
-pub struct SendableWorkerScriptChan<T: DomObject> {
-    pub sender: Sender<(Trusted<T>, CommonScriptMsg)>,
-    pub worker: Trusted<T>,
+pub struct SendableWorkerScriptChan {
+    pub sender: Sender<DedicatedWorkerScriptMsg>,
+    pub worker: TrustedWorkerAddress,
 }
 
-impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptChan<T> {
+impl ScriptChan for SendableWorkerScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.sender.send((self.worker.clone(), msg)).map_err(|_| ())
+        let msg = DedicatedWorkerScriptMsg::CommonWorker(self.worker.clone(), WorkerScriptMsg::Common(msg));
+        self.sender.send(msg).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
@@ -35,15 +35,16 @@ impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptCh
 /// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(Clone, JSTraceable)]
-pub struct WorkerThreadWorkerChan<T: DomObject> {
-    pub sender: Sender<(Trusted<T>, WorkerScriptMsg)>,
-    pub worker: Trusted<T>,
+pub struct WorkerThreadWorkerChan {
+    pub sender: Sender<DedicatedWorkerScriptMsg>,
+    pub worker: TrustedWorkerAddress,
 }
 
-impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
+impl ScriptChan for WorkerThreadWorkerChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
+        let msg = DedicatedWorkerScriptMsg::CommonWorker(self.worker.clone(), WorkerScriptMsg::Common(msg));
         self.sender
-            .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
+            .send(msg)
             .map_err(|_| ())
     }
 
@@ -55,12 +56,16 @@ impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan
     }
 }
 
-impl<T: DomObject> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
+impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv().map(|(_, msg)| msg) {
-            Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(WorkerScriptMsg::DOMMessage(_)) => panic!("unexpected worker event message!"),
-            Err(_) => Err(()),
+        let common_msg = match self.recv() {
+            Ok(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
+            Err(_) => return Err(()),
+            _ => panic!("unexpected worker event message!")
+        };
+        match common_msg {
+            WorkerScriptMsg::Common(script_msg) => Ok(script_msg),
+            WorkerScriptMsg::DOMMessage(_) => panic!("unexpected worker event message!"),
         }
     }
 }
