@@ -213,6 +213,7 @@ android-nightly:
 
 arm32:
  # Won't build ATM because the x-compile libraries aren't installed by salt
+ # TODO: document this in https://github.com/servo/servo/wiki/Compiler-upgrade-recipes
  env:
   AR: /usr/bin/arm-linux-gnueabihf-ar
   AS: /usr/bin/arm-linux-gnueabihf-as
