@@ -1,7 +1,8 @@
 import pytest
+
 from webdriver import StaleElementReferenceException
 
-from tests.support.asserts import assert_success
+from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline, iframe
 
 
@@ -18,6 +19,11 @@ def test_null_response_value(session):
     response = switch_to_parent_frame(session)
     value = assert_success(response)
     assert value is None
+
+
+def test_no_browsing_context(session, closed_window):
+    response = switch_to_parent_frame(session)
+    assert_error(response, "no such window")
 
 
 def test_stale_element_from_iframe(session):

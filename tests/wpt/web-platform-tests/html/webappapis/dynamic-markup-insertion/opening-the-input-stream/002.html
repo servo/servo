@@ -6,7 +6,7 @@
 <script>
 test(function() {
  var log = document.getElementById("log");
- document.open()
- assert_equals(document.getElementById("log"), log)
+ assert_equals(document.open(), document);
+ assert_equals(document.getElementById("log"), log);
 })
 </script>

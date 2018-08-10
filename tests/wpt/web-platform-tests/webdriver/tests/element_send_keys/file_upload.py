@@ -1,9 +1,7 @@
 from tests.support.asserts import assert_error, assert_files_uploaded, assert_success
 from tests.support.inline import inline
 
-
-def map_files_to_multiline_text(files):
-    return "\n".join(map(lambda f: str(f), files))
+from . import map_files_to_multiline_text
 
 
 def element_send_keys(session, element, text):
@@ -24,19 +22,6 @@ def test_empty_text(session):
 
 def test_multiple_files(session, create_files):
     files = create_files(["foo", "bar"])
-
-    session.url = inline("<input type=file multiple>")
-    element = session.find.css("input", all=False)
-
-    response = element_send_keys(session, element,
-                                 map_files_to_multiline_text(files))
-    assert_success(response)
-
-    assert_files_uploaded(session, element, files)
-
-
-def test_multiple_files_multiple_directories(session, create_file):
-    files = [create_file("foo"), create_file("bar")]
 
     session.url = inline("<input type=file multiple>")
     element = session.find.css("input", all=False)
@@ -115,32 +100,31 @@ def test_multiple_files_reset_with_element_clear(session, create_files):
     assert_files_uploaded(session, element, second_files)
 
 
-def test_single_file(session, create_file):
-    single_file = create_file("foo")
+def test_single_file(session, create_files):
+    files = create_files(["foo"])
 
     session.url = inline("<input type=file>")
     element = session.find.css("input", all=False)
 
-    response = element_send_keys(session, element, str(single_file))
+    response = element_send_keys(session, element, str(files[0]))
     assert_success(response)
 
-    assert_files_uploaded(session, element, [single_file])
+    assert_files_uploaded(session, element, files)
 
 
-def test_single_file_replaces_without_multiple_attribute(session, create_file):
-    first_file = create_file("foo")
-    second_file = create_file("bar")
+def test_single_file_replaces_without_multiple_attribute(session, create_files):
+    files = create_files(["foo", "bar"])
 
     session.url = inline("<input type=file>")
     element = session.find.css("input", all=False)
 
-    response = element_send_keys(session, element, str(first_file))
+    response = element_send_keys(session, element, str(files[0]))
     assert_success(response)
 
-    response = element_send_keys(session, element, str(second_file))
+    response = element_send_keys(session, element, str(files[1]))
     assert_success(response)
 
-    assert_files_uploaded(session, element, [second_file])
+    assert_files_uploaded(session, element, [files[1]])
 
 
 def test_single_file_appends_with_multiple_attribute(session, create_files):
@@ -156,19 +140,3 @@ def test_single_file_appends_with_multiple_attribute(session, create_files):
     assert_success(response)
 
     assert_files_uploaded(session, element, files)
-
-
-def test_single_file_multiple_directory_appends_with_multiple_attribute(session, create_file):
-    first_file = create_file("foo")
-    second_file = create_file("bar")
-
-    session.url = inline("<input type=file multiple>")
-    element = session.find.css("input", all=False)
-
-    response = element_send_keys(session, element, str(first_file))
-    assert_success(response)
-
-    response = element_send_keys(session, element, str(second_file))
-    assert_success(response)
-
-    assert_files_uploaded(session, element, [first_file, second_file])

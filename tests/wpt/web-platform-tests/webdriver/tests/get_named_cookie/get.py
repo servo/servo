@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from tests.support.asserts import assert_success
+from tests.support.asserts import assert_error, assert_success
 from tests.support.fixtures import clear_all_cookies
 from tests.support.inline import inline
 
@@ -10,6 +10,11 @@ def get_named_cookie(session, name):
         "GET", "session/{session_id}/cookie/{name}".format(
             session_id=session.session_id,
             name=name))
+
+
+def test_no_browsing_context(session, closed_window):
+    response = get_named_cookie(session, "foo")
+    assert_error(response, "no such window")
 
 
 def test_get_named_session_cookie(session, url):

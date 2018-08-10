@@ -25,7 +25,7 @@ function iso2022jpDecoder(stream) {
     stream = stream.replace(/%/g, " ");
     stream = stream.replace(/[\s]+/g, " ").trim();
     var bytes = stream.split(" ");
-    for (i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
+    for (var i = 0; i < bytes.length; i++) bytes[i] = parseInt(bytes[i], 16);
     var endofstream = 2000000;
     //bytes.push(endofstream)
     var out = "";
@@ -193,8 +193,8 @@ function iso2022jpDecoder(stream) {
                         continue;
                     }
                 }
-                bytes.unshift(lead);
-                bytes.unshift(byte);
+                // Prepend the sequence (lead, byte) to the stream
+                bytes.unshift(lead, byte);
                 outFlag = false;
                 decState = outState;
                 out += "�";

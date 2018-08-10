@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.error import NoSuchWindowException
+
 from tests.actions.support.keys import Keys
 from tests.actions.support.refine import filter_dict, get_keys, get_events
 
@@ -10,6 +12,11 @@ def test_null_response_value(session, key_chain):
 
     value = session.actions.release()
     assert value is None
+
+
+def test_no_browsing_context(session, closed_window, key_chain):
+    with pytest.raises(NoSuchWindowException):
+        key_chain.key_up("a").perform()
 
 
 def test_lone_keyup_sends_no_events(session, key_reporter, key_chain):

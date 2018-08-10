@@ -90,3 +90,5 @@ response_codes = {
           'The gateway server did not receive a timely response'),
     505: ('HTTP Version Not Supported', 'Cannot fulfill request.'),
 }
+
+h2_headers = ['method', 'scheme', 'host', 'path', 'authority', 'status']

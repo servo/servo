@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>MessageEvent constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var ev = new MessageEvent("test", { userActivation: navigator.userActivation })
+  assert_equals(ev.userActivation, navigator.userActivation, "userActivation attribute")
+}, "MessageEventInit user activation set")
+test(function() {
+  var ev = new MessageEvent("test")
+  assert_equals(ev.userActivation, null, "userActivation attribute")
+}, "MessageEventInit user activation not set")
+
+</script>

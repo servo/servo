@@ -1,4 +1,3 @@
-// META: global=sharedworker
 'use strict';
 
 test(() => {

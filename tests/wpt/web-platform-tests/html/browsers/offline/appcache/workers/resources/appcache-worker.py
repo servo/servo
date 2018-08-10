@@ -30,7 +30,7 @@ function importCachedScriptTest() {
   });
 }
 
-function importNotInCacheSciptTest() {
+function importNotInCacheScriptTest() {
   return new Promise((resolve, reject) => {
     try {
       importScripts('appcache-worker-import.py?type=not-in-cache');
@@ -41,7 +41,7 @@ function importNotInCacheSciptTest() {
   });
 }
 
-function importFallbackSciptTest() {
+function importFallbackScriptTest() {
   return new Promise((resolve, reject) => {
     info = '';
     try {
@@ -87,8 +87,8 @@ function fetchFallbackFileTest() {
 
 initPromise
   .then(importCachedScriptTest)
-  .then(importNotInCacheSciptTest)
-  .then(importFallbackSciptTest)
+  .then(importNotInCacheScriptTest)
+  .then(importFallbackScriptTest)
   .then(fetchCachedFileTest)
   .then(fetchNotInCacheFileTest)
   .then(_ => postMessage('Done: %s'),

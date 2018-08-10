@@ -17,10 +17,9 @@
     <script>
         var t1 = async_test("Test that the inline style attribute is loaded");
 
-        function check_for_style() {
+        self.check_for_style = t1.step_func_done(function() {
           assert_equals("green", document.getElementById('test').style.background);
-          t1.done();
-        }
+        });
 
         window.addEventListener('securitypolicyviolation', t1.unreached_func("Should have not raised any event"));
     </script>

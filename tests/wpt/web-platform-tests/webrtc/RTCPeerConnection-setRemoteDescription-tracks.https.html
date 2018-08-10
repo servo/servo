@@ -85,6 +85,8 @@
       getNoiseStream({audio: true}),
       getNoiseStream({audio: true}),
     ]);
+    t.add_cleanup(() => localStreams.forEach((stream) =>
+      stream.getTracks().forEach((track) => track.stop())));
     caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
     caller.addTrack(localStreams[1].getTracks()[0], localStreams[0]);
     let ontrackEventsFired = 0;
@@ -129,6 +131,8 @@
       getNoiseStream({audio: true}),
       getNoiseStream({audio: true}),
     ]);
+    t.add_cleanup(() => localStreams.forEach((stream) =>
+      stream.getTracks().forEach((track) => track.stop())));
     caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
     const remoteStreams = [];
     callee.ontrack = e => {
@@ -161,6 +165,8 @@
       getNoiseStream({audio: true}),
       getNoiseStream({audio: true}),
     ]);
+    t.add_cleanup(() => localStreams.forEach((stream) =>
+      stream.getTracks().forEach((track) => track.stop())));
     caller.addTrack(localStreams[0].getTracks()[0], localStreams[0]);
     const remoteStreams = [];
     callee.ontrack = e => {
@@ -190,6 +196,8 @@
       getNoiseStream({audio: true}),
       getNoiseStream({audio: true}),
     ]);
+    t.add_cleanup(() => localStreams.forEach((stream) =>
+      stream.getTracks().forEach((track) => track.stop())));
     caller.addTrack(localStreams[0].getTracks()[0],
                     localStreams[0], localStreams[1]);
     const ontrackPromise = addEventListenerPromise(t, callee, 'track', e => {

@@ -1,328 +1,608 @@
-import unittest
-import StringIO
-
-import pytest
+import json
+import mock
+import os
+import sys
+from io import BytesIO
 
 from .. import metadata, manifestupdate
 from mozlog import structuredlog, handlers, formatters
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir))
+from manifest import manifest, item as manifest_item
 
-class TestExpectedUpdater(unittest.TestCase):
-    def create_manifest(self, data, test_path="path/to/test.ini"):
-        f = StringIO.StringIO(data)
-        return manifestupdate.compile(f, test_path)
 
-    def create_updater(self, data, **kwargs):
-        expected_tree = {}
-        id_path_map = {}
-        for test_path, test_ids, manifest_str in data:
-            if isinstance(test_ids, (str, unicode)):
-                test_ids = [test_ids]
-            expected_tree[test_path] = self.create_manifest(manifest_str, test_path)
-            for test_id in test_ids:
-                id_path_map[test_id] = test_path
+def rel_path_to_url(rel_path, url_base="/"):
+    assert not os.path.isabs(rel_path)
+    if url_base[0] != "/":
+        url_base = "/" + url_base
+    if url_base[-1] != "/":
+        url_base += "/"
+    return url_base + rel_path.replace(os.sep, "/")
 
-        return metadata.ExpectedUpdater(expected_tree, id_path_map, **kwargs)
 
-    def create_log(self, *args, **kwargs):
+def SourceFileWithTest(path, hash, cls, *args):
+    s = mock.Mock(rel_path=path, hash=hash)
+    test = cls(s, rel_path_to_url(path), *args)
+    s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
+    return s
+
+
+item_classes = {"testharness": manifest_item.TestharnessTest,
+                "reftest": manifest_item.RefTest,
+                "reftest_node": manifest_item.RefTestNode,
+                "manual": manifest_item.ManualTest,
+                "stub": manifest_item.Stub,
+                "wdspec": manifest_item.WebdriverSpecTest,
+                "conformancechecker": manifest_item.ConformanceCheckerTest,
+                "visual": manifest_item.VisualTest,
+                "support": manifest_item.SupportFile}
+
+
+def update(tests, *logs):
+    id_test_map, updater = create_updater(tests)
+    for log in logs:
+        log = create_log(log)
+        updater.update_from_log(log)
+
+    return list(metadata.update_results(id_test_map,
+                                        ["debug", "os", "version", "processor", "bits"],
+                                        ["debug"],
+                                        False))
+
+
+def create_updater(tests, url_base="/", **kwargs):
+    id_test_map = {}
+    m = create_test_manifest(tests, url_base)
+    expected_data = {}
+    metadata.load_expected = lambda _, __, test_path, *args: expected_data[test_path]
+
+    for test_path, test_ids, test_type, manifest_str in tests:
+        tests = list(m.iterpath(test_path))
+        if isinstance(test_ids, (str, unicode)):
+            test_ids = [test_ids]
+        test_data = metadata.TestFileData("/", "testharness", None, test_path, tests)
+        expected_data[test_path] = manifestupdate.compile(BytesIO(manifest_str),
+                                                          test_path,
+                                                          url_base)
+
+        for test_id in test_ids:
+            id_test_map[test_id] = test_data
+
+    return id_test_map, metadata.ExpectedUpdater(id_test_map, **kwargs)
+
+
+def create_log(entries):
+    data = BytesIO()
+    if isinstance(entries, list):
         logger = structuredlog.StructuredLogger("expected_test")
-        data = StringIO.StringIO()
         handler = handlers.StreamHandler(data, formatters.JSONFormatter())
         logger.add_handler(handler)
 
-        log_entries = ([("suite_start", {"tests": [], "run_info": kwargs.get("run_info", {})})] +
-                       list(args) +
-                       [("suite_end", {})])
-
-        for item in log_entries:
+        for item in entries:
             action, kwargs = item
             getattr(logger, action)(**kwargs)
         logger.remove_handler(handler)
-        data.seek(0)
-        return data
+    else:
+        json.dump(entries, data)
+    data.seek(0)
+    return data
 
 
-    def coalesce_results(self, trees):
-        for tree in trees:
-            for test in tree.iterchildren():
-                for subtest in test.iterchildren():
-                    subtest.coalesce_expected()
-                test.coalesce_expected()
+def suite_log(entries, run_info=None):
+    return ([("suite_start", {"tests": [], "run_info": run_info or {}})] +
+            entries +
+            [("suite_end", {})])
 
-    @pytest.mark.xfail
-    def test_update_0(self):
-        prev_data = [("path/to/test.htm.ini", ["/path/to/test.htm"], """[test.htm]
-  type: testharness
+
+def create_test_manifest(tests, url_base="/"):
+    source_files = []
+    for i, (test, _, test_type, _) in enumerate(tests):
+        if test_type:
+            source_files.append(SourceFileWithTest(test, str(i) * 40, item_classes[test_type]))
+    m = manifest.Manifest()
+    m.update(source_files)
+    return m
+
+
+def test_update_0():
+    tests = [("path/to/test.htm", ["/path/to/test.htm"], "testharness",
+              """[test.htm]
   [test1]
     expected: FAIL""")]
 
-        new_data = self.create_log(("test_start", {"test": "/path/to/test.htm"}),
-                                   ("test_status", {"test": "/path/to/test.htm",
-                                                    "subtest": "test1",
-                                                    "status": "PASS",
-                                                    "expected": "FAIL"}),
-                                   ("test_end", {"test": "/path/to/test.htm",
-                                                 "status": "OK"}))
-        updater = self.create_updater(prev_data)
-        updater.update_from_log(new_data)
+    log = suite_log([("test_start", {"test": "/path/to/test.htm"}),
+                     ("test_status", {"test": "/path/to/test.htm",
+                                      "subtest": "test1",
+                                      "status": "PASS",
+                                      "expected": "FAIL"}),
+                     ("test_end", {"test": "/path/to/test.htm",
+                                   "status": "OK"})])
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
-        self.coalesce_results([new_manifest])
-        self.assertTrue(new_manifest.is_empty)
+    updated = update(tests, log)
 
-    @pytest.mark.xfail
-    def test_update_1(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+    assert len(updated) == 1
+    assert updated[0][1].is_empty
+
+
+def test_update_1():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
   [test1]
     expected: ERROR""")]
 
-        new_data = self.create_log(("test_start", {"test": test_id}),
-                                   ("test_status", {"test": test_id,
-                                                    "subtest": "test1",
-                                                    "status": "FAIL",
-                                                    "expected": "ERROR"}),
-                                   ("test_end", {"test": test_id,
-                                                 "status": "OK"}))
-        updater = self.create_updater(prev_data)
-        updater.update_from_log(new_data)
+    log = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "ERROR"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
-        self.coalesce_results([new_manifest])
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get("expected"), "FAIL")
+    updated = update(tests, log)
 
-    @pytest.mark.xfail
-    def test_new_subtest(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+    new_manifest = updated[0][1]
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get("expected") == "FAIL"
+
+
+def test_skip_0():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness",
+              """[test.htm]
   [test1]
     expected: FAIL""")]
 
-        new_data = self.create_log(("test_start", {"test": test_id}),
-                                   ("test_status", {"test": test_id,
-                                                    "subtest": "test1",
-                                                    "status": "FAIL",
-                                                    "expected": "FAIL"}),
-                                   ("test_status", {"test": test_id,
-                                                    "subtest": "test2",
-                                                    "status": "FAIL",
-                                                    "expected": "PASS"}),
-                                   ("test_end", {"test": test_id,
-                                                 "status": "OK"}))
-        updater = self.create_updater(prev_data)
-        updater.update_from_log(new_data)
+    log = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "FAIL"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
-        self.coalesce_results([new_manifest])
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get("expected"), "FAIL")
-        self.assertEquals(new_manifest.get_test(test_id).children[1].get("expected"), "FAIL")
+    updated = update(tests, log)
+    assert not updated
 
-    @pytest.mark.xfail
-    def test_update_multiple_0(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+
+def test_new_subtest():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
   [test1]
     expected: FAIL""")]
 
-        new_data_0 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "FAIL",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "osx"})
+    log = suite_log([("test_start", {"test": test_id}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test1",
+                                      "status": "FAIL",
+                                      "expected": "FAIL"}),
+                     ("test_status", {"test": test_id,
+                                      "subtest": "test2",
+                                      "status": "FAIL",
+                                      "expected": "PASS"}),
+                     ("test_end", {"test": test_id,
+                                   "status": "OK"})])
+    updated = update(tests, log)
+    new_manifest = updated[0][1]
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get("expected") == "FAIL"
+    assert new_manifest.get_test(test_id).children[1].get("expected") == "FAIL"
 
-        new_data_1 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "TIMEOUT",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "linux"})
-        updater = self.create_updater(prev_data)
 
-        updater.update_from_log(new_data_0)
-        updater.update_from_log(new_data_1)
-
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
-
-        self.coalesce_results([new_manifest])
-
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "osx"}), "FAIL")
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "linux"}), "TIMEOUT")
-
-    @pytest.mark.xfail
-    def test_update_multiple_1(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+def test_update_multiple_0():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
   [test1]
     expected: FAIL""")]
 
-        new_data_0 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "FAIL",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "osx"})
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "osx"})
 
-        new_data_1 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "TIMEOUT",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "linux"})
-        updater = self.create_updater(prev_data)
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "TIMEOUT",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "linux"})
 
-        updater.update_from_log(new_data_0)
-        updater.update_from_log(new_data_1)
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "osx"}) == "FAIL"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "linux"}) == "TIMEOUT"
 
-        self.coalesce_results([new_manifest])
 
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "osx"}), "FAIL")
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "linux"}), "TIMEOUT")
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "windows"}), "FAIL")
-
-    @pytest.mark.xfail
-    def test_update_multiple_2(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+def test_update_multiple_1():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
   [test1]
     expected: FAIL""")]
 
-        new_data_0 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "FAIL",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "osx"})
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "osx"})
 
-        new_data_1 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "TIMEOUT",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": True, "os": "osx"})
-        updater = self.create_updater(prev_data)
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "TIMEOUT",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "linux"})
 
-        updater.update_from_log(new_data_0)
-        updater.update_from_log(new_data_1)
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "osx"}) == "FAIL"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "linux"}) == "TIMEOUT"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "windows"}) == "FAIL"
 
-        self.coalesce_results([new_manifest])
 
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "osx"}), "FAIL")
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": True, "os": "osx"}), "TIMEOUT")
+def test_update_multiple_2():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+  [test1]
+    expected: FAIL""")]
 
-    @pytest.mark.xfail
-    def test_update_multiple_3(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "osx"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "TIMEOUT",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": True, "os": "osx"})
+
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "osx"}) == "FAIL"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": True, "os": "osx"}) == "TIMEOUT"
+
+
+def test_update_multiple_3():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
   [test1]
     expected:
       if debug: FAIL
       if not debug and os == "osx": TIMEOUT""")]
 
-        new_data_0 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "FAIL",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "osx"})
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "osx"})
 
-        new_data_1 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "TIMEOUT",
-                                                      "expected": "FAIL"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": True, "os": "osx"})
-        updater = self.create_updater(prev_data)
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "TIMEOUT",
+                                        "expected": "FAIL"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": True, "os": "osx"})
 
-        updater.update_from_log(new_data_0)
-        updater.update_from_log(new_data_1)
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "osx"}) == "FAIL"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": True, "os": "osx"}) == "TIMEOUT"
 
-        self.coalesce_results([new_manifest])
 
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "osx"}), "FAIL")
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": True, "os": "osx"}), "TIMEOUT")
-
-    @pytest.mark.xfail
-    def test_update_ignore_existing(self):
-        test_id = "/path/to/test.htm"
-        prev_data = [("path/to/test.htm.ini", [test_id], """[test.htm]
-  type: testharness
+def test_update_ignore_existing():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
   [test1]
     expected:
       if debug: TIMEOUT
       if not debug and os == "osx": NOTRUN""")]
 
-        new_data_0 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "FAIL",
-                                                      "expected": "PASS"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": False, "os": "linux"})
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "PASS"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": False, "os": "linux"})
 
-        new_data_1 = self.create_log(("test_start", {"test": test_id}),
-                                     ("test_status", {"test": test_id,
-                                                      "subtest": "test1",
-                                                      "status": "FAIL",
-                                                      "expected": "PASS"}),
-                                     ("test_end", {"test": test_id,
-                                                   "status": "OK"}),
-                                     run_info={"debug": True, "os": "windows"})
-        updater = self.create_updater(prev_data, ignore_existing=True)
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("test_status", {"test": test_id,
+                                        "subtest": "test1",
+                                        "status": "FAIL",
+                                        "expected": "PASS"}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"debug": True, "os": "windows"})
 
-        updater.update_from_log(new_data_0)
-        updater.update_from_log(new_data_1)
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
 
-        new_manifest = updater.expected_tree["path/to/test.htm.ini"]
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": True, "os": "osx"}) == "FAIL"
+    assert new_manifest.get_test(test_id).children[0].get(
+        "expected", {"debug": False, "os": "osx"}) == "NOTRUN"
 
-        self.coalesce_results([new_manifest])
 
-        self.assertFalse(new_manifest.is_empty)
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": True, "os": "osx"}), "FAIL")
-        self.assertEquals(new_manifest.get_test(test_id).children[0].get(
-            "expected", {"debug": False, "os": "osx"}), "FAIL")
+def test_update_assertion_count_0():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+  max-asserts: 4
+  min-asserts: 2
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 6,
+                                            "min_expected": 2,
+                                            "max_expected": 4}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).get("max-asserts") == 7
+    assert new_manifest.get_test(test_id).get("min-asserts") == 2
+
+
+def test_update_assertion_count_1():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+  max-asserts: 4
+  min-asserts: 2
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 1,
+                                            "min_expected": 2,
+                                            "max_expected": 4}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})])
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).get("max-asserts") == 4
+    assert new_manifest.get_test(test_id).has_key("min-asserts") is False
+
+
+def test_update_assertion_count_2():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+  max-asserts: 4
+  min-asserts: 2
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 3,
+                                            "min_expected": 2,
+                                            "max_expected": 4}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})])
+
+    updated = update(tests, log_0)
+    assert not updated
+
+
+def test_update_assertion_count_3():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]
+  max-asserts: 4
+  min-asserts: 2
+""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 6,
+                                            "min_expected": 2,
+                                            "max_expected": 4}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"os": "windows"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 7,
+                                            "min_expected": 2,
+                                            "max_expected": 4}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"os": "linux"})
+
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).get("max-asserts") == 8
+    assert new_manifest.get_test(test_id).get("min-asserts") == 2
+
+
+def test_update_assertion_count_4():
+    test_id = "/path/to/test.htm"
+    tests = [("path/to/test.htm", [test_id], "testharness", """[test.htm]""")]
+
+    log_0 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 6,
+                                            "min_expected": 0,
+                                            "max_expected": 0}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"os": "windows"})
+
+    log_1 = suite_log([("test_start", {"test": test_id}),
+                       ("assertion_count", {"test": test_id,
+                                            "count": 7,
+                                            "min_expected": 0,
+                                            "max_expected": 0}),
+                       ("test_end", {"test": test_id,
+                                     "status": "OK"})],
+                      run_info={"os": "linux"})
+
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get_test(test_id).get("max-asserts") == "8"
+    assert new_manifest.get_test(test_id).has_key("min-asserts") is False
+
+
+def test_update_lsan_0():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["foo", "bar"]})])
+
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("lsan-allowed") == ["foo"]
+
+
+def test_update_lsan_1():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, """
+lsan-allowed: [foo]""")]
+
+    log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["foo", "bar"]}),
+                       ("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["baz", "foobar"]})])
+
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("lsan-allowed") == ["baz", "foo"]
+
+
+def test_update_lsan_2():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/__dir__", ["path/__dir__"], None, """
+lsan-allowed: [foo]"""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["foo", "bar"],
+                                      "allowed_match": ["foo"]}),
+                       ("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["baz", "foobar"]})])
+
+
+    updated = update(tests, log_0)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("lsan-allowed") == ["baz"]
+
+
+def test_update_lsan_3():
+    test_id = "/path/to/test.htm"
+    dir_id = "path/to/__dir__"
+    tests = [("path/to/test.htm", [test_id], "testharness", ""),
+             ("path/to/__dir__", [dir_id], None, "")]
+
+    log_0 = suite_log([("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["foo", "bar"]})],
+                      run_info={"os": "win"})
+
+    log_1 = suite_log([("lsan_leak", {"scope": "path/to/",
+                                      "frames": ["baz", "foobar"]})],
+                      run_info={"os": "linux"})
+
+
+    updated = update(tests, log_0, log_1)
+    new_manifest = updated[0][1]
+
+    assert not new_manifest.is_empty
+    assert new_manifest.get("lsan-allowed") == ["baz", "foo"]
+
+
+def test_update_wptreport_0():
+    tests = [("path/to/test.htm", ["/path/to/test.htm"], "testharness",
+              """[test.htm]
+  [test1]
+    expected: FAIL""")]
+
+    log = {"run_info": {},
+           "results": [
+               {"test": "/path/to/test.htm",
+                "subtests": [{"name": "test1",
+                              "status": "PASS",
+                              "expected": "FAIL"}],
+                "status": "OK"}]}
+
+    updated = update(tests, log)
+
+    assert len(updated) == 1
+    assert updated[0][1].is_empty
+
+
+def test_update_wptreport_1():
+    tests = [("path/to/__dir__", ["path/to/__dir__"], None, "")]
+
+    log = {"run_info": {},
+           "results": [],
+           "lsan_leaks": [{"scope": "path/to/",
+                           "frames": ["baz", "foobar"]}]}
+
+    updated = update(tests, log)
+
+    assert len(updated) == 1
+    assert updated[0][1].get("lsan-allowed") == ["baz"]

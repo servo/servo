@@ -5,10 +5,7 @@
 #   docker ps # and look for the id of the image you just built
 #   docker tag <image> <tag>
 #   docker push <tag>
-# Edit tools/ci/taskgraph.py and update the docker_image = "<tag>" line
-# In the project root:
-#   ./wpt make-tasks
-# Commit the changes with .taskcluster.yml changes in a separate commit for easier review
+# Update the `image` specified in the project's .taskcluster.yml file
 
 
 #!/bin/bash

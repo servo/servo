@@ -28,70 +28,50 @@ Use a non-empty style attribute to get a non-empty CSSStyleDeclaration.
 <div id=log></div>
 
 <script>
-"use strict";
-var style_element, svg_element, xmlss_pi;
+'use strict';
 
-function doTest([html, dom, uievents, cssom]) {
-  style_element = document.getElementById('styleElement');
-  svg_element = document.getElementById('svgElement');
-  xmlss_pi = document.getElementById('xmlssPiIframe').contentDocument.firstChild;
+const waitForLoad = new Promise(r => { addEventListener('load', r); });
 
-  var idlArray = new IdlArray();
-  var svg = "interface SVGElement : Element {};";
-  idlArray.add_untested_idls(html + dom + svg);
-  idlArray.add_untested_idls(uievents, { only: [
-    'UIEvent',
-    'UIEventInit',
-    'MouseEvent',
-    'MouseEventInit',
-    'EventModifierInit'
-  ]});
-  idlArray.add_idls(cssom);
+idl_test(
+  ['cssom'],
+  ['SVG', 'uievents', 'html', 'dom'],
+  async idlArray => {
+    idlArray.add_objects({
+      Document: ['document', 'new Document()'],
+      StyleSheetList: ['document.styleSheets'],
+      CSSStyleSheet: ['sheet'],
+      MediaList: ['sheet.media'],
+      CSSRuleList: ['sheet.cssRules'],
+      CSSImportRule: ['sheet.cssRules[0]'],
+      CSSNamespaceRule: ['sheet.cssRules[1]'],
+      CSSPageRule: ['sheet.cssRules[2]'],
+      CSSMarginRule: ['sheet.cssRules[2].cssRules[0]'],
+      CSSMediaRule: ['sheet.cssRules[3]'],
+      CSSStyleRule: ['sheet.cssRules[4]'],
+      CSSStyleDeclaration: [
+        'sheet.cssRules[4].style', // CSSStyleRule
+        'sheet.cssRules[2].style', // CSSPageRule
+        'sheet.cssRules[2].cssRules[0].style', // CSSMarginRule
+        'style_element.style', // ElementCSSInlineStyle for HTMLElement
+        'svg_element.style', // ElementCSSInlineStyle for SVGElement
+        'getComputedStyle(svg_element)'
+      ],
+      ProcessingInstruction: ['xmlss_pi'],
+      Window: ['window'],
+      HTMLElement: [
+        'style_element',
+        'document.createElement("unknownelement")'
+      ],
+      SVGElement: ['svg_element'],
+    });
 
-  idlArray.add_objects({
-    "Document": ["document", "new Document()"],
-    "StyleSheetList": ["document.styleSheets"],
-    "CSSStyleSheet": ["style_element.sheet"],
-    "MediaList": ["style_element.sheet.media"],
-    "CSSRuleList": ["style_element.sheet.cssRules"],
-    "CSSImportRule": ["style_element.sheet.cssRules[0]"],
-    "CSSNamespaceRule": ["style_element.sheet.cssRules[1]"],
-    "CSSPageRule": ["style_element.sheet.cssRules[2]"],
-    "CSSMarginRule": ["style_element.sheet.cssRules[2].cssRules[0]"],
-    "CSSMediaRule": ["style_element.sheet.cssRules[3]"],
-    "CSSStyleRule": ["style_element.sheet.cssRules[4]"],
-    "CSSStyleDeclaration": ["style_element.sheet.cssRules[4].style", // CSSStyleRule
-                            "style_element.sheet.cssRules[2].style", // CSSPageRule
-                            "style_element.sheet.cssRules[2].cssRules[0].style", // CSSMarginRule
-                            "style_element.style", // ElementCSSInlineStyle for HTMLElement
-                            "svg_element.style", // ElementCSSInlineStyle for SVGElement
-                            "getComputedStyle(svg_element)"],
-    "ProcessingInstruction": ["xmlss_pi"],
-    "Window": ["window"],
-    "HTMLElement": ["style_element", "document.createElement('unknownelement')"],
-    "SVGElement": ["svg_element"],
-  });
-  idlArray.test();
-};
-
-function fetchData(url) {
-  return fetch(url).then((response) => response.text());
-}
-
-function waitForLoad() {
-  return new Promise(function(resolve) {
-    addEventListener("load", resolve);
-  });
-}
-
-promise_test(function() {
-  // Have to wait for onload
-  return Promise.all([fetchData("/interfaces/html.idl"),
-                      fetchData("/interfaces/dom.idl"),
-                      fetchData("/interfaces/uievents.idl"),
-                      fetchData("/interfaces/cssom.idl"),
-                      waitForLoad()])
-                .then(doTest);
-}, "Test driver");
+    await waitForLoad;
+    self.style_element = document.getElementById('styleElement');
+    self.sheet = style_element.sheet;
+    self.svg_element = document.getElementById('svgElement');
+    self.xmlss_pi = document.getElementById('xmlssPiIframe').contentDocument.firstChild;
+  },
+  'Test driver'
+);
 
 </script>

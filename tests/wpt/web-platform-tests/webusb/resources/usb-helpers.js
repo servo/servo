@@ -9,7 +9,7 @@
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
 let loadChromiumResources = Promise.resolve().then(() => {
-  if (!MojoInterfaceInterceptor) {
+  if (!('MojoInterfaceInterceptor' in self)) {
     // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
     // not present in the global namespace.
     return;

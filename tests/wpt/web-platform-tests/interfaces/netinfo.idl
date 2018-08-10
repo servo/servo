@@ -39,4 +39,7 @@ interface NetworkInformation : EventTarget {
   readonly attribute Millisecond rtt;
   readonly attribute boolean saveData;
   attribute EventHandler onchange;
-};typedef unrestricted double Megabit;typedef unsigned long long Millisecond;
+};
+
+typedef unrestricted double Megabit;
+typedef unsigned long long Millisecond;

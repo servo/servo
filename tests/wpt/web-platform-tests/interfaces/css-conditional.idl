@@ -1,6 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the CSS Conditional Rules spec.
-// See https://drafts.csswg.org/css-conditional/
+// Content of this file was automatically extracted from the
+// "CSS Conditional Rules Module Level 3" spec.
+// See: https://drafts.csswg.org/css-conditional-3/
 
 partial interface CSSRule {
     const unsigned short SUPPORTS_RULE = 12;
@@ -27,7 +28,7 @@ interface CSSMediaRule : CSSConditionRule {
 interface CSSSupportsRule : CSSConditionRule {
 };
 
-partial interface CSS {
-  static boolean supports(CSSOMString property, CSSOMString value);
-  static boolean supports(CSSOMString conditionText);
+partial namespace CSS {
+  boolean supports(CSSOMString property, CSSOMString value);
+  boolean supports(CSSOMString conditionText);
 };

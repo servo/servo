@@ -1,3 +1,9 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content of this file was automatically extracted from the
+// "Keyboard Map" spec.
+// See: https://wicg.github.io/keyboard-map/
+
+[Exposed=Window]
 partial interface Navigator {
   [SecureContext, SameObject] readonly attribute Keyboard keyboard;
 };
