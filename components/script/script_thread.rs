@@ -157,6 +157,8 @@ struct InProgressLoad {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The parent pipeline and frame type associated with this load, if any.
     parent_info: Option<PipelineId>,
+    /// The opener, if this is an auxiliary.
+    opener: Option<BrowsingContextId>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -183,6 +185,7 @@ impl InProgressLoad {
            browsing_context_id: BrowsingContextId,
            top_level_browsing_context_id: TopLevelBrowsingContextId,
            parent_info: Option<PipelineId>,
+           opener: Option<BrowsingContextId>,
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
@@ -195,6 +198,7 @@ impl InProgressLoad {
             browsing_context_id: browsing_context_id,
             top_level_browsing_context_id: top_level_browsing_context_id,
             parent_info: parent_info,
+            opener: opener,
             layout_chan: layout_chan,
             window_size: window_size,
             activity: DocumentActivity::FullyActive,
@@ -569,6 +573,7 @@ impl ScriptThreadFactory for ScriptThread {
             let browsing_context_id = state.browsing_context_id;
             let top_level_browsing_context_id = state.top_level_browsing_context_id;
             let parent_info = state.parent_info;
+            let opener = state.opener;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
             let script_thread = ScriptThread::new(state,
@@ -583,7 +588,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             let origin = MutableOrigin::new(load_data.url.origin());
             let new_load = InProgressLoad::new(id, browsing_context_id, top_level_browsing_context_id, parent_info,
-                                               layout_chan, window_size, load_data.url.clone(), origin);
+                                               opener, layout_chan, window_size, load_data.url.clone(), origin);
             script_thread.pre_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
@@ -706,6 +711,15 @@ impl ScriptThread {
         });
     }
 
+    pub fn get_top_level_for_browsing_context(sender_pipeline: PipelineId,
+                                              browsing_context_id: BrowsingContextId)
+                                              -> Option<TopLevelBrowsingContextId> {
+        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+            script_thread.ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
+        }))
+    }
+
     pub fn find_document(id: PipelineId) -> Option<DomRoot<Document>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
@@ -718,6 +732,18 @@ impl ScriptThread {
             let script_thread = unsafe { &*script_thread };
             script_thread.window_proxies.borrow().get(&id)
                 .map(|context| DomRoot::from_ref(&**context))
+        }))
+    }
+
+    pub fn find_window_proxy_by_name(name: &DOMString) -> Option<DomRoot<WindowProxy>> {
+        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+            for (_, proxy) in script_thread.window_proxies.borrow().iter() {
+                if proxy.get_name() == *name {
+                    return Some(DomRoot::from_ref(&**proxy))
+                }
+            }
+            None
         }))
     }
 
@@ -1541,6 +1567,7 @@ impl ScriptThread {
             new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
+            opener,
             load_data,
             window_size,
             pipeline_port,
@@ -1585,6 +1612,7 @@ impl ScriptThread {
                                            browsing_context_id,
                                            top_level_browsing_context_id,
                                            parent_info,
+                                           opener,
                                            layout_chan,
                                            window_size,
                                            load_data.url.clone(),
@@ -2013,6 +2041,16 @@ impl ScriptThread {
         result_receiver.recv().expect("Failed to get frame id from constellation.")
     }
 
+    fn ask_constellation_for_top_level_info(&self,
+                                            sender_pipeline: PipelineId,
+                                            browsing_context_id: BrowsingContextId)
+                                            -> Option<TopLevelBrowsingContextId> {
+        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let msg = ScriptMsg::GetTopForBrowsingContext(browsing_context_id, result_sender);
+        self.script_sender.send((sender_pipeline, msg)).expect("Failed to send to constellation.");
+        result_receiver.recv().expect("Failed to get top-level id from constellation.")
+    }
+
     // Get the browsing context for a pipeline that may exist in another
     // script thread.  If the browsing context already exists in the
     // `window_proxies` map, we return it, otherwise we recursively
@@ -2022,7 +2060,8 @@ impl ScriptThread {
     fn remote_window_proxy(&self,
                            global_to_clone: &GlobalScope,
                            top_level_browsing_context_id: TopLevelBrowsingContextId,
-                           pipeline_id: PipelineId)
+                           pipeline_id: PipelineId,
+                           opener: Option<BrowsingContextId>)
                            -> Option<DomRoot<WindowProxy>>
     {
         let browsing_context_id = self.ask_constellation_for_browsing_context_id(pipeline_id)?;
@@ -2030,12 +2069,13 @@ impl ScriptThread {
             return Some(DomRoot::from_ref(window_proxy));
         }
         let parent = self.ask_constellation_for_parent_info(pipeline_id).and_then(|parent_id| {
-            self.remote_window_proxy(global_to_clone, top_level_browsing_context_id, parent_id)
+            self.remote_window_proxy(global_to_clone, top_level_browsing_context_id, parent_id, opener)
         });
         let window_proxy = WindowProxy::new_dissimilar_origin(global_to_clone,
                                                               browsing_context_id,
                                                               top_level_browsing_context_id,
-                                                              parent.r());
+                                                              parent.r(),
+                                                              opener);
         self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         Some(window_proxy)
     }
@@ -2050,7 +2090,8 @@ impl ScriptThread {
                           window: &Window,
                           browsing_context_id: BrowsingContextId,
                           top_level_browsing_context_id: TopLevelBrowsingContextId,
-                          parent_info: Option<PipelineId>)
+                          parent_info: Option<PipelineId>,
+                          opener: Option<BrowsingContextId>)
                           -> DomRoot<WindowProxy>
     {
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
@@ -2063,15 +2104,17 @@ impl ScriptThread {
         let parent = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
             (Some(parent_id), _) => self.remote_window_proxy(window.upcast(),
-                                                              top_level_browsing_context_id,
-                                                              parent_id),
+                                                             top_level_browsing_context_id,
+                                                             parent_id,
+                                                             opener),
             _ => None,
         };
         let window_proxy = WindowProxy::new(&window,
                                             browsing_context_id,
                                             top_level_browsing_context_id,
                                             iframe.r().map(Castable::upcast),
-                                            parent.r());
+                                            parent.r(),
+                                            opener);
         self.window_proxies.borrow_mut().insert(browsing_context_id, Dom::from_ref(&*window_proxy));
         window_proxy
     }
@@ -2150,7 +2193,8 @@ impl ScriptThread {
         let window_proxy = self.local_window_proxy(&window,
                                                    incomplete.browsing_context_id,
                                                    incomplete.top_level_browsing_context_id,
-                                                   incomplete.parent_info);
+                                                   incomplete.parent_info,
+                                                   incomplete.opener);
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use AnimationState;
+use AuxiliaryBrowsingContextLoadInfo;
 use DocumentState;
 use IFrameLoadInfo;
 use IFrameLoadInfoWithData;
@@ -16,7 +17,8 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
@@ -104,6 +106,8 @@ pub enum ScriptMsg {
     GetBrowsingContextId(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the parent info for a given pipeline.
     GetParentInfo(PipelineId, IpcSender<Option<PipelineId>>),
+    /// Get the top-level browsing context info for a given browsing context.
+    GetTopForBrowsingContext(BrowsingContextId, IpcSender<Option<TopLevelBrowsingContextId>>),
     /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
     GetChildBrowsingContextId(BrowsingContextId, usize, IpcSender<Option<BrowsingContextId>>),
     /// All pending loads are complete, and the `load` event for this pipeline
@@ -137,6 +141,8 @@ pub enum ScriptMsg {
     ScriptLoadedURLInIFrame(IFrameLoadInfoWithData),
     /// A load of the initial `about:blank` has been completed in an IFrame.
     ScriptNewIFrame(IFrameLoadInfo, IpcSender<LayoutControlMsg>),
+    /// Script has opened a new auxiliary browsing context.
+    ScriptNewAuxiliary(AuxiliaryBrowsingContextLoadInfo, IpcSender<LayoutControlMsg>),
     /// Requests that the constellation set the contents of the clipboard
     SetClipboardContents(String),
     /// Mark a new document as active
@@ -181,6 +187,7 @@ impl fmt::Debug for ScriptMsg {
             GetClipboardContents(..) => "GetClipboardContents",
             GetBrowsingContextId(..) => "GetBrowsingContextId",
             GetParentInfo(..) => "GetParentInfo",
+            GetTopForBrowsingContext(..) => "GetParentBrowsingContext",
             GetChildBrowsingContextId(..) => "GetChildBrowsingContextId",
             LoadComplete => "LoadComplete",
             LoadUrl(..) => "LoadUrl",
@@ -196,6 +203,7 @@ impl fmt::Debug for ScriptMsg {
             VisibilityChangeComplete(..) => "VisibilityChangeComplete",
             ScriptLoadedURLInIFrame(..) => "ScriptLoadedURLInIFrame",
             ScriptNewIFrame(..) => "ScriptNewIFrame",
+            ScriptNewAuxiliary(..) => "ScriptNewAuxiliary",
             SetClipboardContents(..) => "SetClipboardContents",
             ActivateDocument => "ActivateDocument",
             SetDocumentState(..) => "SetDocumentState",

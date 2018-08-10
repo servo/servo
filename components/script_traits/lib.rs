@@ -193,6 +193,8 @@ pub struct NewLayoutInfo {
     pub browsing_context_id: BrowsingContextId,
     /// Id of the top-level browsing context associated with this pipeline.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    /// Id of the opener, if any
+    pub opener: Option<BrowsingContextId>,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// Information about the initial window size.
@@ -521,6 +523,8 @@ pub struct InitialScriptState {
     pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level browsing context this script is part of.
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
+    /// The ID of the opener, if any.
+    pub opener: Option<BrowsingContextId>,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
@@ -574,6 +578,19 @@ pub enum IFrameSandboxState {
     IFrameSandboxed,
     /// Sandbox attribute is not present
     IFrameUnsandboxed,
+}
+
+/// Specifies the information required to load an auxiliary browsing context.
+#[derive(Deserialize, Serialize)]
+pub struct AuxiliaryBrowsingContextLoadInfo {
+    /// The pipeline opener browsing context.
+    pub opener_pipeline_id: PipelineId,
+    /// The new top-level ID for the auxiliary.
+    pub new_top_level_browsing_context_id: TopLevelBrowsingContextId,
+    /// The new browsing context ID.
+    pub new_browsing_context_id: BrowsingContextId,
+    /// The new pipeline ID for the auxiliary.
+    pub new_pipeline_id: PipelineId,
 }
 
 /// Specifies the information required to load an iframe.
@@ -700,7 +717,7 @@ pub enum ConstellationMsg {
     /// Dispatch WebVR events to the subscribed script threads.
     WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
     /// Create a new top level browsing context.
-    NewBrowser(ServoUrl, IpcSender<TopLevelBrowsingContextId>),
+    NewBrowser(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context.
     CloseBrowser(TopLevelBrowsingContextId),
     /// Panic a top level browsing context.

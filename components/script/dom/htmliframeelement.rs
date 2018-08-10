@@ -76,6 +76,7 @@ pub struct HTMLIFrameElement {
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DomRefCell<Option<LoadBlocker>>,
     visibility: Cell<bool>,
+    name: DomRefCell<DOMString>,
 }
 
 impl HTMLIFrameElement {
@@ -177,6 +178,7 @@ impl HTMLIFrameElement {
                     new_pipeline_id: new_pipeline_id,
                     browsing_context_id: browsing_context_id,
                     top_level_browsing_context_id: top_level_browsing_context_id,
+                    opener: None,
                     load_data: load_data.unwrap(),
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
@@ -220,6 +222,16 @@ impl HTMLIFrameElement {
                 window.upcast(),
             );
             return;
+        }
+
+        // https://html.spec.whatwg.org/multipage/#attr-iframe-name
+        // Note: the spec says to set the name 'when the nested browsing context is created'.
+        // The current implementation sets the name on the window,
+        // when the iframe attributes are first processed.
+        if mode == ProcessingMode::FirstTime {
+            if let Some(window) = self.GetContentWindow() {
+                window.set_name(self.name.borrow().clone())
+            }
         }
 
         let url = self.get_url();
@@ -298,6 +310,7 @@ impl HTMLIFrameElement {
             sandbox_allowance: Cell::new(None),
             load_blocker: DomRefCell::new(None),
             visibility: Cell::new(true),
+            name: DomRefCell::new(DOMString::new())
         }
     }
 
@@ -470,6 +483,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-name
     fn SetName(&self, name: DOMString) {
+        *self.name.borrow_mut() = name.clone();
         if let Some(window) = self.GetContentWindow() {
             window.set_name(name)
         }
@@ -480,7 +494,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         if let Some(window) = self.GetContentWindow() {
             window.get_name()
         } else {
-            DOMString::new()
+            self.name.borrow().clone()
         }
     }
 }
