@@ -14,17 +14,18 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct ProgressEvent {
-    event: Event,
+pub struct ProgressEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     length_computable: bool,
     loaded: u64,
     total: u64
 }
 
-impl ProgressEvent {
-    fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
+impl<TH: TypeHolderTrait> ProgressEvent<TH> {
+    fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent<TH> {
         ProgressEvent {
             event: Event::new_inherited(),
             length_computable: length_computable,
@@ -32,27 +33,27 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<ProgressEvent> {
+    pub fn new_uninitialized(global: &GlobalScope<TH>) -> DomRoot<ProgressEvent<TH>> {
         reflect_dom_object(Box::new(ProgressEvent::new_inherited(false, 0, 0)),
                            global,
                            ProgressEventBinding::Wrap)
     }
-    pub fn new(global: &GlobalScope, type_: Atom,
+    pub fn new(global: &GlobalScope<TH>, type_: Atom,
                can_bubble: EventBubbles, cancelable: EventCancelable,
-               length_computable: bool, loaded: u64, total: u64) -> DomRoot<ProgressEvent> {
+               length_computable: bool, loaded: u64, total: u64) -> DomRoot<ProgressEvent<TH>> {
         let ev = reflect_dom_object(Box::new(ProgressEvent::new_inherited(length_computable, loaded, total)),
                                     global,
                                     ProgressEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bool::from(can_bubble), bool::from(cancelable));
         }
         ev
     }
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
-                       -> Fallible<DomRoot<ProgressEvent>> {
+                       -> Fallible<DomRoot<ProgressEvent<TH>>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         let ev = ProgressEvent::new(global, Atom::from(type_), bubbles, cancelable,
@@ -61,7 +62,7 @@ impl ProgressEvent {
     }
 }
 
-impl ProgressEventMethods for ProgressEvent {
+impl<TH: TypeHolderTrait> ProgressEventMethods for ProgressEvent<TH> {
     // https://xhr.spec.whatwg.org/#dom-progressevent-lengthcomputable
     fn LengthComputable(&self) -> bool {
         self.length_computable

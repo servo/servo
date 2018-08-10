@@ -14,10 +14,11 @@ use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct WebGLRenderbuffer {
-    webgl_object: WebGLObject,
+pub struct WebGLRenderbuffer<TH: TypeHolderTrait> {
+    webgl_object: WebGLObject<TH>,
     id: WebGLRenderbufferId,
     ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
@@ -25,8 +26,8 @@ pub struct WebGLRenderbuffer {
     internal_format: Cell<Option<u32>>,
 }
 
-impl WebGLRenderbuffer {
-    fn new_inherited(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> Self {
+impl<TH: TypeHolderTrait> WebGLRenderbuffer<TH> {
+    fn new_inherited(context: &WebGLRenderingContext<TH>, id: WebGLRenderbufferId) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id: id,
@@ -37,13 +38,13 @@ impl WebGLRenderbuffer {
         }
     }
 
-    pub fn maybe_new(context: &WebGLRenderingContext) -> Option<DomRoot<Self>> {
+    pub fn maybe_new(context: &WebGLRenderingContext<TH>) -> Option<DomRoot<Self>> {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateRenderbuffer(sender));
         receiver.recv().unwrap().map(|id| WebGLRenderbuffer::new(context, id))
     }
 
-    pub fn new(context: &WebGLRenderingContext, id: WebGLRenderbufferId) -> DomRoot<Self> {
+    pub fn new(context: &WebGLRenderingContext<TH>, id: WebGLRenderbufferId) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(WebGLRenderbuffer::new_inherited(context, id)),
             &*context.global(),
@@ -53,7 +54,7 @@ impl WebGLRenderbuffer {
 }
 
 
-impl WebGLRenderbuffer {
+impl<TH: TypeHolderTrait> WebGLRenderbuffer<TH> {
     pub fn id(&self) -> WebGLRenderbufferId {
         self.id
     }
@@ -68,7 +69,7 @@ impl WebGLRenderbuffer {
 
     pub fn bind(&self, target: u32) {
         self.ever_bound.set(true);
-        self.upcast::<WebGLObject>()
+        self.upcast::<WebGLObject<TH>>()
             .context()
             .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
     }
@@ -76,7 +77,7 @@ impl WebGLRenderbuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            self.upcast::<WebGLObject>()
+            self.upcast::<WebGLObject<TH>>()
                 .context()
                 .send_command(WebGLCommand::DeleteRenderbuffer(self.id));
         }
@@ -122,7 +123,7 @@ impl WebGLRenderbuffer {
 
         // FIXME: Invalidate completeness after the call
 
-        self.upcast::<WebGLObject>().context().send_command(
+        self.upcast::<WebGLObject<TH>>().context().send_command(
             WebGLCommand::RenderbufferStorage(
                 constants::RENDERBUFFER,
                 actual_format,

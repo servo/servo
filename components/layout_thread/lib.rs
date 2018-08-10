@@ -51,6 +51,11 @@ extern crate style;
 extern crate style_traits;
 extern crate time as std_time;
 extern crate webrender_api;
+#[macro_use]
+extern crate jstraceable_derive;
+#[macro_use] extern crate malloc_size_of_derive;
+extern crate mozjs as js;
+extern crate script_servoparser;
 
 mod dom_wrapper;
 

@@ -12,29 +12,33 @@ use dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use dom_struct::dom_struct;
 use euclid::TypedSize2D;
 use style_traits::CSSPixel;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct PaintSize {
-    reflector: Reflector,
+pub struct PaintSize<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
     width: Finite<f64>,
     height: Finite<f64>,
+    _p: PhantomData<TH>,
 }
 
-impl PaintSize {
-    fn new_inherited(size: TypedSize2D<f32, CSSPixel>) -> PaintSize {
+impl<TH: TypeHolderTrait> PaintSize<TH> {
+    fn new_inherited(size: TypedSize2D<f32, CSSPixel>) -> PaintSize<TH> {
         PaintSize {
             reflector: Reflector::new(),
             width: Finite::wrap(size.width as f64),
             height: Finite::wrap(size.height as f64),
+            _p: Default::default(),
         }
     }
 
-    pub fn new(global: &PaintWorkletGlobalScope, size: TypedSize2D<f32, CSSPixel>) -> DomRoot<PaintSize> {
+    pub fn new(global: &PaintWorkletGlobalScope<TH>, size: TypedSize2D<f32, CSSPixel>) -> DomRoot<PaintSize<TH>> {
         reflect_dom_object(Box::new(PaintSize::new_inherited(size)), global, PaintSizeBinding::Wrap)
     }
 }
 
-impl PaintSizeMethods for PaintSize {
+impl<TH: TypeHolderTrait> PaintSizeMethods for PaintSize<TH> {
     /// <https://drafts.css-houdini.org/css-paint-api/#paintsize>
     fn Width(&self) -> Finite<f64> {
         self.width

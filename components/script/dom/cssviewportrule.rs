@@ -13,16 +13,17 @@ use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, ToCssWithGuard};
 use style::stylesheets::ViewportRule;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CSSViewportRule {
-    cssrule: CSSRule,
+pub struct CSSViewportRule<TH: TypeHolderTrait> {
+    cssrule: CSSRule<TH>,
     #[ignore_malloc_size_of = "Arc"]
     viewportrule: Arc<Locked<ViewportRule>>,
 }
 
-impl CSSViewportRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, viewportrule: Arc<Locked<ViewportRule>>) -> CSSViewportRule {
+impl<TH: TypeHolderTrait> CSSViewportRule<TH> {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet<TH>, viewportrule: Arc<Locked<ViewportRule>>) -> CSSViewportRule<TH> {
         CSSViewportRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             viewportrule: viewportrule,
@@ -30,15 +31,15 @@ impl CSSViewportRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               viewportrule: Arc<Locked<ViewportRule>>) -> DomRoot<CSSViewportRule> {
+    pub fn new(window: &Window<TH>, parent_stylesheet: &CSSStyleSheet<TH>,
+               viewportrule: Arc<Locked<ViewportRule>>) -> DomRoot<Self> {
         reflect_dom_object(Box::new(CSSViewportRule::new_inherited(parent_stylesheet, viewportrule)),
                            window,
                            CSSViewportRuleBinding::Wrap)
     }
 }
 
-impl SpecificCSSRule for CSSViewportRule {
+impl<TH: TypeHolderTrait> SpecificCSSRule for CSSViewportRule<TH> {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
         CSSRuleConstants::VIEWPORT_RULE

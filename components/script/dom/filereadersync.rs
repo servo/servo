@@ -16,20 +16,21 @@ use js::jsapi::{JSContext, JSObject};
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::ptr;
 use std::ptr::NonNull;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct FileReaderSync {
-    reflector: Reflector,
+pub struct FileReaderSync<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
 }
 
-impl FileReaderSync {
-    pub fn new_inherited() -> FileReaderSync {
+impl<TH: TypeHolderTrait> FileReaderSync<TH> {
+    pub fn new_inherited() -> FileReaderSync<TH> {
         FileReaderSync {
             reflector: Reflector::new(),
         }
     }
 
-    pub fn new(global: &GlobalScope) -> DomRoot<FileReaderSync> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<FileReaderSync<TH>> {
         reflect_dom_object(
             Box::new(FileReaderSync::new_inherited()),
             global,
@@ -37,18 +38,18 @@ impl FileReaderSync {
         )
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<FileReaderSync>> {
+    pub fn Constructor(global: &GlobalScope<TH>) -> Fallible<DomRoot<FileReaderSync<TH>>> {
         Ok(FileReaderSync::new(global))
     }
 
-    fn get_blob_bytes(blob: &Blob) -> Result<Vec<u8>, Error> {
+    fn get_blob_bytes(blob: &Blob<TH>) -> Result<Vec<u8>, Error> {
         blob.get_bytes().map_err(|_| Error::NotReadable)
     }
 }
 
-impl FileReaderSyncMethods for FileReaderSync {
+impl<TH: TypeHolderTrait> FileReaderSyncMethods<TH> for FileReaderSync<TH> {
     // https://w3c.github.io/FileAPI/#readAsBinaryStringSyncSection
-    fn ReadAsBinaryString(&self, blob: &Blob) -> Fallible<DOMString> {
+    fn ReadAsBinaryString(&self, blob: &Blob<TH>) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
@@ -57,7 +58,7 @@ impl FileReaderSyncMethods for FileReaderSync {
     }
 
     // https://w3c.github.io/FileAPI/#readAsTextSync
-    fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>) -> Fallible<DOMString> {
+    fn ReadAsText(&self, blob: &Blob<TH>, label: Option<DOMString>) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
@@ -72,7 +73,7 @@ impl FileReaderSyncMethods for FileReaderSync {
     }
 
     // https://w3c.github.io/FileAPI/#readAsDataURLSync-section
-    fn ReadAsDataURL(&self, blob: &Blob) -> Fallible<DOMString> {
+    fn ReadAsDataURL(&self, blob: &Blob<TH>) -> Fallible<DOMString> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;
 
@@ -88,7 +89,7 @@ impl FileReaderSyncMethods for FileReaderSync {
     unsafe fn ReadAsArrayBuffer(
         &self,
         cx: *mut JSContext,
-        blob: &Blob,
+        blob: &Blob<TH>,
     ) -> Fallible<NonNull<JSObject>> {
         // step 1
         let blob_contents = FileReaderSync::get_blob_bytes(blob)?;

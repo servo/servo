@@ -14,14 +14,17 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct TestBindingPairIterable {
-    reflector: Reflector,
+pub struct TestBindingPairIterable<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
     map: DomRefCell<Vec<(DOMString, u32)>>,
+    _p: PhantomData<TH>,
 }
 
-impl Iterable for TestBindingPairIterable {
+impl<TH: TypeHolderTrait> Iterable for TestBindingPairIterable<TH> {
     type Key = DOMString;
     type Value = u32;
     fn get_iterable_length(&self) -> u32 {
@@ -35,20 +38,21 @@ impl Iterable for TestBindingPairIterable {
     }
 }
 
-impl TestBindingPairIterable {
-    fn new(global: &GlobalScope) -> DomRoot<TestBindingPairIterable> {
+impl<TH: TypeHolderTrait> TestBindingPairIterable<TH> {
+    fn new(global: &GlobalScope<TH>) -> DomRoot<TestBindingPairIterable<TH>> {
         reflect_dom_object(Box::new(TestBindingPairIterable {
             reflector: Reflector::new(),
             map: DomRefCell::new(vec![]),
+            _p: Default::default(),
         }), global, TestBindingPairIterableBinding::TestBindingPairIterableWrap)
     }
 
-    pub fn Constructor(global: &GlobalScope) -> Fallible<DomRoot<TestBindingPairIterable>> {
+    pub fn Constructor(global: &GlobalScope<TH>) -> Fallible<DomRoot<TestBindingPairIterable<TH>>> {
         Ok(TestBindingPairIterable::new(global))
     }
 }
 
-impl TestBindingPairIterableMethods for TestBindingPairIterable {
+impl<TH: TypeHolderTrait> TestBindingPairIterableMethods for TestBindingPairIterable<TH> {
     fn Add(&self, key: DOMString, value: u32) {
         self.map.borrow_mut().push((key, value));
     }

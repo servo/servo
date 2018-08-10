@@ -16,15 +16,16 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct OfflineAudioCompletionEvent {
-    event: Event,
-    rendered_buffer: Dom<AudioBuffer>,
+pub struct OfflineAudioCompletionEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
+    rendered_buffer: Dom<AudioBuffer<TH>>,
 }
 
-impl OfflineAudioCompletionEvent {
-    pub fn new_inherited(rendered_buffer: &AudioBuffer) -> OfflineAudioCompletionEvent {
+impl<TH: TypeHolderTrait> OfflineAudioCompletionEvent<TH> {
+    pub fn new_inherited(rendered_buffer: &AudioBuffer<TH>) -> OfflineAudioCompletionEvent<TH> {
         OfflineAudioCompletionEvent {
             event: Event::new_inherited(),
             rendered_buffer: Dom::from_ref(rendered_buffer),
@@ -32,26 +33,26 @@ impl OfflineAudioCompletionEvent {
     }
 
     pub fn new(
-        window: &Window,
+        window: &Window<TH>,
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        rendered_buffer: &AudioBuffer,
-    ) -> DomRoot<OfflineAudioCompletionEvent> {
+        rendered_buffer: &AudioBuffer<TH>,
+    ) -> DomRoot<OfflineAudioCompletionEvent<TH>> {
         let event = Box::new(OfflineAudioCompletionEvent::new_inherited(rendered_buffer));
         let ev = reflect_dom_object(event, window, OfflineAudioCompletionEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         }
         ev
     }
 
     pub fn Constructor(
-        window: &Window,
+        window: &Window<TH>,
         type_: DOMString,
-        init: &OfflineAudioCompletionEventInit,
-    ) -> Fallible<DomRoot<OfflineAudioCompletionEvent>> {
+        init: &OfflineAudioCompletionEventInit<TH>,
+    ) -> Fallible<DomRoot<OfflineAudioCompletionEvent<TH>>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(OfflineAudioCompletionEvent::new(
@@ -64,9 +65,9 @@ impl OfflineAudioCompletionEvent {
     }
 }
 
-impl OfflineAudioCompletionEventMethods for OfflineAudioCompletionEvent {
+impl<TH: TypeHolderTrait> OfflineAudioCompletionEventMethods<TH> for OfflineAudioCompletionEvent<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-offlineaudiocompletionevent-renderedbuffer
-    fn RenderedBuffer(&self) -> DomRoot<AudioBuffer> {
+    fn RenderedBuffer(&self) -> DomRoot<AudioBuffer<TH>> {
         DomRoot::from_ref(&*self.rendered_buffer)
     }
 

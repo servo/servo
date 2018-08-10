@@ -10,27 +10,31 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct WebGLActiveInfo {
-    reflector_: Reflector,
+pub struct WebGLActiveInfo<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     size: i32,
     // NOTE: `ty` stands for `type`, which is a reserved keyword
     ty: u32,
     name: DOMString,
+    _p: PhantomData<TH>,
 }
 
-impl WebGLActiveInfo {
-    fn new_inherited(size: i32, ty: u32, name: DOMString) -> WebGLActiveInfo {
+impl<TH: TypeHolderTrait> WebGLActiveInfo<TH> {
+    fn new_inherited(size: i32, ty: u32, name: DOMString) -> WebGLActiveInfo<TH> {
         WebGLActiveInfo {
             reflector_: Reflector::new(),
             size: size,
             ty: ty,
             name: name,
+            _p: Default::default(),
         }
     }
 
-    pub fn new(window: &Window, size: i32, ty: u32, name: DOMString) -> DomRoot<WebGLActiveInfo> {
+    pub fn new(window: &Window<TH>, size: i32, ty: u32, name: DOMString) -> DomRoot<WebGLActiveInfo<TH>> {
         reflect_dom_object(
             Box::new(WebGLActiveInfo::new_inherited(size, ty, name)),
             window,
@@ -39,7 +43,7 @@ impl WebGLActiveInfo {
     }
 }
 
-impl WebGLActiveInfoMethods for WebGLActiveInfo {
+impl<TH: TypeHolderTrait> WebGLActiveInfoMethods for WebGLActiveInfo<TH> {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1
     fn Size(&self) -> i32 {
         self.size

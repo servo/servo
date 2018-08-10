@@ -11,32 +11,36 @@ use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct StyleSheet {
-    reflector_: Reflector,
+pub struct StyleSheet<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     type_: DOMString,
     href: Option<DOMString>,
     title: Option<DOMString>,
+    _p: PhantomData<TH>,
 }
 
-impl StyleSheet {
+impl<TH: TypeHolderTrait> StyleSheet<TH> {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(type_: DOMString,
                          href: Option<DOMString>,
-                         title: Option<DOMString>) -> StyleSheet {
+                         title: Option<DOMString>) -> StyleSheet<TH> {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
             href: href,
             title: title,
+            _p: Default::default(),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, type_: DOMString,
+    pub fn new(window: &Window<TH>, type_: DOMString,
                href: Option<DOMString>,
-               title: Option<DOMString>) -> DomRoot<StyleSheet> {
+               title: Option<DOMString>) -> DomRoot<StyleSheet<TH>> {
         reflect_dom_object(Box::new(StyleSheet::new_inherited(type_, href, title)),
                            window,
                            StyleSheetBinding::Wrap)
@@ -44,7 +48,7 @@ impl StyleSheet {
 }
 
 
-impl StyleSheetMethods for StyleSheet {
+impl<TH: TypeHolderTrait> StyleSheetMethods for StyleSheet<TH> {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-type
     fn Type_(&self) -> DOMString {
         self.type_.clone()
@@ -62,11 +66,11 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
     fn Disabled(&self) -> bool {
-        self.downcast::<CSSStyleSheet>().unwrap().disabled()
+        self.downcast::<CSSStyleSheet<TH>>().unwrap().disabled()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
     fn SetDisabled(&self, disabled: bool) {
-        self.downcast::<CSSStyleSheet>().unwrap().set_disabled(disabled)
+        self.downcast::<CSSStyleSheet<TH>>().unwrap().set_disabled(disabled)
     }
 }

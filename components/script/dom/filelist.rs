@@ -10,17 +10,18 @@ use dom::file::File;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use std::slice::Iter;
+use typeholder::TypeHolderTrait;
 
 // https://w3c.github.io/FileAPI/#dfn-filelist
 #[dom_struct]
-pub struct FileList {
-    reflector_: Reflector,
-    list: Vec<Dom<File>>
+pub struct FileList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    list: Vec<Dom<File<TH>>>
 }
 
-impl FileList {
+impl<TH: TypeHolderTrait> FileList<TH> {
     #[allow(unrooted_must_root)]
-    fn new_inherited(files: Vec<Dom<File>>) -> FileList {
+    fn new_inherited(files: Vec<Dom<File<TH>>>) -> FileList<TH> {
         FileList {
             reflector_: Reflector::new(),
             list: files
@@ -28,25 +29,25 @@ impl FileList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, files: Vec<DomRoot<File>>) -> DomRoot<FileList> {
+    pub fn new(window: &Window<TH>, files: Vec<DomRoot<File<TH>>>) -> DomRoot<FileList<TH>> {
         reflect_dom_object(Box::new(FileList::new_inherited(files.iter().map(|r| Dom::from_ref(&**r)).collect())),
                            window,
                            FileListBinding::Wrap)
     }
 
-    pub fn iter_files(&self) -> Iter<Dom<File>> {
+    pub fn iter_files(&self) -> Iter<Dom<File<TH>>> {
         self.list.iter()
     }
 }
 
-impl FileListMethods for FileList {
+impl<TH: TypeHolderTrait> FileListMethods<TH> for FileList<TH> {
     // https://w3c.github.io/FileAPI/#dfn-length
     fn Length(&self) -> u32 {
         self.list.len() as u32
     }
 
     // https://w3c.github.io/FileAPI/#dfn-item
-    fn Item(&self, index: u32) -> Option<DomRoot<File>> {
+    fn Item(&self, index: u32) -> Option<DomRoot<File<TH>>> {
         if (index as usize) < self.list.len() {
             Some(DomRoot::from_ref(&*(self.list[index as usize])))
         } else {
@@ -55,7 +56,7 @@ impl FileListMethods for FileList {
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<File>> {
+    fn IndexedGetter(&self, index: u32) -> Option<DomRoot<File<TH>>> {
         self.Item(index)
     }
 }

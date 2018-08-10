@@ -4,27 +4,34 @@
 
 #![allow(unrooted_must_root)]
 
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::trace::JSTraceable;
-use dom::document::Document;
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::node::Node;
-use dom::servoparser::{ParsingAlgorithm, Sink};
+use script::dom::bindings::root::{Dom, DomRoot};
+use script::dom::bindings::trace::JSTraceable;
+use script::dom::document::Document;
+use script::dom::htmlscriptelement::HTMLScriptElement;
+use script::dom::node::Node;
+use script::dom::servoparser::{ParsingAlgorithm, Sink, TokenizerTrait};
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use xml5ever::buffer_queue::BufferQueue;
 use xml5ever::tokenizer::XmlTokenizer;
 use xml5ever::tree_builder::{Tracer as XmlTracer, XmlTreeBuilder};
+use std::marker::PhantomData;
+use script;
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[base = "script"]
 #[must_root]
-pub struct Tokenizer {
+pub struct Tokenizer{
     #[ignore_malloc_size_of = "Defined in xml5ever"]
-    inner: XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>>,
+    inner: XmlTokenizer<XmlTreeBuilder<Dom<Node<super::TypeHolder>>, Sink<super::TypeHolder>>>,
 }
 
-impl Tokenizer {
-    pub fn new(document: &Document, url: ServoUrl) -> Self {
+impl TokenizerTrait<super::TypeHolder> for Tokenizer {
+    fn new(
+            document: &Document<super::TypeHolder>,
+            url: ServoUrl,
+            fragment_context: Option<super::FragmentContext<super::TypeHolder>>,
+            parsing_algorithm: ParsingAlgorithm) -> Self {
         let sink = Sink {
             base_url: url,
             document: Dom::from_ref(document),
@@ -41,7 +48,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement<super::TypeHolder>>> {
         if !input.is_empty() {
             while let Some(chunk) = input.pop_front() {
                 self.inner.feed(chunk);
@@ -58,31 +65,15 @@ impl Tokenizer {
         Ok(())
     }
 
-    pub fn end(&mut self) {
+    fn end(&mut self) {
         self.inner.end()
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    fn url(&self) -> &ServoUrl {
         &self.inner.sink.sink.base_url
     }
-}
 
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for XmlTokenizer<XmlTreeBuilder<Dom<Node>, Sink>> {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        struct Tracer(*mut JSTracer);
-        let tracer = Tracer(trc);
+    fn set_plaintext_state(&mut self) {
 
-        impl XmlTracer for Tracer {
-            type Handle = Dom<Node>;
-            #[allow(unrooted_must_root)]
-            fn trace_handle(&self, node: &Dom<Node>) {
-                unsafe { node.trace(self.0); }
-            }
-        }
-
-        let tree_builder = &self.sink;
-        tree_builder.trace_handles(&tracer);
-        tree_builder.sink.trace(trc);
     }
 }

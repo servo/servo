@@ -14,10 +14,12 @@ use dom_struct::dom_struct;
 use encoding_rs::{Decoder, DecoderResult, Encoding};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct TextDecoder {
-    reflector_: Reflector,
+pub struct TextDecoder<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     encoding: &'static Encoding,
     fatal: bool,
     ignoreBOM: bool,
@@ -25,10 +27,11 @@ pub struct TextDecoder {
     decoder: RefCell<Decoder>,
     in_stream: RefCell<Vec<u8>>,
     do_not_flush: Cell<bool>,
+    _p: PhantomData<TH>,
 }
 
-impl TextDecoder {
-    fn new_inherited(encoding: &'static Encoding, fatal: bool, ignoreBOM: bool) -> TextDecoder {
+impl<TH: TypeHolderTrait> TextDecoder<TH> {
+    fn new_inherited(encoding: &'static Encoding, fatal: bool, ignoreBOM: bool) -> TextDecoder<TH> {
         TextDecoder {
             reflector_: Reflector::new(),
             encoding: encoding,
@@ -39,25 +42,26 @@ impl TextDecoder {
             ),
             in_stream: RefCell::new(Vec::new()),
             do_not_flush: Cell::new(false),
+            _p: Default::default(),
         }
     }
 
-    fn make_range_error() -> Fallible<DomRoot<TextDecoder>> {
+    fn make_range_error() -> Fallible<DomRoot<TextDecoder<TH>>> {
         Err(Error::Range("The given encoding is not supported.".to_owned()))
     }
 
-    pub fn new(global: &GlobalScope, encoding: &'static Encoding, fatal: bool, ignoreBOM: bool)
-            -> DomRoot<TextDecoder> {
+    pub fn new(global: &GlobalScope<TH>, encoding: &'static Encoding, fatal: bool, ignoreBOM: bool)
+            -> DomRoot<TextDecoder<TH>> {
         reflect_dom_object(Box::new(TextDecoder::new_inherited(encoding, fatal, ignoreBOM)),
                            global,
                            TextDecoderBinding::Wrap)
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textdecoder>
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        label: DOMString,
                        options: &TextDecoderBinding::TextDecoderOptions)
-                            -> Fallible<DomRoot<TextDecoder>> {
+                            -> Fallible<DomRoot<TextDecoder<TH>>> {
         let encoding = match Encoding::for_label_no_replacement(label.as_bytes()) {
             None => return TextDecoder::make_range_error(),
             Some(enc) => enc
@@ -67,7 +71,7 @@ impl TextDecoder {
 }
 
 
-impl TextDecoderMethods for TextDecoder {
+impl<TH: TypeHolderTrait> TextDecoderMethods for TextDecoder<TH> {
     // https://encoding.spec.whatwg.org/#dom-textdecoder-encoding
     fn Encoding(&self) -> DOMString {
         DOMString::from(self.encoding.name().to_ascii_lowercase())

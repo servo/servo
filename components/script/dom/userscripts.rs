@@ -11,11 +11,11 @@ use servo_config::opts;
 use std::fs::{File, read_dir};
 use std::io::Read;
 use std::path::PathBuf;
+use typeholder::TypeHolderTrait;
 
-
-pub fn load_script(head: &HTMLHeadElement) {
+pub fn load_script<TH: TypeHolderTrait>(head: &HTMLHeadElement<TH>) {
     if let Some(ref path_str) = opts::get().userscripts {
-        let node = head.upcast::<Node>();
+        let node = head.upcast::<Node<TH>>();
         let doc = node.owner_doc();
         let win = doc.window();
         let cx = win.get_cx();
@@ -33,7 +33,7 @@ pub fn load_script(head: &HTMLHeadElement) {
             let mut contents = vec![];
             f.read_to_end(&mut contents).unwrap();
             let script_text = String::from_utf8_lossy(&contents);
-            win.upcast::<GlobalScope>().evaluate_js_on_global_with_result(&script_text, rval.handle_mut());
+            win.upcast::<GlobalScope<TH>>().evaluate_js_on_global_with_result(&script_text, rval.handle_mut());
         }
     }
 }

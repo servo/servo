@@ -12,27 +12,28 @@ use dom::document::Document;
 use dom::node::Node;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 /// An HTML comment.
 #[dom_struct]
-pub struct Comment {
-    characterdata: CharacterData,
+pub struct Comment<TH: TypeHolderTrait> {
+    characterdata: CharacterData<TH>,
 }
 
-impl Comment {
-    fn new_inherited(text: DOMString, document: &Document) -> Comment {
+impl<TH: TypeHolderTrait> Comment<TH> {
+    fn new_inherited(text: DOMString, document: &Document<TH>) -> Self {
         Comment {
             characterdata: CharacterData::new_inherited(text, document),
         }
     }
 
-    pub fn new(text: DOMString, document: &Document) -> DomRoot<Comment> {
-        Node::reflect_node(Box::new(Comment::new_inherited(text, document)),
+    pub fn new(text: DOMString, document: &Document<TH>) -> DomRoot<Self> {
+        Node::<TH>::reflect_node(Box::new(Comment::new_inherited(text, document)),
                            document,
                            CommentBinding::Wrap)
     }
 
-    pub fn Constructor(window: &Window, data: DOMString) -> Fallible<DomRoot<Comment>> {
+    pub fn Constructor(window: &Window<TH>, data: DOMString) -> Fallible<DomRoot<Self>> {
         let document = window.Document();
         Ok(Comment::new(data, &document))
     }

@@ -43,6 +43,7 @@ use script::layout_exports::{LayoutCharacterDataHelpers, LayoutDocumentHelpers};
 use script::layout_exports::{LayoutElementHelpers, LayoutNodeHelpers, LayoutDom, RawLayoutElementHelpers};
 use script::layout_exports::NodeFlags;
 use script::layout_exports::PendingRestyle;
+use script::typeholder::TypeHolderTrait;
 use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, TrustedNodeAddress};
 use script_layout_interface::{OpaqueStyleAndLayoutData, StyleData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
@@ -75,6 +76,10 @@ use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
 use style::stylist::CascadeData;
+use script::dom::bindings::trace::JSTraceable;
+use script::dom::bindings::inheritance::Castable;
+use script::dom::bindings::reflector::DomObject;
+use script_servoparser::TypeHolder;
 
 pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
     let ptr = data.ptr.as_ptr() as *mut StyleData;
@@ -85,7 +90,7 @@ pub unsafe fn drop_style_and_layout_data(data: OpaqueStyleAndLayoutData) {
 #[derive(Clone, Copy)]
 pub struct ServoLayoutNode<'a> {
     /// The wrapped node.
-    node: LayoutDom<Node>,
+    node: LayoutDom<Node<TypeHolder>>,
 
     /// Being chained to a PhantomData prevents `LayoutNode`s from escaping.
     chain: PhantomData<&'a ()>,
@@ -113,7 +118,7 @@ impl<'a> PartialEq for ServoLayoutNode<'a> {
 }
 
 impl<'ln> ServoLayoutNode<'ln> {
-    fn from_layout_js(n: LayoutDom<Node>) -> ServoLayoutNode<'ln> {
+    fn from_layout_js(n: LayoutDom<Node<TypeHolder>>) -> ServoLayoutNode<'ln> {
         ServoLayoutNode {
             node: n,
             chain: PhantomData,
@@ -125,7 +130,7 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     /// Creates a new layout node with the same lifetime as this layout node.
-    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutDom<Node>) -> ServoLayoutNode<'ln> {
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutDom<Node<TypeHolder>>) -> ServoLayoutNode<'ln> {
         ServoLayoutNode {
             node: *node,
             chain: self.chain,
@@ -304,7 +309,7 @@ impl<'le> GetLayoutData for ServoThreadSafeLayoutElement<'le> {
 impl<'ln> ServoLayoutNode<'ln> {
     /// Returns the interior of this node as a `LayoutDom`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    pub unsafe fn get_jsmanaged(&self) -> &LayoutDom<Node> {
+    pub unsafe fn get_jsmanaged(&self) -> &LayoutDom<Node<TypeHolder>> {
         &self.node
     }
 }
@@ -312,7 +317,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 // A wrapper around documents that ensures ayout can only ever access safe properties.
 #[derive(Clone, Copy)]
 pub struct ServoLayoutDocument<'ld> {
-    document: LayoutDom<Document>,
+    document: LayoutDom<Document<TypeHolder>>,
     chain: PhantomData<&'ld ()>,
 }
 
@@ -354,7 +359,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
         unsafe { self.document.style_shared_lock() }
     }
 
-    pub fn from_layout_js(doc: LayoutDom<Document>) -> ServoLayoutDocument<'ld> {
+    pub fn from_layout_js(doc: LayoutDom<Document<TypeHolder>>) -> ServoLayoutDocument<'ld> {
         ServoLayoutDocument {
             document: doc,
             chain: PhantomData,
@@ -365,7 +370,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
 /// A wrapper around elements that ensures layout can only ever access safe properties.
 #[derive(Clone, Copy)]
 pub struct ServoLayoutElement<'le> {
-    element: LayoutDom<Element>,
+    element: LayoutDom<Element<TypeHolder>>,
     chain: PhantomData<&'le ()>,
 }
 
@@ -599,7 +604,7 @@ impl<'le> Hash for ServoLayoutElement<'le> {
 impl<'le> Eq for ServoLayoutElement<'le> {}
 
 impl<'le> ServoLayoutElement<'le> {
-    fn from_layout_js(el: LayoutDom<Element>) -> ServoLayoutElement<'le> {
+    fn from_layout_js(el: LayoutDom<Element<TypeHolder>>) -> ServoLayoutElement<'le> {
         ServoLayoutElement {
             element: el,
             chain: PhantomData,
@@ -650,7 +655,7 @@ impl<'le> ServoLayoutElement<'le> {
     }
 }
 
-fn as_element<'le>(node: LayoutDom<Node>) -> Option<ServoLayoutElement<'le>> {
+fn as_element<'le>(node: LayoutDom<Node<TypeHolder>>) -> Option<ServoLayoutElement<'le>> {
     node.downcast().map(ServoLayoutElement::from_layout_js)
 }
 
@@ -879,7 +884,7 @@ impl<'ln> DangerousThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
 impl<'ln> ServoThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
-    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutDom<Node>) -> ServoThreadSafeLayoutNode<'ln> {
+    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutDom<Node<TypeHolder>>) -> ServoThreadSafeLayoutNode<'ln> {
         ServoThreadSafeLayoutNode {
             node: self.node.new_with_this_lifetime(node),
             pseudo: PseudoElementType::Normal,
@@ -896,7 +901,7 @@ impl<'ln> ServoThreadSafeLayoutNode<'ln> {
 
     /// Returns the interior of this node as a `LayoutDom`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    unsafe fn get_jsmanaged(&self) -> &LayoutDom<Node> {
+    unsafe fn get_jsmanaged(&self) -> &LayoutDom<Node<TypeHolder>> {
         self.node.get_jsmanaged()
     }
 }
@@ -956,7 +961,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
         unsafe {
-            let text: LayoutDom<Text> = match self.get_jsmanaged().downcast() {
+            let text: LayoutDom<Text<TypeHolder>> = match self.get_jsmanaged().downcast() {
                 Some(text) => text,
                 None => return false
             };
@@ -1022,13 +1027,13 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn get_colspan(&self) -> u32 {
         unsafe {
-            self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
+            self.get_jsmanaged().downcast::<Element<TypeHolder>>().unwrap().get_colspan()
         }
     }
 
     fn get_rowspan(&self) -> u32 {
         unsafe {
-            self.get_jsmanaged().downcast::<Element>().unwrap().get_rowspan()
+            self.get_jsmanaged().downcast::<Element<TypeHolder>>().unwrap().get_rowspan()
         }
     }
 }

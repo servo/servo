@@ -12,17 +12,18 @@ use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::fmt::{self, Display, Formatter};
+use typeholder::TypeHolderTrait;
 
 // https://w3c.github.io/permissions/#permissionstatus
 #[dom_struct]
-pub struct PermissionStatus {
-    eventtarget: EventTarget,
+pub struct PermissionStatus<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     state: Cell<PermissionState>,
     query: Cell<PermissionName>,
 }
 
-impl PermissionStatus {
-    pub fn new_inherited(query: PermissionName) -> PermissionStatus {
+impl<TH: TypeHolderTrait> PermissionStatus<TH> {
+    pub fn new_inherited(query: PermissionName) -> PermissionStatus<TH> {
         PermissionStatus {
             eventtarget: EventTarget::new_inherited(),
             state: Cell::new(PermissionState::Denied),
@@ -30,7 +31,7 @@ impl PermissionStatus {
         }
     }
 
-    pub fn new(global: &GlobalScope, query: &PermissionDescriptor) -> DomRoot<PermissionStatus> {
+    pub fn new(global: &GlobalScope<TH>,query: &PermissionDescriptor) -> DomRoot<PermissionStatus<TH>> {
         reflect_dom_object(Box::new(PermissionStatus::new_inherited(query.name)),
                            global,
                            PermissionStatusBinding::Wrap)
@@ -45,7 +46,7 @@ impl PermissionStatus {
     }
 }
 
-impl PermissionStatusMethods for PermissionStatus {
+impl<TH: TypeHolderTrait> PermissionStatusMethods<TH> for PermissionStatus<TH> {
     // https://w3c.github.io/permissions/#dom-permissionstatus-state
     fn State(&self) -> PermissionState {
         self.state.get()

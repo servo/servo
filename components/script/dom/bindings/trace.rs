@@ -123,6 +123,8 @@ use time::Duration;
 use uuid::Uuid;
 use webrender_api::{DocumentId, ImageKey};
 use webvr_traits::WebVRGamepadHand;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {
@@ -137,7 +139,7 @@ unsafe_no_jsmanaged_fields!(&'static Encoding);
 unsafe_no_jsmanaged_fields!(RefCell<Decoder>);
 unsafe_no_jsmanaged_fields!(RefCell<Vec<u8>>);
 
-unsafe_no_jsmanaged_fields!(Reflector);
+unsafe_no_jsmanaged_fields_generic!(Reflector<TH>);
 
 unsafe_no_jsmanaged_fields!(Duration);
 
@@ -157,7 +159,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
-pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+pub fn trace_reflector<TH: TypeHolderTrait>(tracer: *mut JSTracer, description: &str, reflector: &Reflector<TH>) {
     trace!("tracing reflector {}", description);
     trace_object(tracer, description, reflector.rootable())
 }
@@ -191,6 +193,12 @@ unsafe impl<T: JSTraceable> JSTraceable for ServoArc<T> {
 }
 
 unsafe impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        (**self).trace(trc)
+    }
+}
+
+unsafe impl<'a, T: JSTraceable + ?Sized> JSTraceable for &'a T {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
@@ -360,7 +368,7 @@ unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCache, PendingImageId);
 unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
-unsafe_no_jsmanaged_fields!(TrustedPromise);
+unsafe_no_jsmanaged_fields_generic!(TrustedPromise<TH>);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
@@ -673,6 +681,12 @@ unsafe impl JSTraceable for RwLock<SharedRt> {
 }
 
 unsafe impl JSTraceable for StyleLocked<MediaList> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl<TH> JSTraceable for PhantomData<TH> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }

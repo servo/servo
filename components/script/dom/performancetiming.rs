@@ -10,20 +10,21 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::document::Document;
 use dom::window::Window;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct PerformanceTiming {
-    reflector_: Reflector,
+pub struct PerformanceTiming<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     navigation_start: u64,
     navigation_start_precise: u64,
-    document: Dom<Document>,
+    document: Dom<Document<TH>>,
 }
 
-impl PerformanceTiming {
+impl<TH: TypeHolderTrait> PerformanceTiming<TH> {
     fn new_inherited(nav_start: u64,
                      nav_start_precise: u64,
-                     document: &Document)
-                         -> PerformanceTiming {
+                     document: &Document<TH>)
+                         -> PerformanceTiming<TH> {
         PerformanceTiming {
             reflector_: Reflector::new(),
             navigation_start: nav_start,
@@ -33,10 +34,10 @@ impl PerformanceTiming {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                navigation_start: u64,
                navigation_start_precise: u64)
-               -> DomRoot<PerformanceTiming> {
+               -> DomRoot<PerformanceTiming<TH>> {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise,
                                                       &window.Document());
@@ -46,7 +47,7 @@ impl PerformanceTiming {
     }
 }
 
-impl PerformanceTimingMethods for PerformanceTiming {
+impl<TH: TypeHolderTrait> PerformanceTimingMethods for PerformanceTiming<TH> {
     // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-navigationStart
     fn NavigationStart(&self) -> u64 {
         self.navigation_start
@@ -95,7 +96,7 @@ impl PerformanceTimingMethods for PerformanceTiming {
 }
 
 
-impl PerformanceTiming {
+impl<TH: TypeHolderTrait> PerformanceTiming<TH> {
     pub fn navigation_start_precise(&self) -> u64 {
         self.navigation_start_precise
     }

@@ -16,19 +16,20 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;
+use typeholder::TypeHolderTrait;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
 
 #[dom_struct]
-pub struct SVGSVGElement {
-    svggraphicselement: SVGGraphicsElement
+pub struct SVGSVGElement<TH: TypeHolderTrait> {
+    svggraphicselement: SVGGraphicsElement<TH>
 }
 
-impl SVGSVGElement {
+impl<TH: TypeHolderTrait> SVGSVGElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> SVGSVGElement {
+                     document: &Document<TH>) -> SVGSVGElement<TH> {
         SVGSVGElement {
             svggraphicselement:
                 SVGGraphicsElement::new_inherited(local_name, prefix, document)
@@ -38,8 +39,8 @@ impl SVGSVGElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<SVGSVGElement> {
-        Node::reflect_node(Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<SVGSVGElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
                            document,
                            SVGSVGElementBinding::Wrap)
     }
@@ -49,14 +50,14 @@ pub trait LayoutSVGSVGElementHelpers {
     fn data(&self) -> SVGSVGData;
 }
 
-impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
+impl<TH: TypeHolderTrait> LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement<TH>> {
     #[allow(unsafe_code)]
     fn data(&self) -> SVGSVGData {
         unsafe {
             let SVG = &*self.unsafe_get();
 
-            let width_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("width"));
-            let height_attr = SVG.upcast::<Element>().get_attr_for_layout(&ns!(), &local_name!("height"));
+            let width_attr = SVG.upcast::<Element<TH>>().get_attr_for_layout(&ns!(), &local_name!("width"));
+            let height_attr = SVG.upcast::<Element<TH>>().get_attr_for_layout(&ns!(), &local_name!("height"));
             SVGSVGData {
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
@@ -65,12 +66,12 @@ impl LayoutSVGSVGElementHelpers for LayoutDom<SVGSVGElement> {
     }
 }
 
-impl VirtualMethods for SVGSVGElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<SVGGraphicsElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for SVGSVGElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<SVGGraphicsElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
     }
 

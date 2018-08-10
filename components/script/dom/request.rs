@@ -38,21 +38,22 @@ use net_traits::request::RequestMode as NetTraitsRequestMode;
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct Request {
-    reflector_: Reflector,
+pub struct Request<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
     request: DomRefCell<NetTraitsRequest>,
     body_used: Cell<bool>,
-    headers: MutNullableDom<Headers>,
+    headers: MutNullableDom<Headers<TH>>,
     mime_type: DomRefCell<Vec<u8>>,
     #[ignore_malloc_size_of = "Rc"]
-    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
+    body_promise: DomRefCell<Option<(Rc<Promise<TH>>, BodyType)>>,
 }
 
-impl Request {
-    fn new_inherited(global: &GlobalScope,
-                     url: ServoUrl) -> Request {
+impl<TH: TypeHolderTrait> Request<TH> {
+    fn new_inherited(global: &GlobalScope<TH>,
+                     url: ServoUrl) -> Request<TH> {
         Request {
             reflector_: Reflector::new(),
             request: DomRefCell::new(
@@ -64,17 +65,17 @@ impl Request {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               url: ServoUrl) -> DomRoot<Request> {
+    pub fn new(global: &GlobalScope<TH>,
+               url: ServoUrl) -> DomRoot<Request<TH>> {
         reflect_dom_object(Box::new(Request::new_inherited(global, url)),
                            global, RequestBinding::Wrap)
     }
 
     // https://fetch.spec.whatwg.org/#dom-request
-    pub fn Constructor(global: &GlobalScope,
-                       input: RequestInfo,
-                       init: RootedTraceableBox<RequestInit>)
-                       -> Fallible<DomRoot<Request>> {
+    pub fn Constructor(global: &GlobalScope<TH>,
+                       input: RequestInfo<TH>,
+                       init: RootedTraceableBox<RequestInit<TH>>)
+                       -> Fallible<DomRoot<Request<TH>>> {
         // Step 1
         let temporary_request: NetTraitsRequest;
 
@@ -403,16 +404,16 @@ impl Request {
     }
 }
 
-impl Request {
-    fn from_net_request(global: &GlobalScope,
-                        net_request: NetTraitsRequest) -> DomRoot<Request> {
+impl<TH: TypeHolderTrait> Request<TH> {
+    fn from_net_request(global: &GlobalScope<TH>,
+                        net_request: NetTraitsRequest) -> DomRoot<Request<TH>> {
         let r = Request::new(global,
                              net_request.current_url());
         *r.request.borrow_mut() = net_request;
         r
     }
 
-    fn clone_from(r: &Request) -> Fallible<DomRoot<Request>> {
+    fn clone_from(r: &Request<TH>) -> Fallible<DomRoot<Request<TH>>> {
         let req = r.request.borrow();
         let url = req.url();
         let body_used = r.body_used.get();
@@ -437,7 +438,7 @@ impl Request {
     }
 }
 
-fn net_request_from_global(global: &GlobalScope,
+fn net_request_from_global<TH: TypeHolderTrait>(global: &GlobalScope<TH>,
                            url: ServoUrl) -> NetTraitsRequest {
     let origin = Origin::Origin(global.get_url().origin());
     let pipeline_id = global.pipeline_id();
@@ -489,17 +490,17 @@ fn includes_credentials(input: &ServoUrl) -> bool {
 
 // TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-disturbed
-fn request_is_disturbed(_input: &Request) -> bool {
+fn request_is_disturbed<TH: TypeHolderTrait>(_input: &Request<TH>) -> bool {
     false
 }
 
 // TODO: `Readable Stream` object is not implemented in Servo yet.
 // https://fetch.spec.whatwg.org/#concept-body-locked
-fn request_is_locked(_input: &Request) -> bool {
+fn request_is_locked<TH: TypeHolderTrait>(_input: &Request<TH>) -> bool {
     false
 }
 
-impl RequestMethods for Request {
+impl<TH: TypeHolderTrait> RequestMethods<TH> for Request<TH> {
     // https://fetch.spec.whatwg.org/#dom-request-method
     fn Method(&self) -> ByteString {
         let r = self.request.borrow();
@@ -513,7 +514,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-headers
-    fn Headers(&self) -> DomRoot<Headers> {
+    fn Headers(&self) -> DomRoot<Headers<TH>> {
         self.headers.or_init(|| Headers::new(&self.global()))
     }
 
@@ -575,7 +576,7 @@ impl RequestMethods for Request {
     }
 
     // https://fetch.spec.whatwg.org/#dom-request-clone
-    fn Clone(&self) -> Fallible<DomRoot<Request>> {
+    fn Clone(&self) -> Fallible<DomRoot<Request<TH>>> {
         // Step 1
         if request_is_locked(self) {
             return Err(Error::Type("Request is locked".to_string()));
@@ -590,41 +591,41 @@ impl RequestMethods for Request {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self) -> Rc<Promise> {
+    fn Text(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::Text)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self) -> Rc<Promise> {
+    fn Blob(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::Blob)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self) -> Rc<Promise> {
+    fn FormData(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::FormData)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self) -> Rc<Promise> {
+    fn Json(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::Json)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self) -> Rc<Promise> {
+    fn ArrayBuffer(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::ArrayBuffer)
     }
 }
 
-impl BodyOperations for Request {
+impl<TH: TypeHolderTrait> BodyOperations<TH> for Request<TH> {
     fn get_body_used(&self) -> bool {
         self.BodyUsed()
     }
 
-    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType) {
+    fn set_body_promise(&self, p: &Rc<Promise<TH>>, body_type: BodyType) {
         assert!(self.body_promise.borrow().is_none());
         self.body_used.set(true);
         *self.body_promise.borrow_mut() = Some((p.clone(), body_type));
@@ -819,8 +820,8 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
     }
 }
 
-impl Clone for HeadersInit {
-    fn clone(&self) -> HeadersInit {
+impl<TH: TypeHolderTrait> Clone for HeadersInit<TH> {
+    fn clone(&self) -> HeadersInit<TH> {
     match self {
         &HeadersInit::Headers(ref h) =>
             HeadersInit::Headers(h.clone()),

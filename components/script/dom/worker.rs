@@ -30,17 +30,18 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use task::TaskOnce;
+use typeholder::TypeHolderTrait;
 
-pub type TrustedWorkerAddress = Trusted<Worker>;
+pub type TrustedWorkerAddress<TH> = Trusted<Worker<TH>>;
 
 // https://html.spec.whatwg.org/multipage/#worker
 #[dom_struct]
-pub struct Worker {
-    eventtarget: EventTarget,
+pub struct Worker<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     #[ignore_malloc_size_of = "Defined in std"]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
-    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    sender: Sender<(TrustedWorkerAddress<TH>, WorkerScriptMsg<TH>)>,
     #[ignore_malloc_size_of = "Arc"]
     closing: Arc<AtomicBool>,
     #[ignore_malloc_size_of = "Defined in rust-mozjs"]
@@ -48,9 +49,9 @@ pub struct Worker {
     terminated: Cell<bool>,
 }
 
-impl Worker {
-    fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                     closing: Arc<AtomicBool>) -> Worker {
+impl<TH: TypeHolderTrait> Worker<TH> {
+    fn new_inherited(sender: Sender<(TrustedWorkerAddress<TH>, WorkerScriptMsg<TH>)>,
+                     closing: Arc<AtomicBool>) -> Worker<TH> {
         Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
@@ -60,9 +61,9 @@ impl Worker {
         }
     }
 
-    pub fn new(global: &GlobalScope,
-               sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-               closing: Arc<AtomicBool>) -> DomRoot<Worker> {
+    pub fn new(global: &GlobalScope<TH>,
+               sender: Sender<(TrustedWorkerAddress<TH>, WorkerScriptMsg<TH>)>,
+               closing: Arc<AtomicBool>) -> DomRoot<Worker<TH>> {
         reflect_dom_object(Box::new(Worker::new_inherited(sender, closing)),
                            global,
                            WorkerBinding::Wrap)
@@ -70,7 +71,7 @@ impl Worker {
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
     #[allow(unsafe_code)]
-    pub fn Constructor(global: &GlobalScope, script_url: DOMString) -> Fallible<DomRoot<Worker>> {
+    pub fn Constructor(global: &GlobalScope<TH>, script_url: DOMString) -> Fallible<DomRoot<Worker<TH>>> {
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
@@ -120,8 +121,8 @@ impl Worker {
         self.terminated.get()
     }
 
-    pub fn handle_message(address: TrustedWorkerAddress,
-                          data: StructuredCloneData) {
+    pub fn handle_message(address: TrustedWorkerAddress<TH>,
+                          data: StructuredCloneData<TH>) {
         let worker = address.root();
 
         if worker.is_terminated() {
@@ -136,13 +137,13 @@ impl Worker {
         MessageEvent::dispatch_jsval(target, &global, message.handle());
     }
 
-    pub fn dispatch_simple_error(address: TrustedWorkerAddress) {
+    pub fn dispatch_simple_error(address: TrustedWorkerAddress<TH>) {
         let worker = address.root();
         worker.upcast().fire_event(atom!("error"));
     }
 }
 
-impl WorkerMethods for Worker {
+impl<TH: TypeHolderTrait> WorkerMethods<TH> for Worker<TH> {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
     unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
@@ -178,7 +179,7 @@ impl WorkerMethods for Worker {
     event_handler!(error, GetOnerror, SetOnerror);
 }
 
-impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
+impl<TH: TypeHolderTrait> TaskOnce for SimpleWorkerErrorHandler<Worker<TH>> {
     #[allow(unrooted_must_root)]
     fn run_once(self) {
         Worker::dispatch_simple_error(self.addr);

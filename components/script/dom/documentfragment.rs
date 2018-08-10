@@ -18,46 +18,47 @@ use dom::nodelist::NodeList;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]
-pub struct DocumentFragment {
-    node: Node,
+pub struct DocumentFragment<TH: TypeHolderTrait> {
+    node: Node<TH>,
 }
 
-impl DocumentFragment {
+impl<TH: TypeHolderTrait> DocumentFragment<TH> {
     /// Creates a new DocumentFragment.
-    fn new_inherited(document: &Document) -> DocumentFragment {
+    fn new_inherited(document: &Document<TH>) -> DocumentFragment<TH> {
         DocumentFragment {
-            node: Node::new_inherited(document),
+            node: Node::<TH>::new_inherited(document),
         }
     }
 
-    pub fn new(document: &Document) -> DomRoot<DocumentFragment> {
-        Node::reflect_node(Box::new(DocumentFragment::new_inherited(document)),
+    pub fn new(document: &Document<TH>) -> DomRoot<DocumentFragment<TH>> {
+        Node::<TH>::reflect_node(Box::new(DocumentFragment::new_inherited(document)),
                            document,
                            DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(window: &Window) -> Fallible<DomRoot<DocumentFragment>> {
+    pub fn Constructor(window: &Window<TH>) -> Fallible<DomRoot<DocumentFragment<TH>>> {
         let document = window.Document();
 
         Ok(DocumentFragment::new(&document))
     }
 }
 
-impl DocumentFragmentMethods for DocumentFragment {
+impl<TH: TypeHolderTrait> DocumentFragmentMethods<TH> for DocumentFragment<TH> {
     // https://dom.spec.whatwg.org/#dom-parentnode-children
-    fn Children(&self) -> DomRoot<HTMLCollection> {
+    fn Children(&self) -> DomRoot<HTMLCollection<TH>> {
         let window = window_from_node(self);
         HTMLCollection::children(&window, self.upcast())
     }
 
     // https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
-    fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element>> {
-        let node = self.upcast::<Node>();
+    fn GetElementById(&self, id: DOMString) -> Option<DomRoot<Element<TH>>> {
+        let node = self.upcast::<Node<TH>>();
         let id = Atom::from(id);
-        node.traverse_preorder().filter_map(DomRoot::downcast::<Element>).find(|descendant| {
+        node.traverse_preorder().filter_map(DomRoot::downcast::<Element<TH>>).find(|descendant| {
             match descendant.get_attribute(&ns!(), &local_name!("id")) {
                 None => false,
                 Some(attr) => *attr.value().as_atom() == id,
@@ -66,37 +67,37 @@ impl DocumentFragmentMethods for DocumentFragment {
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
-    fn GetFirstElementChild(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().child_elements().next()
+    fn GetFirstElementChild(&self) -> Option<DomRoot<Element<TH>>> {
+        self.upcast::<Node<TH>>().child_elements().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
-    fn GetLastElementChild(&self) -> Option<DomRoot<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(DomRoot::downcast::<Element>).next()
+    fn GetLastElementChild(&self) -> Option<DomRoot<Element<TH>>> {
+        self.upcast::<Node<TH>>().rev_children().filter_map(DomRoot::downcast::<Element<TH>>).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node<TH>>().child_elements().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
-    fn Prepend(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes)
+    fn Prepend(&self, nodes: Vec<NodeOrString<TH>>) -> ErrorResult {
+        self.upcast::<Node<TH>>().prepend(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
-    fn Append(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
-        self.upcast::<Node>().append(nodes)
+    fn Append(&self, nodes: Vec<NodeOrString<TH>>) -> ErrorResult {
+        self.upcast::<Node<TH>>().append(nodes)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
-    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        self.upcast::<Node>().query_selector(selectors)
+    fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element<TH>>>> {
+        self.upcast::<Node<TH>>().query_selector(selectors)
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        self.upcast::<Node>().query_selector_all(selectors)
+    fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList<TH>>> {
+        self.upcast::<Node<TH>>().query_selector_all(selectors)
     }
 }

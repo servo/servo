@@ -15,16 +15,17 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLSourceElement {
-    htmlelement: HTMLElement
+pub struct HTMLSourceElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>
 }
 
-impl HTMLSourceElement {
+impl<TH: TypeHolderTrait> HTMLSourceElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLSourceElement {
+                     document: &Document<TH>) -> HTMLSourceElement<TH> {
         HTMLSourceElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document)
@@ -34,29 +35,29 @@ impl HTMLSourceElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLSourceElement> {
-        Node::reflect_node(Box::new(HTMLSourceElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLSourceElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLSourceElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLSourceElementBinding::Wrap)
     }
 }
 
-impl VirtualMethods for HTMLSourceElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLSourceElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>
     fn bind_to_tree(&self, tree_in_doc: bool) {
         self.super_type().unwrap().bind_to_tree(tree_in_doc);
-        let parent = self.upcast::<Node>().GetParentNode().unwrap();
-        if let Some(media) = parent.downcast::<HTMLMediaElement>() {
+        let parent = self.upcast::<Node<TH>>().GetParentNode().unwrap();
+        if let Some(media) = parent.downcast::<HTMLMediaElement<TH>>() {
             media.handle_source_child_insertion();
         }
     }
 }
 
-impl HTMLSourceElementMethods for HTMLSourceElement {
+impl<TH: TypeHolderTrait> HTMLSourceElementMethods for HTMLSourceElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-source-src
     make_getter!(Src, "src");
 

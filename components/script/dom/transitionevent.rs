@@ -15,17 +15,18 @@ use dom::event::Event;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct TransitionEvent {
-    event: Event,
+pub struct TransitionEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     property_name: Atom,
     elapsed_time: Finite<f32>,
     pseudo_element: DOMString,
 }
 
-impl TransitionEvent {
-    fn new_inherited(init: &TransitionEventInit) -> TransitionEvent {
+impl<TH: TypeHolderTrait> TransitionEvent<TH> {
+    fn new_inherited(init: &TransitionEventInit) -> TransitionEvent<TH> {
         TransitionEvent {
             event: Event::new_inherited(),
             property_name: Atom::from(init.propertyName.clone()),
@@ -34,27 +35,27 @@ impl TransitionEvent {
         }
     }
 
-    pub fn new(window: &Window,
+    pub fn new(window: &Window<TH>,
                type_: Atom,
-               init: &TransitionEventInit) -> DomRoot<TransitionEvent> {
+               init: &TransitionEventInit) -> DomRoot<TransitionEvent<TH>> {
         let ev = reflect_dom_object(Box::new(TransitionEvent::new_inherited(init)),
                                     window,
                                     TransitionEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_, init.parent.bubbles, init.parent.cancelable);
         }
         ev
     }
 
-    pub fn Constructor(window: &Window,
+    pub fn Constructor(window: &Window<TH>,
                        type_: DOMString,
-                       init: &TransitionEventInit) -> Fallible<DomRoot<TransitionEvent>> {
+                       init: &TransitionEventInit) -> Fallible<DomRoot<TransitionEvent<TH>>> {
         Ok(TransitionEvent::new(window, Atom::from(type_), init))
     }
 }
 
-impl TransitionEventMethods for TransitionEvent {
+impl<TH: TypeHolderTrait> TransitionEventMethods for TransitionEvent<TH> {
     // https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-propertyName
     fn PropertyName(&self) -> DOMString {
         DOMString::from(&*self.property_name)
@@ -72,6 +73,6 @@ impl TransitionEventMethods for TransitionEvent {
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
-        self.upcast::<Event>().IsTrusted()
+        self.upcast::<Event<TH>>().IsTrusted()
     }
 }

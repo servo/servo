@@ -14,17 +14,18 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use servo_atoms::Atom;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct CloseEvent {
-    event: Event,
+pub struct CloseEvent<TH: TypeHolderTrait> {
+    event: Event<TH>,
     was_clean: bool,
     code: u16,
     reason: DOMString,
 }
 
-impl CloseEvent {
-    pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent {
+impl<TH: TypeHolderTrait> CloseEvent<TH> {
+    pub fn new_inherited(was_clean: bool, code: u16, reason: DOMString) -> CloseEvent<TH> {
         CloseEvent {
             event: Event::new_inherited(),
             was_clean: was_clean,
@@ -33,24 +34,24 @@ impl CloseEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> DomRoot<CloseEvent> {
+    pub fn new_uninitialized(global: &GlobalScope<TH>) -> DomRoot<CloseEvent<TH>> {
         reflect_dom_object(Box::new(CloseEvent::new_inherited(false, 0, DOMString::new())),
                            global,
                            CloseEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(global: &GlobalScope<TH>,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
                wasClean: bool,
                code: u16,
                reason: DOMString)
-               -> DomRoot<CloseEvent> {
+               -> DomRoot<CloseEvent<TH>> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
         let ev = reflect_dom_object(event, global, CloseEventBinding::Wrap);
         {
-            let event = ev.upcast::<Event>();
+            let event = ev.upcast::<Event<TH>>();
             event.init_event(type_,
                              bool::from(bubbles),
                              bool::from(cancelable));
@@ -58,10 +59,10 @@ impl CloseEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
-                       -> Fallible<DomRoot<CloseEvent>> {
+                       -> Fallible<DomRoot<CloseEvent<TH>>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(CloseEvent::new(global,
@@ -75,7 +76,7 @@ impl CloseEvent {
 
 }
 
-impl CloseEventMethods for CloseEvent {
+impl<TH: TypeHolderTrait> CloseEventMethods for CloseEvent<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-closeevent-wasclean
     fn WasClean(&self) -> bool {
         self.was_clean

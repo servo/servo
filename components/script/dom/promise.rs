@@ -32,36 +32,39 @@ use js::rust::wrappers::{GetPromiseState, IsPromiseObject};
 use js::rust::wrappers::{NewPromiseObject, ResolvePromise, RejectPromise};
 use std::ptr;
 use std::rc::Rc;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct Promise {
-    reflector: Reflector,
+pub struct Promise<TH: TypeHolderTrait> {
+    reflector: Reflector<TH>,
     /// Since Promise values are natively reference counted without the knowledge of
     /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
     /// native instance exists. This ensures that the reflector will never be GCed
     /// while native code could still interact with its native representation.
     #[ignore_malloc_size_of = "SM handles JS values"]
     permanent_js_root: Heap<JSVal>,
+    _p: PhantomData<TH>,
 }
 
-/// Private helper to enable adding new methods to Rc<Promise>.
+/// Private helper to enable adding new methods to Rc<Promise<TH>>.
 trait PromiseHelper {
     #[allow(unsafe_code)]
     unsafe fn initialize(&self, cx: *mut JSContext);
 }
 
-impl PromiseHelper for Rc<Promise> {
+impl<TH: TypeHolderTrait> PromiseHelper for Rc<Promise<TH>> {
     #[allow(unsafe_code)]
     unsafe fn initialize(&self, cx: *mut JSContext) {
         let obj = self.reflector().get_jsobject();
         self.permanent_js_root.set(ObjectValue(*obj));
         assert!(AddRawValueRoot(cx,
                                 self.permanent_js_root.get_unsafe(),
-                                b"Promise::root\0".as_c_char_ptr()));
+                                b"Promise::<TH>::root\0".as_c_char_ptr()));
     }
 }
 
-impl Drop for Promise {
+impl<TH: TypeHolderTrait> Drop for Promise<TH> {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
@@ -76,31 +79,32 @@ impl Drop for Promise {
     }
 }
 
-impl Promise {
+impl<TH: TypeHolderTrait> Promise<TH> {
     #[allow(unsafe_code)]
-    pub fn new(global: &GlobalScope) -> Rc<Promise> {
+    pub fn new(global: &GlobalScope<TH>) -> Rc<Promise<TH>> {
         let cx = global.get_cx();
         rooted!(in(cx) let mut obj = ptr::null_mut::<JSObject>());
         unsafe {
-            Promise::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
-            Promise::new_with_js_promise(obj.handle(), cx)
+            Promise::<TH>::create_js_promise(cx, HandleObject::null(), obj.handle_mut());
+            Promise::<TH>::new_with_js_promise(obj.handle(), cx)
         }
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    pub fn duplicate(&self) -> Rc<Promise> {
+    pub fn duplicate(&self) -> Rc<Promise<TH>> {
         let cx = self.global().get_cx();
         unsafe {
-            Promise::new_with_js_promise(self.reflector().get_jsobject(), cx)
+            Promise::<TH>::new_with_js_promise(self.reflector().get_jsobject(), cx)
         }
     }
 
     #[allow(unsafe_code, unrooted_must_root)]
-    unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
+    unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise<TH>> {
         assert!(IsPromiseObject(obj));
         let promise = Promise {
             reflector: Reflector::new(),
             permanent_js_root: Heap::default(),
+            _p: Default::default(),
         };
         let mut promise = Rc::new(promise);
         Rc::get_mut(&mut promise).unwrap().init_reflector(obj.get());
@@ -121,26 +125,26 @@ impl Promise {
 
     #[allow(unrooted_must_root, unsafe_code)]
     pub unsafe fn new_resolved(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         cx: *mut JSContext,
         value: HandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<Rc<Promise<TH>>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = CallOriginalPromiseResolve(cx, value));
         assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle(), cx))
+        Ok(Promise::<TH>::new_with_js_promise(p.handle(), cx))
     }
 
     #[allow(unrooted_must_root, unsafe_code)]
     pub unsafe fn new_rejected(
-        global: &GlobalScope,
+        global: &GlobalScope<TH>,
         cx: *mut JSContext,
         value: HandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<Rc<Promise<TH>>> {
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         rooted!(in(cx) let p = CallOriginalPromiseReject(cx, value));
         assert!(!p.handle().is_null());
-        Ok(Promise::new_with_js_promise(p.handle(), cx))
+        Ok(Promise::<TH>::new_with_js_promise(p.handle(), cx))
     }
 
     #[allow(unsafe_code)]
@@ -209,15 +213,15 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn append_native_handler(&self, handler: &PromiseNativeHandler) {
+    pub fn append_native_handler(&self, handler: &PromiseNativeHandler<TH>) {
         let cx = self.global().get_cx();
         rooted!(in(cx) let resolve_func =
-                create_native_handler_function(cx,
+                create_native_handler_function::<TH>(cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Resolve));
 
         rooted!(in(cx) let reject_func =
-                create_native_handler_function(cx,
+                create_native_handler_function::<TH>(cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Reject));
 
@@ -248,12 +252,12 @@ enum NativeHandlerTask {
 }
 
 #[allow(unsafe_code)]
-unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
+unsafe extern fn native_handler_callback<TH: TypeHolderTrait>(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
     let args = CallArgs::from_vp(vp, argc);
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER));
     assert!(v.get().is_object());
 
-    let handler = root_from_object::<PromiseNativeHandler>(v.to_object())
+    let handler = root_from_object::<PromiseNativeHandler<TH>>(v.to_object())
         .expect("unexpected value for native handler in promise native handler callback");
 
     rooted!(in(cx) let v = *GetFunctionNativeReserved(args.callee(), SLOT_NATIVEHANDLER_TASK));
@@ -269,11 +273,11 @@ unsafe extern fn native_handler_callback(cx: *mut JSContext, argc: u32, vp: *mut
 }
 
 #[allow(unsafe_code)]
-fn create_native_handler_function(cx: *mut JSContext,
+fn create_native_handler_function<TH: TypeHolderTrait>(cx: *mut JSContext,
                                   holder: HandleObject,
                                   task: NativeHandlerTask) -> *mut JSObject {
     unsafe {
-        let func = NewFunctionWithReserved(cx, Some(native_handler_callback), 1, 0, ptr::null());
+        let func = NewFunctionWithReserved(cx, Some(native_handler_callback::<TH>), 1, 0, ptr::null());
         assert!(!func.is_null());
 
         rooted!(in(cx) let obj = JS_GetFunctionObject(func));

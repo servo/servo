@@ -21,6 +21,7 @@ use js::rust::{HandleValue, MutableHandleObject};
 use std::cell::Cell;
 use std::ptr;
 use std::ptr::NonNull;
+use std::marker::PhantomData;
 
 /// The values that an iterator will iterate over.
 #[derive(JSTraceable, MallocSizeOf)]
@@ -48,10 +49,9 @@ pub trait Iterable {
 }
 
 /// An iterator over the iterable entries of a given DOM interface.
-//FIXME: #12811 prevents dom_struct with type parameters
 #[dom_struct]
 pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
-    reflector: Reflector,
+    reflector: Reflector<T::TypeHolder>,
     iterable: Dom<T>,
     type_: IteratorType,
     index: Cell<u32>,
@@ -61,7 +61,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T,
                type_: IteratorType,
-               wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
+               wrap: unsafe fn(*mut JSContext, &GlobalScope<T::TypeHolder>, Box<IterableIterator<T>>)
                      -> DomRoot<Self>) -> DomRoot<Self> {
         let iterator = Box::new(IterableIterator {
             reflector: Reflector::new(),
@@ -69,7 +69,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
             iterable: Dom::from_ref(iterable),
             index: Cell::new(0),
         });
-        reflect_dom_object(iterator, &*iterable.global(), wrap)
+        reflect_dom_object::<Self, GlobalScope<T::TypeHolder>,T::TypeHolder>(iterator, &*iterable.global(), wrap)
     }
 
     /// Return the next value from the iterable object.

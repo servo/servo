@@ -17,6 +17,7 @@ use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit};
 use servo_media::audio::node::ChannelCountMode as ServoMediaChannelCountMode;
 use servo_media::audio::node::ChannelInterpretation as ServoMediaChannelInterpretation;
 use std::cell::Cell;
+use typeholder::TypeHolderTrait;
 
 // 32 is the minimum required by the spec for createBuffer() and the deprecated
 // createScriptProcessor() and matches what is used by Blink and Gecko.
@@ -24,11 +25,11 @@ use std::cell::Cell;
 pub const MAX_CHANNEL_COUNT: u32 = 32;
 
 #[dom_struct]
-pub struct AudioNode {
-    eventtarget: EventTarget,
+pub struct AudioNode<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     #[ignore_malloc_size_of = "servo_media"]
     node_id: NodeId,
-    context: Dom<BaseAudioContext>,
+    context: Dom<BaseAudioContext<TH>>,
     number_of_inputs: u32,
     number_of_outputs: u32,
     channel_count: Cell<u32>,
@@ -36,15 +37,15 @@ pub struct AudioNode {
     channel_interpretation: Cell<ChannelInterpretation>,
 }
 
-impl AudioNode {
+impl<TH: TypeHolderTrait> AudioNode<TH> {
     pub fn new_inherited(
         node_type: AudioNodeInit,
         node_id: Option<NodeId>,
-        context: &BaseAudioContext,
+        context: &BaseAudioContext<TH>,
         options: &AudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
-    ) -> AudioNode {
+    ) -> AudioNode<TH> {
         let node_id =
             node_id.unwrap_or_else(|| context.audio_context_impl().create_node(node_type));
         AudioNode {
@@ -70,14 +71,14 @@ impl AudioNode {
     }
 }
 
-impl AudioNodeMethods for AudioNode {
+impl<TH: TypeHolderTrait> AudioNodeMethods<TH> for AudioNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect
     fn Connect(
         &self,
-        destination: &AudioNode,
+        destination: &AudioNode<TH>,
         output: u32,
         input: u32,
-    ) -> Fallible<DomRoot<AudioNode>> {
+    ) -> Fallible<DomRoot<AudioNode<TH>>> {
         if self.context != destination.context {
             return Err(Error::InvalidAccess);
         }
@@ -97,7 +98,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-connect-destinationparam-output
-    fn Connect_(&self, dest: &AudioParam, output: u32) -> Fallible<()> {
+    fn Connect_(&self, dest: &AudioParam<TH>, output: u32) -> Fallible<()> {
         if self.context != dest.context() {
             return Err(Error::InvalidAccess);
         }
@@ -133,7 +134,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode
-    fn Disconnect__(&self, to: &AudioNode) -> ErrorResult {
+    fn Disconnect__(&self, to: &AudioNode<TH>) -> ErrorResult {
         self.context
             .audio_context_impl()
             .disconnect_between(self.node_id(), to.node_id());
@@ -141,7 +142,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output
-    fn Disconnect___(&self, to: &AudioNode, out: u32) -> ErrorResult {
+    fn Disconnect___(&self, to: &AudioNode<TH>, out: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
             .disconnect_output_between(self.node_id().output(out), to.node_id());
@@ -149,7 +150,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input
-    fn Disconnect____(&self, to: &AudioNode, out: u32, inp: u32) -> ErrorResult {
+    fn Disconnect____(&self, to: &AudioNode<TH>, out: u32, inp: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
             .disconnect_output_between_to(self.node_id().output(out), to.node_id().input(inp));
@@ -157,7 +158,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
-    fn Disconnect_____(&self, param: &AudioParam) -> ErrorResult {
+    fn Disconnect_____(&self, param: &AudioParam<TH>) -> ErrorResult {
         self.context
             .audio_context_impl()
             .disconnect_to(self.node_id(),
@@ -166,7 +167,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
-    fn Disconnect______(&self, param: &AudioParam, out: u32) -> ErrorResult {
+    fn Disconnect______(&self, param: &AudioParam<TH>, out: u32) -> ErrorResult {
         self.context
             .audio_context_impl()
             .disconnect_output_between_to(self.node_id().output(out),
@@ -175,7 +176,7 @@ impl AudioNodeMethods for AudioNode {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-context
-    fn Context(&self) -> DomRoot<BaseAudioContext> {
+    fn Context(&self) -> DomRoot<BaseAudioContext<TH>> {
         DomRoot::from_ref(&self.context)
     }
 
@@ -196,7 +197,7 @@ impl AudioNodeMethods for AudioNode {
 
     // https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount
     fn SetChannelCount(&self, value: u32) -> ErrorResult {
-        match self.upcast::<EventTarget>().type_id() {
+        match self.upcast::<EventTarget<TH>>().type_id() {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
                 if self.context.is_offline() {
                     return Err(Error::InvalidState);
@@ -231,7 +232,7 @@ impl AudioNodeMethods for AudioNode {
             return Ok(());
         }
 
-        match self.upcast::<EventTarget>().type_id() {
+        match self.upcast::<EventTarget<TH>>().type_id() {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::AudioDestinationNode) => {
                 if self.context.is_offline() {
                     return Err(Error::InvalidState);

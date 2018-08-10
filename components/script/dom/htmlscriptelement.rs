@@ -43,10 +43,12 @@ use std::sync::{Arc, Mutex};
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use task_source::TaskSourceName;
 use uuid::Uuid;
+use typeholder::TypeHolderTrait;
+use dom::servoparser::ServoParser;
 
 #[dom_struct]
-pub struct HTMLScriptElement {
-    htmlelement: HTMLElement,
+pub struct HTMLScriptElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 
     /// <https://html.spec.whatwg.org/multipage/#already-started>
     already_started: Cell<bool>,
@@ -60,15 +62,15 @@ pub struct HTMLScriptElement {
     non_blocking: Cell<bool>,
 
     /// Document of the parser that created this element
-    parser_document: Dom<Document>,
+    parser_document: Dom<Document<TH>>,
 
     /// Track line line_number
     line_number: u64,
 }
 
-impl HTMLScriptElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
-                     creator: ElementCreator) -> HTMLScriptElement {
+impl<TH: TypeHolderTrait> HTMLScriptElement<TH> {
+    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>,
+                     creator: ElementCreator) -> HTMLScriptElement<TH> {
         HTMLScriptElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
@@ -81,9 +83,9 @@ impl HTMLScriptElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document,
-               creator: ElementCreator) -> DomRoot<HTMLScriptElement> {
-        Node::reflect_node(Box::new(HTMLScriptElement::new_inherited(local_name, prefix, document, creator)),
+    pub fn new(local_name: LocalName, prefix: Option<Prefix>, document: &Document<TH>,
+               creator: ElementCreator) -> DomRoot<HTMLScriptElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLScriptElement::new_inherited(local_name, prefix, document, creator)),
                            document,
                            HTMLScriptElementBinding::Wrap)
     }
@@ -139,9 +141,9 @@ impl ClassicScript {
 pub type ScriptResult = Result<ClassicScript, NetworkError>;
 
 /// The context required for asynchronously loading an external script source.
-struct ScriptContext {
+struct ScriptContext<TH: TypeHolderTrait> {
     /// The element that initiated the request.
-    elem: Trusted<HTMLScriptElement>,
+    elem: Trusted<HTMLScriptElement<TH>>,
     /// The kind of external script.
     kind: ExternalScriptKind,
     /// The (fallback) character encoding argument to the "fetch a classic
@@ -157,7 +159,7 @@ struct ScriptContext {
     status: Result<(), NetworkError>
 }
 
-impl FetchResponseListener for ScriptContext {
+impl<TH: TypeHolderTrait> FetchResponseListener for ScriptContext<TH> {
     fn process_request_body(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
 
     fn process_request_eof(&mut self) {} // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
@@ -223,10 +225,10 @@ impl FetchResponseListener for ScriptContext {
     }
 }
 
-impl PreInvoke for ScriptContext {}
+impl<TH: TypeHolderTrait> PreInvoke for ScriptContext<TH> {}
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
-fn fetch_a_classic_script(script: &HTMLScriptElement,
+fn fetch_a_classic_script<TH: TypeHolderTrait>(script: &HTMLScriptElement<TH>,
                           kind: ExternalScriptKind,
                           url: ServoUrl,
                           cors_setting: Option<CorsSettings>,
@@ -274,7 +276,8 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     let listener = NetworkListener {
         context: context,
         task_source: doc.window().networking_task_source(),
-        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking))
+        canceller: Some(doc.window().task_canceller(TaskSourceName::Networking)),
+        _p: Default::default(),
     };
 
     ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
@@ -283,7 +286,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
     doc.fetch_async(LoadType::Script(url), request, action_sender);
 }
 
-impl HTMLScriptElement {
+impl<TH: TypeHolderTrait> HTMLScriptElement<TH> {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script>
     pub fn prepare(&self) {
         // Step 1.
@@ -296,7 +299,7 @@ impl HTMLScriptElement {
         self.parser_inserted.set(false);
 
         // Step 3.
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         let async = element.has_attribute(&local_name!("async"));
         // Note: confusingly, this is done if the element does *not* have an "async" attribute.
         if was_parser_inserted && !async {
@@ -310,7 +313,7 @@ impl HTMLScriptElement {
         }
 
         // Step 5.
-        if !self.upcast::<Node>().is_in_doc() {
+        if !self.upcast::<Node<TH>>().is_in_doc() {
             return;
         }
 
@@ -566,7 +569,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         let line_number = if script.external { 1 } else { self.line_number as u32 };
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        let global = window.upcast::<GlobalScope>();
+        let global = window.upcast::<GlobalScope<TH>>();
         global.evaluate_script_on_global_with_result(
             &script.text, script.url.as_str(), rval.handle_mut(), line_number);
     }
@@ -589,7 +592,7 @@ impl HTMLScriptElement {
     }
 
     pub fn is_javascript(&self) -> bool {
-        let element = self.upcast::<Element>();
+        let element = self.upcast::<Element<TH>>();
         let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
         let is_js = match type_attr.as_ref().map(|s| s.value()) {
             Some(ref s) if s.is_empty() => {
@@ -646,17 +649,17 @@ impl HTMLScriptElement {
     }
 }
 
-impl VirtualMethods for HTMLScriptElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLScriptElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
             local_name!("src") => {
                 if let AttributeMutation::Set(_) = mutation {
-                    if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
+                    if !self.parser_inserted.get() && self.upcast::<Node<TH>>().is_in_doc() {
                         self.prepare();
                     }
                 }
@@ -665,11 +668,11 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation<TH>) {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
-        if !self.parser_inserted.get() && self.upcast::<Node>().is_in_doc() {
+        if !self.parser_inserted.get() && self.upcast::<Node<TH>>().is_in_doc() {
             self.prepare();
         }
     }
@@ -684,7 +687,7 @@ impl VirtualMethods for HTMLScriptElement {
         }
     }
 
-    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
+    fn cloning_steps(&self, copy: &Node<TH>, maybe_doc: Option<&Document<TH>>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
@@ -692,12 +695,12 @@ impl VirtualMethods for HTMLScriptElement {
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            copy.downcast::<HTMLScriptElement>().unwrap().set_already_started(true);
+            copy.downcast::<HTMLScriptElement<TH>>().unwrap().set_already_started(true);
         }
     }
 }
 
-impl HTMLScriptElementMethods for HTMLScriptElement {
+impl<TH: TypeHolderTrait> HTMLScriptElementMethods for HTMLScriptElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_url_getter!(Src, "src");
 
@@ -716,13 +719,13 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn Async(&self) -> bool {
-        self.non_blocking.get() || self.upcast::<Element>().has_attribute(&local_name!("async"))
+        self.non_blocking.get() || self.upcast::<Element<TH>>().has_attribute(&local_name!("async"))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-async
     fn SetAsync(&self, value: bool) {
         self.non_blocking.set(false);
-        self.upcast::<Element>().set_bool_attribute(&local_name!("async"), value);
+        self.upcast::<Element<TH>>().set_bool_attribute(&local_name!("async"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
@@ -747,22 +750,22 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
-        reflect_cross_origin_attribute(self.upcast::<Element>())
+        reflect_cross_origin_attribute(self.upcast::<Element<TH>>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value);
+        set_cross_origin_attribute(self.upcast::<Element<TH>>(), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
-        self.upcast::<Node>().child_text_content()
+        self.upcast::<Node<TH>>().child_text_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn SetText(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value))
+        self.upcast::<Node<TH>>().SetTextContent(Some(value))
     }
 }
 

@@ -9,16 +9,17 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLOListElement {
-    htmlelement: HTMLElement,
+pub struct HTMLOListElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
 }
 
-impl HTMLOListElement {
+impl<TH: TypeHolderTrait> HTMLOListElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLOListElement {
+                     document: &Document<TH>) -> HTMLOListElement<TH> {
         HTMLOListElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -27,8 +28,8 @@ impl HTMLOListElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLOListElement> {
-        Node::reflect_node(Box::new(HTMLOListElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLOListElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLOListElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLOListElementBinding::Wrap)
     }

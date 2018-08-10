@@ -4,22 +4,22 @@
 
 #![allow(unrooted_must_root)]
 
-use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::inheritance::Castable;
-use dom::bindings::root::{Dom, DomRoot};
-use dom::bindings::str::DOMString;
-use dom::comment::Comment;
-use dom::document::Document;
-use dom::documenttype::DocumentType;
-use dom::element::{Element, ElementCreator};
-use dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
-use dom::htmlscriptelement::HTMLScriptElement;
-use dom::htmltemplateelement::HTMLTemplateElement;
-use dom::node::Node;
-use dom::processinginstruction::ProcessingInstruction;
-use dom::servoparser::{ElementAttribute, create_element_for_token, ParsingAlgorithm};
-use dom::virtualmethods::vtable_for;
+use script::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
+use script::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use script::dom::bindings::inheritance::Castable;
+use script::dom::bindings::root::{Dom, DomRoot};
+use script::dom::bindings::str::DOMString;
+use script::dom::comment::Comment;
+use script::dom::document::Document;
+use script::dom::documenttype::DocumentType;
+use script::dom::element::{Element, ElementCreator};
+use script::dom::htmlformelement::{FormControlElementHelpers, HTMLFormElement};
+use script::dom::htmlscriptelement::HTMLScriptElement;
+use script::dom::htmltemplateelement::HTMLTemplateElement;
+use script::dom::node::Node;
+use script::dom::processinginstruction::ProcessingInstruction;
+use script::dom::servoparser::{ElementAttribute, create_element_for_token, ParsingAlgorithm, FragmentContext, insert, TokenizerTrait};
+use script::dom::virtualmethods::vtable_for;
 use html5ever::{Attribute as HtmlAttribute, ExpandedName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{SendTendril, StrTendril, Tendril};
@@ -35,28 +35,33 @@ use std::collections::vec_deque::VecDeque;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use style::context::QuirksMode as ServoQuirksMode;
+use script;
 
 type ParseNodeId = usize;
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[base = "script"]
 pub struct ParseNode {
     id: ParseNodeId,
     qual_name: Option<QualName>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[base = "script"]
 enum NodeOrText {
     Node(ParseNode),
     Text(String),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[base = "script"]
 struct Attribute {
     name: QualName,
     value: String,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[base = "script"]
 enum ParseOperation {
     GetTemplateContents { target: ParseNodeId, contents: ParseNodeId },
 
@@ -166,23 +171,25 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 //   |_____________|                         |_______________|
 //
 #[derive(JSTraceable, MallocSizeOf)]
+#[base = "script"]
 #[must_root]
-pub struct Tokenizer {
-    document: Dom<Document>,
+pub struct Tokenizer{
+    document: Dom<Document<super::TypeHolder>>,
     #[ignore_malloc_size_of = "Defined in std"]
     receiver: Receiver<ToTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
     html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
     #[ignore_malloc_size_of = "Defined in std"]
-    nodes: HashMap<ParseNodeId, Dom<Node>>,
+    nodes: HashMap<ParseNodeId, Dom<Node<super::TypeHolder>>>,
     url: ServoUrl,
 }
 
-impl Tokenizer {
-    pub fn new(
-            document: &Document,
+impl TokenizerTrait<super::TypeHolder> for Tokenizer {
+    fn new(
+            document: &Document<super::TypeHolder>,
             url: ServoUrl,
-            fragment_context: Option<super::FragmentContext>)
+            fragment_context: Option<super::FragmentContext<super::TypeHolder>>,
+            parsing_algorithm: ParsingAlgorithm)
             -> Self {
         // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
         let (to_html_tokenizer_sender, html_tokenizer_receiver) = channel();
@@ -230,7 +237,7 @@ impl Tokenizer {
         tokenizer
     }
 
-    pub fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement>> {
+    fn feed(&mut self, input: &mut BufferQueue) -> Result<(), DomRoot<HTMLScriptElement<super::TypeHolder>>> {
         let mut send_tendrils = VecDeque::new();
         while let Some(str) = input.pop_front() {
             send_tendrils.push_back(SendTendril::from(str));
@@ -259,7 +266,7 @@ impl Tokenizer {
         }
     }
 
-    pub fn end(&mut self) {
+    fn end(&mut self) {
         self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::End).unwrap();
         loop {
             match self.receiver.recv().expect("Unexpected channel panic in main thread.") {
@@ -270,19 +277,21 @@ impl Tokenizer {
         }
     }
 
-    pub fn url(&self) -> &ServoUrl {
+    fn url(&self) -> &ServoUrl {
         &self.url
     }
 
-    pub fn set_plaintext_state(&mut self) {
+    fn set_plaintext_state(&mut self) {
         self.html_tokenizer_sender.send(ToHtmlTokenizerMsg::SetPlainTextState).unwrap();
     }
+}
 
-    fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node>) {
+impl Tokenizer {
+    fn insert_node(&mut self, id: ParseNodeId, node: Dom<Node<super::TypeHolder>>) {
         assert!(self.nodes.insert(id, node).is_none());
     }
 
-    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a Dom<Node> {
+    fn get_node<'a>(&'a self, id: &ParseNodeId) -> &'a Dom<Node<super::TypeHolder>> {
         self.nodes.get(id).expect("Node not found!")
     }
 
@@ -297,7 +306,7 @@ impl Tokenizer {
         let sibling = &**self.get_node(&sibling);
         let parent = &*sibling.GetParentNode().expect("append_before_sibling called on node without parent");
 
-        super::insert(parent, Some(sibling), node);
+        insert(parent, Some(sibling), node);
     }
 
     fn append(&mut self, parent: ParseNodeId, node: NodeOrText) {
@@ -309,7 +318,7 @@ impl Tokenizer {
         };
 
         let parent = &**self.get_node(&parent);
-        super::insert(parent, None, node);
+        insert(parent, None, node);
     }
 
     fn has_parent_node(&self, node: ParseNodeId) -> bool {
@@ -320,18 +329,18 @@ impl Tokenizer {
         let x = self.get_node(&x);
         let y = self.get_node(&y);
 
-        let x = x.downcast::<Element>().expect("Element node expected");
-        let y = y.downcast::<Element>().expect("Element node expected");
+        let x = x.downcast::<Element<super::TypeHolder>>().expect("Element node expected");
+        let y = y.downcast::<Element<super::TypeHolder>>().expect("Element node expected");
         x.is_in_same_home_subtree(y)
     }
 
     fn process_operation(&mut self, op: ParseOperation) {
         let document = DomRoot::from_ref(&**self.get_node(&0));
-        let document = document.downcast::<Document>().expect("Document node should be downcasted!");
+        let document = document.downcast::<Document<super::TypeHolder>>().expect("Document node should be downcasted!");
         match op {
             ParseOperation::GetTemplateContents { target, contents } => {
                 let target = DomRoot::from_ref(&**self.get_node(&target));
-                let template = target.downcast::<HTMLTemplateElement>().expect(
+                let template = target.downcast::<HTMLTemplateElement<super::TypeHolder>>().expect(
                     "Tried to extract contents from non-template element while parsing");
                 self.insert_node(contents, Dom::from_ref(template.Content().upcast()));
             }
@@ -371,10 +380,10 @@ impl Tokenizer {
                     DOMString::from(String::from(name)), Some(DOMString::from(public_id)),
                     Some(DOMString::from(system_id)), document);
 
-                document.upcast::<Node>().AppendChild(doctype.upcast()).expect("Appending failed");
+                document.upcast::<Node<super::TypeHolder>>().AppendChild(doctype.upcast()).expect("Appending failed");
             }
             ParseOperation::AddAttrsIfMissing { target, attrs } => {
-                let elem = self.get_node(&target).downcast::<Element>()
+                let elem = self.get_node(&target).downcast::<Element<super::TypeHolder>>()
                     .expect("tried to set attrs on non-Element in HTML parsing");
                 for attr in attrs {
                     elem.set_attribute_from_parser(attr.name, DOMString::from(attr.value), None);
@@ -386,7 +395,7 @@ impl Tokenizer {
                 }
             }
             ParseOperation::MarkScriptAlreadyStarted { node } => {
-                let script = self.get_node(&node).downcast::<HTMLScriptElement>();
+                let script = self.get_node(&node).downcast::<HTMLScriptElement<super::TypeHolder>>();
                 script.map(|script| script.set_already_started(true));
             }
             ParseOperation::ReparentChildren { parent, new_parent } => {
@@ -405,11 +414,11 @@ impl Tokenizer {
                     return;
                 }
                 let form = self.get_node(&form);
-                let form = DomRoot::downcast::<HTMLFormElement>(DomRoot::from_ref(&**form))
+                let form = DomRoot::downcast::<HTMLFormElement<super::TypeHolder>>(DomRoot::from_ref(&**form))
                     .expect("Owner must be a form element");
 
                 let node = self.get_node(&target);
-                let elem = node.downcast::<Element>();
+                let elem = node.downcast::<Element<super::TypeHolder>>();
                 let control = elem.and_then(|e| e.as_maybe_form_control());
 
                 if let Some(control) = control {
@@ -494,6 +503,7 @@ fn run(sink: Sink,
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
+#[base = "script"]
 struct ParseNodeData {
     contents: Option<ParseNode>,
     is_integration_point: bool,
@@ -669,7 +679,6 @@ impl TreeSink for Sink {
     }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
-        debug!("Parse error: {}", msg);
     }
 
     fn set_quirks_mode(&mut self, mode: QuirksMode) {

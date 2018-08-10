@@ -8,22 +8,23 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::trace::JSTraceable;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use super::WebGLExtensions;
+use typeholder::TypeHolderTrait;
 
 /// Trait implemented by WebGL extensions.
-pub trait WebGLExtension: Sized where Self::Extension: DomObject + JSTraceable {
+pub trait WebGLExtension<TH: TypeHolderTrait>: Sized where Self::Extension: DomObject + JSTraceable {
     type Extension;
 
     /// Creates the DOM object of the WebGL extension.
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<Self::Extension>;
+    fn new(ctx: &WebGLRenderingContext<TH>) -> DomRoot<Self::Extension>;
 
     /// Returns which WebGL spec is this extension written against.
     fn spec() -> WebGLExtensionSpec;
 
     /// Checks if the extension is supported.
-    fn is_supported(ext: &WebGLExtensions) -> bool;
+    fn is_supported(ext: &WebGLExtensions<TH>) -> bool;
 
     /// Enable the extension.
-    fn enable(ext: &WebGLExtensions);
+    fn enable(ext: &WebGLExtensions<TH>);
 
     /// Name of the WebGL Extension.
     fn name() -> &'static str;

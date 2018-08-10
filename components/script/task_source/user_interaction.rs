@@ -16,17 +16,19 @@ use std::result::Result;
 use std::sync::mpsc::Sender;
 use task::{TaskCanceller, TaskOnce};
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[derive(Clone, JSTraceable)]
-pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>, pub PipelineId);
+pub struct UserInteractionTaskSource<TH: TypeHolderTrait>(pub Sender<MainThreadScriptMsg>, pub PipelineId, pub PhantomData<TH>);
 
-impl fmt::Debug for UserInteractionTaskSource {
+impl<TH: TypeHolderTrait> fmt::Debug for UserInteractionTaskSource<TH> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "UserInteractionTaskSource(...)")
     }
 }
 
-impl TaskSource for UserInteractionTaskSource {
+impl<TH: TypeHolderTrait> TaskSource for UserInteractionTaskSource<TH> {
     const NAME: TaskSourceName = TaskSourceName::UserInteraction;
 
     fn queue_with_canceller<T>(
@@ -46,13 +48,13 @@ impl TaskSource for UserInteractionTaskSource {
     }
 }
 
-impl UserInteractionTaskSource {
+impl<TH: TypeHolderTrait> UserInteractionTaskSource<TH> {
     pub fn queue_event(&self,
-                       target: &EventTarget,
+                       target: &EventTarget<TH>,
                        name: Atom,
                        bubbles: EventBubbles,
                        cancelable: EventCancelable,
-                       window: &Window) {
+                       window: &Window<TH>) {
         let target = Trusted::new(target);
         let task = EventTask { target, name, bubbles, cancelable };
         let _ = self.queue(task, window.upcast());

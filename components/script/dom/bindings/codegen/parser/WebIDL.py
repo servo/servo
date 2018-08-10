@@ -1962,6 +1962,12 @@ class IDLDictionary(IDLObjectWithScope):
             deps.add(self.parent)
         return deps
 
+    def isGenericOverTypeHolder(self):
+        for member in self.members:
+            if member.isGenericOverTypeHolder():
+                return True
+        return bool(self.parent) and self.parent.isGenericOverTypeHolder()
+
 
 class IDLEnum(IDLObjectWithIdentifier):
     def __init__(self, location, parentScope, name, values):
@@ -2186,6 +2192,8 @@ class IDLType(IDLObject):
     def isExposedInAllOf(self, exposureSet):
         return True
 
+    def isGenericOverTypeHolder(self):
+        return self.isGeckoInterface() or self.isPromise()
 
 class IDLUnresolvedType(IDLType):
     """
@@ -2380,6 +2388,8 @@ class IDLNullableType(IDLParametrizedType):
             return False
         return self.inner.isDistinguishableFrom(other)
 
+    def isGenericOverTypeHolder(self):
+        return self.inner.isGenericOverTypeHolder()
 
 class IDLSequenceType(IDLParametrizedType):
     def __init__(self, location, parameterType):
@@ -2452,6 +2462,8 @@ class IDLSequenceType(IDLParametrizedType):
                 other.isDictionary() or
                 other.isCallback() or other.isRecord())
 
+    def isGenericOverTypeHolder(self):
+        return self.inner.isGenericOverTypeHolder()
 
 class IDLRecordType(IDLParametrizedType):
     def __init__(self, location, keyType, valueType):
@@ -2636,6 +2648,13 @@ class IDLUnionType(IDLType):
     def _getDependentObjects(self):
         return set(self.memberTypes)
 
+    def isGenericOverTypeHolder(self):
+        for member in self.memberTypes:
+            if member.isGenericOverTypeHolder():
+                return True
+        if self.unroll().name == 'TestDictionaryOrLong':
+            return True
+        return False
 
 class IDLTypedefType(IDLType):
     def __init__(self, location, innerType, name):
@@ -3790,6 +3809,7 @@ class IDLIterable(IDLMaplikeOrSetlikeOrIterableBase):
                                                    "iterable", keyType, valueType,
                                                    IDLInterfaceMember.Tags.Iterable)
         self.iteratorType = None
+        self.valueType = valueType
 
     def __str__(self):
         return "declared iterable with key '%s' and value '%s'" % (self.keyType, self.valueType)
@@ -3826,6 +3846,9 @@ class IDLIterable(IDLMaplikeOrSetlikeOrIterableBase):
 
     def isPairIterator(self):
         return self.hasKeyType()
+
+    def isGenericOverTypeHolder(self):
+        return self.valueType.isGenericOverTypeHolder()
 
 # MaplikeOrSetlike adds ES6 map-or-set-like traits to an interface.
 class IDLMaplikeOrSetlike(IDLMaplikeOrSetlikeOrIterableBase):
@@ -4011,6 +4034,8 @@ class IDLConst(IDLInterfaceMember):
     def _getDependentObjects(self):
         return set([self.type, self.value])
 
+    def isGenericOverTypeHolder(self):
+        return self.type.isGenericOverTypeHolder()
 
 class IDLAttribute(IDLInterfaceMember):
     def __init__(self, location, identifier, type, readonly, inherit=False,
@@ -4421,6 +4446,8 @@ class IDLAttribute(IDLInterfaceMember):
     def _getDependentObjects(self):
         return set([self.type])
 
+    def isGenericOverTypeHolder(self):
+        return self.type.isGenericOverTypeHolder()
 
 class IDLArgument(IDLObjectWithIdentifier):
     def __init__(self, location, identifier, type, optional=False, defaultValue=None, variadic=False, dictionaryMember=False):
@@ -4534,6 +4561,8 @@ class IDLArgument(IDLObjectWithIdentifier):
     def canHaveMissingValue(self):
         return self.optional and not self.defaultValue
 
+    def isGenericOverTypeHolder(self):
+        return self.type.isGenericOverTypeHolder()
 
 class IDLCallback(IDLObjectWithScope):
     def __init__(self, location, parentScope, identifier, returnType, arguments):
@@ -4624,6 +4653,8 @@ class IDLCallbackType(IDLType):
     def _getDependentObjects(self):
         return self.callback._getDependentObjects()
 
+    def isGenericOverTypeHolder(self):
+        return True
 
 class IDLMethodOverload:
     """
@@ -4645,6 +4676,11 @@ class IDLMethodOverload:
         deps.add(self.returnType)
         return deps
 
+    def isGenericOverTypeHolder(self):
+        for argument in self.arguments:
+            if argument.isGenericOverTypeHolder():
+                return True
+        return self.returnType.isGenericOverTypeHolder()
 
 class IDLMethod(IDLInterfaceMember, IDLScope):
 
@@ -5137,6 +5173,11 @@ class IDLMethod(IDLInterfaceMember, IDLScope):
             deps.update(overload._getDependentObjects())
         return deps
 
+    def isGenericOverTypeHolder(self):
+        for overload in self._overloads:
+            if overload.isGenericOverTypeHolder():
+                return True
+        return False
 
 class IDLImplementsStatement(IDLObject):
     def __init__(self, location, implementor, implementee):

@@ -9,23 +9,27 @@ use dom::bindings::root::DomRoot;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
 use super::{constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct OESTextureFloat {
-    reflector_: Reflector,
+pub struct OESTextureFloat<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    _p: PhantomData<TH>,
 }
 
-impl OESTextureFloat {
-    fn new_inherited() -> OESTextureFloat {
+impl<TH: TypeHolderTrait> OESTextureFloat<TH> {
+    fn new_inherited() -> OESTextureFloat<TH> {
         Self {
             reflector_: Reflector::new(),
+            _p: Default::default(),
         }
     }
 }
 
-impl WebGLExtension for OESTextureFloat {
-    type Extension = OESTextureFloat;
-    fn new(ctx: &WebGLRenderingContext) -> DomRoot<OESTextureFloat> {
+impl<TH: TypeHolderTrait> WebGLExtension<TH> for OESTextureFloat<TH> {
+    type Extension = OESTextureFloat<TH>;
+    fn new(ctx: &WebGLRenderingContext<TH>) -> DomRoot<OESTextureFloat<TH>> {
         reflect_dom_object(Box::new(OESTextureFloat::new_inherited()),
                            &*ctx.global(),
                            OESTextureFloatBinding::Wrap)
@@ -35,13 +39,13 @@ impl WebGLExtension for OESTextureFloat {
         WebGLExtensionSpec::Specific(WebGLVersion::WebGL1)
     }
 
-    fn is_supported(ext: &WebGLExtensions) -> bool {
+    fn is_supported(ext: &WebGLExtensions<TH>) -> bool {
         ext.supports_any_gl_extension(&["GL_OES_texture_float",
                                         "GL_ARB_texture_float",
                                         "GL_EXT_color_buffer_float"])
     }
 
-    fn enable(ext: &WebGLExtensions) {
+    fn enable(ext: &WebGLExtensions<TH>) {
         // Enable FLOAT text data type
         ext.enable_tex_type(webgl::FLOAT);
         let needs_replace = !ext.supports_gl_extension("GL_OES_texture_float");

@@ -38,6 +38,7 @@ use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
 use timers::OneshotTimerCallback;
 use utf8;
+use typeholder::TypeHolderTrait;
 
 header! { (LastEventId, "Last-Event-ID") => [String] }
 
@@ -55,8 +56,8 @@ enum ReadyState {
 }
 
 #[dom_struct]
-pub struct EventSource {
-    eventtarget: EventTarget,
+pub struct EventSource<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
     url: ServoUrl,
     request: DomRefCell<Option<RequestInit>>,
     last_event_id: DomRefCell<DOMString>,
@@ -75,10 +76,10 @@ enum ParserState {
     Eol
 }
 
-struct EventSourceContext {
+struct EventSourceContext<TH: TypeHolderTrait> {
     incomplete_utf8: Option<utf8::Incomplete>,
 
-    event_source: Trusted<EventSource>,
+    event_source: Trusted<EventSource<TH>>,
     gen_id: GenerationId,
     action_sender: ipc::IpcSender<FetchResponseMsg>,
 
@@ -92,7 +93,7 @@ struct EventSourceContext {
     last_event_id: String,
 }
 
-impl EventSourceContext {
+impl<TH: TypeHolderTrait> EventSourceContext<TH> {
     /// <https://html.spec.whatwg.org/multipage/#announce-the-connection>
     fn announce_the_connection(&self) {
         let event_source = self.event_source.root();
@@ -107,7 +108,7 @@ impl EventSourceContext {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Open);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("open"));
+                    event_source.upcast::<EventTarget<TH>>().fire_event(atom!("open"));
                 }
             }),
             &global,
@@ -148,7 +149,7 @@ impl EventSourceContext {
                 event_source.ready_state.set(ReadyState::Connecting);
 
                 // Step 1.3.
-                event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                event_source.upcast::<EventTarget<TH>>().fire_event(atom!("error"));
 
                 // Step 2.
                 let duration = Length::new(event_source.reconnection_time.get());
@@ -236,7 +237,7 @@ impl EventSourceContext {
             task!(dispatch_the_event_source_event: move || {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
-                    event.root().upcast::<Event>().fire(&event_source.upcast());
+                    event.root().upcast::<Event<TH>>().fire(&event_source.upcast());
                 }
             }),
             &global,
@@ -309,7 +310,7 @@ impl EventSourceContext {
     }
 }
 
-impl FetchResponseListener for EventSourceContext {
+impl<TH: TypeHolderTrait> FetchResponseListener for EventSourceContext<TH> {
     fn process_request_body(&mut self) {
         // TODO
     }
@@ -382,14 +383,14 @@ impl FetchResponseListener for EventSourceContext {
     }
 }
 
-impl PreInvoke for EventSourceContext {
+impl<TH: TypeHolderTrait> PreInvoke for EventSourceContext<TH> {
     fn should_invoke(&self) -> bool {
         self.event_source.root().generation_id.get() == self.gen_id
     }
 }
 
-impl EventSource {
-    fn new_inherited(url: ServoUrl, with_credentials: bool) -> EventSource {
+impl<TH: TypeHolderTrait> EventSource<TH> {
+    fn new_inherited(url: ServoUrl, with_credentials: bool) -> EventSource<TH> {
         EventSource {
             eventtarget: EventTarget::new_inherited(),
             url: url,
@@ -404,7 +405,7 @@ impl EventSource {
         }
     }
 
-    fn new(global: &GlobalScope, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource> {
+    fn new(global: &GlobalScope<TH>, url: ServoUrl, with_credentials: bool) -> DomRoot<EventSource<TH>> {
         reflect_dom_object(Box::new(EventSource::new_inherited(url, with_credentials)),
                            global,
                            Wrap)
@@ -426,7 +427,7 @@ impl EventSource {
                 let event_source = event_source.root();
                 if event_source.ready_state.get() != ReadyState::Closed {
                     event_source.ready_state.set(ReadyState::Closed);
-                    event_source.upcast::<EventTarget>().fire_event(atom!("error"));
+                    event_source.upcast::<EventTarget<TH>>().fire_event(atom!("error"));
                 }
             }),
             &global,
@@ -438,9 +439,9 @@ impl EventSource {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &GlobalScope<TH>,
                        url: DOMString,
-                       event_source_init: &EventSourceInit) -> Fallible<DomRoot<EventSource>> {
+                       event_source_init: &EventSourceInit) -> Fallible<DomRoot<EventSource<TH>>> {
         // TODO: Step 2 relevant settings object
         // Step 3
         let base_url = global.api_base_url();
@@ -501,7 +502,8 @@ impl EventSource {
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),
             task_source: global.networking_task_source(),
-            canceller: Some(global.task_canceller(TaskSourceName::Networking))
+            canceller: Some(global.task_canceller(TaskSourceName::Networking)),
+            _p: Default::default(),
         };
         ROUTER.add_route(action_receiver.to_opaque(), Box::new(move |message| {
             listener.notify_fetch(message.to().unwrap());
@@ -515,7 +517,7 @@ impl EventSource {
 }
 
 // https://html.spec.whatwg.org/multipage/#garbage-collection-2
-impl Drop for EventSource {
+impl<TH: TypeHolderTrait> Drop for EventSource<TH> {
     fn drop(&mut self) {
         // If an EventSource object is garbage collected while its connection is still open,
         // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
@@ -523,7 +525,7 @@ impl Drop for EventSource {
     }
 }
 
-impl EventSourceMethods for EventSource {
+impl<TH: TypeHolderTrait> EventSourceMethods<TH> for EventSource<TH> {
     // https://html.spec.whatwg.org/multipage/#handler-eventsource-onopen
     event_handler!(open, GetOnopen, SetOnopen);
 
@@ -558,14 +560,14 @@ impl EventSourceMethods for EventSource {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
-pub struct EventSourceTimeoutCallback {
+pub struct EventSourceTimeoutCallback<TH: TypeHolderTrait> {
     #[ignore_malloc_size_of = "Because it is non-owning"]
-    event_source: Trusted<EventSource>,
+    event_source: Trusted<EventSource<TH>>,
     #[ignore_malloc_size_of = "Because it is non-owning"]
     action_sender: ipc::IpcSender<FetchResponseMsg>,
 }
 
-impl EventSourceTimeoutCallback {
+impl<TH: TypeHolderTrait> EventSourceTimeoutCallback<TH> {
     // https://html.spec.whatwg.org/multipage/#reestablish-the-connection
     pub fn invoke(self) {
         let event_source = self.event_source.root();

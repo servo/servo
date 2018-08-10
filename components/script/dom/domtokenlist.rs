@@ -15,16 +15,17 @@ use dom_struct::dom_struct;
 use html5ever::LocalName;
 use servo_atoms::Atom;
 use style::str::HTML_SPACE_CHARACTERS;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct DOMTokenList {
-    reflector_: Reflector,
-    element: Dom<Element>,
+pub struct DOMTokenList<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    element: Dom<Element<TH>>,
     local_name: LocalName,
 }
 
-impl DOMTokenList {
-    pub fn new_inherited(element: &Element, local_name: LocalName) -> DOMTokenList {
+impl<TH: TypeHolderTrait> DOMTokenList<TH> {
+    pub fn new_inherited(element: &Element<TH>, local_name: LocalName) -> DOMTokenList<TH> {
         DOMTokenList {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
@@ -32,14 +33,14 @@ impl DOMTokenList {
         }
     }
 
-    pub fn new(element: &Element, local_name: &LocalName) -> DomRoot<DOMTokenList> {
+    pub fn new(element: &Element<TH>, local_name: &LocalName) -> DomRoot<DOMTokenList<TH>> {
         let window = window_from_node(element);
         reflect_dom_object(Box::new(DOMTokenList::new_inherited(element, local_name.clone())),
                            &*window,
                            DOMTokenListBinding::Wrap)
     }
 
-    fn attribute(&self) -> Option<DomRoot<Attr>> {
+    fn attribute(&self) -> Option<DomRoot<Attr<TH>>> {
         self.element.get_attribute(&ns!(), &self.local_name)
     }
 
@@ -53,7 +54,7 @@ impl DOMTokenList {
 }
 
 // https://dom.spec.whatwg.org/#domtokenlist
-impl DOMTokenListMethods for DOMTokenList {
+impl<TH: TypeHolderTrait> DOMTokenListMethods for DOMTokenList<TH> {
     // https://dom.spec.whatwg.org/#dom-domtokenlist-length
     fn Length(&self) -> u32 {
         self.attribute().map_or(0, |attr| {

@@ -15,22 +15,23 @@ use servo_media::audio::node::{AudioNodeMessage, AudioNodeInit, AudioScheduledSo
 use servo_media::audio::node::OnEndedCallback;
 use std::cell::Cell;
 use task_source::{TaskSource, TaskSourceName};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct AudioScheduledSourceNode {
-    node: AudioNode,
+pub struct AudioScheduledSourceNode<TH: TypeHolderTrait> {
+    node: AudioNode<TH>,
     started: Cell<bool>,
     stopped: Cell<bool>,
 }
 
-impl AudioScheduledSourceNode {
+impl<TH: TypeHolderTrait> AudioScheduledSourceNode<TH> {
     pub fn new_inherited(
         node_type: AudioNodeInit,
-        context: &BaseAudioContext,
+        context: &BaseAudioContext<TH>,
         options: &AudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
-    ) -> AudioScheduledSourceNode {
+    ) -> AudioScheduledSourceNode<TH> {
         AudioScheduledSourceNode {
             node: AudioNode::new_inherited(
                 node_type,
@@ -45,7 +46,7 @@ impl AudioScheduledSourceNode {
         }
     }
 
-    pub fn node(&self) -> &AudioNode {
+    pub fn node(&self) -> &AudioNode<TH> {
         &self.node
     }
 
@@ -54,7 +55,7 @@ impl AudioScheduledSourceNode {
     }
 }
 
-impl AudioScheduledSourceNodeMethods for AudioScheduledSourceNode {
+impl<TH: TypeHolderTrait> AudioScheduledSourceNodeMethods<TH> for AudioScheduledSourceNode<TH> {
     // https://webaudio.github.io/web-audio-api/#dom-audioscheduledsourcenode-onended
     event_handler!(ended, GetOnended, SetOnended);
 

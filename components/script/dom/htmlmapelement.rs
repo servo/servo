@@ -11,16 +11,17 @@ use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLMapElement {
-    htmlelement: HTMLElement
+pub struct HTMLMapElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>
 }
 
-impl HTMLMapElement {
+impl<TH: TypeHolderTrait> HTMLMapElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLMapElement {
+                     document: &Document<TH>) -> HTMLMapElement<TH> {
         HTMLMapElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document)
         }
@@ -29,15 +30,15 @@ impl HTMLMapElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLMapElement> {
-        Node::reflect_node(Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLMapElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLMapElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLMapElementBinding::Wrap)
     }
 
-    pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement>> {
-        self.upcast::<Node>()
+    pub fn get_area_elements(&self) -> Vec<DomRoot<HTMLAreaElement<TH>>> {
+        self.upcast::<Node<TH>>()
             .traverse_preorder()
-            .filter_map(DomRoot::downcast::<HTMLAreaElement>).collect()
+            .filter_map(DomRoot::downcast::<HTMLAreaElement<TH>>).collect()
     }
 }

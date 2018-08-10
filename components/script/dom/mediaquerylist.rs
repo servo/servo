@@ -17,6 +17,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use style::media_queries::MediaList;
 use style_traits::ToCss;
+use typeholder::TypeHolderTrait;
 
 pub enum MediaQueryListMatchState {
     Same(bool),
@@ -24,15 +25,15 @@ pub enum MediaQueryListMatchState {
 }
 
 #[dom_struct]
-pub struct MediaQueryList {
-    eventtarget: EventTarget,
-    document: Dom<Document>,
+pub struct MediaQueryList<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
+    document: Dom<Document<TH>>,
     media_query_list: MediaList,
     last_match_state: Cell<Option<bool>>
 }
 
-impl MediaQueryList {
-    fn new_inherited(document: &Document, media_query_list: MediaList) -> MediaQueryList {
+impl<TH: TypeHolderTrait> MediaQueryList<TH> {
+    fn new_inherited(document: &Document<TH>, media_query_list: MediaList) -> MediaQueryList<TH> {
         MediaQueryList {
             eventtarget: EventTarget::new_inherited(),
             document: Dom::from_ref(document),
@@ -41,14 +42,14 @@ impl MediaQueryList {
         }
     }
 
-    pub fn new(document: &Document, media_query_list: MediaList) -> DomRoot<MediaQueryList> {
+    pub fn new(document: &Document<TH>, media_query_list: MediaList) -> DomRoot<MediaQueryList<TH>> {
         reflect_dom_object(Box::new(MediaQueryList::new_inherited(document, media_query_list)),
                            document.window(),
                            MediaQueryListBinding::Wrap)
     }
 }
 
-impl MediaQueryList {
+impl<TH: TypeHolderTrait> MediaQueryList<TH> {
     pub fn evaluate_changes(&self) -> MediaQueryListMatchState {
         let matches = self.evaluate();
 
@@ -73,7 +74,7 @@ impl MediaQueryList {
     }
 }
 
-impl MediaQueryListMethods for MediaQueryList {
+impl<TH: TypeHolderTrait> MediaQueryListMethods<TH> for MediaQueryList<TH> {
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-media
     fn Media(&self) -> DOMString {
         self.media_query_list.to_css_string().into()
@@ -88,8 +89,8 @@ impl MediaQueryListMethods for MediaQueryList {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener
-    fn AddListener(&self, listener: Option<Rc<EventListener>>) {
-        self.upcast::<EventTarget>().add_event_listener(
+    fn AddListener(&self, listener: Option<Rc<EventListener<TH>>>) {
+        self.upcast::<EventTarget<TH>>().add_event_listener(
             DOMString::from_string("change".to_owned()),
             listener,
             AddEventListenerOptions { parent: EventListenerOptions { capture: false } },
@@ -97,8 +98,8 @@ impl MediaQueryListMethods for MediaQueryList {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener
-    fn RemoveListener(&self, listener: Option<Rc<EventListener>>) {
-        self.upcast::<EventTarget>().remove_event_listener(
+    fn RemoveListener(&self, listener: Option<Rc<EventListener<TH>>>) {
+        self.upcast::<EventTarget<TH>>().remove_event_listener(
             DOMString::from_string("change".to_owned()),
             listener,
             EventListenerOptions { capture: false },

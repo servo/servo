@@ -37,16 +37,17 @@ use std::ops::Range;
 use style::attr::AttrValue;
 use style::element_state::ElementState;
 use textinput::{Direction, KeyReaction, Lines, SelectionDirection, TextInput};
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct HTMLTextAreaElement {
-    htmlelement: HTMLElement,
+pub struct HTMLTextAreaElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>,
     #[ignore_malloc_size_of = "#7193"]
-    textinput: DomRefCell<TextInput<ScriptToConstellationChan>>,
+    textinput: DomRefCell<TextInput<ScriptToConstellationChan, TH>>,
     placeholder: DomRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
-    form_owner: MutNullableDom<HTMLFormElement>,
+    form_owner: MutNullableDom<HTMLFormElement<TH>>,
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -60,7 +61,7 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     fn get_rows(self) -> u32;
 }
 
-impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
+impl<TH: TypeHolderTrait> LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement<TH>> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn value_for_layout(self) -> String {
@@ -78,7 +79,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
-        if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
+        if !(*self.unsafe_get()).upcast::<Element<TH>>().focus_state() {
             return None;
         }
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
@@ -88,7 +89,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     fn get_cols(self) -> u32 {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("cols"))
                 .map_or(DEFAULT_COLS, AttrValue::as_uint)
         }
@@ -97,7 +98,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutDom<HTMLTextAreaElement> {
     #[allow(unsafe_code)]
     fn get_rows(self) -> u32 {
         unsafe {
-            (*self.upcast::<Element>().unsafe_get())
+            (*self.upcast::<Element<TH>>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("rows"))
                 .map_or(DEFAULT_ROWS, AttrValue::as_uint)
         }
@@ -113,11 +114,11 @@ const DEFAULT_ROWS: u32 = 2;
 const DEFAULT_MAX_LENGTH: i32 = -1;
 const DEFAULT_MIN_LENGTH: i32 = -1;
 
-impl HTMLTextAreaElement {
+impl<TH: TypeHolderTrait> HTMLTextAreaElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLTextAreaElement {
-        let chan = document.window().upcast::<GlobalScope>().script_to_constellation_chan().clone();
+                     document: &Document<TH>) -> HTMLTextAreaElement<TH> {
+        let chan = document.window().upcast::<GlobalScope<TH>>().script_to_constellation_chan().clone();
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(ElementState::IN_ENABLED_STATE |
@@ -134,8 +135,8 @@ impl HTMLTextAreaElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLTextAreaElement> {
-        Node::reflect_node(Box::new(HTMLTextAreaElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLTextAreaElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLTextAreaElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLTextAreaElementBinding::Wrap)
     }
@@ -143,12 +144,12 @@ impl HTMLTextAreaElement {
     fn update_placeholder_shown_state(&self) {
         let has_placeholder = !self.placeholder.borrow().is_empty();
         let has_value = !self.textinput.borrow().is_empty();
-        let el = self.upcast::<Element>();
+        let el = self.upcast::<Element<TH>>();
         el.set_placeholder_shown_state(has_placeholder && !has_value);
     }
 }
 
-impl TextControlElement for HTMLTextAreaElement {
+impl<TH: TypeHolderTrait> TextControlElement<TH> for HTMLTextAreaElement<TH> {
     fn selection_api_applies(&self) -> bool {
         true
     }
@@ -162,7 +163,7 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 }
 
-impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
+impl<TH: TypeHolderTrait> HTMLTextAreaElementMethods<TH> for HTMLTextAreaElement<TH> {
     // TODO A few of these attributes have default values and additional
     // constraints
 
@@ -179,7 +180,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/#dom-fae-form
-    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
+    fn GetForm(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner()
     }
 
@@ -238,12 +239,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn DefaultValue(&self) -> DOMString {
-        self.upcast::<Node>().GetTextContent().unwrap()
+        self.upcast::<Node<TH>>().GetTextContent().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue
     fn SetDefaultValue(&self, value: DOMString) {
-        self.upcast::<Node>().SetTextContent(Some(value));
+        self.upcast::<Node<TH>>().SetTextContent(Some(value));
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
@@ -275,7 +276,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
             textinput.clear_selection_to_limit(Direction::Forward);
         }
 
-        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        self.upcast::<Node<TH>>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea-textlength
@@ -284,8 +285,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
-    fn Labels(&self) -> DomRoot<NodeList> {
-        self.upcast::<HTMLElement>().labels()
+    fn Labels(&self) -> DomRoot<NodeList<TH>> {
+        self.upcast::<HTMLElement<TH>>().labels()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-select
@@ -341,7 +342,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 }
 
 
-impl HTMLTextAreaElement {
+impl<TH: TypeHolderTrait> HTMLTextAreaElement<TH> {
     pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         let mut textinput = self.textinput.borrow_mut();
@@ -350,22 +351,22 @@ impl HTMLTextAreaElement {
     }
 
     #[allow(unrooted_must_root)]
-    fn selection(&self) -> TextControlSelection<Self> {
+    fn selection(&self) -> TextControlSelection<Self, TH> {
         TextControlSelection::new(&self, &self.textinput)
     }
 }
 
 
-impl VirtualMethods for HTMLTextAreaElement {
-    fn super_type(&self) -> Option<&VirtualMethods> {
-        Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+impl<TH: TypeHolderTrait> VirtualMethods<TH> for HTMLTextAreaElement<TH> {
+    fn super_type(&self) -> Option<&VirtualMethods<TH>> {
+        Some(self.upcast::<HTMLElement<TH>>() as &VirtualMethods<TH>)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+    fn attribute_mutated(&self, attr: &Attr<TH>, mutation: AttributeMutation<TH>) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
-                let el = self.upcast::<Element>();
+                let el = self.upcast::<Element<TH>>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
@@ -381,7 +382,8 @@ impl VirtualMethods for HTMLTextAreaElement {
                         if !el.disabled_state() && !el.read_write_state() {
                             el.set_read_write_state(true);
                         }
-                    }
+                    },
+                    AttributeMutation::_p(_) => return,
                 }
             },
             local_name!("maxlength") => {
@@ -423,14 +425,15 @@ impl VirtualMethods for HTMLTextAreaElement {
                 self.update_placeholder_shown_state();
             },
             local_name!("readonly") => {
-                let el = self.upcast::<Element>();
+                let el = self.upcast::<Element<TH>>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_read_write_state(false);
                     },
                     AttributeMutation::Removed => {
                         el.set_read_write_state(!el.disabled_state());
-                    }
+                    },
+                    AttributeMutation::_p(_) => return,
                 }
             },
             local_name!("form") => {
@@ -445,7 +448,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
+        self.upcast::<Element<TH>>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -458,12 +461,12 @@ impl VirtualMethods for HTMLTextAreaElement {
         }
     }
 
-    fn unbind_from_tree(&self, context: &UnbindContext) {
+    fn unbind_from_tree(&self, context: &UnbindContext<TH>) {
         self.super_type().unwrap().unbind_from_tree(context);
 
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement>()) {
+        let node = self.upcast::<Node<TH>>();
+        let el = self.upcast::<Element<TH>>();
+        if node.ancestors().any(|ancestor| ancestor.is::<HTMLFieldSetElement<TH>>()) {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
@@ -472,18 +475,18 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // The cloning steps for textarea elements must propagate the raw value
     // and dirty value flag from the node being cloned to the copy.
-    fn cloning_steps(&self, copy: &Node, maybe_doc: Option<&Document>,
+    fn cloning_steps(&self, copy: &Node<TH>, maybe_doc: Option<&Document<TH>>,
                      clone_children: CloneChildrenFlag) {
         if let Some(ref s) = self.super_type() {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
-        let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
+        let el = copy.downcast::<HTMLTextAreaElement<TH>>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
         let mut textinput = el.textinput.borrow_mut();
         textinput.set_content(self.textinput.borrow().get_content());
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation) {
+    fn children_changed(&self, mutation: &ChildrenMutation<TH>) {
         if let Some(ref s) = self.super_type() {
             s.children_changed(mutation);
         }
@@ -493,7 +496,7 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 
     // copied and modified from htmlinputelement.rs
-    fn handle_event(&self, event: &Event) {
+    fn handle_event(&self, event: &Event<TH>) {
         if let Some(s) = self.super_type() {
             s.handle_event(event);
         }
@@ -503,7 +506,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
             document_from_node(self).request_focus(self.upcast());
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
-            if let Some(kevent) = event.downcast::<KeyboardEvent>() {
+            if let Some(kevent) = event.downcast::<KeyboardEvent<TH>>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
                 let action = self.textinput.borrow_mut().handle_keydown(kevent);
@@ -512,11 +515,11 @@ impl VirtualMethods for HTMLTextAreaElement {
                     KeyReaction::DispatchInput => {
                         self.value_dirty.set(true);
                         self.update_placeholder_shown_state();
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node<TH>>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();
                     }
                     KeyReaction::RedrawSelection => {
-                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                        self.upcast::<Node<TH>>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();
                     }
                     KeyReaction::Nothing => (),
@@ -543,19 +546,19 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 }
 
-impl FormControl for HTMLTextAreaElement {
-    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>> {
+impl<TH: TypeHolderTrait> FormControl<TH> for HTMLTextAreaElement<TH> {
+    fn form_owner(&self) -> Option<DomRoot<HTMLFormElement<TH>>> {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, form: Option<&HTMLFormElement<TH>>) {
         self.form_owner.set(form);
     }
 
-    fn to_element<'a>(&'a self) -> &'a Element {
-        self.upcast::<Element>()
+    fn to_element<'a>(&'a self) -> &'a Element<TH> {
+        self.upcast::<Element<TH>>()
     }
 }
 
 
-impl Validatable for HTMLTextAreaElement {}
+impl<TH: TypeHolderTrait> Validatable for HTMLTextAreaElement<TH> {}

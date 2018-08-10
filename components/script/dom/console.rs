@@ -8,15 +8,17 @@ use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use dom::workerglobalscope::WorkerGlobalScope;
 use std::io;
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
-pub struct Console(());
+pub struct Console<TH: TypeHolderTrait>((), PhantomData<TH>,);
 
-impl Console {
-    fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
+impl<TH: TypeHolderTrait> Console<TH> {
+    fn send_to_devtools(global: &GlobalScope<TH>, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
             let console_message = prepare_message(level, message);
-            let worker_id = global.downcast::<WorkerGlobalScope>().map(|worker| {
+            let worker_id = global.downcast::<WorkerGlobalScope<TH>>().map(|worker| {
                 worker.get_worker_id()
             });
             let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
@@ -39,9 +41,9 @@ fn with_stderr_lock<F>(f: F) where F: FnOnce() {
     f()
 }
 
-impl Console {
+impl<TH: TypeHolderTrait> Console<TH> {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
-    pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
+    pub fn Log(global: &GlobalScope<TH>, messages: Vec<DOMString>) {
         with_stderr_lock(move || {
             for message in messages {
                 println!("{}", message);
@@ -51,7 +53,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
-    pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
+    pub fn Debug(global: &GlobalScope<TH>, messages: Vec<DOMString>) {
         with_stderr_lock(move || {
             for message in messages {
                 println!("{}", message);
@@ -61,7 +63,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
-    pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
+    pub fn Info(global: &GlobalScope<TH>, messages: Vec<DOMString>) {
         with_stderr_lock(move || {
             for message in messages {
                 println!("{}", message);
@@ -71,7 +73,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
-    pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
+    pub fn Warn(global: &GlobalScope<TH>, messages: Vec<DOMString>) {
         with_stderr_lock(move || {
             for message in messages {
                 println!("{}", message);
@@ -81,7 +83,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
-    pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
+    pub fn Error(global: &GlobalScope<TH>, messages: Vec<DOMString>) {
         with_stderr_lock(move || {
             for message in messages {
                 println!("{}", message);
@@ -91,7 +93,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
-    pub fn Assert(global: &GlobalScope, condition: bool, message: Option<DOMString>) {
+    pub fn Assert(global: &GlobalScope<TH>, condition: bool, message: Option<DOMString>) {
         with_stderr_lock(move || {
             if !condition {
                 let message = message.unwrap_or_else(|| DOMString::from("no message"));
@@ -102,7 +104,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
-    pub fn Time(global: &GlobalScope, label: DOMString) {
+    pub fn Time(global: &GlobalScope<TH>, label: DOMString) {
         with_stderr_lock(move || {
             if let Ok(()) = global.time(label.clone()) {
                 let message = DOMString::from(format!("{}: timer started", label));
@@ -113,7 +115,7 @@ impl Console {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
-    pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
+    pub fn TimeEnd(global: &GlobalScope<TH>, label: DOMString) {
         with_stderr_lock(move || {
             if let Ok(delta) = global.time_end(&label) {
                 let message = DOMString::from(

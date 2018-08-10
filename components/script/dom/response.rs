@@ -28,11 +28,12 @@ use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
 use url::Position;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct Response {
-    reflector_: Reflector,
-    headers_reflector: MutNullableDom<Headers>,
+pub struct Response<TH: TypeHolderTrait> {
+    reflector_: Reflector<TH>,
+    headers_reflector: MutNullableDom<Headers<TH>>,
     mime_type: DomRefCell<Vec<u8>>,
     body_used: Cell<bool>,
     /// `None` can be considered a StatusCode of `0`.
@@ -45,11 +46,11 @@ pub struct Response {
     // For now use the existing NetTraitsResponseBody enum
     body: DomRefCell<NetTraitsResponseBody>,
     #[ignore_malloc_size_of = "Rc"]
-    body_promise: DomRefCell<Option<(Rc<Promise>, BodyType)>>,
+    body_promise: DomRefCell<Option<(Rc<Promise<TH>>, BodyType)>>,
 }
 
-impl Response {
-    pub fn new_inherited() -> Response {
+impl<TH: TypeHolderTrait> Response<TH> {
+    pub fn new_inherited() -> Response<TH> {
         Response {
             reflector_: Reflector::new(),
             headers_reflector: Default::default(),
@@ -66,12 +67,12 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response
-    pub fn new(global: &GlobalScope) -> DomRoot<Response> {
+    pub fn new(global: &GlobalScope<TH>) -> DomRoot<Response<TH>> {
         reflect_dom_object(Box::new(Response::new_inherited()), global, ResponseBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalScope, body: Option<BodyInit>, init: &ResponseBinding::ResponseInit)
-                       -> Fallible<DomRoot<Response>> {
+    pub fn Constructor(global: &GlobalScope<TH>, body: Option<BodyInit<TH>>, init: &ResponseBinding::ResponseInit<TH>)
+                       -> Fallible<DomRoot<Response<TH>>> {
         // Step 1
         if init.status < 200 || init.status > 599 {
             return Err(Error::Range(
@@ -138,7 +139,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-error
-    pub fn Error(global: &GlobalScope) -> DomRoot<Response> {
+    pub fn Error(global: &GlobalScope<TH>) -> DomRoot<Response<TH>> {
         let r = Response::new(global);
         *r.response_type.borrow_mut() = DOMResponseType::Error;
         r.Headers().set_guard(Guard::Immutable);
@@ -147,7 +148,7 @@ impl Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-redirect
-    pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<DomRoot<Response>> {
+    pub fn Redirect(global: &GlobalScope<TH>, url: USVString, status: u16) -> Fallible<DomRoot<Response<TH>>> {
         // Step 1
         let base_url = global.api_base_url();
         let parsed_url = base_url.join(&url.0);
@@ -191,12 +192,12 @@ impl Response {
     }
 }
 
-impl BodyOperations for Response {
+impl<TH: TypeHolderTrait> BodyOperations<TH> for Response<TH> {
     fn get_body_used(&self) -> bool {
         self.BodyUsed()
     }
 
-    fn set_body_promise(&self, p: &Rc<Promise>, body_type: BodyType) {
+    fn set_body_promise(&self, p: &Rc<Promise<TH>>, body_type: BodyType) {
         assert!(self.body_promise.borrow().is_none());
         self.body_used.set(true);
         *self.body_promise.borrow_mut() = Some((p.clone(), body_type));
@@ -245,7 +246,7 @@ fn is_null_body_status(status: u16) -> bool {
     status == 101 || status == 204 || status == 205 || status == 304
 }
 
-impl ResponseMethods for Response {
+impl<TH: TypeHolderTrait> ResponseMethods<TH> for Response<TH> {
     // https://fetch.spec.whatwg.org/#dom-response-type
     fn Type(&self) -> DOMResponseType {
         *self.response_type.borrow()//into()
@@ -290,12 +291,12 @@ impl ResponseMethods for Response {
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-headers
-    fn Headers(&self) -> DomRoot<Headers> {
+    fn Headers(&self) -> DomRoot<Headers<TH>> {
         self.headers_reflector.or_init(|| Headers::for_response(&self.global()))
     }
 
     // https://fetch.spec.whatwg.org/#dom-response-clone
-    fn Clone(&self) -> Fallible<DomRoot<Response>> {
+    fn Clone(&self) -> Fallible<DomRoot<Response<TH>>> {
         // Step 1
         if self.is_locked() || self.body_used.get() {
             return Err(Error::Type("cannot clone a disturbed response".to_string()));
@@ -333,31 +334,31 @@ impl ResponseMethods for Response {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-text
-    fn Text(&self) -> Rc<Promise> {
+    fn Text(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::Text)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-blob
-    fn Blob(&self) -> Rc<Promise> {
+    fn Blob(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::Blob)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-formdata
-    fn FormData(&self) -> Rc<Promise> {
+    fn FormData(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::FormData)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-json
-    fn Json(&self) -> Rc<Promise> {
+    fn Json(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::Json)
     }
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#dom-body-arraybuffer
-    fn ArrayBuffer(&self) -> Rc<Promise> {
+    fn ArrayBuffer(&self) -> Rc<Promise<TH>> {
         consume_body(self, BodyType::ArrayBuffer)
     }
 }
@@ -366,7 +367,7 @@ fn serialize_without_fragment(url: &ServoUrl) -> &str {
     &url[..Position::AfterQuery]
 }
 
-impl Response {
+impl<TH: TypeHolderTrait> Response<TH> {
     pub fn set_type(&self, new_response_type: DOMResponseType) {
         *self.response_type.borrow_mut() = new_response_type;
     }

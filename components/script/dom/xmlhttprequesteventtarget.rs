@@ -5,21 +5,22 @@
 use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpRequestEventTargetMethods;
 use dom::eventtarget::EventTarget;
 use dom_struct::dom_struct;
+use typeholder::TypeHolderTrait;
 
 #[dom_struct]
-pub struct XMLHttpRequestEventTarget {
-    eventtarget: EventTarget,
+pub struct XMLHttpRequestEventTarget<TH: TypeHolderTrait> {
+    eventtarget: EventTarget<TH>,
 }
 
-impl XMLHttpRequestEventTarget {
-    pub fn new_inherited() -> XMLHttpRequestEventTarget {
+impl<TH: TypeHolderTrait> XMLHttpRequestEventTarget<TH> {
+    pub fn new_inherited() -> XMLHttpRequestEventTarget<TH> {
         XMLHttpRequestEventTarget {
             eventtarget: EventTarget::new_inherited()
         }
     }
 }
 
-impl XMLHttpRequestEventTargetMethods for XMLHttpRequestEventTarget {
+impl<TH: TypeHolderTrait> XMLHttpRequestEventTargetMethods<TH> for XMLHttpRequestEventTarget<TH> {
     // https://xhr.spec.whatwg.org/#handler-xhr-onloadstart
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
 

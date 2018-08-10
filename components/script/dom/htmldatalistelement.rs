@@ -14,16 +14,18 @@ use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, window_from_node};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use typeholder::TypeHolderTrait;
+use std::marker::PhantomData;
 
 #[dom_struct]
-pub struct HTMLDataListElement {
-    htmlelement: HTMLElement
+pub struct HTMLDataListElement<TH: TypeHolderTrait> {
+    htmlelement: HTMLElement<TH>
 }
 
-impl HTMLDataListElement {
+impl<TH: TypeHolderTrait> HTMLDataListElement<TH> {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<Prefix>,
-                     document: &Document) -> HTMLDataListElement {
+                     document: &Document<TH>) -> HTMLDataListElement<TH> {
         HTMLDataListElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document)
@@ -33,24 +35,24 @@ impl HTMLDataListElement {
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<Prefix>,
-               document: &Document) -> DomRoot<HTMLDataListElement> {
-        Node::reflect_node(Box::new(HTMLDataListElement::new_inherited(local_name, prefix, document)),
+               document: &Document<TH>) -> DomRoot<HTMLDataListElement<TH>> {
+        Node::<TH>::reflect_node(Box::new(HTMLDataListElement::new_inherited(local_name, prefix, document)),
                            document,
                            HTMLDataListElementBinding::Wrap)
     }
 }
 
-impl HTMLDataListElementMethods for HTMLDataListElement {
+impl<TH: TypeHolderTrait> HTMLDataListElementMethods<TH> for HTMLDataListElement<TH> {
     // https://html.spec.whatwg.org/multipage/#dom-datalist-options
-    fn Options(&self) -> DomRoot<HTMLCollection> {
+    fn Options(&self) -> DomRoot<HTMLCollection<TH>> {
         #[derive(JSTraceable, MallocSizeOf)]
-        struct HTMLDataListOptionsFilter;
-        impl CollectionFilter for HTMLDataListOptionsFilter {
-            fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.is::<HTMLOptionElement>()
+        struct HTMLDataListOptionsFilter<THH: TypeHolderTrait + 'static>(PhantomData<THH>);
+        impl<THH: TypeHolderTrait> CollectionFilter<THH> for HTMLDataListOptionsFilter<THH> {
+            fn filter(&self, elem: &Element<THH>, _root: &Node<THH>) -> bool {
+                elem.is::<HTMLOptionElement<THH>>()
             }
         }
-        let filter = Box::new(HTMLDataListOptionsFilter);
+        let filter = Box::new(HTMLDataListOptionsFilter(Default::default()));
         let window = window_from_node(self);
         HTMLCollection::create(&window, self.upcast(), filter)
     }
