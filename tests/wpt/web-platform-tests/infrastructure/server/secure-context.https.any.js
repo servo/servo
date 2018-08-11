@@ -1,3 +1,4 @@
+// META: global=window,dedicatedworker,sharedworker,serviceworker
 test(() => {
   assert_true(self.isSecureContext);
 }, "Use of .https file name flag implies secure context");

@@ -366,7 +366,7 @@ test()""" % input
 
     urls = {
         "dedicatedworker": "/html/test.any.worker.html",
-        "serviceworker": "/html/test.https.any.serviceworker.html",
+        "serviceworker": "/html/test.any.serviceworker.html",
         "sharedworker": "/html/test.any.sharedworker.html",
         "window": "/html/test.any.html",
     }
@@ -431,7 +431,7 @@ test()"""
 
     urls = {
         "dedicatedworker": "/html/test.any.worker.html",
-        "serviceworker": "/html/test.https.any.serviceworker.html",
+        "serviceworker": "/html/test.any.serviceworker.html",
         "sharedworker": "/html/test.any.sharedworker.html",
         "window": "/html/test.any.html",
     }

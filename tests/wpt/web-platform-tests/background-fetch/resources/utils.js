@@ -14,14 +14,14 @@ async function getMessageFromServiceWorker() {
   });
 }
 
-// Registers the instrumentation Service Worker located at "resources/sw.js"
+// Registers the |name| instrumentation Service Worker located at "service_workers/"
 // with a scope unique to the test page that's running, and waits for it to be
 // activated. The Service Worker will be unregistered automatically.
 //
 // Depends on /service-workers/service-worker/resources/test-helpers.sub.js
-async function registerAndActivateServiceWorker(test) {
-  const script = 'resources/sw.js';
-  const scope = 'resources/scope' + location.pathname;
+async function registerAndActivateServiceWorker(test, name) {
+  const script = `service_workers/${name}`;
+  const scope = 'service_workers/scope' + location.pathname;
 
   let serviceWorkerRegistration =
       await service_worker_unregister_and_register(test, script, scope);
@@ -35,10 +35,13 @@ async function registerAndActivateServiceWorker(test) {
 // Creates a Promise test for |func| given the |description|. The |func| will be
 // executed with the `backgroundFetch` object of an activated Service Worker
 // Registration.
-function backgroundFetchTest(func, description) {
+// |workerName| is the name of the service worker file in the service_workers
+// directory to register.
+function backgroundFetchTest(func, description, workerName = 'sw.js') {
   promise_test(async t => {
-    const serviceWorkerRegistration = await registerAndActivateServiceWorker(t);
-    serviceWorkerRegistration.active.postMessage(null /* unused */);
+    const serviceWorkerRegistration =
+        await registerAndActivateServiceWorker(t, workerName);
+    serviceWorkerRegistration.active.postMessage(null);
 
     assert_equals(await getMessageFromServiceWorker(), 'ready');
 
