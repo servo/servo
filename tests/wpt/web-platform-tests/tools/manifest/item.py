@@ -1,4 +1,4 @@
-from six.moves.urllib.parse import urljoin
+from six.moves.urllib.parse import urljoin, urlparse
 from abc import ABCMeta, abstractproperty
 
 
@@ -47,13 +47,18 @@ class ManifestItem(object):
         pass
 
     @property
+    def meta_flags(self):
+        return set(self.source_file.meta_flags)
+
+    @property
     def path(self):
         """The test path relative to the test_root"""
         return self.source_file.rel_path
 
     @property
     def https(self):
-        return "https" in self.source_file.meta_flags
+        flags = self.meta_flags
+        return ("https" in flags or "serviceworker" in flags)
 
     def key(self):
         """A unique identifier for the test"""
@@ -94,6 +99,10 @@ class URLManifestItem(ManifestItem):
     @property
     def id(self):
         return self.url
+
+    @property
+    def meta_flags(self):
+        return set(urlparse(self.url).path.rsplit("/", 1)[1].split(".")[1:-1])
 
     @property
     def url(self):

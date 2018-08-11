@@ -10,11 +10,11 @@
 == attachment-local-clipping-color-3.html attachment-local-clipping-color-3-ref.html
 == attachment-local-clipping-color-4.html attachment-local-clipping-color-4-ref.html
 == attachment-local-clipping-color-5.html attachment-local-clipping-color-4-ref.html  # Same ref as the previous test.
-fuzzy(50,500) == attachment-local-clipping-color-6.html attachment-local-clipping-color-6-ref.html
+fuzzy(0-50,0-500) == attachment-local-clipping-color-6.html attachment-local-clipping-color-6-ref.html
 
 == attachment-local-clipping-image-1.html attachment-local-clipping-image-1-ref.html
 == attachment-local-clipping-image-2.html attachment-local-clipping-image-1-ref.html  # Same ref as the previous test.
 == attachment-local-clipping-image-3.html attachment-local-clipping-image-3-ref.html
 == attachment-local-clipping-image-4.html attachment-local-clipping-image-4-ref.html
 == attachment-local-clipping-image-5.html attachment-local-clipping-image-4-ref.html  # Same ref as the previous test.
-fuzzy(80,500) == attachment-local-clipping-image-6.html attachment-local-clipping-image-6-ref.html
+fuzzy(0-80,0-500) == attachment-local-clipping-image-6.html attachment-local-clipping-image-6-ref.html

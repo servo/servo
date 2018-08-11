@@ -249,7 +249,7 @@ fetch_tests_from_worker(new SharedWorker("%(path)s%(query)s"));
 
 class ServiceWorkersHandler(HtmlWrapperHandler):
     global_type = b"serviceworker"
-    path_replace = [(".https.any.serviceworker.html", ".any.js", ".any.worker.js")]
+    path_replace = [(".any.serviceworker.html", ".any.js", ".any.worker.js")]
     wrapper = """<!doctype html>
 <meta charset=utf-8>
 %(meta)s
@@ -342,7 +342,7 @@ class RoutesBuilder(object):
             ("GET", "*.window.html", WindowHandler),
             ("GET", "*.any.html", AnyHtmlHandler),
             ("GET", "*.any.sharedworker.html", SharedWorkersHandler),
-            ("GET", "*.https.any.serviceworker.html", ServiceWorkersHandler),
+            ("GET", "*.any.serviceworker.html", ServiceWorkersHandler),
             ("GET", "*.any.worker.js", AnyWorkerHandler),
             ("GET", "*.asis", handlers.AsIsHandler),
             ("*", "*.py", handlers.PythonScriptHandler),

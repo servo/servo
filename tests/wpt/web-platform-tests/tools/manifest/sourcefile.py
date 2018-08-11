@@ -113,8 +113,6 @@ def global_suffixes(value):
     for global_type in global_types:
         variant = _any_variants[global_type]
         suffix = variant.get("suffix", ".any.%s.html" % global_type.decode("utf-8"))
-        if variant.get("force_https", False):
-            suffix = ".https" + suffix
         rv.add((suffix, global_type == b"jsshell"))
 
     return rv
@@ -623,7 +621,8 @@ class SourceFile(object):
                     break
 
             tests = [
-                TestharnessTest(self, global_variant_url(self.url, suffix) + variant, timeout=self.timeout, jsshell=jsshell)
+                TestharnessTest(self, global_variant_url(self.url, suffix) + variant, timeout=self.timeout,
+                                jsshell=jsshell)
                 for (suffix, jsshell) in sorted(global_suffixes(globals))
                 for variant in self.test_variants
             ]
