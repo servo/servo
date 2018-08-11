@@ -126,15 +126,17 @@ public class Servo {
         }
 
         public void flush() {
-            mRunCallback.inUIThread(() -> mGfxCb.flushGLBuffers());
+            // Up to the callback to execute this in the right thread
+            mGfxCb.flushGLBuffers();
         }
 
         public void makeCurrent() {
-            mRunCallback.inUIThread(() -> mGfxCb.makeCurrent());
+            // Up to the callback to execute this in the right thread
+            mGfxCb.makeCurrent();
         }
 
         public void onAnimatingChanged(boolean animating) {
-            mRunCallback.inUIThread(() -> mGfxCb.animationStateChanged(animating));
+            mRunCallback.inGLThread(() -> mGfxCb.animationStateChanged(animating));
         }
 
         public void onLoadStarted() {
@@ -165,7 +167,7 @@ public class Servo {
                 stream.close();
                 return bytes;
             } catch (IOException e) {
-                Log.e(LOGTAG, e.getMessage());
+                Log.e(LOGTAG, "readfile error: " + e.getMessage());
                 return null;
             }
         }

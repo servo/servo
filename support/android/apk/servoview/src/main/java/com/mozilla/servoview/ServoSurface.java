@@ -1,3 +1,8 @@
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 4; indent-tabs-mode: nil; -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package com.mozilla.servoview;
 
 import android.annotation.SuppressLint;
@@ -23,6 +28,7 @@ import static android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION;
 import static android.opengl.EGL14.EGL_OPENGL_ES2_BIT;
 
 public class ServoSurface {
+    private static final String LOGTAG = "ServoSurface";
     private final GLThread mGLThread;
     private final Handler mMainLooperHandler;
     private Handler mGLLooperHandler;
@@ -108,8 +114,6 @@ public class ServoSurface {
     }
 
     static class GLSurface implements GfxCallbacks {
-        private static final String LOGTAG = "ServoSurface";
-
         private EGLConfig[] mEGLConfigs;
         private EGLDisplay mEglDisplay;
         private EGLContext mEglContext;
@@ -155,7 +159,7 @@ public class ServoSurface {
                 throw new RuntimeException("Error: createWindowSurface() Failed " + GLUtils.getEGLErrorString(glError));
             }
 
-            flushGLBuffers();
+            makeCurrent();
         }
 
 
@@ -194,12 +198,15 @@ public class ServoSurface {
 
             final boolean showLogs = true;
             String uri = mInitialUri == null ? null : mInitialUri.toString();
-            mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mWidth, mHeight, showLogs);
 
             mGLLooperHandler = new Handler() {
                 public void handleMessage(Message msg) {
                 }
             };
+
+            inUIThread(() -> {
+              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mWidth, mHeight, showLogs);
+            });
 
             Looper.loop();
         }

@@ -95,7 +95,9 @@ public class ServoView extends GLSurfaceView
     }
 
     public void flushGLBuffers() {
+      inUIThread(() -> {
         requestRender();
+      });
     }
 
     // Scroll and click
