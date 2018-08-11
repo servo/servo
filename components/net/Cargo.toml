@@ -41,13 +41,13 @@ servo_allocator = {path = "../allocator"}
 servo_arc = {path = "../servo_arc"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
-servo-websocket = { version = "0.21", default-features = false, features = ["sync"] }
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
 url = "1.2"
 uuid = {version = "0.6", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+ws = { version = "0.7", features = ["ssl"] }
 
 [dev-dependencies]
 embedder_traits = { path = "../embedder_traits", features = ["tests"] }

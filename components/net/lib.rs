@@ -40,7 +40,7 @@ extern crate unicase;
 extern crate url;
 extern crate uuid;
 extern crate webrender_api;
-extern crate websocket;
+extern crate ws;
 
 mod blob_loader;
 pub mod connector;
