@@ -28,6 +28,7 @@ import static android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION;
 import static android.opengl.EGL14.EGL_OPENGL_ES2_BIT;
 
 public class ServoSurface {
+    private static final String LOGTAG = "ServoSurface";
     private final GLThread mGLThread;
     private final Handler mMainLooperHandler;
     private Handler mGLLooperHandler;
@@ -113,8 +114,6 @@ public class ServoSurface {
     }
 
     static class GLSurface implements GfxCallbacks {
-        private static final String LOGTAG = "ServoSurface";
-
         private EGLConfig[] mEGLConfigs;
         private EGLDisplay mEglDisplay;
         private EGLContext mEglContext;
@@ -160,7 +159,7 @@ public class ServoSurface {
                 throw new RuntimeException("Error: createWindowSurface() Failed " + GLUtils.getEGLErrorString(glError));
             }
 
-            flushGLBuffers();
+            makeCurrent();
         }
 
 
@@ -205,7 +204,9 @@ public class ServoSurface {
                 }
             };
 
-            mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mWidth, mHeight, showLogs);
+            inUIThread(() -> {
+              mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mWidth, mHeight, showLogs);
+            });
 
             Looper.loop();
         }
