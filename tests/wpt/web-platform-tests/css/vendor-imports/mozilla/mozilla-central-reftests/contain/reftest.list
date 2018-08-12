@@ -26,4 +26,14 @@
 == contain-size-fieldset-002.html contain-size-fieldset-002-ref.html
 == contain-size-multicol-002.html contain-size-multicol-002-ref.html
 == contain-size-multicol-003.html contain-size-multicol-003-ref.html
+== contain-layout-overflow-001.html contain-layout-overflow-001-ref.html
+== contain-layout-overflow-002.html contain-layout-overflow-002-ref.html
 == contain-size-table-caption-001.html contain-size-table-caption-001-ref.html
+== contain-layout-stacking-context-001.html contain-paint-stacking-context-001-ref.html
+== contain-layout-formatting-context-float-001.html contain-paint-formatting-context-float-001-ref.html
+== contain-layout-formatting-context-margin-001.html contain-layout-formatting-context-margin-001-ref.html
+== contain-layout-containing-block-fixed-001.html contain-paint-containing-block-fixed-001-ref.html
+== contain-layout-containing-block-absolute-001.html contain-paint-containing-block-absolute-001-ref.html
+== contain-layout-ignored-cases-no-principal-box-001.html contain-paint-ignored-cases-no-principal-box-001-ref.html
+== contain-layout-ignored-cases-no-principal-box-002.html contain-layout-ignored-cases-no-principal-box-002-ref.html
+== contain-layout-ignored-cases-no-principal-box-003.html contain-layout-ignored-cases-no-principal-box-003-ref.html
