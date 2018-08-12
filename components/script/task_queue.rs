@@ -13,7 +13,7 @@ use script_thread::MainThreadScriptMsg;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
-use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::Receiver;
 use task::TaskBox;
 use task_source::TaskSourceName;
 
@@ -28,22 +28,55 @@ unsafe impl JSTraceable for ThrottledTask {
     }
 }
 
+// Channel-like interface, for use within a single thread.
+pub struct MsgQueue <T> {
+    internal: DomRefCell<VecDeque<T>>
+}
+
+#[allow(unsafe_code)]
+unsafe impl<T> JSTraceable for MsgQueue<T> {
+    #[allow(unsafe_code)]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T> MsgQueue <T> {
+    fn new() -> MsgQueue<T> {
+        MsgQueue {
+            internal: DomRefCell::new(VecDeque::new())
+        }
+    }
+
+    // Add a message to the back of the queue.
+    fn send(&self, msg: T) {
+        self.internal.borrow_mut().push_back(msg);
+    }
+
+    // Take a message from the front, without waiting if empty.
+    pub fn recv(&self) -> Result<T, ()> {
+        self.internal.borrow_mut().pop_front().ok_or(())
+    }
+
+    // Same as recv.
+    pub fn try_recv(&self) -> Result<T, ()> {
+        self.recv()
+    }
+}
+
 #[derive(JSTraceable)]
 pub struct TaskQueue {
     script_port: Receiver<MainThreadScriptMsg>,
-    task_sender: Sender<MainThreadScriptMsg>,
-    task_port: Receiver<MainThreadScriptMsg>,
+    msg_queue: MsgQueue<MainThreadScriptMsg>,
     taken_task_counter: Cell<u64>,
     throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<ThrottledTask>>>
 }
 
 impl TaskQueue {
     pub fn new(script_port: Receiver<MainThreadScriptMsg>) -> TaskQueue {
-        let (task_sender, task_port) = channel();
         TaskQueue {
             script_port,
-            task_sender,
-            task_port,
+            msg_queue: MsgQueue::new(),
             taken_task_counter: Default::default(),
             throttled: Default::default(),
         }
@@ -75,7 +108,7 @@ impl TaskQueue {
 
         for msg in non_throttled {
             // Immediately send non-throttled tasks for processing.
-            let _ = self.task_sender.send(msg);
+            let _ = self.msg_queue.send(msg);
         }
 
         for msg in to_be_throttled {
@@ -109,7 +142,7 @@ impl TaskQueue {
 
     // Drain the queue for the current iteration of the event-loop.
     // Holding-back throttles above a given high-water mark.
-    pub fn take_tasks(&self) -> &Receiver<MainThreadScriptMsg> {
+    pub fn take_tasks(&self) -> &MsgQueue<MainThreadScriptMsg> {
         // High-watermark: once reached, throttled tasks will be held-back.
         let per_iteration_max = 5;
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
@@ -135,12 +168,12 @@ impl TaskQueue {
             };
             let task = CommonScriptMsg::Task(category, boxed, pipeline_id);
             let msg = MainThreadScriptMsg::Common(task);
-            let _ = self.task_sender.send(msg);
+            let _ = self.msg_queue.send(msg);
             self.taken_task_counter.set(self.taken_task_counter.get() + 1);
             throttled_length = throttled_length - 1;
             max_reached = self.taken_task_counter.get() > per_iteration_max;
             none_left = throttled_length == 0;
         }
-        &self.task_port
+        &self.msg_queue
     }
 }
