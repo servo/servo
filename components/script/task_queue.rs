@@ -104,6 +104,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             wake_up_sender,
             msg_queue: MsgQueue::new(),
             taken_task_counter: Default::default(),
+            last_iteration: Cell::new(None),
             throttled: Default::default(),
         }
     }
@@ -151,11 +152,25 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
     }
 
+    // Time an iteration of the event-loop.
+    fn time_event_loop(&self) {
+        if let Some(instant) = self.last_iteration.get() {
+            if instant.elapsed().as_secs() > 1 {
+                // NOTE: this will warn when the event-loop has been idle,
+                // besides also warning when the processsing of an iteration took a long time.
+                warn!("Script thread was blocked, or idle, for more than one sec.");
+            }
+        }
+        self.last_iteration.set(Some(Instant::now()));
+    }
+
     // Reset the queue for a new iteration of the event-loop,
     // returning the port about whose readiness we want to be notified.
     pub fn select(&self) -> &Receiver<T> {
         // This is a new iterations of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
+        // Time each iteration of the event-loop.
+        self.time_event_loop();
         let throttled_length = self.throttled.borrow().values().fold(0, |acc, queue| acc + queue.len());
         if throttled_length > 0 {
             // If we have throttled messages, ensure the select wakes up.
