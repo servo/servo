@@ -79,6 +79,8 @@ def json_types(obj):
         return obj
     if isinstance(obj, list) or hasattr(obj, "__iter__"):
         return [json_types(value) for value in obj]
+    if obj is None:
+        return None
     raise ValueError
 
 
