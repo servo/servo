@@ -14,6 +14,7 @@ use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
 use std::sync::mpsc::Receiver;
+use std::time::Instant;
 use task::TaskBox;
 use task_source::TaskSourceName;
 
@@ -66,9 +67,15 @@ impl<T> MsgQueue <T> {
 
 #[derive(JSTraceable)]
 pub struct TaskQueue {
+    // The original "script-port", on which the task-sources send tasks as messages.
     script_port: Receiver<MainThreadScriptMsg>,
+    // A queue from which the event-loop can drain tasks.
     msg_queue: MsgQueue<MainThreadScriptMsg>,
+    // A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
+    // The start of the previous iteration of the event-loop, used for timing.
+    last_iteration: Cell<Option<Instant>>,
+    // Tasks that will be throttled for as long as we are "busy".
     throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<ThrottledTask>>>
 }
 
@@ -78,6 +85,7 @@ impl TaskQueue {
             script_port,
             msg_queue: MsgQueue::new(),
             taken_task_counter: Default::default(),
+            last_iteration: Cell::new(None),
             throttled: Default::default(),
         }
     }
@@ -130,11 +138,23 @@ impl TaskQueue {
         }
     }
 
+    // Time an iteration of the event-loop.
+    fn time_event_loop(&self) {
+        if let Some(instant) = self.last_iteration.get() {
+            if instant.elapsed().as_secs() > 1 {
+                warn!("Script thread was blocked, or idle, for more than one sec.");
+            }
+        }
+        self.last_iteration.set(Some(Instant::now()));
+    }
+
     // Reset the queue for a new iteration of the event-loop,
     // returning the port about whose readiness we want to be notified.
     pub fn select(&self) -> &Receiver<MainThreadScriptMsg> {
         // This is a new iterations of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
+        // Time each iteration of the event-loop.
+        self.time_event_loop();
         // We want to be notified when the script-port is ready to receive.
         // Hence that's the one we need to include in the select.
         &self.script_port
