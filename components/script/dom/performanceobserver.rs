@@ -25,6 +25,8 @@ const VALID_ENTRY_TYPES: &'static [&'static str] = &[
     "mark",    // User Timing API
     "measure", // User Timing API
     "resource", // Resource Timing API
+    "navigation", // Navigation Timing API
+    // "frame", //TODO Frame Timing API
     // "server", XXX Server Timing API
     "paint", // Paint Timing API
 ];
