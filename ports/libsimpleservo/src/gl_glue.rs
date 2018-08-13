@@ -39,23 +39,25 @@ pub mod egl {
 
     #[cfg(target_os = "android")]
     pub fn init() -> Result<Rc<Gl>, &'static str> {
-        debug!("init_egl");
+        info!("Loading EGL…");
         unsafe {
             let egl = Egl;
             let d = egl.GetCurrentDisplay();
             egl.SwapInterval(d, 1);
-            Ok(GlesFns::load_with(|addr| {
+            let egl = GlesFns::load_with(|addr| {
                 let addr = CString::new(addr.as_bytes()).unwrap();
                 let addr = addr.as_ptr();
                 let egl = Egl;
                 egl.GetProcAddress(addr) as *const c_void
-            }))
+            });
+            info!("EGL loaded");
+            Ok(egl)
         }
     }
 
     #[cfg(target_os = "windows")]
     pub fn init() -> Result<Rc<Gl>, &'static str> {
-        debug!("init_egl");
+        info!("Loading EGL…");
 
         let dll = b"libEGL.dll\0" as &[u8];
         let dll = unsafe { LoadLibraryA(dll.as_ptr() as *const _) };
@@ -63,11 +65,13 @@ pub mod egl {
             Err("Can't find libEGL.dll")
         } else {
             unsafe {
-                Ok(GlesFns::load_with(|addr| {
+                let egl = GlesFns::load_with(|addr| {
                     let addr = CString::new(addr.as_bytes()).unwrap();
                     let addr = addr.as_ptr();
                     GetProcAddress(dll, addr) as *const _
-                }))
+                });
+                info!("EGL loaded");
+                Ok(egl)
             }
         }
     }
