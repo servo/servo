@@ -12,6 +12,5 @@ idl_test(
     idl_array.add_objects({
       ProximitySensor: ['new ProximitySensor();']
     });
-  },
-  'Test IDL implementation of Proximity Sensor'
+  }
 );

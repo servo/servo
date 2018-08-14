@@ -13,5 +13,5 @@ idl_test(
       Navigator: ['navigator'],
       NFC: ['navigator.nfc'],
     });
-  },
-  'Test IDL implementation of Web NFC API');
+  }
+);

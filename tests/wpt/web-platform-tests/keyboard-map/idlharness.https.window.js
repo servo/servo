@@ -16,6 +16,5 @@ idl_test(
     });
 
     self.layout_map = await navigator.keyboard.getLayoutMap();
-  },
-  'Test IDL implementation of Keyboard Map API'
+  }
 );

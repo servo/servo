@@ -26,6 +26,5 @@ idl_test(
       PaymentMethodChangeEvent: ['new PaymentMethodChangeEvent("paymentmethodchange")'],
       PaymentRequestUpdateEvent: ['new PaymentRequestUpdateEvent("paymentrequestupdate")'],
     });
-  },
-  'Setup for Payment Request API IDL tests.'
+  }
 );

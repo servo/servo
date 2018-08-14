@@ -15,6 +15,5 @@ idl_test(
       Navigator: ['navigator'],
       PointerEvent: ['new PointerEvent("type")']
     });
-  },
-  'pointerevents interfaces'
+  }
 );

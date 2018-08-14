@@ -22,6 +22,10 @@ div {
     --registered-token-stream-1:var(--invalid);
     --registered-token-stream-2:var(--invalid,fallback);
     --token-stream-1:var(--registered-token-stream-1,moo);
+
+    --registered-length-list-1: 1px, var(--registered-length-1), 2px;
+    --registered-length-list-2: 1px, var(--length-1), var(--registered-length-1), 2px;
+    --registered-length-list-3: var(--registered-length-list-1), var(--registered-length-list-2);
 }
 </style>
 <div id=element></div>
@@ -58,4 +62,39 @@ test(function() {
     assert_equals(computedStyle.getPropertyValue('--registered-token-stream-2'), 'fallback');
     assert_equals(computedStyle.getPropertyValue('--token-stream-1'), 'moo');
 }, "var() references work with registered properties");
+
+test(function(){
+    CSS.registerProperty({
+        name: '--registered-length-list-1',
+        syntax: '<length>#',
+        initialValue: '0px',
+        inherits: false
+    });
+    let computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue('--registered-length-list-1'), '1px, 10px, 2px');
+}, 'References to registered var()-properties work in registered lists');
+
+test(function(){
+    CSS.registerProperty({
+        name: '--registered-length-list-2',
+        syntax: '<length>#',
+        initialValue: '0px',
+        inherits: false
+    });
+    let computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue('--registered-length-list-2'), '1px, 20px, 10px, 2px');
+}, 'References to mixed registered and unregistered var()-properties work in registered lists');
+
+test(function(){
+    CSS.registerProperty({
+        name: '--registered-length-list-3',
+        syntax: '<length>#',
+        initialValue: '0px',
+        inherits: false
+    });
+    let computedStyle = getComputedStyle(element);
+    assert_equals(computedStyle.getPropertyValue('--registered-length-list-3'), '1px, 10px, 2px, 1px, 20px, 10px, 2px');
+}, 'Registered lists may be concatenated');
+
+
 </script>

@@ -15,6 +15,5 @@ idl_test(
       Touch: ['new Touch({identifier: 1, target: document})'],
       TouchEvent: ['new TouchEvent("name")'],
     });
-  },
-  'Test IDL implementation of touch-events API'
+  }
 );

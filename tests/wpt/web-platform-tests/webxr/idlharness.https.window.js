@@ -17,6 +17,5 @@ idl_test(
     });
     self.device = await navigator.XR.requestDevice();
     self.session = await device.requestSession();
-  },
-  'Test IDL implementation of WebXR API'
+  }
 );

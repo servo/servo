@@ -232,6 +232,5 @@ idl_test(
       SVGFETileElement: ['objects.feTile'],
       SVGFETurbulenceElement: ['objects.feTurbulence']
     });
-  },
-  'SVG interfaces'
+  }
 );

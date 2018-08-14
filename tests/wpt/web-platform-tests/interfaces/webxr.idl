@@ -97,12 +97,7 @@ dictionary XRFrameOfReferenceOptions {
 };
 
 [SecureContext, Exposed=Window] interface XRStageBounds {
-  readonly attribute FrozenArray<XRStageBoundsPoint> geometry;
-};
-
-[SecureContext, Exposed=Window] interface XRStageBoundsPoint {
-  readonly attribute double x;
-  readonly attribute double z;
+  readonly attribute FrozenArray<DOMPointReadOnly> geometry;
 };
 
 enum XREye {

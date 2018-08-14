@@ -15,7 +15,7 @@ try {
 (async_test()).step(function() {
   var worker = new Worker('#');
   worker.onmessage = this.step_func(function(e) {
-    assert_true(e.data);
+    assert_equals(1, e.data);
     this.done();
   });
 });

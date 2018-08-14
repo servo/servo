@@ -41,7 +41,6 @@ promise_test(async () => {
         Screen: ['screen'],
         ScreenLuminance: ['screen.luminance'],
       });
-    },
-    'Test IDL implementation of Media Capabilities'
+    }
   );
 });

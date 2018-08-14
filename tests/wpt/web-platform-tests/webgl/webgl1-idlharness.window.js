@@ -10,6 +10,5 @@ idl_test(
   ['dom'],
   idl_array => {
     // TODO: objects
-  },
-  'webgl1 interfaces'
+  }
 );

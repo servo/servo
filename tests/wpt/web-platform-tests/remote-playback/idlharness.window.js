@@ -24,6 +24,5 @@ idl_test(
       HTMLVideoElement: ['media'],
       RemotePlayback: ['media.remote']
     });
-  },
-  'remote-playback interfaces'
+  }
 );

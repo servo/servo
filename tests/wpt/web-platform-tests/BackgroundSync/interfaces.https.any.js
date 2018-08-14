@@ -10,6 +10,5 @@ idl_test(
   ['service-workers', 'html', 'dom'],
   idlArray => {
     // TODO: Objects
-  },
-  'Background Sync interfaces.'
+  }
 );

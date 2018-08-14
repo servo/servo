@@ -12,6 +12,5 @@ idl_test(
     idl_array.add_objects({
       AmbientLightSensor: ['new AmbientLightSensor()']
     });
-  },
-  'Test IDL implementation of Ambient Light Sensor'
+  }
 );

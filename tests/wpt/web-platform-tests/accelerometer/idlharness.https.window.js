@@ -14,6 +14,5 @@ idl_test(
       LinearAccelerationSensor: ['new LinearAccelerationSensor();'],
       GravitySensor: ['new GravitySensor();']
     });
-  },
-  'Test IDL implementation of Accelerometer Sensor'
+  }
 );

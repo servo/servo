@@ -21,6 +21,5 @@ idl_test(
 
     self.video = await loadVideo();
     self.pipw = await requestPictureInPictureWithTrustedClick(video);
-  },
-  'picture-in-picture interfaces.'
+  }
 );

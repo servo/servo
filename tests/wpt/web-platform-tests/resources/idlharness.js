@@ -3197,7 +3197,7 @@ IdlNamespace.prototype.test = function ()
  *      as adding objects. Do not call idl_array.test() in the setup; it is
  *      called by this function (idl_test).
  */
-function idl_test(srcs, deps, idl_setup_func, test_name) {
+function idl_test(srcs, deps, idl_setup_func) {
     return promise_test(function (t) {
         var idl_array = new IdlArray();
         srcs = (srcs instanceof Array) ? srcs : [srcs] || [];
@@ -3221,7 +3221,7 @@ function idl_test(srcs, deps, idl_setup_func, test_name) {
                 }
             })
             .catch(function(e) { setup_error = e || 'IDL setup failed.'; })
-            .finally(function () {
+            .then(function () {
                 var error = setup_error;
                 try {
                     idl_array.test(); // Test what we can.
@@ -3234,7 +3234,7 @@ function idl_test(srcs, deps, idl_setup_func, test_name) {
                     throw error;
                 }
             });
-    }, test_name || 'idl_test setup');
+    }, 'idl_test setup');
 }
 
 /**

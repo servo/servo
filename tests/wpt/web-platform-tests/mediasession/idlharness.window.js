@@ -14,6 +14,5 @@ idl_test(
       MediaSession: ['navigator.mediaSession'],
       Navigator: ['navigator']
     });
-  },
-  'Test IDL implementation of Media Session'
+  }
 );

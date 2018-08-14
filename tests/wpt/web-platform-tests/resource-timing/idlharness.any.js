@@ -19,6 +19,5 @@ idl_test(
       Performance: ['performance'],
       PerformanceResourceTiming: ['resource']
     });
-  },
-  'Test server-timing IDL implementation'
+  }
 );

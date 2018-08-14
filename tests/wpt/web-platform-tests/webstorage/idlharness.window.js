@@ -25,6 +25,5 @@ idl_test(
       ],
       StorageEvent: ['new StorageEvent("storage")']
     });
-  },
-  'webstorage interfaces'
+  }
 );

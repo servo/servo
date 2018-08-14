@@ -22,6 +22,5 @@ idl_test(
     const track = canvas.captureStream().getVideoTracks()[0];
     self.capture = new ImageCapture(track);
     self.capabilities = await capture.getPhotoCapabilities();
-  },
-  'Test mediacapture-image IDL interfaces'
+  }
 );

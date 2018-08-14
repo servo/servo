@@ -154,6 +154,7 @@ class WrapperHandler(object):
 
 class HtmlWrapperHandler(WrapperHandler):
     global_type = None
+    headers = [('Content-Type', 'text/html')]
 
     def check_exposure(self, request):
         if self.global_type:
@@ -752,9 +753,11 @@ class ConfigBuilder(config.ConfigBuilder):
     computed_properties = ["ws_doc_root"] + config.ConfigBuilder.computed_properties
 
     def __init__(self, *args, **kwargs):
+        if "subdomains" not in kwargs:
+            kwargs["subdomains"] = _subdomains
+        if "not_subdomains" not in kwargs:
+            kwargs["not_subdomains"] = _not_subdomains
         super(ConfigBuilder, self).__init__(
-            subdomains=_subdomains,
-            not_subdomains=_not_subdomains,
             *args,
             **kwargs
         )

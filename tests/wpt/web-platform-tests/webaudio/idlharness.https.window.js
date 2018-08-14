@@ -70,6 +70,5 @@ idl_test(
     await context.audioWorklet.addModule(
       'the-audio-api/the-audioworklet-interface/processors/dummy-processor.js');
     self.worklet_node = new AudioWorkletNode(context, 'dummy');
-  },
-  'Test driver'
+  }
 );

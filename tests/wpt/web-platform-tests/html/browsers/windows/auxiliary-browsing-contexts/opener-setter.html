@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Auxiliary Browing Contexts: window.opener setter</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/common/PrefixedLocalStorage.js"></script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <script>
+    var prefixedLocalStorage;
+    setup(() => prefixedLocalStorage = new PrefixedLocalStorageTest());
+    async_test(t => {
+      t.add_cleanup(() => prefixedLocalStorage.cleanup());
+      prefixedLocalStorage.onSet('openerIsNull', t.step_func_done(e => {
+        assert_equals(e.newValue, 'true');
+      }));
+      window.open(prefixedLocalStorage.url('resources/opener-setter.html'),
+        'iShouldSetOpenerToNull');
+    }, 'Auxiliary browsing context created via `window.open` and setting `window.opener` to `null` should report `window.opener` `null`');
+    async_test(t => {
+      t.add_cleanup(() => prefixedLocalStorage.cleanup());
+      prefixedLocalStorage.onSet('openerIsTest', t.step_func_done(e => {
+        assert_equals(e.newValue, 'true');
+      }));
+      window.open(prefixedLocalStorage.url('resources/opener-setter.html'),
+        'iShouldSetOpenerToTest');
+    }, 'Auxiliary browsing context created via `window.open` and setting `window.opener` to `test` should report `test`');
+    </script>
+  </body>
+</html>

@@ -41,6 +41,5 @@ idl_test(
       self.usbConnectionEvent =
           new USBConnectionEvent('connect', { device: usbDevice });
     }, 'USB device setup');
-  },
-  'WebUSB IDL test'
+  }
 );

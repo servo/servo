@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf8">
+<link rel="help" href="https://w3c.github.io/payment-request/#dom-paymentvalidationerrors-payer">
+<title>
+  PaymentValidationErrors' `payer` member
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../payment-response/helpers.js"></script>
+<script>
+function retryShowsPayerMember(button, error) {
+  button.disabled = true;
+  promise_test(async t => {
+    const options = {
+      requestPayerName: true,
+      requestPayerEmail: true,
+      requestPayerPhone: true,
+    }
+    const { response } = await getPaymentRequestResponse(options);
+    await response.retry({ payer: error });
+    await response.complete("success");
+  }, button.textContent.trim());
+}
+</script>
+<h2>
+  Manual Test for PaymentValidationErrors' `payer` member - Please run in order!
+</h2>
+<p>
+  Click on each button in sequence from top to bottom without refreshing the page.
+  Each button will bring up the Payment Request UI window.
+</p>
+<p>
+  When presented with the payment sheet, use any card and select to "Pay".
+  You will be asked to retry the payment and an error should be shown somewhere
+  in the UI. The expected error string is described in each individual test.
+  If you see the error, hit "Pay" again. If you don't see the error,
+  abort the payment request by hitting "esc" - which means that particular test
+  has failed.
+</p>
+<ol>
+  <li>
+    <button onclick="retryShowsPayerMember(this, { email: 'EMAIL ERROR' });">
+      The payment sheet shows "EMAIL ERROR" for the payer's email.
+    </button>
+  </li>
+  <li>
+    <button onclick="retryShowsPayerMember(this, { name: 'NAME ERROR' });">
+      The payment sheet shows "NAME ERROR" for the payer's name.
+    </button>
+  </li>
+  <li>
+    <button onclick="retryShowsPayerMember(this, { phone: 'PHONE ERROR' });">
+      The payment sheet shows "PHONE ERROR" for the payer's phone number.
+    </button>
+  </li>
+  <li>
+    <button onclick="done();">
+      Done!
+    </button>
+  </li>
+</ol>
+<small>
+  If you find a buggy test, please <a href="https://github.com/w3c/web-platform-tests/issues">file a bug</a>
+  and tag one of the <a href="https://github.com/w3c/web-platform-tests/blob/master/payment-request/OWNERS">owners</a>.
+</small>

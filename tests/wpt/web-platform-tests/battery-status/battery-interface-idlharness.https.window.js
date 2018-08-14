@@ -6,7 +6,7 @@
 'use strict';
 
 idl_test(
-  ['battery'],
+  ['battery-status'],
   ['dom', 'html'],
   async idl_array => {
     idl_array.add_objects({
@@ -15,6 +15,5 @@ idl_test(
     })
 
     self.manager = await navigator.getBattery();
-  },
-  'Test IDL implementation of Battery Status API'
+  }
 );

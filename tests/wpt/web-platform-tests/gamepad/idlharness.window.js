@@ -13,6 +13,5 @@ idl_test(
       GamepadEvent: ['new GamepadEvent("gamepad")'],
       Navigator: ['navigator']
     });
-  },
-  'Test IDL implementation of Gamepad API'
+  }
 );

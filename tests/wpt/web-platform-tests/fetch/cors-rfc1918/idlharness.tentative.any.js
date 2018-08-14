@@ -19,6 +19,5 @@ idl_test(
         Document: ['document'],
       });
     }
-  },
-  'Test CORS RFC1918 interfaces'
+  }
 );

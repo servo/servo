@@ -34,6 +34,5 @@ idl_test(
       error = new MediaRecorderErrorEvent("type", {});
     } catch(e) {}
     idl_array.add_objects({ MediaRecorderErrorEvent: [error] });
-  },
-  'mediastream-recording interfaces'
+  }
 );

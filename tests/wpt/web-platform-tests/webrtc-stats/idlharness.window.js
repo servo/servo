@@ -10,5 +10,5 @@ idl_test(
   [], // No deps
   idl_array => {
     // No interfaces to test
-  },
-  'webrtc-stats interfaces.');
+  }
+);

@@ -32,7 +32,6 @@ idl_test(
       t.step_timeout(() => { reject('Timed out waiting for gamepad'); }, 5000);
     });
     return Promise.race([gamepadConnected, timeout]);
-  },
-  'Test IDL implementation of Gamepad API'
+  }
 );
 </script>

@@ -13,6 +13,5 @@ idl_test(
       Magnetometer: ['new Magnetometer();'],
       UncalibratedMagnetometer: ['new UncalibratedMagnetometer();']
     });
-  },
-  'Test IDL implementation of Magnetometer Sensor'
+  }
 );

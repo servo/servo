@@ -28,6 +28,5 @@ idl_test(
       HTMLCanvasElement: ['canvas'],
       CanvasCaptureMediaStreamTrack: ['track'],
     });
-  },
-  'Test mediacapture-fromelement IDL interfaces'
+  }
 );

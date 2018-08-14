@@ -1,0 +1,159 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function checkNoCrop(imageBitmap)
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 50;
+    canvas.height = 50;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imageBitmap, 0, 0);
+    var d = ctx.getImageData(0, 0, 1, 1).data;
+    assert_array_equals(d, [255, 0, 0, 255], "This pixel should be red.");
+    d = ctx.getImageData(39, 0, 1, 1).data;
+    assert_array_equals(d, [0, 255, 0, 255], "This pixel should be green.");
+    d = ctx.getImageData(0, 39, 1, 1).data;
+    assert_array_equals(d, [0, 0, 255, 255], "This pixel should be blue.");
+    d = ctx.getImageData(39, 39, 1, 1).data;
+    assert_array_equals(d, [0, 0, 0, 255], "This pixel should be black.");
+    d = ctx.getImageData(41, 41, 1, 1).data;
+    assert_array_equals(d, [0, 0, 0, 0], "This pixel should be transparent black.");
+}
+
+function checkCrop(imageBitmap)
+{
+    var canvas = document.createElement("canvas");
+    canvas.width = 50;
+    canvas.height = 50;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imageBitmap, 0, 0);
+    var d = ctx.getImageData(0, 0, 1, 1).data;
+    assert_array_equals(d, [255, 0, 0, 255], "This pixel should be red.");
+    d = ctx.getImageData(19, 0, 1, 1).data;
+    assert_array_equals(d, [0, 255, 0, 255], "This pixel should be green.");
+    d = ctx.getImageData(0, 19, 1, 1).data;
+    assert_array_equals(d, [0, 0, 255, 255], "This pixel should be blue.");
+    d = ctx.getImageData(19, 19, 1, 1).data;
+    assert_array_equals(d, [0, 0, 0, 255], "This pixel should be black.");
+    d = ctx.getImageData(21, 21, 1, 1).data;
+    assert_array_equals(d, [0, 0, 0, 0], "This pixel should be transparent black.");
+}
+
+function compareBitmaps(bitmap1, bitmap2)
+{
+    var canvas1 = document.createElement("canvas");
+    var canvas2 = document.createElement("canvas");
+    canvas1.width = 50;
+    canvas1.height = 50;
+    canvas2.width = 50;
+    canvas2.height = 50;
+    var ctx1 = canvas1.getContext("2d");
+    var ctx2 = canvas2.getContext("2d");
+    ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    ctx1.drawImage(bitmap1, 0, 0);
+    ctx2.drawImage(bitmap2, 0, 0);
+    var data1 = ctx1.getImageData(0, 0, 50, 50).data;
+    var data2 = ctx2.getImageData(0, 0, 50, 50).data;
+    var dataMatched = true;
+    for (var i = 0; i < data1.length; i++) {
+        if (data1[i] != data2[i]) {
+            dataMatched = false;
+            break;
+        }
+    }
+    assert_false(dataMatched);
+}
+
+function testImageBitmap(source)
+{
+    return Promise.all([
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "high"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "medium"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "low"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "pixelated"}),
+        createImageBitmap(source, 5, 5, 10, 10, {resizeWidth: 20, resizeHeight: 20, resizeQuality: "high"}),
+        createImageBitmap(source, 5, 5, 10, 10, {resizeWidth: 20, resizeHeight: 20, resizeQuality: "medium"}),
+        createImageBitmap(source, 5, 5, 10, 10, {resizeWidth: 20, resizeHeight: 20, resizeQuality: "low"}),
+        createImageBitmap(source, 5, 5, 10, 10, {resizeWidth: 20, resizeHeight: 20, resizeQuality: "pixelated"}),
+    ]).then(([noCropHigh, noCropMedium, noCropLow, noCropPixelated, cropHigh, cropMedium, cropLow, cropPixelated]) => {
+        checkNoCrop(noCropHigh);
+        checkNoCrop(noCropMedium);
+        checkNoCrop(noCropLow);
+        checkNoCrop(noCropPixelated);
+        checkCrop(cropHigh);
+        checkCrop(cropMedium);
+        checkCrop(cropLow);
+        checkCrop(cropPixelated);
+        // Brute-force comparison among all bitmaps is too expensive
+        compareBitmaps(noCropHigh, noCropMedium);
+        compareBitmaps(noCropLow, noCropPixelated);
+        compareBitmaps(cropHigh, cropMedium);
+        compareBitmaps(cropLow, cropPixelated);
+    });
+}
+
+function initializeTestCanvas()
+{
+    var testCanvas = document.createElement("canvas");
+    testCanvas.width = 20;
+    testCanvas.height = 20;
+    var testCtx = testCanvas.getContext("2d");
+    testCtx.fillStyle = "rgb(255, 0, 0)";
+    testCtx.fillRect(0, 0, 10, 10);
+    testCtx.fillStyle = "rgb(0, 255, 0)";
+    testCtx.fillRect(10, 0, 10, 10);
+    testCtx.fillStyle = "rgb(0, 0, 255)";
+    testCtx.fillRect(0, 10, 10, 10);
+    testCtx.fillStyle = "rgb(0, 0, 0)";
+    testCtx.fillRect(10, 10, 10, 10);
+    return testCanvas;
+}
+
+// Blob
+promise_test(function() {
+    return new Promise((resolve, reject) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/pattern.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    }).then(testImageBitmap);
+}, 'createImageBitmap from a Blob with resize option.');
+
+// HTMLCanvasElement
+promise_test(function() {
+    var testCanvas = initializeTestCanvas();
+    return testImageBitmap(testCanvas);
+}, 'createImageBitmap from a HTMLCanvasElement with resize option.');
+
+// HTMLImageElement
+promise_test(function() {
+    return new Promise((resolve, reject) => {
+        var image = new Image();
+        image.onload = function() {
+            resolve(image);
+        }
+        image.src = '/images/pattern.png'
+    }).then(testImageBitmap);
+}, 'createImageBitmap from a HTMLImageElement with resize option.');
+
+// ImageBitmap
+promise_test(function() {
+    var testCanvas = initializeTestCanvas();
+    return createImageBitmap(testCanvas).then(testImageBitmap);
+}, 'createImageBitmap from an ImageBitmap with resize option.');
+
+// ImageData
+promise_test(function() {
+    var canvas = initializeTestCanvas();
+    var ctx = canvas.getContext("2d");
+    var data = ctx.getImageData(0, 0, 20, 20);
+    return testImageBitmap(data);
+}, 'createImageBitmap from an ImageData with resize option.');
+</script>

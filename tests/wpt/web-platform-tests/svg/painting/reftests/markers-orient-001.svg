@@ -30,6 +30,9 @@
     .label {
       font-size: 18px;
     }
+    #reference {
+      display: none;
+    }
   </style>
 
   <defs>
