@@ -9,7 +9,6 @@ use dom::bindings::trace::JSTraceable;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::MainThreadScriptMsg;
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
@@ -65,12 +64,17 @@ impl<T> MsgQueue <T> {
     }
 }
 
-#[derive(JSTraceable)]
-pub struct TaskQueue {
+pub trait CommonScriptMsgVariant {
+    fn common_script_msg(&self) -> Option<&CommonScriptMsg>;
+    fn into_common_script_msg(self) -> Option<CommonScriptMsg>;
+    fn set_common_script_msg(script_msg: CommonScriptMsg) -> Self;
+}
+
+pub struct TaskQueue<T> {
     // The original "script-port", on which the task-sources send tasks as messages.
-    script_port: Receiver<MainThreadScriptMsg>,
+    port: Receiver<T>,
     // A queue from which the event-loop can drain tasks.
-    msg_queue: MsgQueue<MainThreadScriptMsg>,
+    msg_queue: MsgQueue<T>,
     // A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
     // The start of the previous iteration of the event-loop, used for timing.
@@ -79,10 +83,18 @@ pub struct TaskQueue {
     throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<ThrottledTask>>>
 }
 
-impl TaskQueue {
-    pub fn new(script_port: Receiver<MainThreadScriptMsg>) -> TaskQueue {
+#[allow(unsafe_code)]
+unsafe impl<T> JSTraceable for TaskQueue<T> {
+    #[allow(unsafe_code)]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T: CommonScriptMsgVariant> TaskQueue<T> {
+    pub fn new(port: Receiver<T>) -> TaskQueue<T> {
         TaskQueue {
-            script_port,
+            port,
             msg_queue: MsgQueue::new(),
             taken_task_counter: Default::default(),
             last_iteration: Cell::new(None),
@@ -93,12 +105,12 @@ impl TaskQueue {
     // Process incoming tasks, immediately sending priority ones downstream,
     // and categorizing potential throttles.
     fn process_incoming_tasks(&self) {
-        let mut non_throttled: Vec<MainThreadScriptMsg> = self.script_port.try_iter().collect();
+        let mut non_throttled: Vec<T> = self.port.try_iter().collect();
 
-        let to_be_throttled: Vec<MainThreadScriptMsg> = non_throttled.drain_filter(|msg|{
-            let script_msg = match msg {
-                MainThreadScriptMsg::Common(script_msg) => script_msg,
-                _ => return false,
+        let to_be_throttled: Vec<T> = non_throttled.drain_filter(|msg|{
+            let script_msg = match msg.common_script_msg() {
+                Some(script_msg) => script_msg,
+                None => return false,
             };
             let category = match script_msg {
                 CommonScriptMsg::Task(category, _boxed, _pipeline_id) => category,
@@ -120,9 +132,13 @@ impl TaskQueue {
         }
 
         for msg in to_be_throttled {
+            let script_msg = match msg.into_common_script_msg() {
+                Some(script_msg) => script_msg,
+                None => unreachable!(),
+            };
             // Categorize throtted tasks per task queue.
-            let (category, boxed, pipeline_id) = match msg {
-                MainThreadScriptMsg::Common(CommonScriptMsg::Task(category, boxed, pipeline_id)) =>
+            let (category, boxed, pipeline_id) = match script_msg {
+                CommonScriptMsg::Task(category, boxed, pipeline_id) =>
                     (category, boxed, pipeline_id),
                 _ => unreachable!(),
             };
@@ -150,19 +166,19 @@ impl TaskQueue {
 
     // Reset the queue for a new iteration of the event-loop,
     // returning the port about whose readiness we want to be notified.
-    pub fn select(&self) -> &Receiver<MainThreadScriptMsg> {
+    pub fn select(&self) -> &Receiver<T> {
         // This is a new iterations of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
         // Time each iteration of the event-loop.
         self.time_event_loop();
         // We want to be notified when the script-port is ready to receive.
         // Hence that's the one we need to include in the select.
-        &self.script_port
+        &self.port
     }
 
     // Drain the queue for the current iteration of the event-loop.
     // Holding-back throttles above a given high-water mark.
-    pub fn take_tasks(&self) -> &MsgQueue<MainThreadScriptMsg> {
+    pub fn take_tasks(&self) -> &MsgQueue<T> {
         // High-watermark: once reached, throttled tasks will be held-back.
         let per_iteration_max = 5;
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
@@ -187,7 +203,7 @@ impl TaskQueue {
                 None => continue,
             };
             let task = CommonScriptMsg::Task(category, boxed, pipeline_id);
-            let msg = MainThreadScriptMsg::Common(task);
+            let msg = T::set_common_script_msg(task);
             let _ = self.msg_queue.send(msg);
             self.taken_task_counter.set(self.taken_task_counter.get() + 1);
             throttled_length = throttled_length - 1;
