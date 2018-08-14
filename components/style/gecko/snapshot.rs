@@ -51,10 +51,6 @@ impl GeckoElementSnapshot {
         (self.mContains as u8 & flags as u8) != 0
     }
 
-    fn as_ptr(&self) -> *const Self {
-        self
-    }
-
     /// Returns true if the snapshot has stored state for pseudo-classes
     /// that depend on things other than `ElementState`.
     #[inline]
@@ -184,14 +180,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return None;
         }
 
-        let ptr = unsafe { bindings::Gecko_SnapshotAtomAttrValue(self, atom!("id").as_ptr()) };
-
-        // FIXME(emilio): This should assert, since this flag is exact.
-        if ptr.is_null() {
-            None
-        } else {
-            Some(unsafe { WeakAtom::new(ptr) })
-        }
+        snapshot_helpers::get_id(&*self.mAttrs)
     }
 
     #[inline]
@@ -200,12 +189,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return false;
         }
 
-        snapshot_helpers::has_class(
-            self.as_ptr(),
-            name,
-            case_sensitivity,
-            bindings::Gecko_SnapshotHasClass,
-        )
+        snapshot_helpers::has_class(name, case_sensitivity, &self.mClass)
     }
 
     #[inline]
@@ -217,11 +201,7 @@ impl ElementSnapshot for GeckoElementSnapshot {
             return;
         }
 
-        snapshot_helpers::each_class(
-            self.as_ptr(),
-            callback,
-            bindings::Gecko_SnapshotClassOrClassList,
-        )
+        snapshot_helpers::each_class(&self.mClass, callback)
     }
 
     #[inline]
