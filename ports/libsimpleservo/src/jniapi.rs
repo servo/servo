@@ -55,16 +55,20 @@ pub fn Java_com_mozilla_servoview_JNIServo_init(
     log: jboolean,
 ) {
     if log == JNI_TRUE {
+        // Note: Android debug logs are stripped from a release build.
+        // debug!() will only show in a debug build. Use info!() if logs
+        // should show up in adb logcat with a release build.
         android_logger::init_once(
             Filter::default()
                 .with_min_level(Level::Debug)
                 .with_allowed_module_path("simpleservo::api")
-                .with_allowed_module_path("simpleservo::jniapi"),
+                .with_allowed_module_path("simpleservo::jniapi")
+                .with_allowed_module_path("simpleservo::gl_glue::egl"),
             Some("simpleservo")
         );
     }
 
-    debug!("init");
+    info!("init");
 
     initialize_android_glue(&env, activity);
 

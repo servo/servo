@@ -190,7 +190,7 @@ impl ServoGlue {
 
     /// Load an URL. This needs to be a valid url.
     pub fn load_uri(&mut self, url: &str) -> Result<(), &'static str> {
-        debug!("load_uri: {}", url);
+        info!("load_uri: {}", url);
         ServoUrl::parse(url)
             .map_err(|_| "Can't parse URL")
             .and_then(|url| {
@@ -202,7 +202,7 @@ impl ServoGlue {
 
     /// Reload the page.
     pub fn reload(&mut self) -> Result<(), &'static str> {
-        debug!("reload");
+        info!("reload");
         let browser_id = self.get_browser_id()?;
         let event = WindowEvent::Reload(browser_id);
         self.process_event(event)
@@ -210,13 +210,13 @@ impl ServoGlue {
 
     /// Stop loading the page.
     pub fn stop(&mut self) -> Result<(), &'static str> {
-        debug!("TODO can't stop won't stop");
+        warn!("TODO can't stop won't stop");
         Ok(())
     }
 
     /// Go back in history.
     pub fn go_back(&mut self) -> Result<(), &'static str> {
-        debug!("go_back");
+        info!("go_back");
         let browser_id = self.get_browser_id()?;
         let event = WindowEvent::Navigation(browser_id, TraversalDirection::Back(1));
         self.process_event(event)
@@ -224,7 +224,7 @@ impl ServoGlue {
 
     /// Go forward in history.
     pub fn go_forward(&mut self) -> Result<(), &'static str> {
-        debug!("go_forward");
+        info!("go_forward");
         let browser_id = self.get_browser_id()?;
         let event = WindowEvent::Navigation(browser_id, TraversalDirection::Forward(1));
         self.process_event(event)
@@ -232,7 +232,7 @@ impl ServoGlue {
 
     /// Let Servo know that the window has been resized.
     pub fn resize(&mut self, width: u32, height: u32) -> Result<(), &'static str> {
-        debug!("resize");
+        info!("resize");
         self.callbacks.width.set(width);
         self.callbacks.height.set(height);
         self.process_event(WindowEvent::Resize)
@@ -464,7 +464,7 @@ impl resources::ResourceReaderMethods for ResourceReader {
             Resource::QuirksModeCSS => "quirks-mode.css",
             Resource::RippyPNG => "rippy.png",
         };
-        debug!("ResourceReader::read({})", file);
+        info!("ResourceReader::read({})", file);
         self.0.readfile(file)
     }
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
