@@ -72,9 +72,6 @@ unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"
 
-[target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2"
-
 [build-dependencies]
 lazy_static = "1"
 log = "0.4"
