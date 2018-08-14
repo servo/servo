@@ -8,6 +8,7 @@ use Atom;
 use app_units::Au;
 use euclid::Size2D;
 use gecko_bindings::bindings;
+use gecko_bindings::structs;
 use media_queries::Device;
 use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
@@ -300,6 +301,66 @@ fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReduc
     }
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#mf-interaction
+bitflags! {
+    struct PointerCapabilities: u8 {
+        const COARSE = structs::PointerCapabilities_Coarse;
+        const FINE = structs::PointerCapabilities_Fine;
+        const HOVER = structs::PointerCapabilities_Hover;
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
+#[repr(u8)]
+enum Pointer {
+    None,
+    Coarse,
+    Fine,
+}
+
+fn primary_pointer_capabilities(device: &Device) -> PointerCapabilities {
+    PointerCapabilities::from_bits_truncate(
+        unsafe { bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document()) }
+    )
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#pointer
+fn eval_pointer(device: &Device, query_value: Option<Pointer>) -> bool {
+    let pointer_capabilities = primary_pointer_capabilities(device);
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return !pointer_capabilities.is_empty(),
+    };
+
+    match query_value {
+        Pointer::None => pointer_capabilities.is_empty(),
+        Pointer::Coarse => pointer_capabilities.intersects(PointerCapabilities::COARSE),
+        Pointer::Fine => pointer_capabilities.intersects(PointerCapabilities::FINE),
+    }
+}
+
+#[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
+#[repr(u8)]
+enum Hover {
+    None,
+    Hover,
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#hover
+fn eval_hover(device: &Device, query_value: Option<Hover>) -> bool {
+    let pointer_capabilities = primary_pointer_capabilities(device);
+    let can_hover = pointer_capabilities.intersects(PointerCapabilities::HOVER);
+    let query_value = match query_value {
+        Some(v) => v,
+        None => return can_hover,
+    };
+
+    match query_value {
+        Hover::None => !can_hover,
+        Hover::Hover => can_hover,
+    }
+}
+
 fn eval_moz_is_glyph(
     device: &Device,
     query_value: Option<bool>,
@@ -390,7 +451,7 @@ lazy_static! {
     /// to support new types in these entries and (2) ensuring that either
     /// nsPresContext::MediaFeatureValuesChanged is called when the value that
     /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 43] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 45] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -507,6 +568,18 @@ lazy_static! {
             atom!("prefers-reduced-motion"),
             AllowsRanges::No,
             keyword_evaluator!(eval_prefers_reduced_motion, PrefersReducedMotion),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
+            atom!("pointer"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_pointer, Pointer),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
+            atom!("hover"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_hover, Hover),
             ParsingRequirements::empty(),
         ),
 
