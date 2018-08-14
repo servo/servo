@@ -167,8 +167,13 @@ where
         // do for this case.
         if state_changes.intersects(ElementState::IN_VISITED_OR_UNVISITED_STATE) {
             trace!(" > visitedness change, force subtree restyle");
+            // If we get here with visited links disabled, we should probably
+            // just avoid the restyle and remove the state change here, not only
+            // as an optimization, but also because it kind of would kill the
+            // point of disabling visited links.
+            debug_assert!(self.shared_context.visited_styles_enabled);
             // We can't just return here because there may also be attribute
-            // changes as well that imply additional hints.
+            // changes as well that imply additional hints for siblings.
             self.data.hint.insert(RestyleHint::restyle_subtree());
         }
 
