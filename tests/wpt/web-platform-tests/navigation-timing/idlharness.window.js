@@ -17,6 +17,5 @@ idl_test(
         'performance.getEntriesByType("navigation")[0]'
       ]
     });
-  },
-  'navigation-timing interfaces'
+  }
 );

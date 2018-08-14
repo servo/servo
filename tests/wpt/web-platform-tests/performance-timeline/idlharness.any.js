@@ -37,8 +37,7 @@ promise_test(async t => {
           PerformanceObserver: ['observer'],
           PerformanceObserverEntryList: ['entryList'],
         });
-      },
-      'Test IDL implementation of performance-timeline API'
+      }
     );
   };
 

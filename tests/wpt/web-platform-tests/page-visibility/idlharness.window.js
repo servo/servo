@@ -12,6 +12,5 @@ idl_test(
     idl_array.add_objects({
       Document: ['document'],
     });
-  },
-  'page-visibility interfaces'
+  }
 );

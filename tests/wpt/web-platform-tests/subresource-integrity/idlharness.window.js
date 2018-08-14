@@ -7,11 +7,11 @@
 
 idl_test(
   ['SRI'],
-  ['html', 'dom', 'cssom'],
+  ['html', 'cssom', 'dom'],
   idl_array => {
     idl_array.add_objects({
       HTMLScriptElement: ['document.createElement("script")'],
       HTMLLinkElement: ['document.createElement("link")'],
     });
-  },
-  'webappsec-subresource-integrity interfaces');
+  }
+);

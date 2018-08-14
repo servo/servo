@@ -45,3 +45,31 @@ function createFrameAndHref(href) {
     document.body.appendChild(i);
   });
 }
+
+let trustedHTML = TrustedHTML.escape(STRINGS.unescapedHTML);
+function assert_accepts_trusted_html(tag, attribute) {
+  let elem = document.createElement(tag);
+  elem[attribute] = trustedHTML;
+  assert_equals(elem[attribute] + "", STRINGS.unescapedHTML);
+}
+
+let trustedURL = TrustedURL.create(URLS.safe);
+function assert_accepts_trusted_url(tag, attribute) {
+  let elem = document.createElement(tag);
+  elem[attribute] = trustedURL;
+  assert_equals(elem[attribute] + "", URLS.safe);
+}
+
+let trustedScriptURL = TrustedScriptURL.unsafelyCreate(URLS.safe);
+function assert_accepts_trusted_script_url(tag, attribute) {
+  let elem = document.createElement(tag);
+  elem[attribute] = trustedScriptURL;
+  assert_equals(elem[attribute] + "", URLS.safe);
+}
+
+function assert_throws_no_trusted_type(tag, attribute, value) {
+  let elem = document.createElement(tag);
+  assert_throws(new TypeError(), _ => {
+    elem[attribute] = value;
+  });
+}

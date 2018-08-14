@@ -17,8 +17,7 @@ promise_test(() => {
         PublicKeyCredential: ['cred'],
         AuthenticatorAssertionResponse: ['assertionResponse']
       });
-    },
-    'WebAuthn interfaces.'
+    }
   );
 
   let challengeBytes = new Uint8Array(16);

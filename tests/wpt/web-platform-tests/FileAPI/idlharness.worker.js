@@ -16,7 +16,6 @@ idl_test(
       FileReader: ['new FileReader()'],
       FileReaderSync: ['new FileReaderSync()']
     });
-  },
-  'Test FileAPI IDL implementation'
+  }
 );
 done();

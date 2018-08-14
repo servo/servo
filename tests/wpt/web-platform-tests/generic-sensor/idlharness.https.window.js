@@ -19,5 +19,5 @@ idl_test(
         'new SensorErrorEvent("error", { error: new DOMException });'
       ],
     });
-  },
-  'Test IDL implementation of Generic Sensor');
+  }
+);

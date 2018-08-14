@@ -10,6 +10,5 @@ idl_test(
     idl_array.add_objects({
       PointerEvent: ['new PointerEvent("pointer")'],
     })
-  },
-  'pointerevents extension interfaces'
+  }
 );

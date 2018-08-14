@@ -14,6 +14,5 @@ idl_test(
         'new SecurityPolicyViolationEvent("securitypolicyviolation")'
       ]
     })
-  },
-  'Test Content Security Policy IDL implementation'
+  }
 );

@@ -13,6 +13,5 @@ idl_test(
       Screen: ['screen'],
       ScreenOrientation: ['screen.orientation']
     });
-  },
-  'Test IDL implementation of Screen Orientation API'
+  }
 );

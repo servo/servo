@@ -14,5 +14,5 @@ idl_test(
       Element: ["window.document.documentElement"],
       MouseEvent: ["new MouseEvent('foo')"]
     });
-  },
-  'pointerlock interfaces.');
+  }
+);

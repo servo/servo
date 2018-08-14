@@ -15,5 +15,5 @@ idl_test(
     } else {
       idl_array.add_objects({ Navigator: ['navigator'] });
     }
-  },
-  'netinfo interfaces.');
+  }
+);

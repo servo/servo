@@ -33,6 +33,5 @@ idl_test(
         }
       ]);
     await helper.start();
-  },
-  'Test IDL implementation of ResizeObserver'
+  }
 );

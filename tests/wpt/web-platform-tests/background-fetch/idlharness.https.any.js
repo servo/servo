@@ -20,6 +20,5 @@ idl_test(
         BackgroundFetchUpdateEvent: ['new BackgroundFetchUpdateEvent("type")'],
       });
     }
-  },
-  'background-fetch interfaces'
+  }
 );

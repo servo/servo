@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+</head>
+<body>
+<script>
+  //TrustedURL Assignments
+  let testCases = [
+    [ 'a', 'href' ],
+    [ 'area', 'href' ],
+    [ 'base', 'href' ],
+    [ 'frame', 'src' ],
+    [ 'iframe', 'src' ],
+    [ 'img', 'src' ],
+    [ 'input', 'src' ],
+    [ 'link', 'href' ],
+    [ 'video', 'src' ],
+    [ 'object', 'data' ],
+    [ 'object', 'codeBase' ],
+    [ 'source', 'src' ],
+    [ 'track', 'src' ]
+  ];
+
+  testCases.forEach(c => {
+    test(t => {
+      assert_accepts_trusted_url(c[0], c[1]);
+      assert_throws_no_trusted_type(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type(c[0], c[1], null);
+    }, c[0] + "." + c[1] + " accepts TrustedURL");
+  });
+
+  //TrustedScriptURL Assignments
+  let scriptTestCases = [
+    [ 'embed', 'src' ],
+    [ 'script', 'src' ]
+  ];
+
+  scriptTestCases.forEach(c => {
+    test(t => {
+      assert_accepts_trusted_script_url(c[0], c[1]);
+      assert_throws_no_trusted_type(c[0], c[1], 'A string');
+      assert_throws_no_trusted_type(c[0], c[1], null);
+    }, c[0] + "." + c[1] + " accepts TrustedScriptURL");
+  });
+</script>

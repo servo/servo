@@ -20,6 +20,5 @@ idl_test(
       IDBVersionChangeEvent: ['new IDBVersionChangeEvent("type")'],
       DOMStringList: [],
     });
-  },
-  'IndexedDB interfaces'
+  }
 );

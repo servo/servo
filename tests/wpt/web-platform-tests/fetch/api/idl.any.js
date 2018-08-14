@@ -16,6 +16,5 @@ idl_test(
     } else if (self.GLOBAL.isWorker()) {
       idl_array.add_objects({ WorkerGlobalScope: ['self'] });
     }
-  },
-  'Fetch Standard IDL'
+  }
 );

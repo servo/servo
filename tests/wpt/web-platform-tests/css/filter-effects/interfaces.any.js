@@ -10,6 +10,5 @@ idl_test(
   ['SVG', 'html', 'dom'],
   idl_array => {
     // TODO: objects
-  },
-  'Filter effects interfaces.'
+  }
 );

@@ -14,6 +14,5 @@ idl_test(
       RelativeOrientationSensor: ['new RelativeOrientationSensor();']
     });
     idl_array.prevent_multiple_testing('OrientationSensor');
-  },
-  'Test IDL implementation of Orientation Sensor'
+  }
 );

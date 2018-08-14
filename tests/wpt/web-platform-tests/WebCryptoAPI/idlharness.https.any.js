@@ -11,6 +11,5 @@ idl_test(
       Crypto: ['crypto'],
       SubtleCrypto: ['crypto.subtle']
     });
-  },
-  'WebCryptoAPI interfaces'
+  }
 );

@@ -13,6 +13,5 @@ idl_test(
       Window: ['window'],
       BeforeInstallPromptEvent: ['new BeforeInstallPromptEvent("type")'],
     });
-  },
-  'appmanifest interfaces'
+  }
 );

@@ -24,5 +24,5 @@ idl_test(
       t.step_timeout(() => reject('Timed out waiting for paint event'), 3000);
     });
     return Promise.race([awaitPaint, timeout]);
-  },
-  'paint-timing interfaces.');
+  }
+);

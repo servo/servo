@@ -12,6 +12,5 @@ idl_test(
     idl_array.add_objects({
       GeolocationSensor: ['new GeolocationSensor'],
     });
-  },
-  'Test IDL implementation of Geolocation Sensor'
+  }
 );

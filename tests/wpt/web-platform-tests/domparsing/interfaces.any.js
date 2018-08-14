@@ -15,5 +15,5 @@ idl_test(
       Range: ['new Range()'],
       XMLSerializer: ['new XMLSerializer()'],
     })
-  },
-  'DOM-Parsing interfaces');
+  }
+);

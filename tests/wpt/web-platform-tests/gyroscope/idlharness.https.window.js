@@ -12,6 +12,5 @@ idl_test(
     idl_array.add_objects({
       Gyroscope: ['new Gyroscope();']
     });
-  },
-  'Test IDL implementation of Gyroscope Sensor'
+  }
 );

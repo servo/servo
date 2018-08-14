@@ -13,6 +13,5 @@ idl_test(
       Navigator: ['navigator'],
       Keyboard: ['navigator.keyboard'],
     });
-  },
-  'keyboard-lock interfaces'
+  }
 );

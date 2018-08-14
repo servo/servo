@@ -14,5 +14,5 @@ idl_test(
     });
 
     self.input = document.createElement('input');
-  },
-  'html-media-capture interfaces.');
+  }
+);

@@ -263,12 +263,19 @@ def create_dialog(session):
         assert isinstance(text, basestring), "`text` parameter must be a string"
 
         # Script completes itself when the user prompt has been opened.
+        # For prompt() dialogs, add a value for the 'default' argument,
+        # as some user agents (IE, for example) do not produce consistent
+        # values for the default.
         session.execute_async_script("""
             let dialog_type = arguments[0];
             let text = arguments[1];
 
             setTimeout(function() {
-              window.dialog_return_value = window[dialog_type](text);
+              if (dialog_type == 'prompt') {
+                window.dialog_return_value = window[dialog_type](text, '');
+              } else {
+                window.dialog_return_value = window[dialog_type](text);
+              }
             }, 0);
             """, args=(dialog_type, text))
 

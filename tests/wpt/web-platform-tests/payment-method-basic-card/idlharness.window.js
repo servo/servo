@@ -9,4 +9,4 @@ idl_test(
   ['payment-method-basic-card'],
   [], // No deps
   null, // No objects
-  'payment-method-basic-card interfaces.');
+);

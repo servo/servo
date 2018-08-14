@@ -20,6 +20,5 @@ idl_test(
       Bluetooth: ['navigator.bluetooth'],
       BluetoothAdvertisingEvent: ['event'],
     });
-  },
-  'web-bluetooth interfaces.'
+  }
 );

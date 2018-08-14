@@ -14,6 +14,5 @@ idl_test(
       Document: ['document'],
       Selection: ['getSelection()'],
     });
-  },
-  'selection-api interfaces'
+  }
 );
