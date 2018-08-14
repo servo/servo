@@ -123,5 +123,9 @@ android {
 
 dependencies {
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
-    implementation project(':servoview')
+    if (findProject(':servoview-local')) {
+      implementation project(':servoview-local')
+    } else {
+      implementation project(':servoview')
+    }
 }

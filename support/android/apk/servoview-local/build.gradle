@@ -1,0 +1,12 @@
+configurations.maybeCreate("default")
+
+if (gradle.hasProperty('servoViewLocal')) {
+    def aar = new File(gradle.servoViewLocal)
+    if (aar.exists()) {
+        artifacts.add('default', aar)
+    } else {
+        throw new GradleException('Failed to find ServoView AAR at: ' + gradle.servoViewLocal)
+    }
+} else {
+    throw new GradleException('Local ServoView AAR path not defined')
+}
