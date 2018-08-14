@@ -116,7 +116,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
-use task_queue::{CommonScriptMsgVariant, TaskQueue};
+use task_queue::{CommonScriptMsgVariant, TaskQueue, TaskPort};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -243,6 +243,16 @@ pub enum MainThreadScriptMsg {
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
+}
+
+impl TaskPort<MainThreadScriptMsg, MainThreadScriptMsg> for Receiver<MainThreadScriptMsg> {
+    fn recv_tasks(&self) -> Vec<MainThreadScriptMsg> {
+        self.try_iter().collect()
+    }
+
+    fn receiver(&self) -> &Receiver<MainThreadScriptMsg> {
+        self
+    }
 }
 
 impl CommonScriptMsgVariant for MainThreadScriptMsg {
@@ -445,7 +455,7 @@ pub struct ScriptThread {
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
     /// A queue of tasks to be executed in this script-thread.
-    task_queue: TaskQueue<MainThreadScriptMsg>,
+    task_queue: TaskQueue<MainThreadScriptMsg, MainThreadScriptMsg>,
 
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
