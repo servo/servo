@@ -28,14 +28,14 @@ def gnu_symbolify(source, ident):
     return "_ZN{}{}{}{}E".format(len(source.CLASS), source.CLASS, len(ident), ident)
 
 
-def msvc64_symbolify(source, ident):
-    return "?{}@{}@@2PEAV{}@@EA".format(ident, source.CLASS, source.TYPE)
+def msvc64_symbolify(source, ident, ty):
+    return "?{}@{}@@2PEAV{}@@EA".format(ident, source.CLASS, ty)
 
 
-def msvc32_symbolify(source, ident):
+def msvc32_symbolify(source, ident, ty):
     # Prepend "\x01" to avoid LLVM prefixing the mangled name with "_".
     # See https://github.com/rust-lang/rust/issues/36097
-    return "\\x01?{}@{}@@2PAV{}@@A".format(ident, source.CLASS, source.TYPE)
+    return "\\x01?{}@{}@@2PAV{}@@A".format(ident, source.CLASS, ty)
 
 
 class GkAtomSource:
@@ -44,16 +44,6 @@ class GkAtomSource:
     FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
     TYPE = "nsStaticAtom"
-
-
-class CSSPseudoElementsAtomSource:
-    PATTERN = re.compile('^(CSS_PSEUDO_ELEMENT)\(([^,]*),[^"]*"([^"]*)",()',
-                         re.MULTILINE)
-    FILE = "include/nsCSSPseudoElementList.h"
-    CLASS = "nsCSSPseudoElements"
-    # NB: nsICSSPseudoElement is effectively the same as a nsStaticAtom, but we need
-    # this for MSVC name mangling.
-    TYPE = "nsICSSPseudoElement"
 
 
 class CSSAnonBoxesAtomSource:
@@ -66,7 +56,6 @@ class CSSAnonBoxesAtomSource:
 
 SOURCES = [
     GkAtomSource,
-    CSSPseudoElementsAtomSource,
     CSSAnonBoxesAtomSource,
 ]
 
@@ -86,6 +75,11 @@ class Atom:
         self.source = source
         self.macro = macro_name
         self.ty = ty
+        if self.is_pseudo():
+            if self.is_non_anon_box_pseudo():
+                self.pseudo_ident = (ident.split("_", 1))[1]
+            else:
+                self.pseudo_ident = ident
         if self.is_anon_box():
             assert self.is_inheriting_anon_box() or self.is_non_inheriting_anon_box()
 
@@ -96,16 +90,22 @@ class Atom:
         return gnu_symbolify(self.source, self.original_ident)
 
     def msvc32_symbol(self):
-        return msvc32_symbolify(self.source, self.original_ident)
+        return msvc32_symbolify(self.source, self.original_ident, self.ty)
 
     def msvc64_symbol(self):
-        return msvc64_symbolify(self.source, self.original_ident)
+        return msvc64_symbolify(self.source, self.original_ident, self.ty)
 
     def type(self):
         return self.ty
 
-    def capitalized(self):
-        return self.original_ident[0].upper() + self.original_ident[1:]
+    def capitalized_pseudo(self):
+        return self.pseudo_ident[0].upper() + self.pseudo_ident[1:]
+
+    def is_pseudo(self):
+        return self.is_non_anon_box_pseudo() or self.is_anon_box()
+
+    def is_non_anon_box_pseudo(self):
+        return self.type() == "nsICSSPseudoElement"
 
     def is_anon_box(self):
         return self.type() == "nsICSSAnonBoxPseudo"
