@@ -5,7 +5,7 @@ async_test(t => {
   let secondTime = false;
   client.onload = t.step_func(() => {
     if(!secondTime) {
-      assert_equals(client.responseText, "\uFFFD");
+      assert_equals(client.responseText, "\uFFFD\uFFFD");
       secondTime = true;
       client.open("GET", testURL);
       client.send();
@@ -32,7 +32,7 @@ async_test(t => {
 async_test(t => {
   const client = new XMLHttpRequest();
   client.onload = t.step_func_done(() => {
-    assert_equals(client.responseText, "\uFFFD")
+    assert_equals(client.responseText, "\uFFFD\uFFFD")
   });
   client.open("GET", testURL);
   client.overrideMimeType("text/plain;charset=342");

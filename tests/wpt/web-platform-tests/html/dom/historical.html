@@ -30,4 +30,13 @@ test(() => {
 test(() => {
   assert_equals(self.getComputedStyle(document.getElementsByTagName("applet")[0], "").cssFloat, "none");
 }, "applet is not styled")
+
+// removed in https://github.com/whatwg/html/commit/e383ae23776362cafb2fb4bbba70c8c9080d4b0f
+test(() => {
+  assert_false("HTMLTableDataCellElement" in window);
+}, "HTMLTableDataCellElement interface is removed")
+
+test(() => {
+  assert_false("HTMLTableHeaderCellElement" in window);
+}, "HTMLTableHeaderCellElement interface is removed")
 </script>

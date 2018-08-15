@@ -43,7 +43,7 @@
             .then(t.step_func(e => {
                 assert_equals(e.blockedURI, "inline");
                 assert_equals(e.lineNumber, 131);
-                assert_equals(e.columnNumber, 4);
+                assert_in_array(e.columnNumber, [4, 59]);
                 assert_equals(e.target, document, "Elements created in this document, but pushed into a same-origin frame trigger on that frame's document, not on this frame's document.");
                 return watcher.wait_for('securitypolicyviolation');
             }))

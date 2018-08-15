@@ -1,3 +1,4 @@
+
 importScripts('sw-helpers.js');
 
 async function getFetchResult(settledFetch) {
@@ -11,7 +12,7 @@ async function getFetchResult(settledFetch) {
   };
 }
 
-self.addEventListener('backgroundfetched', event => {
+self.addEventListener('backgroundfetchsuccess', event => {
   event.waitUntil(
     event.fetches.values()
       .then(fetches => Promise.all(fetches.map(fetch => getFetchResult(fetch))))

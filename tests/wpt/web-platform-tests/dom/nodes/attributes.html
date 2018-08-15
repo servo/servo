@@ -604,7 +604,7 @@ test(function() {
 test(function() {
   var el = document.createElement("div");
   var other = document.createElement("div");
-  attr = document.createAttribute("foo");
+  var attr = document.createAttribute("foo");
   assert_equals(el.setAttributeNode(attr), null);
   assert_equals(attr.ownerElement, el);
   assert_throws("INUSE_ATTRIBUTE_ERR",
@@ -614,7 +614,7 @@ test(function() {
 
 test(function() {
   var el = document.createElement("div");
-  attr = document.createAttribute("foo");
+  var attr = document.createAttribute("foo");
   assert_equals(el.setAttributeNode(attr), null);
   el.setAttribute("bar", "qux");
   assert_equals(el.setAttributeNode(attr), attr);
