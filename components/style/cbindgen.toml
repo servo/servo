@@ -22,5 +22,5 @@ derive_helper_methods = true
 
 [export]
 prefix = "Style"
-include = ["StyleDisplay", "StyleAppearance"]
+include = ["StyleDisplay", "StyleAppearance", "StyleDisplayMode"]
 item_types = ["enums"]
