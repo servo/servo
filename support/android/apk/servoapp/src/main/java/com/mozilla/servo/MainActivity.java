@@ -173,4 +173,12 @@ public class MainActivity extends Activity implements Servo.Client {
         super.onResume();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mBackButton.isEnabled()) {
+            mServoView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
