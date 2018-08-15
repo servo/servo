@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use connector::create_ssl_connector;
 use cookie::Cookie;
+use embedder_traits::resources::{self, Resource};
 use fetch::methods::should_be_blocked_due_to_bad_port;
 use hosts::replace_host;
 use http_loader::HttpState;
@@ -11,13 +13,17 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::request::{RequestInit, RequestMode};
+use openssl::ssl::SslStream;
+use servo_config::opts;
 use servo_url::ServoUrl;
+use std::fs;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use url::Url;
 use ws::{CloseCode, Factory, Handler, Handshake, Message, Request, Response as WsResponse, Sender, WebSocket};
 use ws::{Error as WebSocketError, ErrorKind as WebSocketErrorKind, Result as WebSocketResult};
+use ws::util::TcpStream;
 
 /// A client for connecting to a websocket server
 #[derive(Clone)]
@@ -119,6 +125,29 @@ impl<'a> Handler for Client<'a> {
         debug!("Connection closing due to ({:?}) {}", code, reason);
         let _ = self.event_sender.send(WebSocketNetworkEvent::Close(Some(code.into()), reason.to_owned()));
     }
+
+    fn upgrade_ssl_client(
+        &mut self,
+        stream: TcpStream,
+        url: &Url,
+    ) -> WebSocketResult<SslStream<TcpStream>> {
+        let certs = match opts::get().certificate_path {
+            Some(ref path) => {
+                fs::read_to_string(path).expect("Couldn't not find certificate file")
+            }
+            None => {
+                resources::read_string(Resource::SSLCertificates)
+            },
+        };
+
+        let domain = self.resource_url.as_url().domain().ok_or(WebSocketError::new(
+            WebSocketErrorKind::Protocol,
+            format!("Unable to parse domain from {}. Needed for SSL.", url),
+        ))?;
+        let connector = create_ssl_connector(&certs);
+        connector.connect(domain, stream).map_err(WebSocketError::from)
+    }
+
 }
 
 pub fn init(
