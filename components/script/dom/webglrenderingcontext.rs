@@ -406,7 +406,7 @@ impl WebGLRenderingContext {
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
     fn validate_framebuffer_complete(&self) -> bool {
         match self.bound_framebuffer.get() {
-            Some(fb) => match fb.check_status() {
+            Some(fb) => match fb.check_status_for_rendering() {
                 constants::FRAMEBUFFER_COMPLETE => return true,
                 _ => {
                     self.webgl_error(InvalidFramebufferOperation);
