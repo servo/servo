@@ -146,7 +146,7 @@ impl WebGLTexture {
             }
         };
 
-        let base_image_info = self.base_image_info().unwrap();
+        let base_image_info = self.base_image_info();
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -327,7 +327,7 @@ impl WebGLTexture {
     fn is_cube_complete(&self) -> bool {
         debug_assert_eq!(self.face_count.get(), 6);
 
-        let image_info = self.base_image_info().unwrap();
+        let image_info = self.base_image_info();
         if !image_info.is_defined() {
             return false;
         }
@@ -389,10 +389,10 @@ impl WebGLTexture {
         self.image_info_array.borrow_mut()[pos as usize] = image_info;
     }
 
-    fn base_image_info(&self) -> Option<ImageInfo> {
+    fn base_image_info(&self) -> ImageInfo {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
-        Some(self.image_info_at_face(0, self.base_mipmap_level))
+        self.image_info_at_face(0, self.base_mipmap_level)
     }
 
     pub fn set_attached_to_dom(&self) {
