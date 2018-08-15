@@ -146,7 +146,8 @@ sudo emerge net-misc/curl \
     media-libs/freetype media-libs/mesa dev-util/gperf \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     media-libs/harfbuzz dev-util/ccache \
-    x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang
+    x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang \
+    media-libs/gstreamer media-libs/gst-plugins-bad media-libs/gst-plugins-base
 ```
 
 with the following environment variable set:
