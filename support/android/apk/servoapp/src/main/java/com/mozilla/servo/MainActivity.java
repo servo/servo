@@ -37,7 +37,7 @@ public class MainActivity extends Activity implements Servo.Client {
     EditText mUrlField;
     ProgressBar mProgressBar;
     TextView mIdleText;
-
+    boolean mCanGoBack;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +52,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mUrlField = findViewById(R.id.urlfield);
         mProgressBar = findViewById(R.id.progressbar);
         mIdleText = findViewById(R.id.redrawing);
+        mCanGoBack = false;
 
         mBackButton.setEnabled(false);
         mFwdButton.setEnabled(false);
@@ -152,6 +153,7 @@ public class MainActivity extends Activity implements Servo.Client {
     public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
         mBackButton.setEnabled(canGoBack);
         mFwdButton.setEnabled(canGoForward);
+        mCanGoBack = canGoBack;
     }
 
     public void onRedrawing(boolean redrawing) {
@@ -173,4 +175,12 @@ public class MainActivity extends Activity implements Servo.Client {
         super.onResume();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mCanGoBack) {
+            mServoView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
