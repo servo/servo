@@ -24,7 +24,8 @@ PRELUDE = """
 """[1:]   # NOQA: E501
 
 
-PATTERN = re.compile('^GK_ATOM\(([^,]*),[^"]*"([^"]*)",\s*([^,]*),\s*([^)]*)\)',
+# Matches lines like `GK_ATOM(foo, "foo", 0x12345678, nsStaticAtom, PseudoElementAtom)`.
+PATTERN = re.compile('^GK_ATOM\(([^,]*),[^"]*"([^"]*)",\s*(0x[0-9a-f]+),\s*([^,]*),\s*([^)]*)\)',
                      re.MULTILINE)
 FILE = "include/nsGkAtomList.h"
 CLASS = "nsGkAtoms"
@@ -52,10 +53,11 @@ def map_atom(ident):
 
 
 class Atom:
-    def __init__(self, ident, value, ty, atom_type):
+    def __init__(self, ident, value, hash, ty, atom_type):
         self.ident = "{}_{}".format(CLASS, ident)
         self.original_ident = ident
         self.value = value
+        self.hash = hash
         # The Gecko type: "nsStaticAtom", "nsICSSPseudoElement", or "nsIAnonBoxPseudo"
         self.ty = ty
         # The type of atom: "Atom", "PseudoElement", "NonInheritingAnonBox",
@@ -104,7 +106,8 @@ def collect_atoms(objdir):
     with open(path) as f:
         content = f.read()
         for result in PATTERN.finditer(content):
-            atoms.append(Atom(result.group(1), result.group(2), result.group(3), result.group(4)))
+            atoms.append(Atom(result.group(1), result.group(2), result.group(3),
+                              result.group(4), result.group(5)))
     return atoms
 
 
