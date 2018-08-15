@@ -39218,9 +39218,13 @@
      {}
     ]
    ],
-   "mozilla/task_queue_throttling.html": [
+   "mozilla/task_queue_throttling.any.js": [
     [
-     "/_mozilla/mozilla/task_queue_throttling.html",
+     "/_mozilla/mozilla/task_queue_throttling.any.html",
+     {}
+    ],
+    [
+     "/_mozilla/mozilla/task_queue_throttling.any.worker.html",
      {}
     ]
    ],
@@ -70931,8 +70935,8 @@
    "321132b7e7e21d542ce86e4322db04aba3e9d11e",
    "support"
   ],
-  "mozilla/task_queue_throttling.html": [
-   "8bfc66ef4898ab03ef0b52e72870d0ef4fcdc1f1",
+  "mozilla/task_queue_throttling.any.js": [
+   "34e6b7b387b1c08be358309656088c17f041c27a",
    "testharness"
   ],
   "mozilla/test.jpg": [

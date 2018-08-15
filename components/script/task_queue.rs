@@ -12,7 +12,7 @@ use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use std::cell::Cell;
 use std::collections::{HashMap, VecDeque};
 use std::default::Default;
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{Receiver, RecvError};
 use std::time::Instant;
 use task::TaskBox;
 use task_source::TaskSourceName;
@@ -54,12 +54,12 @@ impl<T> MsgQueue <T> {
     }
 
     // Take a message from the front, without waiting if empty.
-    pub fn recv(&self) -> Result<T, ()> {
-        self.internal.borrow_mut().pop_front().ok_or(())
+    pub fn recv(&self) -> Result<T, RecvError> {
+        self.internal.borrow_mut().pop_front().ok_or(RecvError)
     }
 
     // Same as recv.
-    pub fn try_recv(&self) -> Result<T, ()> {
+    pub fn try_recv(&self) -> Result<T, RecvError> {
         self.recv()
     }
 }
@@ -71,15 +71,15 @@ pub trait CommonScriptMsgVariant {
 }
 
 pub trait TaskPort<A, B> {
-    fn recv_tasks(&self) -> Vec<A>;
-    fn receiver(&self) -> &Receiver<B>;
+    fn recv_tasks(&self) -> Vec<B>;
+    fn receiver(&self) -> &Receiver<A>;
 }
 
 pub struct TaskQueue<A, B> {
     // The original "script-port", on which the task-sources send tasks as messages.
     port: Box<TaskPort<A, B>>,
     // A queue from which the event-loop can drain tasks.
-    msg_queue: MsgQueue<A>,
+    msg_queue: MsgQueue<B>,
     // A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
     // The start of the previous iteration of the event-loop, used for timing.
@@ -96,12 +96,10 @@ unsafe impl<A, B> JSTraceable for TaskQueue<A, B> {
     }
 }
 
-impl<A: CommonScriptMsgVariant, B: 'static> TaskQueue<A, B> {
-    pub fn new(port: Receiver<B>) -> TaskQueue<A, B>
-        where Receiver<B>: TaskPort<A, B>
-    {
+impl<A: 'static, B: CommonScriptMsgVariant> TaskQueue<A, B> {
+    pub fn new(port: Box<TaskPort<A, B>>) -> TaskQueue<A, B> {
         TaskQueue {
-            port: Box::new(port),
+            port: port,
             msg_queue: MsgQueue::new(),
             taken_task_counter: Default::default(),
             last_iteration: Cell::new(None),
@@ -114,7 +112,7 @@ impl<A: CommonScriptMsgVariant, B: 'static> TaskQueue<A, B> {
     fn process_incoming_tasks(&self) {
         let mut non_throttled = self.port.recv_tasks();
 
-        let to_be_throttled: Vec<A> = non_throttled.drain_filter(|msg|{
+        let to_be_throttled: Vec<B> = non_throttled.drain_filter(|msg|{
             let script_msg = match msg.common_script_msg() {
                 Some(script_msg) => script_msg,
                 None => return false,
@@ -173,7 +171,7 @@ impl<A: CommonScriptMsgVariant, B: 'static> TaskQueue<A, B> {
 
     // Reset the queue for a new iteration of the event-loop,
     // returning the port about whose readiness we want to be notified.
-    pub fn select(&self) -> &Receiver<B> {
+    pub fn select(&self) -> &Receiver<A> {
         // This is a new iterations of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
         // Time each iteration of the event-loop.
@@ -185,7 +183,7 @@ impl<A: CommonScriptMsgVariant, B: 'static> TaskQueue<A, B> {
 
     // Drain the queue for the current iteration of the event-loop.
     // Holding-back throttles above a given high-water mark.
-    pub fn take_tasks(&self) -> &MsgQueue<A> {
+    pub fn take_tasks(&self) -> &MsgQueue<B> {
         // High-watermark: once reached, throttled tasks will be held-back.
         let per_iteration_max = 5;
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
@@ -210,7 +208,7 @@ impl<A: CommonScriptMsgVariant, B: 'static> TaskQueue<A, B> {
                 None => continue,
             };
             let task = CommonScriptMsg::Task(category, boxed, pipeline_id);
-            let msg = A::set_common_script_msg(task);
+            let msg = B::set_common_script_msg(task);
             let _ = self.msg_queue.send(msg);
             self.taken_task_counter.set(self.taken_task_counter.get() + 1);
             throttled_length = throttled_length - 1;

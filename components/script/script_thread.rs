@@ -888,7 +888,7 @@ impl ScriptThread {
 
         let (image_cache_channel, image_cache_port) = channel();
 
-        let task_queue = TaskQueue::new(port);
+        let task_queue = TaskQueue::new(Box::new(port));
 
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),

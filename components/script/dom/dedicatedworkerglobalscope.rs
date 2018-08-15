@@ -39,9 +39,10 @@ use servo_url::ServoUrl;
 use std::mem::replace;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
+use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
+use task_queue::{CommonScriptMsgVariant, TaskQueue, TaskPort};
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -70,9 +71,48 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 }
 
 enum MixedMessage {
-    FromWorker((TrustedWorkerAddress, WorkerScriptMsg)),
+    FromWorker(WorkerScriptMsg),
     FromScheduler((TrustedWorkerAddress, TimerEvent)),
     FromDevtools(DevtoolScriptControlMsg)
+}
+
+impl CommonScriptMsgVariant for WorkerScriptMsg {
+    fn common_script_msg(&self) -> Option<&CommonScriptMsg> {
+        match self {
+            WorkerScriptMsg::Common(script_msg) => Some(script_msg),
+            _ => None
+        }
+    }
+
+    fn into_common_script_msg(self) -> Option<CommonScriptMsg> {
+        match self {
+            WorkerScriptMsg::Common(script_msg) => Some(script_msg),
+            _ => None
+        }
+    }
+
+    fn set_common_script_msg(script_msg: CommonScriptMsg) -> Self {
+        WorkerScriptMsg::Common(script_msg)
+    }
+}
+
+struct DedicatedWorkerPort {
+    receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    dedicated_scope: DomRoot<DedicatedWorkerGlobalScope>,
+}
+
+impl TaskPort<(TrustedWorkerAddress, WorkerScriptMsg), WorkerScriptMsg> for DedicatedWorkerPort {
+    fn recv_tasks(&self) -> Vec<WorkerScriptMsg> {
+        self.receiver.try_iter().map(|msg|{
+            let (linked_worker, script_msg) = msg;
+            let _ar = AutoWorkerReset::new(&*self.dedicated_scope, linked_worker);
+            script_msg
+        }).collect()
+    }
+
+    fn receiver(&self) -> &Receiver<(TrustedWorkerAddress, WorkerScriptMsg)> {
+        &self.receiver
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
@@ -80,9 +120,11 @@ enum MixedMessage {
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     #[ignore_malloc_size_of = "Defined in std"]
-    receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    receiver: DomRefCell<Option<Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>>>,
     #[ignore_malloc_size_of = "Defined in std"]
     own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    #[ignore_malloc_size_of = "Defined in std"]
+    task_queue: DomRefCell<Option<TaskQueue<(TrustedWorkerAddress, WorkerScriptMsg), WorkerScriptMsg>>>,
     #[ignore_malloc_size_of = "Defined in std"]
     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
     #[ignore_malloc_size_of = "Trusted<T> has unclear ownership like Dom<T>"]
@@ -111,8 +153,9 @@ impl DedicatedWorkerGlobalScope {
                                                                 from_devtools_receiver,
                                                                 timer_event_chan,
                                                                 Some(closing)),
-            receiver: receiver,
             own_sender: own_sender,
+            task_queue: DomRefCell::new(None),
+            receiver: DomRefCell::new(Some(receiver)),
             timer_event_port: timer_event_port,
             parent_sender: parent_sender,
             worker: DomRefCell::new(None),
@@ -226,6 +269,7 @@ impl DedicatedWorkerGlobalScope {
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = global.upcast::<WorkerGlobalScope>();
+            global.init_task_queue();
 
             unsafe {
                 // Handle interrupt requests
@@ -245,18 +289,16 @@ impl DedicatedWorkerGlobalScope {
             scope.upcast::<GlobalScope>().mem_profiler_chan().run_with_memory_reporting(|| {
                 // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
                 // Step 1
-                while let Ok(event) = global.receive_event() {
-                    if scope.is_closing() {
-                        break;
-                    }
-                    // Step 3
-                    global.handle_event(event);
-                    // Step 6
-                    let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    global.upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+                while global.receive_events(worker.clone()) {
+
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         }).expect("Thread spawning failed");
+    }
+
+    fn init_task_queue(&self) {
+        let port = DedicatedWorkerPort { receiver: self.receiver.borrow_mut().take().unwrap(), dedicated_scope: DomRoot::from_ref(self) };
+        *self.task_queue.borrow_mut() = Some(TaskQueue::new(Box::new(port)));
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
@@ -276,14 +318,18 @@ impl DedicatedWorkerGlobalScope {
     }
 
     #[allow(unsafe_code)]
-    fn receive_event(&self) -> Result<MixedMessage, RecvError> {
+    fn receive_events(&self, worker: TrustedWorkerAddress) -> bool {
         let scope = self.upcast::<WorkerGlobalScope>();
-        let worker_port = &self.receiver;
         let timer_event_port = &self.timer_event_port;
         let devtools_port = scope.from_devtools_receiver();
-
+        let mut sequential = vec![];
+        let borrowed_queue = self.task_queue.borrow();
+        let task_queue = match borrowed_queue.as_ref() {
+            Some(task_queue) => task_queue,
+            None => return false,
+        };
         let sel = Select::new();
-        let mut worker_handle = sel.handle(worker_port);
+        let mut worker_handle = sel.handle(task_queue.select());
         let mut timer_event_handle = sel.handle(timer_event_port);
         let mut devtools_handle = sel.handle(devtools_port);
         unsafe {
@@ -294,15 +340,42 @@ impl DedicatedWorkerGlobalScope {
             }
         }
         let ret = sel.wait();
-        if ret == worker_handle.id() {
-            Ok(MixedMessage::FromWorker(worker_port.recv()?))
-        } else if ret == timer_event_handle.id() {
-            Ok(MixedMessage::FromScheduler(timer_event_port.recv()?))
-        } else if ret == devtools_handle.id() {
-            Ok(MixedMessage::FromDevtools(devtools_port.recv()?))
-        } else {
-            panic!("unexpected select result!")
+        let event = {
+            if ret == worker_handle.id() {
+                MixedMessage::FromWorker(task_queue.take_tasks().recv().unwrap())
+            } else if ret == timer_event_handle.id() {
+                MixedMessage::FromScheduler(timer_event_port.recv().unwrap())
+            } else if ret == devtools_handle.id() {
+                MixedMessage::FromDevtools(devtools_port.recv().unwrap())
+            } else {
+                panic!("unexpected select result!")
+            }
+        };
+        sequential.push(event);
+        loop {
+            match task_queue.take_tasks().try_recv() {
+                Err(_) => match timer_event_port.try_recv() {
+                    Err(_) => match devtools_port.try_recv() {
+                        Err(_) => break,
+                        Ok(ev) => sequential.push(MixedMessage::FromDevtools(ev)),
+                    },
+                    Ok(ev) => sequential.push(MixedMessage::FromScheduler(ev)),
+                },
+                Ok(ev) => sequential.push(MixedMessage::FromWorker(ev)),
+            }
         }
+
+        // Step 3
+        for event in sequential {
+            if scope.is_closing() {
+                return false;
+            }
+            self.handle_event(event);
+            // Step 6
+            let _ar = AutoWorkerReset::new(&self, worker.clone());
+            self.upcast::<GlobalScope>().perform_a_microtask_checkpoint();
+        }
+        true
     }
 
     fn handle_script_event(&self, msg: WorkerScriptMsg) {
@@ -347,8 +420,7 @@ impl DedicatedWorkerGlobalScope {
                     }
                 }
             }
-            MixedMessage::FromWorker((linked_worker, msg)) => {
-                let _ar = AutoWorkerReset::new(self, linked_worker);
+            MixedMessage::FromWorker(msg) => {
                 self.handle_script_event(msg);
             }
         }
