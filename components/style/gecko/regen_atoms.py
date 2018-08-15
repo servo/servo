@@ -39,7 +39,7 @@ def msvc32_symbolify(source, ident):
 
 
 class GkAtomSource:
-    PATTERN = re.compile('^(GK_ATOM)\(([^,]*),[^"]*"([^"]*)"\)',
+    PATTERN = re.compile('^(GK_ATOM)\(([^,]*),[^"]*"([^"]*)",\s*([^)]*)\)',
                          re.MULTILINE)
     FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
@@ -47,7 +47,7 @@ class GkAtomSource:
 
 
 class CSSPseudoElementsAtomSource:
-    PATTERN = re.compile('^(CSS_PSEUDO_ELEMENT)\(([^,]*),[^"]*"([^"]*)",',
+    PATTERN = re.compile('^(CSS_PSEUDO_ELEMENT)\(([^,]*),[^"]*"([^"]*)",()',
                          re.MULTILINE)
     FILE = "include/nsCSSPseudoElementList.h"
     CLASS = "nsCSSPseudoElements"
@@ -57,7 +57,7 @@ class CSSPseudoElementsAtomSource:
 
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX|CSS_WRAPPER_ANON_BOX)\(([^,]*),[^"]*"([^"]*)"\)',  # NOQA: E501
+    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX|CSS_WRAPPER_ANON_BOX)\(([^,]*),[^"]*"([^"]*)"()\)',  # NOQA: E501
                          re.MULTILINE)
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
@@ -79,12 +79,13 @@ def map_atom(ident):
 
 
 class Atom:
-    def __init__(self, source, macro_name, ident, value):
+    def __init__(self, source, macro_name, ident, value, ty):
         self.ident = "{}_{}".format(source.CLASS, ident)
         self.original_ident = ident
         self.value = value
         self.source = source
         self.macro = macro_name
+        self.ty = ty
         if self.is_anon_box():
             assert self.is_inheriting_anon_box() or self.is_non_inheriting_anon_box()
 
@@ -101,7 +102,7 @@ class Atom:
         return msvc64_symbolify(self.source, self.original_ident)
 
     def type(self):
-        return self.source.TYPE
+        return self.ty
 
     def capitalized(self):
         return self.original_ident[0].upper() + self.original_ident[1:]
@@ -128,7 +129,8 @@ def collect_atoms(objdir):
         with open(path) as f:
             content = f.read()
             for result in source.PATTERN.finditer(content):
-                atoms.append(Atom(source, result.group(1), result.group(2), result.group(3)))
+                ty = result.group(4) or source.TYPE
+                atoms.append(Atom(source, result.group(1), result.group(2), result.group(3), ty))
     return atoms
 
 
@@ -219,9 +221,9 @@ def write_atom_macro(atoms, file_name):
         f.write(PRELUDE)
         f.write(IMPORTS)
 
-        for source in SOURCES:
-            if source.TYPE != "nsStaticAtom":
-                f.write("pub enum {} {{}}\n\n".format(source.TYPE))
+        for ty in sorted(set([atom.type() for atom in atoms])):
+            if ty != "nsStaticAtom":
+                f.write("pub enum {} {{}}\n\n".format(ty))
 
         f.write(UNSAFE_STATIC)
 
