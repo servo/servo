@@ -2,7 +2,7 @@ importScripts('sw-helpers.js');
 
 async function updateUI(event) {
   let updateParams = [];
-  switch (event.id) {
+  switch (event.registration.id) {
     case 'update-once':
       updateParams = [{title: 'Title1'}];
       break;
@@ -16,7 +16,7 @@ async function updateUI(event) {
            .catch(e => e.message);
 }
 
-self.addEventListener('backgroundfetched', event => {
+self.addEventListener('backgroundfetchsuccess', event => {
   event.waitUntil(updateUI(event)
       .then(update => sendMessageToDocument({ type: event.type, update })))
 });

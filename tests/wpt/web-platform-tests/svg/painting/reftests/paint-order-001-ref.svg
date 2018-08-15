@@ -51,11 +51,11 @@
       <use xlink:href="#path"/>
     </g>
     <g transform="translate(240,220)">
-      <use xlink:href="#path"/>
+      <use xlink:href="#path" style="marker:none"/>
       <use xlink:href="#path" style="stroke:none"/>
     </g>
     <g transform="translate(360,220)">
-      <use xlink:href="#path"/>
+      <use xlink:href="#path" style="stroke:none"/>
       <use xlink:href="#path" style="marker:none"/>
     </g>
     <g transform="translate(120,320)">
@@ -63,10 +63,10 @@
     </g>
     <g transform="translate(240,320)">
       <use xlink:href="#path"/>
-      <use xlink:href="#path" style="stroke:none"/>
+      <use xlink:href="#path" style="stroke:none;marker:none"/>
     </g>
     <g transform="translate(360,320)">
-      <use xlink:href="#path"/>
+      <use xlink:href="#path" style="stroke:none"/>
       <use xlink:href="#path" style="marker:none"/>
     </g>
   </g>

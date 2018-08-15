@@ -673,11 +673,16 @@ SVGScriptElement includes SVGURIReference;
 [Exposed=Window]
 interface SVGAElement : SVGGraphicsElement {
   [SameObject] readonly attribute SVGAnimatedString target;
-  [SameObject] readonly attribute SVGAnimatedString download;
-  [SameObject] readonly attribute SVGAnimatedString rel;
-  [SameObject] readonly attribute SVGAnimatedString relList;
-  [SameObject] readonly attribute SVGAnimatedString hreflang;
-  [SameObject] readonly attribute SVGAnimatedString type;
+  attribute DOMString download;
+  attribute USVString ping;
+  attribute DOMString rel;
+  [SameObject, PutsForward=value] readonly attribute DOMTokenList relList;
+  attribute DOMString hreflang;
+  attribute DOMString type;
+
+  attribute DOMString text;
+
+  attribute DOMString referrerPolicy;
 };
 
 SVGAElement includes SVGURIReference;

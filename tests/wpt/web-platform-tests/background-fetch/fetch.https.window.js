@@ -74,7 +74,7 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   // Skip `downloaded`, as the transfer may have started already.
 
   const {type, results} = await getMessageFromServiceWorker();
-  assert_equals('backgroundfetched', type);
+  assert_equals('backgroundfetchsuccess', type);
   assert_equals(results.length, 1);
 
   assert_true(results[0].url.includes('resources/feature-name.txt'));

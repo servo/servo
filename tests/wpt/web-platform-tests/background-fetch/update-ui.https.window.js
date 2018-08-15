@@ -2,7 +2,7 @@
 // META: script=resources/utils.js
 'use strict';
 
-// Covers functionality provided by BackgroundFetchUpdateEvent.updateUI().
+// Covers functionality provided by BackgroundFetchUpdateUIEvent.updateUI().
 //
 // https://wicg.github.io/background-fetch/#backgroundfetchupdateuievent
 

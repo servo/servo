@@ -114,12 +114,15 @@ test(() => {
 test(() => {
   const select = document.getElementById("select-same-object-change");
   const before = select.selectedOptions;
+  assert_equals(before.length, 3);
 
   select.selectedOptions[1].selected = false;
 
   const after = select.selectedOptions;
 
   assert_equals(before, after);
+  assert_equals(before.length, 2);
+  assert_equals(after.length, 2);
 
 }, ".selectedOptions should return the same object after selection changes - [SameObject]");
 </script>

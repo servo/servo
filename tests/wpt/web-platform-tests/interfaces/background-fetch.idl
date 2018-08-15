@@ -1,10 +1,10 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "Background Fetch" spec.
-// See: https://wicg.github.io/background-fetch/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Background Fetch (https://wicg.github.io/background-fetch/)
 
 partial interface ServiceWorkerGlobalScope {
-  attribute EventHandler onbackgroundfetched;
+  attribute EventHandler onbackgroundfetchsuccess;
   attribute EventHandler onbackgroundfetchfail;
   attribute EventHandler onbackgroundfetchabort;
   attribute EventHandler onbackgroundfetchclick;
@@ -22,9 +22,12 @@ interface BackgroundFetchManager {
   // TODO: in future this should become an async iterator for BackgroundFetchRegistration objects
 };
 
-dictionary BackgroundFetchOptions {
+dictionary BackgroundFetchUIOptions {
   sequence<IconDefinition> icons = [];
   DOMString title = "";
+};
+
+dictionary BackgroundFetchOptions : BackgroundFetchUIOptions {
   unsigned long long downloadTotal = 0;
 };
 
@@ -43,73 +46,50 @@ interface BackgroundFetchRegistration : EventTarget {
   readonly attribute unsigned long long uploaded;
   readonly attribute unsigned long long downloadTotal;
   readonly attribute unsigned long long downloaded;
-  readonly attribute BackgroundFetchActiveFetches activeFetches;
+  readonly attribute BackgroundFetchState state;
+  readonly attribute BackgroundFetchFailureReason failureReason;
 
   attribute EventHandler onprogress;
 
   Promise<boolean> abort();
+  Promise<BackgroundFetchRecord> match(RequestInfo request, optional CacheQueryOptions options);
+  Promise<sequence<BackgroundFetchRecord>> matchAll(optional RequestInfo request, optional CacheQueryOptions options);
+};
+
+enum BackgroundFetchState { "pending", "success", "failure" };
+
+enum BackgroundFetchFailureReason {
+  "",
+  // The operation was aborted by the user, or abort() was called.
+  "aborted",
+  // A response had a not-ok-status.
+  "bad-status",
+  // A fetch failed for other reasons, e.g. CORS, MIX, an invalid partial response,
+  // or a general network failure for a fetch that cannot be retried.
+  "fetch-error",
+  // Storage quota was reached during the operation.
+  "quota-exceeded",
+  // The provided downloadTotal was exceeded.
+  "total-download-exceeded"
 };
 
 [Exposed=(Window,Worker)]
-interface BackgroundFetchActiveFetches {
-  Promise<BackgroundFetchActiveFetch> match(RequestInfo request, optional CacheQueryOptions options);
-  Promise<sequence<BackgroundFetchActiveFetch>> matchAll(RequestInfo request, optional CacheQueryOptions options);
-  Promise<sequence<BackgroundFetchActiveFetch>> values();
-};
-
-[Exposed=(Window,Worker)]
-interface BackgroundFetchActiveFetch : BackgroundFetchFetch {
-  readonly attribute Promise<Response> responseReady;
-  // In future this will include a fetch observer
-};
-
-[Exposed=(Window,Worker)]
-interface BackgroundFetchFetch {
+interface BackgroundFetchRecord {
   readonly attribute Request request;
+  readonly attribute Promise<Response> responseReady;
+  // TODO: In future this will include a fetch observer
 };
 
 [Constructor(DOMString type, BackgroundFetchEventInit init), Exposed=ServiceWorker]
 interface BackgroundFetchEvent : ExtendableEvent {
-  readonly attribute DOMString id;
+  readonly attribute BackgroundFetchRegistration registration;
 };
 
 dictionary BackgroundFetchEventInit : ExtendableEventInit {
-  required DOMString id;
+  required BackgroundFetchRegistration registration;
 };
 
-[Constructor(DOMString type, BackgroundFetchSettledEventInit init), Exposed=ServiceWorker]
-interface BackgroundFetchSettledEvent : BackgroundFetchEvent {
-  readonly attribute BackgroundFetchSettledFetches fetches;
+[Constructor(DOMString type, BackgroundFetchEventInit init), Exposed=ServiceWorker]
+interface BackgroundFetchUpdateUIEvent : BackgroundFetchEvent {
+  Promise<void> updateUI(optional BackgroundFetchUIOptions options);
 };
-
-dictionary BackgroundFetchSettledEventInit : BackgroundFetchEventInit {
-  required BackgroundFetchSettledFetches fetches;
-};
-
-[Exposed=ServiceWorker]
-interface BackgroundFetchSettledFetches {
-  Promise<BackgroundFetchSettledFetch> match(RequestInfo request, optional CacheQueryOptions options);
-  Promise<sequence<BackgroundFetchSettledFetch>> matchAll(RequestInfo request, optional CacheQueryOptions options);
-  Promise<sequence<BackgroundFetchSettledFetch>> values();
-};
-
-[Exposed=ServiceWorker]
-interface BackgroundFetchSettledFetch : BackgroundFetchFetch {
-  readonly attribute Response? response;
-};
-
-[Constructor(DOMString type, BackgroundFetchSettledEventInit init), Exposed=ServiceWorker]
-interface BackgroundFetchUpdateEvent : BackgroundFetchSettledEvent {
-  Promise<void> updateUI(DOMString title);
-};
-
-[Constructor(DOMString type, BackgroundFetchClickEventInit init), Exposed=ServiceWorker]
-interface BackgroundFetchClickEvent : BackgroundFetchEvent {
-  readonly attribute BackgroundFetchState state;
-};
-
-dictionary BackgroundFetchClickEventInit : BackgroundFetchEventInit {
-  required BackgroundFetchState state;
-};
-
-enum BackgroundFetchState { "pending", "succeeded", "failed" };
