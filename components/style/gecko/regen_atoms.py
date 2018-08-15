@@ -39,24 +39,14 @@ def msvc32_symbolify(source, ident, ty):
 
 
 class GkAtomSource:
-    PATTERN = re.compile('^(GK_ATOM)\(([^,]*),[^"]*"([^"]*)",\s*([^)]*)\)',
+    PATTERN = re.compile('^GK_ATOM\(([^,]*),[^"]*"([^"]*)",\s*([^,]*),\s*([^)]*)\)',
                          re.MULTILINE)
     FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
-    TYPE = "nsStaticAtom"
-
-
-class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^(CSS_ANON_BOX|CSS_NON_INHERITING_ANON_BOX|CSS_WRAPPER_ANON_BOX)\(([^,]*),[^"]*"([^"]*)"()\)',  # NOQA: E501
-                         re.MULTILINE)
-    FILE = "include/nsCSSAnonBoxList.h"
-    CLASS = "nsCSSAnonBoxes"
-    TYPE = "nsICSSAnonBoxPseudo"
 
 
 SOURCES = [
     GkAtomSource,
-    CSSAnonBoxesAtomSource,
 ]
 
 
@@ -68,18 +58,18 @@ def map_atom(ident):
 
 
 class Atom:
-    def __init__(self, source, macro_name, ident, value, ty):
+    def __init__(self, source, ident, value, ty, atom_type):
         self.ident = "{}_{}".format(source.CLASS, ident)
         self.original_ident = ident
         self.value = value
         self.source = source
-        self.macro = macro_name
+        # The Gecko type: "nsStaticAtom", "nsICSSPseudoElement", or "nsIAnonBoxPseudo"
         self.ty = ty
-        if self.is_pseudo():
-            if self.is_non_anon_box_pseudo():
-                self.pseudo_ident = (ident.split("_", 1))[1]
-            else:
-                self.pseudo_ident = ident
+        # The type of atom: "Atom", "PseudoElement", "NonInheritingAnonBox",
+        # or "InheritingAnonBox"
+        self.atom_type = atom_type
+        if self.is_pseudo() or self.is_anon_box():
+            self.pseudo_ident = (ident.split("_", 1))[1]
         if self.is_anon_box():
             assert self.is_inheriting_anon_box() or self.is_non_inheriting_anon_box()
 
@@ -102,20 +92,16 @@ class Atom:
         return self.pseudo_ident[0].upper() + self.pseudo_ident[1:]
 
     def is_pseudo(self):
-        return self.is_non_anon_box_pseudo() or self.is_anon_box()
-
-    def is_non_anon_box_pseudo(self):
-        return self.type() == "nsICSSPseudoElement"
+        return self.atom_type == "PseudoElementAtom"
 
     def is_anon_box(self):
-        return self.type() == "nsICSSAnonBoxPseudo"
+        return self.is_non_inheriting_anon_box() or self.is_inheriting_anon_box()
 
     def is_non_inheriting_anon_box(self):
-        return self.macro == "CSS_NON_INHERITING_ANON_BOX"
+        return self.atom_type == "NonInheritingAnonBoxAtom"
 
     def is_inheriting_anon_box(self):
-        return (self.macro == "CSS_ANON_BOX" or
-                self.macro == "CSS_WRAPPER_ANON_BOX")
+        return self.atom_type == "InheritingAnonBoxAtom"
 
     def is_tree_pseudo_element(self):
         return self.value.startswith(":-moz-tree-")
@@ -129,8 +115,7 @@ def collect_atoms(objdir):
         with open(path) as f:
             content = f.read()
             for result in source.PATTERN.finditer(content):
-                ty = result.group(4) or source.TYPE
-                atoms.append(Atom(source, result.group(1), result.group(2), result.group(3), ty))
+                atoms.append(Atom(source, result.group(1), result.group(2), result.group(3), result.group(4)))
     return atoms
 
 
