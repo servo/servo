@@ -125,6 +125,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                         item.image_rendering,
                         webrender_api::AlphaType::PremultipliedAlpha,
                         item.id,
+                        webrender_api::ColorF::WHITE,
                     );
                 }
             },
