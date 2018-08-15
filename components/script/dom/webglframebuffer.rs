@@ -127,6 +127,12 @@ impl WebGLFramebuffer {
         let has_s = s.is_some();
         let has_zs = zs.is_some();
         let attachments = [&*c, &*z, &*s, &*zs];
+        let attachment_constraints = [
+            &[constants::RGBA4, constants::RGB5_A1, constants::RGB565][..],
+            &[constants::DEPTH_COMPONENT16][..],
+            &[constants::STENCIL_INDEX8][..],
+            &[constants::DEPTH_STENCIL][..],
+        ];
 
         // From the WebGL spec, 6.6 ("Framebuffer Object Attachments"):
         //
@@ -148,17 +154,18 @@ impl WebGLFramebuffer {
         }
 
         let mut fb_size = None;
-        for attachment in &attachments {
+        for (attachment, constraints) in attachments.iter().zip(&attachment_constraints) {
             // Get the size of this attachment.
-            let size = match **attachment {
+            let (format, size) = match **attachment {
                 Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb)) => {
-                    att_rb.size()
+                    (Some(att_rb.internal_format()), att_rb.size())
                 }
                 Some(WebGLFramebufferAttachment::Texture { texture: ref att_tex, level } ) => {
                     let info = att_tex.image_info_at_face(0, level as u32);
-                    Some((info.width() as i32, info.height() as i32))
+                    (info.data_type().map(|t| t.as_gl_constant()),
+                     Some((info.width() as i32, info.height() as i32)))
                 }
-                None => None,
+                None => (None, None),
             };
 
             // Make sure that, if we've found any other attachment,
@@ -169,6 +176,13 @@ impl WebGLFramebuffer {
                     return;
                 } else {
                     fb_size = size;
+                }
+            }
+
+            if let Some(format) = format {
+                if constraints.iter().all(|c| *c != format) {
+                    self.status.set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+                    return;
                 }
             }
         }
