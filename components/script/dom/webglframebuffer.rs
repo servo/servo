@@ -128,7 +128,7 @@ impl WebGLFramebuffer {
         let has_zs = zs.is_some();
         let attachments = [&*c, &*z, &*s, &*zs];
         let attachment_constraints = [
-            &[constants::RGBA4, constants::RGB5_A1, constants::RGB565][..],
+            &[constants::RGBA4, constants::RGB5_A1, constants::RGB565, constants::RGBA][..],
             &[constants::DEPTH_COMPONENT16][..],
             &[constants::STENCIL_INDEX8][..],
             &[constants::DEPTH_STENCIL][..],
@@ -162,7 +162,7 @@ impl WebGLFramebuffer {
                 }
                 Some(WebGLFramebufferAttachment::Texture { texture: ref att_tex, level } ) => {
                     let info = att_tex.image_info_at_face(0, level as u32);
-                    (info.data_type().map(|t| t.as_gl_constant()),
+                    (info.internal_format().map(|t| t.as_gl_constant()),
                      Some((info.width() as i32, info.height() as i32)))
                 }
                 None => (None, None),
