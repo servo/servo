@@ -17,6 +17,7 @@ public class Servo {
     private AssetManager mAssetMgr;
     private JNIServo mJNI = new JNIServo();
     private RunCallback mRunCallback;
+    private boolean mSuspended;
 
     public Servo(
             RunCallback runCallback,
@@ -47,6 +48,10 @@ public class Servo {
 
     public void resize(int width, int height) {
         mRunCallback.inGLThread(() -> mJNI.resize(width, height));
+    }
+
+    public void refresh() {
+        mRunCallback.inGLThread(() -> mJNI.refresh());
     }
 
     public void reload() {
@@ -83,6 +88,10 @@ public class Servo {
 
     public void click(int x, int y) {
         mRunCallback.inGLThread(() -> mJNI.click(x, y));
+    }
+
+    public void suspend(boolean suspended) {
+        mSuspended = suspended;
     }
 
     public interface Client {
@@ -122,7 +131,9 @@ public class Servo {
         }
 
         public void wakeup() {
-            mRunCallback.inGLThread(() -> mJNI.performUpdates());
+            if (!mSuspended) {
+                mRunCallback.inGLThread(() -> mJNI.performUpdates());
+            }
         }
 
         public void flush() {

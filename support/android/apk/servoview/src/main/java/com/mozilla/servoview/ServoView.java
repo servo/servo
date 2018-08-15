@@ -54,6 +54,7 @@ public class ServoView extends GLSurfaceView
         setWillNotCacheDrawing(false);
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 24, 0);
+        setPreserveEGLContextOnPause(true);
         ServoGLRenderer mRenderer = new ServoGLRenderer(this);
         setRenderer(mRenderer);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
@@ -80,9 +81,10 @@ public class ServoView extends GLSurfaceView
         mServo.stop();
     }
 
-    public void onSurfaceResized(int width, int height) {
+    public void onSurfaceInvalidated(int width, int height) {
         if (mServo != null) {
             mServo.resize(width, height);
+            mServo.refresh();
         }
     }
 
@@ -143,7 +145,7 @@ public class ServoView extends GLSurfaceView
 
         if (mScroller.isFinished() && mFlinging) {
             mFlinging = false;
-            queueEvent(() -> mServo.scrollEnd(0, 0, mCurX, mCurY));
+            inGLThread(() -> mServo.scrollEnd(0, 0, mCurX, mCurY));
             if (!mAnimating) {
                 // Not scrolling. Not animating. We don't need to schedule
                 // another frame.
@@ -164,7 +166,7 @@ public class ServoView extends GLSurfaceView
         mLastY = mCurY;
 
         if (dx != 0 || dy != 0) {
-            queueEvent(() -> mServo.scroll(dx, dy, mCurX, mCurY));
+            inGLThread(() -> mServo.scroll(dx, dy, mCurX, mCurY));
         } else {
             if (mAnimating) {
                 requestRender();
@@ -205,7 +207,7 @@ public class ServoView extends GLSurfaceView
                 mCurY = (int) e.getY();
                 mLastY = mCurY;
                 mScroller.forceFinished(true);
-                queueEvent(() -> mServo.scrollStart(0, 0, mCurX, mCurY));
+                inGLThread(() -> mServo.scrollStart(0, 0, mCurX, mCurY));
                 Choreographer.getInstance().postFrameCallback(this);
                 return true;
             case (MotionEvent.ACTION_MOVE):
@@ -215,7 +217,7 @@ public class ServoView extends GLSurfaceView
             case (MotionEvent.ACTION_UP):
             case (MotionEvent.ACTION_CANCEL):
                 if (!mFlinging) {
-                    queueEvent(() -> mServo.scrollEnd(0, 0, mCurX, mCurY));
+                    inGLThread(() -> mServo.scrollEnd(0, 0, mCurX, mCurY));
                     Choreographer.getInstance().removeFrameCallback(this);
                 }
                 return true;
@@ -225,7 +227,7 @@ public class ServoView extends GLSurfaceView
     }
 
     public boolean onSingleTapUp(MotionEvent e) {
-        queueEvent(() -> mServo.click((int) e.getX(), (int) e.getY()));
+        inGLThread(() -> mServo.click((int) e.getX(), (int) e.getY()));
         return false;
     }
 
@@ -237,6 +239,22 @@ public class ServoView extends GLSurfaceView
     }
 
     public void onShowPress(MotionEvent e) {
+    }
+
+    @Override
+    public void onPause() {
+      super.onPause();
+      if (mServo != null) {
+        mServo.suspend(true);
+      }
+    }
+
+    @Override
+    public void onResume() {
+      super.onResume();
+      if (mServo != null) {
+        mServo.suspend(false);
+      }
     }
 
     static class ServoGLRenderer implements Renderer {
@@ -254,9 +272,9 @@ public class ServoView extends GLSurfaceView
         public void onDrawFrame(GL10 unused) {
         }
 
-        public void onSurfaceChanged(GL10 unused, int width, int height) {
+        public void onSurfaceChanged(GL10 gl, int width, int height) {
             GLES31.glViewport(0, 0, width, height);
-            mView.onSurfaceResized(width, height);
+            mView.onSurfaceInvalidated(width, height);
         }
     }
 }

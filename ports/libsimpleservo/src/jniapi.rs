@@ -150,6 +150,12 @@ pub fn Java_com_mozilla_servoview_JNIServo_stop(env: JNIEnv, _class: JClass) {
 }
 
 #[no_mangle]
+pub fn Java_com_mozilla_servoview_JNIServo_refresh(env: JNIEnv, _class: JClass) {
+    debug!("refresh");
+    call(env, |s| s.refresh());
+}
+
+#[no_mangle]
 pub fn Java_com_mozilla_servoview_JNIServo_goBack(env: JNIEnv, _class: JClass) {
     debug!("goBack");
     call(env, |s| s.go_back());

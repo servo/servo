@@ -208,6 +208,12 @@ impl ServoGlue {
         self.process_event(event)
     }
 
+    /// Redraw the page.
+    pub fn refresh(&mut self) -> Result<(), &'static str> {
+        info!("refresh");
+        self.process_event(WindowEvent::Refresh)
+    }
+
     /// Stop loading the page.
     pub fn stop(&mut self) -> Result<(), &'static str> {
         warn!("TODO can't stop won't stop");

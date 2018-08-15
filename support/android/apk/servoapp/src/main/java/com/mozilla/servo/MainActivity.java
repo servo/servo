@@ -151,4 +151,15 @@ public class MainActivity extends Activity implements Servo.Client {
         mFwdButton.setEnabled(canGoForward);
     }
 
+    @Override
+    public void onPause() {
+        mServoView.onPause();
+        super.onPause();
+    }
+    @Override
+    public void onResume() {
+        mServoView.onResume();
+        super.onResume();
+    }
+
 }
