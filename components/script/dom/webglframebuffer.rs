@@ -203,6 +203,16 @@ impl WebGLFramebuffer {
         return self.status.get();
     }
 
+    pub fn check_status_for_rendering(&self) -> u32 {
+        let result = self.check_status();
+        if result == constants::FRAMEBUFFER_COMPLETE {
+            if self.color.borrow().is_none() {
+                return constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            }
+        }
+        result
+    }
+
     pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
         let binding = match attachment {
             constants::COLOR_ATTACHMENT0 => &self.color,

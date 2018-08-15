@@ -339,7 +339,7 @@ impl WebGLRenderingContext {
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
     fn validate_framebuffer(&self) -> WebGLResult<()> {
         match self.bound_framebuffer.get() {
-            Some(ref fb) if fb.check_status() != constants::FRAMEBUFFER_COMPLETE => {
+            Some(ref fb) if fb.check_status_for_rendering() != constants::FRAMEBUFFER_COMPLETE => {
                 Err(InvalidFramebufferOperation)
             },
             _ => Ok(()),
