@@ -670,10 +670,11 @@ pub mod basic_shape {
     use values::computed::position;
     use values::computed::url::ComputedUrl;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
-    use values::generics::basic_shape::{Circle, Ellipse, FillRule, PolygonCoord};
+    use values::generics::basic_shape::{Circle, Ellipse, FillRule, Path, PolygonCoord};
     use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
     use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
+    use values::specified::SVGPathData;
 
     impl StyleShapeSource {
         /// Convert StyleShapeSource to ShapeSource except URL and Image
@@ -698,7 +699,34 @@ pub mod basic_shape {
                     Some(ShapeSource::Shape(shape, reference_box))
                 },
                 StyleShapeSourceType::URL | StyleShapeSourceType::Image => None,
-                StyleShapeSourceType::Path => None,
+                StyleShapeSourceType::Path => {
+                    let path = self.to_svg_path().expect("expect an SVGPathData");
+                    let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
+                    let fill = if gecko_path.mFillRule == StyleFillRule::Evenodd {
+                        FillRule::Evenodd
+                    } else {
+                        FillRule::Nonzero
+                    };
+                    Some(ShapeSource::Path(Path { fill, path }))
+                },
+            }
+        }
+
+        /// Generate a SVGPathData from StyleShapeSource if possible.
+        fn to_svg_path(&self) -> Option<SVGPathData> {
+            use gecko_bindings::structs::StylePathCommand;
+            use values::specified::svg_path::PathCommand;
+            match self.mType {
+                StyleShapeSourceType::Path => {
+                    let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
+                    let result: Vec<PathCommand> =
+                        gecko_path.mPath.iter().map(|gecko: &StylePathCommand| {
+                            // unsafe: cbindgen ensures the representation is the same.
+                            unsafe{ ::std::mem::transmute(*gecko) }
+                        }).collect();
+                    Some(SVGPathData::new(result.into_boxed_slice()))
+                },
+                _ => None,
             }
         }
     }
@@ -742,17 +770,9 @@ pub mod basic_shape {
 
     impl<'a> From<&'a StyleShapeSource> for OffsetPath {
         fn from(other: &'a StyleShapeSource) -> Self {
-            use gecko_bindings::structs::StylePathCommand;
-            use values::specified::svg_path::{SVGPathData, PathCommand};
             match other.mType {
                 StyleShapeSourceType::Path => {
-                    let gecko_path = unsafe { &*other.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
-                    let result: Vec<PathCommand> =
-                        gecko_path.mPath.iter().map(|gecko: &StylePathCommand| {
-                            // unsafe: cbindgen ensures the representation is the same.
-                            unsafe{ ::std::mem::transmute(*gecko) }
-                        }).collect();
-                    OffsetPath::Path(SVGPathData::new(result.into_boxed_slice()))
+                    OffsetPath::Path(other.to_svg_path().expect("Cannot convert to SVGPathData"))
                 },
                 StyleShapeSourceType::None => OffsetPath::none(),
                 StyleShapeSourceType::Shape |

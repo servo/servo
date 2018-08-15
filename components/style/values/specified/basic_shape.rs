@@ -14,9 +14,11 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::Percentage;
 use values::generics::basic_shape as generic;
-use values::generics::basic_shape::{FillRule, GeometryBox, PolygonCoord, ShapeBox, ShapeSource};
+use values::generics::basic_shape::{FillRule, GeometryBox, Path, PolygonCoord};
+use values::generics::basic_shape::{ShapeBox, ShapeSource};
 use values::generics::rect::Rect;
 use values::specified::LengthOrPercentage;
+use values::specified::SVGPathData;
 use values::specified::border::BorderRadius;
 use values::specified::image::Image;
 use values::specified::position::{HorizontalPosition, Position, PositionComponent};
@@ -47,12 +49,42 @@ pub type ShapeRadius = generic::ShapeRadius<LengthOrPercentage>;
 /// The specified value of `Polygon`
 pub type Polygon = generic::Polygon<LengthOrPercentage>;
 
-impl<ReferenceBox, ImageOrUrl> Parse for ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
+impl Parse for ClippingShape {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        // |clip-path:path()| is a chrome-only property value support for now. `path()` is
+        // defined in css-shape-2, but the spec is not stable enough, and we haven't decided
+        // to make it public yet. However, it has some benefits for the front-end, so we
+        // implement it.
+        if context.chrome_rules_enabled() {
+            if let Ok(p) = input.try(|i| Path::parse(context, i)) {
+                return Ok(ShapeSource::Path(p));
+            }
+        }
+        Self::parse_internal(context, input)
+    }
+}
+
+impl Parse for FloatAreaShape {
+    #[inline]
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Self::parse_internal(context, input)
+    }
+}
+
+impl<ReferenceBox, ImageOrUrl> ShapeSource<BasicShape, ReferenceBox, ImageOrUrl>
 where
     ReferenceBox: Parse,
     ImageOrUrl: Parse,
 {
-    fn parse<'i, 't>(
+    /// The internal parser for ShapeSource.
+    fn parse_internal<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
@@ -391,5 +423,31 @@ impl Polygon {
             fill: fill,
             coordinates: buf,
         })
+    }
+}
+
+impl Parse for Path {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        input.expect_function_matching("path")?;
+        input.parse_nested_block(|i| Self::parse_function_arguments(context, i))
+    }
+}
+
+impl Path {
+    /// Parse the inner arguments of a `path` function.
+    fn parse_function_arguments<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        let fill = input.try(|i| -> Result<_, ParseError> {
+            let fill = FillRule::parse(i)?;
+            i.expect_comma()?;
+            Ok(fill)
+        }).unwrap_or_default();
+        let path = SVGPathData::parse(context, input)?;
+        Ok(Path { fill, path })
     }
 }

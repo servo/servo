@@ -12,6 +12,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::border::BorderRadius;
 use values::generics::position::Position;
 use values::generics::rect::Rect;
+use values::specified::SVGPathData;
 
 /// A clipping shape, for `clip-path`.
 pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, Url>;
@@ -53,6 +54,9 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     Shape(BasicShape, Option<ReferenceBox>),
     #[animation(error)]
     Box(ReferenceBox),
+    #[animation(error)]
+    #[css(function)]
+    Path(Path),
     #[animation(error)]
     None,
 }
@@ -142,6 +146,19 @@ pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOr
 pub enum FillRule {
     Nonzero,
     Evenodd,
+}
+
+/// The path function defined in css-shape-2.
+///
+/// https://drafts.csswg.org/css-shapes-2/#funcdef-path
+#[css(comma)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+pub struct Path {
+    /// The filling rule for the svg path.
+    #[css(skip_if = "fill_is_default")]
+    pub fill: FillRule,
+    /// The svg path data.
+    pub path: SVGPathData,
 }
 
 // FIXME(nox): Implement ComputeSquaredDistance for T types and stop
