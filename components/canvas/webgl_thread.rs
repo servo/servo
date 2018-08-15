@@ -693,12 +693,31 @@ impl WebGLImpl {
                 ctx.gl().disable(cap),
             WebGLCommand::Enable(cap) =>
                 ctx.gl().enable(cap),
-            WebGLCommand::FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb) =>
-                ctx.gl().framebuffer_renderbuffer(target, attachment, renderbuffertarget,
-                                                  rb.map_or(0, WebGLRenderbufferId::get)),
-            WebGLCommand::FramebufferTexture2D(target, attachment, textarget, texture, level) =>
-                ctx.gl().framebuffer_texture_2d(target, attachment, textarget,
-                                                texture.map_or(0, WebGLTextureId::get), level),
+            WebGLCommand::FramebufferRenderbuffer(target, attachment, renderbuffertarget, rb) => {
+                let attach = |attachment| {
+                    ctx.gl().framebuffer_renderbuffer(target, attachment,
+                                                      renderbuffertarget,
+                                                      rb.map_or(0, WebGLRenderbufferId::get))
+                };
+                if attachment == gl::DEPTH_STENCIL_ATTACHMENT {
+                    attach(gl::DEPTH_ATTACHMENT);
+                    attach(gl::STENCIL_ATTACHMENT);
+                } else {
+                    attach(attachment);
+                }
+            }
+            WebGLCommand::FramebufferTexture2D(target, attachment, textarget, texture, level) => {
+                let attach = |attachment| {
+                    ctx.gl().framebuffer_texture_2d(target, attachment, textarget,
+                                                    texture.map_or(0, WebGLTextureId::get), level)
+                };
+                if attachment == gl::DEPTH_STENCIL_ATTACHMENT {
+                    attach(gl::DEPTH_ATTACHMENT);
+                    attach(gl::STENCIL_ATTACHMENT);
+                } else {
+                    attach(attachment)
+                }
+            }
             WebGLCommand::FrontFace(mode) =>
                 ctx.gl().front_face(mode),
             WebGLCommand::DisableVertexAttribArray(attrib_id) =>
