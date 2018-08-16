@@ -168,10 +168,12 @@ pip install virtualenv
 ```
  If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
-3. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
+3. Install the most recent [GStreamer](https://gstreamer.freedesktop.org/data/pkg/windows/) development package.
+
+4. Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
 settings for the installer are fine).
 
-4. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
+5. Install Visual Studio Community 2017 (https://www.visualstudio.com/vs/community/). You MUST add "Visual C++" to the
 list of installed components. It is not on by default. Visual Studio 2017 MUST installed to the default location or mach.bat will not find it.
 > If you encountered errors with the environment above, do the following for a workaround:
 > 1.  Download and install [Build Tools for Visual Studio 2017](https://www.visualstudio.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15)
