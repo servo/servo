@@ -18,8 +18,6 @@ tasks:
       payload:
         maxRunTime: 600
         image: "node:8"
-        env:
-          DEBUG: "* -mocha* -nock* -express* -body-parser* -eslint*"
         features:
           taskclusterProxy: true
         command:
