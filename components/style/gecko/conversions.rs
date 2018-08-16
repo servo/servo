@@ -743,7 +743,7 @@ pub mod basic_shape {
     impl<'a> From<&'a StyleShapeSource> for OffsetPath {
         fn from(other: &'a StyleShapeSource) -> Self {
             use gecko_bindings::structs::StylePathCommand;
-            use values::specified::motion::{SVGPathData, PathCommand};
+            use values::specified::svg_path::{SVGPathData, PathCommand};
             match other.mType {
                 StyleShapeSourceType::Path => {
                     let gecko_path = unsafe { &*other.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
