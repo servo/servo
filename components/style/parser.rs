@@ -9,6 +9,7 @@ use cssparser::{Parser, SourceLocation, UnicodeRange};
 use error_reporting::{ContextualParseError, ParseErrorReporter};
 use style_traits::{OneOrMoreSeparated, ParseError, ParsingMode, Separator};
 use stylesheets::{CssRuleType, Namespaces, Origin, UrlExtraData};
+use use_counters::UseCounters;
 
 /// Asserts that all ParsingMode flags have a matching ParsingMode value in gecko.
 #[cfg(feature = "gecko")]
@@ -53,6 +54,8 @@ pub struct ParserContext<'a> {
     error_reporter: Option<&'a ParseErrorReporter>,
     /// The currently active namespaces.
     pub namespaces: Option<&'a Namespaces>,
+    /// The use counters we want to record while parsing style rules, if any.
+    pub use_counters: Option<&'a UseCounters>,
 }
 
 impl<'a> ParserContext<'a> {
@@ -66,7 +69,7 @@ impl<'a> ParserContext<'a> {
         quirks_mode: QuirksMode,
         error_reporter: Option<&'a ParseErrorReporter>,
     ) -> Self {
-        ParserContext {
+        Self {
             stylesheet_origin,
             url_data,
             rule_type,
@@ -74,6 +77,7 @@ impl<'a> ParserContext<'a> {
             quirks_mode,
             error_reporter,
             namespaces: None,
+            use_counters: None,
         }
     }
 
@@ -96,14 +100,15 @@ impl<'a> ParserContext<'a> {
         )
     }
 
-    /// Create a parser context based on a previous context, but with a modified rule type.
+    /// Create a parser context based on a previous context, but with a modified
+    /// rule type.
     #[inline]
     pub fn new_with_rule_type(
         context: &'a ParserContext,
         rule_type: CssRuleType,
         namespaces: &'a Namespaces,
     ) -> ParserContext<'a> {
-        ParserContext {
+        Self {
             stylesheet_origin: context.stylesheet_origin,
             url_data: context.url_data,
             rule_type: Some(rule_type),
@@ -111,6 +116,7 @@ impl<'a> ParserContext<'a> {
             quirks_mode: context.quirks_mode,
             namespaces: Some(namespaces),
             error_reporter: context.error_reporter,
+            use_counters: context.use_counters,
         }
     }
 
