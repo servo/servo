@@ -1,0 +1,36 @@
+version: 1
+policy:
+  # https://docs.taskcluster.net/docs/reference/integrations/taskcluster-github/docs/taskcluster-yml-v1#pull-requests
+  pullRequests: collaborators
+tasks:
+  - $if: 'tasks_for == "github-push"'
+    provisionerId: aws-provisioner-v1
+    workerType: github-worker
+    created: {$fromNow: ''}
+    deadline: {$fromNow: '1 hour'}
+    metadata:
+      name: "Taskcluster experiments for Servo"
+      description: "Initial task"
+      owner: ${event.pull_request.user.login}@users.noreply.github.com
+      source: ${event.compare}
+
+    routes:
+      - "index.servo.taskcluster-experiments"
+
+    payload:
+      maxRunTime: 600
+      image: "node:8"
+      env:
+        DEBUG: "* -mocha* -nock* -express* -body-parser* -eslint*"
+      features:
+        taskclusterProxy: true
+      command:
+        - /bin/bash
+        - '--login'
+        - '-c'
+        - >-
+          git clone ${event.pull_request.head.repo.clone_url} repo &&
+          cd repo &&
+          git checkout ${event.push.after} &&
+          echo "Hello World!" &&
+          ls
