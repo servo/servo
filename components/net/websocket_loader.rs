@@ -109,14 +109,14 @@ impl<'a> Handler for Client<'a> {
 
     fn on_response(&mut self, res: &WsResponse) -> WebSocketResult<()> {
         let protocol_in_use = res.protocol()?;
+
         if let Some(protocol_name) = protocol_in_use {
-            let protocol_name = protocol_name.to_lowercase();
-            if !self.protocols.is_empty() && !self.protocols.iter().any(|p| protocol_name == (*p).to_lowercase()) {
+            if !self.protocols.is_empty() && !self.protocols.iter().any(|p| protocol_name == (*p)) {
                 let error = WebSocketError::new(WebSocketErrorKind::Protocol,
                                                 "Protocol in Use not in client-supplied protocol list");
                 return Err(error);
             }
-            self.protocol_in_use = Some(protocol_name);
+            self.protocol_in_use = Some(protocol_name.into());
         }
         Ok(())
     }
