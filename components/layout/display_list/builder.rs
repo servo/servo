@@ -385,6 +385,13 @@ impl<'a> DisplayListBuildState<'a> {
         items.push(display_item);
     }
 
+    fn add_image_item(&mut self, base: BaseDisplayItem, item: webrender_api::ImageDisplayItem) {
+        if item.stretch_size == LayoutSize::zero() {
+            return;
+        }
+        self.add_display_item(DisplayItem::Image(CommonDisplayItem::new(base, item)))
+    }
+
     fn parent_clip_scroll_node_index(&self, index: ClipScrollNodeIndex) -> ClipScrollNodeIndex {
         if index.is_root_scroll_node() {
             return index;
@@ -1052,7 +1059,7 @@ impl FragmentDisplayListBuilding for Fragment {
             );
 
             debug!("(building display list) adding background image.");
-            state.add_display_item(DisplayItem::Image(CommonDisplayItem::new(
+            state.add_image_item(
                 base,
                 webrender_api::ImageDisplayItem {
                     image_key: webrender_image.key.unwrap(),
@@ -1061,7 +1068,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     image_rendering: style.get_inherited_box().image_rendering.to_layout(),
                     alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                 },
-            )));
+            );
         });
     }
 
@@ -1922,7 +1929,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if let Some(ref image) = image_fragment.image {
                     if let Some(id) = image.id {
                         let base = create_base_display_item(state);
-                        state.add_display_item(DisplayItem::Image(CommonDisplayItem::new(
+                        state.add_image_item(
                             base,
                             webrender_api::ImageDisplayItem {
                                 image_key: id,
@@ -1935,7 +1942,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                     .to_layout(),
                                 alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
                             },
-                        )));
+                        );
                     }
                 }
             },
@@ -1959,18 +1966,15 @@ impl FragmentDisplayListBuilding for Fragment {
                 };
 
                 let base = create_base_display_item(state);
-                let display_item = DisplayItem::Image(CommonDisplayItem::new(
-                    base,
-                    webrender_api::ImageDisplayItem {
-                        image_key,
-                        stretch_size: stacking_relative_content_box.size.to_layout(),
-                        tile_spacing: LayoutSize::zero(),
-                        image_rendering: ImageRendering::Auto,
-                        alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
-                    },
-                ));
+                let display_item = webrender_api::ImageDisplayItem {
+                    image_key,
+                    stretch_size: stacking_relative_content_box.size.to_layout(),
+                    tile_spacing: LayoutSize::zero(),
+                    image_rendering: ImageRendering::Auto,
+                    alpha_type: webrender_api::AlphaType::PremultipliedAlpha,
+                };
 
-                state.add_display_item(display_item);
+                state.add_image_item(base, display_item);
             },
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Shouldn't see unscanned fragments here.")
