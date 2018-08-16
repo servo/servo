@@ -78,6 +78,7 @@ linux-rel-intermittent:
   - ./etc/ci/clean_build_artifacts.sh
   - ./mach build --release -p servo
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
+  - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-nogate:
   - ./mach clean-nightlies --keep 3 --force
@@ -86,6 +87,7 @@ linux-rel-nogate:
   - ./mach build --release -p servo
   - python ./etc/ci/chaos_monkey_test.py
   - env RUSTFLAGS= bash ./etc/ci/mutation_test.sh
+  - ./etc/ci/clean_build_artifacts.sh
 
 mac-rel-intermittent:
   - ./mach clean-nightlies --keep 3 --force
@@ -125,6 +127,7 @@ linux-rel-wpt:
     - ./mach test-wpt --release --processes 24 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
     - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --tracker-api default --reporter-api default
     - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+    - ./etc/ci/clean_build_artifacts.sh
 
 linux-rel-css:
   env:
@@ -151,6 +154,7 @@ linux-nightly:
   - python3 ./etc/ci/performance/download_buildbot_timings.py --verbose
   - aws s3 sync --size-only --acl public-read ./etc/ci/performance/output s3://servo-perf
   - rm -rf ./python/_virtualenv
+  - ./etc/ci/clean_build_artifacts.sh
 
 android:
   - ./mach clean-nightlies --keep 3 --force
