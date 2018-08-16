@@ -9,7 +9,7 @@ use api::{self, EventLoopWaker, ServoGlue, SERVO, HostTrait, ReadFileTrait};
 use gl_glue;
 use jni::{JNIEnv, JavaVM};
 use jni::objects::{GlobalRef, JClass, JObject, JString, JValue};
-use jni::sys::{jboolean, jint, jstring, JNI_TRUE};
+use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use log::Level;
 use std;
 use std::os::raw::c_void;
@@ -206,6 +206,43 @@ pub fn Java_com_mozilla_servoview_JNIServo_scroll(
     debug!("scroll");
     call(env, |s| s.scroll(dx as i32, dy as i32, x as u32, y as u32));
 }
+
+#[no_mangle]
+pub fn Java_com_mozilla_servoview_JNIServo_pinchZoomStart(
+    env: JNIEnv,
+    _: JClass,
+    factor: jfloat,
+    x: jint,
+    y: jint,
+) {
+    debug!("pinchZoomStart");
+    call(env, |s| s.pinchzoom_start(factor as f32, x as u32, y as u32));
+}
+
+#[no_mangle]
+pub fn Java_com_mozilla_servoview_JNIServo_pinchZoom(
+    env: JNIEnv,
+    _: JClass,
+    factor: jfloat,
+    x: jint,
+    y: jint,
+) {
+    debug!("pinchZoom");
+    call(env, |s| s.pinchzoom(factor as f32, x as u32, y as u32));
+}
+
+#[no_mangle]
+pub fn Java_com_mozilla_servoview_JNIServo_pinchZoomEnd(
+    env: JNIEnv,
+    _: JClass,
+    factor: jfloat,
+    x: jint,
+    y: jint,
+) {
+    debug!("pinchZoomEnd");
+    call(env, |s| s.pinchzoom_end(factor as f32, x as u32, y as u32));
+}
+
 
 #[no_mangle]
 pub fn Java_com_mozilla_servoview_JNIServo_click(env: JNIEnv, _: JClass, x: jint, y: jint) {

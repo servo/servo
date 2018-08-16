@@ -286,6 +286,24 @@ impl ServoGlue {
         self.process_event(event)
     }
 
+    /// Start pinchzoom.
+    /// x/y are pinch origin coordinates.
+    pub fn pinchzoom_start(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
+        self.process_event(WindowEvent::PinchZoom(factor))
+    }
+
+    /// Pinchzoom.
+    /// x/y are pinch origin coordinates.
+    pub fn pinchzoom(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
+        self.process_event(WindowEvent::PinchZoom(factor))
+    }
+
+    /// End pinchzoom.
+    /// x/y are pinch origin coordinates.
+    pub fn pinchzoom_end(&mut self, factor: f32, _x: u32, _y: u32) -> Result<(), &'static str> {
+        self.process_event(WindowEvent::PinchZoom(factor))
+    }
+
     /// Perform a click.
     pub fn click(&mut self, x: u32, y: u32) -> Result<(), &'static str> {
         let mouse_event =
