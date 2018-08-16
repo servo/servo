@@ -8,7 +8,7 @@ use hyper::error::{Result as HyperResult, Error as HyperError};
 use hyper::net::{NetworkConnector, HttpsStream, HttpStream, SslClient};
 use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3};
-use openssl::ssl::{SslConnectorBuilder, SslMethod};
+use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod};
 use openssl::x509;
 use std::io;
 use std::net::TcpStream;
@@ -50,7 +50,7 @@ impl NetworkConnector for HttpsConnector {
 
 pub type Connector = HttpsConnector;
 
-pub fn create_ssl_client(certs: &str) -> OpensslClient {
+pub fn create_ssl_connector(certs: &str) -> SslConnector {
     // certs include multiple certificates. We could add all of them at once,
     // but if any of them were already added, openssl would fail to insert all
     // of them.
@@ -79,7 +79,11 @@ pub fn create_ssl_client(certs: &str) -> OpensslClient {
     }
     ssl_connector_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
     ssl_connector_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
-    let ssl_connector = ssl_connector_builder.build();
+    ssl_connector_builder.build()
+}
+
+pub fn create_ssl_client(certs: &str) -> OpensslClient {
+    let ssl_connector = create_ssl_connector(certs);
     OpensslClient::from(ssl_connector)
 }
 
