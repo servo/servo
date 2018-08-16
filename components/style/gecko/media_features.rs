@@ -51,6 +51,7 @@ fn device_size(device: &Device) -> Size2D<Au> {
     Size2D::new(Au(width), Au(height))
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#width
 fn eval_width(
     device: &Device,
     value: Option<CSSPixelLength>,
@@ -63,6 +64,7 @@ fn eval_width(
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#device-width
 fn eval_device_width(
     device: &Device,
     value: Option<CSSPixelLength>,
@@ -75,6 +77,7 @@ fn eval_device_width(
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#height
 fn eval_height(
     device: &Device,
     value: Option<CSSPixelLength>,
@@ -87,6 +90,7 @@ fn eval_height(
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#device-height
 fn eval_device_height(
     device: &Device,
     value: Option<CSSPixelLength>,
@@ -121,6 +125,7 @@ where
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#aspect-ratio
 fn eval_aspect_ratio(
     device: &Device,
     query_value: Option<AspectRatio>,
@@ -129,6 +134,7 @@ fn eval_aspect_ratio(
     eval_aspect_ratio_for(device, query_value, range_or_operator, viewport_size)
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#device-aspect-ratio
 fn eval_device_aspect_ratio(
     device: &Device,
     query_value: Option<AspectRatio>,
@@ -137,6 +143,11 @@ fn eval_device_aspect_ratio(
     eval_aspect_ratio_for(device, query_value, range_or_operator, device_size)
 }
 
+/// https://compat.spec.whatwg.org/#css-media-queries-webkit-device-pixel-ratio
+///
+/// FIXME(emilio): This should be an alias of `resolution`, according to the
+/// spec, and also according to the code in Chromium. Unify with
+/// `eval_resolution`.
 fn eval_device_pixel_ratio(
     device: &Device,
     query_value: Option<f32>,
@@ -183,6 +194,7 @@ where
     }
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#orientation
 fn eval_orientation(
     device: &Device,
     value: Option<Orientation>,
@@ -190,6 +202,7 @@ fn eval_orientation(
     eval_orientation_for(device, value, viewport_size)
 }
 
+/// FIXME: There's no spec for `-moz-device-orientation`.
 fn eval_device_orientation(
     device: &Device,
     value: Option<Orientation>,
@@ -208,6 +221,7 @@ pub enum DisplayMode {
   Fullscreen,
 }
 
+/// https://w3c.github.io/manifest/#the-display-mode-media-feature
 fn eval_display_mode(
     device: &Device,
     query_value: Option<DisplayMode>,
@@ -225,6 +239,7 @@ fn eval_display_mode(
     gecko_display_mode as u8 == query_value as u8
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#grid
 fn eval_grid(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
     // Gecko doesn't support grid devices (e.g., ttys), so the 'grid' feature
     // is always 0.
@@ -232,6 +247,7 @@ fn eval_grid(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) 
     query_value.map_or(supports_grid, |v| v == supports_grid)
 }
 
+/// https://compat.spec.whatwg.org/#css-media-queries-webkit-transform-3d
 fn eval_transform_3d(
     _: &Device,
     query_value: Option<bool>,
@@ -248,12 +264,14 @@ enum Scan {
     Interlace,
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#scan
 fn eval_scan(_: &Device, _: Option<Scan>) -> bool {
     // Since Gecko doesn't support the 'tv' media type, the 'scan' feature never
     // matches.
     false
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#color
 fn eval_color(
     device: &Device,
     query_value: Option<u32>,
@@ -268,13 +286,13 @@ fn eval_color(
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#color-index
 fn eval_color_index(
     _: &Device,
     query_value: Option<u32>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
-    // We should return zero if the device does not use a color lookup
-    // table.
+    // We should return zero if the device does not use a color lookup table.
     let index = 0;
     RangeOrOperator::evaluate(
         range_or_operator,
@@ -283,6 +301,7 @@ fn eval_color_index(
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#monochrome
 fn eval_monochrome(
     _: &Device,
     query_value: Option<u32>,
@@ -298,6 +317,7 @@ fn eval_monochrome(
     )
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#resolution
 fn eval_resolution(
     device: &Device,
     query_value: Option<Resolution>,
@@ -319,6 +339,7 @@ enum PrefersReducedMotion {
     Reduce,
 }
 
+/// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
 fn eval_prefers_reduced_motion(
     device: &Device,
     query_value: Option<PrefersReducedMotion>,
