@@ -29,4 +29,5 @@ tasks:
             cd repo &&
             git checkout ${event.after} &&
             echo "Hello World!" &&
-            ls
+            sleep 120 &&
+            ls -a
