@@ -2113,6 +2113,7 @@ impl Window {
                 this.upcast(),
                 this.upcast(),
                 message_clone.handle(),
+                None
             );
         });
         // FIXME(nox): Why are errors silenced here?

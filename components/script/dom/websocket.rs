@@ -33,7 +33,7 @@ use net_traits::request::{RequestInit, RequestMode};
 use profile_traits::ipc as ProfiledIpc;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::WebSocketEvent;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
@@ -273,6 +273,10 @@ impl WebSocket {
         }
 
         Ok(true)
+    }
+
+    pub fn origin(&self) -> ImmutableOrigin {
+        self.url.origin()
     }
 }
 
@@ -549,7 +553,12 @@ impl TaskOnce for MessageReceivedTask {
                     }
                 },
             }
-            MessageEvent::dispatch_jsval(ws.upcast(), &global, message.handle());
+            MessageEvent::dispatch_jsval(
+                ws.upcast(),
+                &global,
+                message.handle(),
+                Some(&ws.origin().ascii_serialization())
+            );
         }
     }
 }
