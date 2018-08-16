@@ -12,7 +12,7 @@ tasks:
       metadata:
         name: "Taskcluster experiments for Servo"
         description: "Initial task"
-        owner: ${event.pull_request.user.login}@users.noreply.github.com
+        owner: ${event.push.pusher.email}
         source: ${event.compare}
 
       routes:
@@ -30,7 +30,7 @@ tasks:
           - '--login'
           - '-c'
           - >-
-            git clone ${event.pull_request.head.repo.clone_url} repo &&
+            git clone ${event.push.repository.clone_url} repo &&
             cd repo &&
             git checkout ${event.push.after} &&
             echo "Hello World!" &&
