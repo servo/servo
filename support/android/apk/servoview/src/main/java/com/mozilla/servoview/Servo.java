@@ -86,6 +86,18 @@ public class Servo {
         mRunCallback.inGLThread(() -> mJNI.scrollEnd(dx, dy, x, y));
     }
 
+    public void pinchZoomStart(float factor, int x, int y) {
+        mRunCallback.inGLThread(() -> mJNI.pinchZoomStart(factor, x, y));
+    }
+
+    public void pinchZoom(float factor, int x, int y) {
+        mRunCallback.inGLThread(() -> mJNI.pinchZoom(factor, x, y));
+    }
+
+    public void pinchZoomEnd(float factor, int x, int y) {
+        mRunCallback.inGLThread(() -> mJNI.pinchZoomEnd(factor, x, y));
+    }
+
     public void click(int x, int y) {
         mRunCallback.inGLThread(() -> mJNI.click(x, y));
     }
@@ -104,6 +116,8 @@ public class Servo {
         void onUrlChanged(String url);
 
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
+
+        void onRedrawing(boolean redrawing);
     }
 
     public interface RunCallback {
@@ -168,6 +182,10 @@ public class Servo {
 
         public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
             mRunCallback.inUIThread(() -> mClient.onHistoryChanged(canGoBack, canGoForward));
+        }
+
+        public void onRedrawing(boolean redrawing) {
+            mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
         }
 
         public byte[] readfile(String file) {

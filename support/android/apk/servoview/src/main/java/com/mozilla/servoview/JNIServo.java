@@ -49,6 +49,12 @@ public class JNIServo {
 
     public native void scrollEnd(int dx, int dy, int x, int y);
 
+    public native void pinchZoomStart(float factor, int x, int y);
+
+    public native void pinchZoom(float factor, int x, int y);
+
+    public native void pinchZoomEnd(float factor, int x, int y);
+
     public native void click(int x, int y);
 
     public interface Callbacks {

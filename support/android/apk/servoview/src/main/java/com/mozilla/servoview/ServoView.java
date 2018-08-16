@@ -11,9 +11,11 @@ import android.net.Uri;
 import android.opengl.GLES31;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Choreographer;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.widget.OverScroller;
 
 import com.mozilla.servoview.Servo.Client;
@@ -26,6 +28,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class ServoView extends GLSurfaceView
         implements
         GestureDetector.OnGestureListener,
+        ScaleGestureDetector.OnScaleGestureListener,
         Choreographer.FrameCallback,
         GfxCallbacks,
         RunCallback {
@@ -39,12 +42,20 @@ public class ServoView extends GLSurfaceView
     private boolean mAnimating;
     private String mServoArgs = "";
     private GestureDetector mGestureDetector;
+    private ScaleGestureDetector mScaleGestureDetector;
+
     private OverScroller mScroller;
     private int mLastX = 0;
     private int mCurX = 0;
     private int mLastY = 0;
     private int mCurY = 0;
     private boolean mFlinging;
+    private boolean mScrolling;
+
+    private boolean mZooming;
+    private float mZoomFactor = 1;
+
+    private boolean mRedrawing;
 
     public ServoView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -138,19 +149,22 @@ public class ServoView extends GLSurfaceView
 
     private void initGestures(Context context) {
         mGestureDetector = new GestureDetector(context, this);
+        mScaleGestureDetector = new ScaleGestureDetector(context, this);
         mScroller = new OverScroller(context);
     }
 
     public void doFrame(long frameTimeNanos) {
+        if (!mRedrawing) {
+            mRedrawing = true;
+            mClient.onRedrawing(mRedrawing);
+        }
 
-        if (mScroller.isFinished() && mFlinging) {
+        // 3 reasons to be here: animating or scrolling/flinging or pinching
+
+        if (mFlinging && mScroller.isFinished()) {
             mFlinging = false;
-            inGLThread(() -> mServo.scrollEnd(0, 0, mCurX, mCurY));
-            if (!mAnimating) {
-                // Not scrolling. Not animating. We don't need to schedule
-                // another frame.
-                return;
-            }
+            mScrolling = false;
+            mServo.scrollEnd(0, 0, mCurX, mCurY);
         }
 
         if (mFlinging) {
@@ -165,15 +179,28 @@ public class ServoView extends GLSurfaceView
         mLastX = mCurX;
         mLastY = mCurY;
 
-        if (dx != 0 || dy != 0) {
-            inGLThread(() -> mServo.scroll(dx, dy, mCurX, mCurY));
-        } else {
-            if (mAnimating) {
-                requestRender();
-            }
+        boolean scrollNecessary = mScrolling && (dx != 0 || dy != 0);
+        boolean zoomNecessary = mZooming && mZoomFactor != 1;
+
+        if (scrollNecessary) {
+            mServo.scroll(dx, dy, mCurX, mCurY);
         }
 
-        Choreographer.getInstance().postFrameCallback(this);
+        if (zoomNecessary) {
+            mServo.pinchZoom(mZoomFactor, 0, 0);
+            mZoomFactor = 1;
+        }
+
+        if (!zoomNecessary && !scrollNecessary && mAnimating) {
+            requestRender();
+        }
+
+        if (mZooming || mScrolling || mAnimating) {
+            Choreographer.getInstance().postFrameCallback(this);
+        } else {
+            mRedrawing = false;
+            mClient.onRedrawing(mRedrawing);
+        }
     }
 
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
@@ -198,6 +225,7 @@ public class ServoView extends GLSurfaceView
 
     public boolean onTouchEvent(final MotionEvent e) {
         mGestureDetector.onTouchEvent(e);
+        mScaleGestureDetector.onTouchEvent(e);
 
         int action = e.getActionMasked();
         switch (action) {
@@ -207,7 +235,8 @@ public class ServoView extends GLSurfaceView
                 mCurY = (int) e.getY();
                 mLastY = mCurY;
                 mScroller.forceFinished(true);
-                inGLThread(() -> mServo.scrollStart(0, 0, mCurX, mCurY));
+                mServo.scrollStart(0, 0, mCurX, mCurY);
+                mScrolling = true;
                 Choreographer.getInstance().postFrameCallback(this);
                 return true;
             case (MotionEvent.ACTION_MOVE):
@@ -217,8 +246,8 @@ public class ServoView extends GLSurfaceView
             case (MotionEvent.ACTION_UP):
             case (MotionEvent.ACTION_CANCEL):
                 if (!mFlinging) {
-                    inGLThread(() -> mServo.scrollEnd(0, 0, mCurX, mCurY));
-                    Choreographer.getInstance().removeFrameCallback(this);
+                    mScrolling = false;
+                    mServo.scrollEnd(0, 0, mCurX, mCurY);
                 }
                 return true;
             default:
@@ -227,7 +256,7 @@ public class ServoView extends GLSurfaceView
     }
 
     public boolean onSingleTapUp(MotionEvent e) {
-        inGLThread(() -> mServo.click((int) e.getX(), (int) e.getY()));
+        mServo.click((int) e.getX(), (int) e.getY());
         return false;
     }
 
@@ -240,6 +269,33 @@ public class ServoView extends GLSurfaceView
 
     public void onShowPress(MotionEvent e) {
     }
+
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        if (mScroller.isFinished()) {
+            mZoomFactor = detector.getScaleFactor();
+            mZooming = true;
+            mServo.pinchZoomStart(mZoomFactor, 0, 0);
+            Choreographer.getInstance().postFrameCallback(this);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean onScale(ScaleGestureDetector detector) {
+        mZoomFactor *= detector.getScaleFactor();
+        return true;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector detector) {
+        mZoomFactor = detector.getScaleFactor();
+        mZooming = false;
+        mServo.pinchZoomEnd(mZoomFactor, 0, 0);
+    }
+
 
     @Override
     public void onPause() {

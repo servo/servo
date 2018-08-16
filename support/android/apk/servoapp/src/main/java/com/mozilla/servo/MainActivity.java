@@ -18,6 +18,7 @@ import android.webkit.URLUtil;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.mozilla.servoview.ServoView;
 import com.mozilla.servoview.Servo;
@@ -35,6 +36,7 @@ public class MainActivity extends Activity implements Servo.Client {
     Button mStopButton;
     EditText mUrlField;
     ProgressBar mProgressBar;
+    TextView mIdleText;
 
 
     @Override
@@ -49,6 +51,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mStopButton = findViewById(R.id.stopbutton);
         mUrlField = findViewById(R.id.urlfield);
         mProgressBar = findViewById(R.id.progressbar);
+        mIdleText = findViewById(R.id.redrawing);
 
         mBackButton.setEnabled(false);
         mFwdButton.setEnabled(false);
@@ -149,6 +152,14 @@ public class MainActivity extends Activity implements Servo.Client {
     public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
         mBackButton.setEnabled(canGoBack);
         mFwdButton.setEnabled(canGoForward);
+    }
+
+    public void onRedrawing(boolean redrawing) {
+        if (redrawing) {
+            mIdleText.setText("LOOP");
+        } else {
+            mIdleText.setText("IDLE");
+        }
     }
 
     @Override

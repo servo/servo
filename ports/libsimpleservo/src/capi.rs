@@ -181,6 +181,24 @@ pub extern "C" fn scroll(dx: i32, dy: i32, x: i32, y: i32) {
 }
 
 #[no_mangle]
+pub extern "C" fn pinchzoom_start(factor: f32, x: i32, y: i32) {
+    debug!("pinchzoom_start");
+    call(|s| s.pinchzoom_start(factor, x as u32, y as u32));
+}
+
+#[no_mangle]
+pub extern "C" fn pinchzoom(factor: f32, x: i32, y: i32) {
+    debug!("pinchzoom");
+    call(|s| s.pinchzoom(factor, x as u32, y as u32));
+}
+
+#[no_mangle]
+pub extern "C" fn pinchzoom_end(factor: f32, x: i32, y: i32) {
+    debug!("pinchzoom_end");
+    call(|s| s.pinchzoom_end(factor, x as u32, y as u32));
+}
+
+#[no_mangle]
 pub extern "C" fn click(x: i32, y: i32) {
     debug!("click");
     call(|s| s.click(x as u32, y as u32));
