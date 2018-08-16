@@ -15,9 +15,6 @@ tasks:
         owner: ${event.pusher.email}
         source: ${event.compare}
 
-      routes:
-        - "index.servo.taskcluster-experiments"
-
       payload:
         maxRunTime: 600
         image: "node:8"
