@@ -18,6 +18,10 @@
       mix-blend-mode: screen;
     }
 
+    #edgecover > rect {
+      mix-blend-mode: normal;
+    }
+
     g {
       isolation: isolate;
     }
@@ -32,7 +36,7 @@
     </g>
 
     <!-- Stroke to prevent aliasing from effecting results. -->
-    <g style="mix-blend-mode:normal;fill:none;stroke:black;stroke-width:2px">
+    <g style="fill:none;stroke:black;stroke-width:2px" id="edgecover">
       <rect x="120" y="80"  width="160" height="160"/>
       <rect x="200" y="80"  width="160" height="160"/>
       <rect x="160" y="160" width="160" height="160"/>

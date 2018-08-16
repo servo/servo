@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content of this file was automatically extracted from the
-// "WebGL Specification" spec.
-// See: https://www.khronos.org/registry/webgl/specs/latest/1.0/
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: WebGL Specification (https://www.khronos.org/registry/webgl/specs/latest/1.0/)
 
 typedef unsigned long  GLenum;
 typedef boolean        GLboolean;
@@ -34,36 +34,46 @@ dictionary WebGLContextAttributes {
     GLboolean failIfMajorPerformanceCaveat = false;
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLBuffer : WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLFramebuffer : WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLProgram : WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLRenderbuffer : WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLShader : WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLTexture : WebGLObject {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLUniformLocation {
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLActiveInfo {
     readonly attribute GLint size;
     readonly attribute GLenum type;
     readonly attribute DOMString name;
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLShaderPrecisionFormat {
     readonly attribute GLint rangeMin;
     readonly attribute GLint rangeMax;
@@ -500,7 +510,7 @@ interface mixin WebGLRenderingContextBase
     const GLenum UNPACK_COLORSPACE_CONVERSION_WEBGL = 0x9243;
     const GLenum BROWSER_DEFAULT_WEBGL          = 0x9244;
 
-    readonly attribute HTMLCanvasElement canvas;
+    [Exposed=Window] readonly attribute HTMLCanvasElement canvas;
     readonly attribute GLsizei drawingBufferWidth;
     readonly attribute GLsizei drawingBufferHeight;
 
@@ -708,12 +718,15 @@ interface mixin WebGLRenderingContextBase
     void viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 };
 
+[Exposed=(Window,Worker)]
 interface WebGLRenderingContext
 {
 };
 WebGLRenderingContext includes WebGLRenderingContextBase;
 
-[Constructor(DOMString type, optional WebGLContextEventInit eventInit)]
+[Exposed=(Window,Worker),
+ Constructor(DOMString type,
+ optional WebGLContextEventInit eventInit)]
 interface WebGLContextEvent : Event {
     readonly attribute DOMString statusMessage;
 };

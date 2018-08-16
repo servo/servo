@@ -18,21 +18,23 @@
       mix-blend-mode: screen;
     }
 
-    g {
-      isolation: isolate;
+    #edgecover > rect {
+      mix-blend-mode: normal;
     }
   </style>
 
   <g id="test-body-content">
 
-    <rect x="120" y="80"  width="160" height="160" fill="red"/>
-    <g>
-      <rect x="200" y="80"  width="160" height="160" fill="lime"/>
-      <rect x="160" y="160" width="160" height="160" fill="blue"/>
+    <g style="isolation: isolate">
+      <rect x="120" y="80"  width="160" height="160" fill="red"/>
+      <g style="isolation: isolate">
+        <rect x="200" y="80"  width="160" height="160" fill="lime"/>
+        <rect x="160" y="160" width="160" height="160" fill="blue"/>
+      </g>
     </g>
 
     <!-- Stroke to prevent aliasing from effecting results. -->
-    <g style="mix-blend-mode:normal;fill:none;stroke:black;stroke-width:2px">
+    <g style="fill:none;stroke:black;stroke-width:2px" id="edgecover">
       <rect x="120" y="80"  width="160" height="160"/>
       <rect x="200" y="80"  width="160" height="160"/>
       <rect x="160" y="160" width="160" height="160"/>

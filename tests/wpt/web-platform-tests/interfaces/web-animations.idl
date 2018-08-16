@@ -98,22 +98,22 @@ interface KeyframeEffect : AnimationEffect {
 };
 
 dictionary BaseComputedKeyframe {
-     double?             offset = null;
-     double              computedOffset;
-     DOMString           easing = "linear";
-     CompositeOperation? composite = null;
+     double?                  offset = null;
+     double                   computedOffset;
+     DOMString                easing = "linear";
+     CompositeOperationOrAuto composite = "auto";
 };
 
 dictionary BasePropertyIndexedKeyframe {
     (double? or sequence<double?>)                         offset = [];
     (DOMString or sequence<DOMString>)                     easing = [];
-    (CompositeOperation? or sequence<CompositeOperation?>) composite = [];
+    (CompositeOperationOrAuto or sequence<CompositeOperationOrAuto>) composite = [];
 };
 
 dictionary BaseKeyframe {
-    double?             offset = null;
-    DOMString           easing = "linear";
-    CompositeOperation? composite = null;
+    double?                  offset = null;
+    DOMString                easing = "linear";
+    CompositeOperationOrAuto composite = "auto";
 };
 
 dictionary KeyframeEffectOptions : EffectTiming {
@@ -124,6 +124,8 @@ dictionary KeyframeEffectOptions : EffectTiming {
 enum IterationCompositeOperation {"replace", "accumulate"};
 
 enum CompositeOperation {"replace", "add", "accumulate"};
+
+enum CompositeOperationOrAuto {"replace", "add", "accumulate", "auto"};
 
 interface mixin Animatable {
     Animation           animate (object? keyframes,

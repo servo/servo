@@ -67,7 +67,8 @@
             button.innerHTML = "This test requires user interaction.<br />" +
                 "Please click here to allow " + intent + ".";
             button.id = "wpt-test-driver-bless-" + (idCounter += 1);
-            document.body.appendChild(button);
+            const elem = document.body || document.documentElement;
+            elem.appendChild(button);
 
             return new Promise(function(resolve, reject) {
                     button.addEventListener("click", resolve);
