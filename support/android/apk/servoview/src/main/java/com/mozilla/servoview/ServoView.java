@@ -55,6 +55,8 @@ public class ServoView extends GLSurfaceView
     private boolean mZooming;
     private float mZoomFactor = 1;
 
+    private boolean mRedrawing;
+
     public ServoView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mActivity = (Activity) context;
@@ -152,6 +154,10 @@ public class ServoView extends GLSurfaceView
     }
 
     public void doFrame(long frameTimeNanos) {
+        if (!mRedrawing) {
+            mRedrawing = true;
+            mClient.onRedrawing(mRedrawing);
+        }
 
         // 3 reasons to be here: animating or scrolling/flinging or pinching
 
@@ -191,6 +197,9 @@ public class ServoView extends GLSurfaceView
 
         if (mZooming || mScrolling || mAnimating) {
             Choreographer.getInstance().postFrameCallback(this);
+        } else {
+            mRedrawing = false;
+            mClient.onRedrawing(mRedrawing);
         }
     }
 

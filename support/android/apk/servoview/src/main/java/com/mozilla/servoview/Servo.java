@@ -116,6 +116,8 @@ public class Servo {
         void onUrlChanged(String url);
 
         void onHistoryChanged(boolean canGoBack, boolean canGoForward);
+
+        void onRedrawing(boolean redrawing);
     }
 
     public interface RunCallback {
@@ -180,6 +182,10 @@ public class Servo {
 
         public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
             mRunCallback.inUIThread(() -> mClient.onHistoryChanged(canGoBack, canGoForward));
+        }
+
+        public void onRedrawing(boolean redrawing) {
+            mRunCallback.inUIThread(() -> mClient.onRedrawing(redrawing));
         }
 
         public byte[] readfile(String file) {

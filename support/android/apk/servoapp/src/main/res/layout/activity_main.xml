@@ -82,6 +82,17 @@
                 android:text="Rld"
                 android:textSize="10sp" />
 
+            <TextView
+                android:id="@+id/redrawing"
+                android:layout_width="70dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:text="idle"
+                android:textAlignment="center"
+                android:textSize="10sp"
+                android:visibility="visible" />
+
         </LinearLayout>
 
         <com.mozilla.servoview.ServoView
