@@ -4,7 +4,7 @@ import os
 import datetime
 import taskcluster
 
-task_id = os.environ["DECISION_TASK_ID"] + "-child-task"
+task_id = taskcluster.slugId()
 payload = {
     "taskGroupId": os.environ["DECISION_TASK_ID"],
     "provisionerId": "aws-provisioner-v1",
@@ -34,4 +34,4 @@ payload = {
     },
 }
 result = taskcluster.Queue().createTask(task_id, payload)
-print("task created…? %r" % result)
+print("task %s created…? %r" % (task_id, result))
