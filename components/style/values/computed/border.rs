@@ -81,3 +81,19 @@ impl ToAnimatedZero for BorderCornerRadius {
         Err(())
     }
 }
+
+impl BorderRadius {
+    /// Returns whether all the values are `0px`.
+    pub fn all_zero(&self) -> bool {
+        fn all(corner: &BorderCornerRadius) -> bool {
+            fn is_zero(l: &LengthOrPercentage) -> bool {
+                *l == LengthOrPercentage::zero()
+            }
+            is_zero(corner.0.width()) && is_zero(corner.0.height())
+        }
+        all(&self.top_left) &&
+            all(&self.top_right) &&
+            all(&self.bottom_left) &&
+            all(&self.bottom_right)
+    }
+}

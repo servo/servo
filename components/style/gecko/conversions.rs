@@ -19,6 +19,7 @@ use stylesheets::{Origin, RulesMutateError};
 use values::computed::{Angle, CalcLengthOrPercentage, Gradient, Image};
 use values::computed::{Integer, LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::{Percentage, TextAlign};
+use values::computed::image::LineDirection;
 use values::computed::url::ComputedImageUrl;
 use values::generics::box_::VerticalAlign;
 use values::generics::grid::{TrackListValue, TrackSize};
@@ -139,6 +140,68 @@ impl Angle {
     }
 }
 
+fn line_direction(
+    horizontal: LengthOrPercentage,
+    vertical: LengthOrPercentage,
+) -> LineDirection {
+    use values::computed::position::Position;
+    use values::specified::position::{X, Y};
+
+    let horizontal_percentage = match horizontal {
+        LengthOrPercentage::Percentage(percentage) => Some(percentage.0),
+        _ => None,
+    };
+
+    let vertical_percentage = match vertical {
+        LengthOrPercentage::Percentage(percentage) => Some(percentage.0),
+        _ => None,
+    };
+
+    let horizontal_as_corner = horizontal_percentage.and_then(|percentage| {
+        if percentage == 0.0 {
+            Some(X::Left)
+        } else if percentage == 1.0 {
+            Some(X::Right)
+        } else {
+            None
+        }
+    });
+
+    let vertical_as_corner = vertical_percentage.and_then(|percentage| {
+        if percentage == 0.0 {
+            Some(Y::Top)
+        } else if percentage == 1.0 {
+            Some(Y::Bottom)
+        } else {
+            None
+        }
+    });
+
+    if let (Some(hc), Some(vc)) = (horizontal_as_corner, vertical_as_corner) {
+        return LineDirection::Corner(hc, vc)
+    }
+
+    if let Some(hc) = horizontal_as_corner {
+        if vertical_percentage == Some(0.5) {
+            return LineDirection::Horizontal(hc)
+        }
+    }
+
+    if let Some(vc) = vertical_as_corner {
+        if horizontal_percentage == Some(0.5) {
+            return LineDirection::Vertical(vc)
+        }
+    }
+
+    LineDirection::MozPosition(
+        Some(Position {
+            horizontal,
+            vertical,
+        }),
+        None,
+    )
+}
+
 impl nsStyleImage {
     /// Set a given Servo `Image` value into this `nsStyleImage`.
     pub fn set(&mut self, image: Image) {
@@ -174,13 +237,13 @@ impl nsStyleImage {
         }
     }
 
+    // FIXME(emilio): This is really complex, we should use cbindgen for this.
     fn set_gradient(&mut self, gradient: Gradient) {
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_CORNER as CLOSEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
         use self::structs::nsStyleCoord;
-        use values::computed::image::LineDirection;
         use values::generics::image::{Circle, Ellipse, EndingShape, GradientKind, ShapeExtent};
         use values::specified::position::{X, Y};
 
@@ -437,12 +500,11 @@ impl nsStyleImage {
         use self::structs::NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE as CLOSEST_SIDE;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as FARTHEST_CORNER;
         use self::structs::NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE as FARTHEST_SIDE;
-        use values::computed::{Length, LengthOrPercentage};
+        use values::computed::Length;
         use values::computed::image::LineDirection;
         use values::computed::position::Position;
         use values::generics::image::{Circle, ColorStop, CompatMode, Ellipse};
         use values::generics::image::{EndingShape, GradientKind, ShapeExtent};
-        use values::specified::position::{X, Y};
 
         let gecko_gradient = bindings::Gecko_GetGradientImageValue(self)
             .as_ref()
@@ -456,41 +518,7 @@ impl nsStyleImage {
                 let line_direction = match (angle, horizontal_style, vertical_style) {
                     (Some(a), None, None) => LineDirection::Angle(a),
                     (None, Some(horizontal), Some(vertical)) => {
-                        let horizontal_as_corner = match horizontal {
-                            LengthOrPercentage::Percentage(percentage) => {
-                                if percentage.0 == 0.0 {
-                                    Some(X::Left)
-                                } else if percentage.0 == 1.0 {
-                                    Some(X::Right)
-                                } else {
-                                    None
-                                }
-                            },
-                            _ => None,
-                        };
-                        let vertical_as_corner = match vertical {
-                            LengthOrPercentage::Percentage(percentage) => {
-                                if percentage.0 == 0.0 {
-                                    Some(Y::Top)
-                                } else if percentage.0 == 1.0 {
-                                    Some(Y::Bottom)
-                                } else {
-                                    None
-                                }
-                            },
-                            _ => None,
-                        };
-
-                        match (horizontal_as_corner, vertical_as_corner) {
-                            (Some(hc), Some(vc)) => LineDirection::Corner(hc, vc),
-                            _ => LineDirection::MozPosition(
-                                Some(Position {
-                                    horizontal,
-                                    vertical,
-                                }),
-                                None,
-                            ),
-                        }
+                        line_direction(horizontal, vertical)
                     },
                     (Some(_), Some(horizontal), Some(vertical)) => LineDirection::MozPosition(
                         Some(Position {
@@ -743,17 +771,15 @@ pub mod basic_shape {
                     let r = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[1]);
                     let b = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[2]);
                     let l = LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[3]);
-                    let round = (&other.mRadius).into();
+                    let round: BorderRadius = (&other.mRadius).into();
+                    let round = if round.all_zero() { None } else { Some(round) };
                     let rect = Rect::new(
                         t.expect("inset() offset should be a length, percentage, or calc value"),
                         r.expect("inset() offset should be a length, percentage, or calc value"),
                         b.expect("inset() offset should be a length, percentage, or calc value"),
                         l.expect("inset() offset should be a length, percentage, or calc value"),
                     );
-                    GenericBasicShape::Inset(InsetRect {
-                        rect: rect,
-                        round: Some(round),
-                    })
+                    GenericBasicShape::Inset(InsetRect { rect, round })
                 },
                 StyleBasicShapeType::Circle => GenericBasicShape::Circle(Circle {
                     radius: (&other.mCoordinates[0]).into(),
