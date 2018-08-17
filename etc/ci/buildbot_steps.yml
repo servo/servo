@@ -236,8 +236,7 @@ arm32:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
   - ./etc/ci/clean_build_artifacts.sh
-  - ./mach clean
-  - env --unset CC_arm-unknown-linux-gnueabihf --unset CXX_arm-unknown-linux-gnueabihf ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - env --unset CC_arm-unknown-linux-gnueabihf --unset CXX_arm-unknown-linux-gnueabihf ./mach build --rel --target=arm-unknown-linux-gnueabihf || cat /home/servo/buildbot/slave/arm32/build/target/arm-unknown-linux-gnueabihf/release/build/backtrace-sys-*/out/config.*
   - bash ./etc/ci/lockfile_changed.sh
   - ./etc/ci/clean_build_artifacts.sh
 
