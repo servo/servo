@@ -1131,11 +1131,6 @@ impl Stylist {
 
         let rule_hash_target = element.rule_hash_target();
 
-        debug!(
-            "Determining if style is shareable: pseudo: {}",
-            pseudo_element.is_some()
-        );
-
         let matches_user_rules = rule_hash_target.matches_user_and_author_rules();
         let matches_author_rules =
             matches_user_rules && self.author_styles_enabled == AuthorStylesEnabled::Yes;
