@@ -14,19 +14,22 @@ payload = {
         "description": "",
         "owner": os.environ["DECISION_TASK_OWNER"],
         "source": os.environ["DECISION_TASK_SOURCE"],
-    }
+    },
     "payload": {
         "maxRunTime": 600,
         "image": "buildpack-deps:bionic-scm",
         "command": [
-            "/bin/bash", "--login", "-c", """
+            "/bin/bash",
+            "--login",
+            "-c",
+            """
                 git clone %(DECISION_TASK_CLONE_URL)s repo &&
                 cd repo &&
                 git checkout %(DECISION_TASK_COMMIT_SHA)s &&
                 python2.7 child-task.py
-            """ % os.environ
-        ]
-    }
+            """ % os.environ,
+        ],
+    },
 }
 result = taskcluster.Queue().createTask(task_id, payload)
 print("task created…? %r" % result)
