@@ -36,12 +36,13 @@ pub struct BluetoothScanfilter {
 }
 
 impl BluetoothScanfilter {
-    pub fn new(name: Option<String>,
-               name_prefix: String,
-               services: Vec<String>,
-               manufacturer_data: Option<ManufacturerData>,
-               service_data: Option<ServiceData>)
-               -> BluetoothScanfilter {
+    pub fn new(
+        name: Option<String>,
+        name_prefix: String,
+        services: Vec<String>,
+        manufacturer_data: Option<ManufacturerData>,
+        service_data: Option<ServiceData>,
+    ) -> BluetoothScanfilter {
         BluetoothScanfilter {
             name: name,
             name_prefix: name_prefix,
@@ -73,12 +74,12 @@ impl BluetoothScanfilter {
 
     pub fn is_empty_or_invalid(&self) -> bool {
         (self.name.is_none() &&
-         self.name_prefix.is_empty() &&
-         self.get_services().is_empty() &&
-         self.manufacturer_data.is_none() &&
-         self.service_data.is_none()) ||
-        self.get_name().unwrap_or("").len() > MAX_NAME_LENGTH ||
-        self.name_prefix.len() > MAX_NAME_LENGTH
+            self.name_prefix.is_empty() &&
+            self.get_services().is_empty() &&
+            self.manufacturer_data.is_none() &&
+            self.service_data.is_none()) ||
+            self.get_name().unwrap_or("").len() > MAX_NAME_LENGTH ||
+            self.name_prefix.len() > MAX_NAME_LENGTH
     }
 }
 
@@ -99,7 +100,9 @@ impl BluetoothScanfilterSequence {
     }
 
     fn get_services_set(&self) -> HashSet<String> {
-        self.iter().flat_map(|filter| filter.services.get_services_set()).collect()
+        self.iter()
+            .flat_map(|filter| filter.services.get_services_set())
+            .collect()
     }
 
     fn is_empty(&self) -> bool {
@@ -114,9 +117,10 @@ pub struct RequestDeviceoptions {
 }
 
 impl RequestDeviceoptions {
-    pub fn new(filters: BluetoothScanfilterSequence,
-               services: ServiceUUIDSequence)
-               -> RequestDeviceoptions {
+    pub fn new(
+        filters: BluetoothScanfilterSequence,
+        services: ServiceUUIDSequence,
+    ) -> RequestDeviceoptions {
         RequestDeviceoptions {
             filters: filters,
             optional_services: services,
