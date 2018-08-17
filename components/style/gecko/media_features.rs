@@ -118,11 +118,8 @@ where
     };
 
     let size = get_size(device);
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        Some(size.height.0 as u64 * query_value.0 as u64),
-        size.width.0 as u64 * query_value.1 as u64,
-    )
+    let value = AspectRatio(size.width.0 as u32, size.height.0 as u32);
+    RangeOrOperator::evaluate_with_query_value(range_or_operator, query_value, value)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#aspect-ratio
