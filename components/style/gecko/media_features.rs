@@ -310,6 +310,18 @@ bitflags! {
     }
 }
 
+fn primary_pointer_capabilities(device: &Device) -> PointerCapabilities {
+    PointerCapabilities::from_bits_truncate(
+        unsafe { bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document()) }
+    )
+}
+
+fn all_pointer_capabilities(device: &Device) -> PointerCapabilities {
+    PointerCapabilities::from_bits_truncate(
+        unsafe { bindings::Gecko_MediaFeatures_AllPointerCapabilities(device.document()) }
+    )
+}
+
 #[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
 #[repr(u8)]
 enum Pointer {
@@ -318,15 +330,10 @@ enum Pointer {
     Fine,
 }
 
-fn primary_pointer_capabilities(device: &Device) -> PointerCapabilities {
-    PointerCapabilities::from_bits_truncate(
-        unsafe { bindings::Gecko_MediaFeatures_PrimaryPointerCapabilities(device.document()) }
-    )
-}
-
-/// https://drafts.csswg.org/mediaqueries-4/#pointer
-fn eval_pointer(device: &Device, query_value: Option<Pointer>) -> bool {
-    let pointer_capabilities = primary_pointer_capabilities(device);
+fn eval_pointer_capabilities(
+    query_value: Option<Pointer>,
+    pointer_capabilities: PointerCapabilities,
+) -> bool {
     let query_value = match query_value {
         Some(v) => v,
         None => return !pointer_capabilities.is_empty(),
@@ -339,6 +346,16 @@ fn eval_pointer(device: &Device, query_value: Option<Pointer>) -> bool {
     }
 }
 
+/// https://drafts.csswg.org/mediaqueries-4/#pointer
+fn eval_pointer(device: &Device, query_value: Option<Pointer>) -> bool {
+    eval_pointer_capabilities(query_value, primary_pointer_capabilities(device))
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#descdef-media-any-pointer
+fn eval_any_pointer(device: &Device, query_value: Option<Pointer>) -> bool {
+    eval_pointer_capabilities(query_value, all_pointer_capabilities(device))
+}
+
 #[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
 #[repr(u8)]
 enum Hover {
@@ -346,9 +363,10 @@ enum Hover {
     Hover,
 }
 
-/// https://drafts.csswg.org/mediaqueries-4/#hover
-fn eval_hover(device: &Device, query_value: Option<Hover>) -> bool {
-    let pointer_capabilities = primary_pointer_capabilities(device);
+fn eval_hover_capabilities(
+    query_value: Option<Hover>,
+    pointer_capabilities: PointerCapabilities,
+) -> bool {
     let can_hover = pointer_capabilities.intersects(PointerCapabilities::HOVER);
     let query_value = match query_value {
         Some(v) => v,
@@ -359,6 +377,16 @@ fn eval_hover(device: &Device, query_value: Option<Hover>) -> bool {
         Hover::None => !can_hover,
         Hover::Hover => can_hover,
     }
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#hover
+fn eval_hover(device: &Device, query_value: Option<Hover>) -> bool {
+    eval_hover_capabilities(query_value, primary_pointer_capabilities(device))
+}
+
+/// https://drafts.csswg.org/mediaqueries-4/#descdef-media-any-hover
+fn eval_any_hover(device: &Device, query_value: Option<Hover>) -> bool {
+    eval_hover_capabilities(query_value, all_pointer_capabilities(device))
 }
 
 fn eval_moz_is_glyph(
@@ -451,7 +479,7 @@ lazy_static! {
     /// to support new types in these entries and (2) ensuring that either
     /// nsPresContext::MediaFeatureValuesChanged is called when the value that
     /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 45] = [
+    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 47] = [
         feature!(
             atom!("width"),
             AllowsRanges::Yes,
@@ -577,9 +605,21 @@ lazy_static! {
             ParsingRequirements::empty(),
         ),
         feature!(
+            atom!("any-pointer"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_any_pointer, Pointer),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
             atom!("hover"),
             AllowsRanges::No,
             keyword_evaluator!(eval_hover, Hover),
+            ParsingRequirements::empty(),
+        ),
+        feature!(
+            atom!("any-hover"),
+            AllowsRanges::No,
+            keyword_evaluator!(eval_any_hover, Hover),
             ParsingRequirements::empty(),
         ),
 
