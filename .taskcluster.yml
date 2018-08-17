@@ -5,13 +5,15 @@ policy:
 tasks:
   - $if: 'tasks_for == "github-push"'
     then:
+      taskGroupId: {$eval: as_slugid("decision_task")}
+      taskId: {$eval: as_slugid("decision_task")}
       provisionerId: aws-provisioner-v1
       workerType: github-worker
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 hour'}
       metadata:
-        name: "Taskcluster experiments for Servo"
-        description: "Initial task"
+        name: "Taskcluster experiments for Servo: Decision task"
+        description: ""
         owner: ${event.pusher.name}@users.noreply.github.com
         source: ${event.compare}
 
@@ -20,12 +22,19 @@ tasks:
         image: "buildpack-deps:bionic-scm"
         features:
           taskclusterProxy: true
+        env:
+          DECISION_TASK_ID: {$eval: as_slugid("decision_task")}
+          DECISION_TASK_OWNER: ${event.pusher.name}@users.noreply.github.com
+          DECISION_TASK_SOURCE: ${event.compare}
+          DECISION_TASK_CLONE_URL: ${event.repository.clone_url}
+          DECISION_TASK_COMMIT_SHA: ${event.after}
         command:
           - /bin/bash
           - '--login'
           - '-c'
           - >-
-            git clone ${event.repository.clone_url} repo &&
+            git clone $DECISION_TASK_CLONE_URL repo &&
             cd repo &&
-            git checkout ${event.after} &&
-            python2.7 task.py
+            git checkout $DECISION_TASK_COMMIT_SHA &&
+            pip install taskcluster &&
+            python2.7 decision-task.py
