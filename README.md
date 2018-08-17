@@ -285,8 +285,8 @@ Run Servo with the command:
 
 - `Ctrl`+`-` zooms out
 - `Ctrl`+`=` zooms in
-- `Alt`+`left arrow` goes backwards in the history
-- `Alt`+`right arrow` goes forwards in the history
+- `Alt`+`left arrow` goes backwards in the history (`Cmd`+`left arrow` on Mac)
+- `Alt`+`right arrow` goes forwards in the history (`Cmd`+`right arrow` on Mac)
 - `Esc` exits servo
 
 ## Developing
