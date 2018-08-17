@@ -12,12 +12,12 @@ tasks:
       metadata:
         name: "Taskcluster experiments for Servo"
         description: "Initial task"
-        owner: ${event.pusher.email}
+        owner: ${event.pusher.name}@users.noreply.github.com
         source: ${event.compare}
 
       payload:
         maxRunTime: 600
-        image: "node:8"
+        image: "buildpack-deps:bionic-scm"
         features:
           taskclusterProxy: true
         command:
@@ -28,6 +28,4 @@ tasks:
             git clone ${event.repository.clone_url} repo &&
             cd repo &&
             git checkout ${event.after} &&
-            echo "Hello World!" &&
-            sleep 120 &&
-            ls -a
+            python2.7 task.py
