@@ -13,10 +13,6 @@ let internal = {
   webUsbService: null,
   webUsbServiceInterceptor: null,
   webUsbServiceCrossFrameProxy: null,
-
-  chooser: null,
-  chooserInterceptor: null,
-  chooserCrossFrameProxy: null,
 };
 
 // Converts an ECMAScript String object to an instance of
@@ -376,6 +372,17 @@ class FakeWebUsbService {
     }
   }
 
+  getPermission(deviceFilters) {
+    return new Promise(resolve => {
+      if (navigator.usb.test.onrequestdevice) {
+        navigator.usb.test.onrequestdevice(
+            new USBDeviceRequestEvent(deviceFilters, resolve));
+      } else {
+        resolve({ result: null });
+      }
+    });
+  }
+
   setClient(client) {
     this.client_ = client;
   }
@@ -399,27 +406,6 @@ class USBDeviceRequestEvent {
       this.resolveFunc_({ result: result });
     }, () => {
       this.resolveFunc_({ result: null });
-    });
-  }
-}
-
-class FakeChooserService {
-  constructor() {
-    this.bindingSet_ = new mojo.BindingSet(device.mojom.UsbChooserService);
-  }
-
-  addBinding(handle) {
-    this.bindingSet_.addBinding(this, handle);
-  }
-
-  getPermission(deviceFilters) {
-    return new Promise(resolve => {
-      if (navigator.usb.test.onrequestdevice) {
-        navigator.usb.test.onrequestdevice(
-            new USBDeviceRequestEvent(deviceFilters, resolve));
-      } else {
-        resolve({ result: null });
-      }
     });
   }
 }
@@ -472,15 +458,6 @@ class USBTest {
     internal.webUsbServiceCrossFrameProxy = new CrossFrameHandleProxy(
         handle => internal.webUsbService.addBinding(handle));
 
-    internal.chooser = new FakeChooserService();
-    internal.chooserInterceptor =
-        new MojoInterfaceInterceptor(device.mojom.UsbChooserService.name);
-    internal.chooserInterceptor.oninterfacerequest =
-        e => internal.chooser.addBinding(e.handle);
-    internal.chooserInterceptor.start();
-    internal.chooserCrossFrameProxy = new CrossFrameHandleProxy(
-        handle => internal.chooser.addBinding(handle));
-
     // Wait for a call to GetDevices() to pass between the renderer and the
     // mock in order to establish that everything is set up.
     await navigator.usb.getDevices();
@@ -497,13 +474,6 @@ class USBTest {
     otherWindow.webUsbServiceInterceptor.oninterfacerequest =
         e => internal.webUsbServiceCrossFrameProxy.forwardHandle(e.handle);
     otherWindow.webUsbServiceInterceptor.start();
-
-    otherWindow.chooserInterceptor =
-        new otherWindow.MojoInterfaceInterceptor(
-            device.mojom.UsbChooserService.name);
-    otherWindow.chooserInterceptor.oninterfacerequest =
-        e => internal.chooserCrossFrameProxy.forwardHandle(e.handle);
-    otherWindow.chooserInterceptor.start();
 
     // Wait for a call to GetDevices() to pass between the renderer and the
     // mock in order to establish that everything is set up.

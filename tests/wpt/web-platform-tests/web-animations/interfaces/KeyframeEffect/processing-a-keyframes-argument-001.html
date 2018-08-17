@@ -193,21 +193,21 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       left: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 0.5,
       easing: 'linear',
       left: '300px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       left: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Keyframes are read from a custom iterator');
@@ -228,21 +228,21 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       left: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 0.5,
       easing: 'linear',
       left: '300px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       left: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, '\'easing\' and \'offset\' are ignored on iterable objects');
@@ -261,14 +261,14 @@ test(() => {
       easing: 'linear',
       left: '100px',
       top: '200px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 0.5,
       easing: 'linear',
       left: '300px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
@@ -276,7 +276,7 @@ test(() => {
       easing: 'linear',
       left: '200px',
       top: '100px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Keyframes are read from a custom iterator with multiple properties'
@@ -295,21 +295,21 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       left: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: 0.75,
       computedOffset: 0.75,
       easing: 'linear',
       left: '250px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       left: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Keyframes are read from a custom iterator with where an offset is'
@@ -349,9 +349,9 @@ test(() => {
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: null },
-    { offset: null, computedOffset: 0.5, easing: 'linear', composite: null },
-    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: null },
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: 'auto' },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: 'auto' },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: 'auto' },
   ]);
 }, 'An undefined keyframe returned from a custom iterator should be treated as a'
     + ' default keyframe');
@@ -364,9 +364,9 @@ test(() => {
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: null },
-    { offset: null, computedOffset: 0.5, easing: 'linear', composite: null },
-    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: null },
+    { left: '100px', offset: null, computedOffset: 0, easing: 'linear', composite: 'auto' },
+    { offset: null, computedOffset: 0.5, easing: 'linear', composite: 'auto' },
+    { left: '200px', offset: null, computedOffset: 1, easing: 'linear', composite: 'auto' },
   ]);
 }, 'A null keyframe returned from a custom iterator should be treated as a'
     + ' default keyframe');
@@ -377,7 +377,7 @@ test(() => {
     { done: true },
   ]));
   assert_frame_lists_equal(effect.getKeyframes(), [
-    { offset: null, computedOffset: 1, easing: 'linear', composite: null }
+    { offset: null, computedOffset: 1, easing: 'linear', composite: 'auto' }
   ]);
 }, 'A list of values returned from a custom iterator should be ignored');
 
@@ -437,14 +437,14 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       height: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       height: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Only enumerable properties on keyframes are read');
@@ -468,14 +468,14 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       top: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       top: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Only properties defined directly on keyframes are read');
@@ -496,14 +496,14 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       height: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       height: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Only enumerable properties on property-indexed keyframes are read');
@@ -527,14 +527,14 @@ test(() => {
       computedOffset: 0,
       easing: 'linear',
       top: '100px',
-      composite: null,
+      composite: 'auto',
     },
     {
       offset: null,
       computedOffset: 1,
       easing: 'linear',
       top: '200px',
-      composite: null,
+      composite: 'auto',
     },
   ]);
 }, 'Only properties defined directly on property-indexed keyframes are read');

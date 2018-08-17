@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=xslt-same-origin" type="text/xsl" ?>
+<?xml-stylesheet href="https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=xslt-same-site" type="text/xsl" ?>
+<?xml-stylesheet href="https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=xslt-cross-site" type="text/xsl" ?>
+
+<!-- postMessage parent back when the resources are loaded -->
+<script xmlns="http://www.w3.org/1999/xhtml"><![CDATA[
+  setTimeout(function(){
+    if (window.opener)
+        window.opener.postMessage("", "*");
+    if (window.top != window)
+        window.top.postMessage("", "*");}, 100);
+]]></script>

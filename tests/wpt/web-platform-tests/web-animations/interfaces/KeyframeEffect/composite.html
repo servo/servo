@@ -29,8 +29,8 @@ test(t => {
 
   anim.effect.composite = 'add';
   const keyframes = anim.effect.getKeyframes();
-  assert_equals(keyframes[0].composite, null,
-                'unspecified keyframe composite value should be null even ' +
+  assert_equals(keyframes[0].composite, 'auto',
+                'unspecified keyframe composite value should be auto even ' +
                 'if effect composite is set');
 }, 'Unspecified keyframe composite value when setting effect composite');
 

@@ -88,7 +88,7 @@ test(t => {
     const effect = new KeyframeEffect(target, {
       left: ['10px', '20px']
     }, { composite });
-    assert_equals(effect.getKeyframes()[0].composite, null,
+    assert_equals(effect.getKeyframes()[0].composite, 'auto',
                   `resulting composite for '${composite}'`);
   }
   for (const composite of gBadOptionsCompositeValueTests) {
@@ -98,7 +98,7 @@ test(t => {
       }, { composite: composite });
     });
   }
-}, 'composite value is null if the composite operation specified on the ' +
+}, 'composite value is auto if the composite operation specified on the ' +
    'keyframe effect is being used');
 
 for (const subtest of gKeyframesTests) {

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<link id="style" href="https://foo.bar" rel="stylesheet">
+<body></body>
+<script>
+  let counter = 0;
+  document.addEventListener("securitypolicyviolation", (e) => {
+    counter++;
+    if (counter == 3) {
+      promise_test(t => {
+        expected = {"destination":"report", "site":"same-origin"};
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-same-origin")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected));
+      }, "Same-Origin report");
+
+      promise_test(t => {
+        expected = {"destination":"report", "site":"same-site"};
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-same-site")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected));
+      }, "Same-site report");
+
+      promise_test(t => {
+        expected = {"destination":"report", "site":"cross-site"};
+        return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=report-cross-site")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected));
+      }, "Cross-site report");
+    }
+  });
+</script>

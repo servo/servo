@@ -12,7 +12,6 @@
     assert_header_equals(header, {
       "cause": undefined,
       "destination": "script",
-      "target": "subresource",
       "site": "same-origin"
     });
   }, "Same-origin script");
@@ -27,7 +26,6 @@
     assert_header_equals(header, {
       "cause": undefined,
       "destination": "script",
-      "target": "subresource",
       "site": "same-site"
     });
   }, "Same-site script");
@@ -42,7 +40,6 @@
     assert_header_equals(header, {
       "cause": undefined,
       "destination": "script",
-      "target": "subresource",
       "site": "cross-site"
     });
   }, "Cross-site script");

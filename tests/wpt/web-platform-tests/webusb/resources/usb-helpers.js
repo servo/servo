@@ -21,7 +21,6 @@ let loadChromiumResources = Promise.resolve().then(() => {
     '/resources/chromium/string16.mojom.js',
     '/resources/chromium/device.mojom.js',
     '/resources/chromium/device_manager.mojom.js',
-    '/resources/chromium/chooser_service.mojom.js',
     '/resources/chromium/web_usb_service.mojom.js',
     '/resources/chromium/webusb-test.js',
   ].forEach(path => {

@@ -301,6 +301,8 @@ def get_parser():
                         help="Include files in the worktree that are not in version control")
     parser.add_argument("--show-type", action="store_true",
                         help="Print the test type along with each affected test")
+    parser.add_argument("--null", action="store_true",
+                        help="Separate items with a null byte")
     return parser
 
 
@@ -326,8 +328,11 @@ def run_changed_files(**kwargs):
     changed, _ = files_changed(revish, kwargs["ignore_rules"],
                                include_uncommitted=kwargs["modified"],
                                include_new=kwargs["new"])
+
+    separator = "\0" if kwargs["null"] else "\n"
+
     for item in sorted(changed):
-        print(os.path.relpath(item, wpt_root))
+        sys.stdout.write(os.path.relpath(item, wpt_root) + separator)
 
 
 def run_tests_affected(**kwargs):
@@ -346,6 +351,9 @@ def run_tests_affected(**kwargs):
     if kwargs["show_type"]:
         wpt_manifest = load_manifest(manifest_path)
         message = "{path}\t{item_type}"
+
+    message += "\0" if kwargs["null"] else "\n"
+
     for item in sorted(tests_changed | dependents):
         results = {
             "path": os.path.relpath(item, wpt_root)
@@ -355,4 +363,4 @@ def run_tests_affected(**kwargs):
             if len(item_types) != 1:
                 item_types = [" ".join(item_types)]
             results["item_type"] = item_types.pop()
-        print(message.format(**results))
+        sys.stdout.write(message.format(**results))

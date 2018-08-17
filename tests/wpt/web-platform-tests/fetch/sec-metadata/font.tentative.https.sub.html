@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+
+<link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<body>
+  <div id="test1">1</div>
+  <div id="test2">2</div>
+  <div id="test3">3</div>
+  <!-- Same-Origin request -->
+  <style>
+    @font-face {
+      font-family: myFirstFont;
+      src: url(https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=font-same-origin);
+    }
+    #test1 {
+      font-family: myFirstFont;
+    }
+  </style>
+
+  <!-- Same-Site request -->
+  <style>
+    @font-face {
+      font-family: mySecondFont;
+      src: url(https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=font-same-site);
+    }
+    #test2 {
+      font-family: mySecondFont;
+    }
+  </style>
+
+  <!-- Cross-Site request -->
+  <style>
+    @font-face {
+      font-family: myThirdFont;
+      src: url(https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=font-cross-site);
+    }
+    #test3 {
+      font-family: myThirdFont;
+    }
+  </style>
+</body>
+<script>
+  document.fonts.ready.then(function () {
+    test_same_origin();
+    test_same_site();
+    test_cross_site();
+  });
+
+  function test_same_origin(){
+    var same_origin_test = async_test("Same-Origin font");
+    same_origin_test.step(function () {
+        key = "font-same-origin";
+        expected_same_origin = {"destination":"font", "site":"same-origin"};
+
+        //  Requests from the server the saved value of the Sec-Metadata header
+        same_origin_xhr = new XMLHttpRequest();
+        same_origin_xhr.open("PUT", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
+
+        // Async test step triggered when the response is loaded
+        same_origin_xhr.onreadystatechange = same_origin_test.step_func(function () {
+          verify_response(same_origin_xhr, same_origin_test, expected_same_origin)
+        });
+        same_origin_xhr.send();
+    });
+  }
+
+  function test_same_site(){
+    var same_site_test = async_test("Same-Site font");
+    same_site_test.step(function () {
+        key = "font-same-site";
+        expected_same_site = {"destination":"font", "site":"same-site"};
+
+        //  Requests from the server the saved value of the Sec-Metadata header
+        same_site_xhr = new XMLHttpRequest();
+        same_site_xhr.open("GET", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
+
+        // Async test step triggered when the response is loaded
+        same_site_xhr.onreadystatechange = same_site_test.step_func(function () {
+          verify_response(same_site_xhr, same_site_test, expected_same_site)
+        });
+        same_site_xhr.send();
+    });
+  }
+
+  function test_cross_site(){
+    var cross_site_test = async_test("Cross-Site font");
+    cross_site_test.step(function () {
+        key = "font-cross-site";
+        expected_cross_site = {"destination":"font", "site":"cross-site"};
+
+        //  Requests from the server the saved value of the Sec-Metadata header
+        cross_site_xhr = new XMLHttpRequest();
+        cross_site_xhr.open("GET", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
+
+        // Async test step triggered when the response is loaded
+        cross_site_xhr.onreadystatechange = cross_site_test.step_func(function () {
+          verify_response(cross_site_xhr, cross_site_test, expected_cross_site)
+        });
+        cross_site_xhr.send();
+    });
+  }
+</script>

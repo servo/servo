@@ -17,7 +17,6 @@
       assert_header_equals(e.data, {
         "cause": "forced",
         "destination": "document",
-        "target": "top-level",
         "site": "same-origin"
       });
       t.done();
@@ -34,7 +33,6 @@
       assert_header_equals(e.data, {
         "cause": "forced",
         "destination": "document",
-        "target": "top-level",
         "site": "same-site"
       });
       t.done();
@@ -51,7 +49,6 @@
       assert_header_equals(e.data, {
         "cause": "forced",
         "destination": "document",
-        "target": "top-level",
         "site": "cross-site"
       });
       t.done();
@@ -71,7 +68,6 @@
         assert_header_equals(e.data, {
           "cause": "user-activated",
           "destination": "document",
-          "target": "top-level",
           "site": "same-origin"
         });
         t.done();
@@ -93,7 +89,6 @@
         assert_header_equals(e.data, {
           "cause": "user-activated",
           "destination": "document",
-          "target": "top-level",
           "site": "same-site"
         });
         t.done();
@@ -115,7 +110,6 @@
         assert_header_equals(e.data, {
           "cause": "user-activated",
           "destination": "document",
-          "target": "top-level",
           "site": "cross-site"
         });
         t.done();

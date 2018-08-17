@@ -270,6 +270,25 @@ html/browsers/offline/appcache/workers/resources/appcache-worker.py
     assert err == ""
 
 
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="Tests currently don't work on Windows for path reasons")
+def test_files_changed_null(capsys):
+    commit = "9047ac1d9f51b1e9faa4f9fad9c47d109609ab09"
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["files-changed", "--null", "%s~..%s" % (commit, commit)])
+    assert excinfo.value.code == 0
+    out, err = capsys.readouterr()
+    assert out == "\0".join(["html/browsers/offline/appcache/workers/appcache-worker.html",
+        "html/browsers/offline/appcache/workers/resources/appcache-dedicated-worker-not-in-cache.js",
+        "html/browsers/offline/appcache/workers/resources/appcache-shared-worker-not-in-cache.js",
+        "html/browsers/offline/appcache/workers/resources/appcache-worker-data.py",
+        "html/browsers/offline/appcache/workers/resources/appcache-worker-import.py",
+        "html/browsers/offline/appcache/workers/resources/appcache-worker.manifest",
+        "html/browsers/offline/appcache/workers/resources/appcache-worker.py",
+        ""])
+    assert err == ""
+
+
 def test_files_changed_ignore():
     from tools.wpt.testfiles import exclude_ignored
     files = ["resources/testharness.js", "resources/webidl2/index.js", "test/test.js"]
@@ -302,6 +321,25 @@ def test_tests_affected(capsys, manifest_dir):
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
     assert "infrastructure/reftest-wait.html" in out
+
+
+@pytest.mark.slow  # this updates the manifest
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="Tests currently don't work on Windows for path reasons")
+def test_tests_affected_null(capsys, manifest_dir):
+    # This doesn't really work properly for random commits because we test the files in
+    # the current working directory for references to the changed files, not the ones at
+    # that specific commit. But we can at least test it returns something sensible.
+    # The test will fail if the file we assert is renamed, so we choose a stable one.
+    commit = "9bf1daa3d8b4425f2354c3ca92c4cf0398d329dd"
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["tests-affected", "--null", "--metadata", manifest_dir, "%s~..%s" % (commit, commit)])
+    assert excinfo.value.code == 0
+    out, err = capsys.readouterr()
+
+    tests = out.split("\0")
+    assert "dom/interfaces.html" in tests
+    assert "html/dom/interfaces.https.html" in tests
 
 
 @pytest.mark.slow

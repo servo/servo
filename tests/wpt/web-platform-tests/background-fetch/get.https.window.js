@@ -8,8 +8,8 @@
 // https://wicg.github.io/background-fetch/#background-fetch-manager-get
 
 promise_test(async test => {
-  const script = 'resources/sw.js';
-  const scope = 'resources/scope' + location.pathname;
+  const script = 'service_workers/sw.js';
+  const scope = 'service_workers/' + location.pathname;
 
   const serviceWorkerRegistration =
       await service_worker_unregister_and_register(test, script, scope);

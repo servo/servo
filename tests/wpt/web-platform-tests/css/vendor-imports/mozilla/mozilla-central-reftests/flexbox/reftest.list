@@ -11,6 +11,7 @@
 == flexbox-align-content-horiz-001b.xhtml flexbox-align-content-horiz-001-ref.xhtml
 == flexbox-align-content-vert-001a.xhtml  flexbox-align-content-vert-001-ref.xhtml
 == flexbox-align-content-vert-001b.xhtml  flexbox-align-content-vert-001-ref.xhtml
+== flexbox-align-content-wmvert-001.xhtml  flexbox-align-content-wmvert-001-ref.xhtml
 
 # Tests for cross-axis alignment (align-self / align-items properties)
 == flexbox-align-self-baseline-horiz-001a.xhtml flexbox-align-self-baseline-horiz-001-ref.xhtml
@@ -39,6 +40,7 @@
 == flexbox-align-self-vert-rtl-002.xhtml  flexbox-align-self-vert-rtl-002-ref.xhtml
 == flexbox-align-self-vert-rtl-003.xhtml  flexbox-align-self-vert-rtl-003-ref.xhtml
 == flexbox-align-self-vert-rtl-004.xhtml  flexbox-align-self-vert-rtl-004-ref.xhtml
+== flexbox-align-self-vert-rtl-005.xhtml  flexbox-align-self-vert-rtl-005-ref.xhtml
 
 == flexbox-align-items-center-nested-001.html flexbox-align-items-center-nested-001-ref.html
 
@@ -158,12 +160,15 @@
 == flexbox-justify-content-horiz-003.xhtml flexbox-justify-content-horiz-003-ref.xhtml
 == flexbox-justify-content-horiz-004.xhtml flexbox-justify-content-horiz-004-ref.xhtml
 == flexbox-justify-content-horiz-005.xhtml flexbox-justify-content-horiz-005-ref.xhtml
+== flexbox-justify-content-horiz-006.xhtml flexbox-justify-content-horiz-006-ref.xhtml
 == flexbox-justify-content-vert-001a.xhtml flexbox-justify-content-vert-001-ref.xhtml
 == flexbox-justify-content-vert-001b.xhtml flexbox-justify-content-vert-001-ref.xhtml
 == flexbox-justify-content-vert-002.xhtml flexbox-justify-content-vert-002-ref.xhtml
 == flexbox-justify-content-vert-003.xhtml flexbox-justify-content-vert-003-ref.xhtml
 == flexbox-justify-content-vert-004.xhtml flexbox-justify-content-vert-004-ref.xhtml
 == flexbox-justify-content-vert-005.xhtml flexbox-justify-content-vert-005-ref.xhtml
+== flexbox-justify-content-vert-006.xhtml flexbox-justify-content-vert-006-ref.xhtml
+== flexbox-justify-content-wmvert-001.xhtml flexbox-justify-content-wmvert-001-ref.xhtml
 
 # Tests for flexbox with margin, border, and/or padding on flex items
 == flexbox-margin-auto-horiz-001.xhtml     flexbox-margin-auto-horiz-001-ref.xhtml
