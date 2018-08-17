@@ -18,6 +18,32 @@ the global scope.
 NB: presently, testdriver.js only works in the top-level test browsing
 context (and not therefore in any frame or window opened from it).
 
+### `test_driver.bless(intent, action)`
+#### `intent: a string describing the motivation for this invocation`
+#### `action: an optional function`
+
+This function simulates [activation][activation], allowing tests to
+perform privileged operations that require user interaction. For
+example, sandboxed iframes with the
+`allow-top-navigation-by-user-activation` may only navigate their
+parent's browsing context under these circumstances. The `intent`
+string is presented to human operators when the test is not run in
+automation.
+
+This method returns a promise which is resolved with the result of
+invoking the `action` function. If no such function is provided, the
+promise is resolved with the value `undefined`.
+
+Example:
+
+```js
+var mediaElement = document.createElement('video');
+
+test_driver.bless('initiate media playback', function () {
+  mediaElement.play();
+});
+```
+
 ### `test_driver.click(element)`
 #### `element: a DOM Element object`
 
@@ -48,4 +74,5 @@ between the function being called and the promise settling.
 To send special keys, one must send the respective key's codepoint. Since this uses the WebDriver protocol, you can find a [list for code points to special keys in the spec](https://w3c.github.io/webdriver/webdriver-spec.html#keyboard-actions).
 For example, to send the tab key you would send "\uE004".
 
+[activation]: https://html.spec.whatwg.org/multipage/interaction.html#activation
 [testharness]: {{ site.baseurl }}{% link _writing-tests/testharness.md %}

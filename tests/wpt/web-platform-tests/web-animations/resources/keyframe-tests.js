@@ -12,11 +12,11 @@
 // ------------------------------
 
 const gGoodKeyframeCompositeValueTests = [
-  'replace', 'add', 'accumulate', null
+  'replace', 'add', 'accumulate', 'auto'
 ];
 
 const gBadKeyframeCompositeValueTests = [
-  'unrecognised', 'replace ', 'Replace'
+  'unrecognised', 'replace ', 'Replace', null
 ];
 
 const gGoodOptionsCompositeValueTests = [
@@ -54,7 +54,7 @@ const keyframe = (offset, props, easing='linear', composite) => {
   // Object.assign instead.
   const result = {};
   Object.assign(result, offset, props, { easing });
-  result.composite = composite || null;
+  result.composite = composite || 'auto';
   return result;
 };
 

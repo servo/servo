@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<body>
+</body>
+<script>
+  function createVideoElement() {
+    let el = document.createElement('video');
+    el.src = "/media/movie_5.mp4";
+    el.setAttribute("controls", "");
+    el.setAttribute("crossorigin", "");
+    return el;
+  }
+
+  function createTrack() {
+    let el = document.createElement("track");
+    el.setAttribute("default", "");
+    el.setAttribute("kind", "captions");
+    el.setAttribute("srclang", "en");
+    return el;
+  }
+
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let video = createVideoElement();
+      let el = createTrack();
+      el.src = "https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=track-same-origin";
+      el.onload = t.step_func(_ => {
+        expected = {"destination":"track", "site":"same-origin"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=track-same-origin")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected))
+            .then(_ => resolve());
+      });
+      video.appendChild(el);
+      document.body.appendChild(video);
+    });
+  }, "Same-Origin track");
+
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let video = createVideoElement();
+      let el = createTrack();
+      el.src = "https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=track-same-site";
+      el.onload = t.step_func(_ => {
+        expected = {"destination":"track", "site":"same-site"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=track-same-site")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected))
+            .then(resolve)
+            .catch(reject);
+
+      });
+      video.appendChild(el);
+      document.body.appendChild(video);
+    });
+  }, "Same-Site track");
+
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let video = createVideoElement();
+      let el = createTrack();
+      el.src = "https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=track-cross-site";
+      el.onload = t.step_func(_ => {
+        expected = {"destination":"track", "site":"cross-site"};
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=track-cross-site")
+            .then(response => response.text())
+            .then(text => assert_header_equals(text, expected))
+            .then(resolve)
+            .catch(reject);
+      });
+      video.appendChild(el);
+      document.body.appendChild(video);
+    });
+  }, "Cross-Site track");
+</script>

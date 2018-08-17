@@ -22,7 +22,7 @@
 
       .flexbox > div {  float: left }
       .flex-start, .flex-end, .center, .baseline, .stretch,
-      .auto, .unspecified, .initial, .inherit {
+      .auto, .unspecified, .initial, .inherit, .self-start, .self-end {
         width: 40px;
         margin:       1px 2px 3px 4px;
         border-width: 2px 3px 4px 5px;
@@ -53,6 +53,16 @@
       .stretch {
         background: pink;
       }
+      .self-start {
+        background: yellow;
+      }
+      .self-end {
+        background: purple;
+      }
+      .wmvertrev {
+        writing-mode: vertical-lr;
+        direction: rtl;
+      }
    </style>
   </head>
   <body>
@@ -80,6 +90,13 @@
       </div>
       <div class="stretch" style="height: 182px">stretch</div>
       <div class="stretch big">a b c d e f</div>
+    </div>
+    <br/>
+    <div class="flexbox">
+      <div class="self-start">self-start</div>
+      <div class="self-start big">a b c d e f</div>
+      <div class="self-end wmvertrev">self-end</div>
+      <div class="self-end wmvertrev big">a b c d e f</div>
     </div>
   </body>
 </html>

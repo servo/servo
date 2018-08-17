@@ -8,5 +8,5 @@ def main(request, response):
         headers.append(("Access-Control-Allow-Origin", request.headers["origin"]))
 
 
-    body = json.dumps({ "header": request.headers["sec-metadata"] })
+    body = json.dumps({ "header": request.headers.get("sec-metadata", "") })
     return headers, body

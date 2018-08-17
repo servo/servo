@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<script>
+  // Open a window with XML document which loads resources via <?xml-stylesheet/> tag
+  let w = window.open("resources/xslt-test.sub.xml");
+  window.addEventListener('message', function(e) {
+    if (e.source != w)
+      return;
+
+    promise_test(t => {
+      let expected = {"destination":"xslt", "site":"same-origin"};
+      return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=xslt-same-origin")
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected));
+    }, "Same-Origin xslt");
+
+    promise_test(t => {
+      let expected = {"destination":"xslt", "site":"same-site"};
+      return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=xslt-same-site")
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected));
+    }, "Same-site xslt");
+
+    promise_test(t => {
+      let expected = {"destination":"xslt", "site":"cross-site"};
+      return fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=xslt-cross-site")
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected));
+    }, "Cross-site xslt");
+
+    w.close();
+  });
+
+</script>

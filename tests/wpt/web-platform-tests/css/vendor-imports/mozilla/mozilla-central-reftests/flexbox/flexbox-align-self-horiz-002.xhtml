@@ -57,6 +57,18 @@
         background: pink;
         align-self: stretch;
       }
+      .self-start {
+        background: yellow;
+        align-self: self-start;
+      }
+      .self-end {
+        background: purple;
+        align-self: self-end;
+      }
+      .wmvertrev {
+        writing-mode: vertical-lr;
+        direction: rtl;
+      }
    </style>
   </head>
   <body>
@@ -74,6 +86,13 @@
       <div class="baseline big">abc</div>
       <div class="stretch">stretch</div>
       <div class="stretch big">a b c d e f</div>
+    </div>
+    <br/>
+    <div class="flexbox">
+      <div class="self-start">self-start</div>
+      <div class="self-start big">a b c d e f</div>
+      <div class="self-end wmvertrev">self-end</div>
+      <div class="self-end wmvertrev big">a b c d e f</div>
     </div>
   </body>
 </html>

@@ -8,8 +8,8 @@
 promise_test(async test => {
   // 6.3.1.9.2: If |registration|’s active worker is null, then reject promise
   //            with a TypeError and abort these steps.
-  const script = 'resources/sw.js';
-  const scope = 'resources/scope' + location.pathname;
+  const script = 'service_workers/sw.js';
+  const scope = 'service_workers/' + location.pathname;
 
   const serviceWorkerRegistration =
       await service_worker_unregister_and_register(test, script, scope);
@@ -21,7 +21,7 @@ promise_test(async test => {
   await promise_rejects(
       test, new TypeError(),
       serviceWorkerRegistration.backgroundFetch.fetch(
-          uniqueId(), ['resources/sw.js']),
+          uniqueId(), ['resources/feature-name.txt']),
       'fetch() must reject on pending and installing workers');
 
 }, 'Background Fetch requires an activated Service Worker');
@@ -44,7 +44,9 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   // 6.3.1.7.2: If |internalRequest|’s mode is "no-cors", then return a
   //            promise rejected with a TypeError.
   {
-    const request = new Request('resources/sw.js', {mode: 'no-cors'});
+    const request =
+        new Request('resources/feature-name.txt', {mode: 'no-cors'});
+
     await promise_rejects(
         test, new TypeError(), backgroundFetch.fetch(uniqueId(), request),
         'Requests must not be in no-cors mode');
@@ -56,8 +58,8 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   // 6.3.1.9.2: If |bgFetchMap[id]| exists, reject |promise| with a TypeError
   //            and abort these steps.
   return promise_rejects(test, new TypeError(), Promise.all([
-    backgroundFetch.fetch('my-id', 'resources/sw.js'),
-    backgroundFetch.fetch('my-id', 'resources/feature-name.txt')
+    backgroundFetch.fetch('my-id', 'resources/feature-name.txt?1'),
+    backgroundFetch.fetch('my-id', 'resources/feature-name.txt?2')
   ]));
 
 }, 'IDs must be unique among active Background Fetch registrations');

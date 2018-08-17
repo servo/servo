@@ -56,16 +56,16 @@ test(t => {
     assert_equals(counter++, 3);
   }));
   child.addEventListener("hi", t.step_func(e => {
-    assert_equals(window.event, e);
+    assert_equals(window.event, undefined);
     assert_equals(counter++, 2);
   }));
   furtherChild.addEventListener("hi", t.step_func(e => {
     host.appendChild(child);
-    assert_equals(window.event, e);
+    assert_equals(window.event, undefined);
     assert_equals(counter++, 0);
   }));
   furtherChild.addEventListener("hi", t.step_func(e => {
-    assert_equals(window.event, e);
+    assert_equals(window.event, undefined);
     assert_equals(counter++, 1);
   }));
   furtherChild.dispatchEvent(new Event("hi", { composed: true, bubbles: true }));
@@ -75,7 +75,7 @@ test(t => {
 async_test(t => {
   const frame = document.body.appendChild(document.createElement("iframe"));
   frame.src = "resources/event-global-extra-frame.html";
-  frame.onload = t.step_func_done(() => {
+  frame.onload = t.step_func_done((load_event) => {
     const event = new Event("hi");
     document.addEventListener("hi", frame.contentWindow.listener); // listener intentionally not wrapped in t.step_func
     document.addEventListener("hi", t.step_func(e => {
@@ -85,6 +85,6 @@ async_test(t => {
     document.dispatchEvent(event);
     assert_equals(frameState.event, event);
     assert_equals(frameState.windowEvent, event);
-    assert_equals(frameState.parentEvent, undefined);
+    assert_equals(frameState.parentEvent, load_event);
   });
 }, "Listener from a different global");

@@ -229,9 +229,9 @@ test(t => {
 
   const expected = [
     { offset: 0, computedOffset: 0, easing: "ease",
-      color: "rgb(0, 0, 0)", composite: null },
+      color: "rgb(0, 0, 0)", composite: "auto" },
     { offset: 1, computedOffset: 1, easing: "ease",
-      color: "rgb(255, 255, 255)", composite: null },
+      color: "rgb(255, 255, 255)", composite: "auto" },
   ];
 
   for (let i = 0; i < frames.length; i++) {
@@ -299,10 +299,10 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       marginBottom: "8px", marginLeft: "8px",
       marginRight: "8px", marginTop: "8px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       marginBottom: "16px", marginLeft: "16px",
       marginRight: "16px", marginTop: "16px" },
   ];
@@ -323,9 +323,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 255)" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)" },
   ];
 
@@ -345,9 +345,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 255)" },
   ];
 
@@ -367,11 +367,11 @@ test(t => {
   assert_equals(frames.length, 3, "number of frames");
 
   const expected = [
-    { offset: 0,   computedOffset: 0,   easing: "ease", composite: null,
+    { offset: 0,   computedOffset: 0,   easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)" },
-    { offset: 0.5, computedOffset: 0.5, easing: "ease", composite: null,
+    { offset: 0.5, computedOffset: 0.5, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 255)" },
-    { offset: 1,   computedOffset: 1,   easing: "ease", composite: null,
+    { offset: 1,   computedOffset: 1,   easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)" },
   ];
 
@@ -391,9 +391,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       marginTop: '50px', marginBottom: '100px' },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       marginTop: '250px', marginBottom: '200px' },
   ];
 
@@ -413,13 +413,13 @@ test(t => {
   assert_equals(frames.length, 4, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 0)", marginTop: "8px" },
-    { offset: 0.25, computedOffset: 0.25, easing: "ease", composite: null,
+    { offset: 0.25, computedOffset: 0.25, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 255)" },
-    { offset: 0.75, computedOffset: 0.75, easing: "ease", composite: null,
+    { offset: 0.75, computedOffset: 0.75, easing: "ease", composite: "auto",
       marginTop: "12px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", marginTop: "16px" },
   ];
 
@@ -439,13 +439,13 @@ test(t => {
   assert_equals(frames.length, 4, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "linear", composite: null,
+    { offset: 0, computedOffset: 0, easing: "linear", composite: "auto",
       color: "rgb(0, 0, 0)", marginTop: "8px" },
-    { offset: 0.25, computedOffset: 0.25, easing: "steps(1)", composite: null,
+    { offset: 0.25, computedOffset: 0.25, easing: "steps(1)", composite: "auto",
       color: "rgb(0, 0, 255)" },
-    { offset: 0.75, computedOffset: 0.75, easing: "ease-in", composite: null,
+    { offset: 0.75, computedOffset: 0.75, easing: "ease-in", composite: "auto",
       marginTop: "12px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", marginTop: "16px" },
   ];
 
@@ -465,9 +465,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 0)", marginTop: "8px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", marginTop: "16px" },
   ];
 
@@ -487,11 +487,11 @@ test(t => {
   assert_equals(frames.length, 3, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "steps(1)", composite: null,
+    { offset: 0, computedOffset: 0, easing: "steps(1)", composite: "auto",
       color: "rgb(0, 0, 0)", fontSize: "16px" },
-    { offset: 0, computedOffset: 0, easing: "linear", composite: null,
+    { offset: 0, computedOffset: 0, easing: "linear", composite: "auto",
       marginTop: "8px", paddingLeft: "2px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(255, 255, 255)", fontSize: "32px", marginTop: "16px",
       paddingLeft: "4px" },
   ];
@@ -512,11 +512,11 @@ test(t => {
   assert_equals(frames.length, 3, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "steps(1)", composite: null,
+    { offset: 0, computedOffset: 0, easing: "steps(1)", composite: "auto",
       marginTop: "0px", marginRight: "0px", marginBottom: "0px" },
-    { offset: 0.5, computedOffset: 0.5, easing: "steps(1)", composite: null,
+    { offset: 0.5, computedOffset: 0.5, easing: "steps(1)", composite: "auto",
       marginTop: "10px", marginRight: "10px", marginBottom: "10px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       marginTop: "20px", marginRight: "20px", marginBottom: "20px" },
   ];
 
@@ -536,17 +536,17 @@ test(t => {
   assert_equals(frames.length, 6, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       paddingTop: "30px" },
-    { offset: 0.5, computedOffset: 0.5, easing: "ease", composite: null,
+    { offset: 0.5, computedOffset: 0.5, easing: "ease", composite: "auto",
       paddingTop: "20px" },
-    { offset: 0.75, computedOffset: 0.75, easing: "ease", composite: null,
+    { offset: 0.75, computedOffset: 0.75, easing: "ease", composite: "auto",
       paddingTop: "20px" },
-    { offset: 0.85, computedOffset: 0.85, easing: "ease", composite: null,
+    { offset: 0.85, computedOffset: 0.85, easing: "ease", composite: "auto",
       paddingTop: "30px" },
-    { offset: 0.851, computedOffset: 0.851, easing: "ease", composite: null,
+    { offset: 0.851, computedOffset: 0.851, easing: "ease", composite: "auto",
       paddingTop: "60px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       paddingTop: "70px" },
   ];
 
@@ -568,9 +568,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       filter: "none" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       filter: "blur(5px) sepia(60%) saturate(30%)" },
   ];
 
@@ -589,9 +589,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       filter: "drop-shadow(rgb(0, 255, 0) 10px 10px 10px)" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       filter: "drop-shadow(rgb(255, 0, 0) 50px 30px 10px)" },
   ];
 
@@ -617,11 +617,11 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       textShadow: "rgb(0, 0, 0) 1px 1px 2px,"
                   + " rgb(0, 0, 255) 0px 0px 16px,"
                   + " rgb(0, 0, 255) 0px 0px 3.2px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       textShadow: "none" },
   ];
 
@@ -644,9 +644,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       backgroundSize: "auto auto" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       backgroundSize: "50% auto, 6px auto, contain" },
   ];
 
@@ -676,9 +676,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       transform: "none" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       transform: "translate(100px, 0px)" },
   ];
   for (let i = 0; i < frames.length; i++) {
@@ -696,12 +696,12 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       marginBottom: "0px",
       marginLeft: "0px",
       marginRight: "0px",
       marginTop: "0px" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       marginBottom: "100px",
       marginLeft: "100px",
       marginRight: "100px",
@@ -722,9 +722,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       color: "rgb(0, 0, 0)" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       color: "rgb(0, 255, 0)" },
   ];
   for (let i = 0; i < frames.length; i++) {
@@ -742,9 +742,9 @@ test(t => {
   assert_equals(frames.length, 2, "number of frames");
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: null,
+    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
       transform: "translate(100px, 0px)" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: null,
+    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
       transform: "none" },
   ];
   for (let i = 0; i < frames.length; i++) {
