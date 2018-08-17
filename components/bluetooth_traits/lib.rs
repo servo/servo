@@ -5,7 +5,8 @@
 extern crate embedder_traits;
 extern crate ipc_channel;
 extern crate regex;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 
 pub mod blocklist;
 pub mod scanfilter;
@@ -83,7 +84,13 @@ pub enum BluetoothRequest {
     RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResponseResult>),
     GATTServerConnect(String, IpcSender<BluetoothResponseResult>),
     GATTServerDisconnect(String, IpcSender<BluetoothResult<()>>),
-    GetGATTChildren(String, Option<String>, bool, GATTType, IpcSender<BluetoothResponseResult>),
+    GetGATTChildren(
+        String,
+        Option<String>,
+        bool,
+        GATTType,
+        IpcSender<BluetoothResponseResult>,
+    ),
     ReadValue(String, IpcSender<BluetoothResponseResult>),
     WriteValue(String, Vec<u8>, IpcSender<BluetoothResponseResult>),
     EnableNotification(String, bool, IpcSender<BluetoothResponseResult>),
@@ -91,7 +98,11 @@ pub enum BluetoothRequest {
     SetRepresentedToNull(Vec<String>, Vec<String>, Vec<String>),
     IsRepresentedDeviceNull(String, IpcSender<bool>),
     GetAvailability(IpcSender<BluetoothResponseResult>),
-    MatchesFilter(String, BluetoothScanfilterSequence, IpcSender<BluetoothResult<bool>>),
+    MatchesFilter(
+        String,
+        BluetoothScanfilterSequence,
+        IpcSender<BluetoothResult<bool>>,
+    ),
     Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }
