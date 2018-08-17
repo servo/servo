@@ -7,6 +7,7 @@ import taskcluster
 task_id = taskcluster.slugId()
 payload = {
     "taskGroupId": os.environ["DECISION_TASK_ID"],
+    "dependencies": [os.environ["DECISION_TASK_ID"]],
     "provisionerId": "aws-provisioner-v1",
     "workerType": "github-worker",
     "created": taskcluster.fromNowJSON(""),
