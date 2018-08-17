@@ -35,6 +35,6 @@ payload = {
     },
 }
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
-queue = taskcluster.Queue(options={"baseUrl": "taskcluster/queue/"})
+queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/"})
 result = queue.createTask(task_id, payload)
 print("task %s created…? %r" % (task_id, result))
