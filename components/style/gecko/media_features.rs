@@ -150,14 +150,10 @@ fn eval_device_pixel_ratio(
     query_value: Option<f32>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
-    let ratio = unsafe {
-        bindings::Gecko_MediaFeatures_GetDevicePixelRatio(device.document())
-    };
-
-    RangeOrOperator::evaluate(
+    eval_resolution(
+        device,
+        query_value.map(Resolution::from_dppx),
         range_or_operator,
-        query_value,
-        ratio,
     )
 }
 
