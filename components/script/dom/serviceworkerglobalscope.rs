@@ -5,17 +5,20 @@
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
 use dom::abstractworker::WorkerScriptMsg;
+use dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWorkerGlobalScopeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, RootCollection, ThreadLocalStackRoots};
 use dom::bindings::str::DOMString;
+use dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::extendableevent::ExtendableEvent;
 use dom::extendablemessageevent::ExtendableMessageEvent;
 use dom::globalscope::GlobalScope;
+use dom::worker::TrustedWorkerAddress;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
@@ -29,7 +32,7 @@ use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorke
 use servo_config::prefs::PREFS;
 use servo_rand::random;
 use servo_url::ServoUrl;
-use std::sync::mpsc::{Receiver, Select, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
@@ -128,6 +131,40 @@ pub struct ServiceWorkerGlobalScope {
     #[ignore_malloc_size_of = "Defined in std"]
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
+}
+
+impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
+    type TimerMsg = ();
+    type WorkerMsg = ServiceWorkerScriptMsg;
+    type Event = MixedMessage;
+
+    fn timer_event_port(&self) -> &Receiver<()> {
+        &self.timer_event_port
+    }
+
+    fn task_queue(&self) -> &TaskQueue<ServiceWorkerScriptMsg> {
+        &self.task_queue
+    }
+
+    fn handle_event(&self, event: MixedMessage) {
+        self.handle_mixed_message(event);
+    }
+
+    fn handle_worker_post_event(&self, _worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
+        None
+    }
+
+    fn from_worker_msg(&self, msg: ServiceWorkerScriptMsg) -> MixedMessage {
+        MixedMessage::FromServiceWorker(msg)
+    }
+
+    fn from_timer_msg(&self, msg: ()) -> MixedMessage {
+        MixedMessage::FromTimeoutThread(msg)
+    }
+
+    fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
+        MixedMessage::FromDevtools(msg)
+    }
 }
 
 impl ServiceWorkerGlobalScope {
@@ -265,14 +302,14 @@ impl ServiceWorkerGlobalScope {
                 // The worker processing model remains on this step until the event loop is destroyed,
                 // which happens after the closing flag is set to true.
                 while !scope.is_closing() {
-                    global.run_event_loop();
+                   run_worker_event_loop(&*global, None);
                 }
             }, reporter_name, scope.script_chan(), CommonScriptMsg::CollectReports);
         }).expect("Thread spawning failed");
     }
 
-    fn handle_event(&self, event: MixedMessage) -> bool {
-        match event {
+    fn handle_mixed_message(&self, msg: MixedMessage) -> bool {
+        match msg {
             MixedMessage::FromDevtools(msg) => {
                 match msg {
                     DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) =>
@@ -319,66 +356,6 @@ impl ServiceWorkerGlobalScope {
                 let _ = mediator.response_chan.send(None);
             },
             WakeUp => {},
-        }
-    }
-
-    #[allow(unsafe_code)]
-    fn run_event_loop(&self) {
-        let scope = self.upcast::<WorkerGlobalScope>();
-        let devtools_port = scope.from_devtools_receiver();
-        let timer_event_port = &self.timer_event_port;
-
-        let sel = Select::new();
-        let mut worker_handle = sel.handle(self.task_queue.select());
-        let mut devtools_handle = sel.handle(devtools_port);
-        let mut timer_port_handle = sel.handle(timer_event_port);
-        unsafe {
-            worker_handle.add();
-            if scope.from_devtools_sender().is_some() {
-                devtools_handle.add();
-            }
-            timer_port_handle.add();
-        }
-
-        let ret = sel.wait();
-        let event = {
-            if ret == worker_handle.id() {
-                MixedMessage::FromServiceWorker(self.task_queue.take_tasks().recv().unwrap())
-            } else if ret == devtools_handle.id() {
-                MixedMessage::FromDevtools(devtools_port.recv().unwrap())
-            } else if ret == timer_port_handle.id() {
-                MixedMessage::FromTimeoutThread(timer_event_port.recv().unwrap())
-            } else {
-                panic!("unexpected select result!")
-            }
-        };
-
-        let mut sequential = vec![];
-        sequential.push(event);
-        // https://html.spec.whatwg.org/multipage/#worker-event-loop
-        // Once the WorkerGlobalScope's closing flag is set to true,
-        // the event loop's task queues must discard any further tasks
-        // that would be added to them
-        // (tasks already on the queue are unaffected except where otherwise specified).
-        while !scope.is_closing() {
-            // Batch all events that are ready.
-            // The task queue will throttle non-priority tasks if necessary.
-            match self.task_queue.take_tasks().try_recv() {
-                Err(_) => match timer_event_port.try_recv() {
-                    Err(_) => match devtools_port.try_recv() {
-                        Err(_) => break,
-                        Ok(ev) => sequential.push(MixedMessage::FromDevtools(ev)),
-                    },
-                    Ok(ev) => sequential.push(MixedMessage::FromTimeoutThread(ev)),
-                },
-                Ok(ev) => sequential.push(MixedMessage::FromServiceWorker(ev)),
-            }
-        }
-        // Step 3
-        for event in sequential {
-            self.handle_event(event);
-            // Step 6
-            self.upcast::<GlobalScope>().perform_a_microtask_checkpoint();
         }
     }
 
