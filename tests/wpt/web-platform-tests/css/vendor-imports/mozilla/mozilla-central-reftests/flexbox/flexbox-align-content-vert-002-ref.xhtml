@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSS Reftest Reference</title>
+    <link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com"/>
+    <style>
+      div.flexbox {
+        width: 200px;
+        margin-bottom: 2px;
+        background: lightgray;
+        height: 20px;
+        clear: all;
+      }
+      div.a {
+        width: 10px;
+        height: 20px;
+        background: lightgreen;
+        float: right;
+      }
+      div.b {
+        width: 30px;
+        height: 20px;
+        background: pink;
+        float: right;
+      }
+      div.c {
+        width: 40px;
+        height: 20px;
+        background: orange;
+        float: right;
+      }
+
+      /* Inside of 'b': */
+      div.fixedSizeChild {
+        width: 30px;
+        height: 10px;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- default (stretch) -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b" style="margin-right:80px; width:110px"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b" style="margin-right: 40px; width: 70px"><div class="fixedSizeChild"/></div>
+      <div class="c"/>
+    </div>
+
+    <!-- flex-start -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+      <div class="c"/>
+    </div>
+
+    <!-- flex-end -->
+    <div class="flexbox">
+      <div class="a" style="margin-right: 190px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 160px"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 120px"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+      <div class="c"/>
+    </div>
+
+    <!-- center -->
+    <div class="flexbox">
+      <div class="a" style="margin-right: 95px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 80px"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 60px"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+      <div class="c"/>
+    </div>
+
+    <!-- space-between -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b" style="margin-right: 160px"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b" style="margin-right: 60px"><div class="fixedSizeChild"/></div>
+      <div class="c" style="margin-right: 60px"/>
+    </div>
+
+    <!-- space-around -->
+    <div class="flexbox">
+      <div class="a" style="margin-right: 95px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 40px"/>
+      <div class="b" style="margin-right: 80px"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 20px"/>
+      <div class="b" style="margin-right: 40px"><div class="fixedSizeChild"/></div>
+      <div class="c" style="margin-right: 40px"/>
+    </div>
+
+    <!-- space-evenly -->
+    <div class="flexbox">
+      <div class="a" style="margin-right: 95px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: calc(160px / 3)"/>
+      <div class="b" style="margin-right: calc(160px / 3)"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 30px"/>
+      <div class="b" style="margin-right: 30px"><div class="fixedSizeChild"/></div>
+      <div class="c" style="margin-right: 30px"/>
+    </div>
+
+    <!-- start -->
+    <div class="flexbox">
+      <div class="a" style="margin-right: 190px"/>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 160px"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a" style="margin-right: 120px"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+      <div class="c"/>
+    </div>
+
+    <!-- end -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+    </div>
+    <div class="flexbox">
+      <div class="a"/>
+      <div class="b"><div class="fixedSizeChild"/></div>
+      <div class="c"/>
+    </div>
+  </body>
+</html>

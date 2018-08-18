@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/helper.sub.js"></script>
+
+  <meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+</head>
+<body>
+<script>
+  // TrustedURL replacements do not throw.
+  async_test(t => {
+    createURL_policy(window)
+        .then(t.step_func_done(p => {
+          let url = p.createURL(location.href + "#xxx");
+          location.replace(url);
+          assert_equals("" + url, location.href, "location href");
+    }));
+  }, "location.replace via policy (successful URL transformation).");
+
+  // String replacements throw.
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      location.replace("A string");
+    });
+  }, "`location.replace = string` throws");
+
+  // Null replacement throws.
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      location.replace(null);
+    });
+  }, "`location.replace = null` throws");
+</script>

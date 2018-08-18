@@ -12,7 +12,7 @@ promise_test(async t => {
   const wakeLock = await navigator.getWakeLock("screen");
   const request = wakeLock.createRequest();
   assert_true(wakeLock instanceof WakeLock, "wakeLock is a WakeLock");
-  assert_true(wakeLock.type instanceof WakeLockType, "wakeLock.type is a WakeLockType");
+  assert_equals(typeof wakeLock.type, "string", "the type of wakeLock.type is string");
   assert_equals(typeof wakeLock.active, "boolean", "the type of wakeLock.active is boolean");
   assert_true(request instanceof WakeLockRequest, "request is a WakeLockRequest");
 }, "Test that the Wake Lock API is correct");

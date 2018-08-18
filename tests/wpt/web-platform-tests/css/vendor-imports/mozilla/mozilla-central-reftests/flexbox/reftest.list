@@ -9,8 +9,10 @@
 # Tests for alignment of flex lines (align-content property)
 == flexbox-align-content-horiz-001a.xhtml flexbox-align-content-horiz-001-ref.xhtml
 == flexbox-align-content-horiz-001b.xhtml flexbox-align-content-horiz-001-ref.xhtml
+== flexbox-align-content-horiz-002.xhtml flexbox-align-content-horiz-002-ref.xhtml
 == flexbox-align-content-vert-001a.xhtml  flexbox-align-content-vert-001-ref.xhtml
 == flexbox-align-content-vert-001b.xhtml  flexbox-align-content-vert-001-ref.xhtml
+== flexbox-align-content-vert-002.xhtml flexbox-align-content-vert-002-ref.xhtml
 == flexbox-align-content-wmvert-001.xhtml  flexbox-align-content-wmvert-001-ref.xhtml
 
 # Tests for cross-axis alignment (align-self / align-items properties)

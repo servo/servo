@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.transport import Response
+
 from tests.support.asserts import assert_error, assert_same_element, assert_success
 from tests.support.inline import inline
 
@@ -8,6 +10,12 @@ def find_element(session, using, value):
     return session.transport.send(
         "POST", "session/{session_id}/element".format(**vars(session)),
         {"using": using, "value": value})
+
+
+def test_null_parameter_value(session, http):
+    path = "/session/{session_id}/element".format(**vars(session))
+    with http.post(path, None) as response:
+        assert_error(Response.from_http(response), "invalid argument")
 
 
 def test_no_browsing_context(session, closed_window):

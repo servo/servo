@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+<body>
+<script>
+  // TrustedHTML assignments do not throw.
+  async_test(t => {
+    createHTML_policy(window)
+      .then(t.step_func_done(p => {
+        let html = p.createHTML(INPUTS.HTML);
+        var range = document.createRange();
+        range.selectNodeContents(document.documentElement);
+        var result = range.createContextualFragment(html);
+        assert_equals(result.textContent, RESULTS.HTML);
+    }));
+  }, "range.createContextualFragment assigned via policy (successful HTML transformation).");
+
+  // String assignments throw.
+  test(t => {
+    var range = document.createRange();
+    range.selectNodeContents(document.documentElement);
+    assert_throws(new TypeError(), _ => {
+      var result = range.createContextualFragment("A string");
+    });
+  }, "`range.createContextualFragment(string)` throws.");
+
+  // Null assignment throws.
+  test(t => {
+    var range = document.createRange();
+    range.selectNodeContents(document.documentElement);
+    assert_throws(new TypeError(), _ => {
+      var result = range.createContextualFragment(null);
+    });
+  }, "`range.createContextualFragment(null)` throws.");
+</script>

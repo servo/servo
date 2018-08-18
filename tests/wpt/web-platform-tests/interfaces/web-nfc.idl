@@ -54,7 +54,7 @@ enum NFCPushTarget {
 
 dictionary NFCWatchOptions {
   USVString url = "";
-  NFCRecordType? recordType;
+  NFCRecordType recordType;
   USVString mediaType = "";
   NFCWatchMode mode = "web-nfc-only";
 };

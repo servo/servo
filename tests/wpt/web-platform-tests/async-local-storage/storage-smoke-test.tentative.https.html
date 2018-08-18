@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Async local storage storage export smoke test</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { testVariousMethodsWithDefaultArea } from "./helpers/als-tests.js";
+import { storage } from "std:async-local-storage";
+
+test(() => {
+  const { backingStore } = storage;
+  assert_array_equals(Object.keys(backingStore), ["database", "store", "version"]);
+  assert_own_property(backingStore, "database");
+  assert_own_property(backingStore, "store");
+  assert_own_property(backingStore, "version");
+  assert_equals(Object.getPrototypeOf(backingStore), Object.prototype);
+
+  assert_equals(backingStore.database, "async-local-storage:default");
+  assert_equals(backingStore.store, "store");
+  assert_equals(backingStore.version, 1);
+}, "backingStore returns the correct object");
+
+testVariousMethodsWithDefaultArea(
+  "Storage methods smoke test with string key and value", "key", "value", assert_equals
+);
+</script>
