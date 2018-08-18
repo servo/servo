@@ -86,3 +86,4 @@ url
 waiting
 webglcontextcreationerror
 week
+width
