@@ -161,6 +161,18 @@ impl MediaFeatureDescription {
     }
 }
 
+/// A simple helper to construct a `MediaFeatureDescription`.
+macro_rules! feature {
+    ($name:expr, $allows_ranges:expr, $evaluator:expr, $reqs:expr,) => {
+        $crate::media_queries::media_feature::MediaFeatureDescription {
+            name: $name,
+            allows_ranges: $allows_ranges,
+            evaluator: $evaluator,
+            requirements: $reqs,
+        }
+    }
+}
+
 impl fmt::Debug for MediaFeatureDescription {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("MediaFeatureExpression")

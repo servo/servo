@@ -16,17 +16,6 @@ use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
 use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
 
-macro_rules! feature {
-    ($name:expr, $allows_ranges:expr, $evaluator:expr, $reqs:expr,) => {
-        MediaFeatureDescription {
-            name: $name,
-            allows_ranges: $allows_ranges,
-            evaluator: $evaluator,
-            requirements: $reqs,
-        }
-    }
-}
-
 fn viewport_size(device: &Device) -> Size2D<Au> {
     let pc = device.pres_context();
     if pc.mIsRootPaginatedDocument() != 0 {
