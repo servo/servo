@@ -12,7 +12,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::settings_stack::is_execution_stack_empty;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::element::{
@@ -705,7 +704,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        // Steps 4-8, 10-11
+        // Steps 4-11
         let window = window_from_node(self);
         let line_number = if script.external {
             1
