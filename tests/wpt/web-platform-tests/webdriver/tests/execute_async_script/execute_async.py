@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.transport import Response
+
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -11,6 +13,12 @@ def execute_async_script(session, script, args=None):
     return session.transport.send(
         "POST", "/session/{session_id}/execute/async".format(**vars(session)),
         body)
+
+
+def test_null_parameter_value(session, http):
+    path = "/session/{session_id}/execute/async".format(**vars(session))
+    with http.post(path, None) as response:
+        assert_error(Response.from_http(response), "invalid argument")
 
 
 def test_no_browsing_context(session, closed_window):

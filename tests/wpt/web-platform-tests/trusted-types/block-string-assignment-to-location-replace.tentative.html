@@ -9,18 +9,15 @@
 </head>
 <body>
 <script>
-  //TrustedURL replacements work
-  test(t => {
-    var url = TrustedURL.create(location.href + "#xxx");
-    location.replace(url);
-    assert_equals("" + url, location.href, "location href");
-  }, "Basic processing: safe URL, safe construction.");
-
-  test(t => {
-    var url = TrustedURL.unsafelyCreate(location.href + "#xxx");
-    location.replace(url);
-    assert_equals("" + url, location.href, "location href");
-  }, "Basic processing: safe URL, unsafe construction.");
+  // TrustedURL replacements do not throw.
+  async_test(t => {
+    createURL_policy(window)
+        .then(t.step_func_done(p => {
+          let url = p.createURL(location.href + "#xxx");
+          location.replace(url);
+          assert_equals("" + url, location.href, "location href");
+    }));
+  }, "location.replace via policy (successful URL transformation).");
 
   // String replacements throw.
   test(t => {
@@ -29,7 +26,7 @@
     });
   }, "`location.replace = string` throws");
 
-  //Null replacement throws
+  // Null replacement throws.
   test(t => {
     assert_throws(new TypeError(), _ => {
       location.replace(null);

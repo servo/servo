@@ -84,3 +84,15 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(results[0].text, 'Background Fetch');
 
 }, 'Using Background Fetch to successfully fetch a single resource');
+
+backgroundFetchTest(async (test, backgroundFetch) => {
+  const registrationId = uniqueId();
+
+  // Very large download total that will definitely exceed the quota.
+  const options = {downloadTotal: Number.MAX_SAFE_INTEGER};
+  await promise_rejects(
+      test, "QUOTA_EXCEEDED_ERR",
+      backgroundFetch.fetch(registrationId, 'resources/feature-name.txt', options),
+      'This fetch should have thrown a quota exceeded error');
+
+}, 'Background Fetch that exceeds the quota throws a QuotaExceededError');

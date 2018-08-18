@@ -4,27 +4,12 @@
 <script src="support/helper.sub.js"></script>
 <body>
 <script>
-  promise_test(t => {
-    var url = TrustedURL.create(URLS.safe);
-    return createFrameAndHref(url);
-  }, "Basic processing: safe URL, safe construction.");
-
-  promise_test(t => {
-    var url = TrustedURL.unsafelyCreate(URLS.safe);
-    return createFrameAndHref(url);
-  }, "Basic processing: safe URL, unsafe construction.");
-
-  promise_test(t => {
-    var url = TrustedURL.create(URLS.javascript);
-    return createFrameAndHref(url).then(i => {
-      assert_equals(i.contentDocument.body.innerText, "");
-    });
-  }, "Basic processing: javascript URL, safe construction.");
-
-  promise_test(t => {
-    var url = TrustedURL.unsafelyCreate(URLS.javascript);
-    return createFrameAndHref(url).then(i => {
-      assert_equals(i.contentDocument.body.innerText, "scripted");
-    });
-  }, "Basic processing: javascript URL, unsafe construction.");
+  async_test(t => {
+    createURL_policy(window)
+      .then(t.step_func_done(p => {
+        let url = p.createURL(location.href + "#xxx");
+        location.href = url;
+        assert_equals("" + url, location.href, "location href");
+    }));
+  }, "location.href assigned via policy (successful URL transformation).");
 </script>
