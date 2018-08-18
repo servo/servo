@@ -782,7 +782,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        // Steps 4-8, 10-11
+        // Steps 4-11
         let window = window_from_node(self);
         let line_number = if script.external {
             1

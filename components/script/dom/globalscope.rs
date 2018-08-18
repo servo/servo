@@ -12,7 +12,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, AutoEntryScript};
+use crate::dom::bindings::settings_stack::{entry_global, incumbent_global, is_execution_stack_empty, AutoEntryScript};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
@@ -1699,7 +1699,7 @@ impl GlobalScope {
             iframe: profile_time::TimerMetadataFrameType::RootWindow,
             incremental: profile_time::TimerMetadataReflowType::FirstReflow,
         };
-        profile_time::profile(
+        let result = profile_time::profile(
             profile_time::ProfilerCategory::ScriptEvaluate,
             Some(metadata),
             self.time_profiler_chan().clone(),
@@ -1731,7 +1731,14 @@ impl GlobalScope {
                 maybe_resume_unwind();
                 result
             },
-        )
+        );
+
+        // Step 9
+        if is_execution_stack_empty() {
+            self.perform_a_microtask_checkpoint();
+        }
+
+        result
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
