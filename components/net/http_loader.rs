@@ -677,7 +677,7 @@ pub fn http_redirect_fetch(request: &mut Request,
     // Step 11
     if response.actual_response().status.map_or(false, |code|
         ((code == StatusCode::MovedPermanently || code == StatusCode::Found) && request.method == Method::Post) ||
-        code == StatusCode::SeeOther) {
+        (code == StatusCode::SeeOther && request.method != Method::Head)) {
         request.method = Method::Get;
         request.body = None;
     }
