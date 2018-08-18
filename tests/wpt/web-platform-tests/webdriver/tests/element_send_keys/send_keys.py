@@ -1,6 +1,7 @@
 import pytest
 
 from webdriver import Element
+from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
@@ -12,6 +13,16 @@ def element_send_keys(session, element, text):
             session_id=session.session_id,
             element_id=element.id),
         {"text": text})
+
+
+def test_null_parameter_value(session, http):
+    session.url = inline("<input>")
+    element = session.find.css("input", all=False)
+
+    path = "/session/{session_id}/element/{element_id}/value".format(
+        session_id=session.session_id, element_id=element.id)
+    with http.post(path, None) as response:
+        assert_error(Response.from_http(response), "invalid argument")
 
 
 def test_null_response_value(session):

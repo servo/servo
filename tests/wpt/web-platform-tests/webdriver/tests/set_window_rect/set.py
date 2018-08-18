@@ -2,6 +2,8 @@
 
 import pytest
 
+from webdriver.transport import Response
+
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -20,6 +22,12 @@ def is_fullscreen(session):
     return session.execute_script("""
         return !!(window.fullScreen || document.webkitIsFullScreen)
         """)
+
+
+def test_null_parameter_value(session, http):
+    path = "/session/{session_id}/window/rect".format(**vars(session))
+    with http.post(path, None) as response:
+        assert_error(Response.from_http(response), "invalid argument")
 
 
 def test_no_browsing_context(session, closed_window):

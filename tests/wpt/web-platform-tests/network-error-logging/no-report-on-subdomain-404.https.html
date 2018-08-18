@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>
+    Test that include_subdomains policies do NOT report HTTP errors
+  </title>
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='./support/nel.sub.js'></script>
+</head>
+<body>
+  <script>
+    nel_test(async t => {
+      // Make a request to a resource whose response headers include an
+      // include_subdomains NEL policy.
+      await fetchResourceWithIncludeSubdomainsPolicy();
+      // Make a request to another resource on a subdomain of the above.  This
+      // resource doesn't exist, so the server should return a 404.
+      await fetchMissingResource('www');
+      // The include_subdomains policy that we just received should NOT cover
+      // the second request, since include_subdomains policies can only report
+      // on DNS errors.
+      assert_false(await reportExists({
+        url: getURLForMissingResource('www'),
+        type: "network-error",
+      }));
+    });
+  </script>
+</body>
+</html>

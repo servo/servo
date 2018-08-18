@@ -9,33 +9,27 @@
 </head>
 <body>
 <script>
+  // TrustedURL assignments do not throw.
+  async_test(t => {
+    createURL_policy(window)
+      .then(t.step_func_done(p => {
+        let url = p.createURL(location.href + "#xxx");
+        location.href = url;
+        assert_equals("" + url, location.href, "location href");
+    }));
+  }, "location.href assigned via policy (successful URL transformation).");
+
   // String assignments throw.
-  promise_test(t => {
-    return promise_rejects(t, new TypeError(), createFrameAndHref("about:blank"));
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      location.href = 'A string';
+    });
   }, "`location.href = string` throws");
 
-  // TrustedURL assignments work.
-  promise_test(t => {
-    var url = TrustedURL.create(URLS.safe);
-    return createFrameAndHref(url);
-  }, "Basic processing: safe URL, safe construction.");
-
-  promise_test(t => {
-    var url = TrustedURL.unsafelyCreate(URLS.safe);
-    return createFrameAndHref(url);
-  }, "Basic processing: safe URL, unsafe construction.");
-
-  promise_test(t => {
-    var url = TrustedURL.create(URLS.javascript);
-    return createFrameAndHref(url).then(i => {
-      assert_equals(i.contentDocument.body.innerText, "");
+  // Null assignment throws.
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+      location.href = null;
     });
-  }, "Basic processing: javascript URL, safe construction.");
-
-  promise_test(t => {
-    var url = TrustedURL.unsafelyCreate(URLS.javascript);
-    return createFrameAndHref(url).then(i => {
-      assert_equals(i.contentDocument.body.innerText, "scripted");
-    });
-  }, "Basic processing: javascript URL, unsafe construction.");
+  }, "`location.href = null` throws");
 </script>

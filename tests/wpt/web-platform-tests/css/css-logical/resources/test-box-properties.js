@@ -23,9 +23,10 @@ const testValues = {
  *     inlineStart: "margin-inline-start", inlineEnd: "margin-inline-end",
  *     blockStart: "margin-block-start", blockEnd: "margin-block-end",
  *   }, shorthands: {
- *     inline: ["margin-inline-start", "margin-inline-end"],
- *     block: ["margin-block-start", "margin-block-end"],
- *   }, type: ["length"], prerequisites: "...", property: "'margin-*'" }
+ *     "margin": ["margin-top", "margin-right", "margin-bottom", "margin-left"],
+ *     "margin-inline": ["margin-inline-start", "margin-inline-end"],
+ *     "margin-block": ["margin-block-start", "margin-block-end"],
+ *   }, type: ["length"], prerequisites: "...", property: "margin-*" }
  *
  * @param {string} property
  *        A string representing the property names, like "margin-*".
@@ -59,8 +60,10 @@ export function createBoxPropertyGroup(property, descriptor) {
     physical[physicalSide] = isInset ? physicalSide : property.replace("*", physicalSide);
     prerequisites += makeDeclaration(descriptor.prerequisites, physicalSide);
   }
+  shorthands[property.replace("-*", "")] =
+    ["top", "right", "bottom", "left"].map(physicalSide => physical[physicalSide]);
   const type = [].concat(descriptor.type);
-  return {name, logical, physical, shorthands, type, prerequisites, property};
+  return {logical, physical, shorthands, type, prerequisites, property};
 }
 
 /**
@@ -109,6 +112,29 @@ export function runTests(group) {
   }, `Test that logical ${group.property} properties are supported.`);
   testElement.style.cssText = "";
 
+  const shorthandValues = {};
+  for (const [shorthand, longhands] of shorthands || []) {
+    let valueArray;
+    if (group.type.length > 1) {
+      valueArray = [values[0]];
+    } else {
+      valueArray = testValues[group.type].slice(0, longhands.length);
+    }
+    shorthandValues[shorthand] = valueArray;
+    const value = valueArray.join(" ");
+    const expected = [[shorthand, value]];
+    for (let [i, longhand] of longhands.entries()) {
+      expected.push([longhand, valueArray[group.type.length > 1 ? 0 : i]]);
+    }
+    test(function() {
+      testElement.style.setProperty(shorthand, value);
+      testCSSValues("shorthand in inline style", testElement.style, expected);
+      const stylesheet = `.test { ${group.prerequisites} }`;
+      testComputedValues("shorthand in computed style", stylesheet, expected);
+    }, `Test that ${shorthand} shorthand sets longhands and serializes correctly.`);
+    testElement.style.cssText = "";
+  }
+
   for (const writingMode of writingModes) {
     for (const style of writingMode.styles) {
       const writingModeDecl = makeDeclaration(style);
@@ -141,21 +167,15 @@ export function runTests(group) {
       }, `Test that logical ${group.property} properties share computed values `
        + `with their physical associates, with '${writingModeDecl}'.`);
 
-
       // Test logical shorthand properties.
       if (shorthands) {
         test(function() {
           for (const [shorthand, longhands] of shorthands) {
-            let shorthandValues;
-            if (group.type.length > 1) {
-              shorthandValues = [values[0]];
-            } else {
-              shorthandValues = testValues[group.type].slice(0, longhands.length);
-            }
-            const decl = group.prerequisites + `${shorthand}: ${shorthandValues.join(" ")}; `;
+            let valueArray = shorthandValues[shorthand];
+            const decl = group.prerequisites + `${shorthand}: ${valueArray.join(" ")}; `;
             const expected = [];
             for (let [i, longhand] of longhands.entries()) {
-              const longhandValue = shorthandValues[group.type.length > 1 ? 0 : i];
+              const longhandValue = valueArray[group.type.length > 1 ? 0 : i];
               expected.push([longhand, longhandValue]);
               expected.push([associated[longhand], longhandValue]);
             }

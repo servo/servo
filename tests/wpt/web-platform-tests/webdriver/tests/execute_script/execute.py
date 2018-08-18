@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.transport import Response
+
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -12,6 +14,12 @@ def execute_script(session, script, args=None):
         "POST", "/session/{session_id}/execute/sync".format(
             session_id=session.session_id),
         body)
+
+
+def test_null_parameter_value(session, http):
+    path = "/session/{session_id}/execute/sync".format(**vars(session))
+    with http.post(path, None) as response:
+        assert_error(Response.from_http(response), "invalid argument")
 
 
 def test_no_browsing_context(session, closed_window):
