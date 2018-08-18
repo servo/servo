@@ -8,6 +8,9 @@ use app_units::Au;
 use cssparser::RGBA;
 use euclid::{Size2D, TypedScale, TypedSize2D};
 use media_queries::MediaType;
+use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
+use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
+use media_queries::media_feature_expression::RangeOrOperator;
 use properties::ComputedValues;
 use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use style_traits::{CSSPixel, DevicePixel};
@@ -15,10 +18,6 @@ use style_traits::viewport::ViewportConstraints;
 use values::KeyframesName;
 use values::computed::CSSPixelLength;
 use values::computed::font::FontSize;
-
-use media_queries::media_feature::{MediaFeatureDescription, Evaluator};
-use media_queries::media_feature::{AllowsRanges, ParsingRequirements};
-use media_queries::media_feature_expression::RangeOrOperator;
 
 /// A device is a structure that represents the current media a given document
 /// is displayed in.
@@ -168,7 +167,7 @@ fn eval_width(
     )
 }
 
-#[derive(Debug, Copy, Clone, FromPrimitive, ToCss, Parse)]
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
 #[repr(u8)]
 enum Scan {
     Progressive,

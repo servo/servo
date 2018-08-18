@@ -4,14 +4,13 @@
 
 //! Media features.
 
-use super::Device;
-use super::media_feature_expression::{AspectRatio, RangeOrOperator};
-
 use Atom;
 use cssparser::Parser;
 use parser::ParserContext;
 use std::fmt;
 use style_traits::ParseError;
+use super::Device;
+use super::media_feature_expression::{AspectRatio, RangeOrOperator};
 use values::computed::{CSSPixelLength, Resolution};
 
 /// A generic discriminant for an enum value.
@@ -132,7 +131,7 @@ bitflags! {
 }
 
 /// Whether a media feature allows ranges or not.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[allow(missing_docs)]
 pub enum AllowsRanges {
     Yes,

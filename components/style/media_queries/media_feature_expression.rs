@@ -5,13 +5,11 @@
 //! Parsing for media feature expressions, like `(foo: bar)` or
 //! `(width >= 400px)`.
 
-use super::Device;
-use super::media_feature::{Evaluator, MediaFeatureDescription};
-use super::media_feature::{ParsingRequirements, KeywordDiscriminant};
-
 use Atom;
-use cssparser::{Parser, Token};
 use context::QuirksMode;
+use cssparser::{Parser, Token};
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs;
 use num_traits::Zero;
 use parser::{Parse, ParserContext};
 use std::cmp::{PartialOrd, Ordering};
@@ -19,17 +17,12 @@ use std::fmt::{self, Write};
 use str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use stylesheets::Origin;
+use super::Device;
+use super::media_feature::{Evaluator, MediaFeatureDescription};
+use super::media_feature::{ParsingRequirements, KeywordDiscriminant};
 use values::{serialize_atom_identifier, CSSFloat};
-use values::specified::{Integer, Length, Number, Resolution};
 use values::computed::{self, ToComputedValue};
-
-#[cfg(feature = "gecko")]
-use gecko_bindings::structs;
-
-#[cfg(feature = "gecko")]
-use gecko::media_features::MEDIA_FEATURES;
-#[cfg(feature = "servo")]
-use servo::media_queries::MEDIA_FEATURES;
+use values::specified::{Integer, Length, Number, Resolution};
 
 /// An aspect ratio, with a numerator and denominator.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
@@ -287,6 +280,11 @@ impl MediaFeatureExpression {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        #[cfg(feature = "gecko")]
+        use gecko::media_features::MEDIA_FEATURES;
+        #[cfg(feature = "servo")]
+        use servo::media_queries::MEDIA_FEATURES;
+
         // FIXME: remove extra indented block when lifetimes are non-lexical
         let feature;
         let range;
