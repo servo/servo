@@ -416,7 +416,7 @@ impl HTMLMediaElement {
             base_url: doc.base_url(),
         };
 
-        // FIXME(nox): This will later call the resource_selection_algorith_sync
+        // FIXME(nox): This will later call the resource_selection_algorithm_sync
         // method from below, if microtasks were trait objects, we would be able
         // to put the code directly in this method, without the boilerplate
         // indirections.
