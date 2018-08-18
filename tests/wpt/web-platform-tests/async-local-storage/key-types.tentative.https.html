@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Async local storage: tests against various key types</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script type="module">
+import { testWithArea, testVariousMethods } from "./helpers/als-tests.js";
+import { assertEqualDates, assertEqualArrayBuffers, assertArrayBufferEqualsABView }
+  from "./helpers/equality-asserters.js";
+
+const invalidKeys = {
+  "undefined": undefined,
+  "null": null,
+  "a boolean": true,
+  "a symbol": Symbol("a symbol"),
+  "an object": { an: "object" },
+  "a function": () => {},
+  "a regexp": /foo/,
+  "a Map": new Map(),
+  "a Set": new Set(),
+  "an IDBKeyRange": IDBKeyRange.only(5)
+};
+
+const validKeys = {
+  "a number": [5, assert_equals],
+  "a string": ["a string", assert_equals],
+  "a Date": [new Date(), assertEqualDates],
+  "a typed array": [new Uint8Array([1, 2]), assertArrayBufferEqualsABView],
+  "a DataView": [new DataView(new Uint8Array([3, 4]).buffer), assertArrayBufferEqualsABView],
+  "an ArrayBuffer": [new Uint8Array([5, 6]).buffer, assertEqualArrayBuffers]
+};
+
+const methods = ["set", "get", "has", "delete"];
+
+for (const method of methods) {
+  testWithArea(async (area, t) => {
+    for (const [description, key] of Object.entries(invalidKeys)) {
+      await promise_rejects(t, "DataError", area[method](key), description);
+    }
+  }, `${method}: invalid keys`);
+
+  testWithArea(async (area, t) => {
+    for (const [description, key] of Object.entries(invalidKeys)) {
+      await promise_rejects(t, "DataError", area[method]([key]), description);
+    }
+  }, `${method}: invalid keys, nested in arrays`);
+
+  testWithArea(async (area, t) => {
+    for (const [key] of Object.values(validKeys)) {
+      await area[method](key);
+    }
+  }, `${method}: valid keys`);
+
+  testWithArea(async (area, t) => {
+    for (const [key] of Object.values(validKeys)) {
+      await area[method]([key]);
+    }
+  }, `${method}: valid keys, nested in arrays`);
+}
+
+for (const [description, [key, equalityAsserter]] of Object.entries(validKeys)) {
+  testVariousMethods(`Storage methods smoke test: ${description} key`, key, 5, equalityAsserter);
+}
+</script>

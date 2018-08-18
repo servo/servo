@@ -5,7 +5,7 @@
 <div id="log"></div>
 <script>
 var tests = [async_test("global scope unchanged"),
-             async_test("window object changed"),
+             async_test("window object unchanged"),
              async_test("this is the window object")];
 function tests_done() {
   tests.forEach(function(t) {t.done()});

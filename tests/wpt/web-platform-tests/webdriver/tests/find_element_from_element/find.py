@@ -1,5 +1,7 @@
 import pytest
 
+from webdriver.transport import Response
+
 from tests.support.asserts import assert_error, assert_same_element, assert_success
 from tests.support.inline import inline
 
@@ -10,6 +12,16 @@ def find_element(session, element_id, using, value):
             session_id=session.session_id,
             element_id=element_id),
         {"using": using, "value": value})
+
+
+def test_null_parameter_value(session, http):
+    session.url = inline("<div><a href=# id=linkText>full link text</a></div>")
+    element = session.find.css("div", all=False)
+
+    path = "/session/{session_id}/element/{element_id}/element".format(
+        session_id=session.session_id, element_id=element.id)
+    with http.post(path, None) as response:
+        assert_error(Response.from_http(response), "invalid argument")
 
 
 def test_no_browsing_context(session, closed_window):
@@ -80,7 +92,7 @@ def test_find_element_partial_link_text(session, document, value):
     assert_success(response)
 
 
-@pytest.mark.parametrize("using,value",[("css selector", "#wontExist")])
+@pytest.mark.parametrize("using,value", [("css selector", "#wontExist")])
 def test_no_element(session, using, value):
     # Step 8 - 9
     session.url = inline("<div></div>")

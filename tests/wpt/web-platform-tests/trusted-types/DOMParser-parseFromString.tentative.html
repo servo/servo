@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<body>
+<script>
+  async_test(t => {
+    createHTML_policy(window)
+      .then(t.step_func_done(p => {
+        let html = p.createHTML(INPUTS.HTML);
+        let parser = new DOMParser();
+        let doc = parser.parseFromString(html, "text/html");
+        assert_equals(doc.body.innerText, RESULTS.HTML);
+    }));
+  }, "document.innerText assigned via policy (successful HTML transformation).");
+
+  test(t => {
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(null, "text/html");
+    assert_equals(doc.body.innerText, "null");
+  }, "document.innerText = null.");
+</script>

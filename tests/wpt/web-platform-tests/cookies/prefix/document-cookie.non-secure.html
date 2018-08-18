@@ -12,7 +12,7 @@
 
       assert_dom_cookie(name, value, shouldExistInDOM);
 
-      return credFetch("/cookies/rfx6265bis/resources/list.py")
+      return credFetch("/cookies/resources/list.py")
         .then(r => r.json())
         .then(cookies => assert_equals(cookies[name], shouldExistViaHTTP ? value : undefined));
     }, title);
