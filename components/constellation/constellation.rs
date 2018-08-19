@@ -687,7 +687,7 @@ where
         pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        parent_info: Option<PipelineId>,
+        parent_pipeline_id: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
         initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
         // TODO: we have to provide ownership of the LoadData
@@ -725,7 +725,7 @@ where
                         },
                     }
                 } else if let Some(parent) =
-                    parent_info.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
+                    parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
                 {
                     (Some(parent.event_loop.clone()), None)
                 } else if let Some(creator) = load_data
@@ -745,7 +745,7 @@ where
             self.public_resource_threads.clone()
         };
 
-        let parent_visibility = parent_info
+        let parent_visibility = parent_pipeline_id
             .and_then(|parent_pipeline_id| self.pipelines.get(&parent_pipeline_id))
             .map(|pipeline| pipeline.visible);
 
@@ -760,7 +760,7 @@ where
             id: pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
-            parent_info,
+            parent_pipeline_id,
             opener,
             script_to_constellation_chan: ScriptToConstellationChan {
                 sender: self.script_sender.clone(),
@@ -851,19 +851,21 @@ where
         browsing_context_id: BrowsingContextId,
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
+        parent_pipeline_id: Option<PipelineId>,
     ) {
         debug!("Creating new browsing context {}", browsing_context_id);
-        let browsing_context = BrowsingContext::new(browsing_context_id, top_level_id, pipeline_id);
+        let browsing_context = BrowsingContext::new(
+            browsing_context_id,
+            top_level_id,
+            pipeline_id,
+            parent_pipeline_id
+        );
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
 
-        // If a child browsing_context, add it to the parent pipeline.
-        let parent_info = self
-            .pipelines
-            .get(&pipeline_id)
-            .and_then(|pipeline| pipeline.parent_info);
-        if let Some(parent_id) = parent_info {
-            if let Some(parent) = self.pipelines.get_mut(&parent_id) {
+        // If this context is a nested container, attach it to parent pipeline.
+        if let Some(parent_pipeline_id) = parent_pipeline_id {
+            if let Some(parent) = self.pipelines.get_mut(&parent_pipeline_id) {
                 parent.add_child(browsing_context_id);
             }
         }
@@ -1245,12 +1247,13 @@ where
                 }
             },
             FromScriptMsg::GetParentInfo(pipeline_id, sender) => {
-                let result = self
-                    .pipelines
+                let browsing_context = self.pipelines
                     .get(&pipeline_id)
-                    .and_then(|pipeline| pipeline.parent_info);
-                if let Err(e) = sender.send(result) {
-                    warn!("Sending reply to get parent info failed ({:?}).", e);
+                    .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id));
+                if let Some(browsing_context) = browsing_context {
+                    if let Err(e) = sender.send(browsing_context.parent_pipeline_id) {
+                        warn!("Sending reply to get parent info failed ({:?}).", e);
+                    }
                 }
             },
             FromScriptMsg::GetTopForBrowsingContext(browsing_context_id, sender) => {
@@ -1544,19 +1547,19 @@ where
             EmbedderMsg::Panic(reason, backtrace),
         ));
 
-        let (window_size, pipeline_id) = {
+        let (window_size, parent_pipeline_id, pipeline_id) = {
             let browsing_context = self.browsing_contexts.get(&browsing_context_id);
-            let window_size = browsing_context.and_then(|browsing_context| browsing_context.size);
-            let pipeline_id = browsing_context.map(|browsing_context| browsing_context.pipeline_id);
-            (window_size, pipeline_id)
+            let window_size = browsing_context.and_then(|context| context.size);
+            let parent_pipeline_id = browsing_context.and_then(|context| context.parent_pipeline_id);
+            let pipeline_id = browsing_context.map(|context| context.pipeline_id);
+            (window_size, parent_pipeline_id, pipeline_id)
         };
 
-        let (pipeline_url, parent_info, opener) = {
+        let (pipeline_url, opener) = {
             let pipeline = pipeline_id.and_then(|id| self.pipelines.get(&id));
             let pipeline_url = pipeline.map(|pipeline| pipeline.url.clone());
-            let parent_info = pipeline.and_then(|pipeline| pipeline.parent_info);
             let opener = pipeline.and_then(|pipeline| pipeline.opener);
-            (pipeline_url, parent_info, opener)
+            (pipeline_url, opener)
         };
 
         self.close_browsing_context_children(
@@ -1582,7 +1585,7 @@ where
             new_pipeline_id,
             browsing_context_id,
             top_level_browsing_context_id,
-            parent_info,
+            parent_pipeline_id,
             opener,
             window_size,
             load_data.clone(),
@@ -1593,6 +1596,7 @@ where
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
+            parent_pipeline_id: parent_pipeline_id,
             replace: None,
         });
     }
@@ -1683,6 +1687,7 @@ where
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: pipeline_id,
+            parent_pipeline_id: None,
             replace: None,
         });
     }
@@ -1711,11 +1716,16 @@ where
 
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let (browsing_context_id, parent_id) = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => match pipeline.parent_info {
-                Some(parent_id) => (pipeline.browsing_context_id, parent_id),
-                None => return debug!("Pipeline {} has no parent.", pipeline_id),
+            Some(pipeline) => match self.browsing_contexts.get(&pipeline.browsing_context_id) {
+                Some(browsing_context) => (browsing_context.id, browsing_context.parent_pipeline_id),
+                // TODO(mandreyel): debug or warn? can this even happen?
+                None => return warn!("Pipeline {} has no associated browsing context.", pipeline_id),
             },
             None => return warn!("Pipeline {} loaded after closure.", pipeline_id),
+        };
+        let parent_id = match parent_id {
+            Some(parent_id) => parent_id,
+            None => return warn!("Pipeline {} has no parent.", pipeline_id),
         };
         let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
             target: browsing_context_id,
@@ -1817,6 +1827,7 @@ where
             top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
             browsing_context_id: load_info.info.browsing_context_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
+            parent_pipeline_id: Some(load_info.info.parent_pipeline_id),
             replace,
         });
     }
@@ -1852,7 +1863,6 @@ where
                 new_pipeline_id,
                 browsing_context_id,
                 top_level_browsing_context_id,
-                Some(parent_pipeline_id),
                 None,
                 script_sender,
                 layout_sender,
@@ -1871,6 +1881,7 @@ where
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
+            parent_pipeline_id: Some(parent_pipeline_id),
             replace: None,
         });
     }
@@ -1899,7 +1910,6 @@ where
             Pipeline::new(new_pipeline_id,
                           new_browsing_context_id,
                           new_top_level_browsing_context_id,
-                          None,
                           Some(opener_id),
                           script_sender,
                           layout_sender,
@@ -1917,6 +1927,8 @@ where
             top_level_browsing_context_id: new_top_level_browsing_context_id,
             browsing_context_id: new_browsing_context_id,
             new_pipeline_id: new_pipeline_id,
+            // Auxiliary browsing contexts are always top level.
+            parent_pipeline_id: None,
             replace: None,
         });
     }
@@ -2004,14 +2016,25 @@ where
         // requested change so it can update its internal state.
         //
         // If replace is true, the current entry is replaced instead of a new entry being added.
-        let (browsing_context_id, parent_info, opener) = match self.pipelines.get(&source_id) {
-            Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info, pipeline.opener),
+        let (browsing_context_id, parent_id, opener) = match self.pipelines.get(&source_id) {
+            Some(pipeline) => match self.browsing_contexts.get(&pipeline.browsing_context_id) {
+                Some(browsing_context) => (
+                    browsing_context.id,
+                    browsing_context.parent_pipeline_id,
+                    pipeline.opener,
+                ),
+                None => {
+                    // TODO(mandreyel): error message
+                    warn!("Pipeline {} has no associated browsing context.", source_id);
+                    return None;
+                },
+            },
             None => {
                 warn!("Pipeline {} loaded after closure.", source_id);
                 return None;
             },
         };
-        match parent_info {
+        match parent_id {
             Some(parent_pipeline_id) => {
                 // Find the script thread for the pipeline containing the iframe
                 // and issue an iframe load through there.
@@ -2092,6 +2115,7 @@ where
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
+                    parent_pipeline_id: None,
                     replace,
                 });
                 Some(new_pipeline_id)
@@ -2121,10 +2145,15 @@ where
         top_level_browsing_context_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
     ) {
-        if self
-            .pipelines
+        // TODO(mandreyel): we could pass browsing_context_id to
+        // handle_load_start_msg to avoid the pipeline lookup, but consult with
+        // servo team before making API changes. Or even better, why not just
+        // compare browsing_context_id to top_level_browsing_context_id?
+        if self.pipelines
             .get(&pipeline_id)
-            .and_then(|p| p.parent_info)
+            .map(|pipeline| pipeline.browsing_context_id)
+            .and_then(|context_id| self.browsing_contexts.get(&context_id))
+            .and_then(|context| context.parent_pipeline_id)
             .is_none()
         {
             // Notify embedder top level document started loading.
@@ -2367,33 +2396,25 @@ where
                 // TODO: Save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let new_pipeline_id = PipelineId::new();
-                let (top_level_id, parent_info, opener, window_size, is_private) =
-                    match self.browsing_contexts.get(&browsing_context_id) {
-                        Some(browsing_context) => {
-                            match self.pipelines.get(&browsing_context.pipeline_id) {
-                                Some(pipeline) => (
-                                    browsing_context.top_level_id,
-                                    pipeline.parent_info,
-                                    pipeline.opener,
-                                    browsing_context.size,
-                                    pipeline.is_private,
-                                ),
-                                None => (
-                                    browsing_context.top_level_id,
-                                    None,
-                                    None,
-                                    browsing_context.size,
-                                    false,
-                                ),
-                            }
-                        },
-                        None => return warn!("No browsing context to traverse!"),
-                    };
+                let (top_level_id, pipeline_id, parent_pipeline_id, window_size) = match self.browsing_contexts.get(&browsing_context_id) {
+                    Some(browsing_context) => (
+                        browsing_context.top_level_id,
+                        browsing_context.pipeline_id,
+                        browsing_context.parent_pipeline_id,
+                        browsing_context.size,
+                    ),
+                    None => return warn!("No browsing context to traverse!"),
+                };
+                let (opener, is_private) = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => (pipeline.opener, pipeline.is_private),
+                    None => (None, false),
+                };
+
                 self.new_pipeline(
                     new_pipeline_id,
                     browsing_context_id,
                     top_level_id,
-                    parent_info,
+                    parent_pipeline_id,
                     opener,
                     window_size,
                     load_data.clone(),
@@ -2404,35 +2425,32 @@ where
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
+                    parent_pipeline_id: parent_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data.clone())),
                 });
                 return;
             },
         };
 
-        let old_pipeline_id = match self.browsing_contexts.get_mut(&browsing_context_id) {
-            Some(browsing_context) => {
-                let old_pipeline_id = browsing_context.pipeline_id;
-                browsing_context.update_current_entry(new_pipeline_id);
-                old_pipeline_id
-            },
-            None => {
-                return warn!(
-                    "Browsing context {} was closed during traversal",
-                    browsing_context_id
-                );
-            },
+        let (old_pipeline_id, parent_pipeline_id) = {
+            // Unfortunately, we need to lookup browsing context twice to
+            // satisfy the borrow-checker.
+            let browsing_context = match self.browsing_contexts.get_mut(&browsing_context_id) {
+                Some(browsing_context) => browsing_context,
+                None => return warn!(
+                        "Browsing context {} was closed during traversal",
+                        browsing_context_id
+                    ),
+            };
+            let old_pipeline_id = browsing_context.pipeline_id;
+            browsing_context.update_current_entry(new_pipeline_id);
+            (old_pipeline_id, browsing_context.parent_pipeline_id)
         };
-
-        let parent_info = self
-            .pipelines
-            .get(&old_pipeline_id)
-            .and_then(|pipeline| pipeline.parent_info);
 
         self.update_activity(old_pipeline_id);
         self.update_activity(new_pipeline_id);
 
-        if let Some(parent_pipeline_id) = parent_info {
+        if let Some(parent_pipeline_id) = parent_pipeline_id {
             let msg = ConstellationControlMsg::UpdatePipelineId(
                 parent_pipeline_id,
                 browsing_context_id,
@@ -2665,11 +2683,18 @@ where
     }
 
     fn focus_parent_pipeline(&mut self, pipeline_id: PipelineId) {
-        let (browsing_context_id, parent_info) = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info),
+        let (browsing_context_id, parent_id) = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => match self.browsing_contexts.get(&pipeline.browsing_context_id) {
+                Some(browsing_context) => (
+                    pipeline.browsing_context_id,
+                    browsing_context.parent_pipeline_id,
+                ),
+                // TODO(mandreyel): is this warning message ok?
+                None => return warn!("Pipeline {:?} browsing context not found", pipeline_id),
+            },
             None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
-        let parent_pipeline_id = match parent_info {
+        let parent_pipeline_id = match parent_id {
             Some(info) => info,
             None => return debug!("Pipeline {:?} focus has no parent.", pipeline_id),
         };
@@ -2730,11 +2755,19 @@ where
     }
 
     fn handle_visibility_change_complete(&mut self, pipeline_id: PipelineId, visibility: bool) {
-        let (browsing_context_id, parent_pipeline_info) = match self.pipelines.get(&pipeline_id) {
+        let (browsing_context_id, parent_id) = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => match self.browsing_contexts.get(&pipeline.browsing_context_id) {
+                Some(browsing_context) => (
+                    browsing_context.id,
+                    browsing_context.parent_pipeline_id,
+                ),
+                // TODO(mandreyel): is this warning message ok?
+                None => return warn!("Pipeline {:?} browsing context not found", pipeline_id),
+            },
             None => return warn!("Visibity change for closed pipeline {:?}.", pipeline_id),
-            Some(pipeline) => (pipeline.browsing_context_id, pipeline.parent_info),
         };
-        if let Some(parent_pipeline_id) = parent_pipeline_info {
+
+        if let Some(parent_pipeline_id) = parent_id {
             let visibility_msg = ConstellationControlMsg::NotifyVisibilityChange(
                 parent_pipeline_id,
                 browsing_context_id,
@@ -2867,10 +2900,11 @@ where
     }
 
     fn notify_history_changed(&self, top_level_browsing_context_id: TopLevelBrowsingContextId) {
-        // Send a flat projection of the history.
-        // The final vector is a concatenation of the LoadData of the past entries,
-        // the current entry and the future entries.
-        // LoadData of inner frames are ignored and replaced with the LoadData of the parent.
+        // Send a flat projection of the history to embedder.
+        // The final vector is a concatenation of the LoadData of the past
+        // entries, the current entry and the future entries.
+        // LoadData of inner frames are ignored and replaced with the LoadData
+        // of the parent.
 
         let session_history = match self
             .joint_session_histories
@@ -3048,6 +3082,7 @@ where
                     change.browsing_context_id,
                     change.top_level_browsing_context_id,
                     change.new_pipeline_id,
+                    change.parent_pipeline_id,
                 );
                 self.update_activity(change.new_pipeline_id);
                 self.notify_history_changed(change.top_level_browsing_context_id);
@@ -3223,19 +3258,21 @@ where
 
         // Notify the parent (if there is one).
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            if let Some(parent_pipeline_id) = pipeline.parent_info {
-                if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
-                    let msg = ConstellationControlMsg::UpdatePipelineId(
-                        parent_pipeline_id,
-                        pipeline.browsing_context_id,
-                        pipeline_id,
-                        UpdatePipelineIdReason::Navigation,
-                    );
-                    let _ = parent_pipeline.event_loop.send(msg);
+            if let Some(browsing_context) = self.browsing_contexts.get(&pipeline.browsing_context_id) {
+                if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id {
+                    if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
+                        let msg = ConstellationControlMsg::UpdatePipelineId(
+                            parent_pipeline_id,
+                            pipeline.browsing_context_id,
+                            pipeline_id,
+                            UpdatePipelineIdReason::Navigation,
+                        );
+                        let _ = parent_pipeline.event_loop.send(msg);
+                    }
                 }
             }
         }
-
+ 
         // Find the pending change whose new pipeline id is pipeline_id.
         let pending_index = self
             .pending_changes
@@ -3420,7 +3457,7 @@ where
                     self.browsing_contexts.get(&ancestor.browsing_context_id)
                 {
                     if browsing_context.pipeline_id == ancestor_id {
-                        if let Some(parent_id) = ancestor.parent_info {
+                        if let Some(parent_id) = browsing_context.parent_pipeline_id {
                             ancestor_id = parent_id;
                             continue;
                         } else {
@@ -3544,12 +3581,7 @@ where
             session_history.remove_entries_for_browsing_context(browsing_context_id);
         }
 
-        let parent_info = self
-            .pipelines
-            .get(&browsing_context.pipeline_id)
-            .and_then(|pipeline| pipeline.parent_info);
-
-        if let Some(parent_pipeline_id) = parent_info {
+        if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id{
             match self.pipelines.get_mut(&parent_pipeline_id) {
                 None => {
                     return warn!(

@@ -111,6 +111,10 @@ pub struct SessionHistoryChange {
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
+    /// The parent pipeline of the pipeline for the document being loaded, if
+    /// this is not the pipeline in a top level browsing context.
+    pub parent_pipeline_id: Option<PipelineId>,
+
     /// The old pipeline that the new pipeline should replace.
     pub replace: Option<NeedsToReload>,
 }
