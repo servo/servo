@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("InheritedUI", inherited=True, gecko_name="UserInterface") %>
+<% data.new_style_struct("InheritedUI", inherited=True, gecko_name="UI") %>
 
 ${helpers.predefined_type("cursor",
                           "Cursor",

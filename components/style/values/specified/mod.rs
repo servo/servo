@@ -39,7 +39,7 @@ pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumer
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
 pub use self::box_::{AnimationIterationCount, AnimationName, Contain, Display};
 pub use self::box_::{Appearance, Clear, Float};
-pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective};
+pub use self::box_::{OverflowClipBox, OverscrollBehavior, Perspective, Resize};
 pub use self::box_::{ScrollSnapType, TouchAction, TransitionProperty, VerticalAlign, WillChange};
 pub use self::color::{Color, ColorPropertyValue, RGBAColor};
 pub use self::counters::{Content, ContentItem, CounterIncrement, CounterReset};

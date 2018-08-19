@@ -16,6 +16,17 @@ ${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
                          animation_value_type="discrete",
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
+${helpers.single_keyword(
+    "scrollbar-width",
+    "auto thin none",
+    products="gecko",
+    gecko_enum_prefix="StyleScrollbarWidth",
+    animation_value_type="discrete",
+    gecko_pref="layout.css.scrollbar-width.enabled",
+    enabled_in="chrome",
+    spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-width"
+)}
+
 ${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
                             " toggle tri-state -moz-all -moz-text",
                          products="gecko",

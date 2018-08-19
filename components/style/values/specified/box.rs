@@ -884,6 +884,21 @@ pub enum Clear {
     InlineEnd
 }
 
+/// https://drafts.csswg.org/css-ui/#propdef-resize
+#[allow(missing_docs)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
+         SpecifiedValueInfo, ToCss)]
+pub enum Resize {
+    None,
+    Both,
+    Horizontal,
+    Vertical,
+    // https://drafts.csswg.org/css-logical-1/#resize
+    Inline,
+    Block,
+}
+
 /// The value for the `appearance` property.
 ///
 /// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-appearance

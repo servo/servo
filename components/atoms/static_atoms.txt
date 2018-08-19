@@ -66,6 +66,7 @@ reftest-wait
 reset
 right
 sans-serif
+scan
 screen
 scroll-position
 search
@@ -86,3 +87,4 @@ url
 waiting
 webglcontextcreationerror
 week
+width

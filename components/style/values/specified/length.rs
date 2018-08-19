@@ -421,46 +421,34 @@ impl NoCalcLength {
         value: CSSFloat,
         unit: &str,
     ) -> Result<Self, ()> {
-        match_ignore_ascii_case! { unit,
-            "px" => Ok(NoCalcLength::Absolute(AbsoluteLength::Px(value))),
-            "in" => Ok(NoCalcLength::Absolute(AbsoluteLength::In(value))),
-            "cm" => Ok(NoCalcLength::Absolute(AbsoluteLength::Cm(value))),
-            "mm" => Ok(NoCalcLength::Absolute(AbsoluteLength::Mm(value))),
-            "q" => Ok(NoCalcLength::Absolute(AbsoluteLength::Q(value))),
-            "pt" => Ok(NoCalcLength::Absolute(AbsoluteLength::Pt(value))),
-            "pc" => Ok(NoCalcLength::Absolute(AbsoluteLength::Pc(value))),
+        Ok(match_ignore_ascii_case! { unit,
+            "px" => NoCalcLength::Absolute(AbsoluteLength::Px(value)),
+            "in" => NoCalcLength::Absolute(AbsoluteLength::In(value)),
+            "cm" => NoCalcLength::Absolute(AbsoluteLength::Cm(value)),
+            "mm" => NoCalcLength::Absolute(AbsoluteLength::Mm(value)),
+            "q" => NoCalcLength::Absolute(AbsoluteLength::Q(value)),
+            "pt" => NoCalcLength::Absolute(AbsoluteLength::Pt(value)),
+            "pc" => NoCalcLength::Absolute(AbsoluteLength::Pc(value)),
             // font-relative
-            "em" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Em(value))),
-            "ex" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Ex(value))),
-            "ch" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Ch(value))),
-            "rem" => Ok(NoCalcLength::FontRelative(FontRelativeLength::Rem(value))),
+            "em" => NoCalcLength::FontRelative(FontRelativeLength::Em(value)),
+            "ex" => NoCalcLength::FontRelative(FontRelativeLength::Ex(value)),
+            "ch" => NoCalcLength::FontRelative(FontRelativeLength::Ch(value)),
+            "rem" => NoCalcLength::FontRelative(FontRelativeLength::Rem(value)),
             // viewport percentages
-            "vw" => {
-                if context.in_page_rule() {
-                    return Err(())
-                }
-                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value)))
-            },
-            "vh" => {
-                if context.in_page_rule() {
-                    return Err(())
-                }
-                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value)))
-            },
-            "vmin" => {
-                if context.in_page_rule() {
-                    return Err(())
-                }
-                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value)))
-            },
-            "vmax" => {
-                if context.in_page_rule() {
-                    return Err(())
-                }
-                Ok(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value)))
-            },
-            _ => Err(())
-        }
+            "vw" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(value))
+            }
+            "vh" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(value))
+            }
+            "vmin" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmin(value))
+            }
+            "vmax" if !context.in_page_rule() => {
+                NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vmax(value))
+            }
+            _ => return Err(())
+        })
     }
 
     #[inline]

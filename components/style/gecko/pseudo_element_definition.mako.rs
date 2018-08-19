@@ -8,9 +8,9 @@ pub enum PseudoElement {
     % for pseudo in PSEUDOS:
         /// ${pseudo.value}
         % if pseudo.is_tree_pseudo_element():
-        ${pseudo.capitalized()}(ThinBoxedSlice<Atom>),
+        ${pseudo.capitalized_pseudo()}(ThinBoxedSlice<Atom>),
         % else:
-        ${pseudo.capitalized()},
+        ${pseudo.capitalized_pseudo()},
         % endif
     % endfor
 }
@@ -41,7 +41,7 @@ pub const EAGER_PSEUDOS: [PseudoElement; EAGER_PSEUDO_COUNT] = [
 ];
 
 <%def name="pseudo_element_variant(pseudo, tree_arg='..')">\
-PseudoElement::${pseudo.capitalized()}${"({})".format(tree_arg) if pseudo.is_tree_pseudo_element() else ""}\
+PseudoElement::${pseudo.capitalized_pseudo()}${"({})".format(tree_arg) if pseudo.is_tree_pseudo_element() else ""}\
 </%def>
 
 impl PseudoElement {
@@ -120,7 +120,7 @@ impl PseudoElement {
                 % elif pseudo.is_anon_box():
                     structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS,
                 % else:
-                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.original_ident},
+                    structs::SERVO_CSS_PSEUDO_ELEMENT_FLAGS_${pseudo.pseudo_ident},
                 % endif
             % endfor
         }
@@ -132,7 +132,7 @@ impl PseudoElement {
         match type_ {
             % for pseudo in PSEUDOS:
                 % if not pseudo.is_anon_box():
-                    CSSPseudoElementType::${pseudo.original_ident} => {
+                    CSSPseudoElementType::${pseudo.pseudo_ident} => {
                         Some(${pseudo_element_variant(pseudo)})
                     },
                 % endif
@@ -149,13 +149,13 @@ impl PseudoElement {
         match *self {
             % for pseudo in PSEUDOS:
                 % if not pseudo.is_anon_box():
-                    PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType::${pseudo.original_ident},
+                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::${pseudo.pseudo_ident},
                 % elif pseudo.is_tree_pseudo_element():
-                    PseudoElement::${pseudo.capitalized()}(..) => CSSPseudoElementType::XULTree,
+                    PseudoElement::${pseudo.capitalized_pseudo()}(..) => CSSPseudoElementType::XULTree,
                 % elif pseudo.is_inheriting_anon_box():
-                    PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType_InheritingAnonBox,
+                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType_InheritingAnonBox,
                 % else:
-                    PseudoElement::${pseudo.capitalized()} => CSSPseudoElementType::NonInheritingAnonBox,
+                    PseudoElement::${pseudo.capitalized_pseudo()} => CSSPseudoElementType::NonInheritingAnonBox,
                 % endif
             % endfor
         }
@@ -171,7 +171,7 @@ impl PseudoElement {
     pub fn tree_pseudo_args(&self) -> Option<<&[Atom]> {
         match *self {
             % for pseudo in TREE_PSEUDOS:
-            PseudoElement::${pseudo.capitalized()}(ref args) => Some(args),
+            PseudoElement::${pseudo.capitalized_pseudo()}(ref args) => Some(args),
             % endfor
             _ => None,
         }
@@ -213,7 +213,7 @@ impl PseudoElement {
         % for pseudo in PSEUDOS:
             % if pseudo.is_tree_pseudo_element():
                 if atom == &atom!("${pseudo.value}") {
-                    return Some(PseudoElement::${pseudo.capitalized()}(args.into()));
+                    return Some(PseudoElement::${pseudo.capitalized_pseudo()}(args.into()));
                 }
             % endif
         % endfor

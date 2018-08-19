@@ -47,8 +47,9 @@ malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
 num_cpus = {version = "1.1.0", optional = true}
-num-integer = "0.1.32"
+num-integer = "0.1"
 num-traits = "0.2"
+num-derive = "0.2"
 new-ordered-float = "1.0"
 owning_ref = "0.3.3"
 parking_lot = "0.6"
@@ -71,9 +72,6 @@ uluru = "0.2"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"
-
-[target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2"
 
 [build-dependencies]
 lazy_static = "1"

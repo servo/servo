@@ -4,58 +4,114 @@
 
 //! Element an snapshot common logic.
 
-use gecko_bindings::structs::nsAtom;
+use CaseSensitivityExt;
+use gecko_bindings::bindings;
+use gecko_bindings::structs::{self, nsAtom};
 use selectors::attr::CaseSensitivity;
-use std::{ptr, slice};
-use string_cache::Atom;
+use string_cache::{Atom, WeakAtom};
 
 /// A function that, given an element of type `T`, allows you to get a single
 /// class or a class list.
-pub type ClassOrClassList<T> =
-    unsafe extern "C" fn(T, *mut *mut nsAtom, *mut *mut *mut nsAtom) -> u32;
+enum Class<'a> {
+    None,
+    One(*const nsAtom),
+    More(&'a [structs::RefPtr<nsAtom>]),
+}
 
-/// A function to return whether an element of type `T` has a given class.
-///
-/// The `bool` argument represents whether it should compare case-insensitively
-/// or not.
-pub type HasClass<T> = unsafe extern "C" fn(T, *mut nsAtom, bool) -> bool;
-
-/// Given an item `T`, a class name, and a getter function, return whether that
-/// element has the class that `name` represents.
 #[inline(always)]
-pub fn has_class<T>(
-    item: T,
+fn base_type(attr: &structs::nsAttrValue) -> structs::nsAttrValue_ValueBaseType {
+    (attr.mBits & structs::NS_ATTRVALUE_BASETYPE_MASK) as structs::nsAttrValue_ValueBaseType
+}
+
+#[inline(always)]
+unsafe fn ptr<T>(attr: &structs::nsAttrValue) -> *const T {
+    (attr.mBits & !structs::NS_ATTRVALUE_BASETYPE_MASK) as *const T
+}
+
+#[inline(always)]
+unsafe fn get_class_from_attr(attr: &structs::nsAttrValue) -> Class {
+    debug_assert!(bindings::Gecko_AssertClassAttrValueIsSane(attr));
+    let base_type = base_type(attr);
+    if base_type == structs::nsAttrValue_ValueBaseType_eStringBase {
+        return Class::None;
+    }
+    if base_type == structs::nsAttrValue_ValueBaseType_eAtomBase {
+        return Class::One(ptr::<nsAtom>(attr));
+    }
+    debug_assert_eq!(base_type, structs::nsAttrValue_ValueBaseType_eOtherBase);
+
+    let container = ptr::<structs::MiscContainer>(attr);
+    debug_assert_eq!((*container).mType, structs::nsAttrValue_ValueType_eAtomArray);
+    let array =
+        (*container).__bindgen_anon_1.mValue.as_ref().__bindgen_anon_1.mAtomArray.as_ref();
+    Class::More(&***array)
+}
+
+#[inline(always)]
+unsafe fn get_id_from_attr(attr: &structs::nsAttrValue) -> &WeakAtom {
+    debug_assert_eq!(base_type(attr), structs::nsAttrValue_ValueBaseType_eAtomBase);
+    WeakAtom::new(ptr::<nsAtom>(attr))
+}
+
+/// Find an attribute value with a given name and no namespace.
+#[inline(always)]
+pub fn find_attr<'a>(
+    attrs: &'a [structs::AttrArray_InternalAttr],
+    name: &Atom,
+) -> Option<&'a structs::nsAttrValue> {
+    attrs.iter()
+        .find(|attr| attr.mName.mBits == name.as_ptr() as usize)
+        .map(|attr| &attr.mValue)
+}
+
+/// Finds the id attribute from a list of attributes.
+#[inline(always)]
+pub fn get_id(attrs: &[structs::AttrArray_InternalAttr]) -> Option<&WeakAtom> {
+    Some(unsafe { get_id_from_attr(find_attr(attrs, &atom!("id"))?) })
+}
+
+/// Given a class name, a case sensitivity, and an array of attributes, returns
+/// whether the class has the attribute that name represents.
+#[inline(always)]
+pub fn has_class(
     name: &Atom,
     case_sensitivity: CaseSensitivity,
-    getter: HasClass<T>,
+    attr: &structs::nsAttrValue,
 ) -> bool {
-    let ignore_case = match case_sensitivity {
-        CaseSensitivity::CaseSensitive => false,
-        CaseSensitivity::AsciiCaseInsensitive => true,
-    };
-
-    unsafe { getter(item, name.as_ptr(), ignore_case) }
+    match unsafe { get_class_from_attr(attr) } {
+        Class::None => false,
+        Class::One(atom) => unsafe {
+            case_sensitivity.eq_atom(name, WeakAtom::new(atom))
+        },
+        Class::More(atoms) => {
+            match case_sensitivity {
+                CaseSensitivity::CaseSensitive => {
+                    atoms.iter().any(|atom| atom.mRawPtr == name.as_ptr())
+                }
+                CaseSensitivity::AsciiCaseInsensitive => unsafe {
+                    atoms.iter().any(|atom| WeakAtom::new(atom.mRawPtr).eq_ignore_ascii_case(name))
+                }
+            }
+        }
+    }
 }
 
 /// Given an item, a callback, and a getter, execute `callback` for each class
 /// this `item` has.
-pub fn each_class<F, T>(item: T, mut callback: F, getter: ClassOrClassList<T>)
+#[inline(always)]
+pub fn each_class<F>(attr: &structs::nsAttrValue, mut callback: F)
 where
     F: FnMut(&Atom),
 {
     unsafe {
-        let mut class: *mut nsAtom = ptr::null_mut();
-        let mut list: *mut *mut nsAtom = ptr::null_mut();
-        let length = getter(item, &mut class, &mut list);
-        match length {
-            0 => {},
-            1 => Atom::with(class, callback),
-            n => {
-                let classes = slice::from_raw_parts(list, n as usize);
-                for c in classes {
-                    Atom::with(*c, &mut callback)
+        match get_class_from_attr(attr) {
+            Class::None => {},
+            Class::One(atom) => Atom::with(atom, callback),
+            Class::More(atoms) => {
+                for atom in atoms {
+                    Atom::with(atom.mRawPtr, &mut callback)
                 }
-            },
+            }
         }
     }
 }

@@ -305,6 +305,21 @@ impl Clone for PropertyDeclaration {
             }
         }
 
+        // This function ensures that all properties not handled above
+        // do not have a specified value implements Copy. If you hit
+        // compile error here, you may want to add the type name into
+        // Longhand.specified_is_copy in data.py.
+        fn _static_assert_others_are_not_copy() {
+            struct Helper<T>(T);
+            trait AssertCopy { fn assert() {} }
+            trait AssertNotCopy { fn assert() {} }
+            impl<T: Copy> AssertCopy for Helper<T> {}
+            % for ty in set(x["type"] for x in others):
+            impl AssertNotCopy for Helper<${ty}> {}
+            Helper::<${ty}>::assert();
+            % endfor
+        }
+
         match *self {
             ${" |\n".join("{}(..)".format(v["name"]) for v in copy)} => {
                 unsafe { debug_unreachable!() }
@@ -588,16 +603,17 @@ impl NonCustomPropertyId {
 
     /// See PropertyId::collect_property_completion_keywords.
     fn collect_property_completion_keywords(&self, f: KeywordsCollectFn) {
-        const COLLECT_FUNCTIONS: [&Fn(KeywordsCollectFn);
+        fn do_nothing(_: KeywordsCollectFn) {}
+        const COLLECT_FUNCTIONS: [fn(KeywordsCollectFn);
                                   ${len(data.longhands) + len(data.shorthands)}] = [
             % for prop in data.longhands:
-                &<${prop.specified_type()} as SpecifiedValueInfo>::collect_completion_keywords,
+                <${prop.specified_type()} as SpecifiedValueInfo>::collect_completion_keywords,
             % endfor
             % for prop in data.shorthands:
             % if prop.name == "all":
-                &|_f| {}, // 'all' accepts no value other than CSS-wide keywords
+                do_nothing, // 'all' accepts no value other than CSS-wide keywords
             % else:
-                &<shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::
+                <shorthands::${prop.ident}::Longhands as SpecifiedValueInfo>::
                     collect_completion_keywords,
             % endif
             % endfor

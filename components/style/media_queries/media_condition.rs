@@ -13,7 +13,6 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use super::{Device, MediaFeatureExpression};
 
-
 /// A binary `and` or `or` operator.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToCss)]
 #[allow(missing_docs)]

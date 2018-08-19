@@ -32,7 +32,6 @@ use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetDocumentLWTheme};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetPreviousSibling, Gecko_GetNextStyleChild};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
-use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_ElementHasAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_ElementHasCSSTransitions;
@@ -581,6 +580,34 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
+    #[inline(always)]
+    fn attrs(&self) -> &[structs::AttrArray_InternalAttr] {
+        unsafe {
+            let attrs = match self.0._base.mAttrs.mImpl.mPtr.as_ref() {
+                Some(attrs) => attrs,
+                None => return &[],
+            };
+
+            attrs.mBuffer.as_slice(attrs.mAttrCount as usize)
+        }
+    }
+
+    #[inline(always)]
+    fn get_class_attr(&self) -> Option<&structs::nsAttrValue> {
+        if !self.may_have_class() {
+            return None;
+        }
+
+        if self.is_svg_element() {
+            let svg_class = unsafe { bindings::Gecko_GetSVGAnimatedClass(self.0).as_ref() };
+            if let Some(c) = svg_class {
+                return Some(c)
+            }
+        }
+
+        snapshot_helpers::find_attr(self.attrs(), &atom!("class"))
+    }
+
     #[inline]
     fn closest_anon_subtree_root_parent(&self) -> Option<Self> {
         debug_assert!(self.is_in_native_anonymous_subtree());
@@ -1281,26 +1308,19 @@ impl<'le> TElement for GeckoElement<'le> {
             return None;
         }
 
-        let ptr = unsafe { bindings::Gecko_AtomAttrValue(self.0, atom!("id").as_ptr()) };
-
-        // FIXME(emilio): Pretty sure the has_id flag is exact and we could
-        // assert here.
-        if ptr.is_null() {
-            None
-        } else {
-            Some(unsafe { WeakAtom::new(ptr) })
-        }
+        snapshot_helpers::get_id(self.attrs())
     }
 
     fn each_class<F>(&self, callback: F)
     where
         F: FnMut(&Atom),
     {
-        if !self.may_have_class() {
-            return;
-        }
+        let attr = match self.get_class_attr() {
+            Some(c) => c,
+            None => return,
+        };
 
-        snapshot_helpers::each_class(self.0, callback, Gecko_ClassOrClassList)
+        snapshot_helpers::each_class(attr, callback)
     }
 
     #[inline]
@@ -2265,24 +2285,22 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             return false;
         }
 
-        unsafe {
-            let ptr = bindings::Gecko_AtomAttrValue(self.0, atom!("id").as_ptr());
+        let element_id = match snapshot_helpers::get_id(self.attrs()) {
+            Some(id) => id,
+            None => return false,
+        };
 
-            if ptr.is_null() {
-                false
-            } else {
-                case_sensitivity.eq_atom(WeakAtom::new(ptr), id)
-            }
-        }
+        case_sensitivity.eq_atom(element_id, id)
     }
 
     #[inline(always)]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        if !self.may_have_class() {
-            return false;
-        }
+        let attr = match self.get_class_attr() {
+            Some(c) => c,
+            None => return false,
+        };
 
-        snapshot_helpers::has_class(self.0, name, case_sensitivity, bindings::Gecko_HasClass)
+        snapshot_helpers::has_class(name, case_sensitivity, attr)
     }
 
     #[inline]

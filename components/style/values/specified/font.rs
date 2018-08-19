@@ -1359,7 +1359,7 @@ impl VariantEastAsian {
 impl_gecko_keyword_conversions!(VariantEastAsian, u16);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Allows control of glyph substitution and sizing in East Asian text.
 pub enum FontVariantEastAsian {
     /// Value variant with `variant-east-asian`
@@ -1570,7 +1570,7 @@ impl VariantLigatures {
 impl_gecko_keyword_conversions!(VariantLigatures, u16);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Ligatures and contextual forms are ways of combining glyphs
 /// to produce more harmonized forms
 pub enum FontVariantLigatures {
@@ -1786,7 +1786,7 @@ impl VariantNumeric {
 impl_gecko_keyword_conversions!(VariantNumeric, u8);
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
 /// Specifies control over numerical forms.
 pub enum FontVariantNumeric {
     /// Value variant with `variant-numeric`

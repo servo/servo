@@ -49,10 +49,6 @@ pub struct Atom(*mut WeakAtom);
 /// where `'a` is the lifetime of something that holds a strong reference to that atom.
 pub struct WeakAtom(nsAtom);
 
-/// A BorrowedAtom for Gecko is just a weak reference to a `nsAtom`, that
-/// hasn't been bumped.
-pub type BorrowedAtom<'a> = &'a WeakAtom;
-
 impl Deref for Atom {
     type Target = WeakAtom;
 
@@ -267,7 +263,7 @@ impl fmt::Display for WeakAtom {
 
 impl Atom {
     /// Execute a callback with the atom represented by `ptr`.
-    pub unsafe fn with<F, R>(ptr: *mut nsAtom, callback: F) -> R
+    pub unsafe fn with<F, R>(ptr: *const nsAtom, callback: F) -> R
     where
         F: FnOnce(&Atom) -> R,
     {
