@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSPseudoElement.getAnimations() for CSS transitions</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#animation-composite-order">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<style>
+.init::before {
+  content: '';
+  height: 0px;
+  width: 0px;
+  opacity: 0;
+  transition: all 100s;
+}
+.change::before {
+  height: 100px;
+  width: 100px;
+  opacity: 1;
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t, { class: 'init' });
+  getComputedStyle(div).width;
+  div.classList.add('change');
+
+  // Sanity checks
+  assert_equals(document.getAnimations().length, 3,
+                'Got expected number of animations on document');
+  const pseudoTarget = document.getAnimations()[0].effect.target;
+  assert_class_string(pseudoTarget, 'CSSPseudoElement',
+                      'Got pseudo-element target');
+
+  // Check animations returned from the pseudo element are in correct order
+  const anims = pseudoTarget.getAnimations();
+  assert_equals(anims.length, 3,
+                'Got expected number of animations on pseudo-element');
+  assert_equals(anims[0].transitionProperty, 'height');
+  assert_equals(anims[1].transitionProperty, 'opacity');
+  assert_equals(anims[2].transitionProperty, 'width');
+}, 'getAnimations sorts simultaneous transitions by name');
+
+</script>
