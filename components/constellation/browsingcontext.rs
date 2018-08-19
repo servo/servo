@@ -8,13 +8,31 @@ use pipeline::Pipeline;
 use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 
+/// Because a browsing context is only constructed once the document that's
+/// going to be in it becomes active (i.e. not when a pipeline is spawned), some
+/// values needed in browsing context are not easily available at the point of
+/// constructing it. Thus, every time a pipeline is created for a browsing
+/// context which doesn't exist yet, these values needed for the new browsing
+/// context are stored here so that they may be available later.
+pub struct NewBrowsingContextInfo {
+    /// The parent pipeline that contains this browsing context. `None` if this
+    /// is a top level browsing context.
+    pub parent_pipeline_id: Option<PipelineId>,
+
+    /// Whether this browsing context is in private browsing mode.
+    pub is_private: bool,
+
+    /// Whether this browsing context should be treated as visible for the
+    /// purposes of scheduling and resource management.
+    pub is_visible: bool,
+}
+
 /// The constellation's view of a browsing context.
-/// Each browsing context has a session history, caused by
-/// navigation and traversing the history. Each browsing context has its
-/// current entry, plus past and future entries. The past is sorted
-/// chronologically, the future is sorted reverse chronologically:
-/// in particular prev.pop() is the latest past entry, and
-/// next.pop() is the earliest future entry.
+/// Each browsing context has a session history, caused by navigation and
+/// traversing the history. Each browsing context has its current entry, plus
+/// past and future entries. The past is sorted chronologically, the future is
+/// sorted reverse chronologically: in particular prev.pop() is the latest
+/// past entry, and next.pop() is the earliest future entry.
 pub struct BrowsingContext {
     /// The browsing context id.
     pub id: BrowsingContextId,
@@ -25,9 +43,22 @@ pub struct BrowsingContext {
     /// The size of the frame.
     pub size: Option<TypedSize2D<f32, CSSPixel>>,
 
+    /// Whether this browsing context is in private browsing mode.
+    pub is_private: bool,
+
+    /// Whether this browsing context should be treated as visible for the
+    /// purposes of scheduling and resource management.
+    pub is_visible: bool,
+
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
+    /// The parent pipeline that contains this browsing context. `None` if this
+    /// is a top level browsing context.
+    pub parent_pipeline_id: Option<PipelineId>,
+
+    /// All the pipelines that have been presented or will be presented in
+    /// this browsing context.
     pub pipelines: HashSet<PipelineId>,
 }
 
@@ -38,6 +69,9 @@ impl BrowsingContext {
         id: BrowsingContextId,
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
+        parent_pipeline_id: Option<PipelineId>,
+        is_private: bool,
+        is_visible: bool,
     ) -> BrowsingContext {
         let mut pipelines = HashSet::new();
         pipelines.insert(pipeline_id);
@@ -45,8 +79,11 @@ impl BrowsingContext {
             id: id,
             top_level_id: top_level_id,
             size: None,
+            is_private: is_private,
+            is_visible: is_visible,
             pipeline_id: pipeline_id,
-            pipelines,
+            parent_pipeline_id: parent_pipeline_id,
+            pipelines: pipelines,
         }
     }
 
