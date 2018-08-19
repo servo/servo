@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSSTransition.effect</title>
+<!-- TODO: Add a more specific link for this once it is specified. -->
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#csstransition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src='support/helper.js'></script>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+
+  transition.effect = null;
+
+  assert_equals(transition.transitionProperty, 'left');
+}, 'After setting a transition\'s effect to null, it still reports the'
+   + ' original transition property');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  await transition.ready;
+
+  transition.effect = null;
+  assert_equals(transition.playState, 'finished');
+}, 'After setting a transition\'s effect to null, it becomes finished');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  await transition.ready;
+
+  transition.effect = null;
+  assert_equals(getComputedStyle(div).left, '100px');
+}, 'After setting a transition\'s effect to null, style is updated');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+  div.style.width = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  await transition.ready;
+
+  transition.currentTime = 50 * MS_PER_SEC;
+  transition.effect = new KeyframeEffect(div,
+                                         { left: [ '0px' , '100px'] },
+                                         20 * MS_PER_SEC);
+
+  assert_equals(transition.playState, 'finished');
+}, 'After setting a new keyframe effect with a shorter duration,'
+   + ' the transition becomes finished');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+  div.style.width = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  transition.effect = new KeyframeEffect(div,
+                                         { marginLeft: [ '0px' , '100px'] },
+                                         100 * MS_PER_SEC);
+  assert_equals(transition.transitionProperty, 'left');
+}, 'After setting a new keyframe effect targeting different properties,'
+   + ' the transition continues to report the original transition property');
+
+promise_test(async t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+  div.style.width = '0px';
+
+  div.style.transition = 'left 100s';
+  getComputedStyle(div).left;
+  div.style.left = '100px';
+
+  const transition = div.getAnimations()[0];
+  assert_true(transition.pending);
+
+  transition.effect = new KeyframeEffect(div,
+                                         { marginLeft: [ '0px' , '100px'] },
+                                         100 * MS_PER_SEC);
+  assert_equals(transition.transitionProperty, 'left');
+  assert_true(transition.pending);
+
+  // As a sanity check, check that the transition actually exits the
+  // pending state.
+  await transition.ready;
+  assert_false(transition.pending);
+}, 'After setting a new keyframe effect on a play-pending transition,'
+   + ' the transition remains pending');
+
+</script>
