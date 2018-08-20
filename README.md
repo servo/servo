@@ -283,11 +283,13 @@ Run Servo with the command:
 
 ### Keyboard Shortcuts
 
+- `Ctrl`+`L` opens URL prompt
+- `Ctrl`+`R` reloads current page
 - `Ctrl`+`-` zooms out
 - `Ctrl`+`=` zooms in
 - `Alt`+`left arrow` goes backwards in the history (`Cmd`+`left arrow` on Mac)
 - `Alt`+`right arrow` goes forwards in the history (`Cmd`+`right arrow` on Mac)
-- `Esc` exits servo
+- `Esc` or `Ctrl`+`Q` exits Servo
 
 ## Developing
 
