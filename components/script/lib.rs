@@ -8,6 +8,7 @@
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(string_retain)]
+#![feature(try_from)]
 #![feature(use_extern_macros)]
 
 #![deny(unsafe_code)]

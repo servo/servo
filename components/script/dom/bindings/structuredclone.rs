@@ -214,6 +214,7 @@ pub enum StructuredCloneData {
 }
 
 impl StructuredCloneData {
+    // TODO: should this be unsafe?
     /// Writes a structured clone. Returns a `DataClone` error if that fails.
     pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
         unsafe {

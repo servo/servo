@@ -124,8 +124,8 @@ unsafe impl Sync for DOMJSClass {}
 pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray {
     unsafe {
         assert_ne!(((*get_object_class(global)).flags & JSCLASS_DOM_GLOBAL), 0);
-        let ref mut slot = UndefinedValue();
-        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT, slot);
+        let mut slot = UndefinedValue();
+        JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT, &mut slot);
         slot.to_private() as *mut ProtoOrIfaceArray
     }
 }
@@ -392,11 +392,11 @@ unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
                               _scope: RawHandleObject,
                               obj: RawHandleObject,
                               _object_passed_to_wrap: RawHandleObject,
-                              ret_object: RawMutableHandleObject) {
+                              rval: RawMutableHandleObject) {
     let _ac = JSAutoCompartment::new(cx, obj.get());
     let obj = ToWindowProxyIfWindow(obj.get());
     assert!(!obj.is_null());
-    ret_object.set(obj)
+    rval.set(obj)
 }
 
 /// Callback table for use with JS_SetWrapObjectCallbacks

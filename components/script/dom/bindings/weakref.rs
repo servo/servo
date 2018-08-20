@@ -55,8 +55,8 @@ pub trait WeakReferenceable: DomObject + Sized {
     fn downgrade(&self) -> WeakRef<Self> {
         unsafe {
             let object = self.reflector().get_jsobject().get();
-            let ref mut slot = UndefinedValue();
-            JS_GetReservedSlot(object, DOM_WEAK_SLOT, slot);
+            let mut slot = UndefinedValue();
+            JS_GetReservedSlot(object, DOM_WEAK_SLOT, &mut slot);
             let mut ptr = slot.to_private() as *mut WeakBox<Self>;
             if ptr.is_null() {
                 trace!("Creating new WeakBox holder for {:p}.", self);

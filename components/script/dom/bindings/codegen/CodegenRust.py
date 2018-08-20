@@ -2657,8 +2657,8 @@ ensure_expando_object(cx, obj.handle().into(), expando.handle_mut());
     else:
         copyFunc = "JS_InitializePropertiesFromCompatibleNativeObject"
     copyCode += """\
-let ref mut slot = UndefinedValue();
-JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, slot);
+let mut slot = UndefinedValue();
+JS_GetReservedSlot(proto.get(), DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, &mut slot);
 rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(slot.to_object());
 assert!(%(copyFunc)s(cx, %(obj)s.handle(), unforgeable_holder.handle()));
@@ -4967,8 +4967,8 @@ class CGProxyUnwrap(CGAbstractMethod):
     obj = js::UnwrapObject(obj);
 }*/
 //MOZ_ASSERT(IsProxy(obj));
-        let ref mut slot = UndefinedValue();
-        GetProxyReservedSlot(obj.get(), 0, slot);
+        let mut slot = UndefinedValue();
+        GetProxyReservedSlot(obj.get(), 0, &mut slot);
         let box_ = slot.to_private() as *const %s;
 return box_;""" % self.descriptor.concreteType)
 
@@ -5435,8 +5435,8 @@ finalize_global(obj);
 """
     elif descriptor.weakReferenceable:
         release += """\
-let ref mut slot = UndefinedValue();
-JS_GetReservedSlot(obj, DOM_WEAK_SLOT, slot);
+let mut slot = UndefinedValue();
+JS_GetReservedSlot(obj, DOM_WEAK_SLOT, &mut slot);
 let weak_box_ptr = slot.to_private() as *mut WeakBox<%s>;
 if !weak_box_ptr.is_null() {
     let count = {

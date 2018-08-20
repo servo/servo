@@ -32,6 +32,7 @@ use js::rust::wrappers::{JS_DefineProperty3, JS_DefineProperty4, JS_DefineProper
 use js::rust::wrappers::{JS_FireOnNewGlobalObject, JS_GetPrototype};
 use js::rust::wrappers::{JS_LinkConstructorAndPrototype, JS_NewObjectWithUniqueType};
 use libc;
+use std::convert::TryFrom;
 use std::ptr;
 
 /// The class of a non-callback interface object.
@@ -211,7 +212,7 @@ pub unsafe fn create_noncallback_interface_object(
         constants: &[Guard<&[ConstantSpec]>],
         interface_prototype_object: HandleObject,
         name: &[u8],
-        length: i32,
+        length: u32,
         rval: MutableHandleObject) {
     create_object(cx,
                   proto,
@@ -222,7 +223,7 @@ pub unsafe fn create_noncallback_interface_object(
                   rval);
     assert!(JS_LinkConstructorAndPrototype(cx, rval.handle(), interface_prototype_object));
     define_name(cx, rval.handle(), name);
-    define_length(cx, rval.handle(), length);
+    define_length(cx, rval.handle(), i32::try_from(length).expect("overflow"));
     define_on_global_object(cx, global, name, rval.handle());
 }
 
