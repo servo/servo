@@ -11,9 +11,8 @@
 
 from __future__ import print_function, unicode_literals
 
-import itertools
+
 import os
-import subprocess
 import sys
 
 
@@ -24,104 +23,9 @@ def main(args):
     mach = mach_bootstrap.bootstrap(topdir)
     sys.exit(mach.run(sys.argv[1:]))
 
-def validate_pair(ob):
-  if not (len(ob) == 2):
-    print("Unexpected result:", ob, file=sys.stderr)
-    return False
-  else:
-    return True
-
-def consume(iter):
-  try:
-    while True: next(iter)
-  except StopIteration:
-    pass
-
-def get_environment_from_batch_command(env_cmd, initial=None):
-  """
-  Take a command (either a single command or list of arguments)
-  and return the environment created after running that command.
-  Note that if the command must be a batch file or .cmd file, or the
-  changes to the environment will not be captured.
-  If initial is supplied, it is used as the initial environment passed
-  to the child process.
-  """
-  if not isinstance(env_cmd, (list, tuple)):
-    env_cmd = [env_cmd]
-  # Construct the command that will alter the environment.
-  env_cmd = subprocess.list2cmdline(env_cmd)
-  # Create a tag so we can tell in the output when the proc is done.
-  tag = 'END OF BATCH COMMAND'
-  # Construct a cmd.exe command to do accomplish this.
-  cmd = 'cmd.exe /s /c "{env_cmd} && echo "{tag}" && set"'.format(**vars())
-  # Launch the process.
-  proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=initial)
-  # Parse the output sent to stdout.
-  lines = proc.stdout
-  # Consume whatever output occurs until the tag is reached.
-  consume(itertools.takewhile(lambda l: tag not in l, lines))
-  # Define a way to handle each KEY=VALUE line.
-  handle_line = lambda l: l.rstrip().split('=',1)
-  # Parse key/values into pairs.
-  pairs = map(handle_line, lines)
-  # Make sure the pairs are valid.
-  valid_pairs = filter(validate_pair, pairs)
-  # Construct a dictionary of the pairs.
-  result = dict(valid_pairs)
-  # Let the process finish.
-  proc.communicate()
-  return result
-
-def get_vs_env(vs_version, arch):
-  """
-  Returns the env object for VS building environment.
-  The vs_version can be strings like "[15.0,16.0)", meaning 2017, but not the next version.
-  The arch has to be one of "x86", "amd64", "arm", "x86_amd64", "x86_arm", "amd64_x86",
-  "amd64_arm", e.g. the args passed to vcvarsall.bat.
-  """
-
-  # vswhere can't handle spaces, like "[15.0, 16.0)" should become "[15.0,16.0)"
-  vs_version = vs_version.replace(" ", "")
-
-  # Find visual studio
-  proc = subprocess.Popen(
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe "
-    "-property installationPath "
-    "-requires Microsoft.VisualStudio.Component.VC.CoreIde "
-    "-format value "
-    "-version {0}".format(vs_version),
-    stdout=subprocess.PIPE)
-
-  location = proc.stdout.readline().rstrip()
-  # Launch the process.
-  vsvarsall = "{0}\\VC\\Auxiliary\\Build\\vcvarsall.bat".format(location)
-
-  return get_environment_from_batch_command([vsvarsall, arch])
-
-def import_vs_env():
-    if sys.platform != 'win32':
-        return
-
-    if ('PROGRAMFILES(X86)' in os.environ) == False:
-        print('32-bit Windows is currently unsupported.')
-        sys.exit(-1)
-
-    arch = 'x64'
-    if os.path.isfile("C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe"):
-        env = get_vs_env('[15.0,16.0)', arch)
-        os.environ.update(env)
-    elif 'VS140COMNTOOLS' in os.environ:
-        vs14vsvarsall = os.path.abspath(os.path.join(os.environ['VS140COMNTOOLS'], '..\\..\\VC\\vcvarsall.bat'))
-        env = get_environment_from_batch_command([vs14vsvarsall, arch])
-        os.environ.update(env)
-    else:
-        print("Visual Studio 2017 is not installed.\nDownload and install Visual Studio 2017 from https://www.visualstudio.com/")
-        sys.exit(-1)
 
 if __name__ == '__main__':
     sys.dont_write_bytecode = True
-    import_vs_env()
-
     if sys.platform == 'win32':
         # This is a complete hack to work around the fact that Windows
         # multiprocessing needs to import the original module (ie: this
