@@ -1203,6 +1203,7 @@ pub fn parse_style_attribute(
         ParsingMode::DEFAULT,
         quirks_mode,
         error_reporter,
+        None,
     );
 
     let mut input = ParserInput::new(input);
@@ -1230,6 +1231,7 @@ pub fn parse_one_declaration_into(
         parsing_mode,
         quirks_mode,
         error_reporter,
+        None,
     );
 
     let mut input = ParserInput::new(input);

@@ -68,6 +68,7 @@ impl<'a> ParserContext<'a> {
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
         error_reporter: Option<&'a ParseErrorReporter>,
+        use_counters: Option<&'a UseCounters>,
     ) -> Self {
         Self {
             stylesheet_origin,
@@ -77,7 +78,7 @@ impl<'a> ParserContext<'a> {
             quirks_mode,
             error_reporter,
             namespaces: None,
-            use_counters: None,
+            use_counters,
         }
     }
 
@@ -89,6 +90,7 @@ impl<'a> ParserContext<'a> {
         parsing_mode: ParsingMode,
         quirks_mode: QuirksMode,
         error_reporter: Option<&'a ParseErrorReporter>,
+        use_counters: Option<&'a UseCounters>,
     ) -> Self {
         Self::new(
             Origin::Author,
@@ -97,6 +99,7 @@ impl<'a> ParserContext<'a> {
             parsing_mode,
             quirks_mode,
             error_reporter,
+            use_counters,
         )
     }
 

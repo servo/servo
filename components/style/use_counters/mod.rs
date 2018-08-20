@@ -33,6 +33,7 @@ impl NonCustomPropertyUseCounters {
 }
 
 /// The use-counter data related to a given document we want to store.
+#[derive(Default)]
 pub struct UseCounters {
     /// The counters for non-custom properties that have been parsed in the
     /// document's stylesheets.
