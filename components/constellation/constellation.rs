@@ -784,7 +784,6 @@ where
             prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
             webrender_document: self.webrender_document,
-            is_private,
             webgl_chan: self
                 .webgl_threads
                 .as_ref()
@@ -852,16 +851,17 @@ where
         top_level_id: TopLevelBrowsingContextId,
         pipeline_id: PipelineId,
         parent_pipeline_id: Option<PipelineId>,
+        is_private: bool,
     ) {
         debug!("Creating new browsing context {}", browsing_context_id);
         let browsing_context = BrowsingContext::new(
             browsing_context_id,
             top_level_id,
             pipeline_id,
-            parent_pipeline_id
+            parent_pipeline_id,
+            is_private,
         );
-        self.browsing_contexts
-            .insert(browsing_context_id, browsing_context);
+        self.browsing_contexts.insert(browsing_context_id, browsing_context);
 
         // If this context is a nested container, attach it to parent pipeline.
         if let Some(parent_pipeline_id) = parent_pipeline_id {
@@ -872,7 +872,7 @@ where
     }
 
     fn add_pending_change(&mut self, change: SessionHistoryChange) {
-        self.handle_load_start_msg(change.top_level_browsing_context_id, change.new_pipeline_id);
+        self.handle_load_start_msg(change.top_level_browsing_context_id, change.browsing_context_id);
         self.pending_changes.push(change);
     }
 
@@ -1598,6 +1598,7 @@ where
             new_pipeline_id: new_pipeline_id,
             parent_pipeline_id: parent_pipeline_id,
             replace: None,
+            is_private: false,
         });
     }
 
@@ -1689,6 +1690,7 @@ where
             new_pipeline_id: pipeline_id,
             parent_pipeline_id: None,
             replace: None,
+            is_private: false,
         });
     }
 
@@ -1772,8 +1774,18 @@ where
                 .old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
-            let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
-                Some(source_pipeline) => source_pipeline,
+            let parent_pipeline_id = load_info.info.parent_pipeline_id;
+            let source_browsing_context = match self.pipelines.get(&parent_pipeline_id) {
+                Some(pipeline) => match self.browsing_contexts.get(&pipeline.browsing_context_id) {
+                    Some(browsing_context) => browsing_context,
+                    None => {
+                        return warn!(
+                            // TODO(mandreyel): message?
+                            "Script loaded url from closed browsing context {}.",
+                            pipeline.browsing_context_id
+                        )
+                    },
+                },
                 None => {
                     return warn!(
                         "Script loaded url in closed iframe {}.",
@@ -1790,11 +1802,9 @@ where
                 };
 
                 // TODO - loaddata here should have referrer info (not None, None)
-                LoadData::new(url, Some(source_pipeline.id), None, None)
+                LoadData::new(url, Some(parent_pipeline_id), None, None)
             });
-
-            let is_private = load_info.info.is_private || source_pipeline.is_private;
-
+            let is_private = load_info.info.is_private || source_browsing_context.is_private;
             let window_size = self
                 .browsing_contexts
                 .get(&load_info.info.browsing_context_id)
@@ -1829,6 +1839,7 @@ where
             new_pipeline_id: load_info.info.new_pipeline_id,
             parent_pipeline_id: Some(load_info.info.parent_pipeline_id),
             replace,
+            is_private: false,
         });
     }
 
@@ -1851,15 +1862,28 @@ where
         // TODO: Referrer?
         let load_data = LoadData::new(url.clone(), Some(parent_pipeline_id), None, None);
 
-        let pipeline = {
-            let parent_pipeline = match self.pipelines.get(&parent_pipeline_id) {
-                Some(parent_pipeline) => parent_pipeline,
-                None => return warn!("Script loaded url in closed iframe {}.", parent_pipeline_id),
+        let (pipeline, is_private) = {
+            let (script_sender, parent_visible, parent_browsing_context_id) =
+                 match self.pipelines.get(&parent_pipeline_id) {
+                    Some(pipeline) => (
+                        pipeline.event_loop.clone(),
+                        pipeline.visible,
+                        pipeline.browsing_context_id,
+                    ),
+                    None => return warn!("Script loaded url in closed iframe {}.", parent_pipeline_id),
+                };
+            let is_parent_private = match self.browsing_contexts.get(&parent_browsing_context_id) {
+                Some(browsing_context) => browsing_context.is_private,
+                None => {
+                    // TODO(mandreyel): message?
+                    return warn!(
+                        "Script loaded url in closed browsing context {}.",
+                        parent_browsing_context_id
+                    )
+                },
             };
-
-            let script_sender = parent_pipeline.event_loop.clone();
-
-            Pipeline::new(
+            let is_private = is_private || is_parent_private;
+            let pipeline = Pipeline::new(
                 new_pipeline_id,
                 browsing_context_id,
                 top_level_browsing_context_id,
@@ -1867,22 +1891,22 @@ where
                 script_sender,
                 layout_sender,
                 self.compositor_proxy.clone(),
-                is_private || parent_pipeline.is_private,
                 url,
-                parent_pipeline.visible,
+                parent_visible,
                 load_data,
-            )
+            );
+            (pipeline, is_private)
         };
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
         self.pipelines.insert(new_pipeline_id, pipeline);
-
         self.add_pending_change(SessionHistoryChange {
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             parent_pipeline_id: Some(parent_pipeline_id),
             replace: None,
+            is_private: is_private,
         });
     }
 
@@ -1901,23 +1925,38 @@ where
         // TODO: Referrer?
         let load_data = LoadData::new(url.clone(), None, None, None);
 
-        let pipeline = {
-            let (opener_pipeline, opener_id) = match self.pipelines.get(&opener_pipeline_id) {
-                Some(opener_pipeline) => (opener_pipeline, opener_pipeline.browsing_context_id),
-                None => return warn!("Auxiliary loaded url in closed pipeline {}.", opener_pipeline_id),
+        let (pipeline, is_private) = {
+            let (script_sender, opener_visible, opener_browsing_context_id) =
+                 match self.pipelines.get(&opener_pipeline_id) {
+                    Some(pipeline) => (
+                        pipeline.event_loop.clone(),
+                        pipeline.visible,
+                        pipeline.browsing_context_id,
+                    ),
+                    None => return warn!("Auxiliary loaded url in closed iframe {}.", opener_pipeline_id),
+                };
+            let is_opener_private = match self.browsing_contexts.get(&opener_browsing_context_id) {
+                Some(browsing_context) => browsing_context.is_private,
+                None => {
+                    return warn!(
+                        "Auxiliary loaded url in closed browsing context {}.",
+                        opener_browsing_context_id
+                    )
+                },
             };
-            let script_sender = opener_pipeline.event_loop.clone();
-            Pipeline::new(new_pipeline_id,
-                          new_browsing_context_id,
-                          new_top_level_browsing_context_id,
-                          Some(opener_id),
-                          script_sender,
-                          layout_sender,
-                          self.compositor_proxy.clone(),
-                          opener_pipeline.is_private,
-                          url,
-                          opener_pipeline.visible,
-                          load_data)
+            let pipeline = Pipeline::new(
+                new_pipeline_id,
+                new_browsing_context_id,
+                new_top_level_browsing_context_id,
+                Some(opener_browsing_context_id),
+                script_sender,
+                layout_sender,
+                self.compositor_proxy.clone(),
+                url,
+                opener_visible,
+                load_data
+            );
+            (pipeline, is_opener_private)
         };
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
@@ -1930,6 +1969,7 @@ where
             // Auxiliary browsing contexts are always top level.
             parent_pipeline_id: None,
             replace: None,
+            is_private: is_private,
         });
     }
 
@@ -2117,6 +2157,7 @@ where
                     new_pipeline_id: new_pipeline_id,
                     parent_pipeline_id: None,
                     replace,
+                    is_private: false,
                 });
                 Some(new_pipeline_id)
             },
@@ -2143,16 +2184,12 @@ where
     fn handle_load_start_msg(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
     ) {
-        // TODO(mandreyel): we could pass browsing_context_id to
-        // handle_load_start_msg to avoid the pipeline lookup, but consult with
-        // servo team before making API changes. Or even better, why not just
-        // compare browsing_context_id to top_level_browsing_context_id?
-        if self.pipelines
-            .get(&pipeline_id)
-            .map(|pipeline| pipeline.browsing_context_id)
-            .and_then(|context_id| self.browsing_contexts.get(&context_id))
+        // TODO(mandreyel): Can we just compare browsing_context_id to
+        // top_level_browsing_context_id to avoid the lookup?
+        if self.browsing_contexts
+            .get(&browsing_context_id)
             .and_then(|context| context.parent_pipeline_id)
             .is_none()
         {
@@ -2396,18 +2433,20 @@ where
                 // TODO: Save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let new_pipeline_id = PipelineId::new();
-                let (top_level_id, pipeline_id, parent_pipeline_id, window_size) = match self.browsing_contexts.get(&browsing_context_id) {
-                    Some(browsing_context) => (
-                        browsing_context.top_level_id,
-                        browsing_context.pipeline_id,
-                        browsing_context.parent_pipeline_id,
-                        browsing_context.size,
-                    ),
-                    None => return warn!("No browsing context to traverse!"),
-                };
-                let (opener, is_private) = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => (pipeline.opener, pipeline.is_private),
-                    None => (None, false),
+                let (top_level_id, pipeline_id, parent_pipeline_id, window_size, is_private) =
+                    match self.browsing_contexts.get(&browsing_context_id) {
+                        Some(browsing_context) => (
+                            browsing_context.top_level_id,
+                            browsing_context.pipeline_id,
+                            browsing_context.parent_pipeline_id,
+                            browsing_context.size,
+                            browsing_context.is_private,
+                        ),
+                        None => return warn!("No browsing context to traverse!"),
+                    };
+                let opener = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.opener,
+                    None => None,
                 };
 
                 self.new_pipeline(
@@ -2427,6 +2466,7 @@ where
                     new_pipeline_id: new_pipeline_id,
                     parent_pipeline_id: parent_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data.clone())),
+                    is_private: is_private,
                 });
                 return;
             },
@@ -3083,6 +3123,7 @@ where
                     change.top_level_browsing_context_id,
                     change.new_pipeline_id,
                     change.parent_pipeline_id,
+                    change.is_private,
                 );
                 self.update_activity(change.new_pipeline_id);
                 self.notify_history_changed(change.top_level_browsing_context_id);

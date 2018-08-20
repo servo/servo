@@ -81,10 +81,6 @@ pub struct Pipeline {
     /// The child browsing contexts of this pipeline (these are iframes in the document).
     pub children: Vec<BrowsingContextId>,
 
-    /// Whether this pipeline is in private browsing mode.
-    /// TODO: move this field to `BrowsingContext`.
-    pub is_private: bool,
-
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
@@ -175,9 +171,6 @@ pub struct InitialPipelineState {
 
     /// The ID of the document processed by this script thread.
     pub webrender_document: webrender_api::DocumentId,
-
-    /// Whether this pipeline is considered private.
-    pub is_private: bool,
 
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
@@ -317,7 +310,6 @@ impl Pipeline {
             script_chan,
             pipeline_chan,
             state.compositor_proxy,
-            state.is_private,
             url,
             state.prev_visibility.unwrap_or(true),
             state.load_data,
@@ -334,7 +326,6 @@ impl Pipeline {
         event_loop: Rc<EventLoop>,
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
-        is_private: bool,
         url: ServoUrl,
         visible: bool,
         load_data: LoadData,
@@ -351,7 +342,6 @@ impl Pipeline {
             children: vec![],
             running_animations: false,
             visible: visible,
-            is_private: is_private,
             load_data: load_data,
             history_state_id: None,
             history_states: HashSet::new(),
