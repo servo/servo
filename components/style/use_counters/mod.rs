@@ -22,13 +22,29 @@ pub struct NonCustomPropertyUseCounters {
 }
 
 impl NonCustomPropertyUseCounters {
-    /// Record that a given non-custom property ID has been parsed.
-    #[inline]
-    pub fn record(&self, id: NonCustomPropertyId) {
+    /// Returns the bucket a given property belongs in, and the bitmask for that
+    /// property.
+    #[inline(always)]
+    fn bucket_and_pattern(id: NonCustomPropertyId) -> (usize, usize) {
         let bit = id.bit();
         let bucket = bit / BITS_PER_ENTRY;
         let bit_in_bucket = bit % BITS_PER_ENTRY;
-        self.storage[bucket].fetch_or(1 << bit_in_bucket, Ordering::Relaxed);
+        (bucket, 1 << bit_in_bucket)
+    }
+
+    /// Record that a given non-custom property ID has been parsed.
+    #[inline]
+    pub fn record(&self, id: NonCustomPropertyId) {
+        let (bucket, pattern) = Self::bucket_and_pattern(id);
+        self.storage[bucket].fetch_or(pattern, Ordering::Relaxed);
+    }
+
+    /// Returns whether a given non-custom property ID has been recorded
+    /// earlier.
+    #[inline]
+    pub fn recorded(&self, id: NonCustomPropertyId) -> bool {
+        let (bucket, pattern) = Self::bucket_and_pattern(id);
+        self.storage[bucket].load(Ordering::Relaxed) & pattern != 0
     }
 }
 
