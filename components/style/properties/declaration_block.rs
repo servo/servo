@@ -305,14 +305,8 @@ impl PropertyDeclarationBlock {
             }
         }
 
-        self.declarations.iter().enumerate().find(|&(_, decl)| decl.id() == property).map(|(i, decl)| {
-            let importance = if self.declarations_importance[i] {
-                Importance::Important
-            } else {
-                Importance::Normal
-            };
-            (decl, importance)
-        })
+        self.declaration_importance_iter()
+            .find(|(declaration, _)| declaration.id() == property)
     }
 
     fn shorthand_to_css(
