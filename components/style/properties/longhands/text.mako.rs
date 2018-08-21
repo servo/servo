@@ -21,11 +21,13 @@ ${helpers.predefined_type("text-overflow",
                           spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow",
                           servo_restyle_damage="rebuild_and_reflow")}
 
-${helpers.single_keyword("unicode-bidi",
-                         "normal embed isolate bidi-override isolate-override plaintext",
-                         animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi",
-                         servo_restyle_damage="rebuild_and_reflow")}
+${helpers.single_keyword(
+    "unicode-bidi",
+    "normal embed isolate bidi-override isolate-override plaintext",
+    animation_value_type="none",
+    spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 ${helpers.predefined_type("text-decoration-line",
                           "TextDecorationLine",

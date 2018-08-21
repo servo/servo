@@ -513,14 +513,16 @@ ${helpers.predefined_type(
     servo_restyle_damage="reflow_out_of_flow"
 )}
 
-${helpers.predefined_type("contain",
-                          "Contain",
-                          "specified::Contain::empty()",
-                          animation_value_type="discrete",
-                          products="gecko",
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          gecko_pref="layout.css.contain.enabled",
-                          spec="https://drafts.csswg.org/css-contain/#contain-property")}
+${helpers.predefined_type(
+    "contain",
+    "Contain",
+    "specified::Contain::empty()",
+    animation_value_type="none",
+    products="gecko",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    gecko_pref="layout.css.contain.enabled",
+    spec="https://drafts.csswg.org/css-contain/#contain-property",
+)}
 
 // Non-standard
 ${helpers.predefined_type(
@@ -552,7 +554,7 @@ ${helpers.predefined_type(
     "WillChange",
     "computed::WillChange::auto()",
     products="gecko",
-    animation_value_type="discrete",
+    animation_value_type="none",
     spec="https://drafts.csswg.org/css-will-change/#will-change"
 )}
 
