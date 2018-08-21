@@ -21,7 +21,6 @@ use gecko_bindings::bindings::RawServoRuleNode;
 use gecko_bindings::bindings::RawServoRuleNodeStrong;
 use gecko_bindings::bindings::RawServoSupportsRule;
 use gecko_bindings::bindings::ServoCssRules;
-use gecko_bindings::bindings::StyleUseCounters;
 use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawServoFontFaceRule;
@@ -40,7 +39,6 @@ use stylesheets::{CounterStyleRule, CssRules, FontFaceRule, FontFeatureValuesRul
 use stylesheets::{DocumentRule, ImportRule, KeyframesRule, MediaRule, NamespaceRule, PageRule};
 use stylesheets::{StyleRule, StylesheetContents, SupportsRule};
 use stylesheets::keyframes_rule::Keyframe;
-use use_counters::UseCounters;
 
 macro_rules! impl_arc_ffi {
     ($servo_type:ty => $gecko_type:ty[$addref:ident, $release:ident]) => {
@@ -60,9 +58,6 @@ macro_rules! impl_arc_ffi {
         }
     };
 }
-
-impl_arc_ffi!(UseCounters => StyleUseCounters
-              [Servo_UseCounters_AddRef, Servo_UseCounters_Release]);
 
 impl_arc_ffi!(Locked<CssRules> => ServoCssRules
               [Servo_CssRules_AddRef, Servo_CssRules_Release]);

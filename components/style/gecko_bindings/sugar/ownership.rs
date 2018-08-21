@@ -305,6 +305,15 @@ pub struct OwnedOrNull<GeckoType> {
 }
 
 impl<GeckoType> OwnedOrNull<GeckoType> {
+    /// Returns a null pointer.
+    #[inline]
+    pub fn null() -> Self {
+        Self {
+            ptr: ptr::null_mut(),
+            _marker: PhantomData,
+        }
+    }
+
     /// Returns whether this pointer is null.
     #[inline]
     pub fn is_null(&self) -> bool {
