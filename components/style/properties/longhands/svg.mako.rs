@@ -6,16 +6,22 @@
 
 <% data.new_style_struct("SVG", inherited=False, gecko_name="SVGReset") %>
 
-${helpers.single_keyword("dominant-baseline",
-                 """auto use-script no-change reset-size ideographic alphabetic hanging
-                    mathematical central middle text-after-edge text-before-edge""",
-                 products="gecko",
-                 animation_value_type="discrete",
-                 spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty")}
+${helpers.single_keyword(
+    "dominant-baseline",
+    """auto use-script no-change reset-size ideographic alphabetic hanging
+    mathematical central middle text-after-edge text-before-edge""",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty",
+)}
 
-${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
-                         products="gecko", animation_value_type="discrete",
-                         spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty")}
+${helpers.single_keyword(
+    "vector-effect",
+    "none non-scaling-stroke",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty",
+)}
 
 // Section 13 - Gradients and Patterns
 
@@ -28,10 +34,14 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty",
 )}
 
-${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
-                          products="gecko",
-                          animation_value_type="ComputedValue",
-                          spec="https://www.w3.org/TR/SVGTiny12/painting.html#propdef-stop-opacity")}
+${helpers.predefined_type(
+    "stop-opacity",
+    "Opacity",
+    "1.0",
+    products="gecko",
+    animation_value_type="ComputedValue",
+    spec="https://www.w3.org/TR/SVGTiny12/painting.html#propdef-stop-opacity",
+)}
 
 // Section 15 - Filter Effects
 
@@ -44,9 +54,14 @@ ${helpers.predefined_type(
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty",
 )}
 
-${helpers.predefined_type("flood-opacity", "Opacity",
-                          "1.0", products="gecko", animation_value_type="ComputedValue",
-                          spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty")}
+${helpers.predefined_type(
+    "flood-opacity",
+    "Opacity",
+    "1.0",
+    products="gecko",
+    animation_value_type="ComputedValue",
+    spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty",
+)}
 
 ${helpers.predefined_type(
     "lighting-color",
@@ -59,9 +74,13 @@ ${helpers.predefined_type(
 
 // CSS Masking Module Level 1
 // https://drafts.fxtf.org/css-masking
-${helpers.single_keyword("mask-type", "luminance alpha",
-                         products="gecko", animation_value_type="discrete",
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
+${helpers.single_keyword(
+    "mask-type",
+    "luminance alpha",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type",
+)}
 
 ${helpers.predefined_type(
     "clip-path",
@@ -74,12 +93,14 @@ ${helpers.predefined_type(
     spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path",
 )}
 
-${helpers.single_keyword("mask-mode",
-                         "match-source alpha luminance",
-                         vector=True,
-                         products="gecko",
-                         animation_value_type="discrete",
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
+${helpers.single_keyword(
+    "mask-mode",
+    "match-source alpha luminance",
+    vector=True,
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode",
+)}
 
 ${helpers.predefined_type(
     "mask-repeat",
@@ -97,9 +118,9 @@ ${helpers.predefined_type(
     ${helpers.predefined_type(
         "mask-position-" + axis,
         "position::" + direction + "Position",
+        "computed::LengthOrPercentage::zero()",
         products="gecko",
         extra_prefixes="webkit",
-        initial_value="computed::LengthOrPercentage::zero()",
         initial_specified_value="specified::PositionComponent::Center",
         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position",
         animation_value_type="ComputedValue",
@@ -147,20 +168,25 @@ ${helpers.predefined_type(
     vector_animation_type="repeatable_list",
 )}
 
-${helpers.single_keyword("mask-composite",
-                         "add subtract intersect exclude",
-                         vector=True,
-                         products="gecko",
-                         extra_prefixes="webkit",
-                         animation_value_type="discrete",
-                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
+${helpers.single_keyword(
+    "mask-composite",
+    "add subtract intersect exclude",
+    vector=True,
+    products="gecko",
+    extra_prefixes="webkit",
+    animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite",
+)}
 
-${helpers.predefined_type("mask-image", "ImageLayer",
-    initial_value="Either::First(None_)",
+${helpers.predefined_type(
+    "mask-image",
+    "ImageLayer",
+    "Either::First(None_)",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image",
     vector=True,
     products="gecko",
     extra_prefixes="webkit",
     animation_value_type="discrete",
-    flags="CREATES_STACKING_CONTEXT")}
+    flags="CREATES_STACKING_CONTEXT",
+)}

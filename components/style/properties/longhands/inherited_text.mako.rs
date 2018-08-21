@@ -20,51 +20,68 @@ ${helpers.predefined_type(
 // CSS Text Module Level 3
 
 // TODO(pcwalton): `full-width`
-${helpers.single_keyword("text-transform",
-                         "none capitalize uppercase lowercase",
-                         extra_gecko_values="full-width",
-                         animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                         spec="https://drafts.csswg.org/css-text/#propdef-text-transform",
-                         servo_restyle_damage="rebuild_and_reflow")}
+${helpers.single_keyword(
+    "text-transform",
+    "none capitalize uppercase lowercase",
+    extra_gecko_values="full-width",
+    animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-text/#propdef-text-transform",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
-${helpers.single_keyword("hyphens", "manual none auto",
-                         gecko_enum_prefix="StyleHyphens",
-                         products="gecko", animation_value_type="discrete", extra_prefixes="moz",
-                         spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
+${helpers.single_keyword(
+    "hyphens",
+    "manual none auto",
+    gecko_enum_prefix="StyleHyphens",
+    products="gecko",
+    animation_value_type="discrete",
+    extra_prefixes="moz",
+    spec="https://drafts.csswg.org/css-text/#propdef-hyphens",
+)}
 
 // TODO: Support <percentage>
-${helpers.single_keyword("-moz-text-size-adjust", "auto none",
-                         gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
-                         gecko_ffi_name="mTextSizeAdjust",
-                         products="gecko", animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
-                         alias="-webkit-text-size-adjust")}
+${helpers.single_keyword(
+    "-moz-text-size-adjust",
+    "auto none",
+    gecko_constant_prefix="NS_STYLE_TEXT_SIZE_ADJUST",
+    gecko_ffi_name="mTextSizeAdjust",
+    products="gecko", animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-size-adjust/#adjustment-control",
+    alias="-webkit-text-size-adjust",
+)}
 
-${helpers.predefined_type("text-indent",
-                          "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
-                          animation_value_type="ComputedValue",
-                          spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
-                          allow_quirks=True, servo_restyle_damage = "reflow")}
+${helpers.predefined_type(
+    "text-indent",
+    "LengthOrPercentage",
+    "computed::LengthOrPercentage::Length(computed::Length::new(0.))",
+    animation_value_type="ComputedValue",
+    spec="https://drafts.csswg.org/css-text/#propdef-text-indent",
+    allow_quirks=True,
+    servo_restyle_damage = "reflow",
+)}
 
 // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
 // name per CSS-TEXT 6.2.
-${helpers.single_keyword("overflow-wrap",
-                         "normal break-word",
-                         gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
-                         animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
-                         alias="word-wrap",
-                         servo_restyle_damage="rebuild_and_reflow")}
+${helpers.single_keyword(
+    "overflow-wrap",
+    "normal break-word",
+    gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
+    alias="word-wrap",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-${helpers.single_keyword("word-break",
-                         "normal break-all keep-all",
-                         gecko_constant_prefix="NS_STYLE_WORDBREAK",
-                         animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-text/#propdef-word-break",
-                         servo_restyle_damage="rebuild_and_reflow")}
+${helpers.single_keyword(
+    "word-break",
+    "normal break-all keep-all",
+    gecko_constant_prefix="NS_STYLE_WORDBREAK",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#propdef-word-break",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
 <%helpers:single_keyword
@@ -106,39 +123,45 @@ ${helpers.single_keyword("word-break",
     % endif
 </%helpers:single_keyword>
 
-${helpers.single_keyword("text-align-last",
-                         "auto start end left right center justify",
-                         products="gecko",
-                         gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
-                         animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
+${helpers.single_keyword(
+    "text-align-last",
+    "auto start end left right center justify",
+    products="gecko",
+    gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-text/#propdef-text-align-last",
+)}
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
-//
-// FIXME(emilio): This can't really be that complicated.
-${helpers.predefined_type("text-align",
-                          "TextAlign",
-                          "computed::TextAlign::start()",
-                          animation_value_type="discrete",
-                          flags="APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text/#propdef-text-align",
-                          servo_restyle_damage = "reflow")}
+${helpers.predefined_type(
+    "text-align",
+    "TextAlign",
+    "computed::TextAlign::start()",
+    animation_value_type="discrete",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-text/#propdef-text-align",
+    servo_restyle_damage = "reflow",
+)}
 
-${helpers.predefined_type("letter-spacing",
-                          "LetterSpacing",
-                          "computed::LetterSpacing::normal()",
-                          animation_value_type="ComputedValue",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing",
-                          servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type(
+    "letter-spacing",
+    "LetterSpacing",
+    "computed::LetterSpacing::normal()",
+    animation_value_type="ComputedValue",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
-${helpers.predefined_type("word-spacing",
-                          "WordSpacing",
-                          "computed::WordSpacing::normal()",
-                          animation_value_type="ComputedValue",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://drafts.csswg.org/css-text/#propdef-word-spacing",
-                          servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type(
+    "word-spacing",
+    "WordSpacing",
+    "computed::WordSpacing::normal()",
+    animation_value_type="ComputedValue",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-text/#propdef-word-spacing",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 <%helpers:single_keyword
     name="white-space"
@@ -267,47 +290,65 @@ ${helpers.predefined_type(
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color",
 )}
 
-${helpers.predefined_type("-webkit-text-stroke-width",
-                          "BorderSideWidth",
-                          "::values::computed::NonNegativeLength::new(0.)",
-                          initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
-                          computed_type="::values::computed::NonNegativeLength",
-                          products="gecko",
-                          gecko_pref="layout.css.prefixes.webkit",
-                          flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
-                          spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
-                          animation_value_type="discrete")}
+${helpers.predefined_type(
+    "-webkit-text-stroke-width",
+    "BorderSideWidth",
+    "::values::computed::NonNegativeLength::new(0.)",
+    initial_specified_value="specified::BorderSideWidth::Length(specified::Length::zero())",
+    computed_type="::values::computed::NonNegativeLength",
+    products="gecko",
+    gecko_pref="layout.css.prefixes.webkit",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-width",
+    animation_value_type="discrete",
+)}
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/
-${helpers.single_keyword("ruby-align", "space-around start center space-between",
-                         products="gecko", animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-ruby/#ruby-align-property")}
+${helpers.single_keyword(
+    "ruby-align",
+    "space-around start center space-between",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-ruby/#ruby-align-property",
+)}
 
-${helpers.single_keyword("ruby-position", "over under",
-                         products="gecko", animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-ruby/#ruby-position-property")}
+${helpers.single_keyword(
+    "ruby-position",
+    "over under",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-ruby/#ruby-position-property",
+)}
 
 // CSS Writing Modes Module Level 3
 // https://drafts.csswg.org/css-writing-modes-3/
 
-${helpers.single_keyword("text-combine-upright", "none all",
-                         products="gecko", animation_value_type="discrete",
-                         spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright")}
+${helpers.single_keyword(
+    "text-combine-upright",
+    "none all",
+    products="gecko",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright",
+)}
 
 // SVG 1.1: Section 11 - Painting: Filling, Stroking and Marker Symbols
-${helpers.single_keyword("text-rendering",
-                         "auto optimizespeed optimizelegibility geometricprecision",
-                         animation_value_type="discrete",
-                         spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty",
-                         servo_restyle_damage="rebuild_and_reflow")}
+${helpers.single_keyword(
+    "text-rendering",
+    "auto optimizespeed optimizelegibility geometricprecision",
+    animation_value_type="discrete",
+    spec="https://www.w3.org/TR/SVG11/painting.html#TextRenderingProperty",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 // FIXME Firefox expects the initial value of this property to change depending
 // on the value of the layout.css.control-characters.visible pref.
-${helpers.single_keyword("-moz-control-character-visibility",
-                         "hidden visible",
-                         gecko_constant_prefix="NS_STYLE_CONTROL_CHARACTER_VISIBILITY",
-                         gecko_ffi_name="mControlCharacterVisibility",
-                         animation_value_type="none",
-                         products="gecko",
-                         spec="Nonstandard")}
+${helpers.single_keyword(
+    "-moz-control-character-visibility",
+    "hidden visible",
+    gecko_constant_prefix="NS_STYLE_CONTROL_CHARACTER_VISIBILITY",
+    gecko_ffi_name="mControlCharacterVisibility",
+    animation_value_type="none",
+    products="gecko",
+    spec="Nonstandard",
+)}

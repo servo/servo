@@ -41,18 +41,25 @@ ${helpers.gecko_keyword_conversion(
     type="::values::specified::Display"
 )}
 
-${helpers.single_keyword("-moz-top-layer", "none top",
-                         gecko_constant_prefix="NS_STYLE_TOP_LAYER",
-                         gecko_ffi_name="mTopLayer",
-                         products="gecko", animation_value_type="none",
-                         enabled_in="ua",
-                         spec="Internal (not web-exposed)")}
+${helpers.single_keyword(
+    "-moz-top-layer",
+    "none top",
+    gecko_constant_prefix="NS_STYLE_TOP_LAYER",
+    gecko_ffi_name="mTopLayer",
+    products="gecko",
+    animation_value_type="none",
+    enabled_in="ua",
+    spec="Internal (not web-exposed)",
+)}
 
-${helpers.single_keyword("position", "static absolute relative fixed sticky",
-                         animation_value_type="discrete",
-                         flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
-                         spec="https://drafts.csswg.org/css-position/#position-property",
-                         servo_restyle_damage="rebuild_and_reflow")}
+${helpers.single_keyword(
+    "position",
+    "static absolute relative fixed sticky",
+    animation_value_type="discrete",
+    flags="CREATES_STACKING_CONTEXT ABSPOS_CB",
+    spec="https://drafts.csswg.org/css-position/#position-property",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
 ${helpers.predefined_type(
     "float",
@@ -64,7 +71,7 @@ ${helpers.predefined_type(
     needs_context=False,
     flags="APPLIES_TO_FIRST_LETTER",
     servo_restyle_damage="rebuild_and_reflow",
-    gecko_ffi_name="mFloat"
+    gecko_ffi_name="mFloat",
 )}
 
 ${helpers.predefined_type(
@@ -75,7 +82,7 @@ ${helpers.predefined_type(
     needs_context=False,
     gecko_ffi_name="mBreakType",
     spec="https://drafts.csswg.org/css-box/#propdef-clear",
-    servo_restyle_damage="rebuild_and_reflow"
+    servo_restyle_damage="rebuild_and_reflow",
 )}
 
 ${helpers.predefined_type(
@@ -85,7 +92,7 @@ ${helpers.predefined_type(
     animation_value_type="ComputedValue",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
-    servo_restyle_damage = "reflow"
+    servo_restyle_damage = "reflow",
 )}
 
 // CSS 2.1, Section 11 - Visual effects
@@ -118,14 +125,17 @@ ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box",
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 //
 // We allow it to apply to placeholders for UA sheets, which set it !important.
-${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
-                         animation_value_type="discrete",
-                         extra_gecko_values="-moz-hidden-unscrollable",
-                         custom_consts=overflow_custom_consts,
-                         gecko_constant_prefix="NS_STYLE_OVERFLOW",
-                         flags="APPLIES_TO_PLACEHOLDER",
-                         spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
-                         servo_restyle_damage = "reflow")}
+${helpers.single_keyword(
+    "overflow-x",
+    "visible hidden scroll auto",
+    animation_value_type="discrete",
+    extra_gecko_values="-moz-hidden-unscrollable",
+    custom_consts=overflow_custom_consts,
+    gecko_constant_prefix="NS_STYLE_OVERFLOW",
+    flags="APPLIES_TO_PLACEHOLDER",
+    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow-x",
+    servo_restyle_damage = "reflow",
+)}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
 //
@@ -139,26 +149,30 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
 <% transition_extra_prefixes = "moz:layout.css.prefixes.transitions webkit" %>
 
-${helpers.predefined_type("transition-duration",
-                          "Time",
-                          "computed::Time::zero()",
-                          initial_specified_value="specified::Time::zero()",
-                          parse_method="parse_non_negative",
-                          vector=True,
-                          need_index=True,
-                          animation_value_type="none",
-                          extra_prefixes=transition_extra_prefixes,
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
+${helpers.predefined_type(
+    "transition-duration",
+    "Time",
+    "computed::Time::zero()",
+    initial_specified_value="specified::Time::zero()",
+    parse_method="parse_non_negative",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes=transition_extra_prefixes,
+    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration",
+)}
 
-${helpers.predefined_type("transition-timing-function",
-                          "TimingFunction",
-                          "computed::TimingFunction::ease()",
-                          initial_specified_value="specified::TimingFunction::ease()",
-                          vector=True,
-                          need_index=True,
-                          animation_value_type="none",
-                          extra_prefixes=transition_extra_prefixes,
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function")}
+${helpers.predefined_type(
+    "transition-timing-function",
+    "TimingFunction",
+    "computed::TimingFunction::ease()",
+    initial_specified_value="specified::TimingFunction::ease()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes=transition_extra_prefixes,
+    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function",
+)}
 
 ${helpers.predefined_type(
     "transition-property",
@@ -173,16 +187,17 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property",
 )}
 
-${helpers.predefined_type("transition-delay",
-                          "Time",
-                          "computed::Time::zero()",
-                          initial_specified_value="specified::Time::zero()",
-                          vector=True,
-                          need_index=True,
-                          animation_value_type="none",
-                          extra_prefixes=transition_extra_prefixes,
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay")}
-
+${helpers.predefined_type(
+    "transition-delay",
+    "Time",
+    "computed::Time::zero()",
+    initial_specified_value="specified::Time::zero()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes=transition_extra_prefixes,
+    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay",
+)}
 
 <% animation_extra_prefixes = "moz:layout.css.prefixes.animations webkit" %>
 
@@ -199,29 +214,33 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-animations/#propdef-animation-name",
 )}
 
-${helpers.predefined_type("animation-duration",
-                          "Time",
-                          "computed::Time::zero()",
-                          initial_specified_value="specified::Time::zero()",
-                          parse_method="parse_non_negative",
-                          vector=True,
-                          need_index=True,
-                          animation_value_type="none",
-                          extra_prefixes=animation_extra_prefixes,
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration")}
+${helpers.predefined_type(
+    "animation-duration",
+    "Time",
+    "computed::Time::zero()",
+    initial_specified_value="specified::Time::zero()",
+    parse_method="parse_non_negative",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes=animation_extra_prefixes,
+    spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration",
+)}
 
 // animation-timing-function is the exception to the rule for allowed_in_keyframe_block:
 // https://drafts.csswg.org/css-animations/#keyframes
-${helpers.predefined_type("animation-timing-function",
-                          "TimingFunction",
-                          "computed::TimingFunction::ease()",
-                          initial_specified_value="specified::TimingFunction::ease()",
-                          vector=True,
-                          need_index=True,
-                          animation_value_type="none",
-                          extra_prefixes=animation_extra_prefixes,
-                          allowed_in_keyframe_block=True,
-                          spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function")}
+${helpers.predefined_type(
+    "animation-timing-function",
+    "TimingFunction",
+    "computed::TimingFunction::ease()",
+    initial_specified_value="specified::TimingFunction::ease()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes=animation_extra_prefixes,
+    allowed_in_keyframe_block=True,
+    spec="https://drafts.csswg.org/css-transitions/#propdef-animation-timing-function",
+)}
 
 ${helpers.predefined_type(
     "animation-iteration-count",
@@ -237,46 +256,54 @@ ${helpers.predefined_type(
 )}
 
 <% animation_direction_custom_consts = { "alternate-reverse": "Alternate_reverse" } %>
-${helpers.single_keyword("animation-direction",
-                         "normal reverse alternate alternate-reverse",
-                         need_index=True,
-                         animation_value_type="none",
-                         vector=True,
-                         gecko_enum_prefix="PlaybackDirection",
-                         custom_consts=animation_direction_custom_consts,
-                         extra_prefixes=animation_extra_prefixes,
-                         spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
-                         allowed_in_keyframe_block=False)}
+${helpers.single_keyword(
+    "animation-direction",
+    "normal reverse alternate alternate-reverse",
+    need_index=True,
+    animation_value_type="none",
+    vector=True,
+    gecko_enum_prefix="PlaybackDirection",
+    custom_consts=animation_direction_custom_consts,
+    extra_prefixes=animation_extra_prefixes,
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
+    allowed_in_keyframe_block=False,
+)}
 
-${helpers.single_keyword("animation-play-state",
-                         "running paused",
-                         need_index=True,
-                         animation_value_type="none",
-                         vector=True,
-                         extra_prefixes=animation_extra_prefixes,
-                         spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
-                         allowed_in_keyframe_block=False)}
+${helpers.single_keyword(
+    "animation-play-state",
+    "running paused",
+    need_index=True,
+    animation_value_type="none",
+    vector=True,
+    extra_prefixes=animation_extra_prefixes,
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
+    allowed_in_keyframe_block=False,
+)}
 
-${helpers.single_keyword("animation-fill-mode",
-                         "none forwards backwards both",
-                         need_index=True,
-                         animation_value_type="none",
-                         vector=True,
-                         gecko_enum_prefix="FillMode",
-                         extra_prefixes=animation_extra_prefixes,
-                         spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
-                         allowed_in_keyframe_block=False)}
+${helpers.single_keyword(
+    "animation-fill-mode",
+    "none forwards backwards both",
+    need_index=True,
+    animation_value_type="none",
+    vector=True,
+    gecko_enum_prefix="FillMode",
+    extra_prefixes=animation_extra_prefixes,
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
+    allowed_in_keyframe_block=False,
+)}
 
-${helpers.predefined_type("animation-delay",
-                          "Time",
-                          "computed::Time::zero()",
-                          initial_specified_value="specified::Time::zero()",
-                          vector=True,
-                          need_index=True,
-                          animation_value_type="none",
-                          extra_prefixes=animation_extra_prefixes,
-                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
-                          allowed_in_keyframe_block=False)}
+${helpers.predefined_type(
+    "animation-delay",
+    "Time",
+    "computed::Time::zero()",
+    initial_specified_value="specified::Time::zero()",
+    vector=True,
+    need_index=True,
+    animation_value_type="none",
+    extra_prefixes=animation_extra_prefixes,
+    spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
+    allowed_in_keyframe_block=False,
+)}
 
 % for axis in ["x", "y"]:
     ${helpers.predefined_type(
@@ -290,14 +317,16 @@ ${helpers.predefined_type("animation-delay",
     )}
 % endfor
 
-${helpers.predefined_type("scroll-snap-destination",
-                          "Position",
-                          "computed::Position::zero()",
-                          products="gecko",
-                          gecko_pref="layout.css.scroll-snap.enabled",
-                          boxed=True,
-                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animation_value_type="discrete")}
+${helpers.predefined_type(
+    "scroll-snap-destination",
+    "Position",
+    "computed::Position::zero()",
+    products="gecko",
+    gecko_pref="layout.css.scroll-snap.enabled",
+    boxed=True,
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
+    animation_value_type="discrete",
+)}
 
 ${helpers.predefined_type(
     "scroll-snap-coordinate",
@@ -308,7 +337,7 @@ ${helpers.predefined_type(
     gecko_pref="layout.css.scroll-snap.enabled",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
     animation_value_type="discrete",
-    allow_empty="NotInitial"
+    allow_empty="NotInitial",
 )}
 
 <% transform_extra_prefixes = "moz:layout.css.prefixes.transforms webkit" %>
@@ -323,26 +352,32 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB \
            GETCS_NEEDS_LAYOUT_FLUSH CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-transforms/#propdef-transform",
-    servo_restyle_damage="reflow_out_of_flow"
+    servo_restyle_damage="reflow_out_of_flow",
 )}
 
-${helpers.predefined_type("rotate", "Rotate",
-                          "generics::transform::Rotate::None",
-                          animation_value_type="ComputedValue",
-                          boxed=True,
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          gecko_pref="layout.css.individual-transform.enabled",
-                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "rotate",
+    "Rotate",
+    "generics::transform::Rotate::None",
+    animation_value_type="ComputedValue",
+    boxed=True,
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    gecko_pref="layout.css.individual-transform.enabled",
+    spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+    servo_restyle_damage = "reflow_out_of_flow",
+)}
 
-${helpers.predefined_type("scale", "Scale",
-                          "generics::transform::Scale::None",
-                          animation_value_type="ComputedValue",
-                          boxed=True,
-                          flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-                          gecko_pref="layout.css.individual-transform.enabled",
-                          spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
-                          servo_restyle_damage = "reflow_out_of_flow")}
+${helpers.predefined_type(
+    "scale",
+    "Scale",
+    "generics::transform::Scale::None",
+    animation_value_type="ComputedValue",
+    boxed=True,
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    gecko_pref="layout.css.individual-transform.enabled",
+    spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
+    servo_restyle_damage = "reflow_out_of_flow",
+)}
 
 ${helpers.predefined_type(
     "translate",
@@ -353,7 +388,7 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB GETCS_NEEDS_LAYOUT_FLUSH",
     gecko_pref="layout.css.individual-transform.enabled",
     spec="https://drafts.csswg.org/css-transforms-2/#individual-transforms",
-    servo_restyle_damage="reflow_out_of_flow"
+    servo_restyle_damage="reflow_out_of_flow",
 )}
 
 // Motion Path Module Level 1
@@ -369,12 +404,14 @@ ${helpers.predefined_type(
 
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
-${helpers.single_keyword("scroll-behavior",
-                         "auto smooth",
-                         gecko_pref="layout.css.scroll-behavior.property-enabled",
-                         products="gecko",
-                         spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
-                         animation_value_type="discrete")}
+${helpers.single_keyword(
+    "scroll-behavior",
+    "auto smooth",
+    gecko_pref="layout.css.scroll-behavior.property-enabled",
+    products="gecko",
+    spec="https://drafts.csswg.org/cssom-view/#propdef-scroll-behavior",
+    animation_value_type="discrete",
+)}
 
 % for axis in ["x", "y"]:
     ${helpers.predefined_type(
@@ -385,7 +422,7 @@ ${helpers.single_keyword("scroll-behavior",
         needs_context=False,
         gecko_pref="layout.css.scroll-snap.enabled",
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x)",
-        animation_value_type="discrete"
+        animation_value_type="discrete",
     )}
 % endfor
 
@@ -398,38 +435,48 @@ ${helpers.single_keyword("scroll-behavior",
         needs_context=False,
         gecko_pref="layout.css.overscroll-behavior.enabled",
         spec="https://wicg.github.io/overscroll-behavior/#overscroll-behavior-properties",
-        animation_value_type="discrete"
+        animation_value_type="discrete",
     )}
 % endfor
 
 // Compositing and Blending Level 1
 // http://www.w3.org/TR/compositing-1/
-${helpers.single_keyword("isolation",
-                         "auto isolate",
-                         products="gecko",
-                         gecko_pref="layout.css.isolation.enabled",
-                         spec="https://drafts.fxtf.org/compositing/#isolation",
-                         flags="CREATES_STACKING_CONTEXT",
-                         animation_value_type="discrete")}
+${helpers.single_keyword(
+    "isolation",
+    "auto isolate",
+    products="gecko",
+    gecko_pref="layout.css.isolation.enabled",
+    spec="https://drafts.fxtf.org/compositing/#isolation",
+    flags="CREATES_STACKING_CONTEXT",
+    animation_value_type="discrete",
+)}
 
 // TODO add support for logical values recto and verso
-${helpers.single_keyword("page-break-after",
-                         "auto always avoid left right",
-                         products="gecko",
-                         spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after",
-                         animation_value_type="discrete")}
-${helpers.single_keyword("page-break-before",
-                         "auto always avoid left right",
-                         products="gecko",
-                         spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before",
-                         animation_value_type="discrete")}
-${helpers.single_keyword("page-break-inside",
-                         "auto avoid",
-                         products="gecko",
-                         gecko_ffi_name="mBreakInside",
-                         gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
-                         spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-inside",
-                         animation_value_type="discrete")}
+${helpers.single_keyword(
+    "page-break-after",
+    "auto always avoid left right",
+    products="gecko",
+    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-after",
+    animation_value_type="discrete",
+)}
+
+${helpers.single_keyword(
+    "page-break-before",
+    "auto always avoid left right",
+    products="gecko",
+    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-before",
+    animation_value_type="discrete",
+)}
+
+${helpers.single_keyword(
+    "page-break-inside",
+    "auto avoid",
+    products="gecko",
+    gecko_ffi_name="mBreakInside",
+    gecko_constant_prefix="NS_STYLE_PAGE_BREAK",
+    spec="https://drafts.csswg.org/css2/page.html#propdef-page-break-inside",
+    animation_value_type="discrete",
+)}
 
 // CSS Basic User Interface Module Level 3
 // http://dev.w3.org/csswg/css-ui
@@ -473,20 +520,24 @@ ${helpers.predefined_type(
     servo_restyle_damage="reflow_out_of_flow"
 )}
 
-${helpers.single_keyword("backface-visibility",
-                         "visible hidden",
-                         spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
-                         extra_prefixes=transform_extra_prefixes,
-                         animation_value_type="discrete")}
+${helpers.single_keyword(
+    "backface-visibility",
+    "visible hidden",
+    spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
+    extra_prefixes=transform_extra_prefixes,
+    animation_value_type="discrete",
+)}
 
-${helpers.single_keyword("transform-box",
-                         "border-box fill-box view-box",
-                         gecko_enum_prefix="StyleGeometryBox",
-                         products="gecko",
-                         gecko_pref="svg.transform-box.enabled",
-                         spec="https://drafts.csswg.org/css-transforms/#transform-box",
-                         gecko_inexhaustive="True",
-                         animation_value_type="discrete")}
+${helpers.single_keyword(
+    "transform-box",
+    "border-box fill-box view-box",
+    gecko_enum_prefix="StyleGeometryBox",
+    products="gecko",
+    gecko_pref="svg.transform-box.enabled",
+    spec="https://drafts.csswg.org/css-transforms/#transform-box",
+    gecko_inexhaustive="True",
+    animation_value_type="discrete",
+)}
 
 ${helpers.predefined_type(
     "transform-style",
@@ -510,7 +561,7 @@ ${helpers.predefined_type(
     boxed=True,
     flags="GETCS_NEEDS_LAYOUT_FLUSH",
     spec="https://drafts.csswg.org/css-transforms/#transform-origin-property",
-    servo_restyle_damage="reflow_out_of_flow"
+    servo_restyle_damage="reflow_out_of_flow",
 )}
 
 ${helpers.predefined_type(
@@ -535,19 +586,25 @@ ${helpers.predefined_type(
     animation_value_type="discrete",
 )}
 
-${helpers.predefined_type("-moz-binding", "url::UrlOrNone", "computed::url::UrlOrNone::none()",
-                          products="gecko",
-                          animation_value_type="none",
-                          gecko_ffi_name="mBinding",
-                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)")}
+${helpers.predefined_type(
+    "-moz-binding",
+    "url::UrlOrNone",
+    "computed::url::UrlOrNone::none()",
+    products="gecko",
+    animation_value_type="none",
+    gecko_ffi_name="mBinding",
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
+)}
 
-${helpers.single_keyword("-moz-orient",
-                          "inline block horizontal vertical",
-                          products="gecko",
-                          gecko_ffi_name="mOrient",
-                          gecko_enum_prefix="StyleOrient",
-                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
-                          animation_value_type="discrete")}
+${helpers.single_keyword(
+    "-moz-orient",
+    "inline block horizontal vertical",
+    products="gecko",
+    gecko_ffi_name="mOrient",
+    gecko_enum_prefix="StyleOrient",
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
+    animation_value_type="discrete",
+)}
 
 ${helpers.predefined_type(
     "will-change",
@@ -555,7 +612,7 @@ ${helpers.predefined_type(
     "computed::WillChange::auto()",
     products="gecko",
     animation_value_type="none",
-    spec="https://drafts.csswg.org/css-will-change/#will-change"
+    spec="https://drafts.csswg.org/css-will-change/#will-change",
 )}
 
 ${helpers.predefined_type(
