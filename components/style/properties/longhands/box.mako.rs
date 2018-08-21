@@ -23,24 +23,6 @@ ${helpers.predefined_type(
     needs_context=product == "gecko"
 )}
 
-// FIXME(emilio): Listing all the display values here is very unfortunate, we should teach C++ to use the
-// Rust enum directly, or generate the conversions to `StyleDisplay`.
-${helpers.gecko_keyword_conversion(
-    Keyword('display', """
-        inline block inline-block
-        table inline-table table-row-group table-header-group table-footer-group
-        table-row table-column-group table-column table-cell table-caption
-        list-item none flex inline-flex grid inline-grid ruby ruby-base ruby-base-container
-        ruby-text ruby-text-container contents flow-root -webkit-box
-        -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
-        -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
-        -moz-popup -moz-groupbox
-    """,
-    gecko_enum_prefix='StyleDisplay',
-    gecko_strip_moz_prefix=False),
-    type="::values::specified::Display"
-)}
-
 ${helpers.single_keyword(
     "-moz-top-layer",
     "none top",

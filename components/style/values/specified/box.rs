@@ -57,8 +57,8 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 /// Also, when you change this from Gecko you may need to regenerate the
 /// C++-side bindings (see components/style/cbindgen.toml).
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, Parse,
+         PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 pub enum Display {
