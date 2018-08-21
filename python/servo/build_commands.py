@@ -344,6 +344,7 @@ class MachCommands(CommandBase):
             cxx_include = path.join(env['ANDROID_NDK'], "sources", "cxx-stl",
                                     "llvm-libc++", "libcxx", "include")
             sysroot_include = path.join(env['ANDROID_SYSROOT'], "usr", "include")
+            linux_include = path.join(llvm_toolchain, "/lib64/clang/3.8/include")
             env['HOST_CC'] = host_cc
             env['HOST_CXX'] = host_cxx
             env['HOST_CFLAGS'] = ''
@@ -381,6 +382,7 @@ class MachCommands(CommandBase):
                 "--gcc-toolchain=" + gcc_toolchain,
                 "-I" + support_include,
                 "-I" + cxx_include,
+                "-I" + linux_include,
                 "-isystem", sysroot_include,
                 "-L" + gcc_libs,
                 "-D__STDC_CONSTANT_MACROS",
