@@ -174,6 +174,7 @@ android:
  env:
    HOST_CC: gcc-5
    HOST_CXX: g++-5
+   LIBCLANG_PATH: /usr/lib/llvm-4.0/lib/
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
@@ -189,6 +190,7 @@ android-x86:
  env:
    HOST_CC: gcc-5
    HOST_CXX: g++-5
+   LIBCLANG_PATH: /usr/lib/llvm-4.0/lib/
  commands:
   - ./mach clean-nightlies --keep 3 --force
   - ./mach clean-cargo-cache --keep 3 --force
