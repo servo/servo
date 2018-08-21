@@ -1144,8 +1144,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
         //     format, or can otherwise not be rendered at all"
         if !elem.have_metadata.get() {
             // FIXME(victor): adjust player's max-size (or buffering)
-            elem.queue_dedicated_media_source_failure_steps();
-        // => "Once the entire media resource has been fetched..."
+            //elem.queue_dedicated_media_source_failure_steps();
+            // => "Once the entire media resource has been fetched..."
         } else if status.is_ok() {
             elem.change_ready_state(ReadyState::HaveEnoughData);
 
