@@ -18,6 +18,12 @@ use dom::webgltexture::WebGLTexture;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 
+pub enum CompleteForRendering {
+    Complete,
+    Incomplete,
+    MissingColorAttachment,
+}
+
 #[must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 enum WebGLFramebufferAttachment {
@@ -214,14 +220,14 @@ impl WebGLFramebuffer {
         return self.status.get();
     }
 
-    pub fn check_status_for_rendering(&self) -> u32 {
+    pub fn check_status_for_rendering(&self) -> CompleteForRendering {
         let result = self.check_status();
         if result != constants::FRAMEBUFFER_COMPLETE {
-            return result;
+            return CompleteForRendering::Incomplete;
         }
 
         if self.color.borrow().is_none() {
-            return constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+            return CompleteForRendering::MissingColorAttachment;
         }
 
         if !self.is_initialized.get() {
@@ -245,7 +251,7 @@ impl WebGLFramebuffer {
             self.is_initialized.set(true);
         }
 
-        constants::FRAMEBUFFER_COMPLETE
+        CompleteForRendering::Complete
     }
 
     pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
