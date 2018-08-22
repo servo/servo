@@ -517,6 +517,7 @@ impl UnprivilegedPipelineContent {
                 webgl_chan: self.webgl_chan,
                 webvr_chan: self.webvr_chan,
                 webrender_document: self.webrender_document,
+                webrender_api_sender: self.webrender_api_sender.clone(),
             },
             self.load_data.clone(),
         );
