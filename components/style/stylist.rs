@@ -824,9 +824,6 @@ impl Stylist {
     ///
     /// layout_parent_style is the style used for some property fixups.  It's
     /// the style of the nearest ancestor with a layout box.
-    ///
-    /// is_link should be true if we're computing style for a link; that affects
-    /// how :visited handling is done.
     pub fn cascade_style_and_visited<E>(
         &self,
         element: Option<E>,
