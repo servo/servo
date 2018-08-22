@@ -82,14 +82,15 @@ impl MessageEvent {
 impl MessageEvent {
     pub fn dispatch_jsval(target: &EventTarget,
                           scope: &GlobalScope,
-                          message: HandleValue) {
+                          message: HandleValue,
+                          origin: Option<&str>) {
         let messageevent = MessageEvent::new(
             scope,
             atom!("message"),
             false,
             false,
             message,
-            DOMString::new(),
+            DOMString::from(origin.unwrap_or("")),
             DOMString::new());
         messageevent.upcast::<Event>().fire(target);
     }
