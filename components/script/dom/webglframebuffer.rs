@@ -66,7 +66,7 @@ impl WebGLFramebuffer {
             target: Cell::new(None),
             is_deleted: Cell::new(false),
             size: Cell::new(None),
-            status: Cell::new(constants::FRAMEBUFFER_UNSUPPORTED),
+            status: Cell::new(constants::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT),
             color: DomRefCell::new(None),
             depth: DomRefCell::new(None),
             stencil: DomRefCell::new(None),
@@ -206,7 +206,7 @@ impl WebGLFramebuffer {
                 self.status.set(constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
             }
         } else {
-            self.status.set(constants::FRAMEBUFFER_UNSUPPORTED);
+            self.status.set(constants::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
         }
     }
 
