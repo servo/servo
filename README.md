@@ -71,10 +71,20 @@ brew install openssl
 export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
 export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
 
+./mach clean
 ./mach build ...
 ```
 
-If you've already partially compiled servo but forgot to do this step, run `./mach clean`, set the shell variables, and recompile.
+#### On macOS, you may also have to install LLVM manually
+If the version included in the "command-line tools" proves too old.
+
+```sh
+brew install llvm
+export LIBCLANG_PATH="$(brew --prefix openssl)"
+
+./mach clean
+./mach build ...
+```
 
 #### On Debian-based Linuxes
 
@@ -132,13 +142,13 @@ export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang 
+    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang
 ```
 #### On Arch Linux
 
 ``` sh
 sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu \
-    pkg-config ttf-fira-sans harfbuzz ccache clang 
+    pkg-config ttf-fira-sans harfbuzz ccache clang
 ```
 #### On Gentoo Linux
 
