@@ -533,6 +533,7 @@ impl HTMLMediaElement {
             },
             Mode::Children(_source) => {
                 // Step 9.children.
+                // FIXME(victor): seems not implemeted yet
                 self.queue_dedicated_media_source_failure_steps()
             },
         }
