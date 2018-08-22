@@ -70,6 +70,34 @@ struct PathParser<'a> {
     path: Vec<PathCommand>,
 }
 
+macro_rules! parse_arguments {
+    (
+        $parser:ident,
+        $abs:ident,
+        $enum:ident,
+        [ $para:ident => $func:ident $(, $other_para:ident => $other_func:ident)* ]
+    ) => {
+        {
+            loop {
+                let $para = $func(&mut $parser.chars)?;
+                $(
+                    skip_comma_wsp(&mut $parser.chars);
+                    let $other_para = $other_func(&mut $parser.chars)?;
+                )*
+                $parser.path.push(PathCommand::$enum { $para $(, $other_para)*, $abs });
+
+                // End of string or the next character is a possible new command.
+                if !skip_wsp(&mut $parser.chars) ||
+                   $parser.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
+                    break;
+                }
+                skip_comma_wsp(&mut $parser.chars);
+            }
+            Ok(())
+        }
+    }
+}
+
 impl<'a> PathParser<'a> {
     /// Parse a sub-path.
     fn parse_subpath(&mut self) -> Result<(), ()> {
@@ -87,46 +115,30 @@ impl<'a> PathParser<'a> {
             match self.chars.next() {
                 Some(command) => {
                     let abs = command.is_uppercase();
-                    match command {
-                        'Z' | 'z' => {
-                            // Note: A "closepath" coulbe be followed immediately by "moveto" or
-                            // any other command, so we don't break this loop.
-                            self.path.push(PathCommand::ClosePath);
-                        },
-                        'L' | 'l' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_lineto(abs)?;
-                        },
-                        'H' | 'h' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_h_lineto(abs)?;
-                        },
-                        'V' | 'v' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_v_lineto(abs)?;
-                        },
-                        'C' | 'c' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_curveto(abs)?;
-                        },
-                        'S' | 's' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_smooth_curveto(abs)?;
-                        },
-                        'Q' | 'q' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_quadratic_bezier_curveto(abs)?;
-                        },
-                        'T' | 't' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_smooth_quadratic_bezier_curveto(abs)?;
-                        },
-                        'A' | 'a' => {
-                            skip_wsp(&mut self.chars);
-                            self.parse_elliprical_arc(abs)?;
-                        },
-                        _ => return Err(()),
+                    macro_rules! parse_command {
+                        ( $($($p:pat)|+ => $parse_func:ident,)* ) => {
+                            match command {
+                                $(
+                                    $($p)|+ => {
+                                        skip_wsp(&mut self.chars);
+                                        self.$parse_func(abs)?;
+                                    },
+                                )*
+                                _ => return Err(()),
+                            }
+                        }
                     }
+                    parse_command!(
+                        'Z' | 'z' => parse_closepath,
+                        'L' | 'l' => parse_lineto,
+                        'H' | 'h' => parse_h_lineto,
+                        'V' | 'v' => parse_v_lineto,
+                        'C' | 'c' => parse_curveto,
+                        'S' | 's' => parse_smooth_curveto,
+                        'Q' | 'q' => parse_quadratic_bezier_curveto,
+                        'T' | 't' => parse_smooth_quadratic_bezier_curveto,
+                        'A' | 'a' => parse_elliprical_arc,
+                    );
                 },
                 _ => break, // no more commands.
             }
@@ -158,128 +170,51 @@ impl<'a> PathParser<'a> {
         self.parse_lineto(absolute)
     }
 
+    /// Parse "closepath" command.
+    fn parse_closepath(&mut self, _absolute: bool) -> Result<(), ()> {
+        self.path.push(PathCommand::ClosePath);
+        Ok(())
+    }
+
     /// Parse "lineto" command.
     fn parse_lineto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let point = parse_coord(&mut self.chars)?;
-            self.path.push(PathCommand::LineTo { point, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, LineTo, [ point => parse_coord ])
     }
 
     /// Parse horizontal "lineto" command.
     fn parse_h_lineto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let x = parse_number(&mut self.chars)?;
-            self.path.push(PathCommand::HorizontalLineTo { x, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, HorizontalLineTo, [ x => parse_number ])
     }
 
     /// Parse vertical "lineto" command.
     fn parse_v_lineto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let y = parse_number(&mut self.chars)?;
-            self.path.push(PathCommand::VerticalLineTo { y, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, VerticalLineTo, [ y => parse_number ])
     }
 
     /// Parse cubic Bézier curve command.
     fn parse_curveto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let control1 = parse_coord(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let control2 = parse_coord(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let point = parse_coord(&mut self.chars)?;
-
-            self.path.push(PathCommand::CurveTo { control1, control2, point, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, CurveTo, [
+            control1 => parse_coord, control2 => parse_coord, point => parse_coord
+        ])
     }
 
     /// Parse smooth "curveto" command.
     fn parse_smooth_curveto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let control2 = parse_coord(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let point = parse_coord(&mut self.chars)?;
-
-            self.path.push(PathCommand::SmoothCurveTo { control2, point, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, SmoothCurveTo, [
+            control2 => parse_coord, point => parse_coord
+        ])
     }
 
     /// Parse quadratic Bézier curve command.
     fn parse_quadratic_bezier_curveto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let control1 = parse_coord(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let point = parse_coord(&mut self.chars)?;
-
-            self.path.push(PathCommand::QuadBezierCurveTo { control1, point, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, QuadBezierCurveTo, [
+            control1 => parse_coord, point => parse_coord
+        ])
     }
 
     /// Parse smooth quadratic Bézier curveto command.
     fn parse_smooth_quadratic_bezier_curveto(&mut self, absolute: bool) -> Result<(), ()> {
-        loop {
-            let point = parse_coord(&mut self.chars)?;
-
-            self.path.push(PathCommand::SmoothQuadBezierCurveTo { point, absolute });
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, SmoothQuadBezierCurveTo, [ point => parse_coord ])
     }
 
     /// Parse elliptical arc curve command.
@@ -293,34 +228,14 @@ impl<'a> PathParser<'a> {
             iter.next();
             Ok(value)
         };
-
-        loop {
-            let rx = parse_number(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let ry = parse_number(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let angle = parse_number(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let large_arc_flag = parse_flag(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let sweep_flag = parse_flag(&mut self.chars)?;
-            skip_comma_wsp(&mut self.chars);
-            let point = parse_coord(&mut self.chars)?;
-
-            self.path.push(
-                PathCommand::EllipticalArc {
-                    rx, ry, angle, large_arc_flag, sweep_flag, point, absolute
-                }
-            );
-
-            // End of string or the next character is a possible new command.
-            if !skip_wsp(&mut self.chars) ||
-               self.chars.peek().map_or(true, |c| c.is_ascii_alphabetic()) {
-                break;
-            }
-            skip_comma_wsp(&mut self.chars);
-        }
-        Ok(())
+        parse_arguments!(self, absolute, EllipticalArc, [
+            rx => parse_number,
+            ry => parse_number,
+            angle => parse_number,
+            large_arc_flag => parse_flag,
+            sweep_flag => parse_flag,
+            point => parse_coord
+        ])
     }
 }
 
