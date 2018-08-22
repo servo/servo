@@ -356,6 +356,17 @@ ${helpers.predefined_type(
     servo_restyle_damage="reflow_out_of_flow"
 )}
 
+// Motion Path Module Level 1
+${helpers.predefined_type(
+    "offset-path",
+    "OffsetPath",
+    "computed::OffsetPath::none()",
+    animation_value_type="none",
+    gecko_pref="layout.css.motion-path.enabled",
+    flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
+    spec="https://drafts.fxtf.org/motion-1/#offset-path-property"
+)}
+
 // CSSOM View Module
 // https://www.w3.org/TR/cssom-view-1/
 ${helpers.single_keyword("scroll-behavior",

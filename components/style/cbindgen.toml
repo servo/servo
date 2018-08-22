@@ -7,6 +7,7 @@ autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated usi
  *      a. Alternatively, you can clone `https://github.com/eqrion/cbindgen` and use a tagged release
  *   2. Run `rustup run nightly cbindgen toolkit/library/rust/ --lockfile Cargo.lock --crate style -o layout/style/ServoStyleConsts.h`
  */"""
+include_guard = "mozilla_ServoStyleConsts_h"
 include_version = true
 braces = "SameLine"
 line_length = 80
@@ -22,5 +23,5 @@ derive_helper_methods = true
 
 [export]
 prefix = "Style"
-include = ["StyleDisplay", "StyleAppearance", "StyleDisplayMode"]
-item_types = ["enums"]
+include = ["StyleDisplay", "StyleAppearance", "StyleDisplayMode", "StylePathCommand"]
+item_types = ["enums", "structs", "typedefs"]

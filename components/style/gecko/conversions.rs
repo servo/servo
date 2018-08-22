@@ -638,6 +638,7 @@ pub mod basic_shape {
     use values::computed::basic_shape::{BasicShape, ClippingShape, FloatAreaShape, ShapeRadius};
     use values::computed::border::{BorderCornerRadius, BorderRadius};
     use values::computed::length::LengthOrPercentage;
+    use values::computed::motion::OffsetPath;
     use values::computed::position;
     use values::computed::url::ComputedUrl;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
@@ -669,6 +670,7 @@ pub mod basic_shape {
                     Some(ShapeSource::Shape(shape, reference_box))
                 },
                 StyleShapeSourceType::URL | StyleShapeSourceType::Image => None,
+                StyleShapeSourceType::Path => None,
             }
         }
     }
@@ -706,6 +708,29 @@ pub mod basic_shape {
                 _ => other
                     .into_shape_source()
                     .expect("Couldn't convert to StyleSource!"),
+            }
+        }
+    }
+
+    impl<'a> From<&'a StyleShapeSource> for OffsetPath {
+        fn from(other: &'a StyleShapeSource) -> Self {
+            use gecko_bindings::structs::StylePathCommand;
+            use values::specified::motion::{SVGPathData, PathCommand};
+            match other.mType {
+                StyleShapeSourceType::Path => {
+                    let gecko_path = unsafe { &*other.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
+                    let result: Vec<PathCommand> =
+                        gecko_path.mPath.iter().map(|gecko: &StylePathCommand| {
+                            // unsafe: cbindgen ensures the representation is the same.
+                            unsafe{ ::std::mem::transmute(*gecko) }
+                        }).collect();
+                    OffsetPath::Path(SVGPathData::new(result.into_boxed_slice()))
+                },
+                StyleShapeSourceType::None => OffsetPath::none(),
+                StyleShapeSourceType::Shape |
+                StyleShapeSourceType::Box |
+                StyleShapeSourceType::URL |
+                StyleShapeSourceType::Image => unreachable!("Unsupported offset-path type"),
             }
         }
     }
