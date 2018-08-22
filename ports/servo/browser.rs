@@ -170,22 +170,19 @@ impl Browser {
     /// Handle key events after they have been handled by Servo.
     fn handle_key_from_servo(&mut self, _: Option<BrowserId>, ch: Option<char>,
                              key: Key, state: KeyState, mods: KeyModifiers) {
-        if state == KeyState::Pressed {
+        if state == KeyState::Released {
             return;
         }
+
         match (mods, ch, key) {
-            (_, Some('+'), _) => {
-                if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL {
-                    self.event_queue.push(WindowEvent::Zoom(1.1));
-                } else if mods & !KeyModifiers::SHIFT == CMD_OR_CONTROL | KeyModifiers::ALT {
-                    self.event_queue.push(WindowEvent::PinchZoom(1.1));
-                }
+            (CMD_OR_CONTROL, Some('='), _) | (CMD_OR_CONTROL, Some('+'), _) => {
+                self.event_queue.push(WindowEvent::Zoom(1.1));
             }
+            (_, Some('='), _) if mods == (CMD_OR_CONTROL | KeyModifiers::SHIFT) => {
+                self.event_queue.push(WindowEvent::Zoom(1.1));
+            },
             (CMD_OR_CONTROL, Some('-'), _) => {
                 self.event_queue.push(WindowEvent::Zoom(1.0 / 1.1));
-            }
-            (_, Some('-'), _) if mods == CMD_OR_CONTROL | KeyModifiers::ALT => {
-                self.event_queue.push(WindowEvent::PinchZoom(1.0 / 1.1));
             }
             (CMD_OR_CONTROL, Some('0'), _) => {
                 self.event_queue.push(WindowEvent::ResetZoom);
