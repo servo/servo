@@ -71,10 +71,19 @@ brew install openssl
 export OPENSSL_INCLUDE_DIR="$(brew --prefix openssl)/include"
 export OPENSSL_LIB_DIR="$(brew --prefix openssl)/lib"
 
+./mach clean
 ./mach build ...
 ```
 
-If you've already partially compiled servo but forgot to do this step, run `./mach clean`, set the shell variables, and recompile.
+#### On macOS, you may also have to install LLVM manually, if the version included in Xcode proves too old
+
+```
+brew install llvm
+export LIBCLANG_PATH="$(brew --prefix openssl)"
+
+./mach clean
+./mach build ...
+```
 
 #### On Debian-based Linuxes
 
