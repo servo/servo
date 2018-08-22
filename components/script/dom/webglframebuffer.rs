@@ -25,6 +25,15 @@ enum WebGLFramebufferAttachment {
     Texture { texture: Dom<WebGLTexture>, level: i32 },
 }
 
+impl WebGLFramebufferAttachment {
+    fn needs_initialization(&self) -> bool {
+        match *self {
+            WebGLFramebufferAttachment::Renderbuffer(_) => true,
+            WebGLFramebufferAttachment::Texture { .. } => false,
+        }
+    }
+}
+
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum WebGLFramebufferAttachmentRoot {
     Renderbuffer(DomRoot<WebGLRenderbuffer>),
@@ -46,6 +55,7 @@ pub struct WebGLFramebuffer {
     depth: DomRefCell<Option<WebGLFramebufferAttachment>>,
     stencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
     depthstencil: DomRefCell<Option<WebGLFramebufferAttachment>>,
+    is_initialized: Cell<bool>,
 }
 
 impl WebGLFramebuffer {
@@ -61,6 +71,7 @@ impl WebGLFramebuffer {
             depth: DomRefCell::new(None),
             stencil: DomRefCell::new(None),
             depthstencil: DomRefCell::new(None),
+            is_initialized: Cell::new(false),
         }
     }
 
@@ -205,12 +216,36 @@ impl WebGLFramebuffer {
 
     pub fn check_status_for_rendering(&self) -> u32 {
         let result = self.check_status();
-        if result == constants::FRAMEBUFFER_COMPLETE {
-            if self.color.borrow().is_none() {
-                return constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
-            }
+        if result != constants::FRAMEBUFFER_COMPLETE {
+            return result;
         }
-        result
+
+        if self.color.borrow().is_none() {
+            return constants::FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
+        }
+
+        if !self.is_initialized.get() {
+            let attachments = [
+                (&self.color, constants::COLOR_BUFFER_BIT),
+                (&self.depth, constants::DEPTH_BUFFER_BIT),
+                (&self.stencil, constants::STENCIL_BUFFER_BIT),
+                (&self.depthstencil, constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT)
+            ];
+            let mut clear_bits = 0;
+            for &(attachment, bits) in &attachments {
+                if attachment.borrow().as_ref().map_or(false, |att| att.needs_initialization()) {
+                    clear_bits |= bits;
+                }
+            }
+            if clear_bits != 0 {
+                self.upcast::<WebGLObject>().context().send_command(
+                    WebGLCommand::Clear(clear_bits)
+                );
+            }
+            self.is_initialized.set(true);
+        }
+
+        constants::FRAMEBUFFER_COMPLETE
     }
 
     pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
@@ -244,6 +279,7 @@ impl WebGLFramebuffer {
         );
 
         self.update_status();
+        self.is_initialized.set(false);
         Ok(())
     }
 
@@ -344,6 +380,7 @@ impl WebGLFramebuffer {
         );
 
         self.update_status();
+        self.is_initialized.set(false);
         Ok(())
     }
 
