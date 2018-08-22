@@ -26,7 +26,8 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
-use dom::node::{window_from_node, document_from_node, Node, UnbindContext};
+use dom::mediaframerenderer::MediaFrameRenderer;
+use dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -51,6 +52,7 @@ use task_source::{TaskSource, TaskSourceName};
 use time::{self, Timespec, Duration};
 
 unsafe_no_jsmanaged_fields!(Arc<Mutex<Box<Player>>>);
+unsafe_no_jsmanaged_fields!(MediaFrameRenderer);
 
 #[dom_struct]
 // FIXME(nox): A lot of tasks queued for this element should probably be in the
@@ -89,6 +91,8 @@ pub struct HTMLMediaElement {
     have_metadata: Cell<bool>,
     #[ignore_malloc_size_of = "servo_media"]
     player: Arc<Mutex<Box<Player>>>,
+    #[ignore_malloc_size_of = "oops"]
+    frame_renderer: MediaFrameRenderer,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -133,6 +137,7 @@ impl HTMLMediaElement {
             player: Arc::new(Mutex::new(
                 ServoMedia::get().unwrap().create_player().unwrap(),
             )),
+            frame_renderer: MediaFrameRenderer::new(document.window().get_webrender_api_sender()),
         }
     }
 
@@ -835,6 +840,10 @@ impl HTMLMediaElement {
             .lock()
             .unwrap()
             .register_event_handler(action_sender);
+        self.player
+            .lock()
+            .unwrap()
+            .register_frame_renderer(Arc::new(self.frame_renderer.clone()));
         self.player.lock().unwrap().setup().unwrap();
 
         let trusted_node = Trusted::new(self);
@@ -882,7 +891,9 @@ impl HTMLMediaElement {
                 _ => {}
             },
             PlayerEvent::EndOfStream => {}
-            PlayerEvent::FrameUpdated => {}
+            PlayerEvent::FrameUpdated => {
+                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            }
             PlayerEvent::Error => {
                 self.error.set(Some(&*MediaError::new(
                     &*window_from_node(self),
