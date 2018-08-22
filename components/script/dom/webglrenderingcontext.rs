@@ -39,7 +39,7 @@ use dom::webgl_validations::types::{TexDataType, TexFormat, TexImageTarget};
 use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
-use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
+use dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot, CompleteForRendering};
 use dom::webglobject::WebGLObject;
 use dom::webglprogram::WebGLProgram;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
@@ -339,10 +339,14 @@ impl WebGLRenderingContext {
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
     fn validate_framebuffer(&self) -> WebGLResult<()> {
         match self.bound_framebuffer.get() {
-            Some(ref fb) if fb.check_status_for_rendering() != constants::FRAMEBUFFER_COMPLETE => {
-                Err(InvalidFramebufferOperation)
+            Some(fb) => match fb.check_status_for_rendering() {
+                CompleteForRendering::Complete => Ok(()),
+                CompleteForRendering::Incomplete =>
+                    Err(InvalidFramebufferOperation),
+                CompleteForRendering::MissingColorAttachment =>
+                    Err(InvalidOperation),
             },
-            _ => Ok(()),
+            None => Ok(()),
         }
     }
 
