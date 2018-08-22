@@ -1977,7 +1977,7 @@ dependencies = [
  "hashglobe 0.1.0",
  "hyper 0.10.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper_serde 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs 0.8.0 (git+https://github.com/servo/rust-mozjs?branch=android)",
  "selectors 0.19.0",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2178,20 +2178,20 @@ dependencies = [
 [[package]]
 name = "mozjs"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/rust-mozjs?branch=android#27ed8ffb80e7c1e715796d10a17f5c4601e3a4f4"
 dependencies = [
  "cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs_sys 0.60.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs_sys 0.60.0 (git+https://github.com/servo/mozjs?branch=android)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "mozjs_sys"
 version = "0.60.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/mozjs?branch=android#d84e2d36863218c2fc39ed49eae62b834939b6a4"
 dependencies = [
  "bindgen 0.37.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "cc 1.0.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2950,7 +2950,7 @@ dependencies = [
  "mime_guess 1.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozangle 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mozjs 0.8.0 (git+https://github.com/servo/rust-mozjs?branch=android)",
  "msg 0.0.1",
  "net_traits 0.0.1",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -4403,8 +4403,8 @@ dependencies = [
 "checksum miow 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
 "checksum mitochondria 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9de3eca27871df31c33b807f834b94ef7d000956f57aa25c5aed9c5f0aae8f6f"
 "checksum mozangle 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "45a8a18a41cfab0fde25cc2f43ea89064d211a0fbb33225b8ff93ab20406e0e7"
-"checksum mozjs 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7b22188a0f231af946345b63add64ff4989bcd2d41fe6f4399267af8372c6932"
-"checksum mozjs_sys 0.60.0 (registry+https://github.com/rust-lang/crates.io-index)" = "10042595a89595789dbfb5a9a55004c9ba467dc3b03990efeeceaac306669674"
+"checksum mozjs 0.8.0 (git+https://github.com/servo/rust-mozjs?branch=android)" = "<none>"
+"checksum mozjs_sys 0.60.0 (git+https://github.com/servo/mozjs?branch=android)" = "<none>"
 "checksum mp3-metadata 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4ab5f1d2693586420208d1200ce5a51cd44726f055b635176188137aff42c7de"
 "checksum mp4parse 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)" = "7316728464443fe5793a805dde3257864e9690cf46374daff3ce93de1df2f254"
 "checksum msdos_time 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "aad9dfe950c057b1bfe9c1f2aa51583a8468ef2a5baba2ebbe06d775efeb7729"

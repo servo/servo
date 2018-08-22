@@ -27,3 +27,5 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+mozjs_sys = { git = "https://github.com/servo/mozjs", branch = "android" }
+mozjs = { git = "https://github.com/servo/rust-mozjs", branch = "android" }
