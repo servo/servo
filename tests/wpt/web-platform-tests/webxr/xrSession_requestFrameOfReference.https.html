@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+  <script>
+
+    let immersiveTestName =
+      "Immersive XRSession requestFrameOfReference returns expected objects";
+    let nonImmersiveTestName =
+      "Non-immersive XRSession requestFrameOfReference returns expected objects";
+
+    let fakeDeviceInitParams = { supportsImmersive: true };
+
+    let immersiveSessionOptions = { immersive: true };
+    let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return promise_rejects(t, new TypeError(), session.requestFrameOfReference("foo"))
+        .then(() => Promise.all([
+          session.requestFrameOfReference("head-model").then( (frameOfRef) => {
+            assert_true(frameOfRef instanceof XRCoordinateSystem,
+              "head-model frameOfRef is not correct type.");
+            assert_true(frameOfRef instanceof XRFrameOfReference,
+              "head-model frameOfRef is not correct type.");
+          }),
+          session.requestFrameOfReference("eye-level").then( (frameOfRef) => {
+            assert_true(frameOfRef instanceof XRCoordinateSystem,
+              "eye-level frameOfRef is not correct type.");
+            assert_true(frameOfRef instanceof XRFrameOfReference,
+              "eye-level frameOfRef is not correct type.");
+          }),
+          session.requestFrameOfReference("stage").then( (frameOfRef) => {
+            assert_true(frameOfRef instanceof XRCoordinateSystem,
+              "stage frameOfRef is not correct type.");
+            assert_true(frameOfRef instanceof XRFrameOfReference,
+              "stage frameOfRef is not correct type.");
+          })
+      ]));
+    };
+
+    xr_session_promise_test(
+      immersiveTestName, testFunction, fakeDeviceInitParams, immersiveSessionOptions);
+    xr_session_promise_test(
+      nonImmersiveTestName, testFunction, fakeDeviceInitParams, nonImmersiveSessionOptions);
+
+  </script>
+</body>

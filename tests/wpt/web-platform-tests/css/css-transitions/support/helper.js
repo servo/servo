@@ -275,4 +275,45 @@ root.waitForAnimationFrames = (frameCount, onFrame) => {
 root.waitForAllAnimations = animations =>
   Promise.all(animations.map(animation => animation.ready));
 
+/**
+ * Utility that takes a Promise and a maximum number of frames to wait and
+ * returns a new Promise that behaves as follows:
+ *
+ * - If the provided Promise resolves _before_ the specified number of frames
+ *   have passed, resolves with the result of the provided Promise.
+ * - If the provided Promise rejects _before_ the specified number of frames
+ *   have passed, rejects with the error result of the provided Promise.
+ * - Otherwise, rejects with a 'Timed out' error message. If |message| is
+ *   provided, it will be appended to the error message.
+ */
+root.frameTimeout = (promiseToWaitOn, framesToWait, message) => {
+  let framesRemaining = framesToWait;
+  let aborted = false;
+
+  const timeoutPromise = new Promise(function waitAFrame(resolve, reject) {
+    if (aborted) {
+      resolve();
+      return;
+    }
+    if (framesRemaining-- > 0) {
+      requestAnimationFrame(() => {
+        waitAFrame(resolve, reject);
+      });
+      return;
+    }
+    let errorMessage = 'Timed out waiting for Promise to resolve';
+    if (message) {
+      errorMessage += `: ${message}`;
+    }
+    reject(new Error(errorMessage));
+  });
+
+  const wrappedPromiseToWaitOn = promiseToWaitOn.then(result => {
+    aborted = true;
+    return result;
+  });
+
+  return Promise.race([timeoutPromise, wrappedPromiseToWaitOn]);
+};
+
 })(window);

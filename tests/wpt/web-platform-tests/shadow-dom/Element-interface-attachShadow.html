@@ -7,6 +7,7 @@
 <link rel="help" href="https://w3c.github.io/webcomponents/spec/shadow/#widl-Element-attachShadow-ShadowRoot-ShadowRootInit-shadowRootInitDict">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -78,7 +79,7 @@ test(function () {
 }, 'Element.attachShadow must throw a InvalidStateError if the context object already hosts a shadow tree');
 
 test(function () {
-    for (var elementName of ['button', 'details', 'input', 'marquee', 'meter', 'progress', 'select', 'textarea', 'keygen']) {
+    for (var elementName of ATTACHSHADOW_DISALLOWED_ELEMENTS) {
         assert_throws({'name': 'NotSupportedError'}, function () {
             document.createElement(elementName).attachShadow({mode: "open"});
         }, 'Calling attachShadow({mode: "open"}) on ' + elementName + ' element must throw');
@@ -87,7 +88,7 @@ test(function () {
             document.createElement(elementName).attachShadow({mode: "closed"});
         }, 'Calling attachShadow({mode: "closed"}) on ' + elementName + ' element must throw');
     }
-}, 'Element.attachShadow must throw a NotSupportedError for button, details, input, marquee, meter, progress, select, textarea, and keygen elements');
+}, 'Element.attachShadow must throw a NotSupportedError for non-safelisted elements');
 
 </script>
 </body>

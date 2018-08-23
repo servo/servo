@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>PaymentResponse.prototype.onpayerdetailschange attribute</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+  assert_equals(Object.getPrototypeOf(PaymentResponse), window.EventTarget);
+}, "PaymentResponse inherits from EventTarget");
+
+test(() => {
+  assert_true("onpayerdetailchange" in PaymentResponse.prototype);
+}, "PaymentResponse has an onpayerdetailchange in the prototype chain");
+</script>

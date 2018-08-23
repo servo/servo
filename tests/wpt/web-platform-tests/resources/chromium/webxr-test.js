@@ -9,7 +9,11 @@ class ChromeXRTest {
   }
 
   simulateDeviceConnection(init_params) {
-    return Promise.resolve(this.mockVRService_.addDevice(init_params));
+    return Promise.resolve(this.mockVRService_.addRuntime(init_params));
+  }
+
+  simulateDeviceDisconnection(device) {
+    this.mockVRService_.removeRuntime(device);
   }
 
   simulateUserActivation(callback) {
@@ -30,10 +34,12 @@ class ChromeXRTest {
 }
 
 // Mocking class definitions
+
+// Mock service implements both the VRService and XRDevice mojo interfaces.
 class MockVRService {
   constructor() {
     this.bindingSet_ = new mojo.BindingSet(device.mojom.VRService);
-    this.devices_ = [];
+    this.runtimes_ = [];
 
     this.interceptor_ =
         new MojoInterfaceInterceptor(device.mojom.VRService.name);
@@ -43,31 +49,87 @@ class MockVRService {
   }
 
   // Test methods
-  addDevice(fakeDeviceInit) {
-    let device = new MockDevice(fakeDeviceInit, this);
-    this.devices_.push(device);
+  addRuntime(fakeDeviceInit) {
+    let runtime = new MockRuntime(fakeDeviceInit, this);
+    this.runtimes_.push(runtime);
 
     if (this.client_) {
       this.client_.onDeviceChanged();
     }
 
-    return device;
+    return runtime;
+  }
+
+  removeRuntime(runtime) {
+    // We have no way of distinguishing between devices, so just clear the
+    // entire list for now.
+    // TODO(http://crbug.com/873409) We also have no way right now to disconnect
+    // devices.
+    this.runtimes_ = [];
   }
 
   // VRService implementation.
   requestDevice() {
-    return Promise.resolve(
-        {device: this.devices_[0] ? this.devices_[0].getDevicePtr() : null});
+    if (this.runtimes_.length > 0) {
+      let devicePtr = new device.mojom.XRDevicePtr();
+      new mojo.Binding(
+          device.mojom.XRDevice, this, mojo.makeRequest(devicePtr));
+
+      return Promise.resolve({device: devicePtr});
+    } else {
+      return Promise.resolve({device: null});
+    }
   }
 
   setClient(client) {
     this.client_ = client;
   }
+
+  // XRDevice implementation.
+  requestSession(sessionOptions, was_activation) {
+    let requests = [];
+    // Request a session from all the runtimes.
+    for (let i = 0; i < this.runtimes_.length; i++) {
+      requests[i] = this.runtimes_[i].requestRuntimeSession(sessionOptions);
+    }
+
+    return Promise.all(requests).then((results) => {
+      // Find and return the first successful result.
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].session) {
+          return results[i];
+        }
+      }
+
+      // If there were no successful results, returns a null session.
+      return {session: null};
+    });
+  }
+
+  supportsSession(sessionOptions) {
+    let requests = [];
+    // Check supports on all the runtimes.
+    for (let i = 0; i < this.runtimes_.length; i++) {
+      requests[i] = this.runtimes_[i].runtimeSupportsSession(sessionOptions);
+    }
+
+    return Promise.all(requests).then((results) => {
+      // Find and return the first successful result.
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].supportsSession) {
+          return results[i];
+        }
+      }
+
+      // If there were no successful results, returns false.
+      return {supportsSession: false};
+    });
+  };
 }
 
-// Implements both XRDevice and VRMagicWindowProvider. Maintains a mock for
-// XRPresentationProvider.
-class MockDevice {
+// Implements XRFrameDataProvider and XRPresentationProvider. Maintains a mock
+// for XRPresentationProvider.
+class MockRuntime {
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -84,13 +146,6 @@ class MockDevice {
     } else {
       this.displayInfo_ = this.getNonImmersiveDisplayInfo();
     }
-  }
-
-  // Functions for setup.
-  getDevicePtr() {
-    let devicePtr = new device.mojom.XRDevicePtr();
-    new mojo.Binding(device.mojom.XRDevice, this, mojo.makeRequest(devicePtr));
-    return devicePtr;
   }
 
   // Test methods.
@@ -273,9 +328,10 @@ class MockDevice {
     // do not have any use for this data at present.
   }
 
-  // XRDevice implementation.
-  requestSession(sessionOptions, was_activation) {
-    return this.supportsSession(sessionOptions).then((result) => {
+
+  // Utility function
+  requestRuntimeSession(sessionOptions) {
+    return this.runtimeSupportsSession(sessionOptions).then((result) => {
       // The JavaScript bindings convert c_style_names to camelCase names.
       let options = new device.mojom.XRPresentationTransportOptions();
       options.transportMethod =
@@ -320,7 +376,7 @@ class MockDevice {
     });
   }
 
-  supportsSession(options) {
+  runtimeSupportsSession(options) {
     return Promise.resolve({
       supportsSession:
           !options.immersive || this.displayInfo_.capabilities.canPresent

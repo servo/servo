@@ -80,20 +80,6 @@ promise_test(function(t) {
 }, 'Same-origin blob URL worker should intercept fetch().');
 
 promise_test(function(t) {
-  // Data URLs should result in an opaque origin and should probably not
-  // have access to a cross-origin service worker.  See:
-  //
-  // https://github.com/w3c/ServiceWorker/issues/1262
-  //
-  return doAsyncTest(t, {
-    scheme: 'data',
-    child: 'iframe',
-    check: 'controller',
-    expect: 'not inherit',
-  });
-}, 'Data URL iframe should not inherit service worker controller.');
-
-promise_test(function(t) {
   return doAsyncTest(t, {
     scheme: 'data',
     child: 'iframe',

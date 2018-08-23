@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script>
+    xr_promise_test(
+      "Requesting an immersive session when unsupported rejects",
+      (t) => {
+        return XRTest.simulateDeviceConnection({ supportsImmersive:false })
+          .then( (controller) => { return navigator.xr.requestDevice() })
+          .then( (magicWindowOnlyDevice) => new Promise((resolve) => {
+            XRTest.simulateUserActivation( () => {
+              resolve(promise_rejects(
+                t,
+                "NotSupportedError",
+                magicWindowOnlyDevice.requestSession({ immersive: true })
+              ))
+            });
+          }));
+      });
+  </script>
+</body>

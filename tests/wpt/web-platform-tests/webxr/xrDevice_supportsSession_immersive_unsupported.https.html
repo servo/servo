@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script>
+    xr_promise_test(
+      "supportsSession rejects when options not supported",
+      (t) => {
+      return XRTest.simulateDeviceConnection({ supportsImmersive:false })
+        .then( (controller) => { return navigator.xr.requestDevice() })
+        .then( (device) => {
+          return promise_rejects(
+            t,
+            "NotSupportedError",
+            device.supportsSession({ immersive: true })
+          );
+        });
+    });
+  </script>
+</body>

@@ -1,40 +1,41 @@
 <!DOCTYPE html>
 <head>
-  <!-- TODO:
-  askalski: while this test pass, it does not test anything now.
-  It should test, whether with no document.charset set in any way, the
-  external scripts will get decoded using utf-8 as fallback character encoding.
-  It seems like utf-8 is also a fallback encoding to html (my guess), so
-  the part of the code I was attempting to test is never reached.
-  -->
-  <title>Script @type: unknown parameters</title>
+  <title>Script encoding for document encoding windows-1250</title>
   <link rel="author" title="askalski" href="github.com/askalski">
-  <link rel="help" href="https://html.spec.whatwg.org/multipage/#scriptingLanguages">
+  <link rel="author" title="Aaqa Ishtyaq" href="github.com/aaqaishtyaq">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-classic-script">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <div id="log"></div>
+  <!-- to avoid conflating tests for script encoding declaring the encoding at the top of file. i.e, windows-1250-->
+  <meta charset="windows-1250">
+  <script>
+  test(function() {
+    assert_equals(document.characterSet, "windows-1250")
+  }, "assumption: document encoding is windows-1250");
+  </script>
 
-  <!-- test of step4, which is taking utf-8 as fallback -->
   <!-- in this case, neither response's Content Type nor charset attribute bring correct charset information.
-  Furthermore, document's encoding is not set.-->
+  -->
   <script type="text/javascript"
     src="serve-with-content-type.py?fn=external-script-windows1250.js&ct=text/javascript">
   </script>
+
   <script>
   test(function() {
-    //these strings should not match, since the tested file is in windows-1250, and fallback is defined as utf-8
-    assert_not_equals(window.getSomeString().length, 5);
-  });
+    //these string should match since, windows-1250 is the fallback encoding.
+    assert_equals(window.getSomeString(), "\u015b\u0107\u0105\u017c\u017a");
+  }, "windows-1250 script decoded using document encoding (also windows-1250)");
   </script>
 
   <script type="text/javascript"
     src="serve-with-content-type.py?fn=external-script-utf8.js&ct=text/javascript">
   </script>
   <script>
-  //these strings should match, since fallback utf-8 is the correct setting.
+  //these strings should match, since this string is the result of decoding the utf-8 text as windows-1250.
   test(function() {
-    assert_equals(window.getSomeString().length, 5);
-  });
+    assert_equals(window.getSomeString(), "\u0139\u203a\xc4\u2021\xc4\u2026\u0139\u013d\u0139\u015f");
+  }, "UTF-8 script decoded using document encoding (windows-1250)");
   </script>
 
 </head>

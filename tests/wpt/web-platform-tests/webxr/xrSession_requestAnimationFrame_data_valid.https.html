@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+
+  <script>
+    const testName = "RequestAnimationFrame resolves with good data";
+
+    const identityMatrix = new Float32Array([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, 0, 1
+    ]);
+
+    const rightFakeXRViewInit = {
+      eye:"right",
+      projectionMatrix: identityMatrix,
+      viewMatrix: identityMatrix
+    };
+
+    const leftFakeXRViewInit = {
+      eye:"left",
+      projectionMatrix: identityMatrix,
+      viewMatrix: identityMatrix
+    };
+
+    const fakeDeviceInitOptions = { supportsImmersive:true };
+    const sessionOptions = { immersive:true };
+
+    let testSession;
+
+    let testFunction = function(session, testDeviceController) {
+      testSession = session;
+      return session.requestFrameOfReference('eye-level')
+        .then((frameOfRef) => new Promise((resolve) => {
+
+          function onFrame(time, xrFrame) {
+            assert_true(xrFrame instanceof XRFrame);
+
+            assert_not_equals(xrFrame.views, null);
+            assert_equals(xrFrame.views.length, 2);
+
+            let devicePose = xrFrame.getDevicePose(frameOfRef);
+
+            assert_not_equals(devicePose, null);
+            for(let i = 0; i < identityMatrix.length; i++) {
+              assert_equals(devicePose.poseModelMatrix[i], identityMatrix[i]);
+            }
+
+            assert_not_equals(devicePose.getViewMatrix(xrFrame.views[0]), null);
+            assert_equals(devicePose.getViewMatrix(xrFrame.views[0]).length, 16);
+            assert_not_equals(devicePose.getViewMatrix(xrFrame.views[1]), null);
+            assert_equals(devicePose.getViewMatrix(xrFrame.views[1]).length, 16);
+
+            // Test does not complete until the returned promise resolves.
+            resolve();
+          }
+
+          testDeviceController.setXRPresentationFrameData(
+            identityMatrix,
+            [rightFakeXRViewInit, leftFakeXRViewInit]
+          );
+
+          testSession.requestAnimationFrame(onFrame);
+        })
+      );
+    }
+
+    xr_session_promise_test(
+      testName, testFunction, fakeDeviceInitOptions, sessionOptions);
+  </script>
+</body>

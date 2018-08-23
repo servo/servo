@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+  <script>
+    xr_session_promise_test(
+      "Tests requestSession resolves when supported",
+      (session) => {
+        assert_not_equals(session, null);
+      }, { supportsImmersive:true }, { immersive: true });
+  </script>
+</body>

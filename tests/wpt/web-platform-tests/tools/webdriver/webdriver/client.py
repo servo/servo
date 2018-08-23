@@ -404,6 +404,13 @@ class Session(object):
         self.end()
 
     def start(self):
+        """Start a new WebDriver session.
+
+        :return: Dictionary with `capabilities` and `sessionId`.
+
+        :raises error.WebDriverException: If the remote end returns
+            an error.
+        """
         if self.session_id is not None:
             return
 
@@ -422,13 +429,13 @@ class Session(object):
         return value
 
     def end(self):
-        """Tries to close the active session."""
+        """Try to close the active session."""
         if self.session_id is None:
             return
 
         try:
             self.send_command("DELETE", "session/%s" % self.session_id)
-        except error.SessionNotCreatedException:
+        except error.InvalidSessionIdException:
             pass
         finally:
             self.session_id = None
@@ -446,10 +453,10 @@ class Session(object):
             the `value` field returned after parsing the response
             body as JSON.
 
-        :raises ValueError: If the response body does not contain a
-            `value` key.
         :raises error.WebDriverException: If the remote end returns
             an error.
+        :raises ValueError: If the response body does not contain a
+            `value` key.
         """
         response = self.transport.send(
             method, url, body,
@@ -459,7 +466,7 @@ class Session(object):
         if response.status != 200:
             err = error.from_response(response)
 
-            if isinstance(err, error.SessionNotCreatedException):
+            if isinstance(err, error.InvalidSessionIdException):
                 # The driver could have already been deleted the session.
                 self.session_id = None
 
@@ -495,14 +502,9 @@ class Session(object):
         :return: `None` if the HTTP response body was empty, otherwise
             the result of parsing the body as JSON.
 
-        :raises error.SessionNotCreatedException: If there is no active
-            session.
         :raises error.WebDriverException: If the remote end returns
             an error.
         """
-        if self.session_id is None:
-            raise error.SessionNotCreatedException()
-
         url = urlparse.urljoin("session/%s/" % self.session_id, uri)
         return self.send_command(method, url, body)
 

@@ -9,6 +9,9 @@
     <link rel="help" href="https://xhr.spec.whatwg.org/#request-error" data-tested-assertations="following::ol[1]/li[9]"/>
     <link rel="help" href="https://xhr.spec.whatwg.org/#infrastructure-for-the-send()-method" data-tested-assertations="following-sibling::dl//code[contains(@title,'dom-XMLHttpRequest-timeout')]/.. following-sibling::dl//code[contains(@title,'dom-XMLHttpRequest-timeout')]/../following-sibling::dd following::dt[1] following::dd[1]" />
     <meta name=timeout content=long>
+    <meta name=variant content="?timeout set to expiring value after load fires">
+    <meta name=variant content="?timeout set to expired value before load fires">
+    <meta name=variant content="?timeout set to non-expiring value after timeout fires">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="resources/xmlhttprequest-timeout-runner.js"></script>

@@ -9,7 +9,7 @@ from .log import get_logger
 from .utils import from_os_path, to_os_path
 
 
-CURRENT_VERSION = 4
+CURRENT_VERSION = 5
 
 
 class ManifestError(Exception):

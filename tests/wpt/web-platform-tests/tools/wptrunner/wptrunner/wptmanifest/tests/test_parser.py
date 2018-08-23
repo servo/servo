@@ -63,6 +63,42 @@ key:
                   ]]]]]]
         )
 
+    def test_expr_2(self):
+        self.compare(
+            """
+key:
+  if x == 1 : [value1, value2]""",
+            ["DataNode", None,
+             [["KeyValueNode", "key",
+               [["ConditionalNode", None,
+                 [["BinaryExpressionNode", None,
+                   [["BinaryOperatorNode", "==", []],
+                    ["VariableNode", "x", []],
+                       ["NumberNode", "1", []]
+                    ]],
+                  ["ListNode", None,
+                   [["ValueNode", "value1", []],
+                    ["ValueNode", "value2", []]]],
+                  ]]]]]]
+        )
+
+    def test_expr_3(self):
+        self.compare(
+            """
+key:
+  if x == 1: if b: value""",
+            ["DataNode", None,
+             [["KeyValueNode", "key",
+               [["ConditionalNode", None,
+                 [["BinaryExpressionNode", None,
+                   [["BinaryOperatorNode", "==", []],
+                    ["VariableNode", "x", []],
+                       ["NumberNode", "1", []]
+                    ]],
+                     ["ValueNode", "if b: value", []],
+                  ]]]]]]
+        )
+
     def test_atom_0(self):
         with self.assertRaises(parser.ParseError):
             self.parse("key: @Unknown")
@@ -70,6 +106,7 @@ key:
     def test_atom_1(self):
         with self.assertRaises(parser.ParseError):
             self.parse("key: @true")
+
 
 if __name__ == "__main__":
     unittest.main()

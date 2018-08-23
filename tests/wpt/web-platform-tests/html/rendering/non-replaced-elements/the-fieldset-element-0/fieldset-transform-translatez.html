@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Fieldset and transform: translateZ(0)</title>
+<link rel=match href=fieldset-transform-translatez-ref.html>
+<style>
+#outer { transform: translateZ(0); }
+fieldset { background: #eee; overflow: hidden; margin: 0 0 10px; }
+#inner { position: relative; }
+</style>
+<p>It should say PASS below without anything obscuring the text.</p>
+<div id=outer>
+  <fieldset>
+    <legend>
+      <div id="inner">PASS</div>
+    </legend>
+  </fieldset>
+</div>

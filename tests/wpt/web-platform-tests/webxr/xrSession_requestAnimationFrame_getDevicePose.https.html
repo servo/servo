@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <canvas></canvas>
+
+  <script>
+
+    let immersiveTestName =
+      "XRFrame getDevicePose updates on the next frame for immersive sessions";
+    let nonImmersiveTestName =
+      "XRFrame getDevicePose updates on the next frame for non-immersive sessions";
+
+    let fakeDeviceInitParams = { supportsImmersive: true };
+
+    let immersiveSessionOptions = { immersive: true };
+    let nonImmersiveSessionOptions = { outputContext: getOutputContext() };
+
+    // Valid matrices for  when we don't care about specific values
+    const validPoseMatrix = [0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1];
+    const validProjectionMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 3, 2, -1, -1, 0, 0, -0.2, 0];
+    const validViewMatrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 4, 3, 2, 1];
+
+    let testFunction = function(session, fakeDeviceController, t) {
+      return session.requestFrameOfReference("eye-level")
+        .then((frameOfRef) => new Promise((resolve, reject) => {
+          let counter = 0;
+          function onFrame(time, vrFrame) {
+            session.requestAnimationFrame(onFrame);
+            if (counter == 0) {
+              t.step( () => {
+                // Expecting to not get a pose since none has been supplied
+                assert_equals(vrFrame.getDevicePose(frameOfRef), null);
+
+                fakeDeviceController.setXRPresentationFrameData(
+                  validPoseMatrix, [{
+                    eye:"left",
+                    projectionMatrix: validProjectionMatrix,
+                    viewMatrix: validViewMatrix
+                  }, {
+                    eye:"right",
+                    projectionMatrix: validProjectionMatrix,
+                    viewMatrix: validViewMatrix
+                  }]);
+
+                // Check that pose does not update pose within the same frame.
+                assert_equals(vrFrame.getDevicePose(frameOfRef), null);
+              });
+            } else {
+              t.step( () => {
+                let pose = vrFrame.getDevicePose(frameOfRef);
+                assert_not_equals(pose, null);
+
+                let poseMatrix = pose.poseModelMatrix;
+                assert_not_equals(poseMatrix, null);
+
+                for(let i = 0; i < poseMatrix.length; i++) {
+                  assert_equals(poseMatrix[i], validPoseMatrix[i]);
+                }
+              });
+
+              // Finished.
+              resolve();
+            }
+            counter++;
+          }
+
+          session.requestAnimationFrame(onFrame);
+        }));
+    };
+
+    xr_session_promise_test(nonImmersiveTestName, testFunction,
+      fakeDeviceInitParams, nonImmersiveSessionOptions);
+    xr_session_promise_test(immersiveTestName, testFunction,
+      fakeDeviceInitParams, immersiveSessionOptions);
+
+  </script>
+</body>

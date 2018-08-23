@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCDTMFSender.prototype.insertDTMF</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+// Constraint parameter has a default value of {audio:false, video: false}.
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia()
+      .then(function(s) {
+        fail('getDisplayMedia should have failed');
+      })
+      .catch(function(e) {
+        assert_equals(e.name, 'TypeError');
+      });
+}, 'getDisplayMedia() with no constraints');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({video: true}).then(function(s) {
+    assert_equals(s.getVideoTracks().length, 1);
+    assert_equals(s.getAudioTracks().length, 0);
+  });
+}, 'getDisplayMedia() with video true');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({video: false})
+      .then(function(s) {
+        fail('getDisplayMedia should have failed');
+      })
+      .catch(function(e) {
+        assert_equals(e.name, 'TypeError');
+      });
+}, 'getDisplayMedia() with video false');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({audio: true}).then(function(s) {
+    assert_equals(s.getVideoTracks().length, 0);
+    assert_equals(s.getAudioTracks().length, 1);
+  });
+}, 'getDisplayMedia() with audio true');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({audio: false})
+      .then(function(s) {
+        fail('getDisplayMedia should have failed');
+      })
+      .catch(function(e) {
+        assert_equals(e.name, 'TypeError');
+      });
+}, 'getDisplayMedia() with audio false');
+
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator
+      .getDisplayMedia({audio: false, video: {width: 1280, height: 720}})
+      .then(function(s) {
+        fail('getDisplayMedia should have failed');
+      })
+      .catch(function(e) {
+        assert_equals(e.name, 'InvalidAccessError');
+      });
+}, 'getDisplayMedia() call with non-bool constraint');
+
+</script>

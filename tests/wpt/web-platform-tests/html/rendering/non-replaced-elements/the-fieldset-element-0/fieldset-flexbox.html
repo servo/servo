@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>fieldset and CSS Flexbox</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+#test, #ref, #test-inline, #ref-inline {
+  display: flex;
+  justify-content: space-around;
+  margin: 0;
+  padding: 0;
+  border: none
+}
+#test-inline, #ref-inline { display: inline-flex }
+</style>
+<fieldset id=test>
+ <div>1</div>
+ <div>2</div>
+ <div>3</div>
+ <div>4</div>
+ <div>5</div>
+ <div>6</div>
+ <div>7</div>
+ <div>8</div>
+ <div>9</div>
+</fieldset>
+<hr>
+<div id=ref>
+ <div>1</div>
+ <div>2</div>
+ <div>3</div>
+ <div>4</div>
+ <div>5</div>
+ <div>6</div>
+ <div>7</div>
+ <div>8</div>
+ <div>9</div>
+</div>
+<hr>
+<fieldset id=test-inline>
+ <div>1</div>
+ <div>2</div>
+ <div>3</div>
+ <div>4</div>
+ <div>5</div>
+ <div>6</div>
+ <div>7</div>
+ <div>8</div>
+ <div>9</div>
+</fieldset>
+<div id=ref-inline>
+ <div>1</div>
+ <div>2</div>
+ <div>3</div>
+ <div>4</div>
+ <div>5</div>
+ <div>6</div>
+ <div>7</div>
+ <div>8</div>
+ <div>9</div>
+</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById('test')).height,
+                  getComputedStyle(document.getElementById('ref')).height);
+  }, "Flex");
+
+  test(() => {
+    assert_equals(getComputedStyle(document.getElementById('test-inline')).height,
+                  getComputedStyle(document.getElementById('ref-inline')).height);
+  }, "Inline flex");
+</script>

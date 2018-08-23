@@ -25,6 +25,14 @@ test_0 = """\
   tags: [a, @Reset]
 """
 
+test_1 = """\
+[1.html]
+  prefs:
+    if os == 'win': [a:b, c:d]
+  expected:
+    if os == 'win': FAIL
+"""
+
 
 def test_metadata_inherit():
     tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10),
@@ -48,3 +56,19 @@ def test_metadata_inherit():
     assert test_obj.min_assertion_count == 1
     assert test_obj.prefs == {"b": "c", "c": "d"}
     assert test_obj.tags == {"a", "dir:a"}
+
+
+def test_conditional():
+    tests = make_mock_manifest(("test", "a", 10), ("test", "a/b", 10),
+                               ("test", "c", 10))
+
+    test_metadata = manifestexpected.static.compile(BytesIO(test_1),
+                                                    {"os": "win"},
+                                                    data_cls_getter=manifestexpected.data_cls_getter,
+                                                    test_path="a",
+                                                    url_base="")
+
+    test = tests[1][2].pop()
+    test_obj = wpttest.from_manifest(test, [], test_metadata.get_test(test.id))
+    assert test_obj.prefs == {"a": "b", "c": "d"}
+    assert test_obj.expected() == "FAIL"

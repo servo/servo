@@ -13,6 +13,7 @@ def test_null_response_value(session):
     response = delete_session(session)
     value = assert_success(response)
     assert value is None
+
     # Need an explicit call to session.end() to notify the test harness
     # that a new session needs to be created for subsequent tests.
     session.end()

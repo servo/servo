@@ -5607,7 +5607,7 @@ function runConformanceTest(browserTest) {
             format_value(browserTest[1][i][1]) + ") " +
             (browserTest[1][i][2] ? browserTest[1][i][2] + " " : "") +
             "return value"
-        test(function() {
+        subsetTest(test, function() {
             assert_equals(exception, null, "Setup must not throw an exception");
 
             assert_equals(document.execCommand(browserTest[1][i][0], false, browserTest[1][i][1]),
@@ -5640,7 +5640,7 @@ function runConformanceTest(browserTest) {
         }
     }
 
-    test(function() {
+    subsetTest(test, function() {
         assert_equals(exception, null, "Setup must not throw an exception");
 
         // Now test for modifications to non-editable content.  First just
@@ -5664,7 +5664,7 @@ function runConformanceTest(browserTest) {
             "Everything outside the editable div must be unchanged, but some change did occur");
     }, testName + " checks for modifications to non-editable content");
 
-    test(function() {
+    subsetTest(test, function() {
         assert_equals(exception, null, "Setup must not throw an exception");
 
         assert_equals(testDiv.innerHTML,
@@ -5682,7 +5682,7 @@ function runConformanceTest(browserTest) {
             'queryCommandValue("' + command + '") after',
         ];
         for (var i = 0; i < 6; i++) {
-            test(function() {
+            subsetTest(test, function() {
                 assert_equals(exception, null, "Setup must not throw an exception");
 
                 if (expectedQueryResults[command][i] === null) {

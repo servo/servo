@@ -391,6 +391,17 @@ class H2ResponseWriter(object):
         self.logger = response.logger
 
     def write_headers(self, headers, status_code, status_message=None, stream_id=None, last=False):
+        """
+        Send a HEADER frame that is tracked by the local state machine.
+
+        Write a HEADER frame using the H2 Connection object, will only work if the stream is in a state to send
+        HEADER frames.
+
+        :param headers: List of (header, value) tuples
+        :param status_code: The HTTP status code of the response
+        :param stream_id: Id of stream to send frame on. Will use the request stream ID if None
+        :param last: Flag to signal if this is the last frame in stream.
+        """
         formatted_headers = []
         secondary_headers = []  # Non ':' prefixed headers are to be added afterwards
 
@@ -414,6 +425,17 @@ class H2ResponseWriter(object):
             self.write(connection)
 
     def write_data(self, item, last=False, stream_id=None):
+        """
+        Send a DATA frame that is tracked by the local state machine.
+
+        Write a DATA frame using the H2 Connection object, will only work if the stream is in a state to send
+        DATA frames. Uses flow control to split data into multiple data frames if it exceeds the size that can
+        be in a single frame.
+
+        :param item: The content of the DATA frame
+        :param last: Flag to signal if this is the last frame in stream.
+        :param stream_id: Id of stream to send frame on. Will use the request stream ID if None
+        """
         if isinstance(item, (text_type, binary_type)):
             data = BytesIO(self.encode(item))
         else:
@@ -474,13 +496,25 @@ class H2ResponseWriter(object):
         return push_stream_id
 
     def end_stream(self, stream_id=None):
+        """Ends the stream with the given ID, or the one that request was made on if no ID given."""
         with self.h2conn as connection:
             connection.end_stream(stream_id if stream_id is not None else self.request.h2_stream_id)
             self.write(connection)
         self.stream_ended = True
 
     def write_raw_header_frame(self, headers, stream_id=None, end_stream=False, end_headers=False, frame_cls=HeadersFrame):
-        """This bypasses state checking and such, and sends a header regardless"""
+        """
+        Ignores the statemachine of the stream and sends a HEADER frame regardless.
+
+        Unlike `write_headers`, this does not check to see if a stream is in the correct state to have HEADER frames
+        sent through to it. It will build a HEADER frame and send it without using the H2 Connection object other than
+        to HPACK encode the headers.
+
+        :param headers: List of (header, value) tuples
+        :param stream_id: Id of stream to send frame on. Will use the request stream ID if None
+        :param end_stream: Set to True to add END_STREAM flag to frame
+        :param end_headers: Set to True to add END_HEADERS flag to frame
+        """
         if not stream_id:
             stream_id = self.request.h2_stream_id
 
@@ -501,7 +535,17 @@ class H2ResponseWriter(object):
             self.write_raw(data)
 
     def write_raw_data_frame(self, data, stream_id=None, end_stream=False):
-        """This bypasses state checking and such, and sends a data frame regardless"""
+        """
+        Ignores the statemachine of the stream and sends a DATA frame regardless.
+
+        Unlike `write_data`, this does not check to see if a stream is in the correct state to have DATA frames
+        sent through to it. It will build a DATA frame and send it without using the H2 Connection object. It will
+        not perform any flow control checks.
+
+        :param data: The data to be sent in the frame
+        :param stream_id: Id of stream to send frame on. Will use the request stream ID if None
+        :param end_stream: Set to True to add END_STREAM flag to frame
+        """
         if not stream_id:
             stream_id = self.request.h2_stream_id
 
@@ -515,13 +559,25 @@ class H2ResponseWriter(object):
         self.write_raw(data)
 
     def write_raw_continuation_frame(self, headers, stream_id=None, end_headers=False):
-        """This bypasses state checking and such, and sends a continuation frame regardless"""
+        """
+        Ignores the statemachine of the stream and sends a CONTINUATION frame regardless.
+
+        This provides the ability to create and write a CONTINUATION frame to the stream, which is not exposed by
+        `write_headers` as the h2 library handles the split between HEADER and CONTINUATION internally. Will perform
+        HPACK encoding on the headers.
+
+        :param headers: List of (header, value) tuples
+        :param stream_id: Id of stream to send frame on. Will use the request stream ID if None
+        :param end_headers: Set to True to add END_HEADERS flag to frame
+        """
         self.write_raw_header_frame(headers, stream_id=stream_id, end_headers=end_headers, frame_cls=ContinuationFrame)
 
 
-    def get_max_payload_size(self):
+    def get_max_payload_size(self, stream_id=None):
+        """Returns the maximum size of a payload for the given stream."""
+        stream_id = stream_id if stream_id is not None else self.request.h2_stream_id
         with self.h2conn as connection:
-            return min(connection.remote_settings.max_frame_size, connection.local_flow_control_window(self.request.h2_stream_id)) - 9
+            return min(connection.remote_settings.max_frame_size, connection.local_flow_control_window(stream_id)) - 9
 
     def write(self, connection):
         self.content_written = True

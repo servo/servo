@@ -53,6 +53,31 @@ def manifest_dir():
             shutil.rmtree(path)
 
 
+@pytest.fixture
+def temp_test():
+    os.makedirs("../../.tools-tests")
+    test_count = {"value": 0}
+
+    def make_test(body):
+        test_count["value"] += 1
+        test_name = ".tools-tests/%s.html" % test_count["value"]
+        test_path = "../../%s" % test_name
+
+        with open(test_path, "w") as handle:
+            handle.write("""
+            <!DOCTYPE html>
+            <script src="/resources/testharness.js"></script>
+            <script src="/resources/testharnessreport.js"></script>
+            <script>%s</script>
+            """ % body)
+
+        return test_name
+
+    yield make_test
+
+    shutil.rmtree("../../.tools-tests")
+
+
 def test_missing():
     with pytest.raises(SystemExit):
         wpt.main(argv=["#missing-command"])
@@ -214,6 +239,38 @@ def test_run_failing_test():
         wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
                        "--no-fail-on-unexpected",
                        "chrome", failing_test])
+    assert excinfo.value.code == 0
+
+
+@pytest.mark.slow
+@pytest.mark.remote_network
+@pytest.mark.xfail(sys.platform == "win32",
+                   reason="Tests currently don't work on Windows for path reasons")
+def test_run_verify_unstable(temp_test):
+    """Unstable tests should be reported with a non-zero exit status. Stable
+    tests should be reported with a zero exit status."""
+    if is_port_8000_in_use():
+        pytest.skip("port 8000 already in use")
+    unstable_test = temp_test("""
+        test(function() {
+            if (localStorage.getItem('wpt-unstable-test-flag')) {
+              throw new Error();
+            }
+
+            localStorage.setItem('wpt-unstable-test-flag', 'x');
+        }, 'my test');
+    """)
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--yes", "--verify", "--binary-arg", "headless",
+                       "chrome", unstable_test])
+    assert excinfo.value.code != 0
+
+    stable_test = temp_test("test(function() {}, 'my test');")
+
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["run", "--yes", "--verify", "--binary-arg", "headless",
+                       "chrome", stable_test])
     assert excinfo.value.code == 0
 
 

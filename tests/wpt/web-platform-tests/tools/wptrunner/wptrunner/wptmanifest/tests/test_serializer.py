@@ -223,3 +223,8 @@ class TokenizerTest(unittest.TestCase):
     def test_atom_4(self):
         self.compare(r"""key: [a, @Reset, b]
 """)
+
+    def test_conditional_1(self):
+        self.compare("""foo:
+  if a or b: [1, 2]
+""")

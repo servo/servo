@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script>
+    xr_promise_test(
+      "Requesting immersive session outside of a user gesture rejects",
+      (t) => {
+        return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+          .then( (controller) => { return navigator.xr.requestDevice() })
+          .then( (device) => promise_rejects(
+            t, 'SecurityError', device.requestSession({ immersive: true })));
+      });
+  </script>
+</body>
