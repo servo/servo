@@ -10,7 +10,6 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use servo_media::audio::node::AudioNodeInit;
 
 #[dom_struct]
 pub struct AudioDestinationNode {
@@ -23,9 +22,8 @@ impl AudioDestinationNode {
         options: &AudioNodeOptions,
     ) -> AudioDestinationNode {
         AudioDestinationNode {
-            node: AudioNode::new_inherited(
-                AudioNodeInit::DestinationNode,
-                Some(context.destination_node()),
+            node: AudioNode::new_inherited_for_id(
+                context.destination_node(),
                 context,
                 options,
                 1,

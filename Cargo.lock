@@ -3197,7 +3197,7 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#7a5c334698aa1e8a9cf95c5bd761e4a31489b6db"
+source = "git+https://github.com/servo/media#a3d25355acac0fe6f7f8b7af18e6fe1f910431ab"
 dependencies = [
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
@@ -3207,9 +3207,10 @@ dependencies = [
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#7a5c334698aa1e8a9cf95c5bd761e4a31489b6db"
+source = "git+https://github.com/servo/media#a3d25355acac0fe6f7f8b7af18e6fe1f910431ab"
 dependencies = [
  "byte-slice-cast 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "petgraph 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_media_derive 0.1.0 (git+https://github.com/servo/media)",
@@ -3219,7 +3220,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#7a5c334698aa1e8a9cf95c5bd761e4a31489b6db"
+source = "git+https://github.com/servo/media#a3d25355acac0fe6f7f8b7af18e6fe1f910431ab"
 dependencies = [
  "byte-slice-cast 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glib 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3227,7 +3228,7 @@ dependencies = [
  "gstreamer-app 0.11.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-audio 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "gstreamer-player 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "num-traits 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
@@ -3237,7 +3238,12 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#7a5c334698aa1e8a9cf95c5bd761e4a31489b6db"
+source = "git+https://github.com/servo/media#a3d25355acac0fe6f7f8b7af18e6fe1f910431ab"
+dependencies = [
+ "ipc-channel 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "servo-skia"
@@ -3318,7 +3324,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#7a5c334698aa1e8a9cf95c5bd761e4a31489b6db"
+source = "git+https://github.com/servo/media#a3d25355acac0fe6f7f8b7af18e6fe1f910431ab"
 dependencies = [
  "quote 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.13.1 (registry+https://github.com/rust-lang/crates.io-index)",

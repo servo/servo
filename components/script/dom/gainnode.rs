@@ -38,7 +38,6 @@ impl GainNode {
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
         let node = AudioNode::new_inherited(
             AudioNodeInit::GainNode(gain_options.into()),
-            None,
             context,
             &node_options,
             1, // inputs

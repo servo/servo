@@ -36,17 +36,26 @@ pub struct AudioNode {
     channel_interpretation: Cell<ChannelInterpretation>,
 }
 
+
 impl AudioNode {
     pub fn new_inherited(
         node_type: AudioNodeInit,
-        node_id: Option<NodeId>,
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
     ) -> AudioNode {
-        let node_id =
-            node_id.unwrap_or_else(|| context.audio_context_impl().create_node(node_type));
+        let node_id = context.audio_context_impl().create_node(node_type);
+        AudioNode::new_inherited_for_id(node_id, context, options, number_of_inputs, number_of_outputs)
+    }
+
+    pub fn new_inherited_for_id(
+        node_id: NodeId,
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+        number_of_inputs: u32,
+        number_of_outputs: u32,
+    ) -> AudioNode {
         AudioNode {
             eventtarget: EventTarget::new_inherited(),
             node_id,
