@@ -20,7 +20,7 @@ interface BaseAudioContext : EventTarget {
   readonly attribute AudioDestinationNode destination;
   readonly attribute float sampleRate;
   readonly attribute double currentTime;
-  // readonly attribute AudioListener listener;
+  readonly attribute AudioListener listener;
   readonly attribute AudioContextState  state;
   Promise<void> resume();
   attribute EventHandler onstatechange;

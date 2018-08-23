@@ -220,6 +220,7 @@ pub mod audiobuffer;
 pub mod audiobuffersourcenode;
 pub mod audiocontext;
 pub mod audiodestinationnode;
+pub mod audiolistener;
 pub mod audionode;
 pub mod audioparam;
 pub mod audioscheduledsourcenode;
