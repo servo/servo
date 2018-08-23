@@ -7,9 +7,8 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use display_list::items::{BorderDetails, ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
+use display_list::items::{ClipScrollNode, ClipScrollNodeIndex, ClipScrollNodeType};
 use display_list::items::{DisplayItem, DisplayList, StackingContextType};
-use euclid::SideOffsets2D;
 use msg::constellation_msg::PipelineId;
 use webrender_api::{self, ClipAndScrollInfo, ClipId, DisplayListBuilder, GlyphRasterSpace};
 use webrender_api::LayoutPoint;
@@ -104,105 +103,93 @@ impl WebRenderDisplayItemConverter for DisplayItem {
         }
 
         match *self {
-            DisplayItem::SolidColor(ref item) => {
-                builder.push_rect(&self.prim_info(), item.color);
+            DisplayItem::Rectangle(ref item) => {
+                builder.push_rect(&self.prim_info(), item.item.color);
             },
             DisplayItem::Text(ref item) => {
                 builder.push_text(
                     &self.prim_info(),
-                    &item.glyphs,
-                    item.font_key,
-                    item.text_color,
-                    None,
+                    &item.data,
+                    item.item.font_key,
+                    item.item.color,
+                    item.item.glyph_options,
                 );
             },
             DisplayItem::Image(ref item) => {
-                if item.stretch_size.width > 0.0 && item.stretch_size.height > 0.0 {
-                    builder.push_image(
-                        &self.prim_info(),
-                        item.stretch_size,
-                        item.tile_spacing,
-                        item.image_rendering,
-                        webrender_api::AlphaType::PremultipliedAlpha,
-                        item.id,
-                    );
-                }
+                builder.push_image(
+                    &self.prim_info(),
+                    item.item.stretch_size,
+                    item.item.tile_spacing,
+                    item.item.image_rendering,
+                    item.item.alpha_type,
+                    item.item.image_key,
+                );
             },
             DisplayItem::Border(ref item) => {
-                let details = match item.details {
-                    BorderDetails::Normal(ref border) => {
-                        webrender_api::BorderDetails::Normal(*border)
-                    },
-                    BorderDetails::Image(ref image) => {
-                        webrender_api::BorderDetails::NinePatch(*image)
+                if item.data.is_empty() {
+                    builder.push_border(&self.prim_info(), item.item.widths, item.item.details);
+                } else {
+                    let mut details = item.item.details.clone();
+                    match &mut details {
+                        webrender_api::BorderDetails::NinePatch(
+                            webrender_api::NinePatchBorder {
+                                source:
+                                    webrender_api::NinePatchBorderSource::Gradient(ref mut gradient),
+                                ..
+                            },
+                        ) => {
+                            *gradient = builder.create_gradient(
+                                gradient.start_point,
+                                gradient.end_point,
+                                item.data.clone(),
+                                gradient.extend_mode,
+                            );
+                        },
+                        webrender_api::BorderDetails::NinePatch(
+                            webrender_api::NinePatchBorder {
+                                source:
+                                    webrender_api::NinePatchBorderSource::RadialGradient(gradient),
+                                ..
+                            },
+                        ) => {
+                            *gradient = builder.create_radial_gradient(
+                                gradient.center,
+                                gradient.radius,
+                                item.data.clone(),
+                                gradient.extend_mode,
+                            )
+                        },
+                        _ => unreachable!(),
                     }
-                    BorderDetails::Gradient(ref gradient) => {
-                        let wr_gradient = builder.create_gradient(
-                            gradient.gradient.start_point,
-                            gradient.gradient.end_point,
-                            gradient.gradient.stops.clone(),
-                            gradient.gradient.extend_mode,
-                        );
-
-                        let details = webrender_api::NinePatchBorder {
-                            source: webrender_api::NinePatchBorderSource::Gradient(wr_gradient),
-                            width: 0,
-                            height: 0,
-                            slice: SideOffsets2D::zero(),
-                            fill: false,
-                            repeat_horizontal: webrender_api::RepeatMode::Stretch,
-                            repeat_vertical: webrender_api::RepeatMode::Stretch,
-                            outset: gradient.outset,
-                        };
-
-                        webrender_api::BorderDetails::NinePatch(details)
-                    },
-                    BorderDetails::RadialGradient(ref gradient) => {
-                        let wr_gradient = builder.create_radial_gradient(
-                            gradient.gradient.center,
-                            gradient.gradient.radius,
-                            gradient.gradient.stops.clone(),
-                            gradient.gradient.extend_mode,
-                        );
-
-                        let details = webrender_api::NinePatchBorder {
-                            source: webrender_api::NinePatchBorderSource::RadialGradient(wr_gradient),
-                            width: 0,
-                            height: 0,
-                            slice: SideOffsets2D::zero(),
-                            fill: false,
-                            repeat_horizontal: webrender_api::RepeatMode::Stretch,
-                            repeat_vertical: webrender_api::RepeatMode::Stretch,
-                            outset: gradient.outset,
-                        };
-
-                        webrender_api::BorderDetails::NinePatch(details)
-                    },
-                };
-
-                builder.push_border(&self.prim_info(), item.border_widths, details);
+                    builder.push_border(&self.prim_info(), item.item.widths, details);
+                }
             },
             DisplayItem::Gradient(ref item) => {
                 let gradient = builder.create_gradient(
-                    item.gradient.start_point,
-                    item.gradient.end_point,
-                    item.gradient.stops.clone(),
-                    item.gradient.extend_mode,
+                    item.item.gradient.start_point,
+                    item.item.gradient.end_point,
+                    item.data.clone(),
+                    item.item.gradient.extend_mode,
                 );
-                builder.push_gradient(&self.prim_info(), gradient, item.tile, item.tile_spacing);
+                builder.push_gradient(
+                    &self.prim_info(),
+                    gradient,
+                    item.item.tile_size,
+                    item.item.tile_spacing,
+                );
             },
             DisplayItem::RadialGradient(ref item) => {
                 let gradient = builder.create_radial_gradient(
-                    item.gradient.center,
-                    item.gradient.radius,
-                    item.gradient.stops.clone(),
-                    item.gradient.extend_mode,
+                    item.item.gradient.center,
+                    item.item.gradient.radius,
+                    item.data.clone(),
+                    item.item.gradient.extend_mode,
                 );
                 builder.push_radial_gradient(
                     &self.prim_info(),
                     gradient,
-                    item.tile,
-                    item.tile_spacing,
+                    item.item.tile_size,
+                    item.item.tile_spacing,
                 );
             },
             DisplayItem::Line(ref item) => {
@@ -218,13 +205,13 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             DisplayItem::BoxShadow(ref item) => {
                 builder.push_box_shadow(
                     &self.prim_info(),
-                    item.box_bounds,
-                    item.offset,
-                    item.color,
-                    item.blur_radius,
-                    item.spread_radius,
-                    item.border_radius,
-                    item.clip_mode,
+                    item.item.box_bounds,
+                    item.item.offset,
+                    item.item.color,
+                    item.item.blur_radius,
+                    item.item.spread_radius,
+                    item.item.border_radius,
+                    item.item.clip_mode,
                 );
             },
             DisplayItem::PushTextShadow(ref item) => {
@@ -244,7 +231,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 if let Some(frame_index) = stacking_context.established_reference_frame {
                     debug_assert!(
                         stacking_context.transform.is_some() ||
-                        stacking_context.perspective.is_some()
+                            stacking_context.perspective.is_some()
                     );
 
                     let clip_id = builder.push_reference_frame(
@@ -310,7 +297,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     },
                     ClipScrollNodeType::Placeholder => {
                         unreachable!("Found DefineClipScrollNode for Placeholder type node.");
-                    }
+                    },
                 };
 
                 clip_ids[item.node_index.to_index()] = Some(webrender_id);

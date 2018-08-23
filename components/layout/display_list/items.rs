@@ -22,11 +22,12 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::f32;
 use std::fmt;
-use webrender_api::{BorderRadius, BorderWidths, BoxShadowClipMode, ClipMode, ColorF};
-use webrender_api::{ComplexClipRegion, ExtendMode, ExternalScrollId, FilterOp, FontInstanceKey};
-use webrender_api::{GlyphInstance, GradientStop, ImageKey, ImageRendering, LayoutPoint};
+use webrender_api as wr;
+use webrender_api::{BorderRadius, ClipMode, ColorF};
+use webrender_api::{ComplexClipRegion, ExternalScrollId, FilterOp};
+use webrender_api::{GlyphInstance, GradientStop, ImageKey, LayoutPoint};
 use webrender_api::{LayoutRect, LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
-use webrender_api::{MixBlendMode, NinePatchBorder, NormalBorder, ScrollSensitivity, Shadow};
+use webrender_api::{MixBlendMode, ScrollSensitivity, Shadow};
 use webrender_api::{StickyOffsetBounds, TransformStyle};
 
 pub use style::dom::OpaqueNode;
@@ -373,14 +374,14 @@ impl ClipScrollNode {
 /// One drawing command in the list.
 #[derive(Clone, Serialize)]
 pub enum DisplayItem {
-    SolidColor(Box<SolidColorDisplayItem>),
-    Text(Box<TextDisplayItem>),
-    Image(Box<ImageDisplayItem>),
-    Border(Box<BorderDisplayItem>),
-    Gradient(Box<GradientDisplayItem>),
-    RadialGradient(Box<RadialGradientDisplayItem>),
+    Rectangle(Box<CommonDisplayItem<wr::RectangleDisplayItem>>),
+    Text(Box<CommonDisplayItem<wr::TextDisplayItem, Vec<GlyphInstance>>>),
+    Image(Box<CommonDisplayItem<wr::ImageDisplayItem>>),
+    Border(Box<CommonDisplayItem<wr::BorderDisplayItem, Vec<GradientStop>>>),
+    Gradient(Box<CommonDisplayItem<wr::GradientDisplayItem, Vec<GradientStop>>>),
+    RadialGradient(Box<CommonDisplayItem<wr::RadialGradientDisplayItem, Vec<GradientStop>>>),
     Line(Box<LineDisplayItem>),
-    BoxShadow(Box<BoxShadowDisplayItem>),
+    BoxShadow(Box<CommonDisplayItem<wr::BoxShadowDisplayItem>>),
     PushTextShadow(Box<PushTextShadowDisplayItem>),
     PopAllTextShadows(Box<PopAllTextShadowsDisplayItem>),
     Iframe(Box<IframeDisplayItem>),
@@ -443,8 +444,9 @@ impl BaseDisplayItem {
             clip_rect: LayoutRect::max_rect(),
             section: DisplayListSection::Content,
             stacking_context_id: StackingContextId::root(),
-            clipping_and_scrolling:
-                ClippingAndScrolling::simple(ClipScrollNodeIndex::root_scroll_node()),
+            clipping_and_scrolling: ClippingAndScrolling::simple(
+                ClipScrollNodeIndex::root_scroll_node(),
+            ),
         }
     }
 }
@@ -579,7 +581,8 @@ impl ClippingRegion {
     pub fn translate(&self, delta: &LayoutVector2D) -> ClippingRegion {
         ClippingRegion {
             main: self.main.translate(delta),
-            complex: self.complex
+            complex: self
+                .complex
                 .iter()
                 .map(|complex| ComplexClipRegion {
                     rect: complex.rect.translate(delta),
@@ -624,11 +627,13 @@ impl CompletelyEncloses for ComplexClipRegion {
     fn completely_encloses(&self, other: &Self) -> bool {
         let left = self.radii.top_left.width.max(self.radii.bottom_left.width);
         let top = self.radii.top_left.height.max(self.radii.top_right.height);
-        let right = self.radii
+        let right = self
+            .radii
             .top_right
             .width
             .max(self.radii.bottom_right.width);
-        let bottom = self.radii
+        let bottom = self
+            .radii
             .bottom_left
             .height
             .max(self.radii.bottom_right.height);
@@ -639,8 +644,10 @@ impl CompletelyEncloses for ComplexClipRegion {
                 self.rect.size.height - top - bottom,
             ),
         );
-        interior.origin.x <= other.rect.origin.x && interior.origin.y <= other.rect.origin.y &&
-            interior.max_x() >= other.rect.max_x() && interior.max_y() >= other.rect.max_y()
+        interior.origin.x <= other.rect.origin.x &&
+            interior.origin.y <= other.rect.origin.y &&
+            interior.max_x() >= other.rect.max_x() &&
+            interior.max_y() >= other.rect.max_y()
     }
 }
 
@@ -656,29 +663,6 @@ pub struct DisplayItemMetadata {
     pub pointing: Option<u16>,
 }
 
-/// Paints a solid color.
-#[derive(Clone, Serialize)]
-pub struct SolidColorDisplayItem {
-    /// Fields common to all display items.
-    pub base: BaseDisplayItem,
-
-    /// The color.
-    pub color: ColorF,
-}
-
-/// Paints text.
-#[derive(Clone, Serialize)]
-pub struct TextDisplayItem {
-    /// Fields common to all display items.
-    pub base: BaseDisplayItem,
-    /// A collection of (non-whitespace) glyphs to be displayed.
-    pub glyphs: Vec<GlyphInstance>,
-    /// Reference to the font to be used.
-    pub font_key: FontInstanceKey,
-    /// The color of the text.
-    pub text_color: ColorF,
-}
-
 #[derive(Clone, Eq, PartialEq, Serialize)]
 pub enum TextOrientation {
     Upright,
@@ -686,143 +670,11 @@ pub enum TextOrientation {
     SidewaysRight,
 }
 
-/// Paints an image.
-#[derive(Clone, Serialize)]
-pub struct ImageDisplayItem {
-    pub base: BaseDisplayItem,
-
-    pub id: ImageKey,
-
-    /// The dimensions to which the image display item should be stretched. If this is smaller than
-    /// the bounds of this display item, then the image will be repeated in the appropriate
-    /// direction to tile the entire bounds.
-    pub stretch_size: LayoutSize,
-
-    /// The amount of space to add to the right and bottom part of each tile, when the image
-    /// is tiled.
-    pub tile_spacing: LayoutSize,
-
-    /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
-    /// 5.3.
-    pub image_rendering: ImageRendering,
-}
 /// Paints an iframe.
 #[derive(Clone, Serialize)]
 pub struct IframeDisplayItem {
     pub base: BaseDisplayItem,
     pub iframe: PipelineId,
-}
-
-/// Paints a gradient.
-#[derive(Clone, Serialize)]
-pub struct Gradient {
-    /// The start point of the gradient (computed during display list construction).
-    pub start_point: LayoutPoint,
-
-    /// The end point of the gradient (computed during display list construction).
-    pub end_point: LayoutPoint,
-
-    /// A list of color stops.
-    pub stops: Vec<GradientStop>,
-
-    /// Whether the gradient is repeated or clamped.
-    pub extend_mode: ExtendMode,
-}
-
-#[derive(Clone, Serialize)]
-pub struct GradientDisplayItem {
-    /// Fields common to all display item.
-    pub base: BaseDisplayItem,
-
-    /// Contains all gradient data. Included start, end point and color stops.
-    pub gradient: Gradient,
-
-    /// The size of a single gradient tile.
-    ///
-    /// The gradient may fill an entire element background
-    /// but it can be composed from many smaller copys of
-    /// the same gradient.
-    ///
-    /// Without tiles, the tile will be the same size as the background.
-    pub tile: LayoutSize,
-    pub tile_spacing: LayoutSize,
-}
-
-/// Paints a radial gradient.
-#[derive(Clone, Serialize)]
-pub struct RadialGradient {
-    /// The center point of the gradient.
-    pub center: LayoutPoint,
-
-    /// The radius of the gradient with an x and an y component.
-    pub radius: LayoutSize,
-
-    /// A list of color stops.
-    pub stops: Vec<GradientStop>,
-
-    /// Whether the gradient is repeated or clamped.
-    pub extend_mode: ExtendMode,
-}
-
-#[derive(Clone, Serialize)]
-pub struct RadialGradientDisplayItem {
-    /// Fields common to all display item.
-    pub base: BaseDisplayItem,
-
-    /// Contains all gradient data.
-    pub gradient: RadialGradient,
-
-    /// The size of a single gradient tile.
-    ///
-    /// The gradient may fill an entire element background
-    /// but it can be composed from many smaller copys of
-    /// the same gradient.
-    ///
-    /// Without tiles, the tile will be the same size as the background.
-    pub tile: LayoutSize,
-    pub tile_spacing: LayoutSize,
-}
-
-/// A border that is made of linear gradient
-#[derive(Clone, Serialize)]
-pub struct GradientBorder {
-    /// The gradient info that this border uses, border-image-source.
-    pub gradient: Gradient,
-
-    /// Outsets for the border, as per border-image-outset.
-    pub outset: SideOffsets2D<f32>,
-}
-
-/// A border that is made of radial gradient
-#[derive(Clone, Serialize)]
-pub struct RadialGradientBorder {
-    /// The gradient info that this border uses, border-image-source.
-    pub gradient: RadialGradient,
-
-    /// Outsets for the border, as per border-image-outset.
-    pub outset: SideOffsets2D<f32>,
-}
-
-/// Specifies the type of border
-#[derive(Clone, Serialize)]
-pub enum BorderDetails {
-    Normal(NormalBorder),
-    Image(NinePatchBorder),
-    Gradient(GradientBorder),
-    RadialGradient(RadialGradientBorder),
-}
-
-/// Paints a border.
-#[derive(Clone, Serialize)]
-pub struct BorderDisplayItem {
-    /// Fields common to all display items.
-    pub base: BaseDisplayItem,
-
-    /// Border widths.
-    pub border_widths: BorderWidths,
-
-    /// Details for specific border type
-    pub details: BorderDetails,
 }
 
 /// Paints a line segment.
@@ -837,32 +689,27 @@ pub struct LineDisplayItem {
     pub style: LineStyle,
 }
 
-/// Paints a box shadow per CSS-BACKGROUNDS.
 #[derive(Clone, Serialize)]
-pub struct BoxShadowDisplayItem {
-    /// Fields common to all display items.
+pub struct CommonDisplayItem<T, U = ()> {
     pub base: BaseDisplayItem,
+    pub item: T,
+    pub data: U,
+}
 
-    /// The dimensions of the box that we're placing a shadow around.
-    pub box_bounds: LayoutRect,
+impl<T> CommonDisplayItem<T> {
+    pub fn new(base: BaseDisplayItem, item: T) -> Box<CommonDisplayItem<T>> {
+        Box::new(CommonDisplayItem {
+            base,
+            item,
+            data: (),
+        })
+    }
+}
 
-    /// The offset of this shadow from the box.
-    pub offset: LayoutVector2D,
-
-    /// The color of this shadow.
-    pub color: ColorF,
-
-    /// The blur radius for this shadow.
-    pub blur_radius: f32,
-
-    /// The spread radius of this shadow.
-    pub spread_radius: f32,
-
-    /// The border radius of this shadow.
-    pub border_radius: BorderRadius,
-
-    /// How we should clip the result.
-    pub clip_mode: BoxShadowClipMode,
+impl<T, U> CommonDisplayItem<T, U> {
+    pub fn with_data(base: BaseDisplayItem, item: T, data: U) -> Box<CommonDisplayItem<T, U>> {
+        Box::new(CommonDisplayItem { base, item, data })
+    }
 }
 
 /// Defines a text shadow that affects all items until the paired PopTextShadow.
@@ -912,7 +759,7 @@ pub struct DefineClipScrollNodeItem {
 impl DisplayItem {
     pub fn base(&self) -> &BaseDisplayItem {
         match *self {
-            DisplayItem::SolidColor(ref solid_color) => &solid_color.base,
+            DisplayItem::Rectangle(ref rect) => &rect.base,
             DisplayItem::Text(ref text) => &text.base,
             DisplayItem::Image(ref image_item) => &image_item.base,
             DisplayItem::Border(ref border) => &border.base,
@@ -976,13 +823,7 @@ impl fmt::Debug for DisplayItem {
             f,
             "{} @ {:?} {:?}",
             match *self {
-                DisplayItem::SolidColor(ref solid_color) => format!(
-                    "SolidColor rgba({}, {}, {}, {})",
-                    solid_color.color.r,
-                    solid_color.color.g,
-                    solid_color.color.b,
-                    solid_color.color.a
-                ),
+                DisplayItem::Rectangle(_) => "Rectangle".to_owned(),
                 DisplayItem::Text(_) => "Text".to_owned(),
                 DisplayItem::Image(_) => "Image".to_owned(),
                 DisplayItem::Border(_) => "Border".to_owned(),
@@ -1032,8 +873,18 @@ impl SimpleMatrixDetection for LayoutTransform {
     #[inline]
     fn is_identity_or_simple_translation(&self) -> bool {
         let (_0, _1) = (0.0, 1.0);
-        self.m11 == _1 && self.m12 == _0 && self.m13 == _0 && self.m14 == _0 && self.m21 == _0 &&
-            self.m22 == _1 && self.m23 == _0 && self.m24 == _0 && self.m31 == _0 &&
-            self.m32 == _0 && self.m33 == _1 && self.m34 == _0 && self.m44 == _1
+        self.m11 == _1 &&
+            self.m12 == _0 &&
+            self.m13 == _0 &&
+            self.m14 == _0 &&
+            self.m21 == _0 &&
+            self.m22 == _1 &&
+            self.m23 == _0 &&
+            self.m24 == _0 &&
+            self.m31 == _0 &&
+            self.m32 == _0 &&
+            self.m33 == _1 &&
+            self.m34 == _0 &&
+            self.m44 == _1
     }
 }

@@ -4,13 +4,13 @@
 
 use gfx_traits::Epoch;
 use ipc_channel::ipc;
-use layout::display_list::items::{BaseDisplayItem, DisplayItem, DisplayList, ImageDisplayItem};
+use layout::display_list::items::{BaseDisplayItem, CommonDisplayItem, DisplayItem, DisplayList};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
 use time;
-use webrender_api::{ImageKey, ImageRendering, LayoutSize};
+use webrender_api::{AlphaType, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {
@@ -116,13 +116,16 @@ fn test_first_paint_setter() {
 
 #[test]
 fn test_first_contentful_paint_setter() {
-    let image = DisplayItem::Image(Box::new(ImageDisplayItem {
-        base: BaseDisplayItem::empty(),
-        id: ImageKey::DUMMY,
-        stretch_size: LayoutSize::zero(),
-        tile_spacing: LayoutSize::zero(),
-        image_rendering: ImageRendering::Auto,
-    }));
+    let image = DisplayItem::Image(CommonDisplayItem::new(
+        BaseDisplayItem::empty(),
+        ImageDisplayItem {
+            image_key: ImageKey::DUMMY,
+            stretch_size: LayoutSize::zero(),
+            tile_spacing: LayoutSize::zero(),
+            image_rendering: ImageRendering::Auto,
+            alpha_type: AlphaType::PremultipliedAlpha,
+        }
+    ));
     let display_list = DisplayList {
         list: vec![image],
         clip_scroll_nodes: Vec::new(),
