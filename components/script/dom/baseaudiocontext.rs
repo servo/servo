@@ -64,7 +64,7 @@ struct DecodeResolver {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_context_impl: Rc<AudioContext<Backend>>,
+    audio_context_impl: AudioContext<Backend>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
     listener: MutNullableDom<AudioListener>,
@@ -97,11 +97,9 @@ impl BaseAudioContext {
 
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
-            audio_context_impl: Rc::new(
-                ServoMedia::get()
-                    .unwrap()
-                    .create_audio_context(options.into()),
-            ),
+            audio_context_impl: ServoMedia::get()
+                                    .unwrap()
+                                    .create_audio_context(options.into()),
             destination: Default::default(),
             listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
@@ -120,8 +118,8 @@ impl BaseAudioContext {
         false
     }
 
-    pub fn audio_context_impl(&self) -> Rc<AudioContext<Backend>> {
-        self.audio_context_impl.clone()
+    pub fn audio_context_impl(&self) -> &AudioContext<Backend> {
+        &self.audio_context_impl
     }
 
     pub fn destination_node(&self) -> NodeId {
