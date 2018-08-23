@@ -5,6 +5,7 @@
 use dom::audiobuffer::AudioBuffer;
 use dom::audiobuffersourcenode::AudioBufferSourceNode;
 use dom::audiodestinationnode::AudioDestinationNode;
+use dom::audiolistener::AudioListener;
 use dom::audionode::MAX_CHANNEL_COUNT;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
@@ -66,6 +67,7 @@ pub struct BaseAudioContext {
     audio_context_impl: Rc<AudioContext<Backend>>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
+    listener: MutNullableDom<AudioListener>,
     /// Resume promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
@@ -101,6 +103,7 @@ impl BaseAudioContext {
                     .create_audio_context(options.into()),
             ),
             destination: Default::default(),
+            listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
             decode_resolvers: Default::default(),
@@ -123,6 +126,10 @@ impl BaseAudioContext {
 
     pub fn destination_node(&self) -> NodeId {
         self.audio_context_impl.dest_node()
+    }
+
+    pub fn listener(&self) -> NodeId {
+        self.audio_context_impl.listener()
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
@@ -294,6 +301,15 @@ impl BaseAudioContextMethods for BaseAudioContext {
             options.channelCountMode = Some(ChannelCountMode::Explicit);
             options.channelInterpretation = Some(ChannelInterpretation::Speakers);
             AudioDestinationNode::new(&global, self, &options)
+        })
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
+    fn Listener(&self) -> DomRoot<AudioListener> {
+        let global = self.global();
+        let window = global.as_window();
+        self.listener.or_init(|| {
+            AudioListener::new(&window, self)
         })
     }
 
