@@ -18,6 +18,7 @@ use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallba
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
+use dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
@@ -28,6 +29,7 @@ use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
 use dom::gainnode::GainNode;
 use dom::oscillatornode::OscillatorNode;
+use dom::pannernode::PannerNode;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -327,6 +329,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
     fn CreateGain(&self) -> DomRoot<GainNode> {
         GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
     }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner
+    fn CreatePanner(&self) -> DomRoot<PannerNode> {
+        PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
+    }
+
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
     fn CreateBuffer(

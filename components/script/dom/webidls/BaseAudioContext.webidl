@@ -42,7 +42,7 @@ interface BaseAudioContext : EventTarget {
   // IIRFilterNode createIIRFilter(sequence<double> feedforward,
   //                               sequence<double> feedback);
   // WaveShaperNode createWaveShaper();
-  // PannerNode createPanner();
+  PannerNode createPanner();
   // StereoPannerNode createStereoPanner();
   // ConvolverNode createConvolver();
   // ChannelSplitterNode createChannelSplitter(optional unsigned long numberOfOutputs = 6);
