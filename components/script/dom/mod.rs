@@ -409,6 +409,7 @@ pub mod pagetransitionevent;
 pub mod paintrenderingcontext2d;
 pub mod paintsize;
 pub mod paintworkletglobalscope;
+pub mod pannernode;
 pub mod performance;
 pub mod performanceentry;
 pub mod performancemark;
