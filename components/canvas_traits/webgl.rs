@@ -66,7 +66,7 @@ pub struct WebGLCreateContextResult {
     /// How the WebGLContext is shared with WebRender.
     pub share_mode: WebGLContextShareMode,
     /// The GLSL version supported by the context.
-    pub glsl_version: WebGLSLVersion
+    pub glsl_version: WebGLSLVersion,
 }
 
 #[derive(Clone, Copy, Deserialize, MallocSizeOf, Serialize)]
