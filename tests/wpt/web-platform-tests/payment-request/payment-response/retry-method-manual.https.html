@@ -131,10 +131,22 @@ function userCanAbortARetry(button) {
   }, button.textContent.trim());
 }
 
+function userIsShownErrorsFields(button) {
+  button.disabled = true;
+  promise_test(async t => {
+    const { response, request } = await getPaymentRequestResponse({ requestShipping: true });
+    const retryPromise = response.retry({
+      shippingAddress: { city: "Invalid city", addressLine: "Invalid address line" },
+    });
+    await retryPromise;
+    await response.complete("success");
+  }, button.textContent.trim());
+}
+
 function abortTheUpdate(button) {
   button.disabled = true;
   promise_test(async t => {
-    const { response, request } = await getPaymentRequestResponse();
+    const { response, request } = await getPaymentRequestResponse({ requestShipping: true });
     // causes "abort the update" to run
     const shippingChangedPromise = new Promise(resolve => {
       request.onshippingoptionchange = () => {
@@ -146,7 +158,7 @@ function abortTheUpdate(button) {
     await shippingChangedPromise;
     await promise_rejects(
       t,
-      "TypeError",
+      new TypeError(),
       retryPromise,
       "retry() aborts with a TypeError, because totals' value is invalid"
     );
@@ -162,12 +174,12 @@ function abortTheUpdate(button) {
 function callingRetryReturnsUniquePromise(button){
   button.disabled = true;
   promise_test(async t => {
-    const request = new PaymentRequest(defaultMethods, defaultDetails);
-    const retryPromise = request.retry();
+    const { response } = await getPaymentRequestResponse();
+    const retryPromise = response.retry({});
     const promises = new Set([
       retryPromise,
-      request.retry(),
-      request.retry(),
+      response.retry({}),
+      response.retry({}),
     ]);
     assert_equals(promises.size, 3, "Must have three unique objects");
     await retryPromise;

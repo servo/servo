@@ -82,6 +82,25 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  await animation.ready;
+
+  animation.pause();
+  await animation.ready;
+
+  const holdTime = animation.currentTime;
+
+  animation.play();
+  await animation.ready;
+
+  assert_less_than_equal(
+    animation.startTime,
+    animation.timeline.currentTime - holdTime + TIME_PRECISION
+  );
+}, 'Resuming an animation from paused calculates start time from hold time');
+
+promise_test(async t => {
+  const animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
   await animation.ready;
 
   // Go to pause-pending state

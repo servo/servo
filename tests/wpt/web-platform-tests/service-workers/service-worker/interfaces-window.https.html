@@ -51,4 +51,20 @@ promise_test(async (t) => {
         idlArray.test();
       });
 }, 'test setup (worker registration)');
+
+promise_test(t => {
+  const url = encodeURI(`data:text/html,<!DOCTYPE html>
+  <script>
+    parent.postMessage({ isDefined: 'serviceWorker' in navigator }, '*');
+  </` + `script>`);
+  var p = new Promise((resolve, reject) => {
+    window.addEventListener('message', event => {
+      resolve(event.data.isDefined);
+    });
+  });
+  with_iframe(url);
+  return p.then(isDefined => {
+    assert_false(isDefined, 'navigator.serviceWorker should not be defined in iframe');
+  });
+}, 'navigator.serviceWorker is not available in a data: iframe');
 </script>

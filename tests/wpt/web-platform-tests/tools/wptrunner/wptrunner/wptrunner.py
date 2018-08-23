@@ -163,6 +163,7 @@ def run_tests(config, test_paths, product, **kwargs):
 
         logger.info("Using %i client processes" % kwargs["processes"])
 
+        skipped_tests = 0
         test_total = 0
         unexpected_total = 0
 
@@ -234,6 +235,7 @@ def run_tests(config, test_paths, product, **kwargs):
                     for test in test_loader.disabled_tests[test_type]:
                         logger.test_start(test.id)
                         logger.test_end(test.id, status="SKIP")
+                        skipped_tests += 1
 
                     if test_type == "testharness":
                         run_tests = {"testharness": []}
@@ -242,6 +244,7 @@ def run_tests(config, test_paths, product, **kwargs):
                                     test.jsshell and not executor_cls.supports_jsshell):
                                 logger.test_start(test.id)
                                 logger.test_end(test.id, status="SKIP")
+                                skipped_tests += 1
                             else:
                                 run_tests["testharness"].append(test)
                     else:
@@ -277,8 +280,11 @@ def run_tests(config, test_paths, product, **kwargs):
                 logger.suite_end()
 
     if test_total == 0:
-        logger.error("No tests ran")
-        return False
+        if skipped_tests > 0:
+            logger.warning("All requested tests were skipped")
+        else:
+            logger.error("No tests ran")
+            return False
 
     if unexpected_total and not kwargs["fail_on_unexpected"]:
         logger.info("Tolerating %s unexpected results" % unexpected_total)
@@ -314,7 +320,7 @@ def start(**kwargs):
     elif kwargs["list_tests"]:
         list_tests(**kwargs)
     elif kwargs["verify"] or kwargs["stability"]:
-        check_stability(**kwargs)
+        return check_stability(**kwargs)
     else:
         return not run_tests(**kwargs)
 

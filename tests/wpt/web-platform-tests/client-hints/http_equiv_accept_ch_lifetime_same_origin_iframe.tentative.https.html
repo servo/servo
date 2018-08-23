@@ -39,8 +39,16 @@ promise_test(t => {
   });
 }, "Precondition: Test that the browser does not have client hints preferences cached");
 
+var acceptChLifetimeLoaded;
+
 async_test(t => {
-  window.addEventListener('message', function(e) {
+  acceptChLifetimeLoaded = t.step_func(() => {
+    // Open a new window. Verify that the user agent attaches the client hints.
+    var verify_win = window.open("resources/expect_client_hints_headers.html");
+    assert_not_equals(verify_win, null, "Popup windows not allowed?");
+  });
+
+  window.addEventListener('message', t.step_func((e) => {
     if(!e.source.location.pathname.includes("expect_client_hints_headers.html")) {
       return;
     }
@@ -48,14 +56,8 @@ async_test(t => {
       return;
     assert_equals(e.data, "PASS");
     t.done();
-  })
+  }));
 }, "Loading of resources/expect_client_hints_headers.html did not finish.");
-
-function acceptChLifetimeLoaded() {
-  // Open a new window. Verify that the user agent attaches the client hints.
-  var verify_win = window.open("resources/expect_client_hints_headers.html");
-  assert_not_equals(verify_win, null, "Popup windows not allowed?");
-}
 
 </script>
 

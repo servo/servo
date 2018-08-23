@@ -212,6 +212,20 @@ class Tokenizer(object):
         else:
             self.state = self.value_state
 
+    def after_expr_state(self):
+        self.skip_whitespace()
+        c = self.char()
+        if c == "#":
+            self.next_state = self.after_expr_state
+            self.state = self.comment_state
+        elif c == eol:
+            self.next_state = self.after_expr_state
+            self.state = self.eol_state
+        elif c == "[":
+            self.state = self.list_start_state
+        else:
+            self.state = self.value_state
+
     def list_start_state(self):
         yield (token_types.list_start, "[")
         self.consume()
@@ -378,7 +392,7 @@ class Tokenizer(object):
         elif c == ":":
             yield (token_types.separator, c)
             self.consume()
-            self.state = self.value_state
+            self.state = self.after_expr_state
         elif c in parens:
             self.consume()
             yield (token_types.paren, c)
@@ -586,10 +600,7 @@ class Parser(object):
             self.tree.append(ConditionalNode())
             self.expr_start()
             self.expect(token_types.separator)
-            if self.token[0] == token_types.string:
-                self.value()
-            else:
-                raise ParseError
+            self.value_block()
             self.tree.pop()
 
     def value(self):

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+
+  <script>
+    promise_test( (t) => {
+      return promise_rejects(t, 'NotFoundError', navigator.xr.requestDevice());
+    }, "navigator.xr.requestDevice properly rejects when there are 0 devices");
+  </script>
+</body>

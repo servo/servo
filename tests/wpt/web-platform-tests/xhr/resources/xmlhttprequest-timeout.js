@@ -175,7 +175,7 @@ RequestTracker.prototype = {
  * @param shouldAbort {Boolean} True if we should call abort at all.
  * @param abortDelay  {Number}  The time in ms to wait before calling abort().
  */
-function AbortedRequest(shouldAbort, abortDelay) {
+function AbortedRequest(shouldAbort, id, abortDelay) {
   this.shouldAbort = shouldAbort;
   this.abortDelay  = abortDelay;
   this.hasFired    = false;
@@ -264,8 +264,8 @@ AbortedRequest.prototype = {
   }
 };
 
-var SyncRequestSettingTimeoutAfterOpen = {
-  startXHR: function() {
+function SyncRequestSettingTimeoutAfterOpen() {
+  this.startXHR = function() {
     var pass = false;
     var req = new XMLHttpRequest();
     req.open("GET", STALLED_REQUEST_URL, false);
@@ -277,11 +277,12 @@ var SyncRequestSettingTimeoutAfterOpen = {
     }
     ok(pass, "Synchronous XHR must not allow a timeout to be set - setting timeout must throw");
     TestCounter.testComplete();
-  }
+  };
+  return this;
 };
 
-var SyncRequestSettingTimeoutBeforeOpen = {
-  startXHR: function() {
+function SyncRequestSettingTimeoutBeforeOpen() {
+  this.startXHR = function() {
     var pass = false;
     var req = new XMLHttpRequest();
     req.timeout = TIME_SYNC_TIMEOUT;
@@ -294,6 +295,7 @@ var SyncRequestSettingTimeoutBeforeOpen = {
     ok(pass, "Synchronous XHR must not allow a timeout to be set - calling open() after timeout is set must throw");
     TestCounter.testComplete();
   }
+  return this;
 };
 
 var TestRequests = [];
@@ -320,6 +322,12 @@ var TestCounter = {
 };
 
 function runTestRequests(testRequests) {
-    TestRequests = testRequests;
-    TestCounter.next();
+  if (location.search) {
+    testRequests = testRequests.filter(test => test[2] == decodeURIComponent(location.search.substr(1)));
+  }
+  TestRequests = testRequests.map(test => {
+    var constructor = test.shift();
+    return new self[constructor](...test)
+  });
+  TestCounter.next();
 }

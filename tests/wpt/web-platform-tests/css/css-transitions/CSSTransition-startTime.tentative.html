@@ -107,10 +107,18 @@ promise_test(async t => {
   const timelineTime = animation.timeline.currentTime;
 
   animation.startTime = timelineTime - 100 * MS_PER_SEC;
-  await eventWatcher.wait_for('transitionstart');
+  await frameTimeout(
+    eventWatcher.wait_for('transitionstart'),
+    2,
+    'transitionstart'
+  );
 
   animation.startTime = timelineTime - 200 * MS_PER_SEC;
-  await eventWatcher.wait_for('transitionend');
+  await frameTimeout(
+    eventWatcher.wait_for('transitionend'),
+    2,
+    'transitionend'
+  );
 }, 'Seeking a transition using start time dispatches transition events');
 
 </script>

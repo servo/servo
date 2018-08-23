@@ -75,7 +75,7 @@ testText("<div style='display:none'>abc  def", "abc  def", "No whitespace compre
 testText("<div style='display:none'> abc def ", " abc def ", "No removal of leading/trailing whitespace in display:none container");
 testText("<div>123<span style='display:none'>abc", "123", "display:none child not rendered");
 testText("<div style='display:none'><span id='target'>abc", "abc", "display:none container with non-display-none target child");
-testTextInSVG("<div id='target'>abc", "", "non-display-none child of svg");
+testTextInSVG("<div id='target'>abc", "abc", "non-display-none child of svg");
 testTextInSVG("<div style='display:none' id='target'>abc", "abc", "display:none child of svg");
 testTextInSVG("<div style='display:none'><div id='target'>abc", "abc", "child of display:none child of svg");
 
@@ -132,13 +132,13 @@ testText("<iframe>abc", "", "<iframe> contents ignored");
 testText("<iframe><div id='target'>abc", "", "<iframe> contents ignored");
 testText("<iframe src='data:text/html,abc'>", "","<iframe> subdocument ignored");
 testText("<audio style='display:block'>abc", "", "<audio> contents ignored");
-testText("<audio style='display:block'><source id='target' class='poke' style='display:block'>", "", "<audio> contents ignored");
-testText("<audio style='display:block'><source id='target' class='poke' style='display:none'>", "abc", "<audio> contents ok if display:none");
+testText("<audio style='display:block'><source id='target' class='poke' style='display:block'>", "abc", "<audio> contents ok for element not being rendered");
+testText("<audio style='display:block'><source id='target' class='poke' style='display:none'>", "abc", "<audio> contents ok for element not being rendered");
 testText("<video>abc", "", "<video> contents ignored");
-testText("<video style='display:block'><source id='target' class='poke' style='display:block'>", "", "<video> contents ignored");
-testText("<video style='display:block'><source id='target' class='poke' style='display:none'>", "abc", "<video> contents ok if display:none");
+testText("<video style='display:block'><source id='target' class='poke' style='display:block'>", "abc", "<video> contents ok for element not being rendered");
+testText("<video style='display:block'><source id='target' class='poke' style='display:none'>", "abc", "<video> contents ok for element not being rendered");
 testText("<canvas>abc", "", "<canvas> contents ignored");
-testText("<canvas><div id='target'>abc", "", "<canvas><div id='target'> contents ignored");
+testText("<canvas><div id='target'>abc", "abc", "<canvas><div id='target'> contents ok for element not being rendered");
 testText("<img alt='abc'>", "", "<img> alt text ignored");
 testText("<img src='about:blank' class='poke'>", "", "<img> contents ignored");
 

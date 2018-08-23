@@ -7,7 +7,7 @@
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
 
-function xr_promise_test(func, name, properties) {
+function xr_promise_test(name, func, properties) {
   promise_test(async (t) => {
     // Perform any required test setup:
 
@@ -18,6 +18,74 @@ function xr_promise_test(func, name, properties) {
 
     return func(t);
   }, name, properties);
+}
+
+// A test function which runs through the common steps of requesting a session.
+// Calls the passed in test function with the session, the controller for the
+// device, and the test object.
+// Requires a webglCanvas on the page.
+function xr_session_promise_test(
+    name, func, fakeDeviceInit, sessionOptions, properties) {
+  let testDevice;
+  let testDeviceController;
+  let testSession;
+
+  const webglCanvas = document.getElementsByTagName('canvas')[0];
+  if (!webglCanvas) {
+    promise_test(async (t) => {
+      Promise.reject('xr_session_promise_test requires a canvas on the page!');
+    }, name, properties);
+  }
+  let gl = webglCanvas.getContext('webgl', {alpha: false, antialias: false});
+
+  xr_promise_test(
+      name,
+      (t) =>
+          XRTest.simulateDeviceConnection(fakeDeviceInit)
+              .then((controller) => {
+                testDeviceController = controller;
+                return navigator.xr.requestDevice();
+              })
+              .then((device) => {
+                testDevice = device;
+                return gl.setCompatibleXRDevice(device);
+              })
+              .then(() => new Promise((resolve, reject) => {
+                      // Perform the session request in a user gesture.
+                      XRTest.simulateUserActivation(() => {
+                        testDevice.requestSession(sessionOptions)
+                            .then((session) => {
+                              testSession = session;
+                              // Session must have a baseLayer or frame requests
+                              // will be ignored.
+                              session.baseLayer = new XRWebGLLayer(session, gl);
+                              resolve(func(session, testDeviceController, t));
+                            })
+                            .catch((err) => {
+                              reject(
+                                  'Session with params ' +
+                                  JSON.stringify(sessionOptions) +
+                                  ' was rejected on device ' +
+                                  JSON.stringify(fakeDeviceInit) +
+                                  ' with error: ' + err);
+                            });
+                      });
+                    }))
+              .then(() => {
+                // Cleanup system state.
+                testSession.end().catch(() => {});
+                XRTest.simulateDeviceDisconnection(testDevice);
+              }),
+      properties);
+}
+
+// A utility function to create an output context as required by non-immersive
+// sessions.
+// https://immersive-web.github.io/webxr/#xrsessioncreationoptions-interface
+function getOutputContext() {
+  let outputCanvas = document.createElement('canvas');
+  document.body.appendChild(outputCanvas);
+  return outputCanvas.getContext('xrpresent');
 }
 
 // This functions calls a callback with each API object as specified
@@ -59,8 +127,13 @@ let loadChromiumResources = Promise.resolve().then(() => {
 
   let chain = Promise.resolve();
   ['/gen/layout_test_data/mojo/public/js/mojo_bindings.js',
-   '/gen/ui/gfx/geometry/mojo/geometry.mojom.js',
    '/gen/mojo/public/mojom/base/time.mojom.js',
+   '/gen/gpu/ipc/common/mailbox_holder.mojom.js',
+   '/gen/gpu/ipc/common/sync_token.mojom.js',
+   '/gen/ui/display/mojo/display.mojom.js',
+   '/gen/ui/gfx/geometry/mojo/geometry.mojom.js',
+   '/gen/ui/gfx/mojo/gpu_fence_handle.mojom.js',
+   '/gen/ui/gfx/mojo/transform.mojom.js',
    '/gen/device/vr/public/mojom/vr_service.mojom.js',
    '/resources/chromium/webxr-test.js', '/resources/testdriver.js',
    '/resources/testdriver-vendor.js',

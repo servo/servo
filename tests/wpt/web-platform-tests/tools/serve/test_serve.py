@@ -35,7 +35,7 @@ def test_make_hosts_file_windows():
                        browser_host="foo.bar",
                        alternate_hosts={"alt": "foo2.bar"},
                        subdomains={"a", "b"},
-                       not_subdomains={"x, y"}) as c:
+                       not_subdomains={"x", "y"}) as c:
         hosts = serve.make_hosts_file(c, "192.168.42.42")
         lines = hosts.split("\n")
         assert set(lines) == {"",

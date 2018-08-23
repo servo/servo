@@ -321,8 +321,14 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
     def handle_one_request(self):
         """
-        This is the main HTTP/2.0 Handler. When a browser opens a connection to the server
-        on the HTTP/2.0 port, Because there can be multiple H2 connections active at the same
+        This is the main HTTP/2.0 Handler.
+
+        When a browser opens a connection to the server
+        on the HTTP/2.0 port, the server enters this which will initiate the h2 connection
+        and keep running throughout the duration of the interaction, and will read/write directly
+        from the socket.
+
+        Because there can be multiple H2 connections active at the same
         time, a UUID is created for each so that it is easier to tell them apart in the logs.
         """
 
@@ -338,6 +344,7 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         with self.conn as connection:
             connection.initiate_connection()
             data = connection.data_to_send()
+            window_size = connection.remote_settings.initial_window_size
 
         self.request.sendall(data)
 
@@ -346,11 +353,11 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
 
         try:
             while not self.close_connection:
-                # This size may need to be made variable based on remote settings?
-                data = self.request.recv(65535)
+                data = self.request.recv(window_size)
 
                 with self.conn as connection:
                     frames = connection.receive_data(data)
+                    window_size = connection.remote_settings.initial_window_size
 
                 self.logger.debug('(%s) Frames Received: ' % self.uid + str(frames))
 
@@ -385,6 +392,12 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
                 thread.join()
 
     def start_stream_thread(self, frame, queue):
+        """
+        This starts a new thread to handle frames for a specific stream.
+        :param frame: The first frame on the stream
+        :param queue: A queue object that the thread will use to check for new frames
+        :return: The thread object that has already been started
+        """
         t = threading.Thread(
             target=Http2WebTestRequestHandler._stream_thread,
             args=(self, frame.stream_id, queue)
@@ -493,7 +506,6 @@ class H2Headers(dict):
 
 
 class H2HandlerCopy(object):
-
     def __init__(self, handler, req_frame, rfile):
         self.headers = H2Headers(req_frame.headers)
         self.command = self.headers['method']

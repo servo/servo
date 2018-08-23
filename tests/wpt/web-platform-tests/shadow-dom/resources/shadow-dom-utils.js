@@ -59,6 +59,8 @@ var HTML5_ELEMENT_NAMES = [
     'wbr'
 ];
 
+var ATTACHSHADOW_DISALLOWED_ELEMENTS = HTML5_ELEMENT_NAMES.filter(el => !ATTACHSHADOW_SAFELISTED_ELEMENTS.includes(el));
+
 function unit(f) {
     return function () {
         var ctx = newContext();

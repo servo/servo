@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src="resources/webxr_util.js"></script>
+  <script>
+    xr_promise_test(
+      "supportsSession resolves when immersive options supported",
+      () => {
+        return XRTest.simulateDeviceConnection({ supportsImmersive:true })
+          .then( (controller) => { return navigator.xr.requestDevice() })
+          .then( (device) => device.supportsSession({ immersive: true }));
+      });
+  </script>
+</body>

@@ -10,6 +10,6 @@ Second request will be aborted immediately after send(), test asserts that abort
 Third request is set up to call abort() after TIME_NORMAL_LOAD, but it also has a TIME_REGULAR_TIMEOUT timeout. Asserts that timeout fired.
 (abort() is called later and should not fire an abort event per spec. This is untested!)
 */
-runTestRequests([ new AbortedRequest(false),
-                  new AbortedRequest(true, -1),
-                  new AbortedRequest(true, TIME_NORMAL_LOAD) ]);
+runTestRequests([ ["AbortedRequest", false, "only open()ed, not aborted"],
+                  ["AbortedRequest", true, "aborted immediately after send()", -1],
+                  ["AbortedRequest", true, "call abort() after TIME_NORMAL_LOAD", TIME_NORMAL_LOAD] ]);

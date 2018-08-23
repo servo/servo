@@ -11,11 +11,7 @@ idl_test(
   async idl_array => {
     idl_array.add_objects({
       Navigator: ['navigator'],
-      XR: ['navigator.XR'],
-      XRDevice: ['device'],
-      XRSession: ['session'],
+      XR: ['navigator.xr'],
     });
-    self.device = await navigator.XR.requestDevice();
-    self.session = await device.requestSession();
   }
 );

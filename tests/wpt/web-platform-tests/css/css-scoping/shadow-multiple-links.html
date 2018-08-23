@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CSS Test: ShadowRoot with multiple sheet links with the same href shouldn't crash</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#selectors-data-model">
+<div id="host"></div>
+<script>
+test(function() {
+  host.attachShadow({ mode: "open" }).innerHTML = `
+    <link rel="stylesheet" href="data:text/css,">
+    <link rel="stylesheet" href="data:text/css,">
+  `;
+}, "Multiple stylesheets with the same href in a ShadowRoot should not assert or crash");
+</script>

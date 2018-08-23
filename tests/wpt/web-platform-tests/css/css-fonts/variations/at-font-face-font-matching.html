@@ -3,6 +3,7 @@
 <head>
     <title>Testing @font-face font matching logic introduced in CSS Fonts level 4</title>
     <link rel="help" href="https://www.w3.org/TR/css-fonts-4/#font-matching-algorithm" />
+    <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <style>
@@ -33,6 +34,9 @@
         <span style="font-family: 'W100';">A</span>
         <span style="font-family: 'W200';">A</span>
         <span style="font-family: 'W300';">A</span>
+        <span style="font-family: 'descriptorPriorityTest'; font-stretch: 125%;">A</span>
+        <span style="font-family: 'descriptorPriorityTest'; font-style: italic;">A</span>
+        <span style="font-family: 'descriptorPriorityTest'; font-weight: 350;">A</span>
     </span>
 
     <div id="master" class="test">A1 A2 A2 A3 A3 A3</div>
@@ -79,19 +83,59 @@
         ];
 
         descriptorPriorityCases.forEach(function (testCase) {
-            promise_test(
-                assert => once_fonts_are_ready.then(assert => {
-                    verifyFont("descriptorPriorityTest", testCase.weight, testCase.style, testCase.stretch, testCase.expectedFamily);
-                }),
-                "Descriptor mathcing priority: " + testCase.description
+            promise_test(() => {
+                return once_fonts_are_ready
+                    .then(() => verifyFont("descriptorPriorityTest", testCase.weight, testCase.style, testCase.stretch, testCase.expectedFamily));
+                },
+                "Descriptor matching priority: " + testCase.description
             );
         });
 
+        function load(family, name, value) {
+            const el1 = document.createElement("span");
+            const el2 = document.createElement("span");
+            el1.innerText = "A";
+            el2.innerText = "A";
+            let value1, value2;
+            if (value.indexOf("deg") > 0) {
+                value1 = "oblique " + value.split(" ")[1];
+                value2 = "oblique " + (value.split(" ")[2] || value.split(" ")[1]);
+            } else {
+                value1 = value.split(" ")[0];
+                value2 = value.split(" ")[1] || value1;
+            }
+            el1.style[name] = value1;
+            el2.style[name] = value2;
+            document.body.appendChild(el1);
+            document.body.appendChild(el2);
+            const initialWidth1 = el1.offsetWidth;
+            const initialWidth2 = el2.offsetWidth;
+            return new Promise((resolve) => {
+                el1.style.fontFamily = family;
+                el2.style.fontFamily = family;
+                (function check() {
+                    if (el1.offsetWidth !== initialWidth1 && el2.offsetWidth !== initialWidth2) {
+                        el1.remove();
+                        el2.remove();
+                        resolve();
+                    } else {
+                        requestAnimationFrame(check);
+                    }
+                }());
+            });
+        }
         function createFontFaceRules(fontFaceFamily, descriptorName, expectedMatch, unexpectedMatch) {
             dynamicStyles.innerHTML =
                 "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-100-kerned.ttf'); "+ descriptorName + ": " + expectedMatch   + "; }" +
                 "@font-face { font-family: " + fontFaceFamily + "; src: url('./resources/csstest-weights-200-kerned.ttf'); " + descriptorName + ": " + unexpectedMatch + "; }";
+
+            return Promise.all([
+                load(fontFaceFamily, descriptorName, expectedMatch),
+                load(fontFaceFamily, descriptorName, unexpectedMatch)
+            ]);
         }
+
+        let familyId = 0;
 
         function testDescriptor(descriptorName, testCases) {
             testCases.forEach(function (testCase) {
@@ -99,16 +143,20 @@
                     for(let i = 0; i < testCase.testDescriptors.length - 1; i++) {
                         let expectedMatch   = testCase.testDescriptors[i];
                         let unexpectedMatch = testCase.testDescriptors[i + 1];
+                        familyId += 1;
+                        const family = "MatchTestFamily" + familyId;
+
                         promise_test(
-                            assert => once_fonts_are_ready.then(assert => {
-                                createFontFaceRules("MatchTestFamily", descriptorName, expectedMatch, unexpectedMatch);
+                            () => {
+                                return createFontFaceRules(family, descriptorName, expectedMatch, unexpectedMatch)
+                                    .then(() => {
+                                        let testWeight  = (descriptorName == "font-weight")  ? testCase.value : "normal";
+                                        let testStyle   = (descriptorName == "font-style")   ? testCase.value : "normal";
+                                        let testStretch = (descriptorName == "font-stretch") ? testCase.value : "normal";
 
-                                let testWeight  = (descriptorName == "font-weight")  ? testCase.value : "normal";
-                                let testStyle   = (descriptorName == "font-style")   ? testCase.value : "normal";
-                                let testStretch = (descriptorName == "font-stretch") ? testCase.value : "normal";
-
-                                verifyFont("MatchTestFamily", testWeight, testStyle, testStretch, "'W100'");
-                            }),
+                                        verifyFont(family, testWeight, testStyle, testStretch, "'W100'");
+                                    });
+                            },
                             "Matching " + descriptorName + ": '" + testCase.value + "' should prefer '" + expectedMatch + "' over '" + unexpectedMatch + "'");
                     }
             });
