@@ -4986,10 +4986,10 @@ fn static_assert() {
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyShapeSource};
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
-        use gecko_bindings::structs::{StyleFillRule, StyleGeometryBox, StyleShapeSource};
+        use gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource};
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
-        use values::generics::basic_shape::{BasicShape, FillRule, ShapeSource};
+        use values::generics::basic_shape::{BasicShape, ShapeSource};
 
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
 
@@ -5083,11 +5083,8 @@ fn static_assert() {
                             coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
                             coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
                         }
-                        shape.mFillRule = if poly.fill == FillRule::Evenodd {
-                            StyleFillRule::Evenodd
-                        } else {
-                            StyleFillRule::Nonzero
-                        };
+                        // unsafe: cbindgen ensures the representation is the same.
+                        shape.mFillRule = unsafe { transmute(poly.fill) };
                     }
                 }
 

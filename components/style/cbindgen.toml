@@ -23,5 +23,11 @@ derive_helper_methods = true
 
 [export]
 prefix = "Style"
-include = ["StyleDisplay", "StyleAppearance", "StyleDisplayMode", "StylePathCommand"]
+include = [
+  "StyleAppearance",
+  "StyleDisplay",
+  "StyleDisplayMode",
+  "StyleFillRule",
+  "StylePathCommand"
+]
 item_types = ["enums", "structs", "typedefs"]
