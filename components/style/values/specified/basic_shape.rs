@@ -14,7 +14,7 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use values::computed::Percentage;
 use values::generics::basic_shape as generic;
-use values::generics::basic_shape::{FillRule, GeometryBox, ShapeBox, ShapeSource};
+use values::generics::basic_shape::{FillRule, GeometryBox, PolygonCoord, ShapeBox, ShapeSource};
 use values::generics::rect::Rect;
 use values::specified::LengthOrPercentage;
 use values::specified::border::BorderRadius;
@@ -381,7 +381,7 @@ impl Polygon {
             .unwrap_or_default();
 
         let buf = input.parse_comma_separated(|i| {
-            Ok((
+            Ok(PolygonCoord(
                 LengthOrPercentage::parse(context, i)?,
                 LengthOrPercentage::parse(context, i)?,
             ))

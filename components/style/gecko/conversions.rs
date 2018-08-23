@@ -670,7 +670,7 @@ pub mod basic_shape {
     use values::computed::position;
     use values::computed::url::ComputedUrl;
     use values::generics::basic_shape::{BasicShape as GenericBasicShape, InsetRect, Polygon};
-    use values::generics::basic_shape::{Circle, Ellipse, FillRule};
+    use values::generics::basic_shape::{Circle, Ellipse, FillRule, PolygonCoord};
     use values::generics::basic_shape::{GeometryBox, ShapeBox, ShapeSource};
     use values::generics::border::BorderRadius as GenericBorderRadius;
     use values::generics::rect::Rect;
@@ -800,11 +800,14 @@ pub mod basic_shape {
                     for i in 0..(other.mCoordinates.len() / 2) {
                         let x = 2 * i;
                         let y = x + 1;
-                        coords.push((LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[x])
-                                    .expect("polygon() coordinate should be a length, percentage, or calc value"),
-                                LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[y])
-                                    .expect("polygon() coordinate should be a length, percentage, or calc value")
-                            ))
+                        coords.push(PolygonCoord(
+                            LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[x])
+                                .expect("polygon() coordinate should be a length, percentage, \
+                                        or calc value"),
+                            LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[y])
+                                .expect("polygon() coordinate should be a length, percentage, \
+                                        or calc value")
+                        ))
                     }
                     GenericBasicShape::Polygon(Polygon {
                         fill: fill_rule,
