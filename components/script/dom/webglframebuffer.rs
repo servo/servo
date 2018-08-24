@@ -34,8 +34,15 @@ enum WebGLFramebufferAttachment {
 impl WebGLFramebufferAttachment {
     fn needs_initialization(&self) -> bool {
         match *self {
-            WebGLFramebufferAttachment::Renderbuffer(_) => true,
+            WebGLFramebufferAttachment::Renderbuffer(ref r) => !r.is_initialized(),
             WebGLFramebufferAttachment::Texture { .. } => false,
+        }
+    }
+
+    fn mark_initialized(&self) {
+        match *self {
+            WebGLFramebufferAttachment::Renderbuffer(ref r) => r.mark_initialized(),
+            WebGLFramebufferAttachment::Texture { .. } => ()
         }
     }
 }
@@ -239,15 +246,14 @@ impl WebGLFramebuffer {
             ];
             let mut clear_bits = 0;
             for &(attachment, bits) in &attachments {
-                if attachment.borrow().as_ref().map_or(false, |att| att.needs_initialization()) {
-                    clear_bits |= bits;
+                if let Some(ref att) = *attachment.borrow() {
+                    if att.needs_initialization() {
+                        att.mark_initialized();
+                        clear_bits |= bits;
+                    }
                 }
             }
-            if clear_bits != 0 {
-                self.upcast::<WebGLObject>().context().send_command(
-                    WebGLCommand::Clear(clear_bits)
-                );
-            }
+            self.upcast::<WebGLObject>().context().initialize_framebuffer(clear_bits);
             self.is_initialized.set(true);
         }
 
