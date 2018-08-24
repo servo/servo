@@ -46,11 +46,11 @@ interface PannerNode : AudioNode {
   readonly attribute AudioParam orientationZ;
   attribute DistanceModelType distanceModel;
   attribute double refDistance;
-  attribute double maxDistance;
-  attribute double rolloffFactor;
+  [SetterThrows] attribute double maxDistance;
+  [SetterThrows] attribute double rolloffFactor;
   attribute double coneInnerAngle;
   attribute double coneOuterAngle;
-  attribute double coneOuterGain;
+  [SetterThrows] attribute double coneOuterGain;
   void setPosition (float x, float y, float z);
   void setOrientation (float x, float y, float z);
 };

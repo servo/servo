@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioParamBinding::{AudioParamMethods, AutomationRate};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{self, PannerNodeMethods, PannerOptions};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{DistanceModelType, PanningModelType};
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
@@ -232,20 +232,28 @@ impl PannerNodeMethods for PannerNode {
         Finite::wrap(self.max_distance.get())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
-    fn SetMaxDistance(&self, val: Finite<f64>) {
+    fn SetMaxDistance(&self, val: Finite<f64>) -> Fallible<()> {
+        if *val < 0. {
+            return Err(Error::NotSupported)
+        }
         self.max_distance.set(*val);
         let msg = PannerNodeMessage::SetMaxDistance(self.max_distance.get());
         self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        Ok(())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
     fn RolloffFactor(&self) -> Finite<f64> {
         Finite::wrap(self.rolloff_factor.get())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
-    fn SetRolloffFactor(&self, val: Finite<f64>) {
+    fn SetRolloffFactor(&self, val: Finite<f64>) -> Fallible<()> {
+        if *val < 0. {
+            return Err(Error::Range("value should be positive".into()))
+        }
         self.rolloff_factor.set(*val);
         let msg = PannerNodeMessage::SetRolloff(self.rolloff_factor.get());
         self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        Ok(())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle
     fn ConeInnerAngle(&self) -> Finite<f64> {
@@ -272,10 +280,14 @@ impl PannerNodeMethods for PannerNode {
         Finite::wrap(self.cone_outer_gain.get())
     }
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
-    fn SetConeOuterGain(&self, val: Finite<f64>) {
+    fn SetConeOuterGain(&self, val: Finite<f64>) -> Fallible<()> {
+        if *val < 0. || *val > 360. {
+            return Err(Error::InvalidState)
+        }
         self.cone_outer_gain.set(*val);
         let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());
         self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+        Ok(())
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-setposition
