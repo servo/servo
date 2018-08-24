@@ -448,9 +448,9 @@ impl Flow for TableFlow {
                         .sum::<f32>();
 
                     for &index in &constrained_column_inline_sizes_indices {
+                        let inline_size = self.column_computed_inline_sizes[index].size.0;
                         self.column_computed_inline_sizes[index].size +=
-                            remaining_inline_size.scale_by(
-                                self.column_computed_inline_sizes[index].size.0 as f32 / total_minimum_size);
+                            remaining_inline_size.scale_by(inline_size as f32 / total_minimum_size);
                     }
                 }
             }
