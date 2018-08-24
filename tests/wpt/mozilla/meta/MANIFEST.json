@@ -78066,11 +78066,11 @@
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/struct/nestedstructcomb_various_frag.frag": [
-   "dcc9d901d33b5e726688a48eb7253de9abafa626",
+   "2cc51cfb64432e3fdffbc8929432e3a3fce83dcb",
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/struct/nestedstructcomb_various_vert.vert": [
-   "459d4d81d1717887b2a09ee46f94328ba350a059",
+   "e27de221f52b98da1bd0589e9ef587237d0afb37",
    "support"
   ],
   "webgl/conformance-1.0.3/conformance/ogles/GL/struct/struct_001_to_008.html": [
@@ -82618,7 +82618,7 @@
    "support"
   ],
   "webgl/conformance-2.0.0/conformance/more/unit.js": [
-   "a0614128f0ab91acc0aa2aa3ef6232ac5206dc2a",
+   "51433f33e84ccbd671f5fec20d961b3ac0701b3f",
    "support"
   ],
   "webgl/conformance-2.0.0/conformance/more/util.js": [
@@ -87626,11 +87626,11 @@
    "support"
   ],
   "webgl/conformance-2.0.0/conformance/ogles/GL/struct/nestedstructcomb_various_frag.frag": [
-   "feb6532ed406514db669bbc30d144c84d70483f3",
+   "151888a883644f8205d8bb0fe6307c903c67f3c1",
    "support"
   ],
   "webgl/conformance-2.0.0/conformance/ogles/GL/struct/nestedstructcomb_various_vert.vert": [
-   "a84aeb9dfa707663f0581344cdcb05fd34fcd5d1",
+   "ddc2610fdd7794df32393ffccc3d1d4de3379ae3",
    "support"
   ],
   "webgl/conformance-2.0.0/conformance/ogles/GL/struct/struct_001_to_008.html": [
