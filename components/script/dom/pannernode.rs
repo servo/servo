@@ -7,7 +7,7 @@ use dom::audioparam::AudioParam;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
 use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
-use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
+use dom::bindings::codegen::Bindings::AudioParamBinding::{AudioParamMethods, AutomationRate};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{self, PannerNodeMethods, PannerOptions};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{DistanceModelType, PanningModelType};
 use dom::bindings::error::Fallible;
@@ -17,9 +17,9 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::window::Window;
 use dom_struct::dom_struct;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::panner_node::{DistanceModel, PannerNodeOptions, PanningModel};
 use servo_media::audio::panner_node::PannerNodeMessage;
-use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::param::{ParamDir, ParamType};
 use std::cell::Cell;
 use std::f32;
@@ -189,6 +189,7 @@ impl PannerNodeMethods for PannerNode {
     fn OrientationZ(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.orientation_z)
     }
+
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel
     fn DistanceModel(&self) -> DistanceModelType {
         match self.distance_model.get() {
@@ -275,6 +276,20 @@ impl PannerNodeMethods for PannerNode {
         self.cone_outer_gain.set(*val);
         let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());
         self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-setposition
+    fn SetPosition(&self, x: Finite<f32>, y: Finite<f32>, z: Finite<f32>) {
+        self.position_x.SetValue(x);
+        self.position_y.SetValue(y);
+        self.position_z.SetValue(z);
+    }
+
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-setorientation
+    fn SetOrientation(&self, x: Finite<f32>, y: Finite<f32>, z: Finite<f32>) {
+        self.orientation_x.SetValue(x);
+        self.orientation_y.SetValue(y);
+        self.orientation_z.SetValue(z);
     }
 }
 
