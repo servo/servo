@@ -12,8 +12,9 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{Dom, DomRoot};
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
+use dom::webglframebuffer::WebGLFramebuffer;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
@@ -48,6 +49,8 @@ pub struct WebGLTexture {
     mag_filter: Cell<u32>,
     /// True if this texture is used for the DOMToTexture feature.
     attached_to_dom: Cell<bool>,
+    // Framebuffer that this texture is attached to.
+    attached_framebuffers: DomRefCell<Vec<Dom<WebGLFramebuffer>>>,
 }
 
 impl WebGLTexture {
@@ -63,6 +66,7 @@ impl WebGLTexture {
             mag_filter: Cell::new(constants::LINEAR),
             image_info_array: DomRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             attached_to_dom: Cell::new(false),
+            attached_framebuffers: Default::default(),
         }
     }
 
@@ -186,6 +190,29 @@ impl WebGLTexture {
                     DOMToTextureCommand::Detach(self.id),
                 );
             }
+
+            /*
+            If a texture object is deleted while its image is attached to the currently
+            bound framebuffer, then it is as if FramebufferTexture2D had been called, with
+            a texture of 0, for each attachment point to which this image was attached
+            in the currently bound framebuffer.
+            - GLES 2.0, 4.4.3, "Attaching Texture Images to a Framebuffer"
+             */
+            let currently_bound_framebuffer =
+                self.upcast::<WebGLObject>()
+                    .context()
+                    .bound_framebuffer()
+                    .map_or(0, |fb| fb.id().get());
+            let current_framebuffer =
+                self.attached_framebuffers
+                    .borrow()
+                    .iter()
+                    .position(|fb| fb.id().get() == currently_bound_framebuffer);
+            if let Some(fb_index) = current_framebuffer {
+                self.attached_framebuffers.borrow()[fb_index].detach_texture(self);
+                self.attached_framebuffers.borrow_mut().remove(fb_index);
+            }
+
             context.send_command(WebGLCommand::DeleteTexture(self.id));
         }
     }
@@ -397,6 +424,20 @@ impl WebGLTexture {
 
     pub fn set_attached_to_dom(&self) {
         self.attached_to_dom.set(true);
+    }
+
+    pub fn attach(&self, framebuffer: &WebGLFramebuffer) {
+        self.attached_framebuffers.borrow_mut().push(Dom::from_ref(framebuffer));
+    }
+
+    pub fn unattach(&self, fb: &WebGLFramebuffer) {
+        let mut attached_framebuffers = self.attached_framebuffers.borrow_mut();
+        let idx = attached_framebuffers.iter().position(|attached| {
+            attached.id() == fb.id()
+        });
+        if let Some(idx) = idx {
+            attached_framebuffers.remove(idx);
+        }
     }
 }
 

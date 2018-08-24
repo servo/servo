@@ -45,6 +45,15 @@ impl WebGLFramebufferAttachment {
             WebGLFramebufferAttachment::Texture { .. } => ()
         }
     }
+
+    fn root(&self) -> WebGLFramebufferAttachmentRoot {
+        match *self {
+            WebGLFramebufferAttachment::Renderbuffer(ref rb) =>
+                WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb)),
+            WebGLFramebufferAttachment::Texture { ref texture, .. } =>
+                WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(&texture)),
+        }
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -261,24 +270,16 @@ impl WebGLFramebuffer {
     }
 
     pub fn renderbuffer(&self, attachment: u32, rb: Option<&WebGLRenderbuffer>) -> WebGLResult<()> {
-        let binding = match attachment {
-            constants::COLOR_ATTACHMENT0 => &self.color,
-            constants::DEPTH_ATTACHMENT => &self.depth,
-            constants::STENCIL_ATTACHMENT => &self.stencil,
-            constants::DEPTH_STENCIL_ATTACHMENT => &self.depthstencil,
-            _ => return Err(WebGLError::InvalidEnum),
-        };
+        let binding = self.attachment_binding(attachment).ok_or(WebGLError::InvalidEnum)?;
 
         let rb_id = match rb {
             Some(rb) => {
+                rb.attach(self);
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
                 Some(rb.id())
             }
 
-            _ => {
-                *binding.borrow_mut() = None;
-                None
-            }
+            _ => None
         };
 
         self.upcast::<WebGLObject>().context().send_command(
@@ -290,39 +291,100 @@ impl WebGLFramebuffer {
             ),
         );
 
+        if rb.is_none() {
+            self.detach_binding(binding, attachment);
+        }
+
         self.update_status();
         self.is_initialized.set(false);
         Ok(())
     }
 
-    pub fn attachment(&self, attachment: u32) -> Option<WebGLFramebufferAttachmentRoot> {
-        let binding = match attachment {
-            constants::COLOR_ATTACHMENT0 => &self.color,
-            constants::DEPTH_ATTACHMENT => &self.depth,
-            constants::STENCIL_ATTACHMENT => &self.stencil,
-            constants::DEPTH_STENCIL_ATTACHMENT => &self.depthstencil,
-            _ => return None,
+    fn detach_binding(
+        &self,
+        binding: &DomRefCell<Option<WebGLFramebufferAttachment>>,
+        attachment: u32,
+    ) {
+        let attachment_obj = binding.borrow().as_ref().map(WebGLFramebufferAttachment::root);
+        match attachment_obj {
+            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(ref rb)) =>
+                rb.unattach(self),
+            Some(WebGLFramebufferAttachmentRoot::Texture(ref texture)) =>
+                texture.unattach(self),
+            None => (),
+        }
+        *binding.borrow_mut() = None;
+
+        if INTERESTING_ATTACHMENT_POINTS.contains(&attachment) {
+            self.reattach_depth_stencil();
+        }
+    }
+
+    fn attachment_binding(
+        &self,
+        attachment: u32
+    ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment>>>
+    {
+        match attachment {
+            constants::COLOR_ATTACHMENT0 => Some(&self.color),
+            constants::DEPTH_ATTACHMENT => Some(&self.depth),
+            constants::STENCIL_ATTACHMENT => Some(&self.stencil),
+            constants::DEPTH_STENCIL_ATTACHMENT => Some(&self.depthstencil),
+            _ => None
+        }
+    }
+
+    fn reattach_depth_stencil(&self) {
+        let reattach = |attachment: &WebGLFramebufferAttachment, attachment_point| {
+            let context = self.upcast::<WebGLObject>().context();
+            match *attachment {
+                WebGLFramebufferAttachment::Renderbuffer(ref rb) => {
+                    context.send_command(
+                        WebGLCommand::FramebufferRenderbuffer(
+                            constants::FRAMEBUFFER,
+                            attachment_point,
+                            constants::RENDERBUFFER,
+                            Some(rb.id())
+                        )
+                    );
+                }
+                WebGLFramebufferAttachment::Texture { ref texture, level } => {
+                    context.send_command(
+                        WebGLCommand::FramebufferTexture2D(
+                            constants::FRAMEBUFFER,
+                            attachment_point,
+                            texture.target().expect("missing texture target"),
+                            Some(texture.id()),
+                            level
+                        )
+                    );
+                }
+            }
         };
 
-        binding.borrow().as_ref().map(|bin| {
-            match bin {
-                &WebGLFramebufferAttachment::Renderbuffer(ref rb) =>
-                    WebGLFramebufferAttachmentRoot::Renderbuffer(DomRoot::from_ref(&rb)),
-                &WebGLFramebufferAttachment::Texture { ref texture, .. } =>
-                    WebGLFramebufferAttachmentRoot::Texture(DomRoot::from_ref(&texture)),
-            }
-        })
+        // Since the DEPTH_STENCIL attachment causes both the DEPTH and STENCIL
+        // attachments to be overwritten, we need to ensure that we reattach
+        // the DEPTH and STENCIL attachments when any of those attachments
+        // is cleared.
+        if let Some(ref depth) = *self.depth.borrow() {
+            reattach(depth, constants::DEPTH_ATTACHMENT);
+        }
+        if let Some(ref stencil) = *self.stencil.borrow() {
+            reattach(stencil, constants::STENCIL_ATTACHMENT);
+        }
+        if let Some(ref depth_stencil) = *self.depthstencil.borrow() {
+            reattach(depth_stencil, constants::DEPTH_STENCIL_ATTACHMENT);
+        }
+    }
+
+    pub fn attachment(&self, attachment: u32) -> Option<WebGLFramebufferAttachmentRoot> {
+        let binding = self.attachment_binding(attachment)?;
+        binding.borrow().as_ref().map(WebGLFramebufferAttachment::root)
     }
 
     pub fn texture2d(&self, attachment: u32, textarget: u32, texture: Option<&WebGLTexture>,
                      level: i32) -> WebGLResult<()> {
-        let binding = match attachment {
-            constants::COLOR_ATTACHMENT0 => &self.color,
-            constants::DEPTH_ATTACHMENT => &self.depth,
-            constants::STENCIL_ATTACHMENT => &self.stencil,
-            constants::DEPTH_STENCIL_ATTACHMENT => &self.depthstencil,
-            _ => return Err(WebGLError::InvalidEnum),
-        };
+        let binding = self.attachment_binding(attachment).ok_or(WebGLError::InvalidEnum)?;
 
         let tex_id = match texture {
             // Note, from the GLES 2.0.25 spec, page 113:
@@ -367,6 +429,7 @@ impl WebGLFramebuffer {
                     _ => return Err(WebGLError::InvalidOperation),
                 }
 
+                texture.attach(self);
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
                     texture: Dom::from_ref(texture),
                     level: level }
@@ -376,7 +439,6 @@ impl WebGLFramebuffer {
             }
 
             _ => {
-                *binding.borrow_mut() = None;
                 None
             }
         };
@@ -391,20 +453,26 @@ impl WebGLFramebuffer {
             ),
         );
 
+        if texture.is_none() {
+            self.detach_binding(binding, attachment);
+        }
+
         self.update_status();
         self.is_initialized.set(false);
         Ok(())
     }
 
     fn with_matching_renderbuffers<F>(&self, rb: &WebGLRenderbuffer, mut closure: F)
-        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>)
+        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32)
     {
-        let attachments = [&self.color,
-                           &self.depth,
-                           &self.stencil,
-                           &self.depthstencil];
+        let attachments = [
+            (&self.color, constants::COLOR_ATTACHMENT0),
+            (&self.depth, constants::DEPTH_ATTACHMENT),
+            (&self.stencil, constants::STENCIL_ATTACHMENT),
+            (&self.depthstencil, constants::DEPTH_STENCIL_ATTACHMENT)
+        ];
 
-        for attachment in &attachments {
+        for (attachment, name) in &attachments {
             let matched = {
                 match *attachment.borrow() {
                     Some(WebGLFramebufferAttachment::Renderbuffer(ref att_rb))
@@ -414,20 +482,22 @@ impl WebGLFramebuffer {
             };
 
             if matched {
-                closure(attachment);
+                closure(attachment, *name);
             }
         }
     }
 
     fn with_matching_textures<F>(&self, texture: &WebGLTexture, mut closure: F)
-        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>)
+        where F: FnMut(&DomRefCell<Option<WebGLFramebufferAttachment>>, u32)
     {
-        let attachments = [&self.color,
-                           &self.depth,
-                           &self.stencil,
-                           &self.depthstencil];
+        let attachments = [
+            (&self.color, constants::COLOR_ATTACHMENT0),
+            (&self.depth, constants::DEPTH_ATTACHMENT),
+            (&self.stencil, constants::STENCIL_ATTACHMENT),
+            (&self.depthstencil, constants::DEPTH_STENCIL_ATTACHMENT)
+        ];
 
-        for attachment in &attachments {
+        for (attachment, name) in &attachments {
             let matched = {
                 match *attachment.borrow() {
                     Some(WebGLFramebufferAttachment::Texture { texture: ref att_texture, .. })
@@ -437,33 +507,45 @@ impl WebGLFramebuffer {
             };
 
             if matched {
-                closure(attachment);
+                closure(attachment, *name);
             }
         }
     }
 
     pub fn detach_renderbuffer(&self, rb: &WebGLRenderbuffer) {
-        self.with_matching_renderbuffers(rb, |att| {
+        let mut depth_or_stencil_updated = false;
+        self.with_matching_renderbuffers(rb, |att, name| {
+            depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
             *att.borrow_mut() = None;
             self.update_status();
         });
+
+        if depth_or_stencil_updated {
+            self.reattach_depth_stencil();
+        }
     }
 
     pub fn detach_texture(&self, texture: &WebGLTexture) {
-        self.with_matching_textures(texture, |att| {
+        let mut depth_or_stencil_updated = false;
+        self.with_matching_textures(texture, |att, name| {
+            depth_or_stencil_updated |= INTERESTING_ATTACHMENT_POINTS.contains(&name);
             *att.borrow_mut() = None;
             self.update_status();
         });
+
+        if depth_or_stencil_updated {
+            self.reattach_depth_stencil();
+        }
     }
 
     pub fn invalidate_renderbuffer(&self, rb: &WebGLRenderbuffer) {
-        self.with_matching_renderbuffers(rb, |_att| {
+        self.with_matching_renderbuffers(rb, |_att, _| {
             self.update_status();
         });
     }
 
     pub fn invalidate_texture(&self, texture: &WebGLTexture) {
-        self.with_matching_textures(texture, |_att| {
+        self.with_matching_textures(texture, |_att, _name| {
             self.update_status();
         });
     }
@@ -478,3 +560,9 @@ impl Drop for WebGLFramebuffer {
         self.delete();
     }
 }
+
+static INTERESTING_ATTACHMENT_POINTS: &[u32] = &[
+    constants::DEPTH_ATTACHMENT,
+    constants::STENCIL_ATTACHMENT,
+    constants::DEPTH_STENCIL_ATTACHMENT,
+];

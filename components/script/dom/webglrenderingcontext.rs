@@ -1333,6 +1333,10 @@ impl WebGLRenderingContext {
             stencil: clear_bits & constants::STENCIL_BUFFER_BIT != 0,
         });
     }
+
+    pub fn bound_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
+        self.bound_framebuffer.get()
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1854,6 +1858,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 renderbuffer.bind(target);
             }
             _ => {
+                if renderbuffer.is_some() {
+                    self.webgl_error(InvalidOperation);
+                }
+
                 self.bound_renderbuffer.set(None);
                 // Unbind the currently bound renderbuffer
                 self.send_command(WebGLCommand::BindRenderbuffer(target, None));
@@ -2260,20 +2268,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             handle_potential_webgl_error!(self, self.validate_ownership(renderbuffer), return);
             handle_object_deletion!(self, self.bound_renderbuffer, renderbuffer,
                                     Some(WebGLCommand::BindRenderbuffer(constants::RENDERBUFFER, None)));
-            // From the GLES 2.0.25 spec, page 113:
-            //
-            //     "If a renderbuffer object is deleted while its
-            //     image is attached to the currently bound
-            //     framebuffer, then it is as if
-            //     FramebufferRenderbuffer had been called, with a
-            //     renderbuffer of 0, for each attachment point to
-            //     which this image was attached in the currently
-            //     bound framebuffer."
-            //
-            if let Some(fb) = self.bound_framebuffer.get() {
-                fb.detach_renderbuffer(renderbuffer);
-            }
-
             renderbuffer.delete()
         }
     }
@@ -2307,18 +2301,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 self.send_command(WebGLCommand::ActiveTexture(
                     self.textures.active_unit_enum(),
                 ));
-            }
-
-            // From the GLES 2.0.25 spec, page 113:
-            //
-            //     "If a texture object is deleted while its image is
-            //      attached to the currently bound framebuffer, then
-            //      it is as if FramebufferTexture2D had been called,
-            //      with a texture of 0, for each attachment point to
-            //      which this image was attached in the currently
-            //      bound framebuffer."
-            if let Some(fb) = self.bound_framebuffer.get() {
-                fb.detach_texture(texture);
             }
 
             texture.delete()
