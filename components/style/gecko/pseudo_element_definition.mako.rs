@@ -242,9 +242,7 @@ impl PseudoElement {
                 return Some(PseudoElement::Placeholder);
             }
             _ => {
-                // FIXME: -moz-tree check should probably be
-                // ascii-case-insensitive.
-                if name.starts_with("-moz-tree-") {
+                if starts_with_ignore_ascii_case(name, "-moz-tree-") {
                     return PseudoElement::tree_pseudo_element(name, Box::new([]))
                 }
             }

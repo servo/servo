@@ -17,6 +17,7 @@ use selectors::parser::{SelectorParseErrorKind, Visit};
 use selectors::parser::{self as selector_parser, Selector};
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
+use str::starts_with_ignore_ascii_case;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 use thin_slice::ThinBoxedSlice;
@@ -468,8 +469,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         name: CowRcStr<'i>,
         parser: &mut Parser<'i, 't>,
     ) -> Result<PseudoElement, ParseError<'i>> {
-        // FIXME: -moz-tree check should probably be ascii-case-insensitive.
-        if name.starts_with("-moz-tree-") {
+        if starts_with_ignore_ascii_case(&name, "-moz-tree-") {
             // Tree pseudo-elements can have zero or more arguments, separated
             // by either comma or space.
             let mut args = Vec::new();
