@@ -1,2 +1,3 @@
 /,./
 /_mozilla/,../mozilla/tests
+/_webgl/,../webgl/tests
