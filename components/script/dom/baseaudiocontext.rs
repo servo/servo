@@ -331,7 +331,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner
-    fn CreatePanner(&self) -> DomRoot<PannerNode> {
+    fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
         PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
     }
 

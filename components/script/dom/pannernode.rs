@@ -51,10 +51,18 @@ impl PannerNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &PannerOptions,
-    ) -> PannerNode {
+    ) -> Fallible<PannerNode> {
+        let count = options.parent.channelCount.unwrap_or(2);
+        let mode = options.parent.channelCountMode.unwrap_or(ChannelCountMode::Clamped_max);
+        if mode == ChannelCountMode::Max {
+            return Err(Error::NotSupported)
+        }
+        if count > 2 {
+            return Err(Error::NotSupported)
+        }
         let mut node_options = AudioNodeOptions::empty();
-        node_options.channelCount = Some(2);
-        node_options.channelCountMode = Some(ChannelCountMode::Clamped_max);
+        node_options.channelCount = Some(count);
+        node_options.channelCountMode = Some(mode);
         node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
         let options = options.into();
         let node = AudioNode::new_inherited(
@@ -125,7 +133,7 @@ impl PannerNode {
             f32::MIN, // min value
             f32::MAX, // max value
         );
-        PannerNode {
+        Ok(PannerNode {
             node,
             position_x: Dom::from_ref(&position_x),
             position_y: Dom::from_ref(&position_y),
@@ -141,7 +149,7 @@ impl PannerNode {
             cone_inner_angle: Cell::new(options.cone_inner_angle),
             cone_outer_angle: Cell::new(options.cone_outer_angle),
             cone_outer_gain: Cell::new(options.cone_outer_gain),
-        }
+        })
     }
 
     #[allow(unrooted_must_root)]
@@ -149,9 +157,9 @@ impl PannerNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &PannerOptions,
-    ) -> DomRoot<PannerNode> {
-        let node = PannerNode::new_inherited(window, context, options);
-        reflect_dom_object(Box::new(node), window, PannerNodeBinding::Wrap)
+    ) -> Fallible<DomRoot<PannerNode>> {
+        let node = PannerNode::new_inherited(window, context, options)?;
+        Ok(reflect_dom_object(Box::new(node), window, PannerNodeBinding::Wrap))
     }
 
     pub fn Constructor(
@@ -159,7 +167,7 @@ impl PannerNode {
         context: &BaseAudioContext,
         options: &PannerOptions,
     ) -> Fallible<DomRoot<PannerNode>> {
-        Ok(PannerNode::new(window, context, options))
+        PannerNode::new(window, context, options)
     }
 }
 
