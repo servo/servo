@@ -57,7 +57,8 @@ impl<T: GetLayoutData> LayoutNodeLayoutData for T {
     }
 
     fn flow_debug_id(self) -> usize {
-        self.borrow_layout_data().map_or(0, |d| d.flow_construction_result.debug_id())
+        self.borrow_layout_data()
+            .map_or(0, |d| d.flow_construction_result.debug_id())
     }
 }
 
@@ -114,12 +115,10 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
         if self.get_pseudo_element_type().is_replaced_content() {
             let style = self.as_element().unwrap().resolved_style();
 
-            return TextContent::GeneratedContent(
-                match style.as_ref().get_counters().content {
-                    Content::Items(ref value) => value.to_vec(),
-                    _ => vec![],
-                }
-            );
+            return TextContent::GeneratedContent(match style.as_ref().get_counters().content {
+                Content::Items(ref value) => value.to_vec(),
+                _ => vec![],
+            });
         }
 
         TextContent::Text(self.node_text_content().into_boxed_str())
@@ -141,7 +140,12 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
         let damage = {
             let data = node.get_raw_data().unwrap();
 
-            if !data.layout_data.borrow().flags.contains(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED) {
+            if !data
+                .layout_data
+                .borrow()
+                .flags
+                .contains(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED)
+            {
                 // We're reflowing a node that was styled for the first time and
                 // has never been visited by layout. Return rebuild_and_reflow,
                 // because that's what the code expects.
@@ -153,7 +157,6 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
 
         damage
     }
-
 }
 
 pub enum TextContent {

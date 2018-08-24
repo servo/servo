@@ -14,7 +14,8 @@ extern crate fnv;
 extern crate fxhash;
 extern crate gfx;
 extern crate gfx_traits;
-#[macro_use] extern crate html5ever;
+#[macro_use]
+extern crate html5ever;
 extern crate ipc_channel;
 extern crate libc;
 #[macro_use]
@@ -30,7 +31,8 @@ extern crate range;
 extern crate rayon;
 extern crate script_layout_interface;
 extern crate script_traits;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate serde_json;
 extern crate servo_arc;
 extern crate servo_atoms;

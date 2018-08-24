@@ -33,9 +33,7 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
 impl<'a> RecalcStyleAndConstructFlows<'a> {
     /// Creates a traversal context, taking ownership of the shared layout context.
     pub fn new(context: LayoutContext<'a>) -> Self {
-        RecalcStyleAndConstructFlows {
-            context: context,
-        }
+        RecalcStyleAndConstructFlows { context: context }
     }
 
     /// Consumes this traversal context, returning ownership of the shared layout
@@ -55,11 +53,11 @@ where
     fn process_preorder<F>(
         &self,
         traversal_data: &PerLevelTraversalData,
-        context: &mut StyleContext<E>, node: E::ConcreteNode,
+        context: &mut StyleContext<E>,
+        node: E::ConcreteNode,
         note_child: F,
-    )
-    where
-        F: FnMut(E::ConcreteNode)
+    ) where
+        F: FnMut(E::ConcreteNode),
     {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
@@ -76,7 +74,7 @@ where
         construct_flows_at(&self.context, node);
     }
 
-    fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData)  -> bool {
+    fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
         // Text nodes never need styling. However, there are two cases they may need
         // flow construction:
         // (1) They child doesn't yet have layout data (preorder traversal initializes it).
@@ -192,7 +190,8 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 #[inline]
 #[allow(unsafe_code)]
 fn construct_flows_at<N>(context: &LayoutContext, node: N)
-    where N: LayoutNode,
+where
+    N: LayoutNode,
 {
     debug!("construct_flows_at: {:?}", node);
 
@@ -202,22 +201,32 @@ fn construct_flows_at<N>(context: &LayoutContext, node: N)
 
         // Always reconstruct if incremental layout is turned off.
         let nonincremental_layout = opts::get().nonincremental_layout;
-        if nonincremental_layout || tnode.restyle_damage() != RestyleDamage::empty() ||
-           node.as_element().map_or(false, |el| el.has_dirty_descendants()) {
+        if nonincremental_layout || tnode.restyle_damage() != RestyleDamage::empty() || node
+            .as_element()
+            .map_or(false, |el| el.has_dirty_descendants())
+        {
             let mut flow_constructor = FlowConstructor::new(context);
             if nonincremental_layout || !flow_constructor.repair_if_possible(&tnode) {
                 flow_constructor.process(&tnode);
-                debug!("Constructed flow for {:?}: {:x}",
-                       tnode,
-                       tnode.flow_debug_id());
+                debug!(
+                    "Constructed flow for {:?}: {:x}",
+                    tnode,
+                    tnode.flow_debug_id()
+                );
             }
         }
 
-        tnode.mutate_layout_data().unwrap().flags.insert(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
+        tnode
+            .mutate_layout_data()
+            .unwrap()
+            .flags
+            .insert(::data::LayoutDataFlags::HAS_BEEN_TRAVERSED);
     }
 
     if let Some(el) = node.as_element() {
-        unsafe { el.unset_dirty_descendants(); }
+        unsafe {
+            el.unset_dirty_descendants();
+        }
     }
 }
 
@@ -231,12 +240,16 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
-        flow.mut_base().restyle_damage.remove(ServoRestyleDamage::BUBBLE_ISIZES);
+        flow.mut_base()
+            .restyle_damage
+            .remove(ServoRestyleDamage::BUBBLE_ISIZES);
     }
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow.base().restyle_damage.contains(ServoRestyleDamage::BUBBLE_ISIZES)
+        flow.base()
+            .restyle_damage
+            .contains(ServoRestyleDamage::BUBBLE_ISIZES)
     }
 }
 
@@ -254,7 +267,9 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow.base().restyle_damage.intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW)
+        flow.base()
+            .restyle_damage
+            .intersects(ServoRestyleDamage::REFLOW_OUT_OF_FLOW | ServoRestyleDamage::REFLOW)
     }
 }
 
@@ -275,7 +290,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
         // NB: We must return without resetting the restyle bits for these, as we haven't actually
         // reflowed anything!
         if flow.floats_might_flow_through() {
-            return
+            return;
         }
 
         flow.assign_block_size(self.layout_context);
@@ -298,13 +313,17 @@ pub struct ComputeStackingRelativePositions<'a> {
 impl<'a> PreorderFlowTraversal for ComputeStackingRelativePositions<'a> {
     #[inline]
     fn should_process_subtree(&self, flow: &mut Flow) -> bool {
-        flow.base().restyle_damage.contains(ServoRestyleDamage::REPOSITION)
+        flow.base()
+            .restyle_damage
+            .contains(ServoRestyleDamage::REPOSITION)
     }
 
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_stacking_relative_position(self.layout_context);
-        flow.mut_base().restyle_damage.remove(ServoRestyleDamage::REPOSITION)
+        flow.mut_base()
+            .restyle_damage
+            .remove(ServoRestyleDamage::REPOSITION)
     }
 }
 
@@ -322,7 +341,9 @@ impl<'a> BuildDisplayList<'a> {
         self.state.current_clipping_and_scrolling = flow.clipping_and_scrolling();
 
         flow.build_display_list(&mut self.state);
-        flow.mut_base().restyle_damage.remove(ServoRestyleDamage::REPAINT);
+        flow.mut_base()
+            .restyle_damage
+            .remove(ServoRestyleDamage::REPAINT);
 
         for kid in flow.mut_base().child_iter_mut() {
             self.traverse(kid);

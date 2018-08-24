@@ -18,7 +18,10 @@ struct PersistentListEntry<T> {
 
 type PersistentListLink<T> = Option<Arc<PersistentListEntry<T>>>;
 
-impl<T> PersistentList<T> where T: Send + Sync {
+impl<T> PersistentList<T>
+where
+    T: Send + Sync,
+{
     #[inline]
     pub fn new() -> PersistentList<T> {
         PersistentList {
@@ -58,7 +61,10 @@ impl<T> PersistentList<T> where T: Send + Sync {
     }
 }
 
-impl<T> Clone for PersistentList<T> where T: Send + Sync {
+impl<T> Clone for PersistentList<T>
+where
+    T: Send + Sync,
+{
     fn clone(&self) -> PersistentList<T> {
         // This establishes the persistent nature of this list: we can clone a list by just cloning
         // its head.
@@ -69,11 +75,17 @@ impl<T> Clone for PersistentList<T> where T: Send + Sync {
     }
 }
 
-pub struct PersistentListIterator<'a, T> where T: 'a + Send + Sync {
+pub struct PersistentListIterator<'a, T>
+where
+    T: 'a + Send + Sync,
+{
     entry: Option<&'a PersistentListEntry<T>>,
 }
 
-impl<'a, T> Iterator for PersistentListIterator<'a, T> where T: Send + Sync + 'static {
+impl<'a, T> Iterator for PersistentListIterator<'a, T>
+where
+    T: Send + Sync + 'static,
+{
     type Item = &'a T;
 
     #[inline]
