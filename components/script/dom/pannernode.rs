@@ -11,13 +11,17 @@ use dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{self, PannerNodeMethods, PannerOptions};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{DistanceModelType, PanningModelType};
 use dom::bindings::error::Fallible;
+use dom::bindings::inheritance::Castable;
+use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::root::{Dom, DomRoot};
 use dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::panner_node::{DistanceModel, PannerNodeOptions, PanningModel};
-use servo_media::audio::node::AudioNodeInit;
+use servo_media::audio::panner_node::PannerNodeMessage;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeMessage};
 use servo_media::audio::param::{ParamDir, ParamType};
+use std::cell::Cell;
 use std::f32;
 
 #[dom_struct]
@@ -29,6 +33,16 @@ pub struct PannerNode {
     orientation_x: Dom<AudioParam>,
     orientation_y: Dom<AudioParam>,
     orientation_z: Dom<AudioParam>,
+    #[ignore_malloc_size_of = "servo_media"]
+    panning_model: Cell<PanningModel>,
+    #[ignore_malloc_size_of = "servo_media"]
+    distance_model: Cell<DistanceModel>,
+    ref_distance: Cell<f64>,
+    max_distance: Cell<f64>,
+    rolloff_factor: Cell<f64>,
+    cone_inner_angle: Cell<f64>,
+    cone_outer_angle: Cell<f64>,
+    cone_outer_gain: Cell<f64>,
 }
 
 impl PannerNode {
@@ -119,6 +133,14 @@ impl PannerNode {
             orientation_x: Dom::from_ref(&orientation_x),
             orientation_y: Dom::from_ref(&orientation_y),
             orientation_z: Dom::from_ref(&orientation_z),
+            panning_model: Cell::new(options.panning_model),
+            distance_model: Cell::new(options.distance_model),
+            ref_distance: Cell::new(options.ref_distance),
+            max_distance: Cell::new(options.max_distance),
+            rolloff_factor: Cell::new(options.rolloff_factor),
+            cone_inner_angle: Cell::new(options.cone_inner_angle),
+            cone_outer_angle: Cell::new(options.cone_outer_angle),
+            cone_outer_gain: Cell::new(options.cone_outer_gain),
         }
     }
 
@@ -166,6 +188,93 @@ impl PannerNodeMethods for PannerNode {
     // https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationz
     fn OrientationZ(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.orientation_z)
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel
+    fn DistanceModel(&self) -> DistanceModelType {
+        match self.distance_model.get() {
+            DistanceModel::Linear => DistanceModelType::Linear,
+            DistanceModel::Inverse => DistanceModelType::Inverse,
+            DistanceModel::Exponential => DistanceModelType::Exponential,
+        }
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-distancemodel
+    fn SetDistanceModel(&self, model: DistanceModelType) {
+        self.distance_model.set(model.into());
+        let msg = PannerNodeMessage::SetDistanceModel(self.distance_model.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel
+    fn PanningModel(&self) -> PanningModelType {
+        match self.panning_model.get() {
+            PanningModel::EqualPower => PanningModelType::Equalpower,
+            PanningModel::HRTF => PanningModelType::HRTF,
+        }
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-panningmodel
+    fn SetPanningModel(&self, model: PanningModelType) {
+        self.panning_model.set(model.into());
+        let msg = PannerNodeMessage::SetPanningModel(self.panning_model.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
+    fn RefDistance(&self) -> Finite<f64> {
+        Finite::wrap(self.ref_distance.get())
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-refdistance
+    fn SetRefDistance(&self, val: Finite<f64>) {
+        self.ref_distance.set(*val);
+        let msg = PannerNodeMessage::SetRefDistance(self.ref_distance.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
+    fn MaxDistance(&self) -> Finite<f64> {
+        Finite::wrap(self.max_distance.get())
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-maxdistance
+    fn SetMaxDistance(&self, val: Finite<f64>) {
+        self.max_distance.set(*val);
+        let msg = PannerNodeMessage::SetMaxDistance(self.max_distance.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
+    fn RolloffFactor(&self) -> Finite<f64> {
+        Finite::wrap(self.rolloff_factor.get())
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-rollofffactor
+    fn SetRolloffFactor(&self, val: Finite<f64>) {
+        self.rolloff_factor.set(*val);
+        let msg = PannerNodeMessage::SetRolloff(self.rolloff_factor.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle
+    fn ConeInnerAngle(&self) -> Finite<f64> {
+        Finite::wrap(self.cone_inner_angle.get())
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneinnerangle
+    fn SetConeInnerAngle(&self, val: Finite<f64>) {
+        self.cone_inner_angle.set(*val);
+        let msg = PannerNodeMessage::SetConeInner(self.cone_inner_angle.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle
+    fn ConeOuterAngle(&self) -> Finite<f64> {
+        Finite::wrap(self.cone_outer_angle.get())
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneouterangle
+    fn SetConeOuterAngle(&self, val: Finite<f64>) {
+        self.cone_outer_angle.set(*val);
+        let msg = PannerNodeMessage::SetConeOuter(self.cone_outer_angle.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
+    fn ConeOuterGain(&self) -> Finite<f64> {
+        Finite::wrap(self.cone_outer_gain.get())
+    }
+    // https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain
+    fn SetConeOuterGain(&self, val: Finite<f64>) {
+        self.cone_outer_gain.set(*val);
+        let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());
+        self.upcast::<AudioNode>().message(AudioNodeMessage::PannerNode(msg));
     }
 }
 

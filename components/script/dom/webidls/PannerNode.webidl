@@ -37,20 +37,20 @@ enum PanningModelType {
 [Exposed=Window,
  Constructor (BaseAudioContext context, optional PannerOptions options)]
 interface PannerNode : AudioNode {
-  // attribute PanningModelType panningModel;
+  attribute PanningModelType panningModel;
   readonly attribute AudioParam positionX;
   readonly attribute AudioParam positionY;
   readonly attribute AudioParam positionZ;
   readonly attribute AudioParam orientationX;
   readonly attribute AudioParam orientationY;
   readonly attribute AudioParam orientationZ;
-  // attribute DistanceModelType distanceModel;
-  // attribute double refDistance;
-  // attribute double maxDistance;
-  // attribute double rolloffFactor;
-  // attribute double coneInnerAngle;
-  // attribute double coneOuterAngle;
-  // attribute double coneOuterGain;
+  attribute DistanceModelType distanceModel;
+  attribute double refDistance;
+  attribute double maxDistance;
+  attribute double rolloffFactor;
+  attribute double coneInnerAngle;
+  attribute double coneOuterAngle;
+  attribute double coneOuterGain;
   // void setPosition (float x, float y, float z);
   // void setOrientation (float x, float y, float z);
 };
