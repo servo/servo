@@ -4,12 +4,14 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult};
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGl2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{DomRoot, Dom};
+use dom::webglframebuffer::WebGLFramebuffer;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
@@ -24,6 +26,8 @@ pub struct WebGLRenderbuffer {
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     is_initialized: Cell<bool>,
+    // Framebuffer that this texture is attached to.
+    attached_framebuffers: DomRefCell<Vec<Dom<WebGLFramebuffer>>>,
 }
 
 impl WebGLRenderbuffer {
@@ -36,6 +40,7 @@ impl WebGLRenderbuffer {
             internal_format: Cell::new(None),
             size: Cell::new(None),
             is_initialized: Cell::new(false),
+            attached_framebuffers: Default::default(),
         }
     }
 
@@ -86,6 +91,29 @@ impl WebGLRenderbuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
+
+            /*
+            If a renderbuffer object is deleted while its image is attached to the currently
+            bound framebuffer, then it is as if FramebufferRenderbuffer had been called, with
+            a renderbuffer of 0, for each attachment point to which this image was attached
+            in the currently bound framebuffer.
+            - GLES 2.0, 4.4.3, "Attaching Renderbuffer Images to a Framebuffer"
+             */
+            let currently_bound_framebuffer =
+                self.upcast::<WebGLObject>()
+                    .context()
+                    .bound_framebuffer()
+                    .map_or(0, |fb| fb.id().get());
+            let current_framebuffer =
+                self.attached_framebuffers
+                    .borrow()
+                    .iter()
+                    .position(|fb| fb.id().get() == currently_bound_framebuffer);
+            if let Some(fb_index) = current_framebuffer {
+                self.attached_framebuffers.borrow()[fb_index].detach_renderbuffer(self);
+                self.attached_framebuffers.borrow_mut().remove(fb_index);
+            }
+
             self.upcast::<WebGLObject>()
                 .context()
                 .send_command(WebGLCommand::DeleteRenderbuffer(self.id));
@@ -144,5 +172,19 @@ impl WebGLRenderbuffer {
         self.size.set(Some((width, height)));
 
         Ok(())
+    }
+
+    pub fn attach(&self, framebuffer: &WebGLFramebuffer) {
+        self.attached_framebuffers.borrow_mut().push(Dom::from_ref(framebuffer));
+    }
+
+    pub fn unattach(&self, fb: &WebGLFramebuffer) {
+        let mut attached_framebuffers = self.attached_framebuffers.borrow_mut();
+        let idx = attached_framebuffers.iter().position(|attached| {
+            attached.id() == fb.id()
+        });
+        if let Some(idx) = idx {
+            attached_framebuffers.remove(idx);
+        }
     }
 }
