@@ -58,6 +58,18 @@
                 found:                  false
             },
             {
+                name:                   "measure_no_start_end",
+                startMark:              undefined,
+                endMark:                "mark_end",
+                startTime:              undefined,
+                duration:               undefined,
+                entryType:              "measure",
+                entryMatch:             undefined,
+                order:                  undefined,
+                found:                  false
+            },
+            // intentional duplicate of the first measure, used to confirm names can be re-used
+            {
                 name:                   "measure_no_start_no_end",
                 startMark:              undefined,
                 endMark:                undefined,
@@ -69,6 +81,8 @@
                 found:                  false
             }
         ];
+        // the index of the duplicate "measure_no_start_no_end"
+        const duplicate_index = TEST_MEASURES.map(m=>m.name).lastIndexOf('measure_no_start_no_end');
 
         setup({explicit_done: true});
 
@@ -150,8 +164,25 @@
                     scenario.startTime = startMarkValue;
 
                     // when endMark is provided to the measure() call, the value of the mark whose name is
-                    // provided is used for the startMark
+                    // provided is used for the endMark
                     scenario.duration = endMarkValue - startMarkValue;
+                }
+                else if (scenario.startMark == undefined && scenario.endMark != undefined)
+                {
+                    // endMark is defined but startMark is undefined, provide both parameters
+                    window.performance.measure(scenario.name, scenario.startMark, scenario.endMark);
+
+                    // when startMark isn't provided to the measure() call, a DOMHighResTimeStamp corresponding
+                    // to the navigationStart attribute with a timebase of the same attribute is used; this is
+                    // equivalent to 0
+                    scenario.startTime = 0;
+
+                    // when endMark is provided to the measure() call, the value of the mark whose name is
+                    // provided is used for the endMark
+                    scenario.duration = endMarkValue;
+                } else
+                {
+                    test_true(false, 'Test measure scenario unhandled');
                 }
             }
 
@@ -162,13 +193,13 @@
                 // for all test measures, the test will be validate the test measure against the first entry returned
                 // by getEntriesByName(), except for the last measure, where since it is a duplicate measure, the test
                 // will validate it against the second entry returned by getEntriesByName()
-                test_measure(entries[(i == 3 ? 1 : 0)],
+                test_measure(entries[(i == duplicate_index ? 1 : 0)],
                             "window.performance.getEntriesByName(\"" + TEST_MEASURES[i].name + "\")[" +
-                            (i == 3 ? 1 : 0) + "]",
+                            (i == duplicate_index ? 1 : 0) + "]",
                             TEST_MEASURES[i].name,
                             TEST_MEASURES[i].startTime,
                             TEST_MEASURES[i].duration);
-                TEST_MEASURES[i].entryMatch = entries[(i == 3 ? 1 : 0)];
+                TEST_MEASURES[i].entryMatch = entries[(i == duplicate_index ? 1 : 0)];
             }
 
             // test that expected measures are returned by getEntriesByName with the entryType parameter provided
@@ -176,9 +207,9 @@
             {
                 entries = window.performance.getEntriesByName(TEST_MEASURES[i].name, "measure");
 
-                test_true(match_entries(entries[(i == 3 ? 1 : 0)], TEST_MEASURES[i].entryMatch),
+                test_true(match_entries(entries[(i == duplicate_index ? 1 : 0)], TEST_MEASURES[i].entryMatch),
                           "window.performance.getEntriesByName(\"" + TEST_MEASURES[i].name + "\", \"measure\")[" +
-                          (i == 3 ? 1 : 0) + "] returns an object containing the \"" + TEST_MEASURES[i].name +
+                          (i == duplicate_index ? 1 : 0) + "] returns an object containing the \"" + TEST_MEASURES[i].name +
                           "\" measure in the correct order, and its value matches the \"" + TEST_MEASURES[i].name +
                           "\" measure returned by window.performance.getEntriesByName(\"" + TEST_MEASURES[i].name +
                           "\")");
@@ -260,7 +291,7 @@
                                   measureEntryListCommand + " returns an object containing the \"" +
                                   measureScenarios[i].name + "\" measure, and it's value matches the measure " +
                                   "returned by window.performance.getEntriesByName(\"" + measureScenarios[i].name +
-                                  "\")[" + (i == 3 ? 1 : 0) + "].");
+                                  "\")[" + (i == duplicate_index ? 1 : 0) + "].");
 
                         measureEntryList[j].found = true;
                         measureScenarios[i].found = true;
@@ -318,6 +349,7 @@
                     provided</li>
                 <li>"measure_start_no_end": created using a measure() call with only the startMark provided</li>
                 <li>"measure_start_end": created using a measure() call with both a startMark or endMark provided</li>
+                <li>"measure_no_start_end": created using a measure() call with only the endMark provided</li>
                 <li>"measure_no_start_no_end": duplicate of the first measure, used to confirm names can be re-used</li>
             </ul>
            After creating each measure, the existence of these measures is validated by calling

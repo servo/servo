@@ -1,0 +1,31 @@
+<!doctype html>
+<title>rendered legend and CSS display</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<fieldset><legend id="ref">x</legend></fieldset>
+<fieldset><legend id="test">x</legend></fieldset>
+<script>
+  const refElm = document.querySelector('#ref');
+  const refStyle = getComputedStyle(refElm);
+  const testElm = document.querySelector('#test');
+  const values = ['block', 'table', 'table-row-group', 'table-header-group', 'table-footer-group', 'table-row', 'table-cell',
+                  'table-column-group', 'table-column', 'table-caption', 'list-item', 'flow', 'flow-root','run-in','inline',
+                  'inline-block', 'inline-table', 'ruby', 'ruby-base', 'ruby-text', 'ruby-base-container', 'ruby-text-container',
+                  'grid', 'inline-grid', 'flex', 'inline-flex'];
+
+  for (const val of values) {
+    test(() => {
+      testElm.style.removeProperty('display');
+      testElm.style.display = val;
+      const computed = getComputedStyle(testElm);
+      // Note that computed value is different from the used value.
+      // E.g., if ruby is not supported, the following assertion will
+      // fail as the computed value of display will be block.
+      // If ruby is supported, computed.display will return "ruby",
+      // but the used value is supposed to be "block".
+      assert_equals(computed.display, val, `display: ${val} is not supported`);
+      assert_equals(computed.width, refStyle.width, 'width');
+      assert_equals(testElm.offsetLeft, refElm.offsetLeft, 'offsetLeft');
+    }, `rendered legend with display: ${val}`);
+  }
+</script>

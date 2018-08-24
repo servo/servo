@@ -352,12 +352,13 @@ class MockRuntime {
         let dataProviderBinding = new mojo.Binding(
             device.mojom.XRFrameDataProvider, this, dataProviderRequest);
 
-        let enviromentProviderPtr =
-            new device.mojom.XREnviromentIntegrationProviderPtr();
-        let enviromentProviderRequest = mojo.makeRequest(enviromentProviderPtr);
-        let enviromentProviderBinding = new mojo.Binding(
-            device.mojom.XREnviromentIntegrationProvider, this,
-            enviromentProviderRequest);
+        let environmentProviderPtr =
+            new device.mojom.XREnvironmentIntegrationProviderPtr();
+        let environmentProviderRequest =
+            mojo.makeRequest(environmentProviderPtr);
+        let environmentProviderBinding = new mojo.Binding(
+            device.mojom.XREnvironmentIntegrationProvider, this,
+            environmentProviderRequest);
 
         let clientRequest = mojo.makeRequest(this.sessionClient_);
 
@@ -365,7 +366,7 @@ class MockRuntime {
           session: {
             submitFrameSink: submit_frame_sink,
             dataProvider: dataProviderPtr,
-            enviromentProvider: enviromentProviderPtr,
+            environmentProvider: environmentProviderPtr,
             clientRequest: clientRequest,
             displayInfo: this.displayInfo_
           }

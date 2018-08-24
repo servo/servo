@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>fieldset containing block</title>
+<link rel=match href=fieldset-containing-block-ref.html>
+<style>
+p { margin: 0; height: 100px }
+fieldset { position: relative; border: none; padding: 0; margin: 0; }
+legend { padding: 0; width: 100px; height: 50px; background: lime; }
+div { position: absolute; top: 0; width: 100px; height: 50px; background: lime; }
+.behind { height:100px; top: 108px; background: red; }
+</style>
+<p>There should be no red.</p>
+<div class="behind"></div>
+<fieldset><legend></legend><div></div></fieldset>

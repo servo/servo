@@ -37,6 +37,15 @@ function registration_tests_script_url(register_method, check_error_types) {
     }, 'Script URL including uppercase URL-encoded backslash');
 
   promise_test(function(t) {
+      var script = 'data:application/javascript,';
+      var scope = 'resources/scope/data-url-in-script-url';
+      return promise_rejects(t,
+          check_error_types ? new TypeError : null,
+          register_method(script, {scope: scope}),
+          'Data URLs should not be registered as service workers.');
+    }, 'Script URL is a data URL');
+
+  promise_test(function(t) {
       var script = 'resources/././empty-worker.js';
       var scope = 'resources/scope/parent-reference-in-script-url';
       return register_method(script, {scope: scope})
