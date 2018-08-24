@@ -1061,6 +1061,17 @@ impl WebGLRenderingContext {
             _ => Err(InvalidEnum),
         }
     }
+
+    pub fn initialize_framebuffer(&self, clear_bits: u32) {
+        if clear_bits == 0 {
+            return;
+        }
+        self.send_command(WebGLCommand::InitializeFramebuffer {
+            color: clear_bits & constants::COLOR_BUFFER_BIT != 0,
+            depth: clear_bits & constants::DEPTH_BUFFER_BIT != 0,
+            stencil: clear_bits & constants::STENCIL_BUFFER_BIT != 0,
+        });
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -2727,10 +2738,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn StencilMaskSeparate(&self, face: u32, mask: u32) {
         match face {
-            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
+            constants::FRONT |
+            constants::BACK |
+            constants::FRONT_AND_BACK =>
                 self.send_command(WebGLCommand::StencilMaskSeparate(face, mask)),
             _ => return self.webgl_error(InvalidEnum),
-        }
+        };
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
