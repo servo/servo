@@ -9,6 +9,12 @@
 // These tests are based on the following extension specification:
 // https://w3c.github.io/webrtc-ice/
 
+function makeIceTransport(t) {
+  const iceTransport = new RTCIceTransport();
+  t.add_cleanup(() => iceTransport.stop());
+  return iceTransport;
+}
+
 test(() => {
   const iceTransport = new RTCIceTransport();
 }, 'RTCIceTransport constructor does not throw.');
@@ -25,10 +31,98 @@ test(() => {
     'Expect no remote candidates');
   assert_equals(iceTransport.getSelectedCandidatePair(), null,
     'Expect no selected candidate pair');
-  assert_equals(iceTransport.getLocalParameters(), null,
-    'Expect no local parameters');
+  assert_not_equals(iceTransport.getLocalParameters(), null,
+    'Expect local parameters generated');
   assert_equals(iceTransport.getRemoteParameters(), null,
     'Expect no remote parameters');
 }, 'RTCIceTransport initial properties are set.');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  assert_throws(new TypeError(), () =>
+    iceTransport.gather({ iceServers: null }));
+}, 'gather() with { iceServers: null } should throw TypeError');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({ iceServers: undefined });
+}, 'gather() with { iceServers: undefined } should succeed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({ iceServers: [{
+    urls: ['turns:turn.example.org', 'turn:turn.example.net'],
+    username: 'user',
+    credential: 'cred',
+  }] });
+}, 'gather() with one turns server, one turn server, username, credential' +
+    ' should succeed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({ iceServers: [{
+    urls: ['stun:stun1.example.net', 'stun:stun2.example.net'],
+  }] });
+}, 'gather() with 2 stun servers should succeed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.stop();
+  assert_throws('InvalidStateError', () => iceTransport.gather({}));
+}, 'gather() throws if closed');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({});
+  assert_equals(iceTransport.gatheringState, 'gathering');
+}, `gather() transitions gatheringState to 'gathering'`);
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.gather({});
+  assert_throws('InvalidStateError', () => iceTransport.gather({}));
+}, 'gather() throws if called twice');
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport, 'gatheringstatechange');
+  iceTransport.gather({});
+  await watcher.wait_for('gatheringstatechange');
+  assert_equals(iceTransport.gatheringState, 'complete');
+}, `eventually transition gatheringState to 'complete'`);
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport,
+      [ 'icecandidate', 'gatheringstatechange' ]);
+  iceTransport.gather({});
+  let candidate;
+  do {
+    ({ candidate } = await watcher.wait_for('icecandidate'));
+  } while (candidate !== null);
+  assert_equals(iceTransport.gatheringState, 'gathering');
+  await watcher.wait_for('gatheringstatechange');
+  assert_equals(iceTransport.gatheringState, 'complete');
+}, 'onicecandidate fires with null candidate before gatheringState' +
+    ` transitions to 'complete'`);
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport, 'icecandidate');
+  iceTransport.gather({});
+  const { candidate } = await watcher.wait_for('icecandidate');
+  assert_not_equals(candidate.candidate, '');
+  assert_array_equals(iceTransport.getLocalCandidates(), [candidate]);
+}, 'gather() returns at least one host candidate');
+
+promise_test(async t => {
+  const iceTransport = makeIceTransport(t);
+  const watcher = new EventWatcher(t, iceTransport, 'icecandidate');
+  iceTransport.gather({ gatherPolicy: 'relay' });
+  const { candidate } = await watcher.wait_for('icecandidate');
+  assert_equals(candidate, null);
+  assert_array_equals(iceTransport.getLocalCandidates(), []);
+}, `gather() returns no candidates with { gatherPolicy: 'relay'} and no turn` +
+    ' servers');
 
 </script>

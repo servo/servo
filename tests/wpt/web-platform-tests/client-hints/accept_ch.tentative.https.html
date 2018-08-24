@@ -52,7 +52,7 @@ async_test(t => {
 function acceptChLoaded() {
   // Open a new window. Verify that the user agent does not attach the client
   // hints.
-  var verify_win = window.open("do_not_expect_client_hints_headers.html");
+  var verify_win = window.open("resources/do_not_expect_client_hints_headers.html");
   assert_not_equals(verify_win, null, "Popup windows not allowed?");
 }
 

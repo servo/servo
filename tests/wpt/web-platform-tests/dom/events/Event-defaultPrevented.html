@@ -40,6 +40,7 @@ test(function() {
   assert_equals(ev.defaultPrevented, true, "defaultPrevented");
 }, "preventDefault() should change defaultPrevented if cancelable is true.");
 test(function() {
+  ev.initEvent("foo", true, true);
   assert_equals(ev.cancelable, true, "cancelable (before)");
   ev.returnValue = false;
   assert_equals(ev.cancelable, true, "cancelable (after)");

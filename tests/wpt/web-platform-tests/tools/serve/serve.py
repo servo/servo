@@ -492,9 +492,10 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
     for scheme, ports in ports.items():
         assert len(ports) == {"http":2}.get(scheme, 1)
 
-        # TODO Not very ideal, look into removing it in the future
-        # Check that python 2.7.15 is being used for HTTP/2.0
+        # If trying to start HTTP/2.0 server, check compatibility
         if scheme == 'http2' and not http2_compatible():
+            logger.error('Cannot start HTTP/2.0 server as the environment is not compatible. ' +
+                         'Requires Python 2.7.10+ (< 3.0) and OpenSSL 1.0.2+')
             continue
 
         for port in ports:

@@ -21,7 +21,7 @@ function taskTest(description, testBody) {
     // The empty HTML seems to be necessary to cajole Chrome and Safari into
     // firing a load event asynchronously, which is necessary to make sure the
     // frame's document doesn't have a parser associated with it.
-    // See: https://crbug.com/875354
+    // See: https://crbug.com/569511
     frame.src = "/common/blank.html";
     t.add_cleanup(() => frame.remove());
     frame.onload = t.step_func(() => {
@@ -39,7 +39,7 @@ function taskTest(description, testBody) {
     // The empty HTML seems to be necessary to cajole Chrome into firing a load
     // event, which is necessary to make sure the frame's document doesn't have
     // a parser associated with it.
-    // See: https://crbug.com/875354
+    // See: https://crbug.com/569511
     frame.src = "/common/blank.html";
     t.add_cleanup(() => frame.remove());
     frame.onload = t.step_func(() => {
