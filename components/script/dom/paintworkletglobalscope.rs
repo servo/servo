@@ -49,6 +49,8 @@ use profile_traits::ipc;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError};
 use script_traits::Painter;
 use servo_atoms::Atom;
+use servo_channel::{channel, Sender};
+use servo_channel::base_channel;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -364,9 +366,12 @@ impl PaintWorkletGlobalScope {
                                    .as_u64()
                                    .unwrap_or(10u64);
 
-                let timeout_duration = Duration::from_millis(timeout);
-                receiver.recv_timeout(timeout_duration)
-                        .map_err(|e| PaintWorkletError::from(e))
+                select! {
+                    recv(base_channel::after(Duration::from_millis(timeout))) => {
+                        Err(PaintWorkletError::Timeout)
+                    }
+                    recv(receiver.select(), msg) => msg.ok_or(PaintWorkletError::Timeout)
+                }
             }
         }
         Box::new(WorkletPainter {
