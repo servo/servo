@@ -197,7 +197,7 @@ class ServoDriverServer(WebDriverServer):
 
     def make_command(self):
         command = [self.binary,
-                   "--webdriver", str(self.port),
+                   "--webdriver=%s" % self.port,
                    "--hard-fail",
                    "--headless"] + self._args
         if self.binary_args:

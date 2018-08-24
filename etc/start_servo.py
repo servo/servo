@@ -19,6 +19,6 @@ def start_servo(port, resolution):
 
     # Use the below command if you are running this script on windows
     # cmds = 'mach.bat run --webdriver ' + port + ' --resolution ' + resolution
-    cmds = './mach run --webdriver ' + port + ' --resolution ' + resolution
+    cmds = './mach run --webdriver=' + port + ' --resolution ' + resolution
     process = subprocess.Popen(cmds, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return process

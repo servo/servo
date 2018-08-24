@@ -176,11 +176,16 @@ def extract_arg(name, args):
 
 
 def extract_args(name, args):
+    assert "=" not in name
     previous_arg_matches = False
     for i, arg in enumerate(args):
         if previous_arg_matches:
             yield i, arg
         previous_arg_matches = arg == name
+
+        arg, sep, value = arg.partition("=")
+        if arg == name and sep == "=":
+            yield i, value
 
 
 def wait_for_tcp_server(adb, port):
