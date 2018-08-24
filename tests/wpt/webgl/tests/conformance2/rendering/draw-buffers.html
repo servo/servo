@@ -35,6 +35,7 @@
 <script src=/resources/testharnessreport.js></script>
 <script src="../../js/js-test-pre.js"></script>
 <script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl-draw-buffers-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -60,6 +61,20 @@ uniform vec4 u_colors[$(numDrawingBuffers)];
 out vec4 my_FragData[$(numDrawingBuffers)];
 void main() {
 $(assignUColorsToFragData)
+}
+</script>
+<script id="fshaderDiscard" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform vec4 u_colors[$(numDrawingBuffers)];
+uniform float u_zero;
+
+// Only one out variable - does not need explicit output layout (ESSL 3 section 4.3.8.2)
+out vec4 my_FragData[$(numDrawingBuffers)];
+void main() {
+$(assignUColorsToFragData)
+    if (u_zero < 1.0) {
+        discard;
+    }
 }
 </script>
 <script id="fshaderRed" type="x-shader/x-fragment">#version 300 es
@@ -93,13 +108,14 @@ debug("");
 
 var wtu = WebGLTestUtils;
 var canvas = document.getElementById("canvas");
-var output = document.getElementById("console");
 var gl = wtu.create3DContext(canvas, null, 2);
+var drawBuffersUtils;
 
 if (!gl) {
   testFailed("WebGL context does not exist");
 } else {
   testPassed("WebGL context exists");
+  drawBuffersUtils = WebGLDrawBuffersUtils(gl);
 
   if (testParameters()) {
     runShadersTest();
@@ -113,8 +129,7 @@ if (!gl) {
 function createDrawBuffersProgram(scriptId, sub) {
   var fsource = wtu.getScript(scriptId);
   fsource = wtu.replaceParams(fsource, sub);
-  wtu.addShaderSource(output, "fragment shader", fsource);
-  return wtu.setupProgram(gl, ["vshaderESSL3", fsource], ["a_position"]);
+  return wtu.setupProgram(gl, ["vshaderESSL3", fsource], ["a_position"], undefined, true);
 }
 
 function runShadersTest() {
@@ -138,14 +153,6 @@ function makeArray(size, value) {
   return array;
 }
 
-function makeColorAttachmentArray(size) {
-  var array = []
-  for (var ii = 0; ii < size; ++ii) {
-    array.push(gl.COLOR_ATTACHMENT0 + ii);
-  }
-  return array;
-}
-
 function runAttachmentTest() {
   debug("");
   debug("test attachment enabled");
@@ -163,7 +170,7 @@ function runAttachmentTest() {
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to attach to the max attachment point: gl.COLOR_ATTACHMENT0 + " + (maxColorAttachments - 1));
   gl.drawBuffers(makeArray(maxDrawingBuffers, gl.NONE));
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffers with array NONE of size " + maxColorAttachments);
-  var bufs = makeColorAttachmentArray(maxDrawingBuffers);
+  var bufs = drawBuffersUtils.makeColorAttachmentArray(maxDrawingBuffers);
   gl.drawBuffers(bufs);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffers with array attachments of size " + maxColorAttachments);
   bufs[0] = gl.NONE;
@@ -174,7 +181,7 @@ function runAttachmentTest() {
     bufs[1] = gl.COLOR_ATTACHMENT0;
     gl.drawBuffers(bufs);
     wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should not be able to call drawBuffers with out of order attachments of size " + maxColorAttachments);
-    var bufs = makeColorAttachmentArray(Math.floor(maxDrawingBuffers / 2));
+    var bufs = drawBuffersUtils.makeColorAttachmentArray(Math.floor(maxDrawingBuffers / 2));
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffers with short array of attachments of size " + bufs.length);
   }
 
@@ -217,11 +224,9 @@ function runDrawTests() {
   var middleFB = gl.createFramebuffer();
 
   var maxDrawingBuffers = gl.getParameter(gl.MAX_DRAW_BUFFERS);
-  var maxColorAttachments = gl.getParameter(gl.MAX_COLOR_ATTACHMENTS);
-  var maxUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
-  var maxUsable = Math.min(maxDrawingBuffers, maxColorAttachments, maxUniformVectors);
+  var maxUsable = drawBuffersUtils.getMaxUsableColorAttachments();
   var half = Math.floor(maxUsable / 2);
-  var bufs = makeColorAttachmentArray(maxUsable);
+  var bufs = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
   var nones = makeArray(maxUsable, gl.NONE);
 
   [fb, fb2, halfFB1, halfFB2, endsFB, middleFB].forEach(function(fbo) {
@@ -271,7 +276,6 @@ function runDrawTests() {
     gl.uniform4fv(location, floatColor);
     attachments.push({
       texture: tex,
-      location: location,
       color: color
     });
   }
@@ -279,30 +283,6 @@ function runDrawTests() {
   shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
   shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
-
-  var checkAttachmentsForColorFn = function(attachments, colorFn) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.useProgram(checkProgram);
-    attachments.forEach(function(attachment, index) {
-      gl.bindTexture(gl.TEXTURE_2D, attachment.texture);
-      wtu.clearAndDrawUnitQuad(gl);
-      var expectedColor = colorFn(attachment, index);
-      var tolerance = 0;
-      expectedColor.forEach(function(v) {
-        if (v != 0 && v != 255) {
-          tolerance = 8;
-        }
-      });
-      wtu.checkCanvas(gl, expectedColor, "attachment " + index + " should be " + expectedColor.toString(), tolerance);
-    });
-    debug("");
-  };
-
-  var checkAttachmentsForColor = function(attachments, color) {
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
-      return color || attachment.color;
-    });
-  };
 
   var drawAndCheckAttachments = function(testFB, msg, testFn) {
     debug("test clearing " + msg);
@@ -324,7 +304,7 @@ function runDrawTests() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    //checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    //drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
     //  return [0, 0, 0, 0];
     //});
     //debug("--");
@@ -334,7 +314,7 @@ function runDrawTests() {
 
     gl.clearColor(0, 1, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return testFn(attachment, index) ? [0, 255, 0, 255] : [0, 0, 0, 0];
     });
 
@@ -345,7 +325,7 @@ function runDrawTests() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, testFB);
     wtu.drawUnitQuad(gl);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return testFn(attachment, index) ? attachment.color : [0, 0, 0, 0];
     });
   };
@@ -360,14 +340,14 @@ function runDrawTests() {
 
   debug("test that each texture got the correct color.");
 
-  checkAttachmentsForColor(attachments);
+  drawBuffersUtils.checkAttachmentsForColor(attachments);
 
   debug("test clearing clears all the textures");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.clearColor(0, 1, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
 
   debug("test that NONE draws nothing");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -375,7 +355,7 @@ function runDrawTests() {
   gl.useProgram(redProgram);
   wtu.clearAndDrawUnitQuad(gl);
 
-  checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
 
   // GLES3 spec section 3.9.2 Shader Outputs
   debug("test that gl_FragColor only writes to color number zero");
@@ -384,7 +364,7 @@ function runDrawTests() {
   gl.useProgram(blueProgramESSL1);
   wtu.drawUnitQuad(gl);
 
-  checkAttachmentsForColorFn(attachments, function(attachment, index) {
+  drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
     return (index == 0) ? [0, 0, 255, 255] : [0, 255, 0, 255];
   });
 
@@ -396,7 +376,7 @@ function runDrawTests() {
   gl.useProgram(redProgram);
   wtu.drawUnitQuad(gl);
 
-  checkAttachmentsForColorFn(attachments, function(attachment, index) {
+  drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
     return (index == 0) ? [255, 0, 0, 255] : [0, 255, 0, 255];
   });
 
@@ -407,10 +387,10 @@ function runDrawTests() {
     gl.drawBuffers(bufs);
     gl.clearColor(1, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+    drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
 
-    var bufs1 = makeColorAttachmentArray(maxUsable);
-    var bufs2 = makeColorAttachmentArray(maxUsable);
+    var bufs1 = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
+    var bufs2 = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
     for (var ii = 0; ii < maxUsable; ++ii) {
       if (ii < half) {
         bufs1[ii] = gl.NONE;
@@ -426,7 +406,7 @@ function runDrawTests() {
     gl.clearColor(0, 1, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? [255, 0, 0, 255] : [0, 255, 0, 255];
     });
 
@@ -436,7 +416,7 @@ function runDrawTests() {
     gl.useProgram(drawProgram);
     wtu.drawUnitQuad(gl);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? [255, 0, 0, 255] : attachment.color;
     });
 
@@ -449,7 +429,7 @@ function runDrawTests() {
     gl.drawBuffers(bufs2);
     gl.clearColor(0, 0, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? [0, 0, 255, 255] : [255, 0, 0, 255];
     });
 
@@ -459,7 +439,7 @@ function runDrawTests() {
     gl.useProgram(drawProgram);
     wtu.drawUnitQuad(gl);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? attachment.color : [255, 0, 0, 255];
     });
 
@@ -507,17 +487,28 @@ function runDrawTests() {
   gl.drawBuffers(bufs);
   gl.clearColor(1, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
-  checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
   gl.useProgram(drawProgram);
   wtu.drawUnitQuad(gl);
-  checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.useProgram(drawProgram);
   wtu.drawUnitQuad(gl);
-  checkAttachmentsForColor(attachments);
+  drawBuffersUtils.checkAttachmentsForColor(attachments);
+
+  debug("test that none of the attachments are written in case the fragment shader discards");
+  var discardProgram = createDrawBuffersProgram("fshaderDiscard",
+      {numDrawingBuffers: maxDrawingBuffers, assignUColorsToFragData: assignCode.join("\n")});
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  gl.drawBuffers(bufs);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(discardProgram);
+  wtu.drawUnitQuad(gl);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 0, 0, 0]);
 
   debug("test queries");
   debug("check framebuffer with all attachments on");
@@ -534,6 +525,7 @@ function runDrawTests() {
 
   // WebGL generates FRAMEBUFFER_INCOMPLETE_DIMENSIONS when attached images have different sizes.
   // This behavior differs from GLES 3.
+  debug("");
   debug("test attachment size mis-match");
   gl.bindTexture(gl.TEXTURE_2D, attachments[0].texture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width * 2, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);

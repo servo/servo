@@ -31,12 +31,12 @@
 <meta charset="utf-8">
 <title>WebGL varying packing restrictions Conformance Test</title>
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
-<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
-<script src="../../resources/glsl-conformance-test.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -52,29 +52,29 @@ void main()
 }
 </script>
 <script id="fshaderArrayTest" type="x-shader/x-fragment">
-    precision mediump float;
-    varying $(type) v_varying[$(numTestType)];
-    void main()
-    {
-        gl_FragColor = $(fcode);
-    }
+precision mediump float;
+varying $(type) v_varying[$(numTestType)];
+void main()
+{
+    gl_FragColor = $(fcode);
+}
 </script>
 <script id="vshaderVaryingTest" type="x-shader/x-fragment">
 attribute vec4 a_position;
 $(varyings)
-    void main()
-    {
-        gl_Position = a_position;
-        $(vcode)
-    }
+void main()
+{
+    gl_Position = a_position;
+    $(vcode)
+}
 </script>
 <script id="fshaderVaryingTest" type="x-shader/x-fragment">
-    precision mediump float;
+precision mediump float;
 $(varyings)
-    void main()
-    {
-        gl_FragColor = $(fcode);
-    }
+void main()
+{
+    gl_FragColor = $(fcode);
+}
 </script>
 <script>
 "use strict";

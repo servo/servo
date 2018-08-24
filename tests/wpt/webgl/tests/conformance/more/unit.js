@@ -75,6 +75,46 @@ var __testFailCount__ = 0;
 var __testLog__;
 var __backlog__ = [];
 
+var getUrlOptions = (function() {
+  var _urlOptionsParsed = false;
+  var _urlOptions = {};
+  return function() {
+    if (!_urlOptionsParsed) {
+      var s = window.location.href;
+      var q = s.indexOf("?");
+      var e = s.indexOf("#");
+      if (e < 0) {
+        e = s.length;
+      }
+      var query = s.substring(q + 1, e);
+      var pairs = query.split("&");
+      for (var ii = 0; ii < pairs.length; ++ii) {
+        var keyValue = pairs[ii].split("=");
+        var key = keyValue[0];
+        var value = decodeURIComponent(keyValue[1]);
+        _urlOptions[key] = value;
+      }
+      _urlOptionsParsed = true;
+    }
+
+    return _urlOptions;
+  }
+})();
+
+if (typeof quietMode == 'undefined') {
+  var quietMode = (function() {
+    var _quietModeChecked = false;
+    var _isQuiet = false;
+    return function() {
+      if (!_quietModeChecked) {
+        _isQuiet = (getUrlOptions().quiet == 1);
+        _quietModeChecked = true;
+      }
+      return _isQuiet;
+    }
+  })();
+}
+
 Object.toSource = function(a, seen){
   if (a == null) return "null";
   if (typeof a == 'boolean') return a ? "true" : "false";
@@ -244,26 +284,28 @@ function testFailed(assertName, name) {
 }
 
 function testPassed(assertName, name) {
-  var d = document.createElement('div');
-  var h = document.createElement('h3');
-  var d1 = document.createElement("span");
-  h.appendChild(d1);
-  d1.appendChild(document.createTextNode("PASS: "));
-  d1.style.color = "green";
-  h.appendChild(document.createTextNode(
-      name==null ? assertName : name + " (in " + assertName + ")"));
-  d.appendChild(h);
-  var args = []
-  for (var i=2; i<arguments.length; i++) {
-    var a = arguments[i];
-    var p = document.createElement('p');
-    p.style.whiteSpace = 'pre';
-    p.textContent = (a == null) ? "null" :
-                    (typeof a == 'boolean' || typeof a == 'string') ? a : Object.toSource(a);
-    args.push(p.textContent);
-    d.appendChild(p);
+  if (!quietMode()) {
+    var d = document.createElement('div');
+    var h = document.createElement('h3');
+    var d1 = document.createElement("span");
+    h.appendChild(d1);
+    d1.appendChild(document.createTextNode("PASS: "));
+    d1.style.color = "green";
+    h.appendChild(document.createTextNode(
+        name==null ? assertName : name + " (in " + assertName + ")"));
+    d.appendChild(h);
+    var args = []
+    for (var i=2; i<arguments.length; i++) {
+      var a = arguments[i];
+      var p = document.createElement('p');
+      p.style.whiteSpace = 'pre';
+      p.textContent = (a == null) ? "null" :
+                      (typeof a == 'boolean' || typeof a == 'string') ? a : Object.toSource(a);
+      args.push(p.textContent);
+      d.appendChild(p);
+    }
+    __testLog__.appendChild(d);
   }
-  __testLog__.appendChild(d);
   doTestNotify([assertName, name].concat(args).join("--"));
 }
 

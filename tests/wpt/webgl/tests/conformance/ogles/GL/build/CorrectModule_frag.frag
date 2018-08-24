@@ -66,7 +66,7 @@ float f4 = 5.5;
 vec4 test_function3(float ff)
 {
     if (ff > f4)
-        return vec4(ff);
+	return vec4(ff);
     else
         return vec4(f4);
 }

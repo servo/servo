@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -108,28 +108,44 @@ var canvas = document.getElementById("canvas");
 var gl = wtu.create3DContext(canvas);
 var ext = null;
 
-if (!gl) {
-    testFailed("WebGL context does not exist");
-} else {
-    testPassed("WebGL context exists");
+// Run all tests once.
+runAllTests();
 
-    runShaderTests(false);
+// Run all tests against with a new context to test for any cache issues.
+debug("");
+debug("Testing new context to catch cache errors");
+gl = wtu.create3DContext();
+ext = null;
+runAllTests();
 
-    // Query the extension and store globally so shouldBe can access it
-    ext = wtu.getExtensionWithKnownPrefixes(gl, "EXT_frag_depth");
-    if (!ext) {
-        testPassed("No EXT_frag_depth support -- this is legal");
-
-        runSupportedTest(false);
+function runAllTests() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
     } else {
-        testPassed("Successfully enabled EXT_frag_depth extension");
+        testPassed("WebGL context exists");
 
-        runSupportedTest(true);
+        runShaderTests(false);
 
-        runShaderTests(true);
-        runOutputTests();
-        runUniqueObjectTest();
+        // Query the extension and store globally so shouldBe can access it
+        ext = wtu.getExtensionWithKnownPrefixes(gl, "EXT_frag_depth");
+        if (!ext) {
+            testPassed("No EXT_frag_depth support -- this is legal");
+
+            runSupportedTest(false);
+        } else {
+            testPassed("Successfully enabled EXT_frag_depth extension");
+
+            runSupportedTest(true);
+
+            runShaderTests(true);
+            runOutputTests();
+            runUniqueObjectTest();
+
+            // Run deferred link tests.
+            runDeferredLinkTests();
+        }
     }
+
 }
 
 function runSupportedTest(extensionEnabled) {
@@ -229,15 +245,68 @@ function runOutputTests() {
 function runUniqueObjectTest()
 {
     debug("Testing that getExtension() returns the same object each time");
+    ext = null;
     gl.getExtension("EXT_frag_depth").myProperty = 2;
-    gc();
+    webglHarnessCollectGarbage();
     shouldBe('gl.getExtension("EXT_frag_depth").myProperty', '2');
+}
+
+function runDeferredLinkTests() {
+    debug("");
+    debug("Testing deferred shader compilation tests.");
+
+    // Test for compilation failures that are caused by missing extensions
+    // do not succeed if extensions are enabled during linking. This would
+    // only happen for deferred shader compilations.
+
+    // First test if link succeeds with extension enabled.
+    var glEnabled = wtu.create3DContext();
+    var extEnabled = glEnabled.getExtension("EXT_frag_depth");
+    if (!extEnabled) {
+        testFailed("Deferred link test expects the extension to be supported");
+    }
+
+    var vertexShader = wtu.loadShaderFromScript(glEnabled, "goodVertexShader");
+    var fragmentShader = wtu.loadShaderFromScript(glEnabled, "macroFragmentShader");
+
+    if (!vertexShader || !fragmentShader) {
+        testFailed("Could not create good shaders.");
+        return;
+    }
+
+    var program = wtu.setupProgram(glEnabled, [vertexShader, fragmentShader]);
+
+    if (!program) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    // Create new context to test link failure without extension enabled.
+    var glDeferred = wtu.create3DContext();
+
+    var vertexShader = wtu.loadShaderFromScript(glDeferred, "goodVertexShader", glDeferred.VERTEX_SHADER, undefined, undefined, true);
+    var fragmentShader = wtu.loadShaderFromScript(glDeferred, "macroFragmentShader", glDeferred.FRAGMENT_SHADER, undefined, undefined, true);
+
+    if (vertexShader == null || fragmentShader == null) {
+        testFailed("Could not create shaders.");
+        return;
+    }
+
+    // Shader compilations should have failed due to extensions not enabled.
+    glDeferred.getExtension("EXT_frag_depth");
+    var program = wtu.setupProgram(glDeferred, [vertexShader, fragmentShader]);
+    if (program) {
+        testFailed("Compilation with extension disabled then linking with extension enabled should have failed.");
+        return;
+    }
+
+    testPassed("Compilation with extension disabled then linking with extension enabled.");
 }
 
 debug("");
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

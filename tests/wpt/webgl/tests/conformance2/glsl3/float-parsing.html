@@ -1,0 +1,190 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Float parsing corner cases</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderParsedFloatOverflowToInfinity" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    // Out-of-range floats should overflow to infinity
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "If the value of the floating point number is too large (small) to be stored as a single precision value, it is converted to positive (negative) infinity"
+    float correct = isinf(1.0e40) ? 1.0 : 0.0;
+    my_FragColor = vec4(0.0, correct, 0.0, 1.0);
+}
+</script>
+<script id="fshaderParsedFloatUnderflowToZero" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "A value with a magnitude too small to be represented as a mantissa and exponent is converted to zero."
+    // 1.0e-50 is small enough that it can't even be stored as subnormal.
+    float correct = (1.0e-50 == 0.0) ? 1.0 : 0.0;
+    my_FragColor = vec4(0.0, correct, 0.0, 1.0);
+}
+</script>
+<script id="fshaderParsedFloatSmallMantissa" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "There is no limit on the number of digits in any digit-sequence."
+    // The below float string has 100 zeros after the decimal point, but represents 1.0.
+    float x = 0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001e101;
+    my_FragColor = vec4(0.0, x, 0.0, 1.0);
+}
+</script>
+<script id="fshaderParsedFloatLargeMantissa" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "There is no limit on the number of digits in any digit-sequence."
+    // The below float string has 100 zeros, but represents 1.0.
+    float x = 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0e-100;
+    my_FragColor = vec4(0.0, x, 0.0, 1.0);
+}
+</script>
+<script id="fshaderParsedFloatExponentAboveMaxInt" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+void main()
+{
+    // Out-of-range floats should overflow to infinity
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "If the value of the floating point number is too large (small) to be stored as a single precision value, it is converted to positive (negative) infinity"
+    float correct = isinf(1.0e2147483649) ? 1.0 : 0.0;
+    my_FragColor = vec4(0.0, correct, 0.0, 1.0);
+}
+</script>
+<script id="fshaderNonConstFloatIsInfinity" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+uniform float u; // Assumed to have the default value 0.0
+
+void main()
+{
+    // Out-of-range floats should overflow to infinity
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "If the value of the floating point number is too large (small) to be stored as a single precision value, it is converted to positive (negative) infinity"
+    float f = 1.0e2048 - u;
+    float correct = (isinf(f) && f > 0.0) ? 1.0 : 0.0;
+    my_FragColor = vec4(0.0, correct, 0.0, 1.0);
+}
+</script>
+<script id="fshaderNonConstFloatIsNegativeInfinity" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+
+uniform float u; // Assumed to have the default value 0.0
+
+void main()
+{
+    // Out-of-range floats should overflow to infinity
+    // GLSL ES 3.00.6 section 4.1.4 Floats:
+    // "If the value of the floating point number is too large (small) to be stored as a single precision value, it is converted to positive (negative) infinity"
+    float f = -1.0e2048 + u;
+    float correct = (isinf(f) && f < 0.0) ? 1.0 : 0.0;
+    my_FragColor = vec4(0.0, correct, 0.0, 1.0);
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderParsedFloatOverflowToInfinity',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Floats of too large magnitude should be converted infinity."
+},
+{
+  fShaderId: 'fshaderParsedFloatUnderflowToZero',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Floats of too small magnitude should be converted to zero."
+},
+{
+  fShaderId: 'fshaderParsedFloatSmallMantissa',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Number of digits in any digit-sequence is not limited - test with a small mantissa and large exponent."
+},
+{
+  fShaderId: 'fshaderParsedFloatLargeMantissa',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Number of digits in any digit-sequence is not limited - test with a large mantissa and negative exponent."
+},
+{
+  fShaderId: 'fshaderParsedFloatExponentAboveMaxInt',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Test that an exponent that slightly overflows signed 32-bit int range works."
+},
+{
+  fShaderId: 'fshaderNonConstFloatIsInfinity',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Test that a non-constant float that has infinity as a value is processed correctly by isinf()."
+},
+{
+  fShaderId: 'fshaderNonConstFloatIsNegativeInfinity',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Test that a non-constant float that has negative infinity as a value is processed correctly by isinf()."
+}
+], 2);
+</script>
+</body>
+</html>

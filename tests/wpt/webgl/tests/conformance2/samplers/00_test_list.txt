@@ -1,2 +1,3 @@
+--min-version 2.0.1 multi-context-sampler-test.html
 samplers.html
 sampler-drawing-test.html

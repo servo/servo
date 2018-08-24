@@ -1,0 +1,127 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Uniform Buffers should work on second compile</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id='vshader' type='x-shader/x-vertex'>
+#version 300 es
+
+layout(location=0) in vec4 position;
+layout(std140, column_major) uniform Uniforms1 {
+    mat4 transform;
+};
+out vec3 vColor;
+
+void main() {
+    gl_Position = transform * position;
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>
+#version 300 es
+precision highp float;
+
+layout(std140) uniform Uniforms2 {
+    vec4 color;
+};
+out vec4 fragColor;
+
+void main(){
+    fragColor = color;
+}
+</script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script>
+"use strict";
+description("This test verifies that getUniformBlockIndex isn't broken on second compile.");
+
+debug("This is a regression test for <a href='http://crbug.com/716018'>http://crbug.com/716018</a>");
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+// Initialize
+gl.clearColor(0, 0, 0, 1);
+var vsSource = document.getElementById("vshader").text.trim();
+var fsSource = document.getElementById("fshader").text.trim();
+
+function runTest() {
+    // Run twice to make sure that the second build does not cause errors
+    // (i.e. due to caching).
+    for (var i = 0; i < 2; ++i) {
+        debug("Compile/test iteration " + i);
+
+        var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShader, vsSource);
+        gl.compileShader(vertexShader);
+        // Note: if COMPILE_STATUS is retrieved here, it hides the bug.
+
+        var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShader, fsSource);
+        gl.compileShader(fragmentShader);
+        // Note: if COMPILE_STATUS is retrieved here, it hides the bug.
+
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        gl.useProgram(program);
+
+        var uniforms1Location = gl.getUniformBlockIndex(program, "Uniforms1");
+        gl.uniformBlockBinding(program, uniforms1Location, 0);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uniforms1Location was " + uniforms1Location);
+
+        var uniforms2Location = gl.getUniformBlockIndex(program, "Uniforms2");
+        gl.uniformBlockBinding(program, uniforms2Location, 1);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "uniforms2Location was " + uniforms2Location);
+
+        debug("");
+    }
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

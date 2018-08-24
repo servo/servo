@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -84,41 +84,72 @@ var canvas = document.getElementById("canvas");
 var gl = wtu.create3DContext(canvas);
 
 if (!gl) {
-  testFailed("WebGL context does not exist");
+    testFailed("WebGL context does not exist");
 } else {
-  testPassed("WebGL context exists");
+    testPassed("WebGL context exists");
 
-  var texturedShaders = [
-      wtu.setupSimpleTextureVertexShader(gl),
-      "testFragmentShader"
-  ];
-  var testProgram =
-      wtu.setupProgram(gl,
-                       texturedShaders,
-                       ['vPosition', 'texCoord0'],
-                       [0, 1]);
-  var quadParameters = wtu.setupUnitQuad(gl, 0, 1);
+    var texturedShaders = [
+        wtu.simpleTextureVertexShader,
+        "testFragmentShader"
+    ];
+    var testProgram =
+        wtu.setupProgram(gl,
+                         texturedShaders,
+                         ['vPosition', 'texCoord0'],
+                         [0, 1]);
+    var quadParameters = wtu.setupUnitQuad(gl, 0, 1);
 
-  // First verify that allocation of floating-point textures fails if
-  // the extension has not been enabled yet.
-  runTextureCreationTest(testProgram, false);
+    // First verify that allocation of floating-point textures fails if
+    // the extension has not been enabled yet.
+    runTextureCreationTest(testProgram, false);
 
-  if (!gl.getExtension("OES_texture_float")) {
-      testPassed("No OES_texture_float support -- this is legal");
-  } else {
-      testPassed("Successfully enabled OES_texture_float extension");
-      // If alpha value is missing from a texture it gets filled to 1 when sampling according to GLES2.0 table 3.12
-      runTextureCreationTest(testProgram, true, gl.RGBA, 4, [10000, 10000, 10000, 10000]);
-      runTextureCreationTest(testProgram, true, gl.RGB, 3, [10000, 10000, 10000, 1]);
-      runTextureCreationTest(testProgram, true, gl.LUMINANCE, 1, [10000, 10000, 10000, 1]);
-      runTextureCreationTest(testProgram, true, gl.ALPHA, 1, [0, 0, 0, 10000]);
-      runTextureCreationTest(testProgram, true, gl.LUMINANCE_ALPHA, 2, [10000, 10000, 10000, 10000]);
-      runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 0);
-      runRenderTargetAndReadbackTest(testProgram, gl.RGB, 3, [10000, 10000, 10000, 1], 0);
-      runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 1);
-      runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 0.5);
-      runUniqueObjectTest();
-  }
+    if (!gl.getExtension("OES_texture_float")) {
+        testPassed("No OES_texture_float support -- this is legal");
+    } else {
+        testPassed("Successfully enabled OES_texture_float extension");
+        // If alpha value is missing from a texture it gets filled to 1 when sampling according to GLES2.0 table 3.12
+        runTextureCreationTest(testProgram, true, gl.RGBA, 4, [10000, 10000, 10000, 10000]);
+        runTextureCreationTest(testProgram, true, gl.RGB, 3, [10000, 10000, 10000, 1]);
+        runTextureCreationTest(testProgram, true, gl.LUMINANCE, 1, [10000, 10000, 10000, 1]);
+        runTextureCreationTest(testProgram, true, gl.ALPHA, 1, [0, 0, 0, 10000]);
+        runTextureCreationTest(testProgram, true, gl.LUMINANCE_ALPHA, 2, [10000, 10000, 10000, 10000]);
+
+        (function() {
+            debug("");
+            var renderable = isRenderable(gl);
+            var renderableExtName = "WEBGL_color_buffer_float";
+            var supported = gl.getSupportedExtensions().includes(renderableExtName);
+            if (renderable && !supported) {
+                testFailed("RGBA/FLOAT is color renderable but " + renderableExtName + " not exposed");
+            } else if (supported && !renderable) {
+                testFailed(renderableExtName + " is exposed but RGBA/FLOAT is not color renderable");
+            }
+            if (supported) {
+                runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 0, true);
+                runRenderTargetAndReadbackTest(testProgram, gl.RGB, 3, [10000, 10000, 10000, 1], 0, false);
+                runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 1, true);
+                runRenderTargetAndReadbackTest(testProgram, gl.RGBA, 4, [10000, 10000, 10000, 10000], 0.5, true);
+            }
+        })();
+
+        runUniqueObjectTest();
+    }
+}
+
+function isRenderable(gl) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.FLOAT, null);
+
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.deleteFramebuffer(fb);
+    gl.deleteTexture(tex);
+
+    return status == gl.FRAMEBUFFER_COMPLETE;
 }
 
 function allocateTexture()
@@ -183,15 +214,15 @@ function arrayToString(arr, size) {
         mySize = size;
     var out = "[";
     for (var ii = 0; ii < mySize; ++ii) {
-        if (ii > 0) {
-            out += ", ";
-        }
-        out += arr[ii];
+    if (ii > 0) {
+        out += ", ";
+    }
+    out += arr[ii];
     }
     return out + "]";
 }
 
-function runRenderTargetAndReadbackTest(testProgram, format, numberOfChannels, subtractor, texSubImageCover)
+function runRenderTargetAndReadbackTest(testProgram, format, numberOfChannels, subtractor, texSubImageCover, requireRenderable)
 {
     var formatString = wtu.glEnumToString(gl, format);
     debug("");
@@ -211,7 +242,10 @@ function runRenderTargetAndReadbackTest(testProgram, format, numberOfChannels, s
     // It is legal for a WebGL implementation exposing the OES_texture_float extension to
     // support floating-point textures but not as attachments to framebuffer objects.
     if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
-        debug("floating-point " + formatString + " render target not supported -- this is legal");
+        if (requireRenderable)
+            testFailed("floating-point " + formatString + " render target not supported");
+        else
+            debug("floating-point " + formatString + " render target not supported -- this is legal");
         return;
     }
 
@@ -252,25 +286,25 @@ function runRenderTargetAndReadbackTest(testProgram, format, numberOfChannels, s
     var implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "getParameter of IMPLEMENTATION_COLOR_READ_{FORMAT|TYPE} should succeed");
     if ((implFormat == gl.RGBA || implFormat == gl.RGB) && implType == gl.FLOAT) {
-        debug("Checking readback of floating-point values");
-        var arraySize = (implFormat == gl.RGBA) ? 4 : 3
-        var buf = new Float32Array(arraySize);
-        gl.readPixels(0, 0, 1, 1, implFormat, implType , buf);
-        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels from floating-point renderbuffer should succeed");
-        var ok = true;
-        var tolerance = 8.0; // TODO: factor this out from both this test and the subtractor shader above.
-        for (var ii = 0; ii < buf.length; ++ii) {
-            if (Math.abs(buf[ii] - subtractor[ii]) > tolerance) {
-                ok = false;
-                break;
-            }
+    debug("Checking readback of floating-point values");
+    var arraySize = (implFormat == gl.RGBA) ? 4 : 3
+    var buf = new Float32Array(arraySize);
+    gl.readPixels(0, 0, 1, 1, implFormat, implType , buf);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels from floating-point renderbuffer should succeed");
+    var ok = true;
+    var tolerance = 8.0; // TODO: factor this out from both this test and the subtractor shader above.
+    for (var ii = 0; ii < buf.length; ++ii) {
+        if (Math.abs(buf[ii] - subtractor[ii]) > tolerance) {
+        ok = false;
+        break;
         }
-        if (ok) {
-            testPassed("readPixels of float-type data from floating-point renderbuffer succeeded");
-        } else {
-            testFailed("readPixels of float-type data from floating-point renderbuffer failed: expected "
-                       + arrayToString(subtractor, arraySize) + ", got " + arrayToString(buf));
-        }
+    }
+    if (ok) {
+        testPassed("readPixels of float-type data from floating-point renderbuffer succeeded");
+    } else {
+        testFailed("readPixels of float-type data from floating-point renderbuffer failed: expected "
+               + arrayToString(subtractor, arraySize) + ", got " + arrayToString(buf));
+    }
     }
 }
 
@@ -279,7 +313,7 @@ function runUniqueObjectTest()
     debug("");
     debug("Testing that getExtension() returns the same object each time");
     gl.getExtension("OES_texture_float").myProperty = 2;
-    gc();
+    webglHarnessCollectGarbage();
     shouldBe('gl.getExtension("OES_texture_float").myProperty', '2');
 }
 
@@ -287,7 +321,7 @@ function runUniqueObjectTest()
 debug("");
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

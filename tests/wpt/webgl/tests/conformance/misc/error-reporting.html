@@ -29,8 +29,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -53,7 +53,8 @@ var program = wtu.loadStandardProgram(context);
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 
 debug("Testing getActiveAttrib");
-wtu.shouldThrowOrGenerateGLError(context, context.INVALID_VALUE, "context.getActiveAttrib(null, 2)");
+shouldThrow("context.getActiveAttrib(null, 2)");
+wtu.glErrorShouldBe(context, context.NO_ERROR);
 // Error state should be clear by this point
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 // Real OpenGL error
@@ -63,7 +64,8 @@ wtu.glErrorShouldBe(context, context.INVALID_VALUE);
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 
 debug("Testing getActiveUniform");
-wtu.shouldThrowOrGenerateGLError(context, context.INVALID_VALUE, "context.getActiveUniform(null, 0)");
+shouldThrow("context.getActiveUniform(null, 0)");
+wtu.glErrorShouldBe(context, context.NO_ERROR);
 // Error state should be clear by this point
 wtu.glErrorShouldBe(context, context.NO_ERROR);
 // Real OpenGL error
@@ -89,6 +91,6 @@ wtu.glErrorShouldBe(context, context.NO_ERROR);
 var successfullyParsed = true;
 </script>
 
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 </body>
 </html>

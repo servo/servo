@@ -78,6 +78,7 @@ if (!gl) {
     runAttributeValueTests();
     runDrawTests();
     runUnboundDeleteTests();
+    runBoundDeleteTests();
     runArrayBufferBindTests();
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
 }
@@ -508,6 +509,94 @@ function runUnboundDeleteTests() {
       // The buffers should no longer be valid now that the VAOs are deleted
       if(gl.isBuffer(colorBuffers[ii])) {
         testFailed("buffer not properly cleaned up after VAO deletion");
+      }
+    }
+}
+
+function runBoundDeleteTests() {
+    debug("Testing using buffers that are deleted when attached to bound VAOs");
+
+    var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["a_position", "a_color"]);
+    gl.useProgram(program);
+
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([
+           1.0,  1.0,
+          -1.0,  1.0,
+          -1.0, -1.0,
+           1.0, -1.0]),
+        gl.STATIC_DRAW);
+
+    // Setup the color attrib
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(
+      [ 255,   0,   0, 255,
+          0, 255,   0, 255,
+          0,   0, 255, 255,
+          0, 255, 255, 255
+      ]), gl.STATIC_DRAW);
+
+    var vaos = [];
+    var elementBuffers = [];
+    for (var ii = 0; ii < 4; ++ii) {
+      var vao = gl.createVertexArray();
+      vaos.push(vao);
+      gl.bindVertexArray(vao);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+      var elementBuffer = gl.createBuffer();
+      elementBuffers.push(elementBuffer);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
+      gl.bufferData(
+          gl.ELEMENT_ARRAY_BUFFER,
+          new Uint8Array([0, 1, 2, 0, 2, 3]),
+          gl.STATIC_DRAW);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    }
+
+    // delete the color buffers AND the position buffer, that are bound to the current VAO
+    for (var ii = 0; ii < vaos.length; ++ii) {
+      gl.bindVertexArray(vaos[ii]);
+
+      gl.deleteBuffer(colorBuffer);
+      gl.deleteBuffer(positionBuffer);
+
+      // After the first iteration, deleteBuffer will be a no-op, and will not unbind its matching
+      // bind points on the now-bound VAO like it did on the first iteration.
+      var expectRetained = (ii != 0);
+      var shouldBeStr = (expectRetained ? "retained" : "cleared");
+
+      var boundPositionBuffer = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+      if (expectRetained != (boundPositionBuffer == positionBuffer)) {
+        testFailed("Position attrib stored buffer should be " + shouldBeStr + ".");
+      }
+
+      var boundColorBuffer = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+      if (expectRetained != (boundColorBuffer == colorBuffer)) {
+        testFailed("Color attrib stored buffer should be " + shouldBeStr + ".");
+      }
+
+      // If retained, everything should still work. If cleared, drawing should now fail.
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+      var expectedError = (expectRetained ? gl.NO_ERROR : gl.INVALID_OPERATION);
+      wtu.glErrorShouldBe(gl, expectedError,
+                          "Draw call should " + (expectRetained ? "not " : "") + "fail.");
+
+      if (!gl.isBuffer(positionBuffer)) {
+        testFailed("References from unbound VAOs keep Position buffer alive.");
+      }
+      if (!gl.isBuffer(colorBuffer)) {
+        testFailed("References from unbound VAOs keep Color buffer alive");
       }
     }
 }

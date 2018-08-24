@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -60,13 +60,6 @@ void main()
 }
 </script>
 <!-- Shaders for testing half-floating-point render targets -->
-<script id="positionVertexShader" type="x-shader/x-vertex">
-attribute vec4 vPosition;
-void main()
-{
-    gl_Position = vPosition;
-}
-</script>
 <script id="floatingPointFragmentShader" type="x-shader/x-fragment">
 void main()
 {
@@ -90,6 +83,7 @@ var gl = wtu.create3DContext(canvas);
 // This constant must be defined in order to run the texture creation test without the extension enabled.
 var halfFloatOESEnum = 0x8D61;
 var ext = null;
+
 
 if (!gl) {
     testFailed("WebGL context does not exists");
@@ -166,8 +160,8 @@ if (!gl) {
         // Next check that values outside the 0-1 range can be written.
         var halfFloatTenK = 0x70E2; // Half float 10000
         var uint16Formats2 = [
-          { format: gl.RGBA, subtractor: [10000, 10000, 10000, 10000], },
-          { format: gl.RGB,  subtractor: [10000, 10000, 10000, 1], },
+          { format: gl.RGBA, subtractor: [10000, 10000, 10000, 10000], requireRenderable: true},
+          { format: gl.RGB,  subtractor: [10000, 10000, 10000, 1], requireRenderable: false},
         ];
 
         uint16Formats2.forEach(function(f) {
@@ -179,16 +173,45 @@ if (!gl) {
             for (var ii = 0; ii <  uint16Data.length; ii++) {
                 uint16Data[ii] = halfFloatTenK;
             }
-            runRenderTest(format, f.subtractor, uint16Data);
+            runRenderTest(format, f.subtractor, uint16Data, f.requireRenderable);
         });
 
-        // Check if attaching texture as FBO target succeeds (Not mandatory)
-        runRenderTest(gl.RGBA, [10000, 10000, 10000, 10000], null);
-        runRenderTest(gl.RGB, [10000, 10000, 10000, 1], null);
+        (function() {
+            debug("");
+            var renderable = isRenderable(gl, ext);
+            var renderableExtName = "EXT_color_buffer_half_float";
+            var supported = gl.getSupportedExtensions().includes(renderableExtName);
+            if (renderable && !supported) {
+                testFailed("RGBA/HALF_FLOAT_OES is color renderable but " + renderableExtName + " not exposed");
+            } else if (supported && !renderable) {
+                testFailed(renderableExtName + " is exposed but RGBA/HALF_FLOAT_OES is not color renderable");
+            }
+            if (supported) {
+                runRenderTest(gl.RGBA, [10000, 10000, 10000, 10000], null, true);
+                runRenderTest(gl.RGB, [10000, 10000, 10000, 1], null, false);
+                runFramebufferTest();
+            }
+        })();
 
         // Check of getExtension() returns same object
         runUniqueObjectTest();
     }
+}
+
+function isRenderable(gl, ext) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, ext.HALF_FLOAT_OES, null);
+
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+
+    var status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.deleteFramebuffer(fb);
+    gl.deleteTexture(tex);
+
+    return status == gl.FRAMEBUFFER_COMPLETE;
 }
 
 function getNumberOfChannels(format)
@@ -215,6 +238,19 @@ function getFormatName(format)
         return "ALPHA";
     else if (format == gl.LUMINANCE_ALPHA)
         return "LUMINANCE_ALPHA";
+}
+
+function getTypeName(type) {
+    if (type === gl.UNSIGNED_BYTE)
+        return "UNSIGNED_BYTE";
+    else if (type === ext.HALF_FLOAT_OES)
+        return "HALF_FLOAT_OES";
+    else if (type === gl.UNSIGNED_SHORT_4_4_4_4)
+        return "UNSIGNED_SHORT_4_4_4_4";
+    else if (type === gl.UNSIGNED_SHORT_5_5_5_1)
+        return "UNSIGNED_SHORT_5_6_5";
+    else if (type === gl.FLOAT)
+        return "FLOAT";
 }
 
 function allocateTexture()
@@ -272,7 +308,7 @@ function checkRenderingResults()
     wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
 }
 
-function runRenderTest(format, subtractor, data)
+function runRenderTest(format, subtractor, data, requireRenderable)
 {
     var formatString = wtu.glEnumToString(gl, format);
 
@@ -301,13 +337,17 @@ function runRenderTest(format, subtractor, data)
         // It is legal for a WebGL implementation exposing the OES_texture_half_float extension to
         // support half floating point textures but not as attachments to framebuffer objects.
         if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
-            debug("Half floating point render targets not supported -- this is legal");
+            if (requireRenderable) {
+                testFailed(formatString + " render targets not supported.");
+            } else {
+                debug(formatString + " render targets not supported -- this is legal");
+            }
             return;
         }
 
         var renderProgram =
             wtu.setupProgram(gl,
-                             ["positionVertexShader", "floatingPointFragmentShader"],
+                             [wtu.simpleVertexShader, "floatingPointFragmentShader"],
                              ['vPosition'],
                              [0]);
         wtu.drawUnitQuad(gl);
@@ -316,12 +356,12 @@ function runRenderTest(format, subtractor, data)
 
     // Now sample from the half floating-point texture and verify we got the correct values.
     var texturedShaders = [
-      wtu.setupSimpleTextureVertexShader(gl),
+          wtu.simpleTextureVertexShader,
           "testFragmentShader"
       ];
     var testProgram =
         wtu.setupProgram(gl,
-                        [wtu.setupSimpleTextureVertexShader(gl), "testFragmentShader"],
+                        [wtu.simpleTextureVertexShader, "testFragmentShader"],
                         ['vPosition', 'texCoord0'],
                         [0, 1]);
     var quadParameters = wtu.setupUnitQuad(gl, 0, 1);
@@ -338,15 +378,147 @@ function runUniqueObjectTest()
 {
     debug("");
     debug("Testing that getExtension() returns the same object each time");
+    ext = null;
     gl.getExtension("OES_texture_half_float").myProperty = 2;
-    gc();
+    webglHarnessCollectGarbage();
     shouldBe('gl.getExtension("OES_texture_half_float").myProperty', '2');
+}
+
+// Make sure we can call readPixels with the passed in arrayBufferConstructor and that the color
+// channels are the ones we expect. If there is a mismatch between the glType and arrayBuffer type,
+// fail the test.
+function verifyReadPixelsColors(red, green, blue, alpha, alphaRGB, glFormat, glType, arrayBufferConstructor) {
+    var typeName = getTypeName(glType);
+
+    debug(getFormatName(glFormat) + " framebuffer with " + typeName + " readback.");
+
+    var arrayBuffer = new arrayBufferConstructor(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels should return NO_ERROR when reading " + typeName + " data.");
+
+    assertMsg(arrayBuffer[0] === red, "Red channel should be " + red + " for " + typeName + " readPixels. Received: " + arrayBuffer[0]);
+    assertMsg(arrayBuffer[1] === green, "Green channel should be " + green + " for " + typeName + " readPixels. Received: " + arrayBuffer[1]);
+    assertMsg(arrayBuffer[2] === blue, "Blue channel should be " + blue + " for " + typeName + " readPixels. Received: " + arrayBuffer[2]);
+    if (glFormat === gl.RGBA) {
+        assertMsg(arrayBuffer[3] === alpha, "Alpha channel should be " + alpha + " for " + typeName + " readPixels. Received: " + arrayBuffer[3]);
+    } else if (glFormat === gl.RGB) {
+        assertMsg(arrayBuffer[3] === alphaRGB, "Alpha channel should be " + alphaRGB + " for " + typeName + " readPixels. Received: " + arrayBuffer[3]);
+    }
+
+    // Make sure any arrayBuffer types that are not equal to arrayBufferConstructor fail readPixels.
+    if (arrayBufferConstructor !== Uint8Array) {
+        arrayBuffer = new Uint8Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "readPixels should return INVALID_OPERATION when reading mismatched types. " + Uint8Array.toString());
+    }
+    if (arrayBufferConstructor !== Float32Array) {
+        arrayBuffer = new Float32Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "readPixels should return INVALID_OPERATION when reading mismatched types. " + Float32Array.toString());
+    }
+    if (arrayBufferConstructor !== Uint16Array) {
+        arrayBuffer = new Uint16Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, glType, arrayBuffer);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "readPixels should return INVALID_OPERATION when reading mismatched types. " + Uint16Array.toString());
+    }
+}
+
+// Verify that half float textures attached to frame buffers function correctly with regard to framebuffer
+// completness, IMPLEMENTATION_COLOR_READ_FORMAT/TYPE and readPixels
+function runFramebufferTest() {
+    debug("");
+    debug("Framebuffer Tests");
+
+    var texture = allocateTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+    debug("Ensure non-color-renderable formats [LUMINANCE, LUMINANCE_ALPHA, ALPHA] fail.");
+    var arrayBufferFloatOutput = new Float32Array(4); // 4 color channels
+    [gl.LUMINANCE, gl.LUMINANCE_ALPHA, gl.ALPHA].forEach(function(badFormat) {
+        debug(getFormatName(badFormat) + " framebuffer");
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, badFormat, 1, 1, 0, badFormat, ext.HALF_FLOAT_OES, null);
+        shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+
+        shouldBeNull("gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "IMPLEMENTATION_COLOR_READ_FORMAT should fail for incomplete framebuffers.");
+
+        shouldBeNull("gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE)");
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "IMPLEMENTATION_COLOR_READ_TYPE should fail for incomplete framebuffers.");
+
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT, arrayBufferFloatOutput);
+        wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION , "readPixels should fail on incomplete framebuffers.");
+        debug("");
+    });
+
+    debug("Ensure color renderable formats [RGBA, RGB] succeed.");
+    var arrayBufferHalfFloatInput = new Uint16Array(4); // 4 color channels
+    arrayBufferHalfFloatInput[0] = 0;      // 0 in half float
+    arrayBufferHalfFloatInput[1] = 0x3400; // 0.25 in half float
+    arrayBufferHalfFloatInput[2] = 0x3800; // 0.50 in half float
+    arrayBufferHalfFloatInput[3] = 0x3A00; // 0.75 in half float
+
+    [gl.RGBA, gl.RGB].forEach(function(goodFormat) {
+        debug(getFormatName(goodFormat) + " framebuffer tests");
+        debug("");
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, goodFormat, 1, 1, 0, goodFormat, ext.HALF_FLOAT_OES, arrayBufferHalfFloatInput);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+            // Per the OES_color_buffer_half_float, RGBA/FLOAT should always succeed for readPixels
+            verifyReadPixelsColors(
+                0.00, // red
+                0.25, // green
+                0.50, // blue
+                0.75, // alpha
+                1.0,  // alphaRGB
+                goodFormat,
+                gl.FLOAT,
+                Float32Array);
+
+            var implementationColorReadFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+            assertMsg(implementationColorReadFormat === gl.RGBA || implementationColorReadFormat === gl.RGB,
+                "IMPLEMENTATION_COLOR_READ_FORMAT should be color renderable: RGBA or RGB. Received: " + getFormatName(implementationColorReadFormat));
+
+            var implementationColorReadType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+
+            // There is nothing in the specifications that keeps the
+            // implementation color read format and type from being the
+            // same as the implicitly supported one. For this reason, keep
+            // gl.FLOAT as one of the valid options.
+            assertMsg(implementationColorReadType === gl.UNSIGNED_BYTE ||
+                      implementationColorReadType === gl.FLOAT ||
+                      implementationColorReadType === ext.HALF_FLOAT_OES ||
+                      implementationColorReadType === gl.UNSIGNED_SHORT_4_4_4_4 ||
+                      implementationColorReadType === gl.UNSIGNED_SHORT_5_5_5_1 ||
+                      implementationColorReadType === gl.UNSIGNED_SHORT_5_6_5,
+                      "IMPLEMENTATION_COLOR_READ_TYPE must be one of UNSIGNED_BYTE, UNSIGNED_SHORT_4_4_4_4, UNSIGNED_SHORT_5_5_5_1, UNSIGNED_SHORT_5_6_5, FLOAT, or HALF_FLOAT_OES. " +
+                      "Received: " + getTypeName(implementationColorReadType));
+
+            // Test the RGBA/HALF_FLOAT_OES combination
+            if (implementationColorReadFormat === gl.RGBA && implementationColorReadType === ext.HALF_FLOAT_OES) {
+                verifyReadPixelsColors(
+                    0,      // red
+                    0x3400, // green
+                    0x3800, // blue
+                    0x3A00, // alpha
+                    0x3C00, // alphaRGB
+                    goodFormat,
+                    ext.HALF_FLOAT_OES,
+                    Uint16Array);
+            }
+        }
+        debug("");
+    });
 }
 
 debug("");
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

@@ -138,8 +138,8 @@ void main (void)
     (vec4_1.x)--;
     vec3_1++;
 
-    if (int_1 != 4)
-        discard;
+	if (int_1 != 4)
+		discard;
 
     float1 = 4.0 + 6.0;
     int ii,jj,kk;

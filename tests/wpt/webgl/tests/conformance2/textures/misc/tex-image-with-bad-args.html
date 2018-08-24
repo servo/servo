@@ -41,7 +41,7 @@
 <script>
 "use strict";
 description('Tests texImage2D with invalid internalformat/format/type combinations');
-debug("This is a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=656889'>Chromium Issue 656889</a>");
+debug("This includes a regression test for <a href='https://bugs.chromium.org/p/chromium/issues/detail?id=656889'>Chromium Issue 656889</a>");
 
 var wtu = WebGLTestUtils;
 var gl = wtu.create3DContext("c", null, 2);
@@ -67,6 +67,8 @@ var tests = [
     { internalformat: gl.RGBA, format: gl.RGBA, type: gl.HALF_FLOAT, errors: [gl.INVALID_OPERATION] },
     { internalformat: gl.LUMINANCE, format: gl.LUMINANCE, type: gl.FLOAT, errors: [gl.INVALID_OPERATION] },
     { internalformat: gl.LUMINANCE_ALPHA, format: gl.LUMINANCE_ALPHA, type: gl.HALF_FLOAT, errors: [gl.INVALID_OPERATION] },
+    { internalformat: 0x822A /*GL_R16_EXT*/ , format: gl.RED, type: gl.UNSIGNED_SHORT, errors: [gl.INVALID_VALUE] },
+    { internalformat: gl.RED, format: gl.RED, type: gl.UNSIGNED_SHORT, errors: [gl.INVALID_VALUE, gl.INVALID_OPERATION] },
 ];
 
 tests.forEach(doTexImage);

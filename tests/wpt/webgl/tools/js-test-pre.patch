@@ -1,8 +1,6 @@
-diff --git a/conformance-suites/1.0.3/resources/js-test-pre.js b/conformance-suites/1.0.3/resources/js-test-pre.js
-index 2a03001..c4bb653 100644
---- a/conformance-suites/1.0.3/resources/js-test-pre.js
-+++ b/conformance-suites/1.0.3/resources/js-test-pre.js
-@@ -71,11 +71,25 @@ function nonKhronosFrameworkNotifyDone() {
+--- js/js-test-pre.js
++++ js/js-test-pre.js
+@@ -106,11 +106,25 @@
    }
  }
  
@@ -30,22 +28,23 @@ index 2a03001..c4bb653 100644
 -}
 +}())
  
- function notifyFinishedToHarness() {
+ function reportSkippedTestResultsToHarness(success, msg) {
    if (window.parent.webglTestHarness) {
-@@ -86,13 +100,19 @@ function notifyFinishedToHarness() {
+@@ -127,6 +141,12 @@
    }
  }
  
-+(function() {
++(function () {
 +  var oldNotify = notifyFinishedToHarness;
 +  var t = async_test("Overall test");
 +  window.notifyFinishedToHarness = t.step_func_done(oldNotify);
 +}())
 +
- function _logToConsole(msg)
- {
-     if (window.console)
-       window.console.log(msg);
+ var _bufferedConsoleLogs = [];
+ 
+ function _bufferedLogToConsole(msg)
+@@ -157,7 +177,7 @@
+   }
  }
  
 -var _jsTestPreVerboseLogging = false;
@@ -53,7 +52,7 @@ index 2a03001..c4bb653 100644
  
  function enableJSTestPreVerboseLogging()
  {
-@@ -105,31 +125,18 @@ function description(msg)
+@@ -170,24 +190,11 @@
      if (msg === undefined) {
        msg = document.title;
      }
@@ -66,9 +65,9 @@ index 2a03001..c4bb653 100644
 -    else
 -        description.appendChild(span);
 -    if (_jsTestPreVerboseLogging) {
--        _logToConsole(msg);
+-        _bufferedLogToConsole(msg);
 -    }
-+    _logToConsole("DESCRIPTION: " + msg);
++    _bufferedLogToConsole("DESCRIPTION: " + msg);
  }
  
  function _addSpan(contents)
@@ -79,20 +78,3 @@ index 2a03001..c4bb653 100644
  }
  
  function debug(msg)
- {
-     _addSpan(msg);
-     if (_jsTestPreVerboseLogging) {
--	_logToConsole(msg);
-+      _logToConsole(msg);
-     }
- }
- 
-@@ -143,7 +150,7 @@ function testPassed(msg)
-     reportTestResultsToHarness(true, msg);
-     _addSpan('<span><span class="pass">PASS</span> ' + escapeHTML(msg) + '</span>');
-     if (_jsTestPreVerboseLogging) {
--	_logToConsole('PASS ' + msg);
-+      _logToConsole('PASS ' + msg);
-     }
- }
- 

@@ -172,6 +172,15 @@ function runOutputTests() {
     gl.drawArraysInstanced(gl.TRIANGLES, 0, -1, instanceCount);
     wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawArraysInstanced cannot have a count less than 0");
 
+    gl.vertexAttribDivisor(positionLoc, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawArraysInstanced");
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawArrays");
+    wtu.checkCanvas(gl, [0, 0, 0, 0], "Nothing should be drawn on the framebuffer when all attributes have non-zero divisors (not enough vertices per instance to form a triangle)");
+    gl.vertexAttribDivisor(positionLoc, 0);
+
     gl.drawArraysInstanced(gl.POINTS, 0, 6, instanceCount);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawArraysInstanced with POINTS should succeed");
     gl.drawArraysInstanced(gl.LINES, 0, 6, instanceCount);
@@ -204,6 +213,15 @@ function runOutputTests() {
 
     gl.drawElementsInstanced(gl.TRIANGLES, -1, gl.UNSIGNED_SHORT, 0, instanceCount);
     wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "drawElementsInstanced cannot have a count less than 0");
+
+    gl.vertexAttribDivisor(positionLoc, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0, instanceCount);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawElementsInstanced");
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "It's allowed for all vertex attributes to have non-zero divisors when calling drawElements");
+    wtu.checkCanvas(gl, [0, 0, 0, 0], "Nothing should be drawn on the framebuffer when all attributes have non-zero divisors (not enough vertices per instance to form a triangle)");
+    gl.vertexAttribDivisor(positionLoc, 0);
 
     gl.drawElementsInstanced(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0, instanceCount);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "drawElementsInstanced with UNSIGNED_BYTE should succeed");

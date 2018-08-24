@@ -44,9 +44,8 @@
 description("Tests deletion behavior for WebGL2 buffer, sampler, vertexArray and transformFeedback objects.");
 
 var wtu = WebGLTestUtils;
-var gl = wtu.create3DContext();
+var gl = wtu.create3DContext(undefined, undefined, 2);
 var shouldGenerateGLError = wtu.shouldGenerateGLError;
-var contextVersion = wtu.getDefault3DContextVersion();
 
 debug("");
 debug("buffer deletion");

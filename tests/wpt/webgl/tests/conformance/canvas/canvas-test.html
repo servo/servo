@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -106,11 +106,14 @@ if (!gl) {
       g2d = imgData.data[offset + 1];
       b2d = imgData.data[offset + 2];
       a2d = imgData.data[offset + 3];
-      //debug('' + x + ', ' + y + "(" + offset + ") = " + r2d + ", " + g2d + ", " + b2d + ", " + a2d);
-      return isAboutEqualInt(r2d, r3d) &&
-             isAboutEqualInt(g2d, g3d) &&
-             isAboutEqualInt(b2d, b3d) &&
-             isAboutEqualInt(a2d, a3d);
+      var res = isAboutEqualInt(r2d, r3d) &&
+                isAboutEqualInt(g2d, g3d) &&
+                isAboutEqualInt(b2d, b3d) &&
+                isAboutEqualInt(a2d, a3d);
+      if (!res) {
+        bufferedLogToConsole('at ' + x + ', ' + y + " (offset " + offset + ") = " + r2d + ", " + g2d + ", " + b2d + ", " + a2d);
+      }
+      return res;
     }
 
     var checkPixels = function(r3d,g3d,b3d,a3d) {

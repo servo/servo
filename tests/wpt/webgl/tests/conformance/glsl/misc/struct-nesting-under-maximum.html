@@ -31,12 +31,12 @@
 <meta charset="utf-8">
 <title>WebGL GLSL Conformance Tests</title>
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
-<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
-<script src="../../resources/glsl-conformance-test.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -44,19 +44,19 @@
 <script id="vertexShader" type="text/something-not-javascript">
 // shader with struct nesting less than maximum in WebGL spec should succeed
 struct nesting4 {
-  vec4 vecfield;
+    vec4 vecfield;
 };
 
 struct nesting3 {
-  nesting4 field4;
+    nesting4 field4;
 };
 
 struct nesting2 {
-  nesting3 field3;
+    nesting3 field3;
 };
 
 struct nesting1 {
-  nesting2 field2;
+    nesting2 field2;
 };
 
 uniform nesting1 uniform1;

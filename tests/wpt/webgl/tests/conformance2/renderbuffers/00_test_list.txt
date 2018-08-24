@@ -3,5 +3,7 @@ framebuffer-test.html
 framebuffer-texture-layer.html
 invalidate-framebuffer.html
 multisampled-renderbuffer-initialization.html
+--min-version 2.0.1 multisampled-depth-renderbuffer-initialization.html
+--min-version 2.0.1 multisampled-stencil-renderbuffer-initialization.html
 --min-version 2.0.1 multisample-with-full-sample-counts.html
 readbuffer.html

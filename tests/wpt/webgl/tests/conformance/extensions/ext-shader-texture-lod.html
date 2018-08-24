@@ -32,13 +32,14 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/desktop-gl-constants.js" type="text/javascript"></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
-<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<canvas id="canvas" style="width: 256px; height: 256px;"> </canvas>
+<canvas id="canvas2" style="width: 256px; height: 256px;"> </canvas>
 <div id="console"></div>
 <!-- Shaders for testing texture LOD functions -->
 
@@ -46,9 +47,11 @@
 <script id="missingPragmaFragmentShader" type="x-shader/x-fragment">
 precision mediump float;
 varying vec2 texCoord0v;
+uniform float lod;
+uniform sampler2D tex;
 void main() {
     vec4 color = texture2DLodEXT(tex, texCoord0v, lod);
-    gl_FragColor = vec4(dx, dy, w, 1.0);
+    gl_FragColor = color;
 }
 </script>
 
@@ -118,35 +121,50 @@ debug("");
 
 var wtu = WebGLTestUtils;
 var canvas = document.getElementById("canvas");
-canvas.width = 256; canvas.height = 256;
-
 var gl = wtu.create3DContext(canvas);
 var ext = null;
 
-if (!gl) {
-    testFailed("WebGL context does not exist");
-} else {
-    testPassed("WebGL context exists");
+// Run all tests once.
+runAllTests();
 
-    // Run tests with extension disabled
-    runShaderTests(false);
+// Run all tests against with a new context to test for any cache issues.
+debug("");
+debug("Testing new context to catch cache errors");
+var canvas2 = document.getElementById("canvas2");
+gl = wtu.create3DContext(canvas2);
+ext = null;
+runAllTests();
 
-    // Query the extension and store globally so shouldBe can access it
-    ext = gl.getExtension("EXT_shader_texture_lod");
-    if (!ext) {
-        testPassed("No EXT_shader_texture_lod support -- this is legal");
-
-        runSupportedTest(false);
+function runAllTests() {
+    if (!gl) {
+        testFailed("WebGL context does not exist");
     } else {
-        testPassed("Successfully enabled EXT_shader_texture_lod extension");
+        testPassed("WebGL context exists");
 
-        runSupportedTest(true);
+        // Run tests with extension disabled
+        runShaderTests(false);
 
-        runShaderTests(true);
-        runOutputTests();
-        runUniqueObjectTest();
-        runReferenceCycleTest();
+        // Query the extension and store globally so shouldBe can access it
+        ext = gl.getExtension("EXT_shader_texture_lod");
+        if (!ext) {
+            testPassed("No EXT_shader_texture_lod support -- this is legal");
+
+            runSupportedTest(false);
+        } else {
+            testPassed("Successfully enabled EXT_shader_texture_lod extension");
+
+            runSupportedTest(true);
+
+            runShaderTests(true);
+            runOutputTests();
+            runUniqueObjectTest();
+            runReferenceCycleTest();
+
+            // Run deferred link tests.
+            runDeferredLinkTests();
+        }
     }
+
 }
 
 function runSupportedTest(extensionEnabled) {
@@ -264,8 +282,9 @@ function runUniqueObjectTest()
 {
     debug("");
     debug("Testing that getExtension() returns the same object each time");
+    ext = null;
     gl.getExtension("EXT_shader_texture_lod").myProperty = 2;
-    gc();
+    webglHarnessCollectGarbage();
     shouldBe('gl.getExtension("EXT_shader_texture_lod").myProperty', '2');
 }
 
@@ -284,10 +303,62 @@ function runReferenceCycleTest()
     ext.ext = ext;
 }
 
+function runDeferredLinkTests() {
+    debug("");
+    debug("Testing deferred shader compilation tests.");
+
+    // Test for compilation failures that are caused by missing extensions
+    // do not succeed if extensions are enabled during linking. This would
+    // only happen for deferred shader compilations.
+
+    // First test if link succeeds with extension enabled.
+    var glEnabled = wtu.create3DContext();
+    var extEnabled = glEnabled.getExtension("EXT_shader_texture_lod");
+    if (!extEnabled) {
+        testFailed("Deferred link test expects the extension to be supported");
+    }
+
+    var vertexShader = wtu.loadShaderFromScript(glEnabled, "goodVertexShader");
+    var fragmentShader = wtu.loadShaderFromScript(glEnabled, "macroFragmentShader");
+
+    if (!vertexShader || !fragmentShader) {
+        testFailed("Could not create good shaders.");
+        return;
+    }
+
+    var program = wtu.setupProgram(glEnabled, [vertexShader, fragmentShader]);
+
+    if (!program) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    // Create new context to test link failure without extension enabled.
+    var glDeferred = wtu.create3DContext();
+
+    var vertexShader = wtu.loadShaderFromScript(glDeferred, "goodVertexShader", glDeferred.VERTEX_SHADER, undefined, undefined, true);
+    var fragmentShader = wtu.loadShaderFromScript(glDeferred, "macroFragmentShader", glDeferred.FRAGMENT_SHADER, undefined, undefined, true);
+
+    if (vertexShader == null || fragmentShader == null) {
+        testFailed("Could not create shaders.");
+        return;
+    }
+
+    // Shader compilations should have failed due to extensions not enabled.
+    glDeferred.getExtension("EXT_shader_texture_lod");
+    var program = wtu.setupProgram(glDeferred, [vertexShader, fragmentShader]);
+    if (program) {
+        testFailed("Compilation with extension disabled then linking with extension enabled should have failed.");
+        return;
+    }
+
+    testPassed("Compilation with extension disabled then linking with extension enabled.");
+}
+
 debug("");
 successfullyParsed = true;
 </script>
-<script>finishTest();</script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

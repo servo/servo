@@ -15,8 +15,8 @@ tex-2d-rgb565-rgb-unsigned_short_5_6_5.html
 tex-2d-r11f_g11f_b10f-rgb-unsigned_int_10f_11f_11f_rev.html
 tex-2d-r11f_g11f_b10f-rgb-half_float.html
 tex-2d-r11f_g11f_b10f-rgb-float.html
-//tex-2d-rgb9_e5-rgb-half_float.html  // crbug.com/663188 , Apple Radar 29259244
-//tex-2d-rgb9_e5-rgb-float.html       // crbug.com/663188 , Apple Radar 29259244
+tex-2d-rgb9_e5-rgb-half_float.html
+tex-2d-rgb9_e5-rgb-float.html
 tex-2d-rgb16f-rgb-half_float.html
 tex-2d-rgb16f-rgb-float.html
 tex-2d-rgb32f-rgb-float.html
@@ -25,6 +25,7 @@ tex-2d-rgba8-rgba-unsigned_byte.html
 tex-2d-srgb8_alpha8-rgba-unsigned_byte.html
 tex-2d-rgb5_a1-rgba-unsigned_byte.html
 tex-2d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html
+tex-2d-rgb10_a2-rgba-unsigned_int_2_10_10_10_rev.html
 tex-2d-rgba4-rgba-unsigned_byte.html
 tex-2d-rgba4-rgba-unsigned_short_4_4_4_4.html
 tex-2d-rgba16f-rgba-half_float.html
@@ -48,8 +49,8 @@ tex-3d-rgb565-rgb-unsigned_short_5_6_5.html
 tex-3d-r11f_g11f_b10f-rgb-unsigned_int_10f_11f_11f_rev.html
 tex-3d-r11f_g11f_b10f-rgb-half_float.html
 tex-3d-r11f_g11f_b10f-rgb-float.html
-//tex-3d-rgb9_e5-rgb-half_float.html  // crbug.com/663188 , Apple Radar 29259244
-//tex-3d-rgb9_e5-rgb-float.html       // crbug.com/663188 , Apple Radar 29259244
+tex-3d-rgb9_e5-rgb-half_float.html
+tex-3d-rgb9_e5-rgb-float.html
 tex-3d-rgb16f-rgb-half_float.html
 tex-3d-rgb16f-rgb-float.html
 tex-3d-rgb32f-rgb-float.html
@@ -58,6 +59,7 @@ tex-3d-rgba8-rgba-unsigned_byte.html
 tex-3d-srgb8_alpha8-rgba-unsigned_byte.html
 tex-3d-rgb5_a1-rgba-unsigned_byte.html
 tex-3d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html
+tex-3d-rgb10_a2-rgba-unsigned_int_2_10_10_10_rev.html
 tex-3d-rgba4-rgba-unsigned_byte.html
 tex-3d-rgba4-rgba-unsigned_short_4_4_4_4.html
 tex-3d-rgba16f-rgba-half_float.html

@@ -67,19 +67,24 @@ if (!gl) {
         testPassed("No EXT_disjoint_timer_query support -- this is legal");
         finishTest();
     } else {
-        runSanityTests();
+        if (wtu.getDefault3DContextVersion() > 1) {
+            testFailed("EXT_disjoint_timer_query must not be advertised on WebGL 2.0 contexts");
+            finishTest();
+        } else {
+            runSanityTests();
 
-        // Clear disjoint value.
-        gl.getParameter(ext.GPU_DISJOINT_EXT);
+            // Clear disjoint value.
+            gl.getParameter(ext.GPU_DISJOINT_EXT);
 
-        runElapsedTimeTest();
-        timestamp_counter_bits = ext.getQueryEXT(ext.TIMESTAMP_EXT, ext.QUERY_COUNTER_BITS_EXT);
-        if (timestamp_counter_bits > 0) {
-            runTimeStampTest();
+            runElapsedTimeTest();
+            timestamp_counter_bits = ext.getQueryEXT(ext.TIMESTAMP_EXT, ext.QUERY_COUNTER_BITS_EXT);
+            if (timestamp_counter_bits > 0) {
+                runTimeStampTest();
+            }
+            verifyQueryResultsNotAvailable();
+
+            window.requestAnimationFrame(checkQueryResults);
         }
-        verifyQueryResultsNotAvailable();
-
-        window.requestAnimationFrame(checkQueryResults);
     }
 }
 

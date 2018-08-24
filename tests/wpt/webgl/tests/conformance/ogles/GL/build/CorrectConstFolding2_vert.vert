@@ -30,7 +30,7 @@ void main()
     };
     const struct s {
         int i;
-        float j;
+    	float j;
       s5 s55;
     } ss = s(4,1.0, s5(1.0));
 

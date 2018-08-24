@@ -32,8 +32,8 @@
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
 </head>
 
 <body>
@@ -140,7 +140,7 @@ if (!gl) {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
   var attribBuffers = wtu.setupUnitQuad(gl, 0, 1);
-  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], ["a_position", "a_tex_coords"], [0, 1]);
+  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], ["a_position", "a_tex_coords"], [0, 1], true);
 
   // Bind texture
   var uniformMap = wtu.getUniformMap(gl, program);
@@ -158,6 +158,6 @@ if (!gl) {
 
 var successfullyParsed = true;
 </script>
-<script src="../../../resources/js-test-post.js"></script>
+<script src="../../../js/js-test-post.js"></script>
 </body>
 </html>

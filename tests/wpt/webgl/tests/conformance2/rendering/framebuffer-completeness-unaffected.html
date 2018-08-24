@@ -79,12 +79,9 @@ if (!gl) {
   gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, null);
   shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
 
-  // Setting of GL_READ_BUFFER and GL_DRAW_BUFFERs affects framebuffer completeness on Mac Intel.
-  // Chromium bug: crbug.com/630800
-  // Apple Radar: 28236629
-  //debug("set read buffer to ATTACHMENT1, fbo should be complete");
-  //gl.readBuffer(gl.COLOR_ATTACHMENT1);
-  //shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+  debug("set read buffer to ATTACHMENT1, fbo should be complete");
+  gl.readBuffer(gl.COLOR_ATTACHMENT1);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
 
   debug("drawBuffers selects ATTACHMENT0, fbo should be complete");
   gl.drawBuffers([gl.COLOR_ATTACHMENT0]);

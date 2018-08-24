@@ -37,6 +37,19 @@ function runOneIterationImageBitmapTest(useTexSubImage, bindingTarget, program, 
         greenColor = [0, 0, 0];
         halfGreen = [0, 0, 0];
         break;
+      case gl.LUMINANCE:
+      case gl.LUMINANCE_ALPHA:
+        redColor = [255, 255, 255];
+        greenColor = [0, 0, 0];
+        halfRed = [128, 128, 128];
+        halfGreen = [0, 0, 0];
+        break;
+      case gl.ALPHA:
+        redColor = [0, 0, 0];
+        greenColor = [0, 0, 0];
+        halfRed = [0, 0, 0];
+        halfGreen = [0, 0, 0];
+        break;
       default:
         break;
     }
@@ -44,9 +57,8 @@ function runOneIterationImageBitmapTest(useTexSubImage, bindingTarget, program, 
     switch (gl[internalFormat]) {
       case gl.SRGB8:
       case gl.SRGB8_ALPHA8:
-        // Math.pow((128 / 255 + 0.055) / 1.055, 2.4) * 255 = 55
-        halfRed = [55, 0, 0];
-        halfGreen = [0, 55, 0];
+        halfRed = wtu.sRGBToLinear(halfRed);
+        halfGreen = wtu.sRGBToLinear(halfGreen);
         break;
       default:
         break;
@@ -186,6 +198,19 @@ function runOneIterationImageBitmapTestSubSource(useTexSubImage, bindingTarget, 
         greenColor = [0, 0, 0];
         halfGreen = [0, 0, 0];
         break;
+      case gl.LUMINANCE:
+      case gl.LUMINANCE_ALPHA:
+        redColor = [255, 255, 255];
+        greenColor = [0, 0, 0];
+        halfRed = [128, 128, 128];
+        halfGreen = [0, 0, 0];
+        break;
+      case gl.ALPHA:
+        redColor = [0, 0, 0];
+        greenColor = [0, 0, 0];
+        halfRed = [0, 0, 0];
+        halfGreen = [0, 0, 0];
+        break;
       default:
         break;
     }
@@ -193,9 +218,8 @@ function runOneIterationImageBitmapTestSubSource(useTexSubImage, bindingTarget, 
     switch (gl[internalFormat]) {
       case gl.SRGB8:
       case gl.SRGB8_ALPHA8:
-        // Math.pow((128 / 255 + 0.055) / 1.055, 2.4) * 255 = 55
-        halfRed = [55, 0, 0];
-        halfGreen = [0, 55, 0];
+        halfRed = wtu.sRGBToLinear(halfRed);
+        halfGreen = wtu.sRGBToLinear(halfGreen);
         break;
       default:
         break;

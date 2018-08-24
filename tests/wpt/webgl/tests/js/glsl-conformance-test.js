@@ -270,8 +270,12 @@ function runOneTest(gl, info) {
   if (info.uniforms !== undefined) {
     for (var i = 0; i < info.uniforms.length; ++i) {
       var uniformLocation = gl.getUniformLocation(program, info.uniforms[i].name);
-      gl[info.uniforms[i].functionName](uniformLocation, info.uniforms[i].value);
-      debug(info.uniforms[i].name + ' set to ' + info.uniforms[i].value);
+      if (uniformLocation !== null) {
+        gl[info.uniforms[i].functionName](uniformLocation, info.uniforms[i].value);
+        debug(info.uniforms[i].name + ' set to ' + info.uniforms[i].value);
+      } else {
+        debug('uniform ' + info.uniforms[i].name + ' had null location and was not set');
+      }
     }
   }
 
@@ -288,7 +292,11 @@ function runOneTest(gl, info) {
   if (info.renderTolerance !== undefined) {
     tolerance = info.renderTolerance;
   }
-  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", tolerance);
+  if (info.renderColor !== undefined) {
+    wtu.checkCanvas(gl, info.renderColor, "should be expected color " + info.renderColor, tolerance);
+  } else {
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", tolerance);
+  }
 }
 
 function runTests(shaderInfos, opt_contextVersion) {
@@ -303,17 +311,11 @@ function runTests(shaderInfos, opt_contextVersion) {
     return;
   }
 
-  var testIndex = 0;
-  var runNextTest = function() {
-    if (testIndex == shaderInfos.length) {
-      finishTest();
-      return;
-    }
-
-    runOneTest(gl, shaderInfos[testIndex++]);
-    setTimeout(runNextTest, 1);
+  for (var i = 0; i < shaderInfos.length; i++) {
+    runOneTest(gl, shaderInfos[i]);
   }
-  runNextTest();
+
+  finishTest();
 };
 
 function getSource(elem) {

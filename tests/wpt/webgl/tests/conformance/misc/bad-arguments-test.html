@@ -32,8 +32,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -44,75 +44,80 @@
 var wtu = WebGLTestUtils;
 description("Tests calling WebGL APIs with wrong argument types");
 
-var context = wtu.create3DContext();
-var program = wtu.loadStandardProgram(context);
-var shader = wtu.loadStandardVertexShader(context);
-
-function mayThrow(expression) {
-  wtu.shouldThrowOrGenerateGLError(context, [context.NO_ERROR, context.INVALID_VALUE, context.INVALID_OPERATION, context.INVALID_ENUM], expression);
-}
-
-assertMsg(program != null, "Program Compiled");
-assertMsg(shader != null, "Shader Compiled");
-
-var loc = context.getUniformLocation(program, "u_modelViewProjMatrix");
-assertMsg(loc != null, "getUniformLocation succeeded");
 
 var testArguments = [
   { value: "foo",
-    throws: "yes" },
+    throwsForNullables: true },
   { value: 0,
-    throws: "yes" },
+    throwsForNullables: true },
   { value: null,
-    throws: "maybe" },
+    throwsForNullables: false },
   { value: undefined,
-    throws: "maybe" }
+    throwsForNullables: false }
 ];
 
 var argument;
 
-for (var i = 0; i < testArguments.length; ++i) {
-  var func, func2;
-  if (testArguments[i].throws == "yes") {
-    func = shouldThrow;
-    func2 = shouldThrow;
-  } else {
-    func = mayThrow;
-    func2 = shouldBeUndefined;
-  }
-  argument = testArguments[i].value;
-  func("context.compileShader(argument)");
-  func("context.linkProgram(argument)");
-  func("context.attachShader(program, argument)");
-  func("context.attachShader(argument, shader)");
-  func("context.detachShader(program, argument)");
-  func("context.detachShader(argument, shader)");
-  func("context.shaderSource(argument, 'foo')");
-  func("context.bindAttribLocation(argument, 0, 'foo')");
-  func("context.getProgramInfoLog(argument)");
-  func("context.getProgramParameter(argument, 0)");
-  func("context.getShaderInfoLog(argument)");
-  func("context.getShaderParameter(argument, 0)");
-  func("context.getShaderSource(argument)");
-  func("context.getUniform(argument, loc)");
-  func("context.getUniform(program, argument)");
-  func("context.getUniformLocation(argument, 'u_modelViewProjMatrix')");
+var context = wtu.create3DContext();
+var program;
+var shader;
+var loc;
+wtu.loadStandardProgramAsync(context, function(success, prog) {
+  program = prog;
+  wtu.loadStandardVertexShaderAsync(context, function(success, s) {
+    shader = s;
 
-  func2("context.useProgram(argument)");
-  func2("context.bindBuffer(context.ARRAY_BUFFER, argument)");
-  func2("context.bindFramebuffer(context.FRAMEBUFFER, argument)");
-  func2("context.bindRenderbuffer(context.RENDERBUFFER, argument)");
-  func2("context.bindTexture(context.TEXTURE_2D, argument)");
-  func2("context.framebufferRenderbuffer(context.FRAMEBUFFER, context.DEPTH_ATTACHMENT, context.RENDERBUFFER, argument)");
-  func2("context.framebufferTexture2D(context.FRAMEBUFFER, context.COLOR_ATTACHMENT0, context.TEXTURE_2D, argument, 0)");
-  func2("context.uniform2fv(argument, new Float32Array([0.0, 0.0]))");
-  func2("context.uniform2iv(argument, new Int32Array([0, 0]))");
-  func2("context.uniformMatrix2fv(argument, false, new Float32Array([0.0, 0.0, 0.0, 0.0]))");
-}
+    assertMsg(program != null, "Program Compiled");
+    assertMsg(shader != null, "Shader Compiled");
 
-var successfullyParsed = true;
+    loc = context.getUniformLocation(program, "u_modelViewProjMatrix");
+    assertMsg(loc != null, "getUniformLocation succeeded");
+
+    for (var i = 0; i < testArguments.length; ++i) {
+      argument = testArguments[i].value;
+
+      debug('Testing argument: ' + argument);
+
+      // These functions don't accept nullable arguments any more.
+      shouldThrow("context.compileShader(argument)");
+      shouldThrow("context.linkProgram(argument)");
+      shouldThrow("context.attachShader(program, argument)");
+      shouldThrow("context.attachShader(argument, shader)");
+      shouldThrow("context.detachShader(program, argument)");
+      shouldThrow("context.detachShader(argument, shader)");
+      shouldThrow("context.shaderSource(argument, 'foo')");
+      shouldThrow("context.bindAttribLocation(argument, 0, 'foo')");
+      shouldThrow("context.getProgramInfoLog(argument)");
+      shouldThrow("context.getProgramParameter(argument, 0)");
+      shouldThrow("context.getShaderInfoLog(argument)");
+      shouldThrow("context.getShaderParameter(argument, 0)");
+      shouldThrow("context.getShaderSource(argument)");
+      shouldThrow("context.getUniform(argument, loc)");
+      shouldThrow("context.getUniform(program, argument)");
+      shouldThrow("context.getUniformLocation(argument, 'u_modelViewProjMatrix')");
+
+      // The following entry points still accept nullable arguments.
+      var func;
+      if (testArguments[i].throwsForNullables) {
+        func = shouldThrow;
+      } else {
+        func = shouldBeUndefined;
+      }
+
+      func("context.bindBuffer(context.ARRAY_BUFFER, argument)");
+      func("context.bindFramebuffer(context.FRAMEBUFFER, argument)");
+      func("context.bindRenderbuffer(context.RENDERBUFFER, argument)");
+      func("context.bindTexture(context.TEXTURE_2D, argument)");
+      func("context.framebufferRenderbuffer(context.FRAMEBUFFER, context.DEPTH_ATTACHMENT, context.RENDERBUFFER, argument)");
+      func("context.framebufferTexture2D(context.FRAMEBUFFER, context.COLOR_ATTACHMENT0, context.TEXTURE_2D, argument, 0)");
+      func("context.uniform2fv(argument, new Float32Array([0.0, 0.0]))");
+      func("context.uniform2iv(argument, new Int32Array([0, 0]))");
+      func("context.uniformMatrix2fv(argument, false, new Float32Array([0.0, 0.0, 0.0, 0.0]))");
+      func("context.useProgram(argument)");
+    }
+    finishTest();
+  });
+});
 </script>
-
-<script src="../../resources/js-test-post.js"></script>
 </body>
 </html>

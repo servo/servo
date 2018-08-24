@@ -52,6 +52,34 @@ void main() {
   gl_FragColor = color;
 }
 </script>
+<script id="vsCheckOutOfBounds" type="x-shader/x-vertex">
+    precision mediump float;
+    attribute vec2 position;
+    attribute vec4 vecRandom;
+    varying vec4 v_color;
+
+    // Per the spec, each component can either contain existing contents
+    // of the buffer or 0.
+    bool testFloatComponent(float component) {
+        return (component == 0.2 || component == 0.0);
+    }
+    // The last component is additionally allowed to be 1.0.
+    bool testLastFloatComponent(float component) {
+        return testFloatComponent(component) || component == 1.0;
+    }
+
+    void main() {
+        if (testFloatComponent(vecRandom.x) &&
+            testFloatComponent(vecRandom.y) &&
+            testFloatComponent(vecRandom.z) &&
+            testLastFloatComponent(vecRandom.w)) {
+            v_color = vec4(0.0, 1.0, 0.0, 1.0); // green -- Out of range
+        } else {
+            v_color = vec4(1.0, 0.0, 0.0, 1.0); // red -- Unexpected value
+        }
+        gl_Position = vec4(position, 0.0, 1.0);
+    }
+</script>
 
 </head>
 <body>
@@ -89,9 +117,8 @@ for (var ii = 0; ii < 2; ++ii) {
         // These tests are tweaked duplicates of the buffers/index-validation* tests
         // using unsigned int indices to ensure that behavior remains consistent
         runIndexValidationTests(drawType);
-        runCopiesIndicesTests(drawType);
+        runIndexOutOfRangeTests(drawType);
         runResizedBufferTests(drawType);
-        runVerifiesTooManyIndicesTests(drawType);
         runCrashWithBufferSubDataTests(drawType);
 
         wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
@@ -254,8 +281,6 @@ function runIndexValidationTests(drawType) {
     shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
     wtu.glErrorShouldBe(gl, gl.NO_ERROR);
 
-    debug("Testing with out-of-range indices");
-
     var bufferIncomplete = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferIncomplete);
     gl.bufferData(gl.ARRAY_BUFFER, dataIncomplete, drawType);
@@ -266,12 +291,6 @@ function runIndexValidationTests(drawType) {
     wtu.glErrorShouldBe(gl, gl.NO_ERROR);
     shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
     wtu.glErrorShouldBe(gl, gl.NO_ERROR);
-    debug("Enable normals, out-of-range");
-    gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 7 * sizeInBytes(gl.FLOAT), 4 * sizeInBytes(gl.FLOAT));
-    gl.enableVertexAttribArray(normalLoc);
-    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
-    shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
-    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
 
     debug("Test with enabled attribute that does not belong to current program");
 
@@ -292,32 +311,64 @@ function runIndexValidationTests(drawType) {
     shouldBeUndefined('gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_INT, 0)');
 }
 
-function runCopiesIndicesTests(drawType) {
+function runIndexOutOfRangeTests(drawType) {
+    debug("Testing with out-of-range indices");
+
+    var bufferPos = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferPos);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        1.0,  1.0,
+        -1.0,  1.0,
+        -1.0, -1.0,
+        1.0, -1.0]), drawType);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+    var bufferIncomplete = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferIncomplete);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]), drawType);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 0, 0);
+
+    var glProgram = wtu.setupProgram(gl, ["vsCheckOutOfBounds", wtu.simpleVertexColorFragmentShader], ["position", "vecRandom"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Shader and buffer setup successfully");
+
+    var indices = new Uint32Array([0, 1, 2, 0, 2, 3]);
+    var elements = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elements);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, drawType);
+
+    gl.clearColor(0.0, 0.0, 1.0, 1.0);  // Start with blue to indicate no pixels touched.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
+
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+    var error = gl.getError();
+    if (error === gl.INVALID_OPERATION) {
+        testPassed("drawElements flagged INVALID_OPERATION, which is valid so long as all canvas pixels were not touched.");
+        wtu.checkCanvas(gl, [0, 0, 255, 255]);
+    } else if (error === gl.NO_ERROR) {
+        testPassed("drawElements flagged NO_ERROR, which is valid so long as all canvas pixels are green.");
+        wtu.checkCanvas(gl, [0, 255, 0, 255]);
+    } else {
+        testFailed("Invalid error flagged by drawElements. Should be INVALID_OPERATION or NO_ERROR");
+    }
+
     debug("Test that client data is always copied during bufferData and bufferSubData calls");
 
-    var program = wtu.loadStandardProgram(gl);
-
-    gl.useProgram(program);
-    var vertexObject = gl.createBuffer();
-    gl.enableVertexAttribArray(0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
-    // 4 vertices -> 2 triangles
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0,0, 0,1,0, 1,0,0, 1,1,0 ]), drawType);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-    var indexObject = gl.createBuffer();
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
-    var indices = new Uint32Array([ 10000, 0, 1, 2, 3, 10000 ]);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, drawType);
-    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 4)");
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 0)");
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 8)");
-    indices[0] = 2;
     indices[5] = 1;
-    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 4)");
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 0)");
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 8)");
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, 0);
+    var error = gl.getError();
+    if (error === gl.INVALID_OPERATION) {
+        testPassed("drawElements flagged INVALID_OPERATION, which is valid so long as all canvas pixels were not touched.");
+        wtu.checkCanvas(gl, [0, 0, 255, 255]);
+    } else if (error === gl.NO_ERROR) {
+        testPassed("drawElements flagged NO_ERROR, which is valid so long as all canvas pixels are green.");
+        wtu.checkCanvas(gl, [0, 255, 0, 255]);
+    } else {
+        testFailed("Invalid error flagged by drawElements. Should be INVALID_OPERATION or NO_ERROR");
+    }
 }
 
 function runResizedBufferTests(drawType) {
@@ -381,30 +432,6 @@ function runResizedBufferTests(drawType) {
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after setting up indices");
     gl.drawElements(gl.TRIANGLES, numQuads * 6, gl.UNSIGNED_INT, 0);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after drawing");
-}
-
-function runVerifiesTooManyIndicesTests(drawType) {
-    description("Tests that index validation for drawElements does not examine too many indices");
-
-    var program = wtu.loadStandardProgram(gl);
-
-    gl.useProgram(program);
-    var vertexObject = gl.createBuffer();
-    gl.enableVertexAttribArray(0);
-    gl.disableVertexAttribArray(1);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
-    // 4 vertices -> 2 triangles
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0,0, 0,1,0, 1,0,0, 1,1,0 ]), drawType);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-    var indexObject = gl.createBuffer();
-
-    debug("Test out of range indices")
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint32Array([ 10000, 0, 1, 2, 3, 10000 ]), drawType);
-    wtu.shouldGenerateGLError(gl, gl.NO_ERROR, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 4)");
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 0)");
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, "gl.drawElements(gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_INT, 8)");
 }
 
 function runCrashWithBufferSubDataTests(drawType) {

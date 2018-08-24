@@ -101,6 +101,9 @@ These lines appears at the top of every html and js file under sdk/tests/conform
              As compositing is a browser specific thing this provides a central place to
              update all tests that rely on compositing to function.
 
+            *   If you don't care about composition, `wtu.dispatchTask` makes it easy to
+                yield back to the event loop.
+
     *   Code/Tag Order
 
         Most tests run inline. They don't use window.onload or the load event. This works by placing
@@ -176,6 +179,6 @@ These lines appears at the top of every html and js file under sdk/tests/conform
     Each folder has a 00_test_list.txt file that lists the test in that folder.
     Each new test should be prefixed with the option `--min-version <version>` where
     version is 1 more than the newest official version. At the time of this writing
-    all new tests should be prefixed with `--min-version 1.0.4`
+    all new tests should be prefixed with `--min-version 1.0.4` or `--min-version 2.0.1`.
 
 

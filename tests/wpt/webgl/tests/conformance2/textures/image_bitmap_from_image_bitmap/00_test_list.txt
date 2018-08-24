@@ -25,6 +25,7 @@ tex-2d-rgba8-rgba-unsigned_byte.html
 tex-2d-srgb8_alpha8-rgba-unsigned_byte.html
 tex-2d-rgb5_a1-rgba-unsigned_byte.html
 tex-2d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html
+tex-2d-rgb10_a2-rgba-unsigned_int_2_10_10_10_rev.html
 tex-2d-rgba4-rgba-unsigned_byte.html
 tex-2d-rgba4-rgba-unsigned_short_4_4_4_4.html
 tex-2d-rgba16f-rgba-half_float.html
@@ -58,6 +59,7 @@ tex-3d-rgba8-rgba-unsigned_byte.html
 tex-3d-srgb8_alpha8-rgba-unsigned_byte.html
 tex-3d-rgb5_a1-rgba-unsigned_byte.html
 tex-3d-rgb5_a1-rgba-unsigned_short_5_5_5_1.html
+tex-3d-rgb10_a2-rgba-unsigned_int_2_10_10_10_rev.html
 tex-3d-rgba4-rgba-unsigned_byte.html
 tex-3d-rgba4-rgba-unsigned_short_4_4_4_4.html
 tex-3d-rgba16f-rgba-half_float.html

@@ -1,0 +1,161 @@
+﻿<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_draw_buffers Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl-draw-buffers-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+<script id="fshaderRedWithReturn" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+precision mediump float;
+uniform float u_zero;
+void main() {
+    gl_FragColor = vec4(1,0,0,1);
+    if (u_zero < 1.0) {
+        return;
+    }
+    gl_FragColor = vec4(0,0,1,1);
+}
+</script>
+<script id="fshaderWithDiscard" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+precision mediump float;
+uniform float u_zero;
+void main() {
+    gl_FragColor = vec4(1,0,0,1);
+    if (u_zero < 1.0) {
+        discard;
+    }
+    gl_FragColor = vec4(0,0,1,1);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies gl_FragColor being broadcasted when using WEBGL_draw_buffers extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var ext = null;
+var drawBuffersUtils;
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  // Query the extension and store globally so shouldBe can access it
+  ext = gl.getExtension("WEBGL_draw_buffers");
+  if (!ext) {
+    testPassed("No WEBGL_draw_buffers support -- this is legal");
+  } else {
+    testPassed("Successfully enabled WEBGL_draw_buffers extension");
+    drawBuffersUtils = WebGLDrawBuffersUtils(gl, ext);
+    runDrawTests();
+  }
+}
+
+function runDrawTests() {
+  debug("");
+  var fb = gl.createFramebuffer();
+
+  var maxUsable = drawBuffersUtils.getMaxUsableColorAttachments();
+  var bufs = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
+
+  var width = 64;
+  var height = 64;
+  var attachments = [];
+  for (var ii = 0; ii < maxUsable; ++ii) {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + ii, gl.TEXTURE_2D, tex, 0);
+    attachments.push({
+      texture: tex
+    });
+  }
+
+  debug("test that gl_FragColor broadcasts if extension is enabled in fragment shader and fragment shader main returns in the middle");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  ext.drawBuffersWEBGL(bufs);
+  var redProgramWithReturn = wtu.setupProgram(gl, [wtu.simpleVertexShader, "fshaderRedWithReturn"], ["vPosition"], undefined, true);
+  shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(redProgramWithReturn);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after draw");
+
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+
+  debug("test that none of the attachments are written in case the fragment shader discards");
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+  ext.drawBuffersWEBGL(bufs);
+  var programWithDiscard = wtu.setupProgram(gl, [wtu.simpleVertexShader, "fshaderWithDiscard"], ["vPosition"], undefined, true);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.useProgram(programWithDiscard);
+  wtu.drawUnitQuad(gl);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "after draw");
+
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 0, 0, 0]);
+
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.deleteFramebuffer(fb);
+  attachments.forEach(function(attachment) {
+    gl.deleteTexture(attachment.texture);
+  });
+  gl.deleteProgram(redProgramWithReturn);
+  gl.deleteProgram(programWithDiscard);
+}
+
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

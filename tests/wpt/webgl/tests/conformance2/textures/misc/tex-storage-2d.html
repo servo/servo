@@ -285,6 +285,23 @@ function runTexStorage2DTest()
             wtu.checkCanvas(gl, [255, 0, 0, alpha], "texture should sample as red after uploading red pixels with texSubImage2D");
         }
     });
+
+    debug("");
+    debug("Test non-square images:");
+    const levels = 4;
+    const maxSize = 1 << (levels-1);
+
+    function expectOk(x,y) {
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texStorage2D(gl.TEXTURE_2D, levels, gl.RGBA8, x, y);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+                            "texStorage2D should succeed with size [" + ([x,y].join(', ')) + "].");
+        gl.deleteTexture(tex);
+    }
+    expectOk(maxSize, maxSize);
+    expectOk(maxSize,       1);
+    expectOk(      1, maxSize);
 }
 
 debug("");

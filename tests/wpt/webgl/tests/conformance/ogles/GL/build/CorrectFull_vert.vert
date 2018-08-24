@@ -430,7 +430,7 @@ void main(void)
     if(test_bool2)
         test_float1++;
     else
-        test_float1--;
+	test_float1--;
 
     if(test_float1 > test_float2)
         test_float1++;
@@ -444,7 +444,7 @@ void main(void)
     if(test_bool2)
        if(test_bool3)
            if(test_bool3)
-               test_float1++;
+	      test_float1++;
 
    for(int for_int=0; for_int < 5; for_int++)
    {

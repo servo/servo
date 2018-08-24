@@ -41,13 +41,12 @@
 <div id="description"></div>
 <div id="console"></div>
 <script id="vshader" type="x-shader/x-vertex">
-uniform vec4 uMult;
 attribute vec4 vPosition;
 attribute vec2 texCoord0;
 varying vec2 texCoord;
 void main()
 {
-    gl_Position = vPosition * uMult;
+    gl_Position = vPosition;
     texCoord = texCoord0;
 }
 </script>
@@ -63,15 +62,14 @@ void main()
 </script>
 <script>
 "use strict";
-var canvas;
 var wtu = WebGLTestUtils;
+var canvas = document.getElementById("example");
+var gl = wtu.create3DContext(canvas, undefined, 2);
 
+description("Test srgb emulation for generateMipmap.");
 function generateMipmap()
 {
-    description("Generate mipmaps for sRGB texture");
-
-    canvas = document.getElementById("example");
-    var gl = wtu.create3DContext(canvas);
+    debug("Generate mipmaps for sRGB texture");
 
     wtu.setupUnitQuad(gl, 0, 1);
     var program = wtu.setupProgram(
@@ -87,7 +85,6 @@ function generateMipmap()
 
     var texLoc = gl.getUniformLocation(program, "tex");
     gl.uniform1i(texLoc, 0);
-    var multLoc = gl.getUniformLocation(program, "uMult");
 
     var width = 128;
     var height = 128;
@@ -97,7 +94,6 @@ function generateMipmap()
 
     var srgbTex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, srgbTex);
-    gl.uniform4f(multLoc, 1, 1, 1, 1);
     // Set full texture as srgba color first.
     wtu.fillTexture(gl, srgbTex, width, height, colors['srgba'], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.SRGB8_ALPHA8);
     // Set up-left region of the texture as red color.
@@ -155,71 +151,89 @@ function generateMipmap()
 
     var tolerance = 7;
     var diff = new Uint8Array(width * height * 4);
-    var failed = compare(result, reference, tolerance, diff);
+    var failed = wtu.comparePixels(result, reference, tolerance, diff);
     if (failed) {
         testFailed("Generate wrong mipmaps for sRGB texture.");
-        displayDiff(result, reference, diff, width, height);
+        wtu.displayImageDiff(result, reference, diff, width, height);
     } else {
         testPassed("Generate correct mipmaps for sRGB texture.");
     }
+}
 
-    function compare(cmp, ref, tolerance, diff) {
-        if (cmp.length != ref.length) {
-            testFailed("invalid pixel size.");
-        }
+function generateMipmap_immutableTexture()
+{
+    debug("Generate mipmaps for immutable texture.");
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texStorage2D(gl.TEXTURE_2D, Math.log2(canvas.width), gl.SRGB8_ALPHA8, canvas.width, canvas.height);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "GenerateMipmap should succeed.");
 
-        var count = 0;
-        for (var i = 0; i < cmp.length; i++) {
-            diff[i * 4] = 0;
-            diff[i * 4 + 1] = 255;
-            diff[i * 4 + 2] = 0;
-            diff[i * 4 + 3] = 255;
-            if (Math.abs(cmp[i * 4] - ref[i * 4]) > tolerance ||
-                Math.abs(cmp[i * 4 + 1] - ref[i * 4 + 1]) > tolerance ||
-                Math.abs(cmp[i * 4 + 2] - ref[i * 4 + 2]) > tolerance ||
-                Math.abs(cmp[i * 4 + 3] - ref[i * 4 + 3]) > tolerance) {
-                debug("Pixel " + i + ": expected (" +
-                    [ref[i * 4], ref[i * 4 + 1], ref[i * 4 + 2], ref[i * 4 + 3]] + "), got (" +
-                    [cmp[i * 4], cmp[i * 4 + 1], cmp[i * 4 + 2], cmp[i * 4 + 3]] + ")");
-                count++;
-                diff[i * 4] = 255;
-                diff[i * 4 + 1] = 0;
-            }
-        }
+    gl.deleteTexture(tex);
+}
 
-        return count;
-    }
+function generateMipmap_widthHeightNotEqual()
+{
+    debug("Generate mipmaps when width and height are not equal.");
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, 64, 32, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "GenerateMipmap should succeed.");
 
-    function displayDiff(cmp, ref, diff, width, height) {
-        var div = document.createElement("div");
+    gl.deleteTexture(tex);
+}
 
-        var cmpImg = createImage(cmp, width, height);
-        var refImg = createImage(ref, width, height);
-        var diffImg = createImage(diff, width, height);
-        wtu.insertImage(div, "Reference", refImg);
-        wtu.insertImage(div, "Result", cmpImg);
-        wtu.insertImage(div, "Difference", diffImg);
+function generateMipmap_maxLevelLessThanFullMipmapLevel()
+{
+    debug("Generate mipmaps when maxLevel is less than full mipmap level.");
 
-        var console = document.getElementById("console");
-        console.appendChild(div);
-    }
+    wtu.setupUnitQuad(gl, 0, 1);
+    var program = wtu.setupProgram(
+        gl, ['vshader', 'fshader'], ['vPosition', 'texCoord0'], [0, 1]);
 
-    function createImage(buf, width, height) {
-        var canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        var ctx = canvas.getContext("2d");
-        var imgData = ctx.getImageData(0, 0, width, height);
+    var colors = [0, 63, 127, 255];
 
-        for (var i = 0; i < buf.length; i++)
-            imgData.data[i] = buf[i];
-        ctx.putImageData(imgData, 0, 0);
-        var img = wtu.makeImageFromCanvas(canvas);
-        return img;
-    }
+    var texLoc = gl.getUniformLocation(program, "tex");
+    gl.uniform1i(texLoc, 0);
+
+    var width = 16;
+    var height = 16;
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+
+    var srgbTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, srgbTex);
+    wtu.fillTexture(gl, srgbTex, width, height, colors, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.SRGB8_ALPHA8);
+
+    // Set max level, check if the max level mipmap is generated.
+    var max_level = 3;
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, max_level);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+
+    width >>= max_level;
+    height >>= max_level;
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+
+    gl.bindTexture(gl.TEXTURE_2D, srgbTex);
+    wtu.clearAndDrawUnitQuad(gl);
+
+    var reference = wtu.sRGBToLinear(colors);
+    var msg;
+    wtu.checkCanvasRect(gl, 0, 0, width, height, reference, msg, [1,1,1,1]);
+
+    gl.deleteTexture(srgbTex);
 }
 
 generateMipmap();
+generateMipmap_immutableTexture();
+generateMipmap_widthHeightNotEqual();
+generateMipmap_maxLevelLessThanFullMipmapLevel();
+
 var successfullyParsed = true;
 </script>
 <script src="../../../js/js-test-post.js"></script>

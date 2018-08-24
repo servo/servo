@@ -107,24 +107,24 @@ function nonKhronosFrameworkNotifyDone() {
 }
 
 (function() {
-    var WPT_TEST_ID = 0;
-  
-    // Store the current WPT test harness `test` function
-    // if found, since it's overriden by some tests.
-    var wpt_test = window.test;
-    var wpt_assert_true = window.assert_true;
-    var wt_async_test = window.async_test;
-  
-    window.reportTestResultsToHarness = function reportTestResultsToHarness(success, msg) {
-      if (window.parent.webglTestHarness) {
-        window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
-      } else if (wpt_test) { // WPT test harness
-        wpt_test(function () {
-          wpt_assert_true(success, msg);
-        }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
-      }
+  var WPT_TEST_ID = 0;
+
+  // Store the current WPT test harness `test` function
+  // if found, since it's overriden by some tests.
+  var wpt_test = window.test;
+  var wpt_assert_true = window.assert_true;
+  var wt_async_test = window.async_test;
+
+  window.reportTestResultsToHarness = function reportTestResultsToHarness(success, msg) {
+    if (window.parent.webglTestHarness) {
+      window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
+    } else if (wpt_test) { // WPT test harness
+      wpt_test(function () {
+        wpt_assert_true(success, msg);
+      }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
     }
- }())
+  }
+}())
 
 function reportSkippedTestResultsToHarness(success, msg) {
   if (window.parent.webglTestHarness) {
@@ -141,10 +141,10 @@ function notifyFinishedToHarness() {
   }
 }
 
-(function() {
-    var oldNotify = notifyFinishedToHarness;
-    var t = async_test("Overall test");
-    window.notifyFinishedToHarness = t.step_func_done(oldNotify);
+(function () {
+  var oldNotify = notifyFinishedToHarness;
+  var t = async_test("Overall test");
+  window.notifyFinishedToHarness = t.step_func_done(oldNotify);
 }())
 
 var _bufferedConsoleLogs = [];
@@ -190,8 +190,7 @@ function description(msg)
     if (msg === undefined) {
       msg = document.title;
     }
-
-    _bufferedLogToConsole("DESCRIPTION: " +msg);
+    _bufferedLogToConsole("DESCRIPTION: " + msg);
 }
 
 function _addSpan(contents)

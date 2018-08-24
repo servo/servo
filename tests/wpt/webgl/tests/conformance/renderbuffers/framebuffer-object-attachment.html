@@ -32,8 +32,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -428,6 +428,7 @@ if (checkValidColorDepthCombination()) {
     testFramebufferIncompleteMissingAttachment();
     testUsingIncompleteFramebuffer();
     testReadingFromMissingAttachment();
+    testBindRenderbufferBeforeFramebufferAttach();
 }
 
 function checkFramebuffer(expected) {
@@ -657,9 +658,44 @@ function testReadingFromMissingAttachment() {
     wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "After CopyTexSubImage2D from missing attachment");
 }
 
+// [OpenGL ES 2.0.25] Section 4.4.3 page 112
+// [OpenGL ES 3.0.2] Section 4.4.2 page 201
+// 'renderbuffer' must be either zero or the name of an existing renderbuffer object of
+// type 'renderbuffertarget', otherwise an INVALID_OPERATION error is generated.
+function testBindRenderbufferBeforeFramebufferAttach() {
+    debug("");
+    debug("Test calling framebufferRenderbuffer before bindRenderbuffer.");
+
+    let fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+    let attachmentTypes = [
+        gl.COLOR_ATTACHMENT0,
+        gl.DEPTH_ATTACHMENT,
+        gl.STENCIL_ATTACHMENT,
+        gl.DEPTH_STENCIL_ATTACHMENT
+    ];
+
+    attachmentTypes.forEach(function(attachmentType) {
+        let strAttachmentType = wtu.glEnumToString(gl, attachmentType);
+        debug("");
+        debug("Testing " + strAttachmentType);
+        let rbo = gl.createRenderbuffer();
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmentType, gl.RENDERBUFFER, rbo);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "bindRenderbuffer must be called before attachment to " + strAttachmentType);
+        shouldBe("gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, gl." + strAttachmentType + ", gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE)", "gl.NONE");
+        gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, attachmentType, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+        wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Only OBJECT_TYPE can be queried when no image is attached");
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachmentType, gl.RENDERBUFFER, null);
+        gl.deleteRenderbuffer(rbo);
+    });
+
+    gl.deleteFramebuffer(fbo);
+}
+
 var successfullyParsed = true;
 </script>
 
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 </body>
 </html>

@@ -5,9 +5,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -27,6 +26,27 @@ precision mediump float;
 uniform float uColor;
 void main() {
   gl_FragColor = vec4(uColor, uColor, uColor, 1);
+}
+</script>
+
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec2 texCoord0;
+varying vec2 texCoord;
+void main()
+{
+    gl_Position = vPosition;
+    texCoord = texCoord0;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D tex;
+varying vec2 texCoord;
+void main()
+{
+    gl_FragColor = texture2D(tex, texCoord);
 }
 </script>
 
@@ -69,7 +89,7 @@ function expectResult(target) {
                       Math.floor(gl.drawingBufferHeight / 2),
                       1,
                       1,
-                      target,
+                      [target, target, target, 255],
                       undefined,
                       e);
 }
@@ -127,9 +147,7 @@ function testInvalidFormat(fn, internalFormat, formatName, enabled) {
   var err = gl.getError();
   if (err == gl.NO_ERROR) {
     testFailed("should NOT be able to create type " + formatName);
-  } else if (err == gl.INVALID_OPERATION) {
-    testFailed("should return gl.INVALID_ENUM for type " + formatName);
-  } else if (err == gl.INVALID_ENUM) {
+  } else if (err == gl.INVALID_ENUM || err == gl.INVALID_VALUE) {
     testPassed("not able to create invalid format: " + formatName);
   }
 }
@@ -216,6 +234,7 @@ if (!gl) {
     testPassed("No EXT_sRGB support -- this is legal");
 
     runSupportedTest(false);
+    finishTest();
   } else {
     testPassed("Successfully enabled EXT_sRGB extension");
 
@@ -230,6 +249,10 @@ if (!gl) {
     runFramebufferTextureConversionTest(ext.SRGB_EXT);
     runFramebufferTextureConversionTest(ext.SRGB_ALPHA_EXT);
     runFramebufferRenderbufferConversionTest();
+    runGenerateMipmapTest();
+    runLoadFromImageTest(function() {
+      finishTest();
+    });
   }
 }
 
@@ -298,7 +321,7 @@ function runTextureReadConversionTest() {
   ];
 
   var program = wtu.setupTexturedQuad(gl);
-  gl.uniform1i(gl.getUniformLocation(program, "tex2d"), 0);
+  gl.uniform1i(gl.getUniformLocation(program, "tex"), 0);
 
   for (var ii = 0; ii < conversions.length; ii++) {
     var tex = createGreysRGBTexture(gl, conversions[ii][0], ext.SRGB_EXT);
@@ -395,7 +418,7 @@ function runFramebufferRenderbufferConversionTest() {
 
   var program = wtu.setupProgram(gl, ['vertexShader', 'fragmentShader'], ['aPosition'], [0]);
   wtu.setupUnitQuad(gl, 0);
-  var fbo = createsRGBFramebuffer(gl, 4, 4);
+  var fbo = createsRGBFramebuffer(gl, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
   for (var ii = 0; ii < conversions.length; ii++) {
     gl.uniform1f(gl.getUniformLocation(program, "uColor"), conversions[ii][0]/255.0);
@@ -404,10 +427,44 @@ function runFramebufferRenderbufferConversionTest() {
   }
 }
 
-debug("");
+function runLoadFromImageTest(callback) {
+  debug("");
+  debug("Tests to ensure that SRGB textures can successfully use image elements as their source");
+
+  var img = wtu.makeImage("../../resources/gray-1024x1024.jpg", function() {
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, ext.SRGB_EXT, ext.SRGB_EXT, gl.UNSIGNED_BYTE, img);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, ext.SRGB_ALPHA_EXT, ext.SRGB_ALPHA_EXT, gl.UNSIGNED_BYTE, img);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    callback();
+  }, function() {
+    testFailed("Image could not be loaded");
+    callback();
+  });
+}
+
+function runGenerateMipmapTest()
+{
+    debug("");
+    debug("GenerateMipmaps for sRGB textures is forbidden");
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, ext.SRGB_ALPHA_EXT, 2, 2, 0, ext.SRGB_ALPHA_EXT,
+                  gl.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION);
+
+    gl.deleteTexture(tex);
+}
+
 var successfullyParsed = true;
 </script>
-<script>finishTest();</script>
-
 </body>
 </html>

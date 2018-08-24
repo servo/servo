@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 <!-- comment in the script tag below to test through JS emulation of the extension. -->
 <!--
 <script src="../../../demos/google/resources/OESVertexArrayObject.js"></script>
@@ -101,7 +101,8 @@ if (!gl) {
         runAttributeTests();
         runAttributeValueTests();
         runDrawTests();
-        runDeleteTests();
+        runUnboundDeleteTests();
+        runBoundDeleteTests();
         runArrayBufferBindTests();
         wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
     }
@@ -466,9 +467,9 @@ function runDrawTests() {
     wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
 }
 
-function runDeleteTests() {
+function runUnboundDeleteTests() {
     debug("");
-    debug("Testing using deleted buffers referenced by VAOs");
+    debug("Testing using buffers that are deleted when attached to unbound VAOs");
 
     var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["a_position", "a_color"]);
     gl.useProgram(program);
@@ -478,68 +479,68 @@ function runDeleteTests() {
     gl.bufferData(
         gl.ARRAY_BUFFER,
         new Float32Array([
-           1.0,  1.0,
-          -1.0,  1.0,
-          -1.0, -1.0,
-           1.0, -1.0]),
+             1.0,  1.0,
+            -1.0,  1.0,
+            -1.0, -1.0,
+             1.0, -1.0]),
         gl.STATIC_DRAW);
 
     var colors = [
-      [255,   0,   0, 255],
-      [  0, 255,   0, 255],
-      [  0,   0, 255, 255],
-      [  0, 255, 255, 255]
+        [255,   0,   0, 255],
+        [  0, 255,   0, 255],
+        [  0,   0, 255, 255],
+        [  0, 255, 255, 255]
     ];
     var colorBuffers = [];
     var elementBuffers = [];
     var vaos = [];
     for (var ii = 0; ii < colors.length; ++ii) {
-      var vao = ext.createVertexArrayOES();
-      vaos.push(vao);
-      ext.bindVertexArrayOES(vao);
-      // Set the position buffer
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        var vao = ext.createVertexArrayOES();
+        vaos.push(vao);
+        ext.bindVertexArrayOES(vao);
+        // Set the position buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
-      var elementBuffer = gl.createBuffer();
-      elementBuffers.push(elementBuffer);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
-      gl.bufferData(
-          gl.ELEMENT_ARRAY_BUFFER,
-          new Uint8Array([0, 1, 2, 0, 2, 3]),
-          gl.STATIC_DRAW);
+        var elementBuffer = gl.createBuffer();
+        elementBuffers.push(elementBuffer);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
+        gl.bufferData(
+            gl.ELEMENT_ARRAY_BUFFER,
+            new Uint8Array([0, 1, 2, 0, 2, 3]),
+            gl.STATIC_DRAW);
 
-      // Setup the color attrib
-      var color = colors[ii];
-      if (ii < 3) {
-        var colorBuffer = gl.createBuffer();
-        colorBuffers.push(colorBuffer);
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(
-          [ color[0], color[1], color[2], color[3],
-            color[0], color[1], color[2], color[3],
-            color[0], color[1], color[2], color[3],
-            color[0], color[1], color[2], color[3]
-          ]), gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(1);
-        gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
-      } else {
-        gl.vertexAttrib4f(1, color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255);
-      }
+        // Setup the color attrib
+        var color = colors[ii];
+        if (ii < 3) {
+            var colorBuffer = gl.createBuffer();
+            colorBuffers.push(colorBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(
+                [ color[0], color[1], color[2], color[3],
+                  color[0], color[1], color[2], color[3],
+                  color[0], color[1], color[2], color[3],
+                  color[0], color[1], color[2], color[3]
+                ]), gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(1);
+            gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+        } else {
+            gl.vertexAttrib4f(1, color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255);
+        }
     }
 
     // delete the color buffers AND the position buffer.
     ext.bindVertexArrayOES(null);
     for (var ii = 0; ii < colorBuffers.length; ++ii) {
-      gl.deleteBuffer(colorBuffers[ii]);
-      gl.deleteBuffer(elementBuffers[ii]);
-      ext.bindVertexArrayOES(vaos[ii]);
-      var boundBuffer = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
-      // The buffers should still be valid at this point, since it was attached to the VAO
-      if(boundBuffer != colorBuffers[ii]) {
-        testFailed("buffer removed even though it is still attached to a VAO");
-      }
+        gl.deleteBuffer(colorBuffers[ii]);
+        gl.deleteBuffer(elementBuffers[ii]);
+        ext.bindVertexArrayOES(vaos[ii]);
+        var boundBuffer = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+        // The buffers should still be valid at this point, since it was attached to the VAO
+        if(boundBuffer != colorBuffers[ii]) {
+            testFailed("buffer removed even though it is still attached to a VAO");
+        }
     }
 
     ext.bindVertexArrayOES(null);
@@ -548,22 +549,110 @@ function runDeleteTests() {
     // Render with the deleted buffers. As they are referenced by VAOs they
     // must still be around.
     for (var ii = 0; ii < colors.length; ++ii) {
-      var color = colors[ii];
-      ext.bindVertexArrayOES(vaos[ii]);
-      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
-      wtu.checkCanvas(gl, color, "should be " + color);
+        var color = colors[ii];
+        ext.bindVertexArrayOES(vaos[ii]);
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+        wtu.checkCanvas(gl, color, "should be " + color);
     }
 
     // Clean up.
     for (var ii = 0; ii < colorBuffers.length; ++ii) {
-      ext.deleteVertexArrayOES(vaos[ii]);
+        ext.deleteVertexArrayOES(vaos[ii]);
     }
 
     for (var ii = 0; ii < colorBuffers.length; ++ii) {
-      // The buffers should no longer be valid now that the VAOs are deleted
-      if(gl.isBuffer(colorBuffers[ii])) {
-        testFailed("buffer not properly cleaned up after VAO deletion");
-      }
+        // The buffers should no longer be valid now that the VAOs are deleted
+        if(gl.isBuffer(colorBuffers[ii])) {
+            testFailed("buffer not properly cleaned up after VAO deletion");
+        }
+    }
+}
+
+function runBoundDeleteTests() {
+    debug("Testing using buffers that are deleted when attached to bound VAOs");
+
+    var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["a_position", "a_color"]);
+    gl.useProgram(program);
+
+    var positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([
+             1.0,  1.0,
+            -1.0,  1.0,
+            -1.0, -1.0,
+             1.0, -1.0]),
+        gl.STATIC_DRAW);
+
+    // Setup the color attrib
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(
+        [ 255,   0,   0, 255,
+            0, 255,   0, 255,
+            0,   0, 255, 255,
+            0, 255, 255, 255
+        ]), gl.STATIC_DRAW);
+
+    var vaos = [];
+    var elementBuffers = [];
+    for (var ii = 0; ii < 4; ++ii) {
+        var vao = ext.createVertexArrayOES();
+        vaos.push(vao);
+        ext.bindVertexArrayOES(vao);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        var elementBuffer = gl.createBuffer();
+        elementBuffers.push(elementBuffer);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
+        gl.bufferData(
+            gl.ELEMENT_ARRAY_BUFFER,
+            new Uint8Array([0, 1, 2, 0, 2, 3]),
+            gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    }
+
+    // delete the color buffers AND the position buffer, that are bound to the current VAO
+    for (var ii = 0; ii < vaos.length; ++ii) {
+        ext.bindVertexArrayOES(vaos[ii]);
+
+        gl.deleteBuffer(colorBuffer);
+        gl.deleteBuffer(positionBuffer);
+
+        // After the first iteration, deleteBuffer will be a no-op, and will not unbind its matching
+        // bind points on the now-bound VAO like it did on the first iteration.
+        var expectRetained = (ii != 0);
+        var shouldBeStr = (expectRetained ? "retained" : "cleared");
+
+        var boundPositionBuffer = gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+        if (expectRetained != (boundPositionBuffer == positionBuffer)) {
+            testFailed("Position attrib stored buffer should be " + shouldBeStr + ".");
+        }
+
+        var boundColorBuffer = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
+        if (expectRetained != (boundColorBuffer == colorBuffer)) {
+            testFailed("Color attrib stored buffer should be " + shouldBeStr + ".");
+        }
+
+        // If retained, everything should still work. If cleared, drawing should now fail.
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 0);
+        var expectedError = (expectRetained ? gl.NO_ERROR : gl.INVALID_OPERATION);
+        wtu.glErrorShouldBe(gl, expectedError,
+                            "Draw call should " + (expectRetained ? "not " : "") + "fail.");
+
+        if (!gl.isBuffer(positionBuffer)) {
+            testFailed("References from unbound VAOs keep Position buffer alive.");
+        }
+        if (!gl.isBuffer(colorBuffer)) {
+            testFailed("References from unbound VAOs keep Color buffer alive");
+        }
     }
 }
 
@@ -589,11 +678,11 @@ function runArrayBufferBindTests() {
     var nonVAOColorBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, nonVAOColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(
-      [ 0, 255, 0, 255,
-        0, 255, 0, 255,
-        0, 255, 0, 255,
-        0, 255, 0, 255,
-      ]), gl.STATIC_DRAW);
+        [ 0, 255, 0, 255,
+          0, 255, 0, 255,
+          0, 255, 0, 255,
+          0, 255, 0, 255,
+        ]), gl.STATIC_DRAW);
 
     // shared position buffer.
     var positionBuffer = gl.createBuffer();
@@ -601,10 +690,10 @@ function runArrayBufferBindTests() {
     gl.bufferData(
         gl.ARRAY_BUFFER,
         new Float32Array([
-           1.0,  1.0,
-          -1.0,  1.0,
-          -1.0, -1.0,
-           1.0, -1.0]),
+             1.0,  1.0,
+            -1.0,  1.0,
+            -1.0, -1.0,
+             1.0, -1.0]),
         gl.STATIC_DRAW);
 
     // attach position buffer to default
@@ -622,11 +711,11 @@ function runArrayBufferBindTests() {
     var vaoColorBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vaoColorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array(
-      [ 255, 0, 0, 255,
-        255, 0, 0, 255,
-        255, 0, 0, 255,
-        255, 0, 0, 255,
-      ]), gl.STATIC_DRAW);
+        [ 255, 0, 0, 255,
+          255, 0, 0, 255,
+          255, 0, 0, 255,
+          255, 0, 0, 255,
+        ]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
@@ -653,7 +742,7 @@ function runArrayBufferBindTests() {
 debug("");
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

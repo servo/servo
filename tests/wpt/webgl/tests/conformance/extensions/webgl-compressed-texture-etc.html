@@ -92,7 +92,7 @@ function runTest() {
       }
     } else {
       if (WEBGL_compressed_texture_etc !== null) {
-        testFailed("WEBGL_compressed_texture_etc listed as supported but getExtension failed");
+        testFailed("WEBGL_compressed_texture_etc listed as unsupported but getExtension succeeded");
         return;
       } else {
         testPassed("No WEBGL_compressed_texture_etc support -- this is legal");
@@ -142,13 +142,12 @@ function runTest() {
 
     debug("");
     if (contextVersion >= 2) {
+      var expectedError = isPositive ? gl.INVALID_OPERATION: [gl.INVALID_ENUM, gl.INVALID_OPERATION];
       // `null` coerces into `0` for the PBO entrypoint, yielding INVALID_OP due to no PBO bound.
-      // In conformance suite 2.0.0, both throwing an exception and generating INVALID_OP are allowed so multiple browsers can pass.
-      // This is due to last minute spec and test change.
-      wtu.shouldThrowOrGenerateGLError(gl, gl.INVALID_OPERATION, "gl.compressedTexImage2D(gl.TEXTURE_2D, 0, COMPRESSED_R11_EAC, 4, 4, 0, 0, null)");
-      wtu.shouldThrowOrGenerateGLError(gl, gl.INVALID_OPERATION, "gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, COMPRESSED_R11_EAC, 0, null)");
-      wtu.shouldThrowOrGenerateGLError(gl, gl.INVALID_OPERATION, "gl.compressedTexImage3D(gl.TEXTURE_2D_ARRAY, 0, COMPRESSED_R11_EAC, 4, 4, 4, 0, 0, null)");
-      wtu.shouldThrowOrGenerateGLError(gl, gl.INVALID_OPERATION, "gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 0, 0, 0, COMPRESSED_R11_EAC, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexImage2D(gl.TEXTURE_2D, 0, COMPRESSED_R11_EAC, 4, 4, 0, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, COMPRESSED_R11_EAC, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexImage3D(gl.TEXTURE_2D_ARRAY, 0, COMPRESSED_R11_EAC, 4, 4, 4, 0, 0, null)");
+      wtu.shouldGenerateGLError(gl, expectedError, "gl.compressedTexSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, 0, 0, 0, 0, COMPRESSED_R11_EAC, 0, null)");
     } else {
       shouldThrow("gl.compressedTexImage2D(gl.TEXTURE_2D, 0, COMPRESSED_R11_EAC, 4, 4, 0, null)");
       shouldThrow("gl.compressedTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, COMPRESSED_R11_EAC, null)");

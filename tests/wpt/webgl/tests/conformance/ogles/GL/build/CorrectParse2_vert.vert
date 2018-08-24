@@ -33,7 +33,7 @@ void main (void)
     int int_1 = int(FloatConst1);
     vec4 vec4_1;
     vec3 vec3_1 = vec3(1, 1, 1);
-    vec3 vec3_2 = vec3(0, 0, 0);
+	vec3 vec3_2 = vec3(0, 0, 0);
 //  unsigned int unsigned_int_1;
     bool bool4, bool5;
 

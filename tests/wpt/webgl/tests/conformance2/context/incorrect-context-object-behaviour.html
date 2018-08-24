@@ -1,0 +1,244 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script id="tf-vshader" type="x-shader/x-vertex">#version 300 es
+in uint in_data;
+flat out uint out_data;
+void main() {
+    out_data = in_data;
+}
+</script>
+<script id="tf-fshader" type="x-shader/x-fragment">#version 300 es
+void main() {}
+</script>
+
+<script>
+"use strict";
+description("Tests calling WebGL 2.0 APIs with objects from other contexts");
+
+function loadTFProgram(context) {
+    const tfProgram = wtu.setupTransformFeedbackProgram(context, ["tf-vshader", "tf-fshader"],
+        ["out_data"], context.SEPARATE_ATTRIBS,
+        ["in_data"]);
+    wtu.glErrorShouldBe(context, context.NO_ERROR, "linking transform feedback shader should not set an error");
+    return tfProgram;
+}
+
+function create2DTextureArray4x4x4(context) {
+    const texture = context.createTexture();
+    context.bindTexture(context.TEXTURE_2D_ARRAY, texture);
+    context.texImage3D(context.TEXTURE_2D_ARRAY, 0, context.RGBA8, 4, 4, 4, 0, context.RGBA, context.UNSIGNED_BYTE, null);
+    wtu.glErrorShouldBe(context, context.NO_ERROR, "allocating 2D texture array should not set an error");
+    return texture;
+}
+
+var wtu = WebGLTestUtils;
+var contextA = wtu.create3DContext(undefined, undefined, 2);
+var contextB = wtu.create3DContext(undefined, undefined, 2);
+var bufferA = contextA.createBuffer();
+var bufferB = contextB.createBuffer();
+var frameBufferA = contextA.createFramebuffer();
+var frameBufferB = contextB.createFramebuffer();
+var programB = wtu.loadStandardProgram(contextB);
+var queryB = contextB.createQuery();
+var samplerB = contextB.createSampler();
+var syncB = contextB.fenceSync(contextB.SYNC_GPU_COMMANDS_COMPLETE, 0);
+var transformFeedbackA = contextA.createTransformFeedback();
+var transformFeedbackB = contextB.createTransformFeedback();
+var vertexArrayA = contextA.createVertexArray();
+var vertexArrayB = contextB.createVertexArray();
+var tfProgramB = loadTFProgram(contextB);
+var texture2DArrayA = create2DTextureArray4x4x4(contextA);
+var texture2DArrayB = create2DTextureArray4x4x4(contextB);
+var locationB = contextB.getUniformLocation(programB, 'u_modelViewProjMatrix');
+var uniformData = [];
+
+function generateFloat32Array(length) {
+    uniformData = new Float32Array(length);
+}
+
+function generateFloatArray(length) {
+    uniformData = new Array(length);
+    for (var i = 0; i < length; i++) {
+        uniformData[i] = 0.0;
+    }
+}
+
+function generateInt32Array(length) {
+    uniformData = new Int32Array(length);
+}
+
+function generateIntArray(length) {
+    uniformData = new Array(length);
+    for (var i = 0; i < length; i++) {
+        uniformData[i] = 0;
+    }
+}
+
+function generateUint32Array(length) {
+    uniformData = new Uint32Array(length);
+}
+
+// Make the bindable objects valid in both contexts first.
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindBuffer(contextA.ARRAY_BUFFER, bufferA)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindBuffer(contextA.ARRAY_BUFFER, null)");
+wtu.shouldGenerateGLError(contextB, contextB.NO_ERROR, "contextB.bindBuffer(contextB.ARRAY_BUFFER, bufferB)");
+wtu.shouldGenerateGLError(contextB, contextB.NO_ERROR, "contextB.bindBuffer(contextB.ARRAY_BUFFER, null)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindTransformFeedback(contextA.TRANSFORM_FEEDBACK, transformFeedbackA)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindTransformFeedback(contextA.TRANSFORM_FEEDBACK, null)");
+wtu.shouldGenerateGLError(contextB, contextB.NO_ERROR, "contextB.bindTransformFeedback(contextB.TRANSFORM_FEEDBACK, transformFeedbackB)");
+wtu.shouldGenerateGLError(contextB, contextB.NO_ERROR, "contextB.bindTransformFeedback(contextB.TRANSFORM_FEEDBACK, null)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindVertexArray(vertexArrayA)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindVertexArray(null)");
+wtu.shouldGenerateGLError(contextB, contextB.NO_ERROR, "contextB.bindVertexArray(vertexArrayB)");
+wtu.shouldGenerateGLError(contextB, contextB.NO_ERROR, "contextB.bindVertexArray(null)");
+
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.bindFramebuffer(contextA.FRAMEBUFFER, frameBufferA)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.framebufferTextureLayer(contextA.FRAMEBUFFER, contextA.COLOR_ATTACHMENT0, texture2DArrayB, 0, 0)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getFragDataLocation(tfProgramB, 'nonexistent_variable')");
+// Unsigned int uniforms
+                        wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1ui(locationB, 0)");
+generateUint32Array(1); wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1uiv(locationB, uniformData)");
+generateIntArray(1);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1uiv(locationB, uniformData)");
+                        wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2ui(locationB, 0, 0)");
+generateUint32Array(2); wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2uiv(locationB, uniformData)");
+generateIntArray(2);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2uiv(locationB, uniformData)");
+                        wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3ui(locationB, 0, 0, 0)");
+generateUint32Array(3); wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3uiv(locationB, uniformData)");
+generateIntArray(3);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3uiv(locationB, uniformData)");
+                        wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4ui(locationB, 0, 0, 0, 0)");
+generateUint32Array(4); wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4uiv(locationB, uniformData)");
+generateIntArray(4);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4uiv(locationB, uniformData)");
+// New uniform entry points with offsets
+generateFloat32Array(2);  wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1fv(locationB, uniformData, 1)");
+generateFloatArray(2);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1fv(locationB, uniformData, 1)");
+generateInt32Array(2);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1iv(locationB, uniformData, 1)");
+generateIntArray(2);      wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform1iv(locationB, uniformData, 1)");
+generateFloat32Array(3);  wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2fv(locationB, uniformData, 1)");
+generateFloatArray(3);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2fv(locationB, uniformData, 1)");
+generateInt32Array(3);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2iv(locationB, uniformData, 1)");
+generateIntArray(3);      wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform2iv(locationB, uniformData, 1)");
+generateFloat32Array(4);  wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3fv(locationB, uniformData, 1)");
+generateFloatArray(4);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3fv(locationB, uniformData, 1)");
+generateInt32Array(4);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3iv(locationB, uniformData, 1)");
+generateIntArray(4);      wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform3iv(locationB, uniformData, 1)");
+generateFloat32Array(5);  wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4fv(locationB, uniformData, 1)");
+generateFloatArray(5);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4fv(locationB, uniformData, 1)");
+generateInt32Array(5);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4iv(locationB, uniformData, 1)");
+generateIntArray(5);      wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniform4iv(locationB, uniformData, 1)");
+generateFloat32Array(5);  wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix2fv(locationB, false, uniformData, 1)");
+generateFloatArray(5);    wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix2fv(locationB, false, uniformData, 1)");
+generateFloat32Array(10); wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix3fv(locationB, false, uniformData, 1)");
+generateFloatArray(10);   wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix3fv(locationB, false, uniformData, 1)");
+generateFloat32Array(17); wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4fv(locationB, false, uniformData, 1)");
+generateFloatArray(17);   wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4fv(locationB, false, uniformData, 1)");
+// Non-rectangular matrix uniform entry points
+generateFloat32Array(6);
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix3x2fv(locationB, false, uniformData)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix2x3fv(locationB, false, uniformData)");
+generateFloatArray(6);
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix3x2fv(locationB, false, uniformData)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix2x3fv(locationB, false, uniformData)");
+generateFloat32Array(8);
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4x2fv(locationB, false, uniformData)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix2x4fv(locationB, false, uniformData)");
+generateFloatArray(8);
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4x2fv(locationB, false, uniformData)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix2x4fv(locationB, false, uniformData)");
+generateFloat32Array(12);
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4x3fv(locationB, false, uniformData)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix3x4fv(locationB, false, uniformData)");
+generateFloatArray(12);
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix4x3fv(locationB, false, uniformData)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformMatrix3x4fv(locationB, false, uniformData)");
+
+// Query objects
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.deleteQuery(queryB)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.isQuery(queryB)");
+shouldBeFalse("contextA.isQuery(queryB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.beginQuery(contextA.ANY_SAMPLES_PASSED, queryB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getQueryParameter(queryB, contextA.QUERY_RESULT_AVAILABLE)");
+
+// Sampler objects
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.deleteSampler(samplerB)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.isSampler(samplerB)");
+shouldBeFalse("contextA.isSampler(samplerB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.samplerParameteri(samplerB, contextA.TEXTURE_WRAP_S, contextA.CLAMP_TO_EDGE)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.samplerParameterf(samplerB, contextA.TEXTURE_MIN_LOD, -500.5)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getSamplerParameter(samplerB, contextA.TEXTURE_WRAP_S)");
+
+// Sync objects
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.deleteSync(syncB)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.isSync(syncB)");
+shouldBeFalse("contextA.isSync(syncB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.clientWaitSync(syncB, 0, 0)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.waitSync(syncB, 0, contextA.TIMEOUT_IGNORED)");
+
+// Transform feedback
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.deleteTransformFeedback(transformFeedbackB)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.isTransformFeedback(transformFeedbackB)");
+shouldBeFalse("contextA.isTransformFeedback(transformFeedbackB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.bindTransformFeedback(contextA.TRANSFORM_FEEDBACK, transformFeedbackB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.transformFeedbackVaryings(tfProgramB, ['out_data'], contextA.SEPARATE_ATTRIBS)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getTransformFeedbackVarying(tfProgramB, 0)");
+
+// Uniform buffer objects and transform feedback buffers
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.bindBufferBase(contextA.UNIFORM_BUFFER, 0, bufferB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.bindBufferRange(contextA.UNIFORM_BUFFER, 0, bufferB, 0, 0)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getUniformIndices(programB, ['u_modelViewProjMatrix'])");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getActiveUniforms(programB, [0], contextA.UNIFORM_TYPE)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getUniformBlockIndex(programB, 'nonexistent_uniform_block_name')");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getActiveUniformBlockParameter(programB, 0, contextA.UNIFORM_BLOCK_BINDING)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.getActiveUniformBlockName(programB, 0)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.uniformBlockBinding(programB, 0, 0)");
+
+// Vertex Array objects
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.deleteVertexArray(vertexArrayB)");
+wtu.shouldGenerateGLError(contextA, contextA.NO_ERROR, "contextA.isVertexArray(vertexArrayB)");
+shouldBeFalse("contextA.isVertexArray(vertexArrayB)");
+wtu.shouldGenerateGLError(contextA, contextA.INVALID_OPERATION, "contextA.bindVertexArray(vertexArrayB)");
+
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

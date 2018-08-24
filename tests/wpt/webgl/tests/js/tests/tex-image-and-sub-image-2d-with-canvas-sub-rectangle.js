@@ -73,6 +73,21 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
           cyanColor = [0, 255, 0];
           break;
 
+        case gl.LUMINANCE:
+        case gl.LUMINANCE_ALPHA:
+          redColor = [255, 255, 255];
+          greenColor = [0, 0, 0];
+          blueColor = [0, 0, 0];
+          cyanColor = [0, 0, 0];
+          break;
+
+        case gl.ALPHA:
+          redColor = [0, 0, 0];
+          greenColor = [0, 0, 0];
+          blueColor = [0, 0, 0];
+          cyanColor = [0, 0, 0];
+          break;
+
         default:
           break;
         }
@@ -314,14 +329,10 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                             canvas, cases[i].size, canvasSetupFunction,
                             cases[i].subRect,
                             cases[i].expected, bindingTarget, program);
-
-            // In Chrome, this hits a bug on Mac with Intel GPU.
-            // Chromium bug: crbug.com/665656
-            // Apple Radar: 29563996
-            //runOneIteration(sourceDescription, true, cases[i].flipY,
-            //                canvas, cases[i].size, canvasSetupFunction,
-            //                cases[i].subRect,
-            //                cases[i].expected, bindingTarget, program);
+            runOneIteration(sourceDescription, true, cases[i].flipY,
+                            canvas, cases[i].size, canvasSetupFunction,
+                            cases[i].subRect,
+                            cases[i].expected, bindingTarget, program);
         }
     }
 

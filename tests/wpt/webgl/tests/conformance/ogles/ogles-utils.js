@@ -497,13 +497,29 @@ function drawWithProgram(program, programInfo, test) {
     }
   }
 
+  // Filter out specified built-in uniforms
+  if (programInfo.builtin_uniforms) {
+    var num_builtins_found = 0;
+    var valid_values = programInfo.builtin_uniforms.valid_values;
+    for (var index in valid_values) {
+      var uniform = uniforms[valid_values[index]];
+      if (uniform) {
+        ++num_builtins_found;
+        uniform.builtin = true;
+      }
+    }
+
+    var min_required = programInfo.builtin_uniforms.min_required;
+    if (num_builtins_found < min_required) {
+      testFailed("only found " + num_builtins_found + " of " + min_required +
+                 " required built-in uniforms: " + valid_values);
+    }
+  }
+
   // Check for unset uniforms
   for (var name in uniforms) {
     var uniform = uniforms[name];
-    if (name.indexOf("gl_") == 0) {
-      continue;
-    }
-    if (!uniform.used) {
+    if (!uniform.used && !uniform.builtin) {
       testFailed("uniform " + name + " never set");
     }
   }
@@ -566,13 +582,15 @@ function runProgram(programInfo, test, label, callback) {
       var result;
       if (shaders.length == 2) {
         debug("");
+        if (!quietMode()) {
         var consoleDiv = document.getElementById("console");
-        wtu.addShaderSources(
-            gl, consoleDiv, label + " vertex shader", shaders[0], source[0],
-            programInfo.vertexShader);
-        wtu.addShaderSources(
-            gl, consoleDiv, label + " fragment shader", shaders[1], source[1],
-            programInfo.fragmentShader);
+          wtu.addShaderSources(
+              gl, consoleDiv, label + " vertex shader", shaders[0], source[0],
+              programInfo.vertexShader);
+          wtu.addShaderSources(
+              gl, consoleDiv, label + " fragment shader", shaders[1], source[1],
+              programInfo.fragmentShader);
+        }
         var program = wtu.createProgram(gl, shaders[0], shaders[1]);
         result = drawWithProgram(program, programInfo, test);
       }
@@ -606,16 +624,18 @@ function compareResults(expected, actual) {
     diffImg = wtu.makeImageFromCanvas(canvas);
   }
 
-  var div = document.createElement("div");
-  div.className = "testimages";
-  wtu.insertImage(div, "reference", expected.img);
-  wtu.insertImage(div, "test", actual.img);
-  if (diffImg) {
-    wtu.insertImage(div, "diff", diffImg);
-  }
-  div.appendChild(document.createElement('br'));
+  if (!quietMode()) {
+    var div = document.createElement("div");
+    div.className = "testimages";
+    wtu.insertImage(div, "reference", expected.img);
+    wtu.insertImage(div, "test", actual.img);
+    if (diffImg) {
+      wtu.insertImage(div, "diff", diffImg);
+    }
+    div.appendChild(document.createElement('br'));
 
-  console.appendChild(div);
+    console.appendChild(div);
+  }
 
   if (!same) {
     testFailed("images are different");
@@ -623,7 +643,8 @@ function compareResults(expected, actual) {
     testPassed("images are the same");
   }
 
-  console.appendChild(document.createElement('hr'));
+  if (!quietMode())
+    console.appendChild(document.createElement('hr'));
 }
 
 function runCompareTest(test, callback) {
@@ -688,14 +709,16 @@ function runBuildTest(test, callback) {
   function attachAndLink() {
     ++count;
     if (count == 2) {
-      debug("");
-      var c = document.getElementById("console");
-      wtu.addShaderSource(
-          c, "vertex shader", source[0], test.testProgram.vertexShader);
-      debug("compile: " + (success[0] ? "success" : "fail"));
-      wtu.addShaderSource(
-          c, "fragment shader", source[1], test.testProgram.fragmentShader);
-      debug("compile: " + (success[1] ? "success" : "fail"));
+      if (!quietMode()) {
+        debug("");
+        var c = document.getElementById("console");
+        wtu.addShaderSource(
+            c, "vertex shader", source[0], test.testProgram.vertexShader);
+        debug("compile: " + (success[0] ? "success" : "fail"));
+        wtu.addShaderSource(
+            c, "fragment shader", source[1], test.testProgram.fragmentShader);
+        debug("compile: " + (success[1] ? "success" : "fail"));
+      }
       compileSuccess = (success[0] && success[1]);
       if (!test.compstat) {
         if (compileSuccess) {

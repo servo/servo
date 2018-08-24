@@ -82,8 +82,8 @@ function init()
 
     var wtu = WebGLTestUtils;
     var gl = wtu.create3DContext("example", undefined, 2);
-    var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["vPosition"]);
-    var program_unsigned = wtu.setupProgram(gl, ["vshader_unsigned", "fshader"], ["vPosition"]);
+    var program = wtu.setupProgram(gl, ["vshader", "fshader"]);
+    var program_unsigned = wtu.setupProgram(gl, ["vshader_unsigned", "fshader"]);
 
     var tests = [
       { data: new Int32Array([ 0, 1, 0, 1, 0, 0, 0, 0, 0 ]),

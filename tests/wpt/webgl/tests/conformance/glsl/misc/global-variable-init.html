@@ -212,6 +212,23 @@ void main() {
     gl_FragColor = vec4(0.0, green, 0.0, 1.0);
 }
 </script>
+<script id="builtInConstant" type="x-shader/x-fragment">
+precision mediump float;
+int i = gl_MaxFragmentUniformVectors;
+
+void main() {
+    float green = (i > 0) ? 1.0 : 0.0;
+    gl_FragColor = vec4(0.0, green, 0.0, 1.0);
+}
+</script>
+<script id="builtInNonConstant" type="x-shader/x-fragment">
+precision mediump float;
+vec4 v = gl_FragCoord;
+
+void main() {
+    gl_FragColor = v;
+}
+</script>
 <script type="application/javascript">
 "use strict";
 description();
@@ -308,6 +325,19 @@ GLSLConformanceTester.runTests([
         { name: 'us.one', functionName: 'uniform1i', value: 1 }
     ],
     passMsg: "A global struct initialized with a uniform struct should be accepted by WebGL."
+  },
+  {
+    fShaderId: "builtInConstant",
+    fShaderSuccess: true,
+    linkSuccess: true,
+    render: true,
+    passMsg: "Referencing a built-in constant in a global variable initializer should be accepted by WebGL."
+  },
+  {
+    fShaderId: "builtInNonConstant",
+    fShaderSuccess: false,
+    linkSuccess: false,
+    passMsg: "Referencing a built-in non-constant in a global variable initializer should not be accepted by WebGL."
   }
 ]);
 var successfullyParsed = true;

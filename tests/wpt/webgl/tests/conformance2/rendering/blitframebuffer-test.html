@@ -54,15 +54,55 @@ if (!gl) {
     testFailed("WebGL context does not exist");
 } else {
     testPassed("WebGL context exists");
+    blit_framebuffer_repeated();
     blit_framebuffer_feedback_loop();
     blit_framebuffer_multisampling_srgb();
 }
 
+function blit_framebuffer_repeated() {
+    debug("");
+    debug("This test verifies repeated calls to blitFramebuffer.");
+
+    // Create offscreen fbo and its color attachment.
+    var tex_2d = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex_2d);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, width, height);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    var fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_2d, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    }
+
+    var prog = wtu.setupColorQuad(gl, 0);
+    wtu.setFloatDrawColor(gl, [ 1.0, 0.0, 0.0, 1.0 ]);
+    wtu.drawUnitQuad(gl);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    wtu.checkCanvas(gl, [ 255, 0, 0, 255 ], "should be red at first");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    wtu.setFloatDrawColor(gl, [ 0.0, 1.0, 0.0, 1.0 ]);
+    wtu.drawUnitQuad(gl);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    wtu.checkCanvas(gl, [ 0, 255, 0, 255 ], "should be green");
+}
 
 function blit_framebuffer_feedback_loop() {
 
     debug("");
-    debug("This test vefify that whether the src resource and dst resource have identical image.");
+    debug("This test checks whether the src resource and dst resource have identical images.");
     // Create read fbo and its color attachment.
     var tex_2d = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex_2d);

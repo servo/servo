@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"> </script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
 </head>
 <body>
 <canvas id="example" width="16" height="16"></canvas>
@@ -79,32 +79,24 @@ var wtu = WebGLTestUtils;
 var gl = wtu.create3DContext("example");
 
 var tests = [
-{ glType: gl.FLOAT,      size: 1, type: 'float', access: 'uniform0'},
-{ glType: gl.FLOAT_VEC2, size: 1, type: 'vec2',  access: 'uniform0[1]'},
-{ glType: gl.FLOAT_VEC3, size: 1, type: 'vec3',  access: 'uniform0[2]'},
-{ glType: gl.FLOAT_VEC4, size: 1, type: 'vec4',  access: 'uniform0[3]'},
-{ glType: gl.FLOAT_MAT2, size: 1, type: 'mat2',  access: 'uniform0[1][1]'},
-{ glType: gl.FLOAT_MAT3, size: 1, type: 'mat3',  access: 'uniform0[2][2]'},
-{ glType: gl.FLOAT_MAT3, size: 1, type: 'mat3',  access: 'uniform0[2][2]'},
-{ glType: gl.FLOAT_MAT4, size: 1, type: 'mat4',  access: 'uniform0[3][3]'},
-{ glType: gl.INT,        size: 1, type: 'int',   access: 'float(uniform0)'},
-{ glType: gl.INT_VEC2,   size: 1, type: 'ivec2', access: 'float(uniform0[1])'},
-{ glType: gl.INT_VEC3,   size: 1, type: 'ivec3', access: 'float(uniform0[2])'},
-{ glType: gl.INT_VEC4,   size: 1, type: 'ivec4', access: 'float(uniform0[3])'},
-{ glType: gl.BOOL,       size: 1, type: 'bool',  access: 'float(uniform0)'},
-{ glType: gl.BOOL_VEC2,  size: 1, type: 'bvec2', access: 'float(uniform0[1])'},
-{ glType: gl.BOOL_VEC3,  size: 1, type: 'bvec3', access: 'float(uniform0[2])'},
-{ glType: gl.BOOL_VEC4,  size: 1, type: 'bvec4', access: 'float(uniform0[3])'},
-{ glType: gl.SAMPLER_2D,
-  size: 1,
-  type: 'sampler2D',
-  access: 'texture2D(uniform0, vec2(0,0)).x'
-},
-{ glType: gl.SAMPLER_CUBE,
-  size: 1,
-  type: 'samplerCube',
-  access: 'textureCube(uniform0, vec3(0,1,0)).x'
-}
+  { glType: gl.FLOAT,        size: 1, type: 'float',       access: 'uniform0'},
+  { glType: gl.FLOAT_VEC2,   size: 1, type: 'vec2',        access: 'uniform0[1]'},
+  { glType: gl.FLOAT_VEC3,   size: 1, type: 'vec3',        access: 'uniform0[2]'},
+  { glType: gl.FLOAT_VEC4,   size: 1, type: 'vec4',        access: 'uniform0[3]'},
+  { glType: gl.FLOAT_MAT2,   size: 1, type: 'mat2',        access: 'uniform0[1][1]'},
+  { glType: gl.FLOAT_MAT3,   size: 1, type: 'mat3',        access: 'uniform0[2][2]'},
+  { glType: gl.FLOAT_MAT3,   size: 1, type: 'mat3',        access: 'uniform0[2][2]'},
+  { glType: gl.FLOAT_MAT4,   size: 1, type: 'mat4',        access: 'uniform0[3][3]'},
+  { glType: gl.INT,          size: 1, type: 'int',         access: 'float(uniform0)'},
+  { glType: gl.INT_VEC2,     size: 1, type: 'ivec2',       access: 'float(uniform0[1])'},
+  { glType: gl.INT_VEC3,     size: 1, type: 'ivec3',       access: 'float(uniform0[2])'},
+  { glType: gl.INT_VEC4,     size: 1, type: 'ivec4',       access: 'float(uniform0[3])'},
+  { glType: gl.BOOL,         size: 1, type: 'bool',        access: 'float(uniform0)'},
+  { glType: gl.BOOL_VEC2,    size: 1, type: 'bvec2',       access: 'float(uniform0[1])'},
+  { glType: gl.BOOL_VEC3,    size: 1, type: 'bvec3',       access: 'float(uniform0[2])'},
+  { glType: gl.BOOL_VEC4,    size: 1, type: 'bvec4',       access: 'float(uniform0[3])'},
+  { glType: gl.SAMPLER_2D,   size: 1, type: 'sampler2D',   access: 'texture2D(uniform0, vec2(0,0)).x'},
+  { glType: gl.SAMPLER_CUBE, size: 1, type: 'samplerCube', access: 'textureCube(uniform0, vec3(0,1,0)).x'}
 ];
 
 var vs = wtu.loadShaderFromScript(gl, 'vshader', gl.VERTEX_SHADER);
@@ -155,11 +147,11 @@ gl.uniform1f(l2, 1);
 wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors setting uniform 0");
 gl.uniform1f(l1, 2);
 wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
-                "setting a uniform using a location from another program");
+                    "setting a uniform using a location from another program");
 
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

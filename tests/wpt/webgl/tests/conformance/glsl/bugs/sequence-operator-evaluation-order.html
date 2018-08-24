@@ -113,8 +113,6 @@ description();
 debug("");
 debug("This test is targeted to stress syntax tree transformations that might need to be done in shader translation to unfold operators.");
 
-debug("SKIP: 2 cases skipped: crbug.com/695683");
-
 GLSLConformanceTester.runRenderTests([
 {
   fShaderId: 'fshaderSequenceSideEffectsAffectTernary',
@@ -122,8 +120,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: 'Expression where first operand of a sequence operator has side effects which affect the second operand that is a ternary operator'
 },
-// crbug.com/695683
-/*
 {
   fShaderId: 'fshaderSequenceSideEffectsAffectAnd',
   fShaderSuccess: true,
@@ -136,7 +132,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: 'Expression where first operand of a sequence operator has side effects which affect the second operand that is an or operator'
 }
-*/
 ]);
 </script>
 </body>

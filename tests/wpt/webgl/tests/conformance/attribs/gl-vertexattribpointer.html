@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -61,34 +61,58 @@ if (!gl) {
     gl.FIXED = 0x140C;
   }
 
-  gl.vertexAttribPointer(0, 3, gl.FLOAT, 0, 0, 12);
-  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
-      "vertexAttribPointer should fail if no buffer is bound");
-
   var vertexObject = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(0), gl.STATIC_DRAW);
 
-  gl.vertexAttribPointer(0, 1, gl.INT, 0, 0, 0);
-  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
-      "vertexAttribPointer should not support INT");
-  gl.vertexAttribPointer(0, 1, gl.UNSIGNED_INT, 0, 0, 0);
-  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
-      "vertexAttribPointer should not support UNSIGNED_INT");
-  gl.vertexAttribPointer(0, 1, gl.FIXED, 0, 0, 0);
-  wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
-      "vertexAttribPointer should not support FIXED");
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 4);
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION,
+      "vertexAttribPointer should fail if no buffer is bound and `offset` is non-zero.");
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+  gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "vertexAttribPointer should succeed if no buffer is bound and `offset` is zero.");
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexObject);
+
+
+  if (wtu.getDefault3DContextVersion() < 2) {
+    gl.vertexAttribPointer(0, 1, gl.INT, 0, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+            "vertexAttribPointer should not support INT");
+    gl.vertexAttribPointer(0, 1, gl.UNSIGNED_INT, 0, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+            "vertexAttribPointer should not support UNSIGNED_INT");
+    gl.vertexAttribPointer(0, 1, gl.FIXED, 0, 0, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM,
+            "vertexAttribPointer should not support FIXED");
+  }
 
   var checkVertexAttribPointer = function(
       gl, err, reason, size, type, normalize, stride, offset) {
     gl.vertexAttribPointer(0, size, type, normalize, stride, offset);
+    var succeeded = (err == gl.NO_ERROR);
     wtu.glErrorShouldBe(gl, err,
         "gl.vertexAttribPointer(0, " + size +
         ", gl." + wtu.glEnumToString(gl, type) +
         ", " + normalize +
         ", " + stride +
         ", " + offset +
-        ") should " + (err == gl.NO_ERROR ? "succeed " : "fail ") + reason);
+        ") should " + (succeeded ? "succeed " : "fail ") + reason);
+    if (succeeded) {
+      shouldBe('gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_SIZE)', size.toString());
+      shouldBe('gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_TYPE)', 'gl.' + wtu.glEnumToString(gl, type));
+      shouldBe('gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_NORMALIZED)', normalize.toString());
+      shouldBe('gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_STRIDE)', stride.toString());
+      shouldBe('gl.getVertexAttribOffset(0, gl.VERTEX_ATTRIB_ARRAY_POINTER)', offset.toString());
+    }
   }
 
   var types = [
@@ -150,7 +174,7 @@ debug("");
 var successfullyParsed = true;
 
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

@@ -33,8 +33,7 @@ IterableTest = (function() {
       debug("Test " + count + " of " + target);
       var success = test();
       if (count < target && success !== false) {
-        wtu.waitForComposite(doNextTest);
-        //setTimeout(doNextTest, 100);
+        wtu.dispatchTask(doNextTest);
       } else {
         finishTest();
       }
@@ -162,12 +161,40 @@ IterableTest = (function() {
     return test;
   }
 
+  // Draws repeatedly to a large canvas with preserveDrawingBuffer enabled to
+  // try and provoke a context loss.
+  function createPreserveDrawingBufferLeakTest(gl) {
+    var contextActive = true;
+    gl.canvas.addEventListener("webglcontextlost", () => {
+      testFailed("Context was lost");
+      contextActive = false;
+    });
+
+    function test() {
+      var x = Math.random() * gl.drawingBufferWidth;
+      var y = Math.random() * gl.drawingBufferHeight;
+      var width = Math.random() * (gl.drawingBufferWidth - x);
+      var height = Math.random() * (gl.drawingBufferHeight - y);
+
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(x, y, width, height);
+      gl.clearColor(Math.random(), Math.random(), Math.random(), 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors");
+
+      return contextActive;
+    };
+
+    return test;
+  }
+
   return {
     run: run,
 
     createContextCreationAndDestructionTest: createContextCreationAndDestructionTest,
     createContextCreationTest: createContextCreationTest,
-    createMultisampleCorruptionTest: createMultisampleCorruptionTest
+    createMultisampleCorruptionTest: createMultisampleCorruptionTest,
+    createPreserveDrawingBufferLeakTest: createPreserveDrawingBufferLeakTest
   };
 
 })();

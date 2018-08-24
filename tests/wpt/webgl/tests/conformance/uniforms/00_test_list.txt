@@ -4,6 +4,24 @@ gl-uniform-arrays.html
 gl-uniform-bool.html
 gl-uniformmatrix4fv.html
 gl-unknown-uniform.html
+no-over-optimization-on-uniform-array-00.html
+no-over-optimization-on-uniform-array-01.html
+no-over-optimization-on-uniform-array-02.html
+no-over-optimization-on-uniform-array-03.html
+no-over-optimization-on-uniform-array-04.html
+no-over-optimization-on-uniform-array-05.html
+no-over-optimization-on-uniform-array-06.html
+no-over-optimization-on-uniform-array-07.html
+no-over-optimization-on-uniform-array-08.html
+no-over-optimization-on-uniform-array-09.html
+no-over-optimization-on-uniform-array-10.html
+no-over-optimization-on-uniform-array-11.html
+no-over-optimization-on-uniform-array-12.html
+no-over-optimization-on-uniform-array-13.html
+no-over-optimization-on-uniform-array-14.html
+no-over-optimization-on-uniform-array-15.html
+no-over-optimization-on-uniform-array-16.html
+no-over-optimization-on-uniform-array-17.html
 null-uniform-location.html
 --min-version 1.0.2 out-of-bounds-uniform-array-access.html
 --min-version 1.0.2 uniform-default-values.html

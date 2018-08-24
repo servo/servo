@@ -10,17 +10,11 @@ import argparse
 
 KHRONOS_REPO_URL = "https://github.com/KhronosGroup/WebGL.git"
 # Patches for conformance tests 1.0.x
-PATCHES_1X = [
-    ("js-test-pre.patch", "resources/js-test-pre.js"),
+PATCHES = [
+    ("js-test-pre.patch", "js/js-test-pre.js"),
     ("unit.patch", "conformance/more/unit.js"),
     ("unit2.patch", "conformance/more/unit.js"),
     ("timeout.patch", None)
-]
-# Patches for conformance tests 2.0.x
-PATCHES_2X = [
-    ("js-test-pre2.patch", "js/js-test-pre.js"),
-    ("unit.patch", "conformance/more/unit.js"),
-    ("unit2.patch", "conformance/more/unit.js")
 ]
 
 # Fix for 'UnicodeDecodeError: 'ascii' codec can't decode byte'
@@ -28,7 +22,7 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 def usage():
-    print("Usage: {} version destination [existing_webgl_repo]".format(sys.argv[0]))
+    print("Usage: {} destination [existing_webgl_repo]".format(sys.argv[0]))
     sys.exit(1)
 
 def get_tests(base_dir, file_name, tests_list):
@@ -76,8 +70,8 @@ def process_test(test):
 
 
 
-def update_conformance(version, destination, existing_repo, patches_dir):
-    print("Trying to import WebGL conformance test suite {} into {}".format(version, destination))
+def update_conformance(destination, existing_repo, patches_dir):
+    print("Trying to import WebGL tests into {}".format(destination))
 
     if existing_repo:
         directory = existing_repo
@@ -87,7 +81,7 @@ def update_conformance(version, destination, existing_repo, patches_dir):
         print("Cloning WebGL repository into temporary directory {}".format(directory))
         subprocess.check_call(["git", "clone", KHRONOS_REPO_URL, directory, "--depth", "1"])
 
-    suite_dir = os.path.join(directory, "conformance-suites", version)
+    suite_dir = os.path.join(directory, "sdk/tests")
     print("Test suite directory: {}".format(suite_dir))
 
     if not os.path.isdir(suite_dir):
@@ -133,8 +127,7 @@ def update_conformance(version, destination, existing_repo, patches_dir):
     # Try to apply the patches to the required files
     if not patches_dir:
         patches_dir = os.path.abspath(os.path.dirname(sys.argv[0]))
-    patches = PATCHES_2X if version.startswith('2') else PATCHES_1X
-    for patch, file_name in patches:
+    for patch, file_name in PATCHES:
         try:
             patch = os.path.join(patches_dir, patch)
             if file_name is None:
@@ -147,12 +140,11 @@ def update_conformance(version, destination, existing_repo, patches_dir):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("version", help="WebGL test suite version (e.g.: 1.0.3)")
     parser.add_argument("destination", help="Test suite destination")
     parser.add_argument("-e", "--existing-repo", help="Path to an existing clone of the khronos WebGL repository")
     args = parser.parse_args()
 
-    update_conformance(args.version, args.destination, args.existing_repo, None)
+    update_conformance(args.destination, args.existing_repo, None)
 
 if __name__ == '__main__':
     main()

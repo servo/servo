@@ -28,6 +28,22 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     var successfullyParsed = false;
     var redColor = [255, 0, 0];
     var greenColor = [0, 255, 0];
+    var repeatCount;
+
+    function shouldRepeatTestForTextureFormat(internalFormat, pixelFormat, pixelType)
+    {
+        // There were bugs in early WebGL 1.0 implementations when repeatedly uploading canvas
+        // elements into textures. In response, this test was changed into a regression test by
+        // repeating all of the cases multiple times. Unfortunately, this means that adding a new
+        // case above significantly increases the run time of the test suite. The problem is made
+        // even worse by the addition of many more texture formats in WebGL 2.0.
+        //
+        // Doing repeated runs with just a couple of WebGL 1.0's supported texture formats acts as a
+        // sufficient regression test for the old bugs. For this reason the test has been changed to
+        // only repeat for those texture formats.
+        return ((internalFormat == 'RGBA' && pixelFormat == 'RGBA' && pixelType == 'UNSIGNED_BYTE') ||
+                (internalFormat == 'RGB' && pixelFormat == 'RGB' && pixelType == 'UNSIGNED_BYTE'));
+    }
 
     function init()
     {
@@ -42,9 +58,20 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             return;
         }
 
+        repeatCount = (shouldRepeatTestForTextureFormat(internalFormat, pixelFormat, pixelType) ? 4 : 1);
+
         switch (gl[pixelFormat]) {
           case gl.RED:
           case gl.RED_INTEGER:
+            greenColor = [0, 0, 0];
+            break;
+          case gl.LUMINANCE:
+          case gl.LUMINANCE_ALPHA:
+            redColor = [255, 255, 255];
+            greenColor = [0, 0, 0];
+            break;
+          case gl.ALPHA:
+            redColor = [0, 0, 0];
             greenColor = [0, 0, 0];
             break;
           default:
@@ -93,9 +120,16 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
 
     function runOneIteration(canvas, useTexSubImage2D, flipY, program, bindingTarget, opt_texture)
     {
+        var objType = 'canvas';
+        if (canvas.transferToImageBitmap)
+            objType = 'OffscreenCanvas';
+        else if (canvas.parentNode)
+            objType = 'canvas attached to DOM';
         debug('Testing ' + (useTexSubImage2D ? 'texSubImage2D' : 'texImage2D') + ' with flipY=' +
-              flipY + ' bindingTarget=' + (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP') +
+              flipY + ' source object: ' + objType +
+              ' bindingTarget=' + (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP') +
               ' canvas size: ' + canvas.width + 'x' + canvas.height + ' with red-green');
+
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         if (!opt_texture) {
             var texture = gl.createTexture();
@@ -188,17 +222,38 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     {
         var ctx = wtu.create3DContext();
         var canvas = ctx.canvas;
+        // Note: We use preserveDrawingBuffer:true to prevent canvas
+        // visibility from interfering with the tests.
+        var visibleCtx = wtu.create3DContext(null, { preserveDrawingBuffer:true });
+        var visibleCanvas = visibleCtx.canvas;
+        var descriptionNode = document.getElementById("description");
+        document.body.insertBefore(visibleCanvas, descriptionNode);
 
         var cases = [
-            { sub: false, flipY: true, init: setCanvasToMin },
-            { sub: false, flipY: false },
-            { sub: true,  flipY: true },
-            { sub: true,  flipY: false },
-            { sub: false, flipY: true, init: setCanvasTo257x257 },
-            { sub: false, flipY: false },
-            { sub: true,  flipY: true },
-            { sub: true,  flipY: false },
+            { sub: false, flipY: true,  ctx: ctx, init: setCanvasToMin },
+            { sub: false, flipY: false, ctx: ctx },
+            { sub: true,  flipY: true,  ctx: ctx },
+            { sub: true,  flipY: false, ctx: ctx },
+            { sub: false, flipY: true,  ctx: ctx, init: setCanvasTo257x257 },
+            { sub: false, flipY: false, ctx: ctx },
+            { sub: true,  flipY: true,  ctx: ctx },
+            { sub: true,  flipY: false, ctx: ctx },
+            { sub: false, flipY: true,  ctx: visibleCtx, init: setCanvasToMin },
+            { sub: false, flipY: false, ctx: visibleCtx },
+            { sub: true,  flipY: true,  ctx: visibleCtx },
+            { sub: true,  flipY: false, ctx: visibleCtx },
         ];
+
+        if (window.OffscreenCanvas) {
+            var offscreen = new OffscreenCanvas(1, 1);
+            var offscreenCtx = wtu.create3DContext(offscreen);
+            cases = cases.concat([
+                { sub: false, flipY: true,  ctx: offscreenCtx, init: setCanvasToMin },
+                { sub: false, flipY: false, ctx: offscreenCtx },
+                { sub: true,  flipY: true,  ctx: offscreenCtx },
+                { sub: true,  flipY: false, ctx: offscreenCtx },
+            ]);
+        }
 
         function runTexImageTest(bindingTarget) {
             var program;
@@ -209,17 +264,18 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             }
 
             return new Promise(function(resolve, reject) {
-                var count = 4;
+                var count = repeatCount;
                 var caseNdx = 0;
                 var texture = undefined;
                 function runNextTest() {
                     var c = cases[caseNdx];
                     if (c.init) {
-                      c.init(ctx, bindingTarget);
+                      c.init(c.ctx, bindingTarget);
                     }
-                    texture = runOneIteration(canvas, c.sub, c.flipY, program, bindingTarget, texture);
+                    texture = runOneIteration(c.ctx.canvas, c.sub, c.flipY, program, bindingTarget, texture);
                     // for the first 2 iterations always make a new texture.
-                    if (count > 2) {
+                    if (count < 2) {
+                      gl.deleteTexture(texture);
                       texture = undefined;
                     }
                     ++caseNdx;
@@ -231,7 +287,7 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                             return;
                         }
                     }
-                    wtu.waitForComposite(runNextTest);
+                    wtu.dispatchTask(runNextTest);
                 }
                 runNextTest();
             });

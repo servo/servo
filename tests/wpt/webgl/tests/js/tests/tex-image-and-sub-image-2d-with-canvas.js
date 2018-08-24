@@ -27,8 +27,64 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     var gl = null;
     var successfullyParsed = false;
     var whiteColor = [255, 255, 255, 255];
-    var redColor = [255, 0, 0];
-    var greenColor = [0, 255, 0];
+    var redColor = [255, 0, 0, 255];
+    var greenColor = [0, 255, 0, 255];
+    var semiTransparentRedColor = [127, 0, 0, 127];
+    var semiTransparentGreenColor = [0, 127, 0, 127];
+    var repeatCount;
+
+    function replicateRedChannel(color)
+    {
+        color[1] = color[0];
+        color[2] = color[0];
+    }
+
+    function zapColorChannels(color)
+    {
+        color[0] = 0;
+        color[1] = 0;
+        color[2] = 0;
+    }
+
+    function setAlphaChannelTo1(color)
+    {
+        color[3] = 255;
+    }
+
+    function replicateAllRedChannels()
+    {
+        replicateRedChannel(redColor);
+        replicateRedChannel(semiTransparentRedColor);
+        replicateRedChannel(greenColor);
+        replicateRedChannel(semiTransparentGreenColor);
+    }
+
+    function setAllAlphaChannelsTo1()
+    {
+        setAlphaChannelTo1(redColor);
+        setAlphaChannelTo1(semiTransparentRedColor);
+        setAlphaChannelTo1(greenColor);
+        setAlphaChannelTo1(semiTransparentGreenColor);
+    }
+
+    function repeatCountForTextureFormat(internalFormat, pixelFormat, pixelType)
+    {
+        // There were bugs in early WebGL 1.0 implementations when repeatedly uploading canvas
+        // elements into textures. In response, this test was changed into a regression test by
+        // repeating all of the cases multiple times. Unfortunately, this means that adding a new
+        // case above significantly increases the run time of the test suite. The problem is made
+        // even worse by the addition of many more texture formats in WebGL 2.0.
+        //
+        // Doing repeated runs with just a couple of WebGL 1.0's supported texture formats acts as a
+        // sufficient regression test for the old bugs. For this reason the test has been changed to
+        // only repeat for those texture formats.
+        if ((internalFormat == 'RGBA' && pixelFormat == 'RGBA' && pixelType == 'UNSIGNED_BYTE') ||
+            (internalFormat == 'RGB' && pixelFormat == 'RGB' && pixelType == 'UNSIGNED_BYTE')) {
+            return 4;
+        }
+
+        return 1;
+    }
 
     function init()
     {
@@ -43,35 +99,93 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             return;
         }
 
+        repeatCount = repeatCountForTextureFormat(internalFormat, pixelFormat, pixelType);
+
         switch (gl[pixelFormat]) {
           case gl.RED:
           case gl.RED_INTEGER:
-            whiteColor = [255, 0, 0, 255];
-            greenColor = [0, 0, 0];
+            // Zap green and blue channels.
+            whiteColor[1] = 0;
+            whiteColor[2] = 0;
+            greenColor[1] = 0;
+            semiTransparentGreenColor[1] = 0;
+            // Alpha channel is 1.0.
+            setAllAlphaChannelsTo1();
             break;
           case gl.RG:
           case gl.RG_INTEGER:
-            whiteColor = [255, 255, 0, 255];
+            // Zap blue channel.
+            whiteColor[2] = 0;
+            // Alpha channel is 1.0.
+            setAllAlphaChannelsTo1();
+            break;
+          case gl.LUMINANCE:
+            // Replicate red channels.
+            replicateAllRedChannels();
+            // Alpha channel is 1.0.
+            setAllAlphaChannelsTo1();
+            break;
+          case gl.ALPHA:
+            // Red, green and blue channels are all 0.0.
+            zapColorChannels(redColor);
+            zapColorChannels(semiTransparentRedColor);
+            zapColorChannels(greenColor);
+            zapColorChannels(semiTransparentGreenColor);
+            zapColorChannels(whiteColor);
+            break;
+          case gl.LUMINANCE_ALPHA:
+            // Replicate red channels.
+            replicateAllRedChannels();
+            break;
+          case gl.RGB:
+          case gl.RGB_INTEGER:
+            // Alpha channel is 1.0.
+            setAllAlphaChannelsTo1();
             break;
           default:
+            break;
+        }
+
+        switch (gl[internalFormat]) {
+          case gl.SRGB8:
+          case gl.SRGB8_ALPHA8:
+            semiTransparentRedColor = wtu.sRGBToLinear(semiTransparentRedColor);
+            semiTransparentGreenColor = wtu.sRGBToLinear(semiTransparentGreenColor);
+            break;
+          case gl.RGBA8UI:
+            // For int and uint textures, TexImageUtils outputs the maximum value (in this case,
+            // 255) for the alpha channel all the time because of differences in behavior when
+            // sampling integer textures with and without alpha channels. Since changing this
+            // behavior may have large impact across the test suite, leave it as is for now.
+            setAllAlphaChannelsTo1();
             break;
         }
 
         gl.clearColor(0,0,0,1);
         gl.clearDepth(1);
 
-        var testCanvas = document.createElement('canvas');
-        runTest(testCanvas);
-        //document.body.appendChild(testCanvas);
+        runTest();
     }
 
     function setCanvasToRedGreen(ctx) {
       var width = ctx.canvas.width;
       var height = ctx.canvas.height;
       var halfHeight = Math.floor(height / 2);
+      ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = "#ff0000";
       ctx.fillRect(0, 0, width, halfHeight);
       ctx.fillStyle = "#00ff00";
+      ctx.fillRect(0, halfHeight, width, height - halfHeight);
+    }
+
+    function setCanvasToSemiTransparentRedGreen(ctx) {
+      var width = ctx.canvas.width;
+      var height = ctx.canvas.height;
+      var halfHeight = Math.floor(height / 2);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "rgba(127, 0, 0, 0.5)";
+      ctx.fillRect(0, 0, width, halfHeight);
+      ctx.fillStyle = "rgba(0, 127, 0, 0.5)";
       ctx.fillRect(0, halfHeight, width, height - halfHeight);
     }
 
@@ -93,6 +207,12 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
       setCanvasToRedGreen(ctx);
     }
 
+    function setCanvasTo257x257SemiTransparent(ctx, bindingTarget) {
+      ctx.canvas.width = 257;
+      ctx.canvas.height = 257;
+      setCanvasToSemiTransparentRedGreen(ctx);
+    }
+
     function setCanvasToMin(ctx, bindingTarget) {
       if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
         // cube map texture must be square.
@@ -104,26 +224,27 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
       setCanvasToRedGreen(ctx);
     }
 
-    function checkSourceCanvasImageData(imageDataBefore, imageDataAfter) {
-      if (imageDataBefore.length != imageDataAfter.length) {
-        testFailed("The size of image data in source canvas become different after it is used in webgl texture.");
-        return;
+    function setCanvasToMinSemiTransparent(ctx, bindingTarget) {
+      if (bindingTarget == gl.TEXTURE_CUBE_MAP) {
+        // cube map texture must be square.
+        ctx.canvas.width = 2;
+      } else {
+        ctx.canvas.width = 1;
       }
-      for (var i = 0; i < imageDataAfter.length; i++) {
-        if (imageDataBefore[i] != imageDataAfter[i]) {
-          testFailed("Pixel values in source canvas have changed after canvas used in webgl texture.");
-          return;
-        }
-      }
-      testPassed("Pixel values in source canvas remain unchanged after canvas used in webgl texture.");
+      ctx.canvas.height = 2;
+      setCanvasToSemiTransparentRedGreen(ctx);
     }
 
-    function runOneIteration(canvas, useTexSubImage2D, flipY, program, bindingTarget, opt_texture, opt_fontTest)
+    function runOneIteration(canvas, useTexSubImage2D, flipY, semiTransparent, program, bindingTarget, opt_texture, opt_fontTest)
     {
+        var objType = 'canvas';
+        if (canvas.transferToImageBitmap)
+          objType = 'OffscreenCanvas';
         debug('Testing ' + (useTexSubImage2D ? 'texSubImage2D' : 'texImage2D') +
               ' with flipY=' + flipY + ' bindingTarget=' + (bindingTarget == gl.TEXTURE_2D ? 'TEXTURE_2D' : 'TEXTURE_CUBE_MAP') +
               ' canvas size: ' + canvas.width + 'x' + canvas.height +
-              (opt_fontTest ? " with fonts" : " with red-green"));
+              ' source object type: ' + objType +
+              (opt_fontTest ? " with fonts" : " with" + (semiTransparent ? " semi-transparent" : "") + " red-green"));
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         if (!opt_texture) {
             var texture = gl.createTexture();
@@ -209,13 +330,40 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                       },
                       debug);
             } else {
+                var localRed   = semiTransparent ? semiTransparentRedColor : redColor;
+                var localGreen = semiTransparent ? semiTransparentGreenColor : greenColor;
+
+                // Allow a tolerance for premultiplication/unmultiplication, especially for texture
+                // formats with lower bit depths.
+                var tolerance = 0;
+                if (semiTransparent) {
+                    tolerance = 3;
+                    if (pixelType == 'UNSIGNED_SHORT_5_6_5' || internalFormat == 'RGB565') {
+                        tolerance = 6;
+                    } else if (pixelType == 'UNSIGNED_SHORT_4_4_4_4' || internalFormat == 'RGBA4') {
+                        tolerance = 9;
+                    } else if (pixelType == 'UNSIGNED_SHORT_5_5_5_1' || internalFormat == 'RGB5_A1') {
+                        // Semi-transparent values are allowed to convert to either 1 or 0 for this
+                        // single-bit alpha format per OpenGL ES 3.0.5 section 2.1.6.2, "Conversion
+                        // from Floating-Point to Normalized Fixed-Point". Ignore alpha for these
+                        // tests.
+                        tolerance = 6;
+                        localRed = localRed.slice(0, 3);
+                        localGreen = localGreen.slice(0, 3);
+                    } else if (internalFormat == 'RGB10_A2') {
+                        // The alpha channel is too low-resolution for any meaningful comparisons.
+                        localRed = localRed.slice(0, 3);
+                        localGreen = localGreen.slice(0, 3);
+                    }
+                }
+
                 // Check the top and bottom halves and make sure they have the right color.
                 debug("Checking " + (flipY ? "top" : "bottom"));
-                wtu.checkCanvasRect(gl, 0, bottom, (skipCorner && flipY) ? halfWidth : width, halfHeight, redColor,
-                                    "shouldBe " + redColor);
+                wtu.checkCanvasRect(gl, 0, bottom, (skipCorner && flipY) ? halfWidth : width, halfHeight, localRed,
+                                    "shouldBe " + localRed, tolerance);
                 debug("Checking " + (flipY ? "bottom" : "top"));
-                wtu.checkCanvasRect(gl, 0, top, (skipCorner && !flipY) ? halfWidth : width, halfHeight, greenColor,
-                                    "shouldBe " + greenColor);
+                wtu.checkCanvasRect(gl, 0, top, (skipCorner && !flipY) ? halfWidth : width, halfHeight, localGreen,
+                                    "shouldBe " + localGreen, tolerance);
             }
 
             if (!useTexSubImage2D && pixelFormat == "RGBA") {
@@ -245,24 +393,52 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
         return texture;
     }
 
-    function runTest(canvas)
+    function runTest()
     {
-        var ctx = canvas.getContext("2d");
+        var canvas = document.createElement('canvas');
 
         var cases = [
-            { sub: false, flipY: true,  font: false, init: setCanvasToMin },
-            { sub: false, flipY: false, font: false },
-            { sub: true,  flipY: true,  font: false },
-            { sub: true,  flipY: false, font: false },
-            { sub: false, flipY: true,  font: false, init: setCanvasTo257x257 },
-            { sub: false, flipY: false, font: false },
-            { sub: true,  flipY: true,  font: false },
-            { sub: true,  flipY: false, font: false },
-            { sub: false, flipY: true,  font: true, init: drawTextInCanvas },
-            { sub: false, flipY: false, font: true },
-            { sub: true,  flipY: true,  font: true },
-            { sub: true,  flipY: false, font: true },
+            { canvas: canvas, sub: false, flipY: true,  semiTransparent: false, font: false, init: setCanvasToMin },
+            { canvas: canvas, sub: false, flipY: false, semiTransparent: false, font: false },
+            { canvas: canvas, sub: true,  flipY: true,  semiTransparent: false, font: false },
+            { canvas: canvas, sub: true,  flipY: false, semiTransparent: false, font: false },
+            { canvas: canvas, sub: false, flipY: true,  semiTransparent: true,  font: false, init: setCanvasToMinSemiTransparent },
+            { canvas: canvas, sub: false, flipY: false, semiTransparent: true,  font: false },
+            { canvas: canvas, sub: true,  flipY: true,  semiTransparent: true,  font: false },
+            { canvas: canvas, sub: true,  flipY: false, semiTransparent: true,  font: false },
+            { canvas: canvas, sub: false, flipY: true,  semiTransparent: false, font: false, init: setCanvasTo257x257 },
+            { canvas: canvas, sub: false, flipY: false, semiTransparent: false, font: false },
+            { canvas: canvas, sub: true,  flipY: true,  semiTransparent: false, font: false },
+            { canvas: canvas, sub: true,  flipY: false, semiTransparent: false, font: false },
+            { canvas: canvas, sub: false, flipY: true,  semiTransparent: true,  font: false, init: setCanvasTo257x257SemiTransparent },
+            { canvas: canvas, sub: false, flipY: false, semiTransparent: true,  font: false },
+            { canvas: canvas, sub: true,  flipY: true,  semiTransparent: true,  font: false },
+            { canvas: canvas, sub: true,  flipY: false, semiTransparent: true,  font: false },
         ];
+
+        // The font tests don't work with ALPHA-only textures since they draw to the color channels.
+        if (internalFormat != 'ALPHA') {
+            cases = cases.concat([
+                { canvas: canvas, sub: false, flipY: true,  semiTransparent: false, font: true, init: drawTextInCanvas },
+                { canvas: canvas, sub: false, flipY: false, semiTransparent: false, font: true },
+                { canvas: canvas, sub: true,  flipY: true,  semiTransparent: false, font: true },
+                { canvas: canvas, sub: true,  flipY: false, semiTransparent: false, font: true },
+            ]);
+        }
+
+        if (window.OffscreenCanvas) {
+            var offscreenCanvas = new OffscreenCanvas(1, 1);
+            cases = cases.concat([
+                { canvas: offscreenCanvas, sub: false, flipY: true,  semiTransparent: false, font: false, init: setCanvasToMin },
+                { canvas: offscreenCanvas, sub: false, flipY: false, semiTransparent: false, font: false },
+                { canvas: offscreenCanvas, sub: true,  flipY: true,  semiTransparent: false, font: false },
+                { canvas: offscreenCanvas, sub: true,  flipY: false, semiTransparent: false, font: false },
+                { canvas: offscreenCanvas, sub: false, flipY: true,  semiTransparent: true,  font: false, init: setCanvasToMinSemiTransparent },
+                { canvas: offscreenCanvas, sub: false, flipY: false, semiTransparent: true,  font: false },
+                { canvas: offscreenCanvas, sub: true,  flipY: true,  semiTransparent: true,  font: false },
+                { canvas: offscreenCanvas, sub: true,  flipY: false, semiTransparent: true,  font: false },
+            ]);
+        }
 
         function runTexImageTest(bindingTarget) {
             var program;
@@ -273,23 +449,18 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
             }
 
             return new Promise(function(resolve, reject) {
-                var count = 4;
+                var count = repeatCount;
                 var caseNdx = 0;
                 var texture = undefined;
                 function runNextTest() {
                     var c = cases[caseNdx];
                     var imageDataBefore = null;
                     if (c.init) {
-                      c.init(ctx, bindingTarget);
-                      imageDataBefore = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                      c.init(c.canvas.getContext('2d'), bindingTarget);
                     }
-                    texture = runOneIteration(canvas, c.sub, c.flipY, program, bindingTarget, texture, c.font);
-                    if (c.init) {
-                        debug("Checking if pixel values in source canvas change after canvas used as webgl texture");
-                        checkSourceCanvasImageData(imageDataBefore, ctx.getImageData(0, 0, canvas.width, canvas.height));
-                    }
+                    texture = runOneIteration(c.canvas, c.sub, c.flipY, c.semiTransparent, program, bindingTarget, texture, c.font);
                     // for the first 2 iterations always make a new texture.
-                    if (count > 2) {
+                    if (count < 2) {
                       gl.deleteTexture(texture);
                       texture = undefined;
                     }
@@ -302,7 +473,11 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                             return;
                         }
                     }
-                    wtu.waitForComposite(runNextTest);
+                    // While we are working with Canvases, it's really unlikely that
+                    // waiting for composition will change anything here, and it's much
+                    // slower, so just dispatchTask. If we want to test with composites,
+                    // we should test a more narrow subset of tests.
+                    wtu.dispatchTask(runNextTest);
                 }
                 runNextTest();
             });

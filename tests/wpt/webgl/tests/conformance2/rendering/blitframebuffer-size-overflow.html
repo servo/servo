@@ -84,13 +84,25 @@ function blit_region_test() {
     gl.blitFramebuffer(0, 0, max, max, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     gl.blitFramebuffer(0, 0, width, height, 0, 0, max, max, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     gl.blitFramebuffer(0, 0, max, max, 0, 0, max, max, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Using max 32-bit integer as blitFramebuffer parameter should succeed.");
+
+    gl.blitFramebuffer(-1, -1, max - 1, max - 1, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.blitFramebuffer(0, 0, width, height, -1, -1, max - 1, max - 1, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.blitFramebuffer(-1, -1, max - 1, max - 1, -1, -1, max - 1, max - 1, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Using blitFramebuffer parameters where calculated width/height matches max 32-bit integer should succeed.");
 
     gl.blitFramebuffer(-1, -1, max, max, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Using source width/height greater than max 32-bit integer should fail.");
+    gl.blitFramebuffer(max, max, -1, -1, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Using source width/height greater than max 32-bit integer should fail.");
     gl.blitFramebuffer(0, 0, width, height, -1, -1, max, max, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Using destination width/height greater than max 32-bit integer should fail.");
+    gl.blitFramebuffer(0, 0, width, height, max, max, -1, -1, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Using destination width/height greater than max 32-bit integer should fail.");
     gl.blitFramebuffer(-1, -1, max, max, -1, -1, max, max, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Using both source and destination width/height greater than max 32-bit integer should fail.");
     gl.blitFramebuffer(-max - 1, -max - 1, max, max, -max - 1, -max - 1, max, max, gl.COLOR_BUFFER_BIT, gl.NEAREST);
-
-    testPassed("Congratulations! blitFramebuffer doesn't cause the browser crash when the computed width/height of src and/or dst region might overflow.");
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "Using minimum and maximum integers for all boundaries should fail.");
 
     gl.bindTexture(gl.TEXTURE_2D, null)
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);

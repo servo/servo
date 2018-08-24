@@ -1,0 +1,276 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_multiview Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl_multiview_util.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext(null, null, 2);
+let ext = null;
+
+function runSingleViewReadTest()
+{
+    debug("");
+    debug("Testing reading from a multiview framebuffer with num_views = 1");
+
+    let width = 256;
+    let height = 256;
+    let depth = 2;  // always supported so no need to query MAX_VIEWS_OVR.
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, depth);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 1);
+
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    let buf = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from readPixels");
+
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 255, 255, 255], 'view 0 should be cyan');
+    gl.getError();
+
+    // Also test for the error case with two views
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 2);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "should be an error to read from a framebuffer with two views");
+}
+
+function runSingleViewBlitTest()
+{
+    debug("");
+    debug("Testing blitting from a multiview framebuffer with num_views = 1");
+
+    let width = 256;
+    let height = 256;
+    let depth = 2;  // always supported so no need to query MAX_VIEWS_OVR.
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, depth);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 1);
+
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    gl.canvas.width = width;
+    gl.canvas.height = height;
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0)
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from blitFramebuffer");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 255, 255, 255], 'view 0 blitted to the default framebuffer should be cyan');
+
+    // Also test for the error case with multiview blit target
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fb);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "should be an error to blit to a multiview framebuffer even if it has just one view");
+
+    // Also test for the error case with two views
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 2);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "should be an error to blit from a framebuffer with two views");
+}
+
+function runSingleViewCopyTexImage2DTest()
+{
+    debug("");
+    debug("Testing copyTexImage2D from a multiview framebuffer with num_views = 1");
+
+    let width = 256;
+    let height = 256;
+    let depth = 2;  // always supported so no need to query MAX_VIEWS_OVR.
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, depth);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 1);
+
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    let copyTargetTex = createTextureWithNearestFiltering(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, copyTargetTex);
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 0, 0, width, height, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from copyTexImage2D");
+
+    let copyFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, copyFb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, copyTargetTex, 0);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 255, 255, 255], 'copy of view 0 in the 2D texture should be cyan');
+
+    // Also test for the error case with two views
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 2);
+    gl.bindTexture(gl.TEXTURE_2D, copyTargetTex);
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 0, 0, width, height, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "should be an error to copy from a framebuffer with two views");
+}
+
+function runSingleViewCopyTexSubImage2DTest()
+{
+    debug("");
+    debug("Testing copyTexSubImage2D from a multiview framebuffer with num_views = 1");
+
+    let width = 256;
+    let height = 256;
+    let depth = 2;  // always supported so no need to query MAX_VIEWS_OVR.
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, depth);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 1);
+
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    let copyTargetTex = createTextureWithNearestFiltering(gl.TEXTURE_2D);
+    gl.bindTexture(gl.TEXTURE_2D, copyTargetTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from copyTexImage2D");
+
+    let copyFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, copyFb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, copyTargetTex, 0);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 255, 255, 255], 'copy of view 0 in the 2D texture should be cyan');
+
+    // Also test for the error case with two views
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 2);
+    gl.bindTexture(gl.TEXTURE_2D, copyTargetTex);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+    wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "should be an error to copy from a framebuffer with two views");
+}
+
+function runSingleViewCopyTexSubImage3DTest()
+{
+    debug("");
+    debug("Testing copyTexSubImage3D from a multiview framebuffer with num_views = 1");
+
+    let width = 256;
+    let height = 256;
+    let depth = 2;  // always supported so no need to query MAX_VIEWS_OVR.
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, depth);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 1);
+
+    gl.viewport(0, 0, width, height);
+    gl.clearColor(0.0, 1.0, 1.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    let copyTargetTex = createTextureWithNearestFiltering(gl.TEXTURE_3D);
+    gl.bindTexture(gl.TEXTURE_3D, copyTargetTex);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, width, height, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.copyTexSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 0, 0, width, height);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from copyTexSubImage3D");
+
+    let copyFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, copyFb);
+    gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, copyTargetTex, 0, 0);
+    wtu.checkCanvasRect(gl, 0, 0, width, height, [0, 255, 255, 255], 'copy of view 0 in the 3D texture should be cyan');
+
+    // Also test for the error case with two views
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, 2);
+    gl.bindTexture(gl.TEXTURE_3D, copyTargetTex);
+    gl.copyTexSubImage3D(gl.TEXTURE_3D, 0, 0, 0, 0, 0, 0, width, height);
+    wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "should be an error to copy from a framebuffer with two views");
+}
+
+description("This test verifies that framebuffers with only one view can be read from with WEBGL_multiview extension, if it is available.");
+
+debug("");
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  if (!gl.getExtension("WEBGL_multiview")) {
+      testPassed("No WEBGL_multiview support -- this is legal");
+  } else {
+      testPassed("Successfully enabled WEBGL_multiview extension");
+      ext = gl.getExtension('WEBGL_multiview');
+
+      runSingleViewReadTest();
+
+      runSingleViewBlitTest();
+
+      runSingleViewCopyTexImage2DTest();
+
+      runSingleViewCopyTexSubImage2DTest();
+
+      runSingleViewCopyTexSubImage3DTest();
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -383,11 +383,11 @@ var successfullyParsed = true;
 """
     css = [
       "../../resources/js-test-style.css",
-      "../resources/ogles-tests.css",
+      "../../resources/ogles-tests.css",
     ]
     scripts = [
       "../../resources/js-test-pre.js",
-      "../resources/webgl-test-utils.js",
+      "../../resources/webgl-test-utils.js",
       "ogles-utils.js",
     ]
     css_html = RelativizePaths(outname, css, '<link rel="stylesheet" href="%s" />')

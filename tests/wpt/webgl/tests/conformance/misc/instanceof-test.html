@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"> </script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
 </head>
 <body>
 <canvas id="canvas" width="2" height="2" style="width: 40px; height: 40px;"></canvas>
@@ -48,7 +48,6 @@ void main()
     gl_Position = vPosition;
 }
 </script>
-
 <script id="fshader" type="x-shader/x-fragment">
 precision mediump float;
 uniform vec4 color;
@@ -57,57 +56,12 @@ void main()
     gl_FragColor = color;
 }
 </script>
+
 <script>
-"use strict";
-var wtu = WebGLTestUtils;
-description(document.title);
-debug("Tests that instanceof works on WebGL objects.");
-debug("");
-var gl = wtu.create3DContext("canvas");
-shouldBeTrue('gl instanceof WebGLRenderingContext');
-shouldBeTrue('gl.createBuffer() instanceof WebGLBuffer');
-shouldBeTrue('gl.createFramebuffer() instanceof WebGLFramebuffer');
-shouldBeTrue('gl.createProgram() instanceof WebGLProgram');
-shouldBeTrue('gl.createRenderbuffer() instanceof WebGLRenderbuffer');
-shouldBeTrue('gl.createShader(gl.VERTEX_SHADER) instanceof WebGLShader');
-shouldBeTrue('gl.createTexture() instanceof WebGLTexture');
-
-var program = wtu.setupProgram(gl, ['vshader', 'fshader'], ['vPosition'], [0]);
-
-shouldBeTrue('gl.getUniformLocation(program, "color") instanceof WebGLUniformLocation');
-shouldBeTrue('gl.getActiveAttrib(program, 0) instanceof WebGLActiveInfo');
-shouldBeTrue('gl.getActiveUniform(program, 0) instanceof WebGLActiveInfo');
-
-debug("");
-debug("Tests that those WebGL objects can not be constructed through new operator");
-debug("");
-
-function shouldThrowWithNew(objectType, objectName)
-{
-    try {
-        new objectType;
-        testFailed('new ' + objectName + ' did not throw');
-    } catch (e) {
-        testPassed('new ' + objectName + ' threw an error');
-    }
-}
-
-shouldThrowWithNew(window.WebGLRenderingContext, 'WebGLRenderingContext');
-shouldThrowWithNew(window.WebGLActiveInfo, 'WebGLActiveInfo');
-shouldThrowWithNew(window.WebGLBuffer, 'WebGLBuffer');
-shouldThrowWithNew(window.WebGLFramebuffer, 'WebGLFramebuffer');
-shouldThrowWithNew(window.WebGLProgram, 'WebGLProgram');
-shouldThrowWithNew(window.WebGLRenderbuffer, 'WebGLRenderbuffer');
-shouldThrowWithNew(window.WebGLShader, 'WebGLShader');
-shouldThrowWithNew(window.WebGLTexture, 'WebGLTexture');
-shouldThrowWithNew(window.WebGLUniformLocation, 'WebGLUniformLocation');
-shouldThrowWithNew(window.WebGLShaderPrecisionFormat, 'WebGLShaderPrecisionFormat');
-
-var successfullyParsed = true;
+var contextVersion = 1;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/tests/instanceof-test.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>
-
-

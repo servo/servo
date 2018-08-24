@@ -31,9 +31,9 @@
 <link rel="stylesheet" type="text/css" href="../unit.css" />
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script type="application/x-javascript" src="../unit.js"></script>
-<script type="application/x-javascript" src="../util.js"></script>
-<script type="application/x-javascript">
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
 
 Tests.startUnit = function () {
     var canvas = document.getElementById('gl');
@@ -64,7 +64,7 @@ Tests.testTexImage2D = function(gl) {
     assertOk("x > dst tex width", function(){
         gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0,0, 16,0, 1,1);
     });
-    assertOk("y > dst tex height", function(){
+    assertOk("y > dst tex width", function(){
         gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0,0, 0,16, 1,1);
     });
     assertOk("x < 0", function(){
@@ -84,6 +84,12 @@ Tests.testTexImage2D = function(gl) {
     });
     assertGLError(gl, gl.INVALID_VALUE, "yoffset < 0", function(){
         gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0,-1, 0,0, 16,16);
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "dimension out of range", function(){
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 4,0, 0,0, 16,16);
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "dimension out of range", function(){
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0,4, 0,0, 16,16);
     });
     assertOk("x < 0 full width", function(){
         gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0,0, -1,0, 16,16);

@@ -88,8 +88,15 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
 
     function runOneIteration(canvas, flipY, program, bindingTarget, opt_texture)
     {
-        debug('Testing ' + flipY + ' bindingTarget=' + (bindingTarget == gl.TEXTURE_3D ? 'TEXTURE_3D' : 'TEXTURE_2D_ARRAY') +
+        var objType = 'canvas';
+        if (canvas.transferToImageBitmap)
+            objType = 'OffscreenCanvas';
+        else if (canvas.parentNode)
+            objType = 'canvas attached to DOM';
+        debug('Testing flipY=' + flipY + ' object type: ' + objType +
+              ' bindingTarget=' + (bindingTarget == gl.TEXTURE_3D ? 'TEXTURE_3D' : 'TEXTURE_2D_ARRAY') +
               ' canvas size: ' + canvas.width + 'x' + canvas.height + ' with red-green');
+
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         if (!opt_texture) {
             var texture = gl.createTexture();
@@ -147,13 +154,30 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
     {
         var ctx = wtu.create3DContext();
         var canvas = ctx.canvas;
+        // Note: We use preserveDrawingBuffer:true to prevent canvas
+        // visibility from interfering with the tests.
+        var visibleCtx = wtu.create3DContext(null, { preserveDrawingBuffer:true });
+        var visibleCanvas = visibleCtx.canvas;
+        var descriptionNode = document.getElementById("description");
+        document.body.insertBefore(visibleCanvas, descriptionNode);
 
         var cases = [
-            { flipY: true, init: setCanvasToMin },
-            { flipY: false },
-            { flipY: true, init: setCanvasTo257x257 },
-            { flipY: false },
+            { flipY: true,  ctx: ctx, init: setCanvasToMin },
+            { flipY: false, ctx: ctx },
+            { flipY: true,  ctx: ctx, init: setCanvasTo257x257 },
+            { flipY: false, ctx: ctx },
+            { flipY: true,  ctx: visibleCtx, init: setCanvasToMin},
+            { flipY: false, ctx: visibleCtx },
         ];
+
+        if (window.OffscreenCanvas) {
+            var offscreen = new OffscreenCanvas(1, 1);
+            var offscreenCtx = wtu.create3DContext(offscreen);
+            cases = cases.concat([
+                { flipY: true,  ctx: offscreenCtx, init: setCanvasToMin },
+                { flipY: false, ctx: offscreenCtx },
+            ]);
+        }
 
         function runTexImageTest(bindingTarget) {
             var program;
@@ -170,11 +194,12 @@ function generateTest(internalFormat, pixelFormat, pixelType, prologue, resource
                 function runNextTest() {
                     var c = cases[caseNdx];
                     if (c.init) {
-                      c.init(ctx, bindingTarget);
+                      c.init(c.ctx, bindingTarget);
                     }
-                    texture = runOneIteration(canvas, c.flipY, program, bindingTarget, texture);
+                    texture = runOneIteration(c.ctx.canvas, c.flipY, program, bindingTarget, texture);
                     // for the first 2 iterations always make a new texture.
-                    if (count > 2) {
+                    if (count < 2) {
+                      gl.deleteTexture(texture);
                       texture = undefined;
                     }
                     ++caseNdx;

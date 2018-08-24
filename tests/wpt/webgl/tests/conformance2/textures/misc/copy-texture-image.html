@@ -136,18 +136,6 @@ var testInternalformat = function () {
         "RGB16UI",
         "RGB32UI",
     ];
-    var badFloatFormats = [
-        "R16F",
-        "R32F",
-        "RG16F",
-        "RG32F",
-        "R11F_G11F_B10F",
-        "RGB9_E5",
-        "RGB16F",
-        "RGB32F",
-        "RGBA16F",
-        "RGBA32F",
-    ];
     var badDepthStencilFormats = [
         "DEPTH_COMPONENT16",
         "DEPTH_COMPONENT24",
@@ -220,12 +208,6 @@ var testInternalformat = function () {
     badUnsingedIntFormats.forEach(function(internalformat) {
         var srcTexFormatsTypes = { internalformat: gl.RGBA32UI, format: gl.RGBA_INTEGER, type: gl.UNSIGNED_INT };
         testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_ENUM, "copyTexImage2D should fail for bad internalformat ");
-    });
-    badFloatFormats.forEach(function(internalformat) {
-        if (gl.getExtension("EXT_color_buffer_float")) {
-            var srcTexFormatsTypes = { internalformat: gl.RGBA32F, format: gl.RGBA, type: gl.FLOAT};
-            testFormat(internalformat, srcTexFormatsTypes, gl.COLOR_ATTACHMENT0, gl.INVALID_ENUM, "copyTexImage2D should fail for bad internalformat ");
-        }
     });
     badDepthStencilFormats.forEach(function(internalformat) {
         var srcTexFormatsTypes = { internalformat: gl.DEPTH24_STENCIL8, format: gl.DEPTH_STENCIL, type: gl.UNSIGNED_INT_24_8};

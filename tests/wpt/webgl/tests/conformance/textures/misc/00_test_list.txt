@@ -1,13 +1,17 @@
 --max-version 1.9.9 compressed-tex-image.html
 copy-tex-image-and-sub-image-2d.html
 --min-version 1.0.2 copy-tex-image-2d-formats.html
---min-version 1.0.4 copy-tex-sub-image-2d-partial-texture.html
+--min-version 1.0.4 copy-tex-image-crash.html
+--min-version 1.0.4 copytexsubimage2d-large-partial-copy-corruption.html
+--min-version 1.0.4 copytexsubimage2d-subrects.html 
 --min-version 1.0.4 cube-incomplete-fbo.html
+--min-version 1.0.4 cube-map-uploads-out-of-order.html
 --min-version 1.0.3 default-texture.html
 --min-version 1.0.2 --max-version 1.9.9 gl-get-tex-parameter.html
 gl-pixelstorei.html
 gl-teximage.html
 origin-clean-conformance.html
+--min-version 1.0.4 origin-clean-conformance-offscreencanvas.html
 tex-image-and-sub-image-2d-with-array-buffer-view.html
 tex-image-and-uniform-binding-bugs.html
 --min-version 1.0.3 tex-image-canvas-corruption.html
@@ -17,6 +21,7 @@ tex-image-with-invalid-data.html
 --max-version 1.9.9 tex-input-validation.html
 tex-sub-image-2d-bad-args.html
 tex-sub-image-2d.html
+--min-version 1.0.4 tex-video-using-tex-unit-non-zero.html
 texparameter-test.html
 texture-active-bind-2.html
 texture-active-bind.html
@@ -24,6 +29,7 @@ texture-active-bind.html
 --min-version 1.0.2 texture-clear.html
 texture-complete.html
 --min-version 1.0.3 texture-copying-feedback-loops.html
+--min-version 1.0.4 texture-corner-case-videos.html
 --min-version 1.0.4 texture-cube-as-fbo-attachment.html
 --min-version 1.0.2 texture-hd-dpi.html
 --min-version 1.0.2 --max-version 1.9.9 texture-formats-test.html
@@ -40,3 +46,4 @@ texture-transparent-pixels-initialized.html
 --min-version 1.0.2 mipmap-fbo.html
 --min-version 1.0.3 --max-version 1.9.9 texture-fakeblack.html
 --min-version 1.0.3 texture-draw-with-2d-and-cube.html
+--min-version 1.0.4 texture-with-flip-y-and-premultiply-alpha.html

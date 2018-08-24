@@ -3,3 +3,6 @@ tex-2d-rgb-rgb-unsigned_short_5_6_5.html
 tex-2d-rgba-rgba-unsigned_byte.html
 tex-2d-rgba-rgba-unsigned_short_4_4_4_4.html
 tex-2d-rgba-rgba-unsigned_short_5_5_5_1.html
+tex-2d-luminance-luminance-unsigned_byte.html
+tex-2d-alpha-alpha-unsigned_byte.html
+tex-2d-luminance_alpha-luminance_alpha-unsigned_byte.html

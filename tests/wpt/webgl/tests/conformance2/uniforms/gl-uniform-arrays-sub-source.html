@@ -1,0 +1,427 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL uniform array Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="example" width="2" height="2"> </canvas>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec4 a_position;
+void main() {
+  gl_Position = a_position;
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+uniform $(type) color[3];
+out vec4 myFragColor;
+void main() {
+  myFragColor = vec4(color[0]$(elem), color[1]$(elem), color[2]$(elem), 1);
+}
+</script>
+<script>
+"use strict";
+description();
+debug("");
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example", undefined, 2);
+
+var vSrc = wtu.getScript("vshader");
+var fTemplate = wtu.getScript("fshader");
+
+// |color| is defined in fragment shader as an array of 3 elements.
+var uniformArraySize = 3;
+var initialUniformValue = 99;
+
+var typeInfos = [
+  { type: 'float',
+    setter: 'uniform1fv',
+    elem: '',
+    numElementsPerType: 1,
+    srcValues: [16, 15],
+    srcValuesWithOffset: [0, 0, 16, 15],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 0],
+    srcOffset: 2,
+  },
+  { type: 'int',
+    setter: 'uniform1iv',
+    elem: '',
+    numElementsPerType: 1,
+    srcValues: [16, 15],
+    srcValuesWithOffset: [0, 0, 16, 15],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 0],
+    srcOffset: 2,
+  },
+  { type: 'uint',
+    setter: 'uniform1uiv',
+    elem: '',
+    numElementsPerType: 1,
+    srcValues: [16, 15],
+    srcValuesWithOffset: [0, 0, 16, 15],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 0],
+    srcOffset: 2,
+  },
+  { type: 'vec2',
+    setter: 'uniform2fv',
+    elem: '[1]',
+    numElementsPerType: 2,
+    srcValues: [16, 15, 14, 13],
+    srcValuesWithOffset: [0, 16, 15, 14, 13],
+    srcValuesWithOffsetAndLength: [0, 16, 15, 14, 13, 0],
+    srcOffset: 1,
+  },
+  { type: 'ivec2',
+    setter: 'uniform2iv',
+    elem: '[1]',
+    numElementsPerType: 2,
+    srcValues: [16, 15, 14, 13],
+    srcValuesWithOffset: [0, 16, 15, 14, 13],
+    srcValuesWithOffsetAndLength: [0, 16, 15, 14, 13, 0],
+    srcOffset: 1,
+  },
+  { type: 'uvec2',
+    setter: 'uniform2uiv',
+    elem: '[1]',
+    numElementsPerType: 2,
+    srcValues: [16, 15, 14, 13],
+    srcValuesWithOffset: [0, 16, 15, 14, 13],
+    srcValuesWithOffsetAndLength: [0, 16, 15, 14, 13, 0],
+    srcOffset: 1,
+  },
+  { type: 'vec3',
+    setter: 'uniform3fv',
+    elem: '[2]',
+    numElementsPerType: 3,
+    srcValues: [16, 15, 14, 13, 12, 11],
+    srcValuesWithOffset: [0, 16, 15, 14, 13, 12, 11],
+    srcValuesWithOffsetAndLength: [0, 16, 15, 14, 13, 12, 11, 0, 0],
+    srcOffset: 1,
+  },
+  { type: 'ivec3',
+    setter: 'uniform3iv',
+    elem: '[2]',
+    numElementsPerType: 3,
+    srcValues: [16, 15, 14, 13, 12, 11],
+    srcValuesWithOffset: [0, 16, 15, 14, 13, 12, 11],
+    srcValuesWithOffsetAndLength: [0, 16, 15, 14, 13, 12, 11, 0, 0],
+    srcOffset: 1,
+  },
+  { type: 'uvec3',
+    setter: 'uniform3uiv',
+    elem: '[2]',
+    numElementsPerType: 3,
+    srcValues: [16, 15, 14, 13, 12, 11],
+    srcValuesWithOffset: [0, 16, 15, 14, 13, 12, 11],
+    srcValuesWithOffsetAndLength: [0, 16, 15, 14, 13, 12, 11, 0, 0],
+    srcOffset: 1,
+  },
+  { type: 'vec4',
+    setter: 'uniform4fv',
+    elem: '[3]',
+    numElementsPerType: 4,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffset: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 0],
+    srcOffset: 3,
+  },
+  { type: 'ivec4',
+    setter: 'uniform4iv',
+    elem: '[3]',
+    numElementsPerType: 4,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffset: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 0],
+    srcOffset: 3,
+  },
+  { type: 'uvec4',
+    setter: 'uniform4uiv',
+    elem: '[3]',
+    numElementsPerType: 4,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffset: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 0],
+    srcOffset: 3,
+  },
+
+  // Matrix
+  { type: 'mat2',
+    setter: 'uniformMatrix2fv',
+    elem: '[1][1]',
+    numElementsPerType: 4,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffset: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 0],
+    srcOffset: 3,
+  },
+  { type: 'mat3',
+    setter: 'uniformMatrix3fv',
+    elem: '[2][2]',
+    numElementsPerType: 9,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8],
+    srcValuesWithOffset: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 0],
+    srcOffset: 3,
+  },
+  { type: 'mat4',
+    setter: 'uniformMatrix4fv',
+    elem: '[3][3]',
+    numElementsPerType: 16,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesWithOffset: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0],
+    srcOffset: 2,
+  },
+  { type: 'mat2x3',
+    setter: 'uniformMatrix2x3fv',
+    elem: '[1][2]',
+    numElementsPerType: 6,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffset: [0, 0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 0, 0],
+    srcOffset: 4,
+  },
+  { type: 'mat3x2',
+    setter: 'uniformMatrix3x2fv',
+    elem: '[2][1]',
+    numElementsPerType: 6,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffset: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 0, 0, 0],
+    srcOffset: 3,
+  },
+  { type: 'mat2x4',
+    setter: 'uniformMatrix2x4fv',
+    elem: '[1][3]',
+    numElementsPerType: 8,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesWithOffset: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0, 0],
+    srcOffset: 2,
+  },
+  { type: 'mat4x2',
+    setter: 'uniformMatrix4x2fv',
+    elem: '[3][1]',
+    numElementsPerType: 8,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesWithOffset: [0, 0, 0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    srcValuesWithOffsetAndLength: [0, 0, 0, 0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0, 0],
+    srcOffset: 5,
+  },
+  { type: 'mat3x4',
+    setter: 'uniformMatrix3x4fv',
+    elem: '[2][3]',
+    numElementsPerType: 12,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffset: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 0, 0, 0, 0],
+    srcOffset: 2,
+  },
+  { type: 'mat4x3',
+    setter: 'uniformMatrix4x3fv',
+    elem: '[3][2]',
+    numElementsPerType: 12,
+    srcValues: [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffset: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5],
+    srcValuesWithOffsetAndLength: [0, 0, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 0, 0, 0, 0],
+    srcOffset: 2,
+  },
+
+];
+
+function checkUniformValues(program, typeInfo, useInitialValues) {
+  var numSrcValues = typeInfo.srcValues.length / typeInfo.numElementsPerType;
+  for (var ii = 0; ii < uniformArraySize; ++ii) {
+    var expectedValues;
+    if (useInitialValues || ii >= numSrcValues) {
+      expectedValues = new Array(typeInfo.numElementsPerType);
+      for (var jj = 0; jj < typeInfo.numElementsPerType; ++jj) {
+        expectedValues[jj] = initialUniformValue;
+      }
+    } else {
+      expectedValues = typeInfo.srcValues.slice(
+          typeInfo.numElementsPerType * ii, typeInfo.numElementsPerType * (ii + 1));
+    }
+    var elemLoc = gl.getUniformLocation(program, "color[" + ii + "]");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "can get location of element " + ii + " of array from gl.getUniformLocation");
+    var value = gl.getUniform(program, elemLoc);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+        "can get value of element " + ii + " of array from gl.getUniform");
+    var equal = true;
+    if (value === null) {
+      equal = false;
+    } else if (typeInfo.numElementsPerType == 1) {
+      if (value != expectedValues[0]) {
+        equal = false;
+      }
+    } else {
+      for (var jj = 0; jj < typeInfo.numElementsPerType; ++jj) {
+        if (value[jj] != expectedValues[jj]) {
+          equal = false;
+          break;
+        }
+      }
+    }
+    assertMsg(equal,
+        "value put in (" + expectedValues + ") matches value pulled out (" +
+        (value === null ? "null" : value) + ")");
+  }
+}
+
+for (var tt = 0; tt < typeInfos.length; ++tt) {
+  var typeInfo = typeInfos[tt];
+  debug("");
+  debug("check " + typeInfo.type);
+  var srcLength = typeInfo.srcValues.length;
+  var fSrc = wtu.replaceParams(fTemplate, typeInfo);
+  var program = wtu.loadProgram(gl, vSrc, fSrc);
+  if (!program) {
+    testFailed("Failed to create the program");
+    continue;
+  }
+  gl.useProgram(program);
+
+  var loc = gl.getUniformLocation(program, "color[0]");
+  if (!loc) {
+    testFailed("Failed to obtain the location of the uniform");
+    continue;
+  }
+
+  function setter(loc, array, srcOffset, srcLength) {
+    var isMatrix = (typeInfo.setter.indexOf("Matrix") == 7);
+    if (typeof(srcOffset) != 'undefined') {
+      if (isMatrix) {
+        gl[typeInfo.setter](loc, gl.FALSE, array, srcOffset, srcLength);
+      } else {
+        gl[typeInfo.setter](loc, array, srcOffset, srcLength);
+      }
+    } else if (typeof(srcLength) != 'undefined') {
+      if (isMatrix) {
+        gl[typeInfo.setter](loc, gl.FALSE, array, srcOffset);
+      } else {
+        gl[typeInfo.setter](loc, array, srcOffset);
+      }
+    } else {
+      if (isMatrix) {
+        gl[typeInfo.setter](loc, gl.FALSE, array);
+      } else {
+        gl[typeInfo.setter](loc, array);
+      }
+    }
+  }
+
+  // Initialize uniforms to value 99 and verify it.
+  var initValues = new Array(typeInfo.numElementsPerType * uniformArraySize);
+  for (var ii = 0; ii < typeInfo.numElementsPerType * uniformArraySize; ++ii) {
+    initValues[ii] = initialUniformValue;
+  }
+  setter(loc, initValues);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "no error from initializing uniforms to 99");
+  checkUniformValues(program, typeInfo, true);
+
+  setter(loc, typeInfo.srcValues);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "can set an array of uniforms with gl." + typeInfo.setter +
+      " without srcOffset / srcLength");
+  checkUniformValues(program, typeInfo);
+
+  setter(loc, typeInfo.srcValues, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "can set an array of uniforms with gl." + typeInfo.setter +
+      " with srcOffset = 0");
+  checkUniformValues(program, typeInfo);
+
+  setter(loc, typeInfo.srcValues, 0, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "can set an array of uniforms with gl." + typeInfo.setter +
+      " with srcOffset = 0 / srcLength = 0");
+  checkUniformValues(program, typeInfo);
+
+  setter(loc, typeInfo.srcValuesWithOffset, typeInfo.srcOffset);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "can set an array of uniforms with gl." + typeInfo.setter +
+      " with srcOffset = " + typeInfo.srcOffset);
+  checkUniformValues(program, typeInfo);
+
+  setter(loc, typeInfo.srcValuesWithOffset, typeInfo.srcOffset, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "can set an array of uniforms with gl." + typeInfo.setter +
+      " with srcOffset = " + typeInfo.srcOffset + " / srcLength = 0");
+  checkUniformValues(program, typeInfo);
+
+  setter(loc, typeInfo.srcValuesWithOffsetAndLength, typeInfo.srcOffset, srcLength);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+      "can set an array of uniforms with gl." + typeInfo.setter +
+      " with srcOffset = " + typeInfo.srcOffset + " / srcLength = " + srcLength);
+  checkUniformValues(program, typeInfo);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "no errors");
+
+  // Negative tests
+  setter(loc, typeInfo.srcValues, typeInfo.srcValues.length + 1);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+      "gl." + typeInfo.setter + " with srcOffset out-of-bounds");
+
+  setter(loc, typeInfo.srcValues, 0, typeInfo.srcValues.length + 1);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+      "gl." + typeInfo.setter + " with srcLength out-of-bounds");
+
+  setter(loc, typeInfo.srcValues, typeInfo.srcOffset, srcLength);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+      "gl." + typeInfo.setter + " with srcOffset + srcLength out-of-bounds");
+
+  setter(loc, typeInfo.srcValues, typeInfo.srcValues.length);
+  wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+      "gl." + typeInfo.setter + " with 0 data");
+
+  if (typeInfo.numElementsPerType > 1) {
+    setter(loc, typeInfo.srcValuesWithOffsetAndLength, typeInfo.srcOffset);
+    wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+        "gl." + typeInfo.setter + " with array length minus srcOffset not multiple of " + typeInfo.type);
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl = null;
+var textureLoc = null;
+var expectedVideoHeightLoc = null;
+var successfullyParsed = false;
+var resourcePath = "../../../resources/";
+// Test each format separately because many browsers implement each
+// differently. Some might be GPU accelerated, some might not. Etc...
+var videos = [
+  { src: resourcePath + "npot-video-1920x1080.mp4" ,
+    type: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+    // It was found that Firefox's videoHeight doesn't report the
+    // correct answer for this video resource, though the uploaded
+    // video texture is the correct size.
+    expectedHeight: 1080,
+  },
+  // Should port this to other formats. See tex-image-and-sub-image-2d-with-video.js.
+];
+var videoNdx = 0;
+var videoInfo;
+var video;
+
+initTestingHarness();
+
+var vertexShader = [
+    '#version 300 es',
+    'in vec4 vPosition;',
+    'in vec2 texCoord0;',
+    'out vec2 texCoord;',
+    'void main() {',
+    '    gl_Position = vPosition;',
+    '    texCoord = texCoord0;',
+    '}'].join('\n');
+
+// ESSL 3.00 and WebGL 2.0 are used in order to gain access to the
+// "textureSize" built-in function. This was the most reliable way to
+// verify the behavior of video-to-texture uploads.
+
+var fragmentShader = [
+    '#version 300 es',
+    'precision mediump float;',
+    'uniform mediump sampler2D tex;',
+    'uniform int expectedVideoHeight;',
+    'in vec2 texCoord;',
+    'out vec4 fragData;',
+    'void main() {',
+    '    if (textureSize(tex, 0).y == expectedVideoHeight) {',
+    '      fragData = vec4(0.0, 1.0, 0.0, 1.0);',
+    '    } else {',
+    '      fragData = vec4(1.0, 0.0, 0.0, 1.0);',
+    '    }',
+    '}'].join('\n');
+
+function init()
+{
+    description('Verify sizing of npot videos uploaded to textures');
+
+    debug('Verifies that the size of a texture, uploaded from a video, is exactly the expected size of the video.');
+    debug('Regression test for <a href="http://crbug.com/672895">http://crbug.com/672895</a>');
+
+    var canvas = document.getElementById("example");
+    gl = wtu.create3DContext(canvas, { preserveDrawingBuffer: true }, 2);
+    wtu.setupUnitQuad(gl);
+    var program = wtu.setupProgram(
+        gl,
+        [vertexShader, fragmentShader],
+        ['vPosition', 'texCoord0'],
+        [0, 1]);
+
+    if (!program) {
+        testFailed("Error creating program");
+        return;
+    }
+
+    gl.clearColor(0,0,0,1);
+    gl.clearDepth(1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // Disable any writes to the alpha channel
+    gl.colorMask(1, 1, 1, 0);
+
+    textureLoc = gl.getUniformLocation(program, "tex");
+    expectedVideoHeightLoc = gl.getUniformLocation(
+        program, "expectedVideoHeight");
+
+    requestAnimationFrame(runNextVideo);
+}
+
+function runNextVideo() {
+    if (video) {
+        video.pause();
+    }
+
+    if (videoNdx == videos.length) {
+        finishTest();
+        return;
+    }
+
+    videoInfo = videos[videoNdx++];
+    debug("");
+    debug("testing: " + videoInfo.type);
+    video = document.createElement("video");
+    var canPlay = true;
+    if (!video.canPlayType) {
+        testFailed("video.canPlayType required method missing");
+        requestAnimationFrame(runNextVideo);
+        return;
+    }
+
+    if (!video.canPlayType(videoInfo.type).replace(/no/, '')) {
+        debug(videoInfo.type + " unsupported");
+        requestAnimationFrame(runNextVideo);
+        return;
+    };
+
+    document.body.appendChild(video);
+    video.style = "display:none;";
+    video.type = videoInfo.type;
+    video.src = videoInfo.src;
+    wtu.startPlayingAndWaitForVideo(video, runTest);
+}
+
+function runTest()
+{
+    var texture = gl.createTexture();
+    // Bind the texture to texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    // Set up texture parameters
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // Set up pixel store parameters
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    // Upload the video element into the texture
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+    // Point the uniform sampler to texture unit 0
+    gl.uniform1i(textureLoc, 0);
+    // Set up the expected video size
+    debug('video\'s expected height: ' + videoInfo.expectedHeight);
+    debug('video\'s reported width and height: ' + video.videoWidth + ' x ' + video.videoHeight);
+    // We only verify the height. Chrome was generating the wrong
+    // height for some video resources. As it stands, not all browsers
+    // match the video's width exactly.
+    gl.uniform1i(expectedVideoHeightLoc, videoInfo.expectedHeight);
+
+    // Draw the triangles
+    wtu.clearAndDrawUnitQuad(gl, [0, 0, 0, 255]);
+
+    // Verify that the video texture's size was as expected
+    wtu.checkCanvasRect(gl, 0, 0, gl.canvas.width, gl.canvas.height,
+                        [0, 255, 0, 255],
+                        "Should be green -- that indicates the video texture's height was correct",
+                        1);
+
+    requestAnimationFrame(runNextVideo);
+}
+
+</script>
+</head>
+<body onload="init()">
+<canvas id="example" width="32" height="32"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+</body>
+</html>

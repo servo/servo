@@ -30,12 +30,12 @@ varying vec4 color;
 
 void main (void)
 {
-    bool toDiscard = false;
-    if(color.r > 0.75) toDiscard = true;
-    else if(color.g > 0.75) toDiscard = true;
-    else if(color.b > 0.75) toDiscard = true;
+	bool toDiscard = false;
+	if(color.r > 0.75) toDiscard = true;
+	else if(color.g > 0.75) toDiscard = true;
+	else if(color.b > 0.75) toDiscard = true;
 
-    if (toDiscard) discard;
+	if (toDiscard) discard;
 
-    gl_FragColor = color;
+	gl_FragColor = color;
 }

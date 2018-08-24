@@ -1,0 +1,103 @@
+<!--
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<title>bindAttribLocation with nonexistent attribute name</title>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="8" height="8"></canvas>
+<script id="vertexShader" type="text/something-not-javascript">
+precision highp float;
+attribute vec4 attr;
+void main() {
+    gl_Position = vec4(attr);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies that calling bindAttribLocation with a non-existent attribute location is fine.");
+
+// OpenGL ES 2.0.25 section 2.10 page 34.
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas);
+var fragmentShader = wtu.loadShader(gl, wtu.simpleColorFragmentShader, gl.FRAGMENT_SHADER);
+var vertexShader = wtu.loadShaderFromScript(gl, 'vertexShader', gl.VERTEX_SHADER);
+assertMsg(vertexShader != null, "Vertex shader compiled successfully.");
+
+var checkAttribLocation = function(program, expectedLocation) {
+    var location = gl.getAttribLocation(program, 'attr');
+    if (location != expectedLocation) {
+        testFailed('Unexpected location for attr: ' + location);
+    } else {
+        testPassed('Location of attr is: ' + location);
+    }
+}
+
+var testProgramNonExistentAttributeBound = function() {
+    var program = gl.createProgram();
+    gl.bindAttribLocation(program, 0, 'attr');
+    gl.bindAttribLocation(program, 1, 'bogus_attr');
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var linkStatus = gl.getProgramParameter(program, gl.LINK_STATUS);
+    expectTrue(linkStatus, "Link should succeed even if a non-existent attribute is bound.");
+    if (linkStatus) {
+        checkAttribLocation(program, 0);
+    }
+};
+var testProgramNonExistentAttributeOverlap = function() {
+    var program = gl.createProgram();
+    gl.bindAttribLocation(program, 1, 'attr');
+    gl.bindAttribLocation(program, 1, 'bogus_attr');
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var linkStatus = gl.getProgramParameter(program, gl.LINK_STATUS);
+    expectTrue(linkStatus, "Link should succeed even if a non-existent attribute is bound to the same location as an attribute that's present in the shader text.");
+    if (linkStatus) {
+        checkAttribLocation(program, 1);
+    }
+};
+
+testProgramNonExistentAttributeBound();
+testProgramNonExistentAttributeOverlap();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

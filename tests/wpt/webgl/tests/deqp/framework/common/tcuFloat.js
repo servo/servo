@@ -284,6 +284,7 @@ tcuFloat.deFloat = function() {
 
     this.m_buffer = null;
     this.m_array = null;
+    this.m_array32 = null;
     this.bitValue = undefined;
     this.signValue = undefined;
     this.expValue = undefined;
@@ -313,6 +314,16 @@ tcuFloat.deFloat.prototype.array = function() {
 };
 
 /**
+ * array32 - Get the deFloat's existing Uint32Array or create one if none exists.
+ * @return {Uint32Array}
+ */
+tcuFloat.deFloat.prototype.array32 = function() {
+    if (!this.m_array32)
+        this.m_array32 = new Uint32Array(this.buffer());
+    return this.m_array32;
+};
+
+/**
  * deFloatNumber - To be used immediately after constructor
  * Builds a 32-bit tcuFloat.deFloat based on a 64-bit JS number.
  * @param {number} jsnumber
@@ -322,6 +333,26 @@ tcuFloat.deFloat.prototype.deFloatNumber = function(jsnumber) {
     var view32 = new DataView(this.buffer());
     view32.setFloat32(0, jsnumber, true); //little-endian
     this.m_value = view32.getFloat32(0, true); //little-endian
+
+    // Clear cached values
+    this.bitValue = undefined;
+    this.signValue = undefined;
+    this.expValue = undefined;
+    this.mantissaValue = undefined;
+
+    return this;
+};
+
+/**
+ * deFloatNumber64 - To be used immediately after constructor
+ * Builds a 64-bit tcuFloat.deFloat based on a 64-bit JS number.
+ * @param {number} jsnumber
+ * @return {tcuFloat.deFloat}
+ */
+tcuFloat.deFloat.prototype.deFloatNumber64 = function(jsnumber) {
+    var view64 = new DataView(this.buffer());
+    view64.setFloat64(0, jsnumber, true); //little-endian
+    this.m_value = view64.getFloat64(0, true); //little-endian
 
     // Clear cached values
     this.bitValue = undefined;
@@ -353,6 +384,7 @@ tcuFloat.newDeFloatFromNumber = function(jsnumber) {
 tcuFloat.deFloat.prototype.deFloatBuffer = function(buffer, description) {
     this.m_buffer = buffer;
     this.m_array = new Uint8Array(this.m_buffer);
+    this.m_array32 = new Uint32Array(this.m_buffer);
 
     this.m_value = deMath.arrayToNumber(this.m_array);
 
@@ -377,13 +409,17 @@ tcuFloat.newDeFloatFromBuffer = function(buffer, description) {
 };
 
 /**
- * Set the tcuFloat.deFloat to the given number.
- * It does not perform any conversion; it assumes the number is compatible with
- * the previously set description.
- * @param {number} jsnumber
+ * Set the tcuFloat.deFloat from the given bitwise representation.
+ *
+ * @param {number} jsnumber  This is taken to be the bitwise representation of
+ *   the floating point number represented by this deFloat. It must be an
+ *   integer, less than 2^52, and compatible with the existing description.
  * @return {tcuFloat.deFloat}
  **/
 tcuFloat.deFloat.prototype.deFloatParametersNumber = function(jsnumber) {
+    /** @type {number} */ var jsnumberMax = -1 >>> (32 - this.description.totalBitSize);
+    DE_ASSERT(Number.isInteger(jsnumber) && jsnumber <= jsnumberMax);
+
     this.m_value = jsnumber;
     deMath.numberToArray(this.m_array, jsnumber);
 
@@ -397,15 +433,24 @@ tcuFloat.deFloat.prototype.deFloatParametersNumber = function(jsnumber) {
 };
 
 /**
- * Initializes a tcuFloat.deFloat from the given number,
+ * Initializes a tcuFloat.deFloat from the given bitwise representation,
  * with the specified format description.
- * It does not perform any conversion; it assumes the number is compatible with
- * the given description.
- * @param {number} jsnumber
+ *
+ * @param {number} jsnumber  This is taken to be the bitwise representation of
+ *   the floating point number represented by this deFloat. It must be an
+ *   integer, less than 2^52, and compatible with the new description.
  * @param {tcuFloat.FloatDescription} description
  * @return {tcuFloat.deFloat}
  **/
 tcuFloat.deFloat.prototype.deFloatParameters = function(jsnumber, description) {
+    /** @type {number} */ var maxUint52 = 0x10000000000000;
+    DE_ASSERT(Number.isInteger(jsnumber) && jsnumber < maxUint52);
+    if (description.totalBitSize > 52) {
+        // The jsnumber representation for this number can't possibly be valid.
+        // Make sure it has a sentinel 0 value.
+        DE_ASSERT(jsnumber === 0);
+    }
+
     this.description = description;
 
     this.m_buffer = new ArrayBuffer(this.description.totalByteSize);
@@ -415,11 +460,12 @@ tcuFloat.deFloat.prototype.deFloatParameters = function(jsnumber, description) {
 };
 
 /**
- * Convenience function to create a tcuFloat.deFloat from the given number,
- * with the specified format description.
- * It does not perform any conversion; it assumes the number is compatible with
- * the given description.
- * @param {number} jsnumber
+ * Convenience function. Creates a tcuFloat.deFloat, then initializes it from
+ * the given bitwise representation, with the specified format description.
+ *
+ * @param {number} jsnumber  This is taken to be the bitwise representation of
+ *   the floating point number represented by this deFloat. It must be an
+ *   integer, less than 2^52, and compatible with the new description.
  * @param {tcuFloat.FloatDescription} description
  * @return {tcuFloat.deFloat}
  **/
@@ -434,7 +480,12 @@ tcuFloat.newDeFloatFromParameters = function(jsnumber, description) {
  * @return {number}
  */
 tcuFloat.deFloat.prototype.getBitRange = function(begin, end) {
-    return deMath.getBitRange(this.bits(), begin, end);
+    if (this.description.totalBitSize <= 52) {
+        // this.bits() is invalid for more than 52 bits.
+        return deMath.getBitRange(this.bits(), begin, end);
+    } else {
+        return deMath.getArray32BitRange(this.array32(), begin, end);
+    }
 };
 
 /**
@@ -702,6 +753,7 @@ tcuFloat.convertFloat32Inline = (function() {
  * @return {tcuFloat.deFloat}
  */
 tcuFloat.newFloat10 = function(value) {
+    DE_ASSERT(Number.isInteger(value) && value <= 0x3ff);
     /**@type {tcuFloat.deFloat} */ var other32 = new tcuFloat.deFloat().deFloatNumber(value);
     return tcuFloat.description10.convert(other32);
 };
@@ -803,7 +855,8 @@ tcuFloat.halfFloatToNumberNoDenorm = tcuFloat.halfFloatToNumber;
  * @return {tcuFloat.deFloat}
  */
 tcuFloat.newFloat64 = function(value) {
-    return new tcuFloat.deFloat().deFloatParameters(value, tcuFloat.description64);
+    return new tcuFloat.deFloat().deFloatParameters(0, tcuFloat.description64)
+        .deFloatNumber64(value);
 };
 
 });

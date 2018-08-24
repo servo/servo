@@ -53,7 +53,7 @@ var tex = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, tex);
 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, c);
 wtu.glErrorShouldBe(gl, gl.NO_ERROR, "TexImage2D taking a canvas source should succeed");
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2, 16, 16, 0, gl.RGBA, gl.UNSIGNED_INT_2_10_10_10_REV, null);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2UI, 16, 16, 0, gl.RGBA_INTEGER, gl.UNSIGNED_INT_2_10_10_10_REV, null);
 wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Teximage2D taking a null array buffer should succeed");
 gl.deleteTexture(tex);
 
@@ -61,10 +61,10 @@ gl.deleteTexture(tex);
 gl = wtu.create3DContext("canvas2", undefined, 2);
 tex = gl.createTexture();
 gl.bindTexture(gl.TEXTURE_2D, tex);
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2, 16, 16, 0, gl.RGBA, gl.UNSIGNED_INT_2_10_10_10_REV, null);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2UI, 16, 16, 0, gl.RGBA_INTEGER, gl.UNSIGNED_INT_2_10_10_10_REV, null);
 wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Teximage2D taking a null array buffer should succeed");
-gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2, gl.RGBA, gl.UNSIGNED_INT_2_10_10_10_REV, c);
-wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "TexImage2D taking RGB10_A2 internalformat and a canvas source should fail");
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB10_A2UI, gl.RGBA_INTEGER, gl.UNSIGNED_INT_2_10_10_10_REV, c);
+wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "TexImage2D taking RGB10_A2UI internalformat and a canvas source should fail");
 gl.deleteTexture(tex);
 
 var successfullyParsed = true;

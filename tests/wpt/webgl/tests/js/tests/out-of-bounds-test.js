@@ -125,10 +125,8 @@ var runDrawArraysTest = function(callTemplate, gl, wtu, ext) {
 
     // values that could otherwise be valid but aren't due to bindings generate
     // INVALID_OPERATION
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 200}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: '0x7fffffff'}));
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 10000}));
     wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: '0x7fffffff', count: 1}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: '0x7fffffff', count: '0x7fffffff'}));
 };
 
 var runDrawElementsTest = function(callTemplate, gl, wtu, ext) {
@@ -138,30 +136,30 @@ var runDrawElementsTest = function(callTemplate, gl, wtu, ext) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([ 0,0.5,0, -0.5,-0.5,0, 0.5,-0.5,0 ]), gl.STATIC_DRAW);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
-    var indexObject = gl.createBuffer();
 
+    debug('');
+    debug('Test null index buffer');
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 0, type: 'gl.UNSIGNED_BYTE', offset: 0}));
+
+    debug('');
     debug('Test empty index buffer');
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([  ]), gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {count: 0, type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 3, type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 10000, type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 10000000000000, type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 1, type: 'gl.UNSIGNED_BYTE', offset: 0}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {count: 3, type: 'gl.UNSIGNED_BYTE', offset: 0}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {count: 10000, type: 'gl.UNSIGNED_BYTE', offset: 0}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {count: 1, type: 'gl.UNSIGNED_BYTE', offset: 0}));
     runCommonInvalidValueTests(callTemplate, gl, wtu, ext);
 
     debug('');
     debug('Test buffer with 3 byte indexes');
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexObject);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint8Array([ 0, 1, 2 ]), gl.STATIC_DRAW);
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {count: 3, type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 3, type: 'gl.UNSIGNED_BYTE', offset: 2}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 10000, type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 10000000000000, type: 'gl.UNSIGNED_BYTE', offset: 0}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {count: 3, type: 'gl.UNSIGNED_BYTE', offset: 2}));
+    wtu.shouldGenerateGLError(gl, [gl.NO_ERROR, gl.INVALID_OPERATION], wtu.replaceParams(callTemplate, {count: 10000, type: 'gl.UNSIGNED_BYTE', offset: 0}));
     runCommonInvalidValueTests(callTemplate, gl, wtu, ext);
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {count: 0, type: 'gl.UNSIGNED_BYTE', offset: 4}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: '0x7fffffff', type: 'gl.UNSIGNED_BYTE', offset: 0}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: '0x7fffffff', type: 'gl.UNSIGNED_BYTE', offset: '0x7fffffff'}));
+    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {count: 10000, type: 'gl.UNSIGNED_BYTE', offset: 10000}));
 
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, 'gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, (new Uint8Array([ 3, 0, 1, 2 ])).subarray(1), gl.STATIC_DRAW)');
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {count: 3, type: 'gl.UNSIGNED_BYTE', offset: 0}));
@@ -302,7 +300,6 @@ var runInstancedTest = function(callTemplate, gl, wtu, ext) {
     wtu.shouldGenerateGLError(gl, gl.NO_ERROR, wtu.replaceParams(callTemplate, {offset: 0, count: 9, primcount: 3}));
     wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 9, primcount: 4}));
     wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 9, primcount: 10000}));
-    wtu.shouldGenerateGLError(gl, gl.INVALID_OPERATION, wtu.replaceParams(callTemplate, {offset: 0, count: 9, primcount: '0x7fffffff'}));
 
     debug('');
     debug('Test with a buffer with 4 floats for the instanced attribute');

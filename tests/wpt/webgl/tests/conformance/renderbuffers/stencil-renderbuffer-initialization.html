@@ -1,0 +1,155 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="testbed" width="40" height="40" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description('Verify stencil renderbuffers are initialized to 0 before being read in WebGL');
+
+var gl = wtu.create3DContext("testbed");
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    // Set the clear color to green. It should never show up.
+    gl.clearColor(0, 1, 0, 1);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.STENCIL_TEST);
+
+    let c = gl.canvas;
+    for (let i = 0; i < 2; ++i) {
+        runTest(gl, {alloc1: {w: c.width, h: c.height}, alloc2: null});
+        runTest(gl, {alloc1: null, alloc2: {w: c.width, h: c.height}});
+        // Tests for initially allocating at the wrong size.
+        runTest(gl, {alloc1: {w: 5, h: 5}, alloc2: {w: c.width, h: c.height}});
+    }
+
+    // Testing buffer clearing won't change the clear values.
+    var clearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+    shouldBe("clearColor", "[0, 1, 0, 1]");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+}
+
+function runTest(gl, params) {
+    debug("Test for stencil buffer: " + JSON.stringify(params));
+    let final = params.alloc2 ? params.alloc2 : params.alloc1;
+    gl.viewport(0, 0, final.w, final.h);
+    wtu.checkCanvasRect(gl, 0, 0, final.w, final.h,
+                        [0, 0, 0, 0],
+                        "internal buffers have been initialized to 0");
+
+    gl.disable(gl.STENCIL_TEST);
+
+    // fill the back buffer so we know that reading below happens from
+    // the renderbuffer.
+    gl.clearStencil(2);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+
+    // Set up (color+stencil) test buffer.
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var buffer = gl.createRenderbuffer();
+    var stencilBuffer = gl.createRenderbuffer();
+
+    if (params.alloc1) {
+        gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+        allocStorage(gl.RGBA4, params.alloc1.w, params.alloc1.h);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, stencilBuffer);
+        allocStorage(gl.STENCIL_INDEX8, params.alloc1.w, params.alloc1.h);
+    }
+    gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, buffer);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, stencilBuffer);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, stencilBuffer);
+    if (params.alloc2) {
+        if (params.alloc1) {
+            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+                debug("Skip: framebuffer is allowed to be incomplete.");
+                return;
+            }
+            // Clear the FBO in order to make sure framebufferRenderbuffer is
+            // committed.
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
+        }
+        gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+        allocStorage(gl.RGBA4, params.alloc2.w, params.alloc2.h);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, stencilBuffer);
+        allocStorage(gl.STENCIL_INDEX8, params.alloc2.w, params.alloc2.h);
+    }
+
+    function allocStorage(format, width, height) {
+        gl.renderbufferStorage(gl.RENDERBUFFER, format, width, height);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be no error after renderbufferStorage.");
+    }
+
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        debug("Skip: framebuffer is allowed to be incomplete.");
+        return;
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+
+    // fbo depth should now be the default value of 0.
+
+    // Draw a blue quad (stencil = 1) (should pass the stencil test: 1 > 0)
+    gl.stencilFunc(gl.GREATER, 1, 0xffffffff);
+    gl.enable(gl.STENCIL_TEST);
+    wtu.setupColorQuad(gl);
+    wtu.setFloatDrawColor(gl, [0, 0, 1, 1]);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, 0, 0, final.w, final.h,
+                        [0, 0, 255, 255]);
+
+    gl.deleteFramebuffer(fbo);
+    gl.deleteRenderbuffer(buffer);
+
+    gl.canvas.width += 1;
+    gl.canvas.height += 1;
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+    debug('');
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

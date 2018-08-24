@@ -35,18 +35,11 @@
 <script src=/resources/testharnessreport.js></script>
 <script src="../../js/js-test-pre.js"></script>
 <script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
-<canvas id="canvas" width="64" height="64"> </canvas>
 <div id="description"></div>
 <div id="console"></div>
-<script id="vshader" type="x-shader/x-vertex">#version 300 es
-in vec3 aPosition;
-
-void main() {
-    gl_Position = vec4(aPosition, 1);
-}
-</script>
 <script id="fshaderNonConstantConstructorParameter" type="x-shader/x-fragment">#version 300 es
 precision mediump float;
 uniform int u;
@@ -97,34 +90,24 @@ void main() {
 "use strict";
 description("Assigning return values of array constructors should work.");
 debug("");
-var wtu = WebGLTestUtils;
-function test() {
-  var gl = wtu.create3DContext("canvas", undefined, 2);
-  if (!gl) {
-    testFailed("WebGL 2 context does not exist");
-    return;
-  }
-  wtu.setupUnitQuad(gl);
 
-  // This test only covers cases which are not covered by the dEQP tests.
+// This test only covers cases which are not covered by the dEQP tests.
 
-  debug("Testing with a non-constant integer");
-  var program = wtu.setupProgram(gl, ["vshader", "fshaderNonConstantConstructorParameter"], ["aPosition"], undefined, true);
-  var uniformLoc = gl.getUniformLocation(program, 'u');
-  gl.uniform1i(uniformLoc, 5);
-  wtu.clearAndDrawUnitQuad(gl);
-  wtu.checkCanvas(gl, [0, 255, 0, 255]);
-
-  debug("");
-  debug("Testing with an array of structs");
-  wtu.setupProgram(gl, ["vshader", "fshaderArrayOfStructs"], ["aPosition"], undefined, true);
-  wtu.drawUnitQuad(gl);
-  wtu.checkCanvas(gl, [0, 255, 0, 255]);
-};
-
-test();
-var successfullyParsed = true;
-finishTest();
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderNonConstantConstructorParameter',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Assigning a constructor result',
+  uniforms: [{name: "u", functionName: "uniform1i", value: 5}]
+},
+{
+  fShaderId: 'fshaderArrayOfStructs',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Assigning an array of structs'
+}
+], 2);
 </script>
 </body>
 </html>

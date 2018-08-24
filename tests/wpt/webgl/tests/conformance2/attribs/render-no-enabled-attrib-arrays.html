@@ -1,0 +1,89 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Verify drawing without any enabled vertex attribute arrays</title>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script id='vshader' type='x-shader/x-vertex'>#version 300 es
+layout(location=0) in vec4 inColor;
+out vec4 varyingColor;
+void main()
+{
+    varyingColor = inColor;
+    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+    gl_PointSize = 1.0;
+}
+</script>
+<script id='fshader' type='x-shader/x-fragment'>#version 300 es
+precision mediump float;
+in vec4 varyingColor;
+layout(location=0) out vec4 oColor;
+void main()
+{
+    oColor = varyingColor;
+}
+</script>
+<script>
+"use strict";
+
+function runTest() {
+    var wtu = WebGLTestUtils;
+    var gl = wtu.create3DContext("testCanvas", undefined, 2);
+    if (!gl) {
+        testFailed('could not create context');
+        return;
+    }
+    var program = wtu.setupProgram(gl, ['vshader', 'fshader']);
+    gl.disableVertexAttribArray(0);
+    gl.vertexAttrib4f(0, 0.0, 1.0, 0.0, 1.0);
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.drawArrays(gl.POINTS, 0, 1);
+    wtu.checkCanvas(gl, [ 0, 255, 0, 255 ], "Canvas should be covered by a single green point");
+}
+</script>
+</head>
+<body>
+<canvas id="testCanvas" width="1" height="1" style="width: 32px; height: 32px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description();
+runTest();
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

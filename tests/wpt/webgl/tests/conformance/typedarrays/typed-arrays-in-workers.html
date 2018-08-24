@@ -32,9 +32,9 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../../resources/test-eval.js"></script>
-<script src="resources/typed-array-test-cases.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/test-eval.js"></script>
+<script src="../../js/tests/typed-array-test-cases.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -203,7 +203,7 @@ description("Tests copying and transferring typed arrays and ArrayBuffers to and
 // See whether workers are supported at all
 if (window.Worker) {
   // Start up the worker
-  var worker = new Worker('resources/typed-array-worker.js');
+  var worker = new Worker('../../js/tests/typed-array-worker.js');
   worker.onmessage = handleMessage;
 
   // See whether transferables are supported

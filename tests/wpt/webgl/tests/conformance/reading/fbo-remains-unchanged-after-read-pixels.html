@@ -1,0 +1,127 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<canvas id="canvas" width="4" height="4"></canvas>
+<script id="vshader" type="x-shader/x-vertex">
+attribute vec3 a_pos;
+attribute vec4 a_color;
+varying vec4 v_color;
+
+void main()
+{
+    v_color = a_color;
+    gl_Position = vec4(a_pos.xyz, 1.0);
+}
+</script>
+
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 v_color;
+
+void main()
+{
+    gl_FragColor = v_color;
+}
+</script>
+
+<script>
+"use strict";
+
+description("when antialias is enabled, verify default fbo pixels would not be changed between two readPixels without drawing operations");
+var wtu = WebGLTestUtils;
+var N = 4;
+
+var vertices = new Float32Array([
+         1.0, 1.0, 0.0,
+        -1.0, -1.0, 0.0]);
+var colors = new Uint8Array([
+        255, 0, 0, 255,
+        255, 0, 0, 255]);
+
+var canvas = document.getElementById('canvas');
+var gl = wtu.create3DContext(canvas, {antialias: true});
+
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["a_pos", "a_color"]);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  var colorOffset = vertices.byteLength;
+  var vbo = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, colorOffset + colors.byteLength, gl.STATIC_DRAW);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, vertices);
+  gl.bufferSubData(gl.ARRAY_BUFFER, colorOffset, colors);
+
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, colorOffset);
+  gl.enableVertexAttribArray(1);
+  gl.drawArrays(gl.LINES, 0, vertices.length / 3);
+
+  var result_1 = new Uint8Array(N * N * 4);
+  var result_2 = new Uint8Array(N * N * 4);
+  gl.readPixels(0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, result_1);
+  gl.readPixels(0, 0, N, N, gl.RGBA, gl.UNSIGNED_BYTE, result_2);
+
+  var tolerance = 0;
+  var diff = new Uint8Array(N * N * 4);
+  var failed = wtu.comparePixels(result_1, result_2, tolerance, diff);
+
+  if (failed) {
+    testFailed("default fbo pixels had be changed between two readPixels without drawing operations");
+  } else {
+    testPassed("default fbo pixels had not be changed between two readPixels without drawing operations.");
+  }
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  gl.deleteBuffer(vbo);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

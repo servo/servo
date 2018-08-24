@@ -31,6 +31,11 @@ goog.scope(function() {
 
 var deMath = framework.delibs.debase.deMath;
 
+var DE_ASSERT = function(x) {
+    if (!x)
+        throw new Error('Assert failed');
+};
+
 /** @const */ deMath.INT32_SIZE = 4;
 
 deMath.deInRange32 = function(a, mn, mx) {
@@ -526,11 +531,12 @@ deMath.deMathHash = function(a) {
 };
 
 /**
- * Converts a byte array to a number
+ * Converts a byte array to a number. Cannot convert numbers larger than 52 bits.
  * @param {Uint8Array} array
  * @return {number}
  */
 deMath.arrayToNumber = function(array) {
+    DE_ASSERT(array.length <= 6 || (array.length == 6 && array[5] <= 127));
     /** @type {number} */ var result = 0;
 
     for (var ndx = 0; ndx < array.length; ndx++) {
@@ -546,6 +552,7 @@ deMath.arrayToNumber = function(array) {
  * @param {number} number
  */
 deMath.numberToArray = function(array, number) {
+    DE_ASSERT(Number.isInteger(number));
     for (var byteNdx = 0; byteNdx < array.length; byteNdx++) {
         /** @type {number} */ var acumzndx = !byteNdx ? number : Math.floor(number / Math.pow(256, byteNdx));
         array[byteNdx] = acumzndx & 0xFF;
@@ -560,6 +567,7 @@ deMath.numberToArray = function(array, number) {
  * @return {number}
  */
 deMath.getBitRange = function(x, firstNdx, lastNdx) {
+    DE_ASSERT(lastNdx - firstNdx <= 52);
     var shifted = deMath.shiftRight(x, firstNdx);
     var bitSize = lastNdx - firstNdx;
     var mask;
@@ -569,6 +577,80 @@ deMath.getBitRange = function(x, firstNdx, lastNdx) {
         mask = Math.pow(2, bitSize) - 1;
     var masked = deMath.binaryAnd(shifted, mask);
     return masked;
+};
+
+/**
+ * Obtains the bit fragment from a Uint32Array representing a number.
+ * (ArrayBuffer representations are used in tcuFloat.)
+ *
+ * Cannot return more than 52 bits ((lastNdx - firstNdx) <= 52).
+ *
+ * @param {Uint32Array} array
+ * @param {number} firstNdx
+ * @param {number} lastNdx
+ * @return {number}
+ */
+deMath.getArray32BitRange = function(array, firstNdx, lastNdx) {
+    DE_ASSERT(0 <= firstNdx && firstNdx < (array.length * 32));
+    DE_ASSERT(0 < lastNdx && lastNdx <= (array.length * 32));
+    DE_ASSERT((lastNdx - firstNdx) <= 52);
+
+    // Example of how this works for a 64-bit number (Uint32Array of length 2).
+    //
+    // * Note that the shift operators in the code << and >>> are pointing in
+    //   the opposite direction of this diagram, since LSB is shown on the left.
+    //
+    // [array[0],                         array[1]                        ]
+    // [00000011111111111111111111111111, 11111111111100000000000000000000]
+    //  ^LSB                        MSB^  ^LSB                        MSB^
+    //
+    // [00000011111111111111111111111111, 11111111111100000000000000000000]
+    //        \                                       \
+    //         firstNdx = 6 (inclusive)                lastNdx = 44 (exclusive)
+    //         blockIndexA = 0                         blockIndexB = 1
+    //
+    // [00000011111111111111111111111111, 11111111111100000000000000000000]
+    //  \-----\                                       \-------------------\
+    //   bitsToBeginningOfBlock = 6                    bitsFromEndOfBlock = 20
+    //
+    //  -------------blockA-------------  -------------blockB-------------
+    // [00000011111111111111111111111111, 11111111111100000000000000000000]
+    //        ^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+    //                   blockATruncated  blockBTruncated
+    //        \--blockATruncatedLength--\
+    //
+    //        11111111111111111111111111  111111111111
+    //        ^^^^^^^^^^^^^^^^^^^^^^^^^^--^^^^^^^^^^^^   return value (38 bits)
+
+    /** @type {number} */ var blockIndexA = Math.floor(firstNdx / 32);
+    /** @type {number} */ var bitsToBeginningOfBlock = firstNdx % 32;
+    /** @type {number} */ var blockIndexB = Math.floor((lastNdx - 1) / 32);
+    /** @type {number} */ var bitsFromEndOfBlock = 31 - ((lastNdx - 1) % 32);
+
+    /** @type {number} */ var blockB = array[blockIndexB];
+    // Chop off the most significant `bitsFromEndOfBlock` bits from blockB.
+    // Note: Initially this logic used a bitmask instead. But there are subtle
+    //   corner cases in JS that caused results to sometimes come out negative.
+    //   This truncation method is just used to avoid that complexity.
+    /** @type {number} */ var blockBTruncated = (blockB << bitsFromEndOfBlock) >>> bitsFromEndOfBlock;
+
+    if (blockIndexA == blockIndexB) {
+        // firstNdx and lastNdx are in the same block.
+        // Chop off the least significant `bitsToBeginningOfBlock` bits from blockBTruncated.
+        return blockBTruncated >>> bitsToBeginningOfBlock;
+    } else {
+        // firstNdx and lastNdx are in different blocks.
+        /** @type {number} */ var blockA = array[blockIndexA];
+        // Chop off the least significant `bitsToBeginningOfBlock` bits from blockA.
+        /** @type {number} */ var blockATruncated = blockA >>> bitsToBeginningOfBlock;
+        /** @type {number} */ var blockATruncatedLength = 32 - bitsToBeginningOfBlock;
+
+        // Concatenate blockATruncated and blockBTruncated.
+        // Conceptually equivalent to:
+        //     blockATruncated | (blockBTruncated << blockATruncatedLength)
+        // except that wouldn't work for numbers larger than 32 bits.
+        return blockATruncated + (blockBTruncated * Math.pow(2, blockATruncatedLength));
+    }
 };
 
 /**

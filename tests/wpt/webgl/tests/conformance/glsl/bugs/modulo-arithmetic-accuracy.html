@@ -35,21 +35,21 @@
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 
 <body>
-<canvas id="repro" style="border: none;" width="256" height="256"></canvas>
 <div id="description"></div>
 <div id="console"></div>
 
 <script id="shader-vs" type="x-shader/x-vertex">
-attribute vec2 pos;
+attribute vec4 vPosition;
 uniform float divisor;
 varying vec4 vColor;
 void main(void) {
-  gl_Position = vec4(pos, 0.0, 1.0);
+  gl_Position = vPosition;
   float index = 9.0;
   // mod(x, y) is computed as x-y*floor(x/y).  There are no guarantees on
   // the precision of floating point operations in WebGL shaders, but division
@@ -75,23 +75,17 @@ debug("");
 debug("If things are working correctly, then the square will be green.");
 debug("If your card thinks mod(9,3) is not 0, then the square will be red.");
 
-var wtu = WebGLTestUtils;
-var canvas = document.getElementById("repro");
-var gl = wtu.create3DContext(canvas);
-if (!gl) {
-  testFailed("context does not exist");
-} else {
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  wtu.setupUnitQuad(gl);
-  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], ["pos"], undefined, true);
-  gl.uniform1f(gl.getUniformLocation(program, "divisor"), 3);
-  wtu.drawUnitQuad(gl);
-  wtu.checkCanvasRect(gl, 128, 128, 128, 128, [ 0, 255, 0, 255 ], "should be green", 1);
+GLSLConformanceTester.runRenderTests([
+{
+  vShaderId: 'shader-vs',
+  vShaderSuccess: true,
+  fShaderId: 'shader-fs',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Test that mod(9/3) is 0',
+  uniforms: [{name: "divisor", functionName: "uniform1f", value: 3}]
 }
-
-var successfullyParsed = true;
+]);
 </script>
-<script src="../../../resources/js-test-post.js"></script>
 </body>
 </html>

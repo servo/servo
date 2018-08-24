@@ -32,8 +32,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -122,6 +122,26 @@ gl.finish();
 wtu.glErrorShouldBe(gl, gl.NO_ERROR);
 
 debug("");
+debug("Reading a partially initialized texture (texImage2D) should succeed with all uninitialized bytes set to 0 and initialized bytes untouched.");
+
+var tex = setupTexture(width, height);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+var data = new Uint8Array(4);
+var r = 108;
+var g = 72;
+var b = 36;
+var a = 9;
+data[0] = r;
+data[1] = g;
+data[2] = b;
+data[3] = a;
+gl.texSubImage2D(gl.TEXTURE_2D, 0, width/2, height/2, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, data);
+checkNonZeroPixels(tex, width, height, width/2, height/2, 1, 1, r, g, b, a);
+gl.deleteTexture(tex);
+gl.finish();
+wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+debug("");
 debug("Reading an uninitialized portion of a texture (copyTexImage2D) should succeed with all bytes set to 0.");
 
 var tex = setupTexture(width, height);
@@ -190,7 +210,7 @@ wtu.glErrorShouldBe(gl, gl.NO_ERROR);
 debug("");
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 </body>
 </html>
 

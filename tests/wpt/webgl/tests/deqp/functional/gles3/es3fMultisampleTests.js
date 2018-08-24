@@ -533,6 +533,7 @@ goog.scope(function() {
             gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this.m_numSamples, gl.RGBA8, this.m_renderWidth, this.m_renderHeight);
             assertMsgOptions(gl.getError() === gl.NO_ERROR, 'should be no GL error after renderbufferStorageMultisample');
 
+
             if (this.m_fboParams.useDepth || this.m_fboParams.useStencil) {
                 // Setup ms depth & stencil RBO.
                 this.m_msDepthStencilRbo = gl.createRenderbuffer();
@@ -616,13 +617,17 @@ goog.scope(function() {
 
         /** @type {number} */ var requiredNumDistinctColors = this.m_numSamples + 1;
 
+        // If the number of samples is high (64 or more), we need to lower the threshold for detecting unique colors, otherwise two expected unique colors would be treated as the same color.
+        var threshold = Math.min(3, Math.floor(255 / this.m_numSamples) - 1);
+        var thresholdRGBA = tcuRGBA.newRGBAComponents(threshold, threshold, threshold, threshold);
+
         for (var y = 0; y < renderedImg.getHeight() && this.m_detectedColors.length < requiredNumDistinctColors; y++)
         for (var x = 0; x < renderedImg.getWidth() && this.m_detectedColors.length < requiredNumDistinctColors; x++) {
             /** @type {tcuRGBA.RGBA} */ var color = new tcuRGBA.RGBA(renderedImg.getPixel(x, y));
 
             /** @type {number} */ var i;
             for (i = 0; i < this.m_detectedColors.length; i++) {
-                if (tcuRGBA.compareThreshold(color, this.m_detectedColors[i], tcuRGBA.newRGBAComponents(3, 3, 3, 3)))
+                if (tcuRGBA.compareThreshold(color, this.m_detectedColors[i], thresholdRGBA))
                     break;
             }
 

@@ -1,0 +1,148 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_multiview Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl_multiview_util.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext(null, null, 2);
+let ext = null;
+let queryExt = null;
+
+function runTransformFeedbackTest()
+{
+    debug("");
+    debug("Testing transform feedback combined with multiview rendering");
+
+    let width = 64;
+    let height = 64;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let multiviewShaders = [
+      getMultiviewVaryingVertexShader(views),
+      getMultiviewVaryingFragmentShader()
+    ];
+    let testProgram = wtu.setupTransformFeedbackProgram(gl, multiviewShaders, ['testVarying'], gl.SEPARATE_ATTRIBS, ['a_position'], [0], true);
+    if (!testProgram) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, views);
+
+    let xfb = gl.createTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, xfb);
+
+    let xfbBuffer = gl.createBuffer();
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, xfbBuffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 128, gl.DYNAMIC_DRAW);
+
+    gl.viewport(0, 0, width, height);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from setup");
+
+    gl.beginTransformFeedback(gl.TRIANGLES);
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "rendering to a multiview framebuffer with more than one view when there's an active transform feedback should result in invalid operation");
+
+    gl.pauseTransformFeedback();
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "rendering to a multiview framebuffer with more than one view when there's an active transform feedback should result in invalid operation even if the transform feedback is paused");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let expectedColor = [0, 0, 0, 0];
+        wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, 'view ' + viewIndex + ' should be untouched');
+    }
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from draw when transform feedback is unbound");
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let expectedColor = getExpectedColor(viewIndex);
+        wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, 'view ' + viewIndex + ' should be colored ' + expectedColor);
+    }
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, xfb);
+    gl.endTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from ending transform feedback");
+}
+
+description("This test verifies interaction between transform feedback and the WEBGL_multiview extension, if it is available.");
+
+debug("");
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  if (!gl.getExtension("WEBGL_multiview")) {
+      testPassed("No WEBGL_multiview support -- this is legal");
+  } else {
+      testPassed("Successfully enabled WEBGL_multiview extension");
+      ext = gl.getExtension('WEBGL_multiview');
+
+      wtu.setupUnitQuad(gl, 0, 1);
+
+      runTransformFeedbackTest();
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

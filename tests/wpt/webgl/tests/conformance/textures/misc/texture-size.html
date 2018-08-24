@@ -148,8 +148,10 @@ function checkTexture(width, height, cubeMap) {
     testFailed("unexpected gl error: " + wtu.glEnumToString(gl, err));
   }
   wtu.clearAndDrawUnitQuad(gl);
+  var tolerance = 3;
   wtu.checkCanvas(gl, color.rgba,
-      type + " of size " + width + "x" + height + " with no mips should draw with " + color.name);
+      type + " of size " + width + "x" + height + " with no mips should draw with " + color.name,
+      tolerance);
   count = (count + 1) % colors.length;
   color = colors[count];
   fillLevel(0, width, height, color.rgba, cubeMap);
@@ -165,7 +167,8 @@ function checkTexture(width, height, cubeMap) {
   gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
   wtu.clearAndDrawUnitQuad(gl);
   wtu.checkCanvas(gl, color.rgba,
-      type + " of size " + width + "x" + height + " with mips should draw with " + color.name);
+      type + " of size " + width + "x" + height + " with mips should draw with " + color.name,
+      tolerance);
 
   count = (count + 1) % colors.length;
   color = colors[count];
@@ -174,7 +177,8 @@ function checkTexture(width, height, cubeMap) {
 
   wtu.clearAndDrawUnitQuad(gl);
   wtu.checkCanvas(gl, color.rgba,
-      type + " of size " + width + "x" + height + " with mips should draw with " + color.name);
+      type + " of size " + width + "x" + height + " with mips should draw with " + color.name,
+      tolerance);
 
   gl.deleteTexture(tex);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no errors.");

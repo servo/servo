@@ -32,11 +32,11 @@
 
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script type="application/x-javascript" src="../util.js"></script>
+<script type="application/javascript" src="../util.js"></script>
 <link rel="stylesheet" type="text/css" href="../unit.css" />
-<script type="application/x-javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../unit.js"></script>
 
-    <script type="application/x-javascript">
+    <script type="application/javascript">
 Tests.message = "This was segfaulting when the GL context got GC'd (in glXDestroyContext)";
 Tests.testSeg = function () {
     var canvas = document.getElementById('canvas');

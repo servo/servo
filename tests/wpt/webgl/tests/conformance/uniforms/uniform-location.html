@@ -29,8 +29,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -46,8 +46,8 @@ var contextB = wtu.create3DContext();
 var programA1 = wtu.loadStandardProgram(contextA);
 var programA2 = wtu.loadStandardProgram(contextA);
 var programB = wtu.loadStandardProgram(contextB);
-var programS = wtu.loadProgramFromFile(contextA, "../resources/structUniformShader.vert", "../resources/fragmentShader.frag");
-var programV = wtu.loadProgramFromFile(contextA, "../resources/floatUniformShader.vert", "../resources/noopUniformShader.frag");
+var programS = wtu.loadProgramFromFile(contextA, "../../resources/structUniformShader.vert", "../../resources/fragmentShader.frag");
+var programV = wtu.loadProgramFromFile(contextA, "../../resources/floatUniformShader.vert", "../../resources/noopUniformShader.frag");
 var locationA = contextA.getUniformLocation(programA1, 'u_modelViewProjMatrix');
 var locationB = contextB.getUniformLocation(programB, 'u_modelViewProjMatrix');
 var locationSx = contextA.getUniformLocation(programS, "u_struct.x");
@@ -112,6 +112,6 @@ shouldBeFalse("locationSx.foo === locationSx2.foo");
 var successfullyParsed = true;
 </script>
 
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 </body>
 </html>

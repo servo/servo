@@ -31,12 +31,12 @@
 <meta charset="utf-8">
 <title>WebGL GLSL Conformance Tests</title>
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
-<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
-<script src="../../resources/glsl-conformance-test.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -160,57 +160,49 @@ void main() {
 <script>
 "use strict";
 GLSLConformanceTester.runRenderTests([
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderAGreaterThanBCheckR',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderAGreaterThanBCheckAB',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderAGreaterThanBCheckT0',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderAGreaterThanBCheckT1',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderBGreaterThanACheckR',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderBGreaterThanACheckAB',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderBGreaterThanACheckT0',
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: "comma based conditional assignment works",
 },
-{ vShaderId: undefined,
-  vShaderSuccess: true,
+{
   fShaderId: 'fragmentShaderBGreaterThanACheckT1',
   fShaderSuccess: true,
   linkSuccess: true,
@@ -221,5 +213,3 @@ var successfullyParsed = true;
 </script>
 </body>
 </html>
-
-

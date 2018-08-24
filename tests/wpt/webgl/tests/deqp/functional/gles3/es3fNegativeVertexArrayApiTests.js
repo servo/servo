@@ -601,11 +601,7 @@ goog.scope(function() {
 
                 gl.pauseTransformFeedback();
                 gl.drawElementsInstanced (gl.POINTS, 1, gl.UNSIGNED_BYTE, vertices, 1);
-                // We removed the WebGL1 extension limitation after 2.0.0 snapshot.
-                // See https://github.com/KhronosGroup/WebGL/issues/2419.
-                // So both NO_ERROR and INVALID_OPERATION are allowed in the 2.0.0 snapshot,
-                // but future versions of the test requires NO_ERROR.
-                // this.expectError (gl.INVALID_OPERATION);
+                this.expectError (gl.NO_ERROR);
 
                 gl.endTransformFeedback ();
                 gl.deleteBuffer(buf);
@@ -701,11 +697,7 @@ goog.scope(function() {
 
                 gl.pauseTransformFeedback();
                 gl.drawElementsInstanced (gl.TRIANGLES, 1, gl.UNSIGNED_BYTE, vertices, 1);
-                // We removed the WebGL1 extension limitation after 2.0.0 snapshot.
-                // See https://github.com/KhronosGroup/WebGL/issues/2419.
-                // So both NO_ERROR and INVALID_OPERATION are allowed in the 2.0.0 snapshot,
-                // but future versions of the test requires NO_ERROR.
-                // this.expectError (gl.INVALID_OPERATION);
+                this.expectError (gl.NO_ERROR);
 
                 gl.endTransformFeedback ();
                 gl.deleteBuffer(buf);

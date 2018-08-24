@@ -16,6 +16,9 @@ TRAILING WHITESPACE:*.vert
 
 UNNECESSARY EXECUTABLE PERMISSION:*.cgi
 UNNECESSARY EXECUTABLE PERMISSION:.git/*
+# Pylint doesn't seem to understand symlinks properly
+UNNECESSARY EXECUTABLE PERMISSION:specs/1.0
+UNNECESSARY EXECUTABLE PERMISSION:specs/2.0
 
 ## Ignore INDENT TABS ##
  
@@ -23,6 +26,7 @@ INDENT TABS:*.frag
 INDENT TABS:*.vert
 #The original dEQP tests used tabs throughout.
 INDENT TABS:deqp/functional/gles3/*.js
+INDENT TABS:conformance-suites/2.0.0/deqp/functional/gles3/*.js
 
 ## File types that should never be checked ##
 

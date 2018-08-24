@@ -135,11 +135,7 @@ description("Arrays in complex expressions should work");
 debug("");
 debug("This test is targeted to stress syntax tree transformations that might need to be done in shader translation when the platform doesn't natively support arrays as return values.");
 
-+debug("SKIP: 2 cases skipped: crbug.com/695685");
-
 GLSLConformanceTester.runRenderTests([
-// crbug.com/695685
-/*
 {
   fShaderId: 'fshaderAndShortCircuits',
   fShaderSuccess: true,
@@ -152,7 +148,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: "Expression where an array is returned from a function call inside an operand to || that doesn't get evaluated as result of short-circuiting"
 },
-*/
 {
   fShaderId: 'fshaderTernaryOnlyEvaluatesOneOperand',
   fShaderSuccess: true,

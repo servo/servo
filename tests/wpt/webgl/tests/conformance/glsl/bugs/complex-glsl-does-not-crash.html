@@ -31,67 +31,67 @@
 <meta charset="utf-8">
 <title>Driver Bug - complex glsl should not crash</title>
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
-<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
-<script src="../../resources/glsl-conformance-test.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
 <div id="description"></div>
 <div id="console"></div>
 <canvas id="example" width="2" height="2"> </canvas>
 <script id="vshader" type="x-shader/x-vertex">
-    attribute vec4 a_position;
-    void main()
-    {
-        gl_Position = a_position;
-    }
+attribute vec4 a_position;
+void main()
+{
+    gl_Position = a_position;
+}
 </script>
 <script id="fshader" type="x-shader/x-vertex">
-    precision mediump float;
-    varying vec4 v_varying;
-    void main()
-    {
-        gl_FragColor = v_varying;
-    }
+precision mediump float;
+varying vec4 v_varying;
+void main()
+{
+    gl_FragColor = v_varying;
+}
 </script>
 <script id="vshaderArrayTest" type="x-shader/x-vertex">
-    attribute vec4 a_position;
-    varying vec4 v_varying;
-    uniform $(type) u_uniform[$(numTestType)];
-    void main()
-    {
-        v_varying = $(code);
-        gl_Position = a_position;
-    }
+attribute vec4 a_position;
+varying vec4 v_varying;
+uniform $(type) u_uniform[$(numTestType)];
+void main()
+{
+    v_varying = $(code);
+    gl_Position = a_position;
+}
 </script>
 <script id="fshaderArrayTest" type="x-shader/x-fragment">
-    precision mediump float;
-    uniform $(type) u_uniform[$(numTestType)];
-    void main()
-    {
-        gl_FragColor = $(code);
-    }
+precision mediump float;
+uniform $(type) u_uniform[$(numTestType)];
+void main()
+{
+    gl_FragColor = $(code);
+}
 </script>
 <script id="vshaderUniformTest" type="x-shader/x-fragment">
-    attribute vec4 a_position;
-    varying vec4 v_varying;
+attribute vec4 a_position;
+varying vec4 v_varying;
 $(uniforms)
-    void main()
-    {
-        v_varying = $(code);
-        gl_Position = a_position;
-    }
+void main()
+{
+    v_varying = $(code);
+    gl_Position = a_position;
+}
 </script>
 <script id="fshaderUniformTest" type="x-shader/x-fragment">
-    precision mediump float;
+precision mediump float;
 $(uniforms)
-    void main()
-    {
-        gl_FragColor = $(code);
-    }
+void main()
+{
+    gl_FragColor = $(code);
+}
 </script>
 <script>
 "use strict";
@@ -212,4 +212,3 @@ var successfullyParsed = true;
 </script>
 </body>
 </html>
-

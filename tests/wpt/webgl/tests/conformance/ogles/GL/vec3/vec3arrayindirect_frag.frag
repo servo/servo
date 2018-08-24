@@ -41,15 +41,15 @@ void main(void)
 
      gl_FragColor = vec4(0.0);
 
-     /*
-        // No indirect indexing in fragment shaders
+	 /*
+		// No indirect indexing in fragment shaders
      for (i = 0; i < 2; i++)
      {
           gl_FragColor += vec4(lightPosition[i], 0.0);
      }
-     */
-     gl_FragColor += vec4(lightPosition[0], 0.0);
-     gl_FragColor += vec4(lightPosition[1], 0.0);
+	 */
+	 gl_FragColor += vec4(lightPosition[0], 0.0);
+	 gl_FragColor += vec4(lightPosition[1], 0.0);
 
      gl_FragColor /= 2.0;
 }

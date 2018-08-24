@@ -280,13 +280,25 @@ void main() {
     my_FragColor = (abs(f - 3.0) < 0.01 && abs(v[1] - 3.0) < 0.01 && sideEffectCounter == 1) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
 }
 </script>
+<script id="fshaderIndexMatrixTwiceInLValue" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main() {
+    mat2 m = mat2(0.0, 0.0, 0.0, 0.0);
+    m[u_zero + 1][u_zero + 1] = float(u_zero + 1);
+    float f = m[1][1];
+    my_FragColor = vec4(1.0 - f, f, 0.0, 1.0);
+}
+</script>
 <script type="application/javascript">
 "use strict";
 description("Dynamic indexing of vectors and matrices should work.");
 
 debug("Dynamic indexing of vectors and matrices requires complex workarounds on HLSL backends. Try to test possible bugs those workarounds might have.");
-
-debug("SKIP: 7 cases skipped: crbug.com/695689");
 
 GLSLConformanceTester.runRenderTests([
 {
@@ -301,8 +313,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: 'Index a vector with an index that is the result of indexing'
 },
-// crbug.com/695689
-/*
 {
   fShaderId: 'fshaderIndexLValue',
   fShaderSuccess: true,
@@ -333,7 +343,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: 'Index an inout parameter passed to an user-defined function'
 },
-*/
 {
   fShaderId: 'fshaderIndexWithSideEffects',
   fShaderSuccess: true,
@@ -346,8 +355,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: 'Use expression with side effects as an index of an l-value that is both read and written'
 },
-// crbug.com/695689
-/*
 {
   fShaderId: 'fshaderIndexUserDefinedFunctionCallInOutParameterWithIndexWithSideEffects',
   fShaderSuccess: true,
@@ -360,7 +367,6 @@ GLSLConformanceTester.runRenderTests([
   linkSuccess: true,
   passMsg: 'Index on the left-hand side of assignment with an uint'
 },
-*/
 {
   fShaderId: 'fshaderIndexUniform',
   fShaderSuccess: true,
@@ -372,6 +378,12 @@ GLSLConformanceTester.runRenderTests([
   fShaderSuccess: true,
   linkSuccess: true,
   passMsg: 'Sequence operator with dynamic indexing of a vector as an l-value inside'
+},
+{
+  fShaderId: 'fshaderIndexMatrixTwiceInLValue',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Index matrix and then index the resulting vector in the same expression inside an l-value'
 }
 ], 2);
 </script>

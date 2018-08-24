@@ -1,0 +1,97 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Test draw framebuffer completeness when an incomplete framebuffer is bound to read framebuffer</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+// This exposes a bug in Chrome 67: If the read framebuffer is incomplete, then draw can fail even if the draw framebuffer is complete.
+// http://anglebug.com/2737
+
+"use strict";
+description();
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext(undefined, undefined, 2);
+if (!gl) {
+  testFailed("context does not exist");
+} else {
+  testPassed("context exists");
+
+  var incompleteFb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, incompleteFb);
+  var incompleteTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, incompleteTex);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, incompleteTex, 0);
+  shouldBe('gl.checkFramebufferStatus(gl.FRAMEBUFFER)', 'gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT');
+
+  wtu.setupUnitQuad(gl, 0, 1);
+
+  var testProgram = wtu.setupSimpleColorProgram(gl, 0);
+
+  // If this is changed to gl.FRAMEBUFFER, the rendering succeeds on Chrome 67.
+  var drawFbTarget = gl.DRAW_FRAMEBUFFER;
+
+  var completeFb = gl.createFramebuffer();
+  gl.bindFramebuffer(drawFbTarget, completeFb);
+  var completeTex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, completeTex);
+  gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, 128, 128);
+  gl.framebufferTexture2D(drawFbTarget, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, completeTex, 0);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error after setup");
+
+  shouldBe('gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER)', 'gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT');
+  shouldBe('gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER)', 'gl.FRAMEBUFFER_COMPLETE');
+
+  gl.viewport(0, 0, 128, 128);
+  gl.uniform4f(gl.getUniformLocation(testProgram, 'u_color'), 0, 1, 0, 1);
+  wtu.drawUnitQuad(gl);
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error after draw");
+  gl.bindFramebuffer(gl.READ_FRAMEBUFFER, completeFb);
+  wtu.checkCanvasRect(gl, 0, 0, 128, 128, [0, 255, 0, 255], 'should be green', 2);
+}
+
+debug("");
+var successfullyParsed = true;
+
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

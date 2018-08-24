@@ -7,6 +7,7 @@ glsl/00_test_list.txt
 limits/00_test_list.txt
 misc/00_test_list.txt
 --min-version 1.0.2 ogles/00_test_list.txt
+--min-version 1.0.4 offscreencanvas/00_test_list.txt
 programs/00_test_list.txt
 reading/00_test_list.txt
 renderbuffers/00_test_list.txt

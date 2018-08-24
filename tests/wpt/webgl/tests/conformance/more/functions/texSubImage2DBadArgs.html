@@ -31,9 +31,9 @@
 <link rel="stylesheet" type="text/css" href="../unit.css" />
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script type="application/x-javascript" src="../unit.js"></script>
-<script type="application/x-javascript" src="../util.js"></script>
-<script type="application/x-javascript">
+<script type="application/javascript" src="../unit.js"></script>
+<script type="application/javascript" src="../util.js"></script>
+<script type="application/javascript">
 
 Tests.startUnit = function () {
     var canvas = document.getElementById('gl');
@@ -68,6 +68,12 @@ Tests.testTexImage2D = function(gl) {
     });
     assertGLError(gl, gl.INVALID_VALUE, "height out of range", function(){
         gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 1,3,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "dimension out of range", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D,0, 1,1, 2,1, gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
+    });
+    assertGLError(gl, gl.INVALID_VALUE, "dimension out of range", function(){
+        gl.texSubImage2D(gl.TEXTURE_2D,0, 1,1, 1,2, gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0,0,0,0,0,0,0,0,0]));
     });
     assertOk("zero size", function(){
         gl.texSubImage2D(gl.TEXTURE_2D, 0,0, 0, 0,0,gl.RGBA,gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));

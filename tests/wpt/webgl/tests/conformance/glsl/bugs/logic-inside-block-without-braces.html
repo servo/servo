@@ -35,18 +35,11 @@
 <script src=/resources/testharnessreport.js></script>
 <script src="../../../js/js-test-pre.js"></script>
 <script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
-<canvas id="canvas" width="256" height="256"> </canvas>
 <div id="description"></div>
 <div id="console"></div>
-<script id="vshader" type="x-shader/x-vertex">
-attribute vec3 aPosition;
-
-void main() {
-    gl_Position = vec4(aPosition, 1);
-}
-</script>
 <script id="fshaderIf" type="x-shader/x-fragment">
 precision mediump float;
 uniform bool uFalse;
@@ -94,33 +87,22 @@ void main() {
 "use strict";
 description("Short-circuiting logic operator with side effects inside if/for statement without braces should work.");
 debug("");
-var wtu = WebGLTestUtils;
-function test() {
-  var gl = wtu.create3DContext("canvas");
-  if (!gl) {
-    testFailed("context does not exist");
-    return;
-  }
-  wtu.setupUnitQuad(gl);
 
-  debug("");
-  debug("Testing if");
-  var program = wtu.setupProgram(gl, ["vshader", "fshaderIf"], ["aPosition"], undefined, true);
-  var uniformLoc = gl.getUniformLocation(program, 'uFalse');
-  gl.uniform1i(uniformLoc, 0);
-  wtu.drawUnitQuad(gl);
-  wtu.checkCanvas(gl, [0, 255, 0, 255]);
-
-  debug("");
-  debug("Testing for");
-  var program = wtu.setupProgram(gl, ["vshader", "fshaderFor"], ["aPosition"], undefined, true);
-  wtu.drawUnitQuad(gl);
-  wtu.checkCanvas(gl, [0, 255, 0, 255]);
-};
-
-test();
-var successfullyParsed = true;
-finishTest();
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fshaderIf',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Short-circuiting operator inside if statement without braces',
+  uniforms: [{name: "uFalse", functionName: "uniform1i", value: 0}]
+},
+{
+  fShaderId: 'fshaderFor',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Short-circuiting operator inside for statement without braces'
+}
+]);
 </script>
 </body>
 </html>

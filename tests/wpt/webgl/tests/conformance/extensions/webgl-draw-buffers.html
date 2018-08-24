@@ -33,19 +33,14 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl-draw-buffers-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
 <canvas id="canvas" width="64" height="64"> </canvas>
 <div id="console"></div>
-<script id="vshader" type="x-shader/x-vertex">
-attribute vec4 a_position;
-void main() {
-    gl_Position = a_position;
-}
-</script>
 <script id="fshader" type="x-shader/x-fragment">
 #extension GL_EXT_draw_buffers : require
 precision mediump float;
@@ -54,6 +49,11 @@ void main() {
     for (int i = 0; i < $(numDrawingBuffers); ++i) {
         gl_FragData[i] = u_colors[i];
     }
+}
+</script>
+<script id="fshaderNoWrite" type="x-shader/x-fragment">
+#extension GL_EXT_draw_buffers : require
+void main() {
 }
 </script>
 <script id="fshaderRed" type="x-shader/x-fragment">
@@ -108,10 +108,10 @@ debug("");
 
 var wtu = WebGLTestUtils;
 var canvas = document.getElementById("canvas");
-var output = document.getElementById("console");
 var gl = wtu.create3DContext(canvas);
 var ext = null;
 var programWithMaxDrawBuffersEqualOne = null;
+var drawBuffersUtils;
 
 var extensionConstants = [
   { name: "MAX_COLOR_ATTACHMENTS_WEBGL", enum: 0x8CDF, expectedFn: function(v) { return v >= 4; }, passMsg: " should be >= 4"},
@@ -174,6 +174,7 @@ if (!gl) {
   } else {
     testPassed("Successfully enabled WEBGL_draw_buffers extension");
 
+    drawBuffersUtils = WebGLDrawBuffersUtils(gl, ext);
     runSupportedTest(true);
     runEnumTestEnabled();
     runShadersTestEnabled();
@@ -186,7 +187,7 @@ if (!gl) {
 function createExtDrawBuffersProgram(scriptId, sub) {
   var fsource = wtu.getScript(scriptId);
   fsource = wtu.replaceParams(fsource, sub);
-  return wtu.setupProgram(gl, ["vshader", fsource], ["a_position"], undefined, true);
+  return wtu.setupProgram(gl, [wtu.simpleVertexShader, fsource], ["vPosition"], undefined, true);
 }
 
 function runSupportedTest(extensionEnabled) {
@@ -251,8 +252,8 @@ function runEnumTestEnabled() {
 
 function testShaders(tests, sub) {
   tests.forEach(function(test) {
-    var shaders = [wtu.getScript(test.shaders[0]), wtu.replaceParams(wtu.getScript(test.shaders[1]), sub)];
-    var program = wtu.setupProgram(gl, shaders, ["a_position"], undefined, true);
+    var shaders = [wtu.simpleVertexShader, wtu.replaceParams(wtu.getScript(test.fragmentShaderTemplate), sub)];
+    var program = wtu.setupProgram(gl, shaders, ["vPosition"], undefined, true);
     var programLinkedSuccessfully = (program != null);
     var expectedProgramToLinkSuccessfully = (test.expectFailure == true);
     expectTrue(programLinkedSuccessfully != expectedProgramToLinkSuccessfully, test.msg);
@@ -266,10 +267,10 @@ function runShadersTestDisabled() {
 
   var sub = {numDrawingBuffers: 1};
   testShaders([
-    { shaders: ["vshader", "fshaderMacroDisabled"],
+    { fragmentShaderTemplate: "fshaderMacroDisabled",
       msg: "GL_EXT_draw_buffers should not be defined in GLSL",
     },
-    { shaders: ["vshader", "fshader"],
+    { fragmentShaderTemplate: "fshader",
       msg: "#extension GL_EXT_draw_buffers should not be allowed in GLSL",
       expectFailure: true,
     },
@@ -288,11 +289,11 @@ function runShadersTestEnabled() {
 
   var sub = {numDrawingBuffers: gl.getParameter(ext.MAX_DRAW_BUFFERS_WEBGL)};
   testShaders([
-    { shaders: ["vshader", "fshaderMacroEnabled"],
-    msg: "GL_EXT_draw_buffers should be defined as 1 in GLSL",
+    { fragmentShaderTemplate: "fshaderMacroEnabled",
+      msg: "GL_EXT_draw_buffers should be defined as 1 in GLSL",
     },
-    { shaders: ["vshader", "fshader"],
-    msg: "fragment shader containing the #extension directive should compile",
+    { fragmentShaderTemplate: "fshader",
+      msg: "fragment shader containing the #extension directive should compile",
     },
   ], sub);
 
@@ -301,6 +302,14 @@ function runShadersTestEnabled() {
   wtu.clearAndDrawUnitQuad(gl);
   wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
   gl.deleteProgram(program);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+
+  debug("");
+  debug("test that gl_MaxDrawBuffers is frozen at link time and enabling the extension won't change it.");
+  gl.useProgram(programWithMaxDrawBuffersEqualOne);
+  wtu.clearAndDrawUnitQuad(gl);
+  wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+  gl.deleteProgram(programWithMaxDrawBuffersEqualOne);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
 }
 
@@ -326,14 +335,6 @@ function makeArray(size, value) {
   return array;
 }
 
-function makeColorAttachmentArray(size) {
-  var array = []
-  for (var ii = 0; ii < size; ++ii) {
-    array.push(gl.COLOR_ATTACHMENT0 + ii);
-  }
-  return array;
-}
-
 function runAttachmentTestEnabled() {
   debug("");
   debug("test attachment enabled");
@@ -351,7 +352,7 @@ function runAttachmentTestEnabled() {
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to attach to the max attachment point: gl.COLOR_ATTACHMENT0 + " + (maxColorAttachments - 1));
   ext.drawBuffersWEBGL(makeArray(maxDrawingBuffers, gl.NONE));
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffersWEBGL with array NONE of size " + maxColorAttachments);
-  var bufs = makeColorAttachmentArray(maxDrawingBuffers);
+  var bufs = drawBuffersUtils.makeColorAttachmentArray(maxDrawingBuffers);
   ext.drawBuffersWEBGL(bufs);
   wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffersWEBGL with array attachments of size " + maxColorAttachments);
   bufs[0] = gl.NONE;
@@ -362,7 +363,7 @@ function runAttachmentTestEnabled() {
     bufs[1] = ext.COLOR_ATTACHMENT0_WEBGL;
     ext.drawBuffersWEBGL(bufs);
     wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "should not be able to call drawBuffersWEBGL with out of order attachments of size " + maxColorAttachments);
-    var bufs = makeColorAttachmentArray(Math.floor(maxDrawingBuffers / 2));
+    var bufs = drawBuffersUtils.makeColorAttachmentArray(Math.floor(maxDrawingBuffers / 2));
     ext.drawBuffersWEBGL(bufs);
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be able to call drawBuffersWEBGL with short array of attachments of size " + bufs.length);
   }
@@ -406,11 +407,9 @@ function runDrawTests() {
   var middleFB = gl.createFramebuffer();
 
   var maxDrawingBuffers = gl.getParameter(ext.MAX_DRAW_BUFFERS_WEBGL);
-  var maxColorAttachments = gl.getParameter(ext.MAX_COLOR_ATTACHMENTS_WEBGL);
-  var maxUniformVectors = gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS);
-  var maxUsable = Math.min(maxDrawingBuffers, maxColorAttachments, maxUniformVectors);
+  var maxUsable = drawBuffersUtils.getMaxUsableColorAttachments();
   var half = Math.floor(maxUsable / 2);
-  var bufs = makeColorAttachmentArray(maxUsable);
+  var bufs = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
   var nones = makeArray(maxUsable, gl.NONE);
 
   [fb, fb2, halfFB1, halfFB2, endsFB, middleFB].forEach(function(fbo) {
@@ -419,8 +418,8 @@ function runDrawTests() {
   });
 
   var checkProgram = wtu.setupTexturedQuad(gl);
-  var redProgram = wtu.setupProgram(gl, ["vshader", "fshaderRed"], ["a_position"]);
-  var redProgramWithExtension = wtu.setupProgram(gl, ["vshader", "fshaderRedWithExtension"], ["a_position"]);
+  var redProgram = wtu.setupProgram(gl, [wtu.simpleVertexShader, "fshaderRed"], ["vPosition"]);
+  var redProgramWithExtension = wtu.setupProgram(gl, [wtu.simpleVertexShader, "fshaderRedWithExtension"], ["vPosition"]);
   var drawProgram = createExtDrawBuffersProgram("fshader", {numDrawingBuffers: maxDrawingBuffers});
   var width = 64;
   var height = 64;
@@ -453,7 +452,6 @@ function runDrawTests() {
     gl.uniform4fv(location, floatColor);
     attachments.push({
       texture: tex,
-      location: location,
       color: color
     });
   }
@@ -461,30 +459,6 @@ function runDrawTests() {
   shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
   shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
-
-  var checkAttachmentsForColorFn = function(attachments, colorFn) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.useProgram(checkProgram);
-    attachments.forEach(function(attachment, index) {
-      gl.bindTexture(gl.TEXTURE_2D, attachment.texture);
-      wtu.clearAndDrawUnitQuad(gl);
-      var expectedColor = colorFn(attachment, index);
-      var tolerance = 0;
-      expectedColor.forEach(function(v) {
-        if (v != 0 && v != 255) {
-          tolerance = 8;
-        }
-      });
-      wtu.checkCanvas(gl, expectedColor, "attachment " + index + " should be " + expectedColor.toString(), tolerance);
-    });
-    debug("");
-  };
-
-  var checkAttachmentsForColor = function(attachments, color) {
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
-      return color || attachment.color;
-    });
-  };
 
   var drawAndCheckAttachments = function(testFB, msg, testFn) {
     debug("test clearing " + msg);
@@ -506,7 +480,7 @@ function runDrawTests() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    //checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    //drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
     //  return [0, 0, 0, 0];
     //});
     //debug("--");
@@ -516,7 +490,7 @@ function runDrawTests() {
 
     gl.clearColor(0, 1, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return testFn(attachment, index) ? [0, 255, 0, 255] : [0, 0, 0, 0];
     });
 
@@ -527,7 +501,7 @@ function runDrawTests() {
     gl.bindFramebuffer(gl.FRAMEBUFFER, testFB);
     wtu.drawUnitQuad(gl);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return testFn(attachment, index) ? attachment.color : [0, 0, 0, 0];
     });
   };
@@ -542,14 +516,27 @@ function runDrawTests() {
 
   debug("test that each texture got the correct color.");
 
-  checkAttachmentsForColor(attachments);
+  drawBuffersUtils.checkAttachmentsForColor(attachments);
 
   debug("test clearing clears all the textures");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.clearColor(0, 1, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
+
+  debug("test a fragment shader writing to neither gl_FragColor nor gl_FragData does not touch attachments");
+  var noWriteProgram = wtu.setupProgram(gl, [wtu.simpleVertexShader, "fshaderNoWrite"], ["vPosition"]);
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no GL error setting up the program");
+  if (!noWriteProgram) {
+    testFailed("Setup a program where fragment shader writes nothing failed");
+  } else {
+    gl.useProgram(noWriteProgram);
+    wtu.drawUnitQuad(gl);
+
+    drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
+    gl.deleteProgram(noWriteProgram);
+  }
 
   debug("test that NONE draws nothing");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -557,7 +544,7 @@ function runDrawTests() {
   gl.useProgram(redProgram);
   wtu.clearAndDrawUnitQuad(gl);
 
-  checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [0, 255, 0, 255]);
 
   debug("test that gl_FragColor does not broadcast unless extension is enabled in fragment shader");
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
@@ -565,7 +552,7 @@ function runDrawTests() {
   gl.useProgram(redProgram);
   wtu.drawUnitQuad(gl);
 
-  checkAttachmentsForColorFn(attachments, function(attachment, index) {
+  drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
     return (index == 0) ? [255, 0, 0, 255] : [0, 255, 0, 255];
   });
 
@@ -576,17 +563,17 @@ function runDrawTests() {
   gl.useProgram(redProgramWithExtension);
   wtu.drawUnitQuad(gl);
 
-  checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
 
   if (maxUsable > 1) {
     // First half of color buffers disable.
-    var bufs1 = makeColorAttachmentArray(maxUsable);
+    var bufs1 = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
     // Second half of color buffers disable.
-    var bufs2 = makeColorAttachmentArray(maxUsable);
+    var bufs2 = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
     // Color buffers with even indices disabled.
-    var bufs3 = makeColorAttachmentArray(maxUsable);
+    var bufs3 = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
     // Color buffers with odd indices disabled.
-    var bufs4 = makeColorAttachmentArray(maxUsable);
+    var bufs4 = drawBuffersUtils.makeColorAttachmentArray(maxUsable);
     for (var ii = 0; ii < maxUsable; ++ii) {
       if (ii < half) {
         bufs1[ii] = gl.NONE;
@@ -613,7 +600,7 @@ function runDrawTests() {
     gl.clearColor(0, 1, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? [255, 0, 0, 255] : [0, 255, 0, 255];
     });
 
@@ -623,7 +610,7 @@ function runDrawTests() {
     gl.useProgram(drawProgram);
     wtu.drawUnitQuad(gl);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? [255, 0, 0, 255] : attachment.color;
     });
 
@@ -637,7 +624,7 @@ function runDrawTests() {
     ext.drawBuffersWEBGL(bufs2);
     gl.clearColor(0, 0, 1, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? [0, 0, 255, 255] : [255, 0, 0, 255];
     });
 
@@ -647,8 +634,36 @@ function runDrawTests() {
     gl.useProgram(drawProgram);
     wtu.drawUnitQuad(gl);
 
-    checkAttachmentsForColorFn(attachments, function(attachment, index) {
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
       return index < half ? attachment.color : [255, 0, 0, 255];
+    });
+
+    debug("test setting buffers with even indices to NONE and clearing");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    ext.drawBuffersWEBGL(bufs);
+    gl.clearColor(1, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    ext.drawBuffersWEBGL(bufs3);
+    gl.clearColor(1, 0, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
+      return (index % 2) ? [255, 0, 0, 255] : [255, 0, 255, 255];
+    });
+
+    debug("test setting buffers with odd indices to NONE and drawing");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    ext.drawBuffersWEBGL(bufs);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(drawProgram);
+    ext.drawBuffersWEBGL(bufs4);
+    wtu.drawUnitQuad(gl);
+
+    drawBuffersUtils.checkAttachmentsForColorFn(attachments, function(attachment, index) {
+      return (index % 2 == 0) ? [0, 0, 0, 255] : attachment.color;
     });
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, halfFB1);
@@ -695,18 +710,18 @@ function runDrawTests() {
   ext.drawBuffersWEBGL(bufs);
   gl.clearColor(1, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
-  checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
 
   // fb2 still has the NONE draw buffers from before, so this draw should be a no-op.
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb2);
   gl.useProgram(drawProgram);
   wtu.drawUnitQuad(gl);
-  checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
+  drawBuffersUtils.checkAttachmentsForColor(attachments, [255, 0, 0, 255]);
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.useProgram(drawProgram);
   wtu.drawUnitQuad(gl);
-  checkAttachmentsForColor(attachments);
+  drawBuffersUtils.checkAttachmentsForColor(attachments);
 
   debug("test queries");
   debug("check framebuffer with all attachments on");
@@ -767,10 +782,26 @@ function runPreserveTests() {
     wtu.checkCanvas(gl, [0, 0, 0, 0], "should be clear");
     wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
 
-    finishTest();
+    runEndTests();
   });
 }
 
+function runEndTests() {
+  // Create new context and verify shader tests with no extension still succeeds.
+  debug("");
+  debug("Testing new context with no extension");
+  gl = wtu.create3DContext();
+  if (!gl) {
+    testFailed("New WebGL context does not exist");
+  } else {
+    testPassed("New WebGL context exists");
+    runEnumTestDisabled();
+    runShadersTestDisabled();
+    runAttachmentTestDisabled();
+  }
+
+  finishTest();
+}
 </script>
 </body>
 </html>

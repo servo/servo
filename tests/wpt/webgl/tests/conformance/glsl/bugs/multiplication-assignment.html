@@ -33,16 +33,12 @@
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
-<script id="shader-vs" type="x-shader/x-vertex">
-void main(){
-    gl_Position = vec4(0);
-}
-</script>
-<script id="shader-fs" type="x-shader/x-fragment">
+<script id="fshader" type="x-shader/x-fragment">
 precision mediump float;
 uniform mat3 rot;
 float foo(vec3 bar) {
@@ -62,21 +58,16 @@ void main(void){
 description();
 debug("");
 debug('Verify multiplication assignment operator compiles correctly - regression test for <a href="https://code.google.com/p/chromium/issues/detail?id=384847">Chromium bug 384847</a>');
-var wtu = WebGLTestUtils;
-var gl = wtu.create3DContext();
-if (!gl) {
-  testFailed("context does not exist");
-} else {
-  var program = wtu.setupProgram(gl, ["shader-vs", "shader-fs"], null, null, true);
-  if (program) {
-    testPassed("Program compiled and linked successfully");
-  } else {
-    testFailed("Program failed to compile and link");
-  }
-}
 
-var successfullyParsed = true;
+GLSLConformanceTester.runTests([
+{
+  fShaderId: 'fshader',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "vec3 *= mat3 multiplication assignment operator",
+}
+]);
+
 </script>
-<script src="../../../resources/js-test-post.js"></script>
 </body>
 </html>

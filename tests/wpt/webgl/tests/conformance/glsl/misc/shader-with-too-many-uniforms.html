@@ -31,53 +31,53 @@
 <meta charset="utf-8">
 <title>WebGL GLSL Conformance Tests</title>
 <link rel="stylesheet" href="../../../resources/js-test-style.css"/>
-<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<link rel="stylesheet" href="../../../resources/glsl-feature-tests.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../../resources/js-test-pre.js"></script>
-<script src="../../resources/webgl-test-utils.js"></script>
-<script src="../../resources/glsl-conformance-test.js"></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
 <div id="description"></div>
 <div id="console"></div>
 <script id="vshader" type="x-shader/x-vertex">
-    attribute vec4 a_position;
-    void main()
-    {
-        gl_Position = a_position;
-    }
+attribute vec4 a_position;
+void main()
+{
+    gl_Position = a_position;
+}
 </script>
 <script id="vshader-max" type="x-shader/x-vertex">
-    attribute vec4 a_position;
-    uniform vec4 u_color[$(maxUniformVectors)];
-    void main()
-    {
-        vec4 v = vec4(0, 0, 0, 0);
-        for (int i = 0; i < $(maxUniformVectors); ++i) {
-            v = v + vec4(u_color[i]);
-        }
-        gl_Position = a_position + v;
+attribute vec4 a_position;
+uniform vec4 u_color[$(maxUniformVectors)];
+void main()
+{
+    vec4 v = vec4(0, 0, 0, 0);
+    for (int i = 0; i < $(maxUniformVectors); ++i) {
+        v = v + vec4(u_color[i]);
     }
+    gl_Position = a_position + v;
+}
 </script>
 <script id="fshader" type="x-shader/x-fragment">
-    precision mediump float;
-    void main()
-    {
-        gl_FragColor = vec4(0, 1, 0, 1);
-    }
+precision mediump float;
+void main()
+{
+    gl_FragColor = vec4(0, 1, 0, 1);
+}
 </script>
 <script id="fshader-max" type="x-shader/x-fragment">
-    precision mediump float;
-    uniform vec4 u_color[$(maxUniformVectors)];
-    void main()
-    {
-        vec4 v = vec4(0, 0, 0, 0);
-        for (int i = 0; i < $(maxUniformVectors); ++i) {
-          v = v + vec4(u_color[i]);
-        }
-        gl_FragColor = v;
+precision mediump float;
+uniform vec4 u_color[$(maxUniformVectors)];
+void main()
+{
+    vec4 v = vec4(0, 0, 0, 0);
+    for (int i = 0; i < $(maxUniformVectors); ++i) {
+        v = v + vec4(u_color[i]);
     }
+    gl_FragColor = v;
+}
 </script>
 <script>
 "use strict";

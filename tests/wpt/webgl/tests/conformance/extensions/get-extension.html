@@ -33,8 +33,8 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
 </head>
 <body>
 <div id="description"></div>
@@ -91,7 +91,7 @@ for (ii = 0; ii < extensionNames.length; ++ii) {
         extension.testNumberProperty = kTestNumber;
         extension.testFunctionProperty = kTestFunction;
         extension.testObjectProperty = kTestObject;
-        gc();
+        webglHarnessCollectGarbage();
         var extension2 = gl.getExtension(originalName);
         assertMsg(
             extension === extension2,
@@ -116,7 +116,7 @@ for (ii = 0; ii < extensionNames.length; ++ii) {
 
 var successfullyParsed = true;
 </script>
-<script src="../../resources/js-test-post.js"></script>
+<script src="../../js/js-test-post.js"></script>
 
 </body>
 </html>

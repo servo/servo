@@ -225,6 +225,35 @@ function runTexStorageAndSubImage3DTest()
                          pixels);
         wtu.glErrorShouldBe(gl, gl.INVALID_VALUE, "texSubImage3D should fail for dimension out of range");
     });
+
+    debug("");
+    debug("Test non-square images:");
+    const levels = 4;
+    const maxSize = 1 << (levels-1);
+
+    function expectOk(target, x,y,z, err) {
+        debug("(target=" + target + ", size=[" + ([x,y,z].join(', ')) + "])");
+        const tex = gl.createTexture();
+        gl.bindTexture(gl[target], tex);
+        gl.texStorage3D(gl[target], levels+1, gl.RGBA8, x, y, z);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "levels=levels+1");
+
+        gl.texStorage3D(gl[target], levels, gl.RGBA8, x, y, z);
+        wtu.glErrorShouldBe(gl, gl[err], "levels=levels");
+        gl.deleteTexture(tex);
+    }
+    expectOk("TEXTURE_3D", maxSize, maxSize, maxSize, "NO_ERROR");
+    expectOk("TEXTURE_3D", maxSize, maxSize,       1, "NO_ERROR");
+    expectOk("TEXTURE_3D", maxSize,       1, maxSize, "NO_ERROR");
+    expectOk("TEXTURE_3D", maxSize,       1,       1, "NO_ERROR");
+    expectOk("TEXTURE_3D",       1, maxSize, maxSize, "NO_ERROR");
+    expectOk("TEXTURE_3D",       1, maxSize,       1, "NO_ERROR");
+    expectOk("TEXTURE_3D",       1,       1, maxSize, "NO_ERROR");
+
+    expectOk("TEXTURE_2D_ARRAY", maxSize, maxSize, 10, "NO_ERROR");
+    expectOk("TEXTURE_2D_ARRAY", maxSize,       1, 10, "NO_ERROR");
+    expectOk("TEXTURE_2D_ARRAY",       1, maxSize, 10, "NO_ERROR");
+    expectOk("TEXTURE_2D_ARRAY",       1,       1, 10, "INVALID_OPERATION");
 }
 
 debug("");

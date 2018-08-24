@@ -104,7 +104,7 @@ var tcuTextureUtil = framework.common.tcuTextureUtil;
         /** @type {number}*/ var j1 = deMath.clamp(y1, 0, h - 1);
 
         /** @type {number}*/ var a = (u - 0.5) - Math.floor(u - 0.5);
-        /** @type {number}*/ var b = (u - 0.5) - Math.floor(u - 0.5);
+        /** @type {number}*/ var b = (v - 0.5) - Math.floor(v - 0.5);
 
         /** @type {Array<number>} */ var p00 = src.read(i0, j0, NumChannels);
         /** @type {Array<number>} */ var p10 = src.read(i1, j0, NumChannels);

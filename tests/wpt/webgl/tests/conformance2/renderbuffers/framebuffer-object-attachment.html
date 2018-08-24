@@ -371,6 +371,21 @@ function testReadingFromMissingAttachment() {
 
     var fbo = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var object_type = gl.getFramebufferAttachmentParameter(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    if (object_type != gl.NONE)
+        testFailed("object type from empty attachment point should be NONE");
+    else
+        testPassed("object type from empty attachment point is NONE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Query should not generate error");
+
+    var object_name = gl.getFramebufferAttachmentParameter(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+    if (object_name)
+        testFailed("object name from empty attachment point should be null");
+    else
+        testPassed("object name from empty attachment point is null");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Query should not generate error");
 
     var size = 16;
 

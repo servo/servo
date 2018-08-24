@@ -35,7 +35,6 @@
 <script src=/resources/testharnessreport.js></script>
 <script src="../../js/js-test-pre.js"></script>
 <script src="../../js/webgl-test-utils.js"></script>
-<script src="../../js/glsl-conformance-test.js"></script>
 </head>
 <body>
 <canvas id="example" width="8" height="8"></canvas>
@@ -62,8 +61,6 @@ function checkPixel(color, expectedColor) {
 function blitframebuffer_filter_outofbounds(readbufferFormat, drawbufferFormat, filter) {
     debug("");
     debug("blitting pixels out-of-bounds, read buffer format is: " + wtu.glEnumToString(gl, readbufferFormat) + ", draw buffer format is: " + wtu.glEnumToString(gl, drawbufferFormat) + ", filter is: " + wtu.glEnumToString(gl, filter));
-
-    debug("SKIP: 1 case skipped: crbug.com/695692");
 
     // Initiate data to read framebuffer
     var size = 8;
@@ -104,8 +101,7 @@ function blitframebuffer_filter_outofbounds(readbufferFormat, drawbufferFormat, 
             [-2, -2, 4, 4, 1, 1, 7, 7], // only src region is out-of-bounds, dst region has the same width/height as src region.
             [0, 0, 6, 6, 7, 7, 10, 10], // only dst region is out-of-bounds, dst region has different width/height as src region after dst region is clipped to the bounds of draw buffer.
             [0, 0, 6, 6, 4, 4, 10, 10], // only dst region is out-of-bounds, dst region has the same width/height as src region after dst region is clipped to the bounds of draw buffer.
-            // crbug.com/695692
-            //[-2, -2, 4, 4, 7, 7, 10, 10], // both src and dst region are out-of-bounds, dst region has different width/height as src region after dst region is clipped to the bounds of draw buffer.
+            [-2, -2, 4, 4, 7, 7, 10, 10], // both src and dst region are out-of-bounds, dst region has different width/height as src region after dst region is clipped to the bounds of draw buffer.
             [-2, -2, 4, 4, 4, 4, 10, 10], // both src and dst region are out-of-bounds, dst region has the same width/height as src region after dst region is clipped to the bounds of draw buffer.
             [-2, -2, 4, 4, 2, 2, 10, 10], // both src and dst region are out-of-bounds. There are some dst pixels (x and y are within [4, 8] , and x or y equals to 4) whose corresponding src pixels are partially inside and partially outside the real sampling area of the src region (the real sampling area is [0, 0, 4, 4]). But the centers of such src pixels are lying outside the real sampling area.
             [-2, -2, 4, 4, 3, 3, 10, 10], // both src and dst region are out-of-bounds. There are some dst pixels (x and y are within [4, 7] , and x or y equals to 5) whose corresponding src pixels are partially inside and partially outside the real sampling area of the src region (the real sampling area is [0, 0, 4, 4]). But the centers of such src pixels are lying inside the real sampling area.
@@ -118,8 +114,7 @@ function blitframebuffer_filter_outofbounds(readbufferFormat, drawbufferFormat, 
             [3, 3, 7, 7],
             [7, 7, 8, 8],
             [4, 4, 8, 8],
-            // crbug.com/695692
-            //[8, 8, 8, 8],
+            [8, 8, 8, 8],
             [6, 6, 8, 8],
             [5, 5, 8, 8],
             [5, 5, 8, 8],

@@ -8,8 +8,9 @@ drawingbuffer-test.html
 --min-version 1.0.3 draw-webgl-to-canvas-test.html
 --min-version 1.0.3 draw-static-webgl-to-multiple-canvas-test.html
 --min-version 1.0.2 framebuffer-bindings-unaffected-on-resize.html
+--min-version 1.0.4 framebuffer-bindings-affected-by-to-data-url.html
 --min-version 1.0.3 rapid-resizing.html
+--min-version 1.0.4 render-after-resize-test.html
 --min-version 1.0.2 texture-bindings-unaffected-on-resize.html
 --min-version 1.0.2 to-data-url-test.html
 viewport-unchanged-upon-resize.html
-

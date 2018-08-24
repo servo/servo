@@ -6,5 +6,6 @@ gl-get-active-uniform.html
 gl-getshadersource.html
 gl-shader-test.html
 invalid-UTF-16.html
+--min-version 1.0.4 program-infolog.html
 program-test.html
 --min-version 1.0.2 use-program-crash-with-discard-in-fragment-shader.html

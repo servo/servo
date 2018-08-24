@@ -1,0 +1,181 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_multiview Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl_multiview_util.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext(null, null, 2);
+let ext = null;
+
+function runDrawBuffersClearTest()
+{
+    debug("");
+    debug("Testing that calling clear() clears all views in all draw buffers");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = [null, null, null];
+    let drawBuffers = [0, 0, 0];
+    for (let texIndex = 0; texIndex < colorTex.length; ++texIndex) {
+        colorTex[texIndex] = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+        ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + texIndex, colorTex[texIndex], 0, 0, views);
+        drawBuffers[texIndex] = gl.COLOR_ATTACHMENT0 + texIndex;
+    }
+
+    gl.viewport(0, 0, width, height);
+    gl.drawBuffers(drawBuffers);
+
+    gl.clearColor(0, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from clear");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let texIndex = 0; texIndex < colorTex.length; ++texIndex) {
+        for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+            gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex[texIndex], 0, viewIndex);
+            let expectedColor = [0, 255, 255, 255];
+            wtu.checkCanvasRect(gl, 0, 0, width, height, expectedColor, 'view ' + viewIndex + ' of color attachment ' + texIndex + ' should be cyan');
+        }
+        debug("");
+    }
+}
+
+function runDrawBuffersRenderTest()
+{
+    debug("");
+    debug("Testing rendering into multiple draw buffers with a different transformation matrix chosen from a uniform array according to ViewID");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = [null, null, null];
+    let drawBuffers = [0, 0, 0];
+    for (let texIndex = 0; texIndex < colorTex.length; ++texIndex) {
+        colorTex[texIndex] = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+        gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+        ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + texIndex, colorTex[texIndex], 0, 0, views);
+        drawBuffers[texIndex] = gl.COLOR_ATTACHMENT0 + texIndex;
+    }
+
+    let multiviewShaders = [
+      getMultiviewRealisticUseCaseVertexShader(views),
+      getMultiviewColorFragmentShaderForDrawBuffers(colorTex.length)
+    ];
+
+    let testProgram = wtu.setupProgram(gl, multiviewShaders, ['a_position'], [0], true);
+    if (!testProgram) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    gl.viewport(0, 0, width, height);
+    gl.drawBuffers(drawBuffers);
+
+    let transformLocation = gl.getUniformLocation(testProgram, 'transform');
+    let transformData = new Float32Array (views * 16);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        let scaleX = 1.0 / views;
+        // offsetX is the position of the left edge of the quad we want to get in normalized device coordinates
+        let offsetX = viewIndex / views * 2.0 - 1.0;
+
+        setupTranslateAndScaleXMatrix(transformData, viewIndex * 16, scaleX, offsetX);
+    }
+    gl.uniformMatrix4fv(transformLocation, false, transformData);
+
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from draw");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let texIndex = 0; texIndex < colorTex.length; ++texIndex) {
+        for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+            gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex[texIndex], 0, viewIndex);
+            let expectedColor = getExpectedColor(viewIndex + texIndex);
+
+            checkVerticalStrip(width, height, views, viewIndex, expectedColor, 'view ' + viewIndex + ' of color attachment ' + texIndex);
+        }
+        debug("");
+    }
+}
+
+description("This test verifies the functionality of the WEBGL_multiview extension when used with multiple draw buffers, if it is available.");
+
+debug("");
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  if (!gl.getExtension("WEBGL_multiview")) {
+      testPassed("No WEBGL_multiview support -- this is legal");
+  } else {
+      testPassed("Successfully enabled WEBGL_multiview extension");
+      ext = gl.getExtension('WEBGL_multiview');
+
+      runDrawBuffersClearTest();
+
+      wtu.setupUnitQuad(gl, 0, 1);
+
+      runDrawBuffersRenderTest();
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

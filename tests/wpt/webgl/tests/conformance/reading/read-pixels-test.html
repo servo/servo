@@ -33,8 +33,9 @@
 <link rel="stylesheet" href="../../resources/js-test-style.css"/>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<script src="../../resources/js-test-pre.js"></script>
-<script src="../resources/webgl-test-utils.js"> </script>
+<script src="../../js/desktop-gl-constants.js"></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
 </head>
 <body>
 <canvas id="example" width="200" height="200" style="width: 20px; height: 20px"></canvas>
@@ -47,6 +48,7 @@ description("Checks that ReadPixels works as expected.");
 var wtu = WebGLTestUtils;
 var canvas = document.getElementById("example");
 var gl = wtu.create3DContext(canvas);
+var contextVersion = wtu.getDefault3DContextVersion();
 
 var actual;
 var expected;
@@ -75,11 +77,11 @@ function continueTestAfterContextRestored() {
 }
 
 function continueTestPart1() {
-  gl.clearColor(0.5, 0.7, 1.0, 1);
+  gl.clearColor(0.2, 0.6, 0.4, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  var innerColor = [0.5, 0.7, 1.0, 1];
-  var outerColor = [0, 0, 0, 0];
+  var innerColor = [51, 153, 102, 255]; // (0.2, 0.6, 0.4, 1)
+  var outerColor = [19, 72, 0, 198]; // Random color other than [0, 0, 0, 0]
 
   var tests = [
     { msg: 'in range', checkColor: innerColor, x:  0, y:  0,
@@ -110,96 +112,169 @@ function continueTestPart1() {
 
   function checkBuffer(checkColor, x, y, oneColor, oneX, oneY) {
     var buf = new Uint8Array(width * height * 4);
+    // Initialize buf.
+    for (var ii = 0; ii < width * height; ++ii) {
+      buf[ii * 4] = outerColor[0];
+      buf[ii * 4 + 1] = outerColor[1];
+      buf[ii * 4 + 2] = outerColor[2];
+      buf[ii * 4 + 3] = outerColor[3];
+    }
     gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buf);
     for (var yy = 0; yy < height; ++yy) {
       for (var xx = 0; xx < width; ++xx) {
         var offset = (yy * width + xx) * 4;
         var expectedColors = (oneX == xx && oneY == yy) ? oneColor : checkColor;
+        var mismatch = false;
         for (var cc = 0; cc < 4; ++cc) {
-          var expectedColor = expectedColors[cc] * 255;
+          var expectedColor = expectedColors[cc];
           var color = buf[offset + cc];
           var diff = Math.abs(expectedColor - color);
-          assertMsg(diff < 3,
-                    "color pixel at " + xx + ", " + yy + " should be about " + expectedColor);
+          if (diff >= 3) {
+            mismatch = true;
+            break;
+          }
         }
+        assertMsg(!mismatch,
+                  "color pixel at " + xx + ", " + yy + " should be about " + expectedColors +
+                  ", was = " + [buf[offset], buf[offset + 1], buf[offset + 2], buf[offset + 3]]);
       }
     }
   }
 
-  var badFormats = [
+  continueTestPart2();
+}
+
+function continueTestPart2() {
+  var invalidFormat = [gl.DEPTH_COMPONENT, gl.DEPTH_STENCIL, desktopGL.R8, gl.RGBA4, gl.LUMINANCE, gl.LUMINANCE_ALPHA];
+  if (contextVersion < 2) {
+  // They are valid in WebGL 2 or higher
+    invalidFormat = invalidFormat.concat([desktopGL.RED, desktopGL.RG_INTEGER, desktopGL.RGBA_INTEGER]);
+  }
+
+  var invalidTypeInfo = [
+    {type: desktopGL.UNSIGNED_INT_24_8,       dest: new Uint32Array(4)}
+  ];
+  if (contextVersion < 2) {
+  // They are valid in WebGL 2 or Higher
+    invalidTypeInfo = invalidTypeInfo.concat([
+      {type: gl.UNSIGNED_SHORT,                     dest: new Uint16Array(4)},
+      {type: gl.SHORT,                              dest: new Int16Array(4)},
+      {type: gl.BYTE,                               dest: new Int8Array(4)},
+      {type: gl.UNSIGNED_INT,                       dest: new Uint32Array(4)},
+      {type: desktopGL.UNSIGNED_INT_2_10_10_10_REV, dest: new Uint32Array(4)}
+    ]);
+  }
+
+  debug("");
+  debug("check invalid format or type");
+  for (var ff = 0; ff < invalidFormat.length; ++ff) {
+    var format = invalidFormat[ff];
+    var buf = new Uint8Array(4);
+    gl.readPixels(0, 0, 1, 1, format, gl.UNSIGNED_BYTE, buf);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Should not be able to read as " + wtu.glEnumToString(gl, format));
+  }
+
+  for (var tt = 0; tt < invalidTypeInfo.length; ++tt) {
+    var info = invalidTypeInfo[tt];
+    var type = info.type;
+    var dest = info.dest;
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, type, dest);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "Should not be able to read as " + wtu.glEnumToString(gl, type));
+  }
+
+  var combinations = [
+    {
+      format: gl.RGBA,
+      type: gl.UNSIGNED_BYTE,
+      dest: new Uint8Array(4),
+    },
     {
       format: gl.RGB,
       type: gl.UNSIGNED_BYTE,
       dest: new Uint8Array(3),
-      error: gl.INVALID_OPERATION
     },
     {
       format: gl.RGB,
       type: gl.UNSIGNED_SHORT_5_6_5,
       dest: new Uint8Array(3),
-      error: gl.INVALID_OPERATION
     },
     {
       format: gl.RGBA,
       type: gl.UNSIGNED_SHORT_5_5_5_1,
       dest: new Uint16Array(1),
-      error: gl.INVALID_OPERATION
     },
     {
       format: gl.RGBA,
       type: gl.UNSIGNED_SHORT_4_4_4_4,
       dest: new Uint16Array(1),
-      error: gl.INVALID_OPERATION
     },
     {
       format: gl.ALPHA,
       type: gl.UNSIGNED_BYTE,
       dest: new Uint8Array(1),
-      error: gl.INVALID_OPERATION
-    },
-    {
-      format: gl.LUMINANCE,
-      type: gl.UNSIGNED_BYTE,
-      dest: new Uint8Array(1),
-      error: gl.INVALID_ENUM
-    },
-    {
-      format: gl.LUMINANCE_ALPHA,
-      type: gl.UNSIGNED_BYTE,
-      dest: new Uint8Array(2),
-      error: gl.INVALID_ENUM
     }
   ];
+  if (contextVersion > 1) {
+    combinations = combinations.concat([
+      {
+        format: gl.RED,
+        type: gl.UNSIGNED_BYTE,
+        dest: new Uint8Array(1),
+      },
+      {
+        format: gl.RGBA_INTEGER,
+        type: gl.UNSIGNED_INT,
+        dest: new Uint32Array(4),
+      },
+      {
+        format: gl.RGBA_INTEGER,
+        type: gl.INT,
+        dest: new Int32Array(4),
+      }
+    ]);
+  }
+
   debug("");
-  debug("check disallowed formats");
-  for (var tt = 0; tt < badFormats.length; ++ tt) {
-    var info = badFormats[tt]
+  debug("check invalid combinations of format/type");
+
+  var implFormat = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_FORMAT);
+  var implType = gl.getParameter(gl.IMPLEMENTATION_COLOR_READ_TYPE);
+
+  for (var tt = 0; tt < combinations.length; ++ tt) {
+    var info = combinations[tt];
     var format = info.format;
     var type = info.type;
     var dest = info.dest;
-    var error = info.error;
     gl.readPixels(0, 0, 1, 1, format, type, dest);
-    // note that the GL error is INVALID_OPERATION if both format and type are invalid, but
-    // INVALID_ENUM if only one is.
-    wtu.glErrorShouldBe(
-        gl, error,
-        "Should not be able to read as " + wtu.glEnumToString(gl, format) +
-        " / " + wtu.glEnumToString(gl, type));
+    // Only two format/type parameter pairs are accepted. GL_RGBA/GL_UNSIGNED_BYTE is always
+    // accepted on default readbuffer. The other acceptable pair can be discovered by querying
+    // GL_IMPLEMENTATION_COLOR_READ_FORMAT and GL_IMPLEMENTATION_COLOR_READ_TYPE.
+    if ((format == gl.RGBA && type == gl.UNSIGNED_BYTE) || (format == implFormat && type == implType)) {
+      wtu.glErrorShouldBe(
+          gl, gl.NO_ERROR,
+          "Should be able to read as " + wtu.glEnumToString(gl, format) +
+          " / " + wtu.glEnumToString(gl, type));
+    } else {
+      wtu.glErrorShouldBe(
+          gl, gl.INVALID_OPERATION,
+          "Should not be able to read as " + wtu.glEnumToString(gl, format) +
+          " / " + wtu.glEnumToString(gl, type));
+    }
   }
 
   debug("");
   debug("check reading with lots of drawing");
-  continueTestFunc = continueTestPart2;
+  continueTestFunc = continueTestPart3;
   width = 1024;
   height = 1024;
   canvas.width = width;
   canvas.height = height;
   if (gl.getError() != gl.CONTEXT_LOST_WEBGL) {
-    continueTestPart2();
+    continueTestPart3();
   }
 }
 
-function continueTestPart2() {
+function continueTestPart3() {
   gl.viewport(0, 0, 1024, 1024);
   var program = wtu.setupTexturedQuad(gl);
   var loc = gl.getUniformLocation(program, "tex");

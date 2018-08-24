@@ -1,0 +1,95 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL struct containing an array of samplers passed into a user-defined function</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+
+<canvas id="output" style="border: none;" width="64" height="64"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderSampler" type="x-shader/x-fragment">
+precision mediump float;
+
+struct S {
+    sampler2D sam[2];
+};
+
+uniform S uni;
+
+vec4 useSampler(S arg)
+{
+    return texture2D(arg.sam[0], vec2(0.0, 0.0));
+}
+
+void main() {
+    gl_FragColor = vec4(useSampler(uni));
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("output");
+var gl = wtu.create3DContext(canvas);
+
+if (!gl) {
+    testFailed("Could not create a GL context.");
+} else {
+    debug("Drawing with a shader that uses a sampler array in a struct passed into a function.");
+    var program = wtu.setupProgram(
+        gl, [wtu.simpleVertexShader, 'fshaderSampler'], ['a_position'], [0], true);
+    wtu.setupUnitQuad(gl);
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    wtu.fillTexture(gl, tex, 1, 1, [0, 255, 0, 255]);
+
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

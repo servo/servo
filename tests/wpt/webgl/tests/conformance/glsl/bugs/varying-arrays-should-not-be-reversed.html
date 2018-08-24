@@ -1,0 +1,103 @@
+<!--
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Varying arrays should not be reversed</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="512" height="256"> </canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">
+varying float colors[3];
+uniform vec3 testData;
+attribute vec3 position;
+void main(){
+  gl_Position = vec4(position, 1.0);
+  colors[0] = testData.x;
+  colors[1] = testData.y;
+  colors[2] = testData.z;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">
+precision mediump float;
+varying float colors[3];
+void main() {
+  gl_FragColor = vec4(colors[0], colors[1], colors[2], 1.0);
+}
+</script>
+<script>
+"use strict";
+description("Varying arrays should not be reversed.");
+debug("This issue has been seen in Chrome on Nexus 7 2013 (Adreno 320) and Moto G3 (Adreno 306).");
+debug("");
+debug("If things are working correctly, the vertical stripes should be: red, green, blue, light blue, orange");
+debug("");
+debug("If they are not, the red and blue channels will appear to be swapped and you will see: blue, green, red, orange, light blue");
+var wtu = WebGLTestUtils;
+function test() {
+  var gl = wtu.create3DContext("canvas");
+  if (!gl) {
+    testFailed("context does not exist");
+    return;
+  }
+
+  wtu.setupUnitQuad(gl);
+  var program = wtu.setupProgram(gl, ["vshader", "fshader"], ["position"], undefined, true);
+  var loc = gl.getUniformLocation(program, 'testData');
+
+  var triples = [
+    [255, 0, 0],
+    [0, 255, 0],
+    [0, 0, 255],
+    [0, 128, 255],
+    [255, 128, 0]
+  ];
+
+  for (var i = 0; i < triples.length; i++) {
+    var triple = triples[i];
+    var x = i * 64;
+    gl.viewport(x, 0, 64, 256);
+    gl.uniform3f(loc, triple[0] / 255, triple[1] / 255, triple[2] / 255);
+    wtu.drawUnitQuad(gl);
+    wtu.checkCanvasRect(gl, x, 0, 64, 256, [triple[0], triple[1], triple[2], 255]);
+  }
+
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+test();
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>
+

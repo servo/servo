@@ -34,21 +34,21 @@ struct sabcd
 
 void main (void)
 {
-    sabcd s = sabcd(mat3(12.0, 29.0, 13.0, 26.0, 71.0, 63.0, 90.0, 118.0, 128.0) );
-    float sum=0.0;
+	sabcd s = sabcd(mat3(12.0, 29.0, 13.0, 26.0, 71.0, 63.0, 90.0, 118.0, 128.0) );
+	float sum=0.0;
 
-    sum = sum + s.a[0][0];
-    sum = sum + s.a[0][1];
-    sum = sum + s.a[0][2];
+	sum = sum + s.a[0][0];
+	sum = sum + s.a[0][1];
+	sum = sum + s.a[0][2];
 
-    sum = sum + s.a[1][0];
-    sum = sum + s.a[1][1];
-    sum = sum + s.a[1][2];
+	sum = sum + s.a[1][0];
+	sum = sum + s.a[1][1];
+	sum = sum + s.a[1][2];
 
-    sum = sum + s.a[2][0];
-    sum = sum + s.a[2][1];
-    sum = sum + s.a[2][2];
+	sum = sum + s.a[2][0];
+	sum = sum + s.a[2][1];
+	sum = sum + s.a[2][2];
 
-    color = vec4( vec3(  sum / 550.0  ), 1.0);
-    gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
+	color = vec4( vec3(  sum / 550.0  ), 1.0);
+	gl_Position = gtf_ModelViewProjectionMatrix * gtf_Vertex;
 }

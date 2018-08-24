@@ -41,7 +41,7 @@ void main(void)
 
      for(int j = 0; j < 3; j++)
      {
-    result += testmat3[0][j] + testmat3[1][j];
+	result += testmat3[0][j] + testmat3[1][j];
      }
 
      color = vec4(result/2.0, 0.5);

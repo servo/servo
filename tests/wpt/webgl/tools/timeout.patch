@@ -82,6 +82,18 @@ index 5af87433aa..79afd9f430 100644
  <title>WebGL GLSL conformance test: asin_001_to_006.html</title>
  <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
  <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
+diff --git i/conformance/ogles/GL/log/log_001_to_008.html w/conformance/ogles/GL/log/log_001_to_008.html
+index 5552a4f82e..539cb33214 100644
+--- i/conformance/ogles/GL/log/log_001_to_008.html
++++ w/conformance/ogles/GL/log/log_001_to_008.html
+@@ -28,6 +28,7 @@
+ <html>
+ <head>
+ <meta charset="utf-8">
++<meta name="timeout" content="long">
+ <title>WebGL GLSL conformance test: log_001_to_008.html</title>
+ <link rel="stylesheet" href="../../../../resources/js-test-style.css" />
+ <link rel="stylesheet" href="../../../resources/ogles-tests.css" />
 diff --git i/conformance/ogles/GL/log2/log2_001_to_008.html w/conformance/ogles/GL/log2/log2_001_to_008.html
 index 5552a4f82e..539cb33214 100644
 --- i/conformance/ogles/GL/log2/log2_001_to_008.html
