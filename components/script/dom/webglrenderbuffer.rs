@@ -4,12 +4,14 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult};
+use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGl2Constants;
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
-use dom::bindings::root::DomRoot;
+use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::webglframebuffer::{WebGLFramebuffer, perform_unattach};
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::{WebGLRenderingContext, is_gles};
 use dom_struct::dom_struct;
@@ -24,6 +26,9 @@ pub struct WebGLRenderbuffer {
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
     is_initialized: Cell<bool>,
+    // Framebuffer that this texture is attached to.
+    attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    attachment_points: DomRefCell<Vec<u32>>,
 }
 
 impl WebGLRenderbuffer {
@@ -36,6 +41,8 @@ impl WebGLRenderbuffer {
             internal_format: Cell::new(None),
             size: Cell::new(None),
             is_initialized: Cell::new(false),
+            attached_framebuffer: Default::default(),
+            attachment_points: Default::default(),
         }
     }
 
@@ -86,6 +93,19 @@ impl WebGLRenderbuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
+
+            /*
+            If a renderbuffer object is deleted while its image is attached to the currently
+            bound framebuffer, then it is as if FramebufferRenderbuffer had been called, with
+            a renderbuffer of 0, for each attachment point to which this image was attached
+            in the currently bound framebuffer.
+            - GLES 2.0, 4.4.3, "Attaching Renderbuffer Images to a Framebuffer"
+             */
+            let attachment_points = self.attachment_points.borrow().clone();
+            for attachment in attachment_points {
+                self.unattach(attachment);
+            }
+
             self.upcast::<WebGLObject>()
                 .context()
                 .send_command(WebGLCommand::DeleteRenderbuffer(self.id));
@@ -144,5 +164,14 @@ impl WebGLRenderbuffer {
         self.size.set(Some((width, height)));
 
         Ok(())
+    }
+
+    pub fn attach(&self, framebuffer: &WebGLFramebuffer, attachment: u32) {
+        self.attached_framebuffer.set(Some(framebuffer));
+        self.attachment_points.borrow_mut().push(attachment);
+    }
+
+    pub fn unattach(&self, attachment: u32) {
+        perform_unattach(&self.attachment_points, attachment, &self.attached_framebuffer);
     }
 }
