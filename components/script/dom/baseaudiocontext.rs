@@ -5,6 +5,7 @@
 use dom::audiobuffer::AudioBuffer;
 use dom::audiobuffersourcenode::AudioBufferSourceNode;
 use dom::audiodestinationnode::AudioDestinationNode;
+use dom::audiolistener::AudioListener;
 use dom::audionode::MAX_CHANNEL_COUNT;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DomRefCell;
@@ -17,6 +18,7 @@ use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallba
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
 use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
+use dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::num::Finite;
@@ -27,6 +29,7 @@ use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
 use dom::gainnode::GainNode;
 use dom::oscillatornode::OscillatorNode;
+use dom::pannernode::PannerNode;
 use dom::promise::Promise;
 use dom::window::Window;
 use dom_struct::dom_struct;
@@ -63,9 +66,10 @@ struct DecodeResolver {
 pub struct BaseAudioContext {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "servo_media"]
-    audio_context_impl: Rc<AudioContext<Backend>>,
+    audio_context_impl: AudioContext<Backend>,
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination
     destination: MutNullableDom<AudioDestinationNode>,
+    listener: MutNullableDom<AudioListener>,
     /// Resume promises which are soon to be fulfilled by a queued task.
     #[ignore_malloc_size_of = "promises are hard"]
     in_flight_resume_promises_queue: DomRefCell<VecDeque<(Box<[Rc<Promise>]>, ErrorResult)>>,
@@ -95,12 +99,11 @@ impl BaseAudioContext {
 
         let context = BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
-            audio_context_impl: Rc::new(
-                ServoMedia::get()
-                    .unwrap()
-                    .create_audio_context(options.into()),
-            ),
+            audio_context_impl: ServoMedia::get()
+                                    .unwrap()
+                                    .create_audio_context(options.into()),
             destination: Default::default(),
+            listener: Default::default(),
             in_flight_resume_promises_queue: Default::default(),
             pending_resume_promises: Default::default(),
             decode_resolvers: Default::default(),
@@ -117,12 +120,16 @@ impl BaseAudioContext {
         false
     }
 
-    pub fn audio_context_impl(&self) -> Rc<AudioContext<Backend>> {
-        self.audio_context_impl.clone()
+    pub fn audio_context_impl(&self) -> &AudioContext<Backend> {
+        &self.audio_context_impl
     }
 
     pub fn destination_node(&self) -> NodeId {
         self.audio_context_impl.dest_node()
+    }
+
+    pub fn listener(&self) -> NodeId {
+        self.audio_context_impl.listener()
     }
 
     // https://webaudio.github.io/web-audio-api/#allowed-to-start
@@ -297,6 +304,15 @@ impl BaseAudioContextMethods for BaseAudioContext {
         })
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-listener
+    fn Listener(&self) -> DomRoot<AudioListener> {
+        let global = self.global();
+        let window = global.as_window();
+        self.listener.or_init(|| {
+            AudioListener::new(&window, self)
+        })
+    }
+
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
@@ -313,6 +329,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
     fn CreateGain(&self) -> DomRoot<GainNode> {
         GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
     }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createpanner
+    fn CreatePanner(&self) -> Fallible<DomRoot<PannerNode>> {
+        PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
+    }
+
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
     fn CreateBuffer(

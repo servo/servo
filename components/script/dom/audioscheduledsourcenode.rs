@@ -34,7 +34,6 @@ impl AudioScheduledSourceNode {
         AudioScheduledSourceNode {
             node: AudioNode::new_inherited(
                 node_type,
-                None, /* node_id */
                 context,
                 options,
                 number_of_inputs,

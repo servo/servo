@@ -92,6 +92,7 @@ use servo_media::Backend;
 use servo_media::audio::buffer_source_node::AudioBuffer;
 use servo_media::audio::context::AudioContext;
 use servo_media::audio::graph::NodeId;
+use servo_media::audio::panner_node::{DistanceModel, PanningModel};
 use servo_media::audio::param::ParamType;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use smallvec::SmallVec;
@@ -434,7 +435,7 @@ unsafe_no_jsmanaged_fields!(SourceSet);
 unsafe_no_jsmanaged_fields!(AudioBuffer);
 unsafe_no_jsmanaged_fields!(AudioContext<Backend>);
 unsafe_no_jsmanaged_fields!(NodeId);
-unsafe_no_jsmanaged_fields!(ParamType);
+unsafe_no_jsmanaged_fields!(DistanceModel, PanningModel, ParamType);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

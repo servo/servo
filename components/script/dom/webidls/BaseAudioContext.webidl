@@ -20,7 +20,7 @@ interface BaseAudioContext : EventTarget {
   readonly attribute AudioDestinationNode destination;
   readonly attribute float sampleRate;
   readonly attribute double currentTime;
-  // readonly attribute AudioListener listener;
+  readonly attribute AudioListener listener;
   readonly attribute AudioContextState  state;
   Promise<void> resume();
   attribute EventHandler onstatechange;
@@ -42,7 +42,7 @@ interface BaseAudioContext : EventTarget {
   // IIRFilterNode createIIRFilter(sequence<double> feedforward,
   //                               sequence<double> feedback);
   // WaveShaperNode createWaveShaper();
-  // PannerNode createPanner();
+  [Throws] PannerNode createPanner();
   // StereoPannerNode createStereoPanner();
   // ConvolverNode createConvolver();
   // ChannelSplitterNode createChannelSplitter(optional unsigned long numberOfOutputs = 6);

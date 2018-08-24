@@ -36,17 +36,26 @@ pub struct AudioNode {
     channel_interpretation: Cell<ChannelInterpretation>,
 }
 
+
 impl AudioNode {
     pub fn new_inherited(
         node_type: AudioNodeInit,
-        node_id: Option<NodeId>,
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
     ) -> AudioNode {
-        let node_id =
-            node_id.unwrap_or_else(|| context.audio_context_impl().create_node(node_type));
+        let node_id = context.audio_context_impl().create_node(node_type);
+        AudioNode::new_inherited_for_id(node_id, context, options, number_of_inputs, number_of_outputs)
+    }
+
+    pub fn new_inherited_for_id(
+        node_id: NodeId,
+        context: &BaseAudioContext,
+        options: &AudioNodeOptions,
+        number_of_inputs: u32,
+        number_of_outputs: u32,
+    ) -> AudioNode {
         AudioNode {
             eventtarget: EventTarget::new_inherited(),
             node_id,
@@ -204,6 +213,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::IndexSize);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
+                if value > 2 {
+                    return Err(Error::NotSupported)
+                }
+            }
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -237,6 +251,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::InvalidState);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
+                if value == ChannelCountMode::Max {
+                    return Err(Error::NotSupported)
+                }
+            }
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
