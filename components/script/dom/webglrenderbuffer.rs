@@ -23,6 +23,7 @@ pub struct WebGLRenderbuffer {
     is_deleted: Cell<bool>,
     size: Cell<Option<(i32, i32)>>,
     internal_format: Cell<Option<u32>>,
+    is_initialized: Cell<bool>,
 }
 
 impl WebGLRenderbuffer {
@@ -34,6 +35,7 @@ impl WebGLRenderbuffer {
             is_deleted: Cell::new(false),
             internal_format: Cell::new(None),
             size: Cell::new(None),
+            is_initialized: Cell::new(false),
         }
     }
 
@@ -64,6 +66,14 @@ impl WebGLRenderbuffer {
 
     pub fn internal_format(&self) -> u32 {
         self.internal_format.get().unwrap_or(constants::RGBA4)
+    }
+
+    pub fn mark_initialized(&self) {
+        self.is_initialized.set(true);
+    }
+
+    pub fn is_initialized(&self) -> bool {
+        self.is_initialized.get()
     }
 
     pub fn bind(&self, target: u32) {
