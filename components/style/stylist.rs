@@ -1878,7 +1878,9 @@ impl ElementAndPseudoRules {
         pseudo_element: Option<&PseudoElement>,
         quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
-        debug_assert!(pseudo_element.map_or(true, |pseudo| !pseudo.is_precomputed()));
+        debug_assert!(pseudo_element.map_or(true, |pseudo| {
+            !pseudo.is_precomputed() && !pseudo.is_unknown_webkit_pseudo_element()
+        }));
 
         let map = match pseudo_element {
             None => &mut self.element_map,
@@ -2189,6 +2191,9 @@ impl CascadeData {
                                         selector.specificity(),
                                         0,
                                     ));
+                                continue;
+                            }
+                            if pseudo.is_unknown_webkit_pseudo_element() {
                                 continue;
                             }
                         }
