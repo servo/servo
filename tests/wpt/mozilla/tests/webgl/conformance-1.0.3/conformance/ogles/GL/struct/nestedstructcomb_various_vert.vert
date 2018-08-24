@@ -27,7 +27,7 @@ attribute vec4 gtf_Vertex;
 uniform mat4 gtf_ModelViewProjectionMatrix;
 varying vec4 color;
 
-#define ERROR_EPSILON 0.1
+#define ERROR_EPSILON 0.125
 
 void main (void)
 {
