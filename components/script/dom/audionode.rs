@@ -213,6 +213,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::IndexSize);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
+                if value > 2 {
+                    return Err(Error::NotSupported)
+                }
+            }
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -246,6 +251,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::InvalidState);
                 }
             },
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
+                if value == ChannelCountMode::Max {
+                    return Err(Error::NotSupported)
+                }
+            }
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
