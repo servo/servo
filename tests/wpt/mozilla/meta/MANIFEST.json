@@ -99166,7 +99166,7 @@
    "testharness"
   ],
   "webgl/tools/import-conformance-tests.py": [
-   "970c36cecac1e391866040b77a0cea91154e6084",
+   "55e183f9a5b2269ec75345786039cdb7f1106c0b",
    "support"
   ],
   "webgl/tools/js-test-pre.patch": [

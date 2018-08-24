@@ -19,7 +19,7 @@ PATCHES_1X = [
 # Patches for conformance tests 2.0.x
 PATCHES_2X = [
     ("js-test-pre2.patch", "js/js-test-pre.js"),
-    ("unit.patch", "conformance/more/unit.js")
+    ("unit.patch", "conformance/more/unit.js"),
     ("unit2.patch", "conformance/more/unit.js")
 ]
 
