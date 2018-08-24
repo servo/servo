@@ -28,6 +28,7 @@ pub extern crate bluetooth;
 pub extern crate bluetooth_traits;
 pub extern crate canvas;
 pub extern crate canvas_traits;
+pub extern crate servo_channel;
 pub extern crate compositing;
 pub extern crate constellation;
 pub extern crate debugger;
