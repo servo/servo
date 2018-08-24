@@ -106,7 +106,7 @@ class ServoWebDriverBrowser(Browser):
             self.binary,
             self.binary_args + [
                 "--hard-fail",
-                "--webdriver", str(self.webdriver_port),
+                "--webdriver=%s" % self.webdriver_port,
                 "about:blank",
             ],
             self.debug_info
