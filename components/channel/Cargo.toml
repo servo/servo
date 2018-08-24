@@ -1,0 +1,21 @@
+[package]
+name = "servo_channel"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "servo_channel"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+crossbeam-channel = "0.2"
+ipc-channel = "0.11"
+serde = "1.0"
+
+[[test]]
+name = "main"
+path = "tests/disconnect.rs"

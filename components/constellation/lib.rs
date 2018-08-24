@@ -34,6 +34,8 @@ extern crate profile_traits;
 extern crate script_traits;
 #[macro_use]
 extern crate serde;
+#[macro_use]
+extern crate servo_channel;
 extern crate servo_config;
 extern crate servo_rand;
 extern crate servo_remutex;

@@ -6,8 +6,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use script_traits::{TimerEvent, TimerEventRequest, TimerSchedulerMsg};
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
-use std::sync::mpsc;
-use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
+use servo_channel::base_channel;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -40,7 +39,7 @@ impl PartialEq for ScheduledEvent {
 impl TimerScheduler {
     pub fn start() -> IpcSender<TimerSchedulerMsg> {
         let (req_ipc_sender, req_ipc_receiver) = ipc::channel().expect("Channel creation failed.");
-        let (req_sender, req_receiver) = mpsc::sync_channel(1);
+        let (req_sender, req_receiver) = base_channel::bounded(1);
 
         // We could do this much more directly with recv_timeout
         // (https://github.com/rust-lang/rfcs/issues/962).
