@@ -10571,9 +10571,7 @@
    "conformance/canvas/rapid-resizing.html": [
     [
      "/_webgl/conformance/canvas/rapid-resizing.html",
-     {
-      "timeout": "long"
-     }
+     {}
     ]
    ],
    "conformance/canvas/render-after-resize-test.html": [
@@ -27576,7 +27574,7 @@
    "testharness"
   ],
   "conformance/canvas/rapid-resizing.html": [
-   "9991e9beec6e5880a4f939d314acc7a76dd31527",
+   "f423e17f563da0751d96604adc64bbc0537a52bc",
    "testharness"
   ],
   "conformance/canvas/render-after-resize-test.html": [
