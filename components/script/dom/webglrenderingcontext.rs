@@ -2759,7 +2759,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
         buffer.map_or(false, |buf| {
-            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_marked_for_deletion()
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
         })
     }
 
