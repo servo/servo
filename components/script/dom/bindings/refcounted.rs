@@ -30,7 +30,6 @@ use dom::bindings::trace::trace_reflector;
 use dom::promise::Promise;
 use js::jsapi::JSTracer;
 use libc;
-use std::any::Any;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;

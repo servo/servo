@@ -2636,8 +2636,12 @@ assert!(!obj.is_null());
 rooted!(in(cx) let obj = obj);\
 """ % (descriptor.name, parent)
     else:
-        create += ("rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
-                   "    cx, &Class.unwrap().base as *const JSClass, proto.handle()));\n"
+        create += ("""let base: &'static _ = match Class {
+    Some(ref class) => &class.base,
+    None => panic!(),
+};"""
+                   "rooted!(in(cx) let obj = JS_NewObjectWithGivenProto(\n"
+                   "    cx, base as *const JSClass, proto.handle()));\n"
                    "assert!(!obj.is_null());\n"
                    "\n"
                    "JS_SetReservedSlot(obj.get(), DOM_OBJECT_SLOT,\n"
@@ -2726,7 +2730,6 @@ class CGWrapMethod(CGAbstractMethod):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
         create = CreateBindingJSObject(self.descriptor, "scope")
         return CGGeneric("""\
-InitTypeHolded::<TH>();
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -2773,7 +2776,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         values["members"] = "\n".join(members)
 
         return CGGeneric("""\
-InitTypeHolded::<TH>();
 let raw = Box::into_raw(object);
 let _rt = RootedTraceable::new(&*raw);
 
@@ -2823,10 +2825,16 @@ class CGIDLInterface(CGThing):
                 interface.getUserData("hasProxyDescendant", False)):
             depth = self.descriptor.prototypeDepth
             check = "class.interface_chain[%s] == PrototypeList::ID::%s" % (depth, self.descriptor.name)
-        elif self.descriptor.proxy:
-            check = "class as *const _ == &Class.unwrap() as *const _"
+            match = ""
         else:
-            check = "class as *const _ == &Class.unwrap().dom_class as *const _"
+            if self.descriptor.proxy:
+                check = "class as *const _ == other as *const _"
+            else:
+                check = "class as *const _ == &other.dom_class as *const _"
+            match = """let other: &'static _ = match Class {
+            Some(ref other) => other,
+            None => panic!(),
+        };"""
         if self.descriptor.typeHolded:
             return ''
         return """\
@@ -2834,6 +2842,7 @@ impl<TH: TypeHolderTrait> IDLInterface for %(name)s {
     #[inline]
     fn derives(class: &'static DOMClass) -> bool {
         unsafe {
+        %(match)s
         %(check)s
         }
     }
@@ -2844,7 +2853,7 @@ impl<TH: TypeHolderTrait> PartialEq for %(name)s {
         self as *const %(name)s == &*other
     }
 }
-""" % {'check': check, 'name': name}
+""" % {'check': check, 'name': name, 'match': match}
 
 
 class CGAbstractExternMethod(CGAbstractMethod):
@@ -2991,10 +3000,7 @@ assert!(!prototype_proto.is_null());""" % getPrototypeProto)]
         else:
             proto_properties = properties
 
-        proto_properties["init"] = 'InitTypeHolded::<TH>();' if self.descriptor.interface.hasInterfaceObject() else ''
-
         code.append(CGGeneric("""
-%(init)s
 rooted!(in(cx) let mut prototype = ptr::null_mut::<JSObject>());
 create_interface_prototype_object(cx,
                                   prototype_proto.handle().into(),
@@ -3130,8 +3136,12 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                 holderClass = "ptr::null()"
                 holderProto = "HandleObject::null()"
             else:
-                holderClass = "&Class.unwrap().base as *const JSClass"
+                holderClass = "base as *const JSClass"
                 holderProto = "prototype.handle()"
+                code.append(CGGeneric("""let base: &'static _ = match Class {
+    Some(ref class) => &class.base,
+    None => panic!(),
+};"""))
             code.append(CGGeneric("""
 rooted!(in(cx) let mut unforgeable_holder = ptr::null_mut::<JSObject>());
 unforgeable_holder.handle_mut().set(
@@ -3278,16 +3288,18 @@ let traps = ProxyTraps {
     isCallable: None,
     isConstructor: None,
 };
-InitTypeHolded::<TH>();
-
-CreateProxyHandler(&traps, Class.unwrap().as_void_ptr())\
+let class: &'static _ = match Class {
+    Some(ref class) => class,
+    None => panic!(),
+};
+CreateProxyHandler(&traps, class.as_void_ptr())\
 """ % args)
 
 
 class CGInitTypeHoldedMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         CGAbstractMethod.__init__(self, descriptor, 'InitTypeHolded',
-                                  'void', [], unsafe=True, templateArgs=['TH: TypeHolderTrait'])
+                                  'void', [], unsafe=True, pub=True, templateArgs=['TH: TypeHolderTrait'])
 
     def definition_body(self):
         properties = PropertyArrays(self.descriptor, False)
@@ -3324,7 +3336,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             function = "GetProtoObject::<TH>"
         return CGGeneric("""\
 assert!(!global.get().is_null());
-InitTypeHolded::<TH>();
 
 if !ConstructorEnabled::<TH>(cx, global) {
     return;
@@ -6651,6 +6662,21 @@ class CGRegisterProxyHandlers(CGThing):
     def define(self):
         return self.root.define()
 
+class CGRegisterTypeHoldedMethod(CGAbstractMethod):
+    def __init__(self, config):
+        docs = "Init dom typeholders"
+        CGAbstractMethod.__init__(self, None, 'InitTypeHolded', 'void', [],
+                                  unsafe=True, pub=True, docs=docs, templateArgs=['TH: TypeHolderTrait'])
+        self.descriptors = config.getDescriptors(isIteratorInterface=False, isInline=False, isNamespace=False)
+        self.descriptors = filter(lambda x: x.name != 'EventListener' and x.name != 'WindowProxy', self.descriptors)
+
+    def definition_body(self):
+        return CGList([
+            CGGeneric("Bindings::%s::InitTypeHolded::<TH>();"
+                      % ('::'.join([desc.name + 'Binding'] * 2)))
+            for desc in self.descriptors
+        ], "\n")
+
 
 class CGBindingRoot(CGThing):
     """
@@ -7504,6 +7530,7 @@ class GlobalGenRoots():
         # TODO - Generate the methods we want
         code = CGList([
             CGRegisterProxyHandlers(config),
+            CGRegisterTypeHoldedMethod(config),
         ], "\n")
 
         return CGImports(code, descriptors=[], callbacks=[], dictionaries=[], enums=[], typedefs=[], imports=[

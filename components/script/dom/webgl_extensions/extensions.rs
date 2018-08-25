@@ -269,17 +269,17 @@ impl<TH: TypeHolderTrait> WebGLExtensions<TH> {
     }
 
     fn register_all_extensions(&self) {
-        self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays::<TH>>();
-        self.register::<ext::extblendminmax::EXTBlendMinmax::<TH>>();
-        self.register::<ext::extshadertexturelod::EXTShaderTextureLod::<TH>>();
-        self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic::<TH>>();
-        self.register::<ext::oeselementindexuint::OESElementIndexUint::<TH>>();
-        self.register::<ext::oesstandardderivatives::OESStandardDerivatives::<TH>>();
-        self.register::<ext::oestexturefloat::OESTextureFloat::<TH>>();
-        self.register::<ext::oestexturefloatlinear::OESTextureFloatLinear::<TH>>();
-        self.register::<ext::oestexturehalffloat::OESTextureHalfFloat::<TH>>();
-        self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear::<TH>>();
-        self.register::<ext::oesvertexarrayobject::OESVertexArrayObject::<TH>>();
+        self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays<TH>>();
+        self.register::<ext::extblendminmax::EXTBlendMinmax<TH>>();
+        self.register::<ext::extshadertexturelod::EXTShaderTextureLod<TH>>();
+        self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic<TH>>();
+        self.register::<ext::oeselementindexuint::OESElementIndexUint<TH>>();
+        self.register::<ext::oesstandardderivatives::OESStandardDerivatives<TH>>();
+        self.register::<ext::oestexturefloat::OESTextureFloat<TH>>();
+        self.register::<ext::oestexturefloatlinear::OESTextureFloatLinear<TH>>();
+        self.register::<ext::oestexturehalffloat::OESTextureHalfFloat<TH>>();
+        self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear<TH>>();
+        self.register::<ext::oesvertexarrayobject::OESVertexArrayObject<TH>>();
     }
 
     pub fn enable_element_index_uint(&self) {

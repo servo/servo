@@ -41,7 +41,6 @@ use js::rust::wrappers::JS_SetProperty;
 use libc;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::ffi::CString;
-use std::marker::PhantomData;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;

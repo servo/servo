@@ -45,7 +45,6 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::ffi::CString;
 use std::hash::BuildHasherDefault;
-use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::ptr;

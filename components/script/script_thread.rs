@@ -731,15 +731,25 @@ impl<TH: TypeHolderTrait> ScriptThread<TH> {
                                               -> Option<TopLevelBrowsingContextId> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
+            let script_thread = script_thread.downcast_ref::<ScriptThread<TH>>().expect("Incorrect type");
             script_thread.ask_constellation_for_top_level_info(sender_pipeline, browsing_context_id)
         }))
     }
 
-    pub fn find_document(id: PipelineId) -> Option<DomRoot<Document<TH>>> {
+     pub fn find_document(id: PipelineId) -> Option<DomRoot<Document<TH>>> {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
            let script_thread = unsafe { &*script_thread };
            let script_thread = script_thread.downcast_ref::<ScriptThread<TH>>().expect("Incorrect type");
            script_thread.documents.borrow().find_document(id)
+        }))
+    }
+
+    pub fn find_window_proxy(id: BrowsingContextId) -> Option<DomRoot<WindowProxy<TH>>> {
+        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+           let script_thread = script_thread.downcast_ref::<ScriptThread<TH>>().expect("Incorrect type");            
+            script_thread.window_proxies.borrow().get(&id)
+                .map(|context| DomRoot::from_ref(&**context))
         }))
     }
     
@@ -756,7 +766,7 @@ impl<TH: TypeHolderTrait> ScriptThread<TH> {
         }))
     }
 
-    pub fn worklet_thread_pool() -> Rc<WorkletThreadPool> {
+    pub fn worklet_thread_pool() -> Rc<WorkletThreadPool<TH>> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             let script_thread = script_thread.downcast_ref::<ScriptThread<TH>>().expect("Incorrect type");

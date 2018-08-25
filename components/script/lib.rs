@@ -213,6 +213,8 @@ unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
 #[allow(unsafe_code)]
 pub fn init<TH: TypeHolderTrait>() {
     unsafe {
+        RegisterBindings::InitTypeHolded::<TH>();
+        init_MAP::<TH>();
         proxyhandler::init();
 
         // Create the global vtables used by the (generated) DOM
@@ -220,7 +222,6 @@ pub fn init<TH: TypeHolderTrait>() {
         RegisterBindings::RegisterProxyHandlers::<TH>();
 
         js::glue::InitializeMemoryReporter(Some(is_dom_object));
-        init_MAP::<TH>();
     }
 
     perform_platform_specific_initialization();

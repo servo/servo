@@ -11,7 +11,6 @@ use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exceptio
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
-use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedTraceableBox;
 use dom::crypto::Crypto;

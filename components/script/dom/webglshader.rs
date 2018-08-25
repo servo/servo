@@ -21,7 +21,6 @@ use dom_struct::dom_struct;
 use mozangle::shaders::{BuiltInResources, Output, ShaderValidator};
 use offscreen_gl_context::GLLimits;
 use std::cell::Cell;
-use std::marker::PhantomData;
 use std::os::raw::c_int;
 use std::sync::{ONCE_INIT, Once};
 use typeholder::TypeHolderTrait;

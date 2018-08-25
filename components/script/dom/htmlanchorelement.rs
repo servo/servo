@@ -576,7 +576,7 @@ impl<TH: TypeHolderTrait> Activatable<TH> for HTMLAnchorElement<TH> {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
-pub fn follow_hyperlink(
+pub fn follow_hyperlink<TH: TypeHolderTrait>(
     subject: &Element<TH>,
     hyperlink_suffix: Option<String>,
     referrer_policy: Option<ReferrerPolicy>

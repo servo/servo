@@ -220,10 +220,10 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
     }
 
     // https://html.spec.whatwg.org/multipage/#auxiliary-browsing-context
-    fn create_auxiliary_browsing_context(&self, name: DOMString, noopener: bool) -> Option<DomRoot<WindowProxy>> {
+    fn create_auxiliary_browsing_context(&self, name: DOMString, noopener: bool) -> Option<DomRoot<WindowProxy<TH>>> {
         let (chan, port) = ipc::channel().unwrap();
         let window = self.currently_active.get()
-                    .and_then(|id| ScriptThread::find_document(id))
+                    .and_then(|id| ScriptThread::<TH>::find_document(id))
                     .and_then(|doc| Some(DomRoot::from_ref(doc.window())))
                     .unwrap();
         let msg = EmbedderMsg::AllowOpeningBrowser(chan);
@@ -239,7 +239,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
                 new_pipeline_id: new_pipeline_id,
             };
             let document = self.currently_active.get()
-                .and_then(|id| ScriptThread::find_document(id))
+                .and_then(|id| ScriptThread::<TH>::find_document(id))
                 .unwrap();
             let blank_url = ServoUrl::parse("about:blank").ok().unwrap();
             let load_data = LoadData::new(blank_url,
@@ -261,7 +261,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
             };
             let constellation_msg = ScriptMsg::ScriptNewAuxiliary(load_info, pipeline_sender);
             window.send_to_constellation(constellation_msg);
-            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
+            ScriptThread::<TH>::process_attach_layout(new_layout_info, document.origin().clone());
             let msg = EmbedderMsg::BrowserCreated(new_top_level_browsing_context_id);
             window.send_to_embedder(msg);
             // TODO: if noopener is false, copy the sessionStorage storage area of the creator origin.
@@ -295,11 +295,11 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
             Some(opener_browsing_context_id) => opener_browsing_context_id,
             None => return NullValue()
         };
-        let opener_proxy = match ScriptThread::find_window_proxy(opener_id) {
+        let opener_proxy = match ScriptThread::<TH>::find_window_proxy(opener_id) {
             Some(window_proxy) => window_proxy,
             None => {
                 let sender_pipeline_id = self.currently_active().unwrap();
-                match ScriptThread::get_top_level_for_browsing_context(sender_pipeline_id, opener_id) {
+                match ScriptThread::<TH>::get_top_level_for_browsing_context(sender_pipeline_id, opener_id) {
                     Some(opener_top_id) => {
                         let global_to_clone_from = GlobalScope::from_context(cx);
                         WindowProxy::new_dissimilar_origin(
@@ -327,7 +327,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
                 url: DOMString,
                 target: DOMString,
                 features: DOMString)
-                -> Option<DomRoot<WindowProxy>> {
+                -> Option<DomRoot<WindowProxy<TH>>> {
         // Step 3.
         let non_empty_target = match target.as_ref() {
             "" => DOMString::from("_blank"),
@@ -351,7 +351,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
         // since we've created a new browsing context and loaded it with about:blank.
         if !url.is_empty() {
             let existing_document = self.currently_active.get()
-                        .and_then(|id| ScriptThread::find_document(id)).unwrap();
+                        .and_then(|id| ScriptThread::<TH>::find_document(id)).unwrap();
             // Step 10.1
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
@@ -369,7 +369,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
     }
 
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
-    pub fn choose_browsing_context(&self, name: DOMString, noopener: bool) -> (Option<DomRoot<WindowProxy>>, bool) {
+    pub fn choose_browsing_context(&self, name: DOMString, noopener: bool) -> (Option<DomRoot<WindowProxy<TH>>>, bool) {
         match name.to_lowercase().as_ref() {
             "" | "_self" => {
                 // Step 3.
@@ -395,7 +395,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
                 // TODO: expand the search to all 'familiar' bc,
                 // including auxiliaries familiar by way of their opener.
                 // See https://html.spec.whatwg.org/multipage/#familiar-with
-                match ScriptThread::find_window_proxy_by_name(&name) {
+                match ScriptThread::<TH>::find_window_proxy_by_name(&name) {
                     Some(proxy) => (Some(proxy), false),
                     None => (self.create_auxiliary_browsing_context(name, noopener), true)
                 }
@@ -429,7 +429,7 @@ impl<TH: TypeHolderTrait> WindowProxy<TH> {
 
     pub fn document(&self) -> Option<DomRoot<Document<TH>>> {
         self.currently_active.get()
-            .and_then(|id| ScriptThread::find_document(id))
+            .and_then(|id| ScriptThread::<TH>::find_document(id))
     }
 
     pub fn parent(&self) -> Option<&WindowProxy<TH>> {
@@ -544,7 +544,7 @@ unsafe fn GetSubframeWindowProxy<TH: TypeHolderTrait>(
             );
             return result_receiver.recv().ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(ScriptThread::find_window_proxy)
+                .and_then(ScriptThread::<TH>::find_window_proxy)
                 .map(|proxy| (proxy, JSPROP_ENUMERATE | JSPROP_READONLY));
         } else if let Ok(win) = root_from_handleobject::<DissimilarOriginWindow<TH>>(target.handle()) {
             let browsing_context_id = win.window_proxy().browsing_context_id();
@@ -557,7 +557,7 @@ unsafe fn GetSubframeWindowProxy<TH: TypeHolderTrait>(
             ));
             return result_receiver.recv().ok()
                 .and_then(|maybe_bcid| maybe_bcid)
-                .and_then(ScriptThread::find_window_proxy)
+                .and_then(ScriptThread::<TH>::find_window_proxy)
                 .map(|proxy| (proxy, JSPROP_READONLY));
         }
     }
@@ -896,7 +896,7 @@ unsafe fn init_xorigin_proxy_handler<TH: TypeHolderTrait>() {
 
 #[allow(unsafe_code)]
 unsafe extern fn finalize<TH: TypeHolderTrait>(_fop: *mut JSFreeOp, obj: *mut JSObject) {
-    let this = GetProxyExtra(obj, 0).to_private() as *mut WindowProxy::<TH>;
+    let this = GetProxyExtra(obj, 0).to_private() as *mut WindowProxy<TH>;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;
@@ -908,7 +908,7 @@ unsafe extern fn finalize<TH: TypeHolderTrait>(_fop: *mut JSFreeOp, obj: *mut JS
 
 #[allow(unsafe_code)]
 unsafe extern fn trace<TH: TypeHolderTrait>(trc: *mut JSTracer, obj: *mut JSObject) {
-    let this = GetProxyExtra(obj, 0).to_private() as *const WindowProxy::<TH>;
+    let this = GetProxyExtra(obj, 0).to_private() as *const WindowProxy<TH>;
     if this.is_null() {
         // GC during obj creation or after transplanting.
         return;

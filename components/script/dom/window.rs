@@ -573,7 +573,7 @@ impl<TH: TypeHolderTrait> WindowMethods<TH> for Window<TH> {
             url: DOMString,
             target: DOMString,
             features: DOMString)
-            -> Option<DomRoot<WindowProxy>> {
+            -> Option<DomRoot<WindowProxy<TH>>> {
         self.window_proxy().open(url, target, features)
     }
 

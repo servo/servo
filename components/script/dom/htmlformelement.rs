@@ -52,7 +52,6 @@ use script_traits::LoadData;
 use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::marker::PhantomData;
 use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 use task_source::TaskSource;
@@ -451,7 +450,7 @@ impl<TH: TypeHolderTrait> HTMLFormElement<TH> {
     }
 
     /// [Planned navigation](https://html.spec.whatwg.org/multipage/#planned-navigation)
-    fn plan_to_navigate(&self, load_data: LoadData, target: &Window) {
+    fn plan_to_navigate(&self, load_data: LoadData, target: &Window<TH>) {
         // Step 1
         // Each planned navigation task is tagged with a generation ID, and
         // before the task is handled, it first checks whether the HTMLFormElement's
@@ -460,8 +459,8 @@ impl<TH: TypeHolderTrait> HTMLFormElement<TH> {
         self.generation_id.set(generation_id);
 
         // Step 2.
-        let pipeline_id = window.upcast::<GlobalScope<TH>>().pipeline_id();
-        let script_chan = window.main_thread_script_chan().clone();
+        let pipeline_id = target.upcast::<GlobalScope<TH>>().pipeline_id();
+        let script_chan = target.main_thread_script_chan().clone();
         let this = Trusted::new(self);
         let task = task!(navigate_to_form_planned_navigation: move || {
             if generation_id != this.root().generation_id.get() {

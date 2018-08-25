@@ -89,6 +89,8 @@ use typeholder::TypeHolderTrait;
 use uuid::Uuid;
 use dom::bindings::conversions::get_dom_class;
 
+use std;
+
 //
 // The basic Node structure
 //
@@ -437,11 +439,12 @@ impl<TH: TypeHolderTrait> Node<TH> {
         unsafe{
         let a = self.eventtarget.type_id();
         let cls = get_dom_class(self.reflector().get_jsobject().get()).unwrap().type_id;
+        let c = std::intrinsics::discriminant_value(self.eventtarget.type_id());
         println!("1");
         }
         match *self.eventtarget.type_id() {
             EventTargetTypeId::Node(type_id) => type_id,
-            EventTargetTypeId::EventTarget => panic!("1"),
+            EventTargetTypeId::EventTarget => panic!("1aaa<a"),
             EventTargetTypeId::Bluetooth => panic!("2"),
             EventTargetTypeId::BluetoothDevice => panic!("3"),
             EventTargetTypeId::BluetoothRemoteGATTCharacteristic => panic!("4"),
