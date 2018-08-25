@@ -124,8 +124,15 @@ impl WebGLVertexArrayObjectOES {
         }
 
         let context = self.upcast::<WebGLObject>().context();
-        let buffer = context.array_buffer().ok_or(WebGLError::InvalidOperation)?;
-        buffer.increment_attached_counter();
+        let buffer = context.array_buffer();
+        match buffer {
+            Some(ref buffer) => buffer.increment_attached_counter(),
+            None if offset != 0 => {
+                // https://github.com/KhronosGroup/WebGL/pull/2228
+                return Err(WebGLError::InvalidOperation)
+            },
+            _ => {},
+        }
         context.send_command(WebGLCommand::VertexAttribPointer(
             index,
             size,
@@ -146,7 +153,7 @@ impl WebGLVertexArrayObjectOES {
             normalized,
             stride: stride as u8,
             offset: offset as u32,
-            buffer: Some(Dom::from_ref(&*buffer)),
+            buffer: buffer.map(|b| Dom::from_ref(&*b)),
             divisor: data.divisor,
         };
 
