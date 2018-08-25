@@ -1,0 +1,238 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BlitFramebuffer Resolve to Back Buffer</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="canvasHeader"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the behavior of blitFramebuffer when resolving directly to the back buffer.");
+
+debug("Regression test for <a href='http://crbug.com/699566'>http://crbug.com/699566</a>");
+
+function runTest(testParams) {
+    // Assume a square framebuffer. Doesn't need to match the size of the canvas, necessarily.
+    let sz = 64;
+
+    debug('');
+    debug('Testing with alpha = ' + testParams.attribs.alpha +
+          ', antialias = ' + testParams.attribs.antialias +
+          ', internalformat = ' + testParams.internalformat);
+
+    var canvas = document.createElement('canvas');
+    canvas.width = sz;
+    canvas.height = sz;
+    document.getElementById('canvasHeader').appendChild(canvas);
+    var gl = wtu.create3DContext(canvas, testParams.attribs, 2);
+
+    // Find the supported samples for a multisampled renderbuffer of the appropriate internal format.
+    let samples = gl.getInternalformatParameter(gl.RENDERBUFFER, gl[testParams.internalformat], gl.SAMPLES);
+    if (!samples || !samples.length) {
+        testFailed("At least one multisampled format is required to be supported");
+        return;
+    }
+
+    // Create a framebuffer with a multisampled renderbuffer.
+    let rb = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples[0], gl[testParams.internalformat], sz, sz);
+
+    // Create a framebuffer.
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb);
+
+    // Check for completeness.
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Rendering to a multisampled renderbuffer of format " + testParams.internalformat + " is required by the spec");
+        return;
+    }
+
+    // Clear to specified color.
+    gl.clearColor.apply(gl, testParams.clearColor);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Unbind draw framebuffer. Read framebuffer is now user framebuffer;
+    // draw framebuffer is default framebuffer.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors before blit");
+
+    // Blit from user framebuffer to default framebuffer.
+    gl.blitFramebuffer(0, 0, sz, sz, 0, 0, sz, sz, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+
+    if (testParams.shouldSucceed) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be legal to blit/resolve to default back buffer");
+    } else {
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "incompatible src/dest blitFramebuffer combination must fail");
+    }
+
+    // Unbind user framebuffer completely.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+
+    if (testParams.shouldSucceed) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no error before readback");
+        wtu.checkCanvasRect(gl, 0, 0, 8, 8, testParams.resultColor);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    }
+}
+
+var tests = [
+    // No-alpha, no-antialias, RGB8 source
+    {
+        attribs: {
+            alpha: false,
+            antialias: false,
+        },
+        internalformat: 'RGB8',
+        clearColor: [ 0.0, 1.0, 0.0, 1.0 ],
+        resultColor: [ 0, 255, 0, 255 ],
+        shouldSucceed: true,
+    },
+    // Alpha, no-antialias, RGB8 source
+    {
+        attribs: {
+            alpha: true,
+            antialias: false,
+        },
+        internalformat: 'RGB8',
+        clearColor: [ 0.0, 1.0, 0.0, 1.0 ],
+        resultColor: [ 0, 255, 0, 255 ],
+        shouldSucceed: false,
+    },
+    // No-alpha, no-antialias, RGBA8 source
+    // premultiplyAlpha:false just to avoid semantically incorrect
+    // colors (should only affect rendering, not contents of WebGL
+    // back buffer)
+    {
+        attribs: {
+            alpha: false,
+            antialias: false,
+            premultiplyAlpha: false,
+        },
+        internalformat: 'RGBA8',
+        clearColor: [ 0.0, 1.0, 0.0, 1.0 ],
+        resultColor: [ 0, 255, 0, 255 ],
+        shouldSucceed: false,
+    },
+    // Alpha, no-antialias, RGBA8 source
+    // premultiplyAlpha:false just to avoid semantically incorrect
+    // colors (should only affect rendering, not contents of WebGL
+    // back buffer)
+    {
+        attribs: {
+            alpha: true,
+            antialias: false,
+            premultiplyAlpha: false,
+        },
+        internalformat: 'RGBA8',
+        clearColor: [ 0.0, 1.0, 0.0, 0.0 ],
+        resultColor: [ 0, 255, 0, 0 ],
+        shouldSucceed: true,
+    },
+
+    // All attempts to blit to an antialiased back buffer should fail.
+
+    // No-alpha, antialias, RGB8 source
+    {
+        attribs: {
+            alpha: false,
+            antialias: true,
+        },
+        internalformat: 'RGB8',
+        clearColor: [ 0.0, 1.0, 0.0, 1.0 ],
+        resultColor: [ 0, 255, 0, 255 ],
+        shouldSucceed: false,
+    },
+    // Alpha, antialias, RGB8 source
+    {
+        attribs: {
+            alpha: true,
+            antialias: true,
+        },
+        internalformat: 'RGB8',
+        clearColor: [ 0.0, 1.0, 0.0, 1.0 ],
+        resultColor: [ 0, 255, 0, 255 ],
+        shouldSucceed: false,
+    },
+    // No-alpha, antialias, RGBA8 source
+    // premultiplyAlpha:false just to avoid semantically incorrect
+    // colors (should only affect rendering, not contents of WebGL
+    // back buffer)
+    {
+        attribs: {
+            alpha: false,
+            antialias: true,
+            premultiplyAlpha: false,
+        },
+        internalformat: 'RGBA8',
+        clearColor: [ 0.0, 1.0, 0.0, 1.0 ],
+        resultColor: [ 0, 255, 0, 255 ],
+        shouldSucceed: false,
+    },
+    // Alpha, antialias, RGBA8 source
+    // premultiplyAlpha:false just to avoid semantically incorrect
+    // colors (should only affect rendering, not contents of WebGL
+    // back buffer)
+    {
+        attribs: {
+            alpha: true,
+            antialias: true,
+            premultiplyAlpha: false,
+        },
+        internalformat: 'RGBA8',
+        clearColor: [ 0.0, 1.0, 0.0, 0.0 ],
+        resultColor: [ 0, 255, 0, 0 ],
+        shouldSucceed: false,
+    },
+];
+
+for (var ii in tests) {
+    runTest(tests[ii]);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

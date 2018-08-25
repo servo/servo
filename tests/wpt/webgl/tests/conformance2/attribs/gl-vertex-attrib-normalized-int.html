@@ -1,0 +1,101 @@
+<!--
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebGL 2 Normalized Vertex Attributes Conformance Test</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../../resources/js-test-style.css"/>
+</head>
+<body>
+    <canvas width=1 height=1></canvas>
+    <div id="description"></div>
+    <div id="console"></div>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+        layout(location = 0) in vec3 vertex;
+
+        out float normAttrib;
+
+        void main(void) {
+            gl_Position = vec4(vertex.xy, 0, 1);
+            normAttrib = vertex.z;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+        in lowp float normAttrib;
+
+        layout(location=0) out lowp vec4 fragColor;
+
+        void main(void) {
+            fragColor = vec4(vec3(normAttrib == -1.0 ? 1.0 : 0.0), 1);
+        }
+    </script>
+    <script src="../../js/js-test-pre.js"></script>
+    <script src="../../js/webgl-test-utils.js"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            var wtu = WebGLTestUtils;
+
+            var gl = wtu.create3DContext(document.querySelector('canvas'), null, 2);
+
+            var program = wtu.setupProgram(gl, ['vertex-shader', 'fragment-shader']);
+
+            gl.useProgram(program);
+
+            var buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Int8Array([
+                // Here we set the third component (the one that's actually tested)
+                // to (MIN_INT + 1). If non-zero-preserving rules are used, it'll be
+                // converted to a float that's slightly greater than -1. If zero-preserving
+                // rules are used, as the GLES 3 spec requires, result of conversion
+                // should be exactly -1.
+                -0x80,  0x7f, -0x7f,
+                 0x7f,  0x7f, -0x7f,
+                -0x80, -0x7f, -0x7f,
+                -0x80, -0x7f, -0x7f,
+                 0x7f,  0x7f, -0x7f,
+                 0x7f, -0x80, -0x7f
+            ]), gl.STATIC_DRAW);
+
+            gl.enableVertexAttribArray(0);
+            gl.vertexAttribPointer(0, 3, gl.BYTE, true, 0, 0);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 6);
+
+            wtu.checkCanvas(gl, [255, 255, 255, 255], "should be opaque white");
+        }());
+    </script>
+    <script>
+        description('Verify that conversion of normalized signed int attributes to floats uses zero-preserving rule.');
+        window.successfullyParsed = true;
+    </script>
+    <script src="../../js/js-test-post.js"></script>
+</body>
+</html>

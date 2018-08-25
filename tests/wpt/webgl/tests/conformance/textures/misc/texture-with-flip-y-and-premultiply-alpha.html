@@ -1,0 +1,95 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL texture upload with FlipY and PremultiplyAlpha.</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="32" height="32" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+// Regression test for crbug.com/765469
+"use strict";
+description("Checks uploading textures with FlipY and PremultiplyAlpha generates INVALID_OPERATION with invalid format/type");
+
+var canvas;
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("example");
+
+var tex = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, tex);
+
+function testUpload() {
+  // Because WEBGL_depth_texture is enabled, UNSIGNED_SHORT becomes a valid type, but RGBA/UNSIGNED_SHORT is invalid.
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_SHORT, new Uint16Array(2*2*4));
+  wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "texImage2D() with invalid format/type combination");
+}
+
+var ext = gl.getExtension('WEBGL_depth_texture');
+if (ext) {
+  debug("");
+  debug("Testing with FlipY = false, PremultiplyAlpha = false");
+  testUpload();
+
+  debug("");
+  debug("Testing with FlipY = true, PremultiplyAlpha = false");
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+  testUpload();
+
+  debug("");
+  debug("Testing with FlipY = false, PremultiplyAlpha = true");
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
+  testUpload();
+
+  debug("");
+  debug("Testing with FlipY = true, PremultiplyAlpha = true");
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
+  testUpload();
+} else {
+  testPassed("WEBGL_depth_texture not supported, skipping tests.");
+}
+
+gl.deleteTexture(tex);
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Conditional texture fetch test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<canvas id="output" style="border: none;" width="64" height="64"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script id="vshaderConditionalTextureFetch" type="x-shader/x-vertex">
+attribute vec2 a_position;
+attribute vec4 a_canvasTileColor;
+attribute vec2 a_texCoord;
+varying vec2 texCoord;
+varying vec4 canvasTileColor;
+void main()
+{
+    canvasTileColor = a_canvasTileColor;
+    texCoord = a_texCoord;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+}
+</script>
+<script id="fshaderConditionalTextureFetch" type="x-shader/x-fragment">
+precision mediump float;
+varying vec4 canvasTileColor;
+uniform bool hasTexture;
+uniform sampler2D canvasTileTexture;
+varying vec2 texCoord;
+uniform vec4 uvRect;
+void main()
+{
+    vec4 finalColor = canvasTileColor;
+    if (hasTexture) {
+        vec2 clampedUV = clamp(texCoord.xy, uvRect.xy, uvRect.zw);
+        finalColor = texture2D(canvasTileTexture, clampedUV);
+    }
+    gl_FragColor = finalColor;
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+debug("If the test passes correctly the viewport will be green.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("output");
+var gl = wtu.create3DContext(canvas);
+
+var createGreenTexture = function() {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    wtu.fillTexture(gl, texture, 1, 1, [0, 255, 0, 255]);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return texture;
+};
+
+var test = function(greenTexture) {
+    // This is a reduced test case for a problem reported by Figma.
+    // Program compilation produces the following warning/error on ANGLE's
+    // D3D9 backend:
+    // [WARNING:angle_platform_impl.cc(51)] : rx::HLSLCompiler::compileToBinary(228): C:\fakepath(26,12): error X6077: texld/texldb/texldp/dsx/dsy instructions with r# as source cannot be used inside dynamic conditional 'if' blocks, dynamic conditional subroutine calls, or loop/rep with break*.
+    //
+    // All of the operations in the shader -- including the clamping of the
+    // texture coordinates -- seem to be needed in order to provoke this
+    // error.
+    //
+    // However, this doesn't seem to produce incorrect rendering results.
+    var program = wtu.setupProgram(
+        gl,
+        ["vshaderConditionalTextureFetch",
+         "fshaderConditionalTextureFetch"],
+        ["a_position", "a_canvasTileColor", "a_texCoord"],
+        [0, 1, 2],
+        true);
+    if (!program) {
+        testFailed("Shader compilation/link failed");
+    } else {
+        // Set up buffers
+        wtu.setupUnitQuad(gl, 0, 2);
+
+        // Set up constant color (red)
+        gl.vertexAttrib4f(1, 1, 0, 0, 1);
+
+        var uniformMap = wtu.getUniformMap(gl, program);
+
+        // Use texturing
+        gl.uniform1i(uniformMap["hasTexture"].location, 1);
+
+        // Bind texture
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, greenTexture);
+        gl.uniform1i(uniformMap["canvasTileTexture"].location, 0);
+
+        // Set up (essentially no-op) clamp rectangle
+        gl.uniform4f(uniformMap["uvRect"].location, 0, 0, 0.25, 0.25);
+
+        // Draw
+        wtu.clearAndDrawUnitQuad(gl);
+
+        // Verify output
+        wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green", 1);
+    }
+};
+
+if (!gl) {
+    testFailed("context does not exist");
+} else {
+    var tex = createGreenTexture();
+    test(tex);
+}
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+</body>
+</html>

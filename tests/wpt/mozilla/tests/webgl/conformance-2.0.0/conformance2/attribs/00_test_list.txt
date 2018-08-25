@@ -1,4 +1,0 @@
-gl-vertex-attrib.html
-gl-vertex-attrib-i-render.html
-gl-vertexattribipointer.html
-gl-vertexattribipointer-offsets.html

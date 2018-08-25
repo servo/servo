@@ -1,0 +1,311 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Read or Draw when Attachment(s) Miss Image</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the functionality of reading/drawing when color attachment(s) miss image.");
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+var tex_read = gl.createTexture();
+var tex_draw = gl.createTexture();
+var tex_depth = gl.createTexture();
+var tex_stencil = gl.createTexture();
+var fbo_read = gl.createFramebuffer();
+var fbo_draw = gl.createFramebuffer();
+var size = 8;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    // READ_FRAMEBUFFER has image at COLOR_ATTACHMENT0. READ_FRAMEBUFFER is framebuffer complete.
+    // Read from COLOR_ATTACHMENT1, which has no image attached.
+    init_read_fbo();
+    read();
+
+    // DRAW_FRAMEBUFFER has image at COLOR_ATTACHMENT0. DRAW_FRAMEBUFFER is framebuffer complete.
+    // Clear and draw COLOR_ATTACHMENT1 or COLOR_ATTACHMENT0 + COLOR_ATTACHMENT1 attaching point(s).
+    init_draw_fbo();
+    clear();
+    draw();
+
+    blit();
+}
+
+function init_read_fbo() {
+    gl.bindTexture(gl.TEXTURE_2D, tex_read);
+    wtu.fillTexture(gl, tex_read, size, size, [0x0, 0xff, 0xff, 0xff], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.RGBA8);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_read, 0);
+    if (gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    } else {
+        testPassed("framebuffer complete!");
+    }
+}
+
+function init_draw_fbo() {
+    gl.bindTexture(gl.TEXTURE_2D, tex_draw);
+    wtu.fillTexture(gl, tex_draw, size, size, [0x0, 0xff, 0xff, 0xff], 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.RGBA8);
+    wtu.fillTexture(gl, tex_depth, size, size, [0x80], 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, gl.DEPTH_COMPONENT16);
+    wtu.fillTexture(gl, tex_stencil, size, size, [0x40], 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, gl.DEPTH24_STENCIL8);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_draw, 0);
+    if (gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    } else {
+        testPassed("framebuffer complete!");
+    }
+}
+
+function read() {
+    debug("");
+    debug("read from a color buffer which has no image attached");
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo_read);
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+
+    var data = new Uint8Array(size * size * 4);
+    gl.readPixels(0, 0, size, size, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when reading from a color buffer without image.");
+
+    var copy_2d = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, copy_2d);
+    gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 0, 0, size, size, 0);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when reading from a color buffer without image.");
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, size / 2, size / 2, 0, 0, size / 2, size / 2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when reading from a color buffer without image.");
+
+    var copy_3d = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_3D, copy_3d);
+    gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, size, size, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.copyTexSubImage3D(gl.TEXTURE_3D, 0, size / 2, size / 2, 0, 0, 0, size / 2, size / 2);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when reading from a color buffer without image.");
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.deleteTexture(copy_2d);
+    gl.bindTexture(gl.TEXTURE_3D, null);
+    gl.deleteTexture(copy_3d);
+}
+
+function checkTextureValue(fbo, buffer, value) {
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo);
+    gl.readBuffer(buffer);
+    wtu.checkCanvas(gl, value);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+}
+
+function clear() {
+    debug("");
+    debug("clear a color buffer which has no image attached");
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    var color = [0.0, 1.0, 0.0, 1.0];
+    gl.clearColor(color[0], color[1], color[2], color[3]);
+    gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 255, 255]);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 should be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 0, 255]);
+
+    var data = new Float32Array(color);
+    gl.clearBufferfv(gl.COLOR, 1, data);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+}
+
+function draw() {
+    debug("");
+    debug("draw to a color buffer which has no image attached");
+
+    var program = wtu.setupSimpleColorProgram(gl, 0);
+    gl.uniform4f(gl.getUniformLocation(program, "u_color"), 1, 0, 0, 1);
+    wtu.setupUnitQuad(gl, 0);
+
+    // Call to drawArrays
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 0, 255]);
+
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    wtu.drawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 should be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [255, 0, 0, 255]);
+
+    // Call to drawElements
+    gl.uniform4f(gl.getUniformLocation(program, "u_color"), 1, 1, 0, 1);
+    wtu.setupIndexedQuad(gl, 1);
+    gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+    wtu.drawIndexedQuad(gl, 1);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [255, 0, 0, 255]);
+
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    wtu.drawIndexedQuad(gl, 1);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 should be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [255, 255, 0, 255]);
+}
+
+function blit() {
+    debug("");
+    debug("blit color buffer(s) which have no image attached");
+    // Some or all draw buffers have no image. Read buffer have image. It should be OK.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 in draw fbo should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [255, 255, 0, 255]);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 in draw fbo should be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 255, 255]);
+
+    // Draw buffer(s) have no image. Read buffer have no image. It should be OK.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    gl.drawBuffers([gl.NONE, gl.COLOR_ATTACHMENT1]);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // The image color at COLOR_ATTACHMENT0 in draw fbo should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 255, 255]);
+
+    // Read buffer have no image. Some or all draw buffers have image. It should generate INVALID_OPERATION.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when read buffer misses image.");
+    // The image color at COLOR_ATTACHMENT0 in draw fbo should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 255, 255]);
+
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when read buffer misses image.");
+    // The image color at COLOR_ATTACHMENT0 in draw fbo should not be changed.
+    checkTextureValue(fbo_draw, gl.COLOR_ATTACHMENT0, [0, 255, 255, 255]);
+
+    // Depth buffer in read fbo has no image. It should generate INVALID_OPERATION if depth buffer in draw fbo has image.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, tex_depth, 0);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when depth buffer misses image.");
+
+    // Depth buffer in read fbo has no image. It should be OK if depth buffer in draw fbo has no image too.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, null, 0);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // Validate some other parameters as usual
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.DEPTH_BUFFER_BIT, gl.LINEAR);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid filter");
+
+    // Stencil buffer in read fbo has no image. It should generate INVALID_OPERATION if stencil buffer in draw fbo has image.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.TEXTURE_2D, tex_stencil, 0);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.STENCIL_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "Should generate INVALID_OPERATION when stencil buffer misses image.");
+
+    // Stencil buffer in read fbo has no image. It should be OK if stencil buffer in draw fbo has no image too.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.TEXTURE_2D, null, 0);
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.STENCIL_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Should be no error.");
+    // Validate some other parameters as usual
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.STENCIL_BUFFER_BIT, gl.LINEAR);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "invalid filter");
+}
+
+gl.bindTexture(gl.TEXTURE_2D, null);
+gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+gl.deleteTexture(tex_read);
+gl.deleteTexture(tex_draw);
+gl.deleteTexture(tex_depth);
+gl.deleteTexture(tex_stencil);
+gl.deleteFramebuffer(fbo_read);
+gl.deleteFramebuffer(fbo_draw);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

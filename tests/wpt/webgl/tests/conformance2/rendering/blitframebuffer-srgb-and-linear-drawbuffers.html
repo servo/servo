@@ -1,0 +1,230 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BlitFramebuffer Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the functionality of blitFramebuffer with multiple draw buffers (srgb image and linear image).");
+
+var gl = wtu.create3DContext("canvas", undefined, 2);
+var linearMask = 1;
+var srgbMask = 2;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    var filters = [gl.LINEAR, gl.NEAREST];
+    var drawbuffersFormats = [linearMask, srgbMask, linearMask | srgbMask];
+    for (var ii = 0; ii < filters.length; ++ii) {
+        for (var jj = 0; jj < drawbuffersFormats.length; ++jj) {
+            blitframebuffer_srgb_and_linear_drawbuffers(gl.SRGB8_ALPHA8, drawbuffersFormats[jj], filters[ii]);
+            blitframebuffer_srgb_and_linear_drawbuffers(gl.RGBA8, drawbuffersFormats[jj], filters[ii]);
+        }
+    }
+}
+
+function blitframebuffer_srgb_and_linear_drawbuffers(readbufferFormat, drawbuffersFormatMask, filter) {
+    debug("");
+    debug("The filter is: " + wtu.glEnumToString(gl, filter));
+    debug("Read buffer format is: " + wtu.glEnumToString(gl, readbufferFormat));
+    var drawbuffersFormat = "\0";
+    if (drawbuffersFormatMask & linearMask) {
+        drawbuffersFormat += " linear ";
+    }
+    if (drawbuffersFormatMask & srgbMask) {
+        drawbuffersFormat += " srgb ";
+    }
+    debug("The test have multiple draw buffers, the images are: " + drawbuffersFormat);
+
+    var tex_srgb0 = gl.createTexture();
+    var tex_srgb1 = gl.createTexture();
+    var tex_linear0 = gl.createTexture();
+    var tex_linear1 = gl.createTexture();
+    var tex_read = gl.createTexture();
+    var fbo_read = gl.createFramebuffer();
+    var fbo_draw = gl.createFramebuffer();
+
+    // Create read buffer and feed data to the read buffer
+    var size = 8;
+    var data = new Uint8Array(size * size * 4);
+    var color = [250, 100, 15, 255];
+    for (var ii = 0; ii < size * size * 4; ii += 4) {
+        for (var jj = 0; jj < 4; ++jj) {
+          data[ii + jj] = color[jj];
+        }
+    }
+    gl.bindTexture(gl.TEXTURE_2D, tex_read);
+    gl.texImage2D(gl.TEXTURE_2D, 0, readbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_read, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "setup read framebuffer should succeed");
+
+    // Create multiple textures. Attach them as fbo's draw buffers.
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+
+    var drawbuffers = [gl.NONE, gl.NONE, gl.NONE, gl.NONE];
+    if (drawbuffersFormatMask & srgbMask) {
+        gl.bindTexture(gl.TEXTURE_2D, tex_srgb0);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_srgb0, 0);
+        gl.bindTexture(gl.TEXTURE_2D, tex_srgb1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, tex_srgb1, 0);
+        drawbuffers[0] = gl.COLOR_ATTACHMENT0;
+        drawbuffers[2] = gl.COLOR_ATTACHMENT2;
+    }
+
+    if (drawbuffersFormatMask & linearMask) {
+        gl.bindTexture(gl.TEXTURE_2D, tex_linear0);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex_linear0, 0);
+        gl.bindTexture(gl.TEXTURE_2D, tex_linear1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT3, gl.TEXTURE_2D, tex_linear1, 0);
+        drawbuffers[1] = gl.COLOR_ATTACHMENT1;
+        drawbuffers[3] = gl.COLOR_ATTACHMENT3;
+    }
+
+    gl.drawBuffers(drawbuffers);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "setup draw framebuffer should succeed");
+
+    if (gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE ||
+        gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete when setup draw framebuffer.");
+        return;
+    }
+
+    // Blit to multiple draw buffers with srgb images and linear images
+    var dstSize = size - 1;
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, dstSize, dstSize, gl.COLOR_BUFFER_BIT, filter);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "blitframebuffer should succeed");
+
+    // Read pixels from srgb images and linear images
+    var srgbPixels0 = new Uint8Array(dstSize * dstSize * 4);
+    var srgbPixels1 = new Uint8Array(dstSize * dstSize * 4);
+    var linearPixels0 = new Uint8Array(dstSize * dstSize * 4);
+    var linearPixels1 = new Uint8Array(dstSize * dstSize * 4);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_draw);
+    if (drawbuffersFormatMask & srgbMask) {
+        gl.readBuffer(gl.COLOR_ATTACHMENT0);
+        gl.readPixels(0, 0, dstSize, dstSize, gl.RGBA, gl.UNSIGNED_BYTE, srgbPixels0);
+        gl.readBuffer(gl.COLOR_ATTACHMENT2);
+        gl.readPixels(0, 0, dstSize, dstSize, gl.RGBA, gl.UNSIGNED_BYTE, srgbPixels1);
+    }
+
+    if (drawbuffersFormatMask & linearMask) {
+        gl.readBuffer(gl.COLOR_ATTACHMENT1);
+        gl.readPixels(0, 0, dstSize, dstSize, gl.RGBA, gl.UNSIGNED_BYTE, linearPixels0);
+        gl.readBuffer(gl.COLOR_ATTACHMENT3);
+        gl.readPixels(0, 0, dstSize, dstSize, gl.RGBA, gl.UNSIGNED_BYTE, linearPixels1);
+    }
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readpixels should succeed");
+
+    // Compare
+    var expectedSRGBColor = (readbufferFormat == gl.SRGB8_ALPHA8) ? color : wtu.linearToSRGB(color);
+    var expectedLinearColor = (readbufferFormat == gl.SRGB8_ALPHA8) ? wtu.sRGBToLinear(color) : color;
+    var failed = false;
+    for (var ii = 0; ii < dstSize; ++ii) {
+        for (var jj = 0; jj < dstSize; ++jj) {
+            var index = (ii * dstSize + jj) * 4;
+            if (drawbuffersFormatMask & srgbMask) {
+                var srgbColor0 = [srgbPixels0[index], srgbPixels0[index + 1], srgbPixels0[index + 2], srgbPixels0[index + 3]];
+                if (checkPixel(srgbColor0, expectedSRGBColor) == false) {
+                    failed = true;
+                    debug("Pixels comparison failed for the 1st sRGB image. Pixel at [" + jj + ", " + ii + "] should be (" + expectedSRGBColor + "), but the actual color is (" + srgbColor0 + ")");
+                }
+                var srgbColor1 = [srgbPixels1[index], srgbPixels1[index + 1], srgbPixels1[index + 2], srgbPixels1[index + 3]];
+                if (checkPixel(srgbColor1, expectedSRGBColor) == false) {
+                    failed = true;
+                    debug("Pixels comparison failed for the 2nd sRGB image. Pixel at [" + jj + ", " + ii + "] should be (" + expectedSRGBColor + "), but the actual color is (" + srgbColor1 + ")");
+                }
+            }
+
+            if (drawbuffersFormatMask & linearMask) {
+                var linearColor0 = [linearPixels0[index], linearPixels0[index + 1], linearPixels0[index + 2], linearPixels0[index + 3]];
+                if (checkPixel(linearColor0, expectedLinearColor) == false) {
+                    failed = true;
+                    debug("Pixel comparison failed for the 1st linear image. Pixel at [" + jj + ", " + ii + "] should be (" + color + "), but the actual color is (" + linearColor0 + ")");
+                }
+                var linearColor1 = [linearPixels1[index], linearPixels1[index + 1], linearPixels1[index + 2], linearPixels1[index + 3]];
+                if (checkPixel(linearColor1, expectedLinearColor) == false) {
+                    failed = true;
+                    debug("Pixel comparison failed for the 2nd linear image. Pixel at [" + jj + ", " + ii + "] should be (" + color + "), but the actual color is (" + linearColor1 + ")");
+                }
+            }
+        }
+    }
+    if (failed == false) {
+        testPassed("All pixels comparision passed!");
+    }
+
+    // deinit
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.deleteTexture(tex_srgb0);
+    gl.deleteTexture(tex_linear0);
+    gl.deleteTexture(tex_srgb1);
+    gl.deleteTexture(tex_linear1);
+    gl.deleteTexture(tex_read);
+    gl.deleteFramebuffer(fbo_read);
+    gl.deleteFramebuffer(fbo_draw);
+}
+
+function checkPixel(color, expectedColor) {
+  var tolerance = 3;
+  return (Math.abs(color[0] - expectedColor[0]) <= tolerance &&
+          Math.abs(color[1] - expectedColor[1]) <= tolerance &&
+          Math.abs(color[2] - expectedColor[2]) <= tolerance &&
+          Math.abs(color[3] - expectedColor[3]) <= tolerance);
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

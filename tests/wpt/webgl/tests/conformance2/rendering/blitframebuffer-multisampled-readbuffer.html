@@ -1,0 +1,135 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BlitFramebuffer Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the functionality of blitFramebuffer with multisampled sRGB color buffer.");
+
+var gl = wtu.create3DContext("canvas", undefined, 2);
+
+var tex_blit = gl.createTexture();
+var fb0 = gl.createFramebuffer();
+var rb0 = gl.createRenderbuffer();
+var fbo_blit = gl.createFramebuffer();
+var size = 32;
+var program;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    init();
+
+    var filters = [gl.LINEAR, gl.NEAREST];
+    for (var ii = 0; ii < filters.length; ++ii) {
+        blitframebuffer_multisampled_readbuffer(gl.SRGB8_ALPHA8, gl.SRGB8_ALPHA8, filters[ii]);
+    }
+}
+
+function init() {
+    program = wtu.setupColorQuad(gl);
+    gl.viewport(0, 0, size, size);
+}
+
+function blitframebuffer_helper(readbufferFormat, drawbufferFormat, filter) {
+    // Create draw framebuffer and feed 0 to draw buffer
+    gl.bindTexture(gl.TEXTURE_2D, tex_blit);
+    gl.texImage2D(gl.TEXTURE_2D, 0, drawbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_blit);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_blit, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "setup draw framebuffer should succeed");
+
+    gl.blitFramebuffer(0, 0, size, size, 0, 0, size, size, gl.COLOR_BUFFER_BIT, filter);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "blitframebuffer should succeed");
+}
+
+function blitframebuffer_multisampled_readbuffer(readbufferFormat, drawbufferFormat, filter) {
+    debug("");
+    debug("Test blitFramebuffer when the read buffer is a multisampled srgb image. The filter is: " + wtu.glEnumToString(gl, filter));
+    debug("read buffer format is: " + wtu.glEnumToString(gl, readbufferFormat) + ", draw buffer format is: " + wtu.glEnumToString(gl, drawbufferFormat));
+
+    // Draw to a multi-sampled srgb image, and blit to a srgb image.
+    gl.bindRenderbuffer(gl.RENDERBUFFER, rb0);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, readbufferFormat, size, size);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, rb0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("Framebuffer incomplete.");
+        return;
+    }
+    var color = [252, 122, 15, 255];
+    var expectedColor = wtu.linearToSRGB(color);
+    for (var i = 0; i < 4; ++i) {
+        color[i] = color[i] / 255;
+    }
+    // Draw a rectangle. Fill it with solid color.
+    // Note that the draw buffer is a multisampled srgb image. So during drawing, the color will be converted into srgb color space.
+    gl.useProgram(program);
+    wtu.drawFloatColorQuad(gl, color);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb0);
+    blitframebuffer_helper(readbufferFormat, drawbufferFormat, filter);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Blit from a multi-sampled srgb image to a srgb image should succeed");
+
+    // Compare
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_blit);
+    wtu.checkCanvasRect(gl, 0, 0, size, size, expectedColor);
+}
+
+gl.bindTexture(gl.TEXTURE_2D, null);
+gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+gl.deleteRenderbuffer(rb0);
+gl.deleteTexture(tex_blit);
+gl.deleteFramebuffer(fb0);
+gl.deleteFramebuffer(fbo_blit);
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

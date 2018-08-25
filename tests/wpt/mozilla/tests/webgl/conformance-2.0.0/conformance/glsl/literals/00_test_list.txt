@@ -1,3 +1,0 @@
-float_literal.vert.html
---min-version 1.0.3 literal_precision.html
-overflow_leak.vert.html

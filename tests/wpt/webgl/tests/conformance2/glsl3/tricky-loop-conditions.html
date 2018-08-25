@@ -1,0 +1,350 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL tricky loop conditions and loop expressions</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<!--
+Some tricky shader expressions might be subject to syntax tree transformations that need to create
+new statements. Ensure that these expressions also work inside loop conditions and loop expressions.
+-->
+<script type="application/javascript">
+"use strict";
+description("Indexing complex array expressions");
+debug("");
+
+// All the templates run the given sequence:
+// 1. loopExpression or loopCondition
+// 2. loopContents
+// 3. Break loop if it's done loopIterations iterations, else go back to 1.
+
+var forLoopExpressionTemplate = [
+    '#version 300 es',
+    'precision mediump float;',
+    'out vec4 color;',
+    '$(globalScopePrefix)',
+    'void main() {',
+    '$(mainPrefix)',
+    '  for (int i = 0; true; $(loopExpression))',
+    '  {',
+    '    ++i;',
+    '    if (i > 1) {',
+    '      $(loopContents)',
+    '      if (i > $(loopIterations)) { break; }',
+    '    }',
+    '  }',
+    '  color = ($(passCondition)) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);',
+    '}'
+].join('\n');
+
+var forLoopConditionTemplate = [
+    '#version 300 es',
+    'precision mediump float;',
+    'out vec4 color;',
+    '$(globalScopePrefix)',
+    'void main() {',
+    '$(mainPrefix)',
+    '  for (int i = 1; $(loopCondition); ++i)',
+    '  {',
+    '    $(loopContents)',
+    '    if (i >= $(loopIterations)) { break; }',
+    '  }',
+    '  color = ($(passCondition)) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);',
+    '}'
+].join('\n');
+
+var whileLoopConditionTemplate = [
+    '#version 300 es',
+    'precision mediump float;',
+    'out vec4 color;',
+    '$(globalScopePrefix)',
+    'void main() {',
+    '$(mainPrefix)',
+    '  int i = 0;',
+    '  while ($(loopCondition))',
+    '  {',
+    '    $(loopContents)',
+    '    ++i;',
+    '    if (i >= $(loopIterations)) { break; }',
+    '  }',
+    '  color = ($(passCondition)) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);',
+    '}'
+].join('\n');
+
+var doWhileLoopConditionTemplate = [
+    '#version 300 es',
+    'precision mediump float;',
+    'out vec4 color;',
+    '$(globalScopePrefix)',
+    'void main() {',
+    '$(mainPrefix)',
+    '  int i = 0;',
+    // Run the loop condition one extra time to make the different test types behave the same
+    '  $(loopCondition);',
+    '  do {',
+    '    $(loopContents)',
+    '    ++i;',
+    '    if (i >= $(loopIterations)) { break; }',
+    '  }',
+    '  while ($(loopCondition));',
+    '  color = ($(passCondition)) ? vec4(0, 1.0, 0, 1.0) : vec4(1.0, 0, 0, 1.0);',
+    '}'
+].join('\n');
+
+var testDataList = [
+{
+    description: 'indexing an array assignment',
+    globalScopePrefix: '',
+    mainPrefix: [
+            'float a[2] = float[2](0.0, 0.0);',
+            'float b[2] = float[2](2.0, 1.0);',
+            'float c = 0.0;'
+        ].join('\n'),
+    loopExpression: 'c = (a = b)[0]',
+    loopCondition: 'bool((c = (a = b)[0]) + 1.0)',
+    loopContents: 'b[0] += 1.0;',
+    loopIterations: 3,
+    passCondition: 'abs(c - 4.0) < 0.01'
+},
+{
+    description: 'indexing a function returning an array',
+    globalScopePrefix: [
+            'int sideEffectCounter = 0;',
+            'float[2] functionReturnArray() {',
+            '  ++sideEffectCounter;',
+            '  return float[2](float(sideEffectCounter), 1.0);',
+            '}'
+        ].join('\n'),
+    mainPrefix: 'float c = 0.0;',
+    loopExpression: 'c = functionReturnArray()[0]',
+    loopCondition: 'bool(c = functionReturnArray()[0])',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'abs(c - 3.0) < 0.01 && sideEffectCounter == 3'
+},
+{
+    description: 'indexing an array constructor',
+    globalScopePrefix: '',
+    mainPrefix: 'int c = 0;',
+    loopExpression: 'c = (int[2](c + 1, c + 2))[1]',
+    loopCondition: 'bool(c = (int[2](c + 1, c + 2))[1])',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'c == 6'
+},
+{
+    description: 'indexing an array constructor inside a sequence operator',
+    globalScopePrefix: [
+            'int sideEffectCounter = 0;',
+            'int func() {',
+            '  sideEffectCounter++;',
+            '  return sideEffectCounter;',
+            '}'
+        ].join('\n'),
+    mainPrefix: 'int c = 0;',
+    loopExpression: 'c = (func(), (int[2](c + 1, c + 2))[1])',
+    loopCondition: 'bool(c = (func(), (int[2](c + 1, c + 2))[1]))',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'c == 6 && sideEffectCounter == 3'
+},
+{
+    description: 'dynamic indexing of a vector',
+    globalScopePrefix: '',
+    mainPrefix: [
+            'vec4 v = vec4(1.0, 2.0, 3.0, 4.0);',
+            'float c = 0.0;',
+            'int j = 0;'
+        ].join('\n'),
+    loopExpression: 'c = v[j]',
+    loopCondition: 'bool(c = v[j])',
+    loopContents: '++j;',
+    loopIterations: 3,
+    passCondition: 'abs(c - 3.0) < 0.01'
+},
+{
+    description: 'short-circuiting operator',
+    globalScopePrefix: [
+            'int sideEffectCounter = 0;',
+            'bool func() {',
+            '  sideEffectCounter++;',
+            '  return sideEffectCounter > 0;',
+            '}'
+        ].join('\n'),
+    mainPrefix: '',
+    loopExpression: 'func() && func()',
+    loopCondition: 'func() && func()',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'sideEffectCounter == 6'
+},
+{
+    description: 'short-circuiting operator',
+    globalScopePrefix: [
+            'int sideEffectCounter = 0;',
+            'bool func() {',
+            '  sideEffectCounter++;',
+            '  return sideEffectCounter > 0;',
+            '}'
+        ].join('\n'),
+    mainPrefix: '',
+    loopExpression: 'func() || func()',
+    loopCondition: 'func() || func()',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'sideEffectCounter == 3'
+},
+{
+    description: 'short-circuiting operator',
+    globalScopePrefix: [
+            'int sideEffectCounterA = 0;',
+            'bool funcA() {',
+            '  sideEffectCounterA++;',
+            '  return sideEffectCounterA > 1;',
+            '}',
+            'int sideEffectCounterB = 0;',
+            'bool funcB() {',
+            '  sideEffectCounterB++;',
+            '  return sideEffectCounterB > 0;',
+            '}'
+        ].join('\n'),
+    mainPrefix: '',
+    loopExpression: 'funcA() ? true : funcB()',
+    loopCondition: 'funcA() ? true : funcB()',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'sideEffectCounterA == 3 && sideEffectCounterB == 1'
+},
+{
+    description: 'high-precision constant',
+    globalScopePrefix: [
+            'const highp float f = 2048.5;',
+            'uniform mediump float u_zero;'
+        ].join('\n'),
+    mainPrefix: 'float c = 0.0;',
+    loopExpression: 'c = fract(u_zero + f)',
+    loopCondition: 'bool(c = fract(u_zero + f))',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'abs(c - 0.5) < 0.01'
+},
+{
+    description: 'l-value indexing side effects combined with static indexing of a vector',
+    globalScopePrefix: [
+            'int sideEffectCounter = 0;',
+            'int func() {',
+            '  sideEffectCounter++;',
+            '  return sideEffectCounter > 1 ? 1 : 0;',
+            '}'
+        ].join('\n'),
+    mainPrefix: [
+            'vec4[2] V;',
+            'V[0] = vec4(1.0);',
+            'V[1] = vec4(3.0);'
+        ].join('\n'),
+    loopExpression: 'V[func()][0]++',
+    loopCondition: 'bool(V[func()][0]++)',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'abs(V[0][0] - 2.0) < 0.01 && abs(V[1][0] - 5.0) < 0.01 && sideEffectCounter == 3'
+},
+{
+    description: 'l-value indexing side effects combined with dynamically indexing a vector',
+    globalScopePrefix: [
+            'int sideEffectCounter = 0;',
+            'uniform int u_zero;',
+            'int func() {',
+            '  sideEffectCounter++;',
+            '  return sideEffectCounter > 1 ? 1 : 0;',
+            '}'
+        ].join('\n'),
+    mainPrefix: [
+            'vec4[2] V;',
+            'V[0] = vec4(1.0);',
+            'V[1] = vec4(3.0);'
+        ].join('\n'),
+    loopExpression: 'V[func()][u_zero + 1]++',
+    loopCondition: 'bool(V[func()][u_zero + 1]++)',
+    loopContents: '',
+    loopIterations: 3,
+    passCondition: 'abs(V[0][1] - 2.0) < 0.01 && abs(V[1][1] - 5.0) < 0.01 && sideEffectCounter == 3'
+}
+];
+
+var tests = [];
+
+var wtu = WebGLTestUtils;
+
+for (var i = 0; i < testDataList.length; ++i) {
+    var testData = testDataList[i];
+    if ('loopCondition' in testData) {
+        tests.push({
+            fShaderSource: wtu.replaceParams(forLoopConditionTemplate, testData),
+            fShaderSuccess: true,
+            linkSuccess: true,
+            passMsg: 'Test ' + testData.description + ': ' + testData.loopCondition + ' inside a for loop condition'
+        });
+        tests.push({
+            fShaderSource: wtu.replaceParams(whileLoopConditionTemplate, testData),
+            fShaderSuccess: true,
+            linkSuccess: true,
+            passMsg: 'Test ' + testData.description + ': ' + testData.loopCondition + ' inside a while loop condition'
+        });
+        tests.push({
+            fShaderSource: wtu.replaceParams(doWhileLoopConditionTemplate, testData),
+            fShaderSuccess: true,
+            linkSuccess: true,
+            passMsg: 'Test ' + testData.description + ': ' + testData.loopCondition + ' inside a do-while loop condition'
+        });
+    }
+    if ('loopExpression' in testData) {
+        tests.push({
+            fShaderSource: wtu.replaceParams(forLoopExpressionTemplate, testData),
+            fShaderSuccess: true,
+            linkSuccess: true,
+            passMsg: 'Test ' + testData.description + ': ' + testData.loopExpression + ' inside a for loop expression'
+        });
+    }
+}
+
+GLSLConformanceTester.runRenderTests(tests, 2);
+
+</script>
+</body>
+</html>

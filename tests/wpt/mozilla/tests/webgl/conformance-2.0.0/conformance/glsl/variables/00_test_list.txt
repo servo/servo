@@ -1,6 +1,0 @@
-gl-fragcoord.html
-gl-frontfacing.html
-gl-pointcoord.html
---min-version 1.0.2 glsl-built-ins.html
---min-version 1.0.3 gl-fragcoord-xy-values.html
---min-version 1.0.3 gl-fragdata-and-fragcolor.html

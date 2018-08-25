@@ -1,0 +1,531 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL EXT_color_buffer_float Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<!-- Shaders for testing floating-point textures -->
+<script id="testFragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+uniform sampler2D tex;
+uniform vec4 subtractor;
+varying vec2 texCoord;
+void main()
+{
+    vec4 color = texture2D(tex, texCoord);
+    if (abs(color.r - subtractor.r) +
+        abs(color.g - subtractor.g) +
+        abs(color.b - subtractor.b) +
+        abs(color.a - subtractor.a) < 16.0) {
+        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+    } else {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+}
+</script>
+<!-- Shaders for testing floating-point render targets -->
+<script id="floatingPointFragmentShader" type="x-shader/x-fragment">
+void main()
+{
+    gl_FragColor = vec4(1000.0, 1000.0, 1000.0, 1000.0);
+}
+</script>
+<script>
+"use strict";
+
+function allocateTexture()
+{
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texture parameter setup should succeed");
+    return texture;
+}
+
+function checkRenderingResults()
+{
+    wtu.checkCanvas(gl, [0, 255, 0, 255], "should be green");
+}
+
+function arrayToString(arr, size) {
+    var mySize;
+    if (!size)
+        mySize = arr.length;
+    else
+        mySize = size;
+    var out = "[";
+    for (var ii = 0; ii < mySize; ++ii) {
+    if (ii > 0) {
+        out += ", ";
+    }
+    out += arr[ii];
+    }
+    return out + "]";
+}
+
+function runReadbackTest(testProgram, subtractor)
+{
+    // Verify floating point readback
+    debug("Checking readback of floating-point values");
+    var buf = new Float32Array(4);
+    gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.FLOAT , buf);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "readPixels from floating-point framebuffer should succeed");
+    var ok = true;
+    var tolerance = 8.0; // TODO: factor this out from both this test and the subtractor shader above.
+    for (var ii = 0; ii < buf.length; ++ii) {
+        if (Math.abs(buf[ii] - subtractor[ii]) > tolerance) {
+        ok = false;
+        break;
+        }
+    }
+    if (ok) {
+        testPassed("readPixels of float-type data from floating-point framebuffer succeeded");
+    } else {
+        testFailed("readPixels of float-type data from floating-point framebuffer failed: expected "
+                   + arrayToString(subtractor, 4) + ", got " + arrayToString(buf));
+    }
+}
+
+function runFloatTextureRenderTargetTest(enabled, internalFormat, format, testProgram, numberOfChannels, subtractor, texSubImageCover)
+{
+    var formatString = wtu.glEnumToString(gl, internalFormat);
+    debug("");
+    debug("testing floating-point " + formatString + " texture render target" + (texSubImageCover > 0 ? " after calling texSubImage" : ""));
+
+    var texture = allocateTexture();
+    var width = 2;
+    var height = 2;
+    gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, gl.FLOAT, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "floating-point texture allocation should succeed");
+
+    // Try to use this texture as a render target.
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    var completeStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (!enabled) {
+        if (completeStatus == gl.FRAMEBUFFER_COMPLETE && !enabled)
+            testFailed("floating-point " + formatString + " render target should not be supported without enabling EXT_color_buffer_float");
+        else
+            testPassed("floating-point " + formatString + " render target should not be supported without enabling EXT_color_buffer_float");
+        return;
+    }
+
+    if (completeStatus != gl.FRAMEBUFFER_COMPLETE) {
+        testFailed("floating-point " + formatString + " render target not supported");
+        return;
+    }
+
+    if (texSubImageCover > 0) {
+        // Ensure that replacing the whole texture or a part of it with texSubImage2D doesn't affect renderability
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        var data = new Float32Array(width * height * numberOfChannels * texSubImageCover);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, height * texSubImageCover, format, gl.FLOAT, data);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "texSubImage2D should succeed if EXT_color_buffer_float is enabled");
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+            testFailed("render target support changed after calling texSubImage2D");
+            return;
+        }
+    }
+
+    var renderProgram =
+        wtu.setupProgram(gl,
+                         [wtu.simpleVertexShader, "floatingPointFragmentShader"],
+                         ['vPosition'],
+                         [0]);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "rendering to floating-point texture should succeed");
+
+    // Now sample from the floating-point texture and verify we got the correct values.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.useProgram(testProgram);
+    gl.uniform1i(gl.getUniformLocation(testProgram, "tex"), 0);
+    gl.uniform4fv(gl.getUniformLocation(testProgram, "subtractor"), subtractor);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "rendering from floating-point texture should succeed");
+    checkRenderingResults();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    runReadbackTest(testProgram, subtractor);
+}
+
+function runFloatRenderbufferRenderTargetTest(enabled, internalFormat, testProgram, numberOfChannels, subtractor)
+{
+    var formatString = wtu.glEnumToString(gl, internalFormat);
+    var samples = [0];
+    if (enabled) {
+        samples = Array.prototype.slice.call(gl.getInternalformatParameter(gl.RENDERBUFFER, internalFormat, gl.SAMPLES));
+        samples.push(0);
+    }
+    for (var ndx = 0; ndx < samples.length; ++ndx) {
+        debug("");
+        debug("testing floating-point " + formatString + " renderbuffer render target with number of samples " + samples[ndx]);
+
+        var colorbuffer = gl.createRenderbuffer();
+        var width = 2;
+        var height = 2;
+        gl.bindRenderbuffer(gl.RENDERBUFFER, colorbuffer);
+        if (samples[ndx] == 0)
+            gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
+        else
+            gl.renderbufferStorageMultisample(gl.RENDERBUFFER, samples[ndx], internalFormat, width, height);
+        if (!enabled) {
+            wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "floating-point renderbuffer allocation should fail if EXT_color_buffer_float is not enabled");
+            return;
+        } else {
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "floating-point renderbuffer allocation should succeed if EXT_color_buffer_float is enabled");
+        }
+
+        // Try to use this renderbuffer as a render target.
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorbuffer);
+
+        var completeStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (completeStatus != gl.FRAMEBUFFER_COMPLETE) {
+            testFailed("floating-point " + formatString + " render target not supported");
+            return;
+        }
+        var resolveColorRbo = null;
+        var resolveFbo = null;
+        if (samples[ndx] > 0) {
+            resolveColorRbo = gl.createRenderbuffer();
+            gl.bindRenderbuffer(gl.RENDERBUFFER, resolveColorRbo);
+            gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
+            resolveFbo = gl.createFramebuffer();
+            gl.bindFramebuffer(gl.FRAMEBUFFER, resolveFbo);
+            gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, resolveColorRbo);
+            completeStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+            if (completeStatus != gl.FRAMEBUFFER_COMPLETE) {
+                testFailed("Failed to create resolve framebuffer");
+                return;
+            }
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.clearColor(1000.0, 1000.0, 1000.0, 1000.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        if (samples[ndx] > 0) {
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, resolveFbo);
+            gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, resolveFbo);
+        }
+        runReadbackTest(testProgram, subtractor);
+    }
+}
+
+function runRGB16FNegativeTest()
+{
+    debug("");
+    debug("testing RGB16F isn't color renderable");
+
+    var texture = allocateTexture();
+    var width = 2;
+    var height = 2;
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB16F, width, height, 0, gl.RGB, gl.FLOAT, null);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "RGB16F texture allocation should succeed");
+
+    // Try to use this texture as a render target.
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    var completeStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (completeStatus == gl.FRAMEBUFFER_COMPLETE)
+        testFailed("RGB16F render target should not be supported with or without enabling EXT_color_buffer_float");
+    else
+        testPassed("RGB16F render target should not be supported with or without enabling EXT_color_buffer_float");
+    gl.deleteTexture(texture);
+
+    var colorbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorbuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGB16F, width, height);
+    wtu.glErrorShouldBe(gl, gl.INVALID_ENUM, "RGB16F renderbuffer allocation should fail with or without enabling EXT_color_buffer_float");
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+    gl.deleteRenderbuffer(colorbuffer);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo);
+}
+
+function runUniqueObjectTest()
+{
+    debug("");
+    debug("Testing that getExtension() returns the same object each time");
+    gl.getExtension("EXT_color_buffer_float").myProperty = 2;
+    webglHarnessCollectGarbage();
+    shouldBe('gl.getExtension("EXT_color_buffer_float").myProperty', '2');
+}
+
+function runInternalFormatQueryTest()
+{
+    debug("");
+    debug("testing the internal format query");
+
+    var maxSamples = gl.getParameter(gl.MAX_SAMPLES);
+    var formats = new Array(gl.RGBA16F, gl.R32F, gl.RG32F, gl.RGBA32F, gl.R16F, gl.RG16F, gl.R11F_G11F_B10F);
+    var firstMultiOnlyFormat = 4;
+    for (var fmt = 0; fmt < formats.length; ++fmt) {
+        var samples = gl.getInternalformatParameter(gl.RENDERBUFFER, formats[fmt], gl.SAMPLES);
+        if (fmt >= firstMultiOnlyFormat && (samples.length == 0 || samples[0] < maxSamples)) {
+            testFailed("the maximum value in SAMPLES should be at least " + maxSamples);
+            return;
+        }
+
+        var prevSampleCount = 0;
+        var sampleCount;
+        for (var ndx = 0; ndx < samples.length; ++ndx, prevSampleCount = sampleCount) {
+            sampleCount = samples[ndx];
+            // sample count must be > 0
+            if (sampleCount <= 0) {
+                testFailed("Expected sample count to be at least one; got " + sampleCount);
+                return;
+            }
+
+            // samples must be ordered descending
+            if (ndx > 0 && sampleCount >= prevSampleCount) {
+                testFailed("Expected sample count to be ordered in descending order; got " + prevSampleCount + " at index " + (ndx - 1) + ", and " + sampleCount + " at index " + ndx);
+                return;
+            }
+        }
+    }
+    testPassed("Internal format query succeeded");
+}
+
+function runCopyTexImageTest(enabled)
+{
+    var width = 16;
+    var height = 16;
+    var level = 0;
+    var cases = [
+        {
+            internalformat: "RGBA16F",
+            format: "RGBA",
+            type: "HALF_FLOAT",
+            destInternalformat: "R16F",
+            data: new Uint16Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA32F",
+            format: "RGBA",
+            type: "FLOAT",
+            destInternalformat: "R32F",
+            data: new Float32Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA16F",
+            format: "RGBA",
+            type: "HALF_FLOAT",
+            destInternalformat: "RG16F",
+            data: new Uint16Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA32F",
+            format: "RGBA",
+            type: "FLOAT",
+            destInternalformat: "RG32F",
+            data: new Float32Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA16F",
+            format: "RGBA",
+            type: "HALF_FLOAT",
+            destInternalformat: "RGB16F",
+            data: new Uint16Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA32F",
+            format: "RGBA",
+            type: "FLOAT",
+            destInternalformat: "RGB32F",
+            data: new Float32Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA16F",
+            format: "RGBA",
+            type: "HALF_FLOAT",
+            destInternalformat: "RGBA16F",
+            data: new Uint16Array(width * height * 4)
+        },
+        {
+            internalformat: "RGBA32F",
+            format: "RGBA",
+            type: "FLOAT",
+            destInternalformat: "RGBA32F",
+            data: new Float32Array(width * height * 4)
+        },
+        {
+            internalformat: "R11F_G11F_B10F",
+            format: "RGB",
+            type: "FLOAT",
+            destInternalformat: "R11F_G11F_B10F",
+            data: new Float32Array(width * height * 3)
+        }
+    ];
+    cases.forEach(function(testcase) {
+        debug("");
+        debug("Testing CopyTexImage2D for internalformat: " + testcase.destInternalformat);
+
+        var internalformat = gl[testcase.internalformat];
+        var format = gl[testcase.format];
+        var type = gl[testcase.type];
+        var destInternalformat = gl[testcase.destInternalformat];
+        var texSrc = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texSrc);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        var data = testcase.data;
+        gl.texImage2D(gl.TEXTURE_2D, level, internalformat, width, height, 0, format, type, data);
+        var fbo = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texSrc, level);
+        var texDest = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texDest);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Setup framebuffer with texture should succeed.");
+        if (enabled) {
+            shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_COMPLETE");
+            gl.copyTexImage2D(gl.TEXTURE_2D, level, destInternalformat, 0, 0, width, height, 0);
+            wtu.glErrorShouldBe(gl, gl.NO_ERROR, "CopyTexImage2D should succeed.");
+        } else {
+            shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)", "gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+            gl.copyTexImage2D(gl.TEXTURE_2D, level, destInternalformat, 0, 0, width, height, 0);
+            wtu.glErrorShouldBe(gl, [gl.INVALID_ENUM, gl.INVALID_FRAMEBUFFER_OPERATION], "CopyTexImage2D should fail.");
+        }
+
+        gl.deleteTexture(texDest);
+        gl.deleteTexture(texSrc);
+        gl.deleteFramebuffer(fbo);
+    });
+}
+
+description("This test verifies the functionality of the EXT_color_buffer_float extension, if it is available.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  var texturedShaders = [
+      wtu.simpleTextureVertexShader,
+      "testFragmentShader"
+  ];
+  var testProgram =
+      wtu.setupProgram(gl,
+                       texturedShaders,
+                       ['vPosition', 'texCoord0'],
+                       [0, 1]);
+  var quadParameters = wtu.setupUnitQuad(gl, 0, 1);
+
+  // Ensure these formats can't be used for rendering if the extension is disabled
+  runFloatTextureRenderTargetTest(false, gl.R16F, gl.RED);
+  runFloatTextureRenderTargetTest(false, gl.RG16F, gl.RG);
+  runFloatTextureRenderTargetTest(false, gl.RGBA16F, gl.RGBA);
+  runFloatTextureRenderTargetTest(false, gl.R32F, gl.RED);
+  runFloatTextureRenderTargetTest(false, gl.RG32F, gl.RG);
+  runFloatTextureRenderTargetTest(false, gl.RGBA32F, gl.RGBA);
+  runFloatTextureRenderTargetTest(false, gl.R11F_G11F_B10F, gl.RGB);
+
+  runFloatRenderbufferRenderTargetTest(false, gl.R16F);
+  runFloatRenderbufferRenderTargetTest(false, gl.RG16F);
+  runFloatRenderbufferRenderTargetTest(false, gl.RGBA16F);
+  runFloatRenderbufferRenderTargetTest(false, gl.R32F);
+  runFloatRenderbufferRenderTargetTest(false, gl.RG32F);
+  runFloatRenderbufferRenderTargetTest(false, gl.RGBA32F);
+  runFloatRenderbufferRenderTargetTest(false, gl.R11F_G11F_B10F);
+
+  // Ensure RGB16F can't be used for rendering.
+  runRGB16FNegativeTest();
+
+  runCopyTexImageTest(false);
+
+  if (!gl.getExtension("EXT_color_buffer_float")) {
+      testPassed("No EXT_color_buffer_float support -- this is legal");
+  } else {
+      testPassed("Successfully enabled EXT_color_buffer_float extension");
+
+      runInternalFormatQueryTest();
+
+      runFloatTextureRenderTargetTest(true, gl.R16F, gl.RED, testProgram, 1, [1000, 1, 1, 1], 0);
+      runFloatTextureRenderTargetTest(true, gl.RG16F, gl.RG, testProgram, 2, [1000, 1000, 1, 1], 0);
+      runFloatTextureRenderTargetTest(true, gl.RGBA16F, gl.RGBA, testProgram, 4, [1000, 1000, 1000, 1000], 0);
+      runFloatTextureRenderTargetTest(true, gl.R32F, gl.RED, testProgram, 1, [1000, 1, 1, 1], 0);
+      runFloatTextureRenderTargetTest(true, gl.RG32F, gl.RG, testProgram, 2, [1000, 1000, 1, 1], 0);
+      runFloatTextureRenderTargetTest(true, gl.RGBA32F, gl.RGBA, testProgram, 4, [1000, 1000, 1000, 1000], 0);
+      runFloatTextureRenderTargetTest(true, gl.R11F_G11F_B10F, gl.RGB, testProgram, 3, [1000, 1000, 1000, 1], 0);
+      runFloatTextureRenderTargetTest(true, gl.RGBA32F, gl.RGBA, testProgram, 4, [1000, 1000, 1000, 1000], 1);
+      runFloatTextureRenderTargetTest(true, gl.RGBA32F, gl.RGBA, testProgram, 4, [1000, 1000, 1000, 1000], 0.5);
+
+      runFloatRenderbufferRenderTargetTest(true, gl.R16F, testProgram, 1, [1000, 1, 1, 1]);
+      runFloatRenderbufferRenderTargetTest(true, gl.RG16F, testProgram, 2, [1000, 1000, 1, 1]);
+      runFloatRenderbufferRenderTargetTest(true, gl.RGBA16F, testProgram, 4, [1000, 1000, 1000, 1000]);
+      runFloatRenderbufferRenderTargetTest(true, gl.R32F, testProgram, 1, [1000, 1, 1, 1]);
+      runFloatRenderbufferRenderTargetTest(true, gl.RG32F, testProgram, 2, [1000, 1000, 1, 1]);
+      runFloatRenderbufferRenderTargetTest(true, gl.RGBA32F, testProgram, 4, [1000, 1000, 1000, 1000]);
+      runFloatRenderbufferRenderTargetTest(true, gl.R11F_G11F_B10F, testProgram, 3, [1000, 1000, 1000, 1]);
+
+      // Ensure EXT_color_buffer_float does not enable RGB16F as color renderable.
+      runRGB16FNegativeTest();
+
+      runCopyTexImageTest(true);
+
+      runUniqueObjectTest();
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

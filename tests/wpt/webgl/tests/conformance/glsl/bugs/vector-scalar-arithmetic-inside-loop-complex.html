@@ -1,0 +1,103 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL vector/scalar arithmetic inside a for loop (complex cases)</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+<script src="../../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fShaderVectorCompoundMulAndAddInSeparateStatementsInsideForLoop" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+  for (int i = 0; i < 2; i++)
+  {
+    float x = gl_FragCoord.x;
+    float y = (x *= 2.0);
+    gl_FragColor = gl_FragColor + vec4(y, y, y, y);
+  }
+  if (gl_FragColor.g == gl_FragColor.r &&
+      gl_FragColor.b == gl_FragColor.r &&
+      gl_FragColor.a == gl_FragColor.r)
+  {
+    gl_FragColor = vec4(0, 1, 0, 1);
+  }
+}
+</script>
+<script id="fShaderVectorCompoundMulAndAddInSeparateStatementsInsideForLoop2" type="x-shader/x-fragment">
+precision mediump float;
+
+void main() {
+  gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+  for (int i = 0; i < 2; i++)
+  {
+    float x = gl_FragCoord.x;
+    float y = (x *= 2.0);
+    gl_FragColor = gl_FragColor + vec4(x, y, x, y);
+  }
+  if (gl_FragColor.g == gl_FragColor.r &&
+      gl_FragColor.b == gl_FragColor.r &&
+      gl_FragColor.a == gl_FragColor.r)
+  {
+    gl_FragColor = vec4(0, 1, 0, 1);
+  }
+}
+</script>
+<script type="text/javascript">
+"use strict";
+description();
+
+// See http://crbug.com/772651
+
+GLSLConformanceTester.runRenderTests([
+{
+  fShaderId: 'fShaderVectorCompoundMulAndAddInSeparateStatementsInsideForLoop',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Adding a vector that's just 4 copies of a scalar to another vector inside for loop should work."
+},
+{
+  fShaderId: 'fShaderVectorCompoundMulAndAddInSeparateStatementsInsideForLoop2',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: "Adding a vector that's just 4 copies of a scalar stored in two different variables to another vector inside for loop should work."
+}
+]);
+</script>
+</body>
+</html>

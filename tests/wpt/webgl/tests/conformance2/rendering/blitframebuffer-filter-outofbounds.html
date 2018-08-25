@@ -1,0 +1,200 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL BlitFramebuffer Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="example" width="8" height="8"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+
+"use strict";
+
+var wtu = WebGLTestUtils;
+description("This test verifies the functionality of blitFramebuffer when src/dst region are out-of-bounds.");
+
+var gl = wtu.create3DContext("example", undefined, 2);
+
+function checkPixel(color, expectedColor) {
+  var tolerance = 3;
+  return (Math.abs(color[0] - expectedColor[0]) <= tolerance &&
+          Math.abs(color[1] - expectedColor[1]) <= tolerance &&
+          Math.abs(color[2] - expectedColor[2]) <= tolerance &&
+          Math.abs(color[3] - expectedColor[3]) <= tolerance);
+}
+
+function blitframebuffer_filter_outofbounds(readbufferFormat, drawbufferFormat, filter) {
+    debug("");
+    debug("blitting pixels out-of-bounds, read buffer format is: " + wtu.glEnumToString(gl, readbufferFormat) + ", draw buffer format is: " + wtu.glEnumToString(gl, drawbufferFormat) + ", filter is: " + wtu.glEnumToString(gl, filter));
+
+    // Initiate data to read framebuffer
+    var size = 8;
+    var uint_read = new Uint8Array(size * size * 4);
+    var color = 0x20;
+    for (var ii = 0; ii < size * size * 4; ii += 4) {
+        for (var jj = 0; jj < 3; ++jj) {
+          uint_read[ii + jj] = color;
+        }
+        uint_read[ii + 3] = 0xff;
+    }
+
+    // Create read framebuffer and feed data to read buffer
+    // Read buffer may have srgb image
+    var tex_read = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex_read);
+    gl.texImage2D(gl.TEXTURE_2D, 0, readbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, uint_read);
+
+    var fbo_read = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+    gl.framebufferTexture2D(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_read, 0);
+
+    // Create draw framebuffer. Color in draw buffer is initialized to 0.
+    // Draw buffer may have srgb image
+    var tex_draw = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex_draw);
+    gl.texImage2D(gl.TEXTURE_2D, 0, drawbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    var fbo_draw = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+    gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex_draw, 0);
+
+    if (gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        // Blit read framebuffer to the image in draw framebuffer.
+        var test = [
+            // [srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1]
+            [-2, -2, 4, 4, 1, 1, 4, 4], // only src region is out-of-bounds, dst region has different width/height as src region.
+            [-2, -2, 4, 4, 1, 1, 7, 7], // only src region is out-of-bounds, dst region has the same width/height as src region.
+            [0, 0, 6, 6, 7, 7, 10, 10], // only dst region is out-of-bounds, dst region has different width/height as src region after dst region is clipped to the bounds of draw buffer.
+            [0, 0, 6, 6, 4, 4, 10, 10], // only dst region is out-of-bounds, dst region has the same width/height as src region after dst region is clipped to the bounds of draw buffer.
+            [-2, -2, 4, 4, 7, 7, 10, 10], // both src and dst region are out-of-bounds, dst region has different width/height as src region after dst region is clipped to the bounds of draw buffer.
+            [-2, -2, 4, 4, 4, 4, 10, 10], // both src and dst region are out-of-bounds, dst region has the same width/height as src region after dst region is clipped to the bounds of draw buffer.
+            [-2, -2, 4, 4, 2, 2, 10, 10], // both src and dst region are out-of-bounds. There are some dst pixels (x and y are within [4, 8] , and x or y equals to 4) whose corresponding src pixels are partially inside and partially outside the real sampling area of the src region (the real sampling area is [0, 0, 4, 4]). But the centers of such src pixels are lying outside the real sampling area.
+            [-2, -2, 4, 4, 3, 3, 10, 10], // both src and dst region are out-of-bounds. There are some dst pixels (x and y are within [4, 7] , and x or y equals to 5) whose corresponding src pixels are partially inside and partially outside the real sampling area of the src region (the real sampling area is [0, 0, 4, 4]). But the centers of such src pixels are lying inside the real sampling area.
+            [-2, -2, 4, 4, 10, 10, 2, 2], // both src and dst region are out-of-bounds, and the dst coordinates are reversed. There are some dst pixels (x and y are within [2, 7] , and x or y equals to 7) whose corresponding src pixels are partially inside and partially outside the real sampling area of the src region (the real sampling area is [0, 0, 4, 4]). But the centers of such src pixels are lying outside the real sampling area.
+            [-2, -2, 4, 4, 10, 10, 3, 3], // both src and dst region are out-of-bounds, and the dst coordinates are reversed. There are some dst pixels (x and y are within [3, 7] , and x or y equals to 7) whose corresponding src pixels are partially inside and partially outside the read sampling area of the src region (the real sampling area is [0, 0, 4, 4]). But the centers of such src pixels are lying inside the real sampling area.
+        ];
+
+        var realBlittedDstRegion = [
+            [2, 2, 4, 4],
+            [3, 3, 7, 7],
+            [7, 7, 8, 8],
+            [4, 4, 8, 8],
+            [8, 8, 8, 8],
+            [6, 6, 8, 8],
+            [5, 5, 8, 8],
+            [5, 5, 8, 8],
+            [2, 2, 7, 7],
+            [3, 3, 8, 8],
+        ]
+        var readbufferHasSRGBImage = (readbufferFormat == gl.SRGB8_ALPHA8);
+        var drawbufferHasSRGBImage = (drawbufferFormat == gl.SRGB8_ALPHA8);
+
+        for (var i = 0; i < test.length; ++i) {
+            debug("");
+            debug("both the read framebuffer and draw framebuffer bounds are [0, 0, 8, 8]");
+            debug("blitting from src region [" + test[i][0] + ", " + test[i][1] + ", " + test[i][2] + ", " + test[i][3] + "] to dst region [" + test[i][4] + ", " + test[i][5] + ", " + test[i][6] + ", " + test[i][7] + "]");
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_read);
+            gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo_draw);
+            gl.bindTexture(gl.TEXTURE_2D, tex_draw);
+            gl.texImage2D(gl.TEXTURE_2D, 0, drawbufferFormat, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.blitFramebuffer(test[i][0], test[i][1], test[i][2], test[i][3], test[i][4], test[i][5], test[i][6], test[i][7], gl.COLOR_BUFFER_BIT, filter);
+
+            // Read pixels and check the correctness.
+            var pixels = new Uint8Array(size * size * 4);
+            gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_draw);
+            gl.readPixels(0, 0, size, size, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+            for (var ii = 0; ii < size; ++ii) {
+                for (var jj = 0; jj < size; ++jj) {
+                    var loc = ii * size + jj;
+                    var color = [pixels[loc * 4], pixels[loc * 4 + 1], pixels[loc * 4 + 2], pixels[loc * 4 + 3]];
+
+                    var expectedColor = [0, 0, 0, 0];
+                    if (ii >= realBlittedDstRegion[i][0] && ii < realBlittedDstRegion[i][2] && jj >= realBlittedDstRegion[i][1] && jj < realBlittedDstRegion[i][3]) {
+                        expectedColor = [0x20, 0x20, 0x20, 0xff];
+
+                        // We may need to covert the color space for pixels in blit region
+                        if (readbufferHasSRGBImage ^ drawbufferHasSRGBImage) {
+                            if (drawbufferHasSRGBImage) {
+                                expectedColor = wtu.linearToSRGB(expectedColor);
+                            } else {
+                                expectedColor = wtu.sRGBToLinear(expectedColor);
+                            }
+                        }
+                    }
+
+                    if (checkPixel(color, expectedColor) == true) {
+                        testPassed("pixel at [" + jj + ", " + ii + "] is (" + color + "). It is correct!");
+                    } else {
+                        testFailed("pixel at [" + jj + ", " + ii + "] should be (" + expectedColor + "), but the actual color is (" + color + ")");
+                    }
+                }
+            }
+        }
+    } else {
+        testFailed("framebuffer not complete");
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+    gl.deleteFramebuffer(fbo_read);
+    gl.deleteFramebuffer(fbo_draw);
+    gl.deleteTexture(tex_read);
+    gl.deleteTexture(tex_draw);
+};
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+    var filters = [gl.LINEAR, gl.NEAREST];
+    for (var ii = 0; ii < filters.length; ++ii) {
+        blitframebuffer_filter_outofbounds(gl.RGBA8, gl.RGBA8, filters[ii]);
+        blitframebuffer_filter_outofbounds(gl.RGBA8, gl.SRGB8_ALPHA8, filters[ii]);
+        blitframebuffer_filter_outofbounds(gl.SRGB8_ALPHA8, gl.RGBA8, filters[ii]);
+        blitframebuffer_filter_outofbounds(gl.SRGB8_ALPHA8, gl.SRGB8_ALPHA8, filters[ii]);
+    }
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+var gl;
+
+function checkFramebuffer(expected) {
+    var actual = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (expected.indexOf(actual) < 0) {
+        var msg = "checkFramebufferStatus expects [";
+        for (var index = 0; index < expected.length; ++index) {
+            msg += wtu.glEnumToString(gl, expected[index]);
+            if (index + 1 < expected.length)
+                msg += ", ";
+        }
+        msg += "], was " + wtu.glEnumToString(gl, actual);
+        testFailed(msg);
+    } else {
+        var msg = "checkFramebufferStatus got " + wtu.glEnumToString(gl, actual) +
+                  " as expected";
+        testPassed(msg);
+    }
+}
+
+function checkBufferBits(attachment0, attachment1) {
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE)
+        return;
+    var haveDepthBuffer = attachment0 == gl.DEPTH_ATTACHMENT ||
+                          attachment0 == gl.DEPTH_STENCIL_ATTACHMENT ||
+                          attachment1 == gl.DEPTH_ATTACHMENT ||
+                          attachment1 == gl.DEPTH_STENCIL_ATTACHMENT;
+    var haveStencilBuffer = attachment0 == gl.STENCIL_ATTACHMENT ||
+                            attachment0 == gl.DEPTH_STENCIL_ATTACHMENT ||
+                            attachment1 == gl.STENCIL_ATTACHMENT ||
+                            attachment1 == gl.DEPTH_STENCIL_ATTACHMENT;
+    shouldBeTrue("gl.getParameter(gl.RED_BITS) + gl.getParameter(gl.GREEN_BITS) + " +
+                 "gl.getParameter(gl.BLUE_BITS) + gl.getParameter(gl.ALPHA_BITS) >= 16");
+    if (haveDepthBuffer)
+        shouldBeTrue("gl.getParameter(gl.DEPTH_BITS) >= 16");
+    else
+        shouldBeTrue("gl.getParameter(gl.DEPTH_BITS) == 0");
+    if (haveStencilBuffer)
+        shouldBeTrue("gl.getParameter(gl.STENCIL_BITS) >= 8");
+    else
+        shouldBeTrue("gl.getParameter(gl.STENCIL_BITS) == 0");
+}
+
+
+function testFramebufferWebGL1RequiredCombinations() {
+    debug("Checking combinations of framebuffer attachments required to be valid by WebGL 1");
+
+    // Per discussion with the OpenGL ES working group, the following framebuffer attachment
+    // combinations are required to work in all WebGL 1 implementations:
+    // 1. COLOR_ATTACHMENT0 = RGBA/UNSIGNED_BYTE texture
+    // 2. COLOR_ATTACHMENT0 = RGBA/UNSIGNED_BYTE texture + DEPTH_ATTACHMENT = DEPTH_COMPONENT16 renderbuffer
+    // 3. COLOR_ATTACHMENT0 = RGBA/UNSIGNED_BYTE texture + DEPTH_STENCIL_ATTACHMENT = DEPTH_STENCIL renderbuffer
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+
+    var width = 64;
+    var height = 64;
+
+    // 1. COLOR_ATTACHMENT0 = RGBA/UNSIGNED_BYTE texture
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits();
+
+    // 2. COLOR_ATTACHMENT0 = RGBA/UNSIGNED_BYTE texture + DEPTH_ATTACHMENT = DEPTH_COMPONENT16 renderbuffer
+    var renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_ATTACHMENT);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, null);
+
+    // 3. COLOR_ATTACHMENT0 = RGBA/UNSIGNED_BYTE texture + DEPTH_STENCIL_ATTACHMENT = DEPTH_STENCIL renderbuffer
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, width, height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_STENCIL_ATTACHMENT);
+
+    // Clean up
+    gl.deleteRenderbuffer(renderbuffer);
+    gl.deleteTexture(texture);
+    gl.deleteFramebuffer(fbo);
+}
+
+function testDepthStencilAttachmentBehaviors() {
+    debug("");
+    debug("Checking ES3 DEPTH_STENCIL_ATTACHMENT behaviors are implemented for WebGL 2");
+    // DEPTH_STENCIL_ATTACHMENT is treated as an independent attachment point in WebGL 1;
+    // however, in WebGL 2, it is treated as an alias for DEPTH_ATTACHMENT + STENCIL_ATTACHMENT.
+    var size = 16;
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var colorBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, size, size);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    var depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+
+    var stencilBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, stencilBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.STENCIL_INDEX8, size, size);
+
+    var depthStencilBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthStencilBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_STENCIL, size, size);
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    debug("color + depth");
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_ATTACHMENT);
+
+    debug("color + depth + stencil: depth != stencil");
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, stencilBuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_UNSUPPORTED]);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+
+    debug("color + depth: DEPTH_STENCIL for DEPTH_ATTACHMENT");
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_ATTACHMENT);
+
+    debug("color + depth + stencil: DEPTH_STENCIL for DEPTH_ATTACHMENT and STENCIL_ATTACHMENT");
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_STENCIL_ATTACHMENT);
+
+    debug("color + depth_stencil");
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH24_STENCIL8, size, size, 0, gl.DEPTH_STENCIL, gl.UNSIGNED_INT_24_8, null);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, texture, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.TEXTURE_2D, null, 0);
+
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_STENCIL_ATTACHMENT);
+
+    debug("DEPTH_STENCIL_ATTACHMENT overwrites DEPTH_ATTACHMENT/STENCIL_ATTACHMENT")
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits();
+
+    debug("STENCIL_ATTACHMENT overwrites stencil set by DEPTH_STENCIL_ATTACHMENT")
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, depthStencilBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, null);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+    checkBufferBits(gl.DEPTH_ATTACHMENT);
+}
+
+function testFramebufferIncompleteAttachment() {
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var colorBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    debug("");
+    debug("Wrong storage type for type of attachment should be FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 16, 16);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT]);
+
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    debug("");
+    debug("0 size attachment should be FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 0, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT]);
+
+    gl.deleteRenderbuffer(colorBuffer);
+    gl.deleteFramebuffer(fbo);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+}
+
+function testFramebufferIncompleteMissingAttachment() {
+    debug("");
+    debug("No attachments should be INCOMPLETE_FRAMEBUFFER_MISSING_ATTACHMENT");
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT]);
+
+    var colorBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, null);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT]);
+
+    gl.deleteRenderbuffer(colorBuffer);
+    gl.deleteFramebuffer(fbo);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+}
+
+function testFramebufferWithImagesOfDifferentSizes() {
+    debug("");
+    debug("Attachments of different sizes should NOT be allowed");
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var colorBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 16);
+
+    var depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 16, 16);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    checkFramebuffer([gl.FRAMEBUFFER_COMPLETE]);
+
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 32, 16);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS]);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 16, 32);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+
+    var tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 16, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 32, 16, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS]);
+    }
+
+    gl.deleteTexture(tex);
+    gl.deleteRenderbuffer(depthBuffer);
+    gl.deleteRenderbuffer(colorBuffer);
+    gl.deleteFramebuffer(fbo);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+}
+
+function testUsingIncompleteFramebuffer() {
+    debug("");
+    debug("Test drawing or reading from an incomplete framebuffer");
+    var program = wtu.setupTexturedQuad(gl);
+    var tex = gl.createTexture();
+    wtu.fillTexture(gl, tex, 1, 1, [0,255,0,255]);
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT]);
+    debug("");
+    debug("Drawing or reading from an incomplete framebuffer should generate INVALID_FRAMEBUFFER_OPERATION");
+    testRenderingAndReading();
+
+    var colorBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, colorBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA4, 0, 0);
+    checkFramebuffer([gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT]);
+    debug("");
+    debug("Drawing or reading from an incomplete framebuffer should generate INVALID_FRAMEBUFFER_OPERATION");
+    testRenderingAndReading();
+
+    function testRenderingAndReading() {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR);
+        wtu.clearAndDrawUnitQuad(gl);
+        wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "drawArrays with incomplete framebuffer");
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+        wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "readPixels from incomplete framebuffer");
+        // copyTexImage and copyTexSubImage can be either INVALID_FRAMEBUFFER_OPERATION because
+        // the framebuffer is invalid OR INVALID_OPERATION because in the case of no attachments
+        // the framebuffer is not of a compatible type.
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, 1, 1);
+        wtu.glErrorShouldBe(gl, [gl.INVALID_FRAMEBUFFER_OPERATION, gl.INVALID_OPERATION],
+            "copyTexImage2D from incomplete framebuffer");
+        gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, 1, 1, 0);
+        wtu.glErrorShouldBe(gl, [gl.INVALID_FRAMEBUFFER_OPERATION, gl.INVALID_OPERATION],
+            "copyTexSubImage2D from incomplete framebuffer");
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        wtu.glErrorShouldBe(gl, gl.INVALID_FRAMEBUFFER_OPERATION, "clear with incomplete framebuffer");
+    }
+
+    gl.deleteRenderbuffer(colorBuffer);
+    gl.deleteFramebuffer(fbo);
+    gl.deleteTexture(tex);
+    gl.deleteProgram(program);
+}
+
+function testReadingFromMissingAttachment() {
+    debug("");
+    debug("Test drawing or reading from a framebuffer with no color image");
+
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var object_type = gl.getFramebufferAttachmentParameter(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE);
+    if (object_type != gl.NONE)
+        testFailed("object type from empty attachment point should be NONE");
+    else
+        testPassed("object type from empty attachment point is NONE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Query should not generate error");
+
+    var object_name = gl.getFramebufferAttachmentParameter(
+        gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME);
+    if (object_name)
+        testFailed("object name from empty attachment point should be null");
+    else
+        testPassed("object name from empty attachment point is null");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Query should not generate error");
+
+    var size = 16;
+
+    // The only scenario we can verify is an attempt to read or copy
+    // from a missing color attachment while the framebuffer is still
+    // complete.
+    var depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+    gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "After depth renderbuffer setup");
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) == gl.FRAMEBUFFER_COMPLETE) {
+        // The FBO has no color attachment. ReadPixels, CopyTexImage2D,
+        // and CopyTexSubImage2D should all generate INVALID_OPERATION.
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Before ReadPixels from missing attachment");
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "After ReadPixels from missing attachment");
+
+        var tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Before CopyTexImage2D from missing attachment");
+        gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, size, size, 0);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "After CopyTexImage2D from missing attachment");
+
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR, "Before CopyTexSubImage2D from missing attachment");
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, size, size);
+        wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "After CopyTexSubImage2D from missing attachment");
+
+        gl.deleteTexture(tex);
+    }
+
+    gl.deleteRenderbuffer(depthBuffer);
+    gl.deleteFramebuffer(fbo);
+}
+
+description("Test framebuffer object attachment behaviors");
+
+shouldBeNonNull("gl = wtu.create3DContext(undefined, undefined, 2)");
+
+testFramebufferWebGL1RequiredCombinations();
+testDepthStencilAttachmentBehaviors();
+testFramebufferIncompleteAttachment();
+testFramebufferIncompleteMissingAttachment();
+testFramebufferWithImagesOfDifferentSizes();
+testUsingIncompleteFramebuffer();
+testReadingFromMissingAttachment();
+
+debug("")
+var successfullyParsed = true;
+</script>
+
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

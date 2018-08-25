@@ -1,0 +1,300 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>GLSL switch/case corner case test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/glsl-conformance-test.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script id="fshaderDeclarationInsideSwitch" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    my_FragColor = vec4(1, 0, 0, 1);
+    switch (u_zero)
+    {
+        case 0:
+            ivec2 i;
+            i = ivec2(1, 0);
+            my_FragColor = vec4(0, i[0], 0, 1);
+    }
+}
+</script>
+<script id="fshaderDeclarationInsideSwitchScope" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+// GLSL ES 3.10 clarifies the scoping rules that are relevant here. In section 4.2.2 it says:
+// "The statement following a switch (...) forms a nested scope."
+// There are no other special scoping rules with regards to switch statements.
+
+void main()
+{
+    my_FragColor = vec4(1, 0, 0, 1);
+    switch (u_zero)
+    {
+        case 0:
+            ivec2 i;
+            i = ivec2(1, 0);
+        default:
+            my_FragColor = vec4(0, i[0], 0, 1);
+    }
+}
+</script>
+<script id="fshaderFallThroughAll" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    int i = 0;
+    // switch should fall through both cases.
+    switch(u_zero)
+    {
+        case 0:
+            i += 1;
+        case 1:
+            i += 2;
+    }
+    if (i == 3)
+    {
+        my_FragColor = vec4(0, 1, 0, 1);
+    }
+    else
+    {
+        my_FragColor = vec4(1, 0, 0, 1);
+    }
+}
+</script>
+<script id="fshaderEmptySwitchStatement" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    switch(u_zero)
+    {
+    }
+    my_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script id="fshaderLastCaseHasEmptyDeclaration" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    // Empty declaration should count as a statement.
+    switch(u_zero)
+    {
+        case 0:
+            int;
+    }
+    my_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script id="fshaderLastCaseHasEmptyBlock" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    // Empty block should count as a statement.
+    switch(u_zero)
+    {
+        case 0:
+            {}
+    }
+    my_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script id="fshaderLastCaseHasConstantStatement" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    // Empty statement should count as a statement.
+    switch(u_zero)
+    {
+        case 0:
+            0;
+    }
+    my_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script id="fshaderLastCaseHasEmptyStatement" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    // Empty statement should count as a statement.
+    switch(u_zero)
+    {
+        case 0:
+            ;
+    }
+    my_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script id="fshaderCaseInsideBlock" type="x-shader/x-fragment">#version 300 es
+
+precision highp float;
+
+out vec4 my_FragColor;
+
+uniform int u_zero;
+
+void main()
+{
+    // Case statements must not be nested in blocks.
+    // GLSL ES 3.00 spec is a bit vague on this but GLSL ES 3.10 section 6.2 is clearer.
+    switch(u_zero)
+    {
+        case 1:
+        {
+            case 0:
+                my_FragColor = vec4(1, 0, 0, 1);
+        }
+    }
+    my_FragColor = vec4(0, 1, 0, 1);
+}
+</script>
+<script type="application/javascript">
+"use strict";
+description();
+
+// Covers bugs:
+// http://anglebug.com/2177
+// http://anglebug.com/2178
+// http://anglebug.com/2179
+
+GLSLConformanceTester.runTests([
+{
+  fShaderId: 'fshaderDeclarationInsideSwitch',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Declaration inside switch should work.',
+  render: true
+},
+{
+  fShaderId: 'fshaderDeclarationInsideSwitchScope',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Declaration inside switch should be scoped until the end of the switch statement.',
+  render: true
+},
+{
+  fShaderId: 'fshaderFallThroughAll',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Falling through all cases in switch/case should work.',
+  render: true
+},
+{
+  fShaderId: 'fshaderEmptySwitchStatement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Empty switch statements are valid.'
+},
+{
+  fShaderId: 'fshaderLastCaseHasEmptyDeclaration',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Empty declaration should count as a statement for the purposes of switch statement validation.'
+},
+{
+  fShaderId: 'fshaderLastCaseHasEmptyBlock',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Empty block should count as a statement for the purposes of switch statement validation.'
+},
+{
+  fShaderId: 'fshaderLastCaseHasConstantStatement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Constant statement should count as a statement for the purposes of switch statement validation.'
+},
+{
+  fShaderId: 'fshaderLastCaseHasEmptyStatement',
+  fShaderSuccess: true,
+  linkSuccess: true,
+  passMsg: 'Empty statement should count as a statement for the purposes of switch statement validation.'
+},
+{
+  fShaderId: 'fshaderCaseInsideBlock',
+  fShaderSuccess: false,
+  passMsg: 'Case statements must not be nested inside blocks.'
+}
+], 2);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,172 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<canvas id="testbed" width="40" height="40" style="width: 40px; height: 40px;"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+var wtu = WebGLTestUtils;
+description('Verify multisampled renderbuffers are initialized to 0 before being read in WebGL');
+
+var gl = wtu.create3DContext("testbed", null, 2);
+
+if (!gl) {
+    testFailed('canvas.getContext() failed');
+} else {
+    // Set the clear color to green. It should never show up.
+    gl.clearColor(0, 1, 0, 1);
+
+    let c = gl.canvas;
+    var maxSamples = gl.getInternalformatParameter(
+        gl.RENDERBUFFER, gl.RGBA8, gl.SAMPLES)[0];
+    for (let i = 0; i < 2; ++i) {
+        runTest(gl, {alloc1: {w: c.width, h: c.height, s: maxSamples}, alloc2: null});
+        runTest(gl, {alloc1: null, alloc2: {w: c.width, h: c.height, s: maxSamples}});
+
+        // Tests for initially allocating at the wrong size.
+        // This is caused by a Qualcomm driver bug: http://crbug.com/696126
+        runTest(gl, {alloc1: {w: 5, h: 5, s: maxSamples}, alloc2: {w: c.width, h: c.height, s: maxSamples}});
+        runTest(gl, {alloc1: {w: 5, h: 5, s: maxSamples}, alloc2: {w: c.width, h: c.height, s: 0}});
+        runTest(gl, {alloc1: {w: 5, h: 5, s: 0}, alloc2: {w: c.width, h: c.height, s: maxSamples}});
+    }
+
+    // Testing buffer clearing won't change the clear values.
+    var clearColor = gl.getParameter(gl.COLOR_CLEAR_VALUE);
+    shouldBe("clearColor", "[0, 1, 0, 1]");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+}
+
+function runTest(gl, params) {
+    debug("Test for color buffer: " + JSON.stringify(params));
+    let resolve = params.alloc2 ? params.alloc2 : params.alloc1;
+    wtu.checkCanvasRect(gl, 0, 0, resolve.w, resolve.h,
+                        [0, 0, 0, 0],
+                        "internal buffers have been initialized to 0");
+
+    // fill the back buffer so we know that reading below happens from
+    // the renderbuffer.
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Set up non-multisampled buffer to blit to and read back from.
+    var fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    var buffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, buffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.RGBA8, resolve.w, resolve.h);
+    attachBuffer(buffer);
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)",
+             "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    wtu.checkCanvasRect(gl, 0, 0, resolve.w, resolve.h,
+                        [0, 255, 0, 255],
+                        "user buffer has been cleared to green");
+
+    // Set up multisampled buffer to test.
+    var fbo_m = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo_m);
+    var buffer_m = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, buffer_m);
+
+    if (params.alloc1) {
+        allocStorage(params.alloc1.w, params.alloc1.h, params.alloc1.s);
+    }
+    attachBuffer(buffer_m);
+    if (params.alloc2) {
+        if (params.alloc1) {
+            // Clear the FBO in order to make sure framebufferRenderbuffer is
+            // committed. (In Firefox, framebufferRenderbuffer is deferred, so
+            // this is needed to trigger the bug.)
+            gl.clear(gl.COLOR_BUFFER_BIT);
+        }
+        allocStorage(params.alloc2.w, params.alloc2.h, params.alloc2.s);
+    }
+
+    function allocStorage(width, height, samples) {
+        gl.renderbufferStorageMultisample(
+            gl.RENDERBUFFER, samples, gl.RGBA8, width, height);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be no error after renderbufferStorageMultisample(RGBA8).");
+    }
+
+    function attachBuffer(buffer) {
+        gl.framebufferRenderbuffer(
+            gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, buffer);
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "should be no error after framebufferRenderbuffer.");
+    }
+
+    shouldBe("gl.checkFramebufferStatus(gl.FRAMEBUFFER)",
+             "gl.FRAMEBUFFER_COMPLETE");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+
+    // Blit from multisampled buffer to non-multisampled buffer.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fbo_m);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, fbo);
+    // Blit color from fbo_m (should be black) to fbo (should be green)
+    gl.blitFramebuffer(0, 0, resolve.w, resolve.h,
+                       0, 0, resolve.w, resolve.h,
+                       gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    wtu.checkCanvasRect(gl, 0, 0, resolve.w, resolve.h,
+                        [0, 0, 0, 0],
+                        "user buffer has been initialized to 0");
+
+    gl.deleteFramebuffer(fbo_m);
+    gl.deleteRenderbuffer(buffer_m);
+    gl.deleteFramebuffer(fbo);
+    gl.deleteRenderbuffer(buffer);
+
+    // this clear should not matter we are about to resize
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.canvas.width += 1;
+    gl.canvas.height += 1;
+
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, 'should be no errors');
+    debug('');
+}
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

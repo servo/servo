@@ -60,7 +60,9 @@ files = [
   "./tests/wpt/metadata/MANIFEST.json",
   "./support/android/openssl.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
-  "./tests/wpt/mozilla/tests/webgl",
+  "./tests/wpt/webgl/tests",
+  # Our import script is not currently respecting the lint.
+  "./tests/wpt/webgl/tools/import-conformance-tests.py",
   # Ignore those files since the issues reported are on purpose
   "./tests/html/bad-line-ends.html",
   "./tests/wpt/mozilla/tests/css/fonts",

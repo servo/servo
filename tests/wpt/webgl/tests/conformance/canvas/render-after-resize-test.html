@@ -1,0 +1,98 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL render after resize test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+</head>
+<body>
+<div id="description"></div>
+<canvas style="width: 100px, height: 100px; border: 1px solid blue;" id="c"></canvas>
+<div id="console"></div>
+<script>
+description("This test ensures WebGL implementations can render correctly after resizing the canvas.");
+debug("");
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("c");
+shouldBeTrue("gl != null");
+
+var positionLocation = 0;
+var texcoordLocation = 1;
+var program = wtu.setupColorQuad(gl, positionLocation);
+var colorLocation = gl.getUniformLocation(program, 'u_color');
+gl.uniform4fv(colorLocation, [0.0, 1.0, 0.0, 1.0]);
+
+const smallWidth = 300;
+const smallHeight = 150;
+// Changing this size to something smaller produces
+// different results. Sometimes wrong, sometimes correct.
+const largeWidth = 1200;
+const largeHeight = 672;
+
+function render() {
+  gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(1,0,0,1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  gl.useProgram(program);
+  wtu.drawUnitQuad(gl);
+}
+
+function checkForQuad(ctx) {
+  let w = ctx.drawingBufferWidth;
+  let h = ctx.drawingBufferHeight;
+
+  wtu.checkCanvasRect(gl, 0, 0, w, h, [ 0, 255, 0, 255 ]);
+}
+
+gl.canvas.width = smallWidth;
+gl.canvas.height = smallHeight;
+render();
+checkForQuad(gl); // passes
+
+gl.canvas.width = largeWidth;
+gl.canvas.height = largeHeight;
+gl.canvas.width = smallWidth;
+gl.canvas.height = smallHeight;
+render();
+checkForQuad(gl); // fails (almost all the time)
+
+finishTest();
+
+var successfullyParsed = true;
+</script>
+</body>
+</html>

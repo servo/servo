@@ -1,0 +1,503 @@
+<!--
+
+/*
+** Copyright (c) 2015 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Transform Feedback Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" style="width: 50px; height: 50px;"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+
+in vec4 in_data;
+out vec4 out_add;
+out vec4 out_mul;
+void main(void) {
+    out_add = in_data + vec4(2.0, 3.0, 4.0, 5.0);
+    out_mul = in_data * vec4(2.0, 3.0, 4.0, 5.0);
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+out vec4 out_color;
+void main(void) {
+    out_color = vec4(1.0, 1.0, 1.0, 1.0);
+}
+</script>
+<script>
+"use strict";
+description("This test verifies the functionality of the Transform Feedback objects.");
+
+debug("");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, null, 2);
+var tf = null;
+var tf1 = null;
+var buf = null;
+var program = null;
+var activeInfo = null;
+var query = null;
+var numberOfQueryCompletionAttempts = 0;
+
+if (!gl) {
+    testFailed("WebGL context does not exist");
+} else {
+    testPassed("WebGL context exists");
+
+    runBindingTest();
+    runTFBufferBindingTest();
+    runObjectTest();
+    runGetBufferSubDataTest();
+    runOneOutFeedbackTest();
+    runTwoOutFeedbackTest();
+}
+
+function runBindingTest() {
+    debug("");
+    debug("Testing binding enum");
+
+    shouldBe("gl.TRANSFORM_FEEDBACK_BINDING", "0x8E25");
+
+    gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "TRANSFORM_FEEDBACK_BINDING query should succeed");
+
+    // Default value is null
+    shouldBe("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)", "null");
+
+    debug("Testing binding a Transform Feedback object");
+    tf = gl.createTransformFeedback();
+    tf1 = gl.createTransformFeedback();
+    shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)");
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    shouldBe("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)", "tf");
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+    shouldBe("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)", "tf1");
+    gl.deleteTransformFeedback(tf);
+    gl.deleteTransformFeedback(tf1);
+    shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)");
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf1);
+    wtu.glErrorShouldBe(gl, gl.INVALID_OPERATION, "binding a deleted Transform Feedback object");
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    shouldBeNull("gl.getParameter(gl.TRANSFORM_FEEDBACK_BINDING)");
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+function runTFBufferBindingTest() {
+    debug("");
+    debug("Testing binding and unbinding transform feedback objects and buffers");
+
+    buf = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, buf);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, 16, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
+
+    tf = gl.createTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buf);
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+    // gl.TRANSFORM_FEEDBACK_BUFFER is part of Transform Feedback objects'
+    // state. See OpenGL ES 3.0.5 Section 6.24.
+    //
+    // Since the TRANSFORM_FEEDBACK was just unbound, there should be nothing
+    // bound.
+    shouldBeNull('gl.getIndexedParameter(gl.TRANSFORM_FEEDBACK_BUFFER_BINDING, 0)');
+
+    // Binding the buffer to the ARRAY_BUFFER binding point should succeed.
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "binding buffer to ARRAY_BUFFER");
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.deleteBuffer(buf);
+    buf = null;
+    gl.deleteTransformFeedback(tf);
+    tf = null;
+}
+
+function runObjectTest() {
+    debug("");
+    debug("Testing object creation");
+
+    tf = gl.createTransformFeedback();
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "createTransformFeedback should not set an error");
+    shouldBeNonNull("tf");
+
+    // Expect false if never bound
+    shouldBeFalse("gl.isTransformFeedback(tf)");
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    shouldBeTrue("gl.isTransformFeedback(tf)");
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    shouldBeTrue("gl.isTransformFeedback(tf)");
+    gl.deleteTransformFeedback(tf);
+    shouldBeFalse("gl.isTransformFeedback(tf)");
+
+    shouldBeFalse("gl.isTransformFeedback(null)");
+
+    tf = null;
+}
+
+function runOneOutFeedbackTest() {
+    debug("");
+    debug("Testing transform feedback processing");
+
+    // Build the input and output buffers
+    var in_data = [
+        1.0, 2.0, 3.0, 4.0,
+        2.0, 4.0, 8.0, 16.0,
+        0.75, 0.5, 0.25, 0.0
+    ];
+
+    var in_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, in_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(in_data), gl.STATIC_DRAW);
+
+    var out_add_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_add_buffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, Float32Array.BYTES_PER_ELEMENT * in_data.length, gl.STATIC_DRAW);
+
+    // Create the transform feedback shader
+    program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        ["out_add"], gl.SEPARATE_ATTRIBS,
+        ["in_data"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+    shouldBeNonNull("program");
+
+    // Draw the the transform feedback buffers
+    tf = gl.createTransformFeedback();
+
+    gl.enableVertexAttribArray(0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, in_buffer);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, out_add_buffer);
+
+    gl.enable(gl.RASTERIZER_DISCARD);
+    gl.beginTransformFeedback(gl.POINTS);
+
+    gl.drawArrays(gl.POINTS, 0, 3);
+
+    gl.endTransformFeedback();
+    gl.disable(gl.RASTERIZER_DISCARD);
+
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+
+    // Verify the output buffer contents
+    var add_expected = [
+        3.0, 5.0, 7.0, 9.0,
+        4.0, 7.0, 12.0, 21.0,
+        2.75, 3.5, 4.25, 5.0
+    ];
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_add_buffer);
+    wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, add_expected);
+
+    tf = null;
+    program = null;
+}
+
+function runTwoOutFeedbackTest() {
+    debug("");
+    debug("Testing transform feedback processing");
+
+    // Build the input and output buffers
+    var in_data = [
+        1.0, 2.0, 3.0, 4.0,
+        2.0, 4.0, 8.0, 16.0,
+        0.75, 0.5, 0.25, 0.0
+    ];
+
+    var in_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, in_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(in_data), gl.STATIC_DRAW);
+
+    var out_add_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_add_buffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, Float32Array.BYTES_PER_ELEMENT * in_data.length, gl.STATIC_DRAW);
+
+    var out_mul_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_mul_buffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, Float32Array.BYTES_PER_ELEMENT * in_data.length, gl.STATIC_DRAW);
+
+    // Create the transform feedback shader
+    program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        ["out_add", "out_mul"], gl.SEPARATE_ATTRIBS,
+        ["in_data"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+    shouldBeNonNull("program");
+
+    // Create a query object to check the number of primitives written
+    query = gl.createQuery();
+
+    // Draw the the transform feedback buffers
+    tf = gl.createTransformFeedback();
+
+    gl.enableVertexAttribArray(0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, in_buffer);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, out_add_buffer);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, out_mul_buffer);
+
+    gl.enable(gl.RASTERIZER_DISCARD);
+    gl.beginTransformFeedback(gl.POINTS);
+    gl.beginQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, query);
+
+    gl.drawArrays(gl.POINTS, 0, 3);
+
+    gl.endQuery(gl.TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+    gl.endTransformFeedback();
+    gl.disable(gl.RASTERIZER_DISCARD);
+
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, null);
+
+    // Verify the output buffer contents
+    var add_expected = [
+        3.0, 5.0, 7.0, 9.0,
+        4.0, 7.0, 12.0, 21.0,
+        2.75, 3.5, 4.25, 5.0
+    ];
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_add_buffer);
+    wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, add_expected);
+
+    var mul_expected = [
+        2.0, 6.0, 12.0, 20.0,
+        4.0, 12.0, 32.0, 80.0,
+        1.5, 1.5, 1.0, 0.0
+    ];
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_mul_buffer);
+    wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, mul_expected);
+
+    tf = null;
+    program = null;
+
+    // Check the result of the query. It should not be available yet.
+    // This constant was chosen arbitrarily to take around 1 second on
+    // one WebGL implementation on one desktop operating system. (Busy-
+    // loops based on calling Date.now() have been found unreliable.)
+    var numEarlyTests = 50000;
+    while (--numEarlyTests > 0) {
+        gl.finish();
+        if (gl.getQueryParameter(query, gl.QUERY_RESULT_AVAILABLE)) {
+            testFailed("Query's result became available too early");
+            finishTest();
+            return;
+        }
+    }
+    testPassed("TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN query's result didn't become available too early");
+
+    // Complete the rest of the test asynchronously.
+    requestAnimationFrame(completeTransformFeedbackQueryTest);
+}
+
+var retArray;
+
+function verifyGetBufferSubData(expected) {
+    wtu.shouldGenerateGLError(gl, expected, "gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, retArray, 0, retArray.length)");
+}
+
+function runGetBufferSubDataTest() {
+    debug("");
+    debug("Test that getBufferSubData...");
+
+    // Build the input and output buffers
+    var in_data = [
+        1.0, 2.0, 3.0, 4.0,
+        2.0, 4.0, 8.0, 16.0,
+        0.75, 0.5, 0.25, 0.0
+    ];
+
+    retArray = new Float32Array(in_data.length);
+
+    var in_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, in_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(in_data), gl.STATIC_DRAW);
+
+    var out_add_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_add_buffer);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, Float32Array.BYTES_PER_ELEMENT * in_data.length, gl.STATIC_DRAW);
+
+    // Create the transform feedback shader
+    program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        ["out_add"], gl.SEPARATE_ATTRIBS,
+        ["in_data"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+    shouldBeNonNull("program");
+
+    // Draw the the transform feedback buffers
+    tf = gl.createTransformFeedback();
+
+    gl.enableVertexAttribArray(0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, in_buffer);
+    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+    debug("... passes when a transform feedback object is not bound");
+    verifyGetBufferSubData(gl.NO_ERROR);
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, out_add_buffer);
+
+    debug("... passes when a transform feedback object is bound but not active");
+    verifyGetBufferSubData(gl.NO_ERROR);
+
+    gl.enable(gl.RASTERIZER_DISCARD);
+    gl.beginTransformFeedback(gl.POINTS);
+
+    debug("... fails when a transform feedback object is active");
+    verifyGetBufferSubData(gl.INVALID_OPERATION);
+
+    gl.drawArrays(gl.POINTS, 0, 3);
+
+    gl.endTransformFeedback();
+    gl.disable(gl.RASTERIZER_DISCARD);
+
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+
+    // Verify the output buffer contents
+    var add_expected = [
+        3.0, 5.0, 7.0, 9.0,
+        4.0, 7.0, 12.0, 21.0,
+        2.75, 3.5, 4.25, 5.0
+    ];
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, out_add_buffer);
+    wtu.checkFloatBuffer(gl, gl.TRANSFORM_FEEDBACK_BUFFER, add_expected);
+
+    tf = null;
+    program = null;
+}
+
+function completeTransformFeedbackQueryTest() {
+    debug("");
+    debug("Testing TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN query");
+
+    ++numberOfQueryCompletionAttempts;
+    if (numberOfQueryCompletionAttempts > 500) {
+        testFailed("Query didn't become available in a reasonable time");
+        finishTest();
+        return;
+    }
+
+    if (!gl.getQueryParameter(query, gl.QUERY_RESULT_AVAILABLE)) {
+        requestAnimationFrame(completeTransformFeedbackQueryTest);
+        return;
+    }
+
+    var result = gl.getQueryParameter(query, gl.QUERY_RESULT);
+    if (result == 3) {
+        testPassed("TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN query returned a correct result (3)");
+    } else {
+        testFailed("TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN query returned an incorrect result " + result + " (expected 3)");
+    }
+
+    runVaryingsTest();
+}
+
+function verifyTransformFeedbackVarying(prog, index, valid, name) {
+    activeInfo = gl.getTransformFeedbackVarying(prog, index);
+    if (valid) {
+        wtu.glErrorShouldBe(gl, gl.NO_ERROR,
+            "Should be no errors from valid getTransformFeedbackVarying.");
+        shouldBeNonNull("activeInfo");
+        shouldBe("activeInfo.name", "'" + name + "'");
+        shouldBe("activeInfo.type", "gl.FLOAT_VEC4");
+        shouldBe("activeInfo.size", "1");
+    } else {
+        wtu.glErrorShouldBe(gl, gl.INVALID_VALUE,
+            "Should be INVALID_VALUE when calling getTransformFeedbackVarying with an invalid index.");
+        shouldBeNull("activeInfo");
+    }
+}
+
+function runVaryingsTest() {
+    debug("");
+    debug("Testing transform feedback varyings");
+
+    // Create the transform feedback shader. This is explicitly run after runFeedbackTest,
+    // as re-llinking the shader here will test browser caching.
+    program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        ["out_add", "out_mul"], gl.SEPARATE_ATTRIBS,
+        ["in_data"]);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+    shouldBeNonNull("program");
+
+    // Check the varyings
+    shouldBe("gl.getProgramParameter(program, gl.TRANSFORM_FEEDBACK_VARYINGS)", "2");
+    verifyTransformFeedbackVarying(program, 0, true, "out_add");
+    verifyTransformFeedbackVarying(program, 1, true, "out_mul");
+    verifyTransformFeedbackVarying(program, 2, false);
+
+    // transformFeedbackVaryings() doesn't take effect until a successful link.
+    gl.transformFeedbackVaryings(program, ["out_mul"], gl.SEPARATE_ATTRIBS);
+    shouldBe("gl.getProgramParameter(program, gl.TRANSFORM_FEEDBACK_VARYINGS)", "2");
+    verifyTransformFeedbackVarying(program, 0, true, "out_add");
+    verifyTransformFeedbackVarying(program, 1, true, "out_mul");
+    verifyTransformFeedbackVarying(program, 2, false);
+
+    // Now relink.
+    gl.linkProgram(program);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+    shouldBeTrue("gl.getProgramParameter(program, gl.LINK_STATUS)");
+    shouldBe("gl.getProgramParameter(program, gl.TRANSFORM_FEEDBACK_VARYINGS)", "1");
+    verifyTransformFeedbackVarying(program, 0, true, "out_mul");
+    verifyTransformFeedbackVarying(program, 1, false);
+    verifyTransformFeedbackVarying(program, 2, false);
+
+    // Test recompiling/relinking the program
+    // Regression test for http://crbug.com/716018
+    var skipCompileStatus = true;
+    program = wtu.setupTransformFeedbackProgram(gl, ["vshader", "fshader"],
+        ["out_add", "out_mul"], gl.SEPARATE_ATTRIBS,
+        ["in_data"], undefined, undefined, skipCompileStatus);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "linking transform feedback shader should not set an error");
+    shouldBeTrue("gl.getProgramParameter(program, gl.LINK_STATUS)");
+    shouldBe("gl.getProgramParameter(program, gl.TRANSFORM_FEEDBACK_VARYINGS)", "2");
+    verifyTransformFeedbackVarying(program, 0, true, "out_add");
+    verifyTransformFeedbackVarying(program, 1, true, "out_mul");
+    verifyTransformFeedbackVarying(program, 2, false);
+
+    finishTest();
+}
+
+debug("");
+</script>
+
+</body>
+</html>

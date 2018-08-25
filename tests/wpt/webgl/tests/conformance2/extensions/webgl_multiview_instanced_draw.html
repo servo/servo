@@ -1,0 +1,128 @@
+<!--
+
+/*
+** Copyright (c) 2018 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL WEBGL_multiview Conformance Tests</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+<script src="../../js/tests/webgl_multiview_util.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+
+let wtu = WebGLTestUtils;
+let gl = wtu.create3DContext(null, null, 2);
+let ext = null;
+
+function runInstancedDrawTest()
+{
+    debug("");
+    debug("Testing instanced rendering");
+
+    let width = 256;
+    let height = 256;
+
+    let views = gl.getParameter(ext.MAX_VIEWS_OVR);
+
+    let multiviewShaders = [
+      getMultiviewInstancedVertexShader(views),
+      getInstanceColorFragmentShader()
+    ];
+
+    let testProgram = wtu.setupProgram(gl, multiviewShaders, ['a_position'], [0], true);
+    if (!testProgram) {
+        testFailed("Compilation with extension enabled failed.");
+        return;
+    }
+
+    let fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    let colorTex = createTextureWithNearestFiltering(gl.TEXTURE_2D_ARRAY);
+    gl.texStorage3D(gl.TEXTURE_2D_ARRAY, 1, gl.RGBA8, width, height, views);
+    ext.framebufferTextureMultiviewWEBGL(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, 0, views);
+
+    gl.viewport(0, 0, width, height);
+    gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, 2);
+    wtu.glErrorShouldBe(gl, gl.NO_ERROR, "should be no errors from draw");
+
+    let readFb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, readFb);
+    for (let viewIndex = 0; viewIndex < views; ++viewIndex) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, colorTex, 0, viewIndex);
+        let colorRegionLeftEdge = (width / (views * 2)) * viewIndex;
+        let colorRegionRightEdge = (width / (views * 2)) * (viewIndex + 2);
+        let stripWidth = (colorRegionRightEdge - colorRegionLeftEdge) / 2;
+        if (colorRegionLeftEdge > 0) {
+            wtu.checkCanvasRect(gl, 0, 0, Math.floor(colorRegionLeftEdge) - 1, height, [0, 0, 0, 0], 'the left edge of view ' + viewIndex + ' should be untouched');
+        }
+        if (colorRegionRightEdge < width) {
+            wtu.checkCanvasRect(gl, colorRegionRightEdge + 1, 0, width - colorRegionRightEdge - 1, height, [0, 0, 0, 0], 'the right edge of view ' + viewIndex + ' should be untouched');
+        }
+        let expectedColor = getExpectedColor(0);
+        wtu.checkCanvasRect(gl, colorRegionLeftEdge + 1, 0, stripWidth - 2, height, expectedColor, 'a thin strip in view ' + viewIndex + ' drawn by instance 0 should be colored ' + expectedColor);
+        expectedColor = getExpectedColor(1);
+        wtu.checkCanvasRect(gl, colorRegionLeftEdge + stripWidth + 1, 0, stripWidth - 2, height, expectedColor, 'a thin strip in view ' + viewIndex + ' drawn by instance 1 should be colored ' + expectedColor);
+    }
+}
+
+description("This test verifies instanced draws together with the WEBGL_multiview extension, if it is available.");
+
+debug("");
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  if (!gl.getExtension("WEBGL_multiview")) {
+      testPassed("No WEBGL_multiview support -- this is legal");
+  } else {
+      testPassed("Successfully enabled WEBGL_multiview extension");
+      ext = gl.getExtension('WEBGL_multiview');
+
+      wtu.setupUnitQuad(gl, 0, 1);
+
+      runInstancedDrawTest();
+  }
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+
+</body>
+</html>

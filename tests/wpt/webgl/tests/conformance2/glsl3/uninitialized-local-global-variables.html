@@ -1,0 +1,121 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Uninitialized local/global variables should be initialized (ESSL 3.00 cases)</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<link rel="stylesheet" href="../../resources/glsl-feature-tests.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"> </script>
+
+<!--
+This test covers cases that can't be tested with ESSL 1.00 due to Appendix A limitations.
+The ESSL 1.00 cases are covered in conformance/glsl/misc/uninitialized-local-global-variables.html
+-->
+
+<script id="vs_uninit_in_frag" type="x-shader/x-vertex">#version 300 es
+precision highp float;
+in vec4 a_position;
+void main() {
+    gl_Position = a_position;
+}
+</script>
+
+<!-- Uninitialized variables in a for loop initializer in fragment shader -->
+<script id="fs_uninit_variables_in_loop_in_frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+void main() {
+    int i = 0;
+    for (vec4 uninit, uninit2[2] = vec4[2](uninit, uninit); i < 1; ++i) {
+        my_FragColor = uninit2[0];
+    }
+}
+</script>
+
+<!-- Uninitialized nameless struct in a for loop initializer in fragment shader -->
+<script id="fs_uninit_nameless_struct_in_loop_in_frag" type="x-shader/x-fragment">#version 300 es
+precision highp float;
+out vec4 my_FragColor;
+void main() {
+    int i = 0;
+    for (struct { vec4 v; } uninit; i < 1; ++i) {
+        my_FragColor = uninit.v;
+    }
+}
+</script>
+
+</head>
+<body>
+<canvas id="canvas" width="50" height="50"></canvas>
+<div id="description"></div>
+<div id="console"></div>
+<script>
+"use strict";
+description('Uninitialized local/global variables should be initialized: http://anglebug.com/1966');
+
+var wtu = WebGLTestUtils;
+var gl = wtu.create3DContext("canvas", undefined, 2);
+wtu.setupUnitQuad(gl);
+
+var cases = [
+  {
+    name: "Uninitialized variables in a for loop initializer in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_variables_in_loop_in_frag"],
+  },
+  {
+    name: "Uninitialized nameless struct in a for loop initializer in fragment shader",
+    prog: ["vs_uninit_in_frag", "fs_uninit_nameless_struct_in_loop_in_frag"],
+  }
+];
+
+function runTest() {
+  for (var i = 0; i < cases.length; ++i) {
+    debug("");
+    debug(cases[i].name);
+    var program = wtu.setupProgram(gl, cases[i].prog, ["a_position"], undefined, true);
+    gl.clearColor(1.0, 0.0, 0.0, 1.0);
+    wtu.clearAndDrawUnitQuad(gl);
+    wtu.checkCanvas(gl, [0, 0, 0, 0]);
+  }
+
+  debug("");
+  wtu.glErrorShouldBe(gl, gl.NO_ERROR, "there should be no errors");
+}
+
+runTest();
+
+var successfullyParsed = true;
+</script>
+<script src="../../js/js-test-post.js"></script>
+</body>
+</html>

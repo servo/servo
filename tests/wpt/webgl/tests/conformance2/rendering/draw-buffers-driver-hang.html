@@ -1,0 +1,210 @@
+<!--
+
+/*
+** Copyright (c) 2017 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WebGL Draw Buffers Driver Hang Conformance Test</title>
+<link rel="stylesheet" href="../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../js/js-test-pre.js"></script>
+<script src="../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas" width="64" height="64"> </canvas>
+<div id="console"></div>
+<script id="vshader" type="x-shader/x-vertex">#version 300 es
+in vec4 a_position;
+void main() {
+    gl_Position = a_position;
+}
+</script>
+<script id="fshader" type="x-shader/x-fragment">#version 300 es
+precision mediump float;
+
+out vec4 my_FragColor;
+void main() {
+    my_FragColor = vec4(1, 0, 0, 1);
+}
+</script>
+<script>
+"use strict";
+description("This is a regression test for a driver bug causing a hang in the driver and thereby the browser (crbug.com/696187).")
+
+debug("Thanks to Andre Weissflog (@FlohOfWoe / @floooh) for this test.");
+debug("If the bug exists, this test doesn't fail or time out per the harness; the browser basically hangs.");
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+var gl = wtu.create3DContext(canvas, { depth: true, stencil: true, alpha: false }, 2);
+
+if (!gl) {
+  testFailed("WebGL context does not exist");
+} else {
+  testPassed("WebGL context exists");
+
+  runTest();
+}
+
+function runTest() {
+  // create a global VAO
+  let vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+
+  // create a 3 MSAA 'offscreen render targets', each consisting of:
+  //  - 1 color texture which will hold the MSAA resolve result
+  //  - 1 MSAA color renderbuffer
+  // plus one depth-stencil renderbuffer
+  let tex0 = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex0);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 0);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 200, 200, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  let c_rb0 = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, c_rb0);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, 200, 200);
+  let ds_rb = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, ds_rb);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.DEPTH24_STENCIL8, 200, 200);
+
+  // 2nd offscreen render target
+  let tex1 = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex1);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 0);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 200, 200, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  let c_rb1 = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, c_rb1);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, 200, 200);
+
+  // 3rd offscreen render target
+  let tex2 = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, tex2);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 0);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 200, 200, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  let c_rb2 = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, c_rb2);
+  gl.renderbufferStorageMultisample(gl.RENDERBUFFER, 4, gl.RGBA8, 200, 200);
+
+  // an MRT framebuffer with the 3 MSAA renderbuffers and MSAA depth/stencil attachments
+  let mrt_fb = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, mrt_fb);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, c_rb0);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.RENDERBUFFER, c_rb1);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.RENDERBUFFER, c_rb2);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, ds_rb);
+  gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, ds_rb);
+  gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+  // 3 'MSAA resolve framebuffers' which are the target for the MSAA-resolve-blit,
+  // with the 3 color textures as color attachments
+  let res_fb0 = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, res_fb0);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex0, 0);
+  gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  let res_fb1 = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, res_fb1);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, tex1, 0);
+  gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+  let res_fb2 = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, res_fb2);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, tex2, 0);
+  let frameNumber = 0;
+
+  function draw() {
+    // draw one frame
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, 1024, 768);
+
+  //--- BEGIN: comment out the block begin BEGIN/END to make the demo run
+    // clear the 3 MSAA offscreen color renderbuffers and depth/stencil renderbuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, mrt_fb);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2]);
+    gl.viewport(0, 0, 200, 200);
+    gl.depthMask(true);
+    gl.clearBufferfv(gl.COLOR, 0, [0.25,0.0,0.0,1.0]);
+    gl.clearBufferfv(gl.COLOR, 1, [0.0,0.25,0.0,1.0]);
+    gl.clearBufferfv(gl.COLOR, 2, [0.0,0.0,0.25,1.0]);
+    gl.clearBufferfi(gl.DEPTH_STENCIL, 0, 1.0, 0);
+
+    // the MSAA resolve operation
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, mrt_fb);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, res_fb0);
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    gl.blitFramebuffer(0, 0, 200, 200, 0, 0, 200, 200, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, res_fb1);
+    gl.readBuffer(gl.COLOR_ATTACHMENT1);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    gl.blitFramebuffer(0, 0, 200, 200, 0, 0, 200, 200, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, res_fb2);
+    gl.readBuffer(gl.COLOR_ATTACHMENT2);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    gl.blitFramebuffer(0, 0, 200, 200, 0, 0, 200, 200, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+//--- END
+
+    // bind and clear the default framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, 1024, 768);
+    gl.clearColor(0.5, 0.5, 0.5, 1.0);
+    gl.clearDepth(1.0);
+    gl.clearStencil(0);
+    gl.clear(gl.COLOR_BUFFER_BIT|gl.STENCIL_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+
+    if (++frameNumber < 10) {
+      requestAnimationFrame(draw);
+    } else {
+      finishTest();
+    }
+  }
+
+  // Start the rendering loop
+  draw();
+}
+
+debug("");
+var successfullyParsed = true;
+</script>
+
+</body>
+</html>

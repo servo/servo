@@ -1,0 +1,193 @@
+<!--
+
+/*
+** Copyright (c) 2016 The Khronos Group Inc.
+**
+** Permission is hereby granted, free of charge, to any person obtaining a
+** copy of this software and/or associated documentation files (the
+** "Materials"), to deal in the Materials without restriction, including
+** without limitation the rights to use, copy, modify, merge, publish,
+** distribute, sublicense, and/or sell copies of the Materials, and to
+** permit persons to whom the Materials are furnished to do so, subject to
+** the following conditions:
+**
+** The above copyright notice and this permission notice shall be included
+** in all copies or substantial portions of the Materials.
+**
+** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+*/
+
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CopyTexSubImage2D partial destination texture test</title>
+<link rel="stylesheet" href="../../../resources/js-test-style.css"/>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="../../../js/js-test-pre.js"></script>
+<script src="../../../js/webgl-test-utils.js"></script>
+</head>
+<body>
+<div id="description"></div>
+<canvas id="canvas"></canvas>
+<div id="console"></div>
+
+<script>
+"use strict";
+description("Verifies that copyTexSubImage2D redefining part of the destination texture works as expected.");
+
+////
+
+var kWidth = 16;
+var kHeight = 16;
+
+////
+
+var wtu = WebGLTestUtils;
+var canvas = document.getElementById("canvas");
+
+canvas.width = kWidth;
+canvas.height = kHeight;
+var gl = wtu.create3DContext(canvas);
+
+////
+
+function clearTo(color) {
+    gl.clearColor(color[0], color[1], color[2], color[3]);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+}
+
+function readInto(view) {
+    gl.readPixels(0, 0, kWidth, kHeight, gl.RGBA, gl.UNSIGNED_BYTE,
+                  new Uint8Array(view.buffer));
+}
+
+////
+
+function runTest() {
+    gl.enable(gl.SCISSOR_TEST);
+
+    gl.scissor(0, 0, kWidth/2, kHeight/2);
+    clearTo([1,0,0,1]);
+    gl.scissor(kWidth/2, 0, kWidth/2, kHeight/2);
+    clearTo([0,1,0,1]);
+    gl.scissor(0, kHeight/2, kWidth/2, kHeight/2);
+    clearTo([0,0,1,1]);
+    gl.scissor(kWidth/2, kHeight/2, kWidth/2, kHeight/2);
+    clearTo([0,1,1,1]);
+
+    var srcData = new Uint32Array(kWidth * kHeight);
+    readInto(srcData);
+    console.log('0x' + srcData[0].toString(16));
+
+    ////
+
+    var dstTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, dstTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, kWidth, kHeight,
+                  0, gl.RGBA, gl.UNSIGNED_BYTE, null); // Uploads zeros.
+    var dstRefData = new Uint32Array(kWidth * kHeight); // Also cleared to zeros!
+    var dstTestData = new Uint32Array(kWidth * kHeight);
+
+    var dstFB = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, dstFB);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+                            gl.TEXTURE_2D, dstTex, 0);
+
+    ////
+
+    function pixelPos(x, y) {
+        return y * kWidth + x;
+    }
+
+    function testCmd(tuple) {
+        var dstX0, dstY0, srcX0, srcY0, width, height;
+        [dstX0, dstY0, srcX0, srcY0, width, height] = tuple
+        debug("copyTexSubImage2D(" +
+              [dstX0+','+dstY0, srcX0+','+srcY0, width+','+height].join(', ') +
+              ")");
+
+        // Test
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.copyTexSubImage2D(gl.TEXTURE_2D, 0,
+                             dstX0, dstY0, srcX0, srcY0, width, height);
+
+        // Emulate for reference
+        for (var x = 0; x < width; x++) {
+            var srcX = srcX0 + x;
+            var dstX = dstX0 + x;
+            if (srcX < 0 || srcX >= kWidth ||
+                dstX < 0 || dstX >= kWidth)
+            {
+                continue;
+            }
+
+            for (var y = 0; y < height; y++) {
+                var srcY = srcY0 + y;
+                var dstY = dstY0 + y;
+                if (srcY < 0 || srcY >= kHeight ||
+                    dstY < 0 || dstY >= kHeight)
+                {
+                    continue;
+                }
+
+
+                var srcPos = pixelPos(srcX, srcY);
+                var dstPos = pixelPos(dstX, dstY);
+                dstRefData[dstPos] = srcData[srcPos];
+            }
+        }
+
+        // Compare
+        gl.bindFramebuffer(gl.FRAMEBUFFER, dstFB);
+        readInto(dstTestData);
+
+        for (var x = 0; x < kWidth; x++) {
+            for (var y = 0; y < kHeight; y++) {
+                var pos = pixelPos(x, y);
+                var refPixel = dstRefData[pos];
+                var testPixel = dstTestData[pos];
+
+                //console.log([x, y].join(",") + ":",
+                //            testPixel.toString(16), refPixel.toString(16))
+                if (testPixel == refPixel)
+                    continue;
+
+                testFailed("Mismatch at (" + [x, y].join(", ") + "): " +
+                           " Should be 0x" + refPixel.toString(16) +
+                           ", was 0x" + testPixel.toString(16));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    var tests = [
+        [0,0, 0,0, 2,3],
+        [0,0, 5,8, 2,3],
+        [1,0, 0,0, 2,3],
+        [1,7, 0,0, 2,3],
+    ];
+
+    tests.every(x => testCmd(x));
+}
+
+runTest();
+
+debug("");
+var successfullyParsed = true;
+</script>
+<script src="../../../js/js-test-post.js"></script>
+
+</body>
+</html>
