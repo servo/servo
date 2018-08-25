@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>:empty pseudo-class and elements</title>
+  <style type="text/css"><![CDATA[
+ address { background: lime; margin: 0; height: 1em; }
+ address:empty { background: red; }
+ .text { margin: -1em 0 0 0; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <link rel="match" href="reference/this-line-lime-background-offset.xht"/>
+  <meta name="flags" content="" />
+ </head>
+ <body>
+ <address><span></span></address>
+ <div class="text">This line should have a green background.</div>
+</body>
+</html>

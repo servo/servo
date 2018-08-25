@@ -73,8 +73,8 @@ var divScroller = document.getElementById("inner-scroller");
 var viewport = document.scrollingElement;
 [
   [{left: 800}, 1000, 0],
-  [{top: 1200}, 0, 1000],
-  [{left: 1200, top: 800}, 1000, 1000]
+  [{top: 900}, 0, 1000],
+  [{left: 900, top: 800}, 1000, 1000]
 ].forEach(([input, expectedX, expectedY]) => {
   test(() => {
     divScroller.scrollTo(0, 0);

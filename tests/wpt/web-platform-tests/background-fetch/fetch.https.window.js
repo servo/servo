@@ -73,11 +73,17 @@ backgroundFetchTest(async (test, backgroundFetch) => {
   assert_equals(registration.uploadTotal, 0);
   assert_equals(registration.uploaded, 0);
   assert_equals(registration.downloadTotal, 0);
+  assert_equals(registration.state, "pending");
+  assert_equals(registration.failureReason, "");
   // Skip `downloaded`, as the transfer may have started already.
 
-  const {type, results} = await getMessageFromServiceWorker();
+  const {type, eventRegistration, results} = await getMessageFromServiceWorker();
   assert_equals('backgroundfetchsuccess', type);
   assert_equals(results.length, 1);
+
+  assert_equals(eventRegistration.id, registration.id);
+  assert_equals(eventRegistration.state, "success");
+  assert_equals(eventRegistration.failureReason, "");
 
   assert_true(results[0].url.includes('resources/feature-name.txt'));
   assert_equals(results[0].status, 200);
