@@ -3643,7 +3643,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 1 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
@@ -3660,7 +3661,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 2 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
@@ -3677,7 +3679,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 3 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
@@ -3694,7 +3697,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 4 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }
