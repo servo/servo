@@ -1165,14 +1165,16 @@ impl WebGLRenderingContext {
             return
         );
 
+        let array_buffer = handle_potential_webgl_error!(
+            self,
+            self.current_vao().element_array_buffer().get().ok_or(InvalidOperation),
+            return
+        );
+
         if count > 0 && primcount > 0 {
-            if let Some(array_buffer) = self.current_vao().element_array_buffer().get() {
-                // This operation cannot overflow in u64 and we know all those values are nonnegative.
-                let val = offset as u64 + (count as u64 * type_size as u64);
-                if val > array_buffer.capacity() as u64 {
-                    return self.webgl_error(InvalidOperation);
-                }
-            } else {
+            // This operation cannot overflow in u64 and we know all those values are nonnegative.
+            let val = offset as u64 + (count as u64 * type_size as u64);
+            if val > array_buffer.capacity() as u64 {
                 return self.webgl_error(InvalidOperation);
             }
         }
