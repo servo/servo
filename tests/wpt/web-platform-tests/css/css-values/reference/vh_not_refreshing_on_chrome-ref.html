@@ -36,10 +36,10 @@
 			var frameTest = document.getElementById('frameTest');
 
 			// let's resize the iframe vertically only, showing that the vh sizes is not updated.
-			if (height <= 300) {
+			if (height < 300) {
 
 				//frameTest.style.width = height++ + "px";
-				frameTest.style.height = height++ + "px";
+				frameTest.style.height = ++height + "px";
 
 				setTimeout(resizeReference, 10);
 
