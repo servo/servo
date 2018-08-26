@@ -40,6 +40,7 @@ test_interfaces([
   "PerformanceObserverEntryList",
   "PerformancePaintTiming",
   "ProgressEvent",
+  "PromiseRejectionEvent",
   "Request",
   "Response",
   "TextDecoder",
