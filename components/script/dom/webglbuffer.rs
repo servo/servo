@@ -154,6 +154,7 @@ impl WebGLBuffer {
 
 impl Drop for WebGLBuffer {
     fn drop(&mut self) {
-        self.delete();
+        self.mark_for_deletion();
+        assert!(self.is_deleted());
     }
 }
