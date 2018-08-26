@@ -2,7 +2,6 @@
 
 import pytest
 import time
-from tests.support.fixtures import configuration
 from tests.actions.support.keys import ALL_EVENTS, Keys
 from tests.actions.support.refine import filter_dict, get_keys, get_events
 from webdriver import error

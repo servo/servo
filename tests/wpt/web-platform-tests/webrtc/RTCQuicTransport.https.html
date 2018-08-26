@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCQuicTransport.https.html</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// These tests are based on the following specification:
+// https://w3c.github.io/webrtc-quic/
+
+function makeQuicTransport(t, certificates) {
+  const iceTransport = new RTCIceTransport();
+  t.add_cleanup(() => iceTransport.stop());
+  const quicTransport = new RTCQuicTransport(iceTransport, certificates);
+  t.add_cleanup(() => quicTransport.stop());
+  return quicTransport;
+}
+
+function generateCertificate(keygenAlgorithm) {
+  return RTCPeerConnection.generateCertificate({
+    name: 'ECDSA',
+    namedCurve: 'P-256',
+    ...keygenAlgorithm,
+  });
+}
+
+test(t => {
+  // Don't use the makeQuicTransport helper so that the transport property can
+  // be verified.
+  const iceTransport = new RTCIceTransport();
+  const quicTransport = new RTCQuicTransport(iceTransport, []);
+  t.add_cleanup(() => {
+    quicTransport.stop();
+    iceTransport.stop();
+  });
+  assert_equals(quicTransport.transport, iceTransport,
+      'Expect transport to be the same as the one passed in the constructor.');
+  assert_equals(quicTransport.state, 'new', `Expect state to be 'new'.`);
+  assert_object_equals(quicTransport.getLocalParameters(),
+      { role: 'auto', fingerprints: [] },
+      'Expect local parameters to be initialized.');
+  assert_equals(quicTransport.getRemoteParameters(), null,
+      'Expect no remote parameters.');
+  assert_array_equals(quicTransport.getCertificates(), [],
+      'Expect not certificates.');
+  assert_array_equals(quicTransport.getRemoteCertificates(), [],
+      'Expect no remote certificates.');
+}, 'RTCQuicTransport initial properties are set.');
+
+promise_test(async t => {
+  const [ firstCertificate, secondCertificate ] =
+      await Promise.all([ generateCertificate(), generateCertificate() ]);
+  const quicTransport =
+      makeQuicTransport(t, [ firstCertificate, secondCertificate ]);
+  assert_array_equals(quicTransport.getCertificates(),
+      [ firstCertificate, secondCertificate ]);
+}, 'getCertificates() returns the certificates passed in the constructor.');
+
+promise_test(async t => {
+  const [ firstCertificate, secondCertificate ] =
+      await Promise.all([ generateCertificate(), generateCertificate() ]);
+  const quicTransport =
+      makeQuicTransport(t, [ firstCertificate, secondCertificate ]);
+  assert_object_equals(quicTransport.getLocalParameters(), {
+    role: 'auto',
+    fingerprints: [ firstCertificate.getFingerprints()[0],
+        secondCertificate.getFingerprints()[0] ],
+  });
+  assert_array_equals(quicTransport.getCertificates(),
+      [ firstCertificate, secondCertificate ]);
+}, 'getLocalParameters() has fingerprints for all certificates passed in the ' +
+    'constructor.');
+
+promise_test(async t => {
+  const expiredCertificate = await generateCertificate({ expires: 0 });
+  assert_throws(new TypeError(),
+      () => makeQuicTransport(t, [ expiredCertificate ]));
+}, 'RTCQuicTransport constructor throws if passed an expired certificate.');
+
+test(t => {
+  const iceTransport = new RTCIceTransport();
+  iceTransport.stop();
+  assert_throws('InvalidStateError',
+      () => new RTCQuicTransport(iceTransport, []));
+}, 'RTCQuicTransport constructor throws if passed a closed RTCIceTransport.');
+
+test(t => {
+  const quicTransport = makeQuicTransport(t, []);
+  quicTransport.stop();
+  assert_equals(quicTransport.state, 'closed');
+}, `stop() changes state to 'closed'.`);
+
+</script>
+

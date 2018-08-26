@@ -100,7 +100,7 @@ INDENT TABS: html/semantics/embedded-content/the-canvas-element/size.attributes.
 # Intentional use of print statements
 PRINT STATEMENT: dom/nodes/Document-createElement-namespace-tests/generate.py
 PRINT STATEMENT: encrypted-media/polyfill/make-polyfill-tests.py
-PRINT STATEMENT: webdriver/tests/support/fixtures.py
+PRINT STATEMENT: webdriver/tests/support/helpers.py
 
 # semi-legitimate use of console.*
 CONSOLE: console/*

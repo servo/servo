@@ -1,0 +1,18 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>::first-line on inlines</title>
+  <style type="text/css"><![CDATA[
+  p { color: green; }
+  span:first-line { background: red; color: yellow; font-size: 4em; }
+  span::first-line { background: red; color: yellow; font-size: 4em; }
+]]></style>
+  <link rel="author" title="Ian Hickson" href="mailto:ian@hixie.ch"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <link rel="match" href="reference/this-line-green-color.xht"/>
+  <meta name="flags" content="" />
+ </head>
+ <body>
+   <p><span>This line should be green.</span></p>
+</body>
+</html>
