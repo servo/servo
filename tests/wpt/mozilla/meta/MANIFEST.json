@@ -13976,6 +13976,12 @@
      {}
     ]
    ],
+   "mozilla/img_placeholder_load.html": [
+    [
+     "/_mozilla/mozilla/img_placeholder_load.html",
+     {}
+    ]
+   ],
    "mozilla/img_width_height.html": [
     [
      "/_mozilla/mozilla/img_width_height.html",
@@ -27041,6 +27047,10 @@
   ],
   "mozilla/img_no_panic_on_no_map.html": [
    "e9f1b56ac4c49c146868123a9a73f55c85ae3771",
+   "testharness"
+  ],
+  "mozilla/img_placeholder_load.html": [
+   "c90b0041a4bc4c255819839cec7265ae65454674",
    "testharness"
   ],
   "mozilla/img_width_height.html": [

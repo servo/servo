@@ -303,38 +303,43 @@ impl HTMLImageElement {
         document.loader_mut().fetch_async_background(request, action_sender);
     }
 
-    /// Step 14 of https://html.spec.whatwg.org/multipage/#update-the-image-data
+    // Steps common to when an image has been loaded.
+    fn handle_loaded_image(&self, image: Arc<Image>, url: ServoUrl) {
+        self.current_request.borrow_mut().metadata = Some(ImageMetadata {
+            height: image.height,
+            width: image.width
+        });
+        self.current_request.borrow_mut().final_url = Some(url);
+        self.current_request.borrow_mut().image = Some(image);
+        self.current_request.borrow_mut().state = State::CompletelyAvailable;
+        LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+        // Mark the node dirty
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+    }
+
+    /// Step 24 of https://html.spec.whatwg.org/multipage/#update-the-image-data
     fn process_image_response(&self, image: ImageResponse) {
         // TODO: Handle multipart/x-mixed-replace
         let (trigger_image_load, trigger_image_error) = match (image, self.image_request.get()) {
-            (ImageResponse::Loaded(image, url), ImageRequestPhase::Current) |
-            (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Current) => {
-                self.current_request.borrow_mut().metadata = Some(ImageMetadata {
-                    height: image.height,
-                    width: image.width
-                });
-                self.current_request.borrow_mut().final_url = Some(url);
-                self.current_request.borrow_mut().image = Some(image);
-                self.current_request.borrow_mut().state = State::CompletelyAvailable;
-                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
-                // Mark the node dirty
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            (ImageResponse::Loaded(image, url), ImageRequestPhase::Current) => {
+                self.handle_loaded_image(image, url);
                 (true, false)
             },
-            (ImageResponse::Loaded(image, url), ImageRequestPhase::Pending) |
+            (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Current) => {
+                self.handle_loaded_image(image, url);
+                (false, true)
+            },
+            (ImageResponse::Loaded(image, url), ImageRequestPhase::Pending) => {
+                self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
+                self.image_request.set(ImageRequestPhase::Current);
+                self.handle_loaded_image(image, url);
+                (true, false)
+            },
             (ImageResponse::PlaceholderLoaded(image, url), ImageRequestPhase::Pending) => {
                 self.abort_request(State::Unavailable, ImageRequestPhase::Pending);
                 self.image_request.set(ImageRequestPhase::Current);
-                self.current_request.borrow_mut().metadata = Some(ImageMetadata {
-                    height: image.height,
-                    width: image.width
-                });
-                self.current_request.borrow_mut().final_url = Some(url);
-                self.current_request.borrow_mut().image = Some(image);
-                self.current_request.borrow_mut().state = State::CompletelyAvailable;
-                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
-                self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                (true, false)
+                self.handle_loaded_image(image, url);
+                (false, true)
             },
             (ImageResponse::MetadataLoaded(meta), ImageRequestPhase::Current) => {
                 self.current_request.borrow_mut().state = State::PartiallyAvailable;
