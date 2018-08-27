@@ -429,9 +429,11 @@ impl Profiler {
                         if let Some(ref meta) = *meta {
                             measurement.add_tag("host", meta.url.as_str());
                         };
+                        /*
                         if client.write_one(measurement, None).is_err() {
                             warn!("Could not write measurement to profiler db");
                         }
+                        */
                     }
                 }
 

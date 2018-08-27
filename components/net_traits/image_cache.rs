@@ -49,6 +49,7 @@ impl ImageResponder {
 
     pub fn respond(&self, response: ImageResponse) {
         debug!("Notifying listener");
+        debug!("{:?}", response);
         // This send can fail if thread waiting for this notification has panicked.
         // That's not a case that's worth warning about.
         // TODO(#15501): are there cases in which we should perform cleanup?
@@ -56,6 +57,7 @@ impl ImageResponder {
             response: response,
             id: self.id,
         });
+        debug!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
     }
 }
 

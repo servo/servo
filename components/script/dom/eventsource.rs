@@ -17,13 +17,13 @@ use dom::messageevent::MessageEvent;
 use dom_struct::dom_struct;
 use euclid::Length;
 use fetch::FetchCanceller;
-use hyper::header::{Accept, qitem};
+use http::header::HeaderName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
-use mime::{Mime, TopLevel, SubLevel};
+use mime;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
 use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
@@ -37,9 +37,13 @@ use std::str::{Chars, FromStr};
 use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
 use timers::OneshotTimerCallback;
+use typed_headers::{Accept, HeaderMapExt, Quality, QualityItem};
 use utf8;
 
-header! { (LastEventId, "Last-Event-ID") => [String] }
+lazy_static! {
+    static ref LAST_EVENT_ID: HeaderName = HeaderName::from_static("Last-Event-ID");
+}
+header! { (LastEventId, LAST_EVENT_ID) => [String] }
 
 const DEFAULT_RECONNECTION_TIME: u64 = 5000;
 
@@ -327,12 +331,13 @@ impl FetchResponseListener for EventSourceContext {
                 };
                 match meta.content_type {
                     None => self.fail_the_connection(),
-                    Some(ct) => match ct.into_inner().0 {
-                        Mime(TopLevel::Text, SubLevel::EventStream, _) => {
+                    Some(ct) => {
+                        if ct.into_inner().0 == mime::TEXT_EVENT_STREAM {
                             self.origin = meta.final_url.origin().unicode_serialization();
                             self.announce_the_connection();
+                        } else {
+                            self.fail_the_connection()
                         }
-                        _ => self.fail_the_connection()
                     }
                 }
             }
@@ -475,7 +480,7 @@ impl EventSource {
             ..RequestInit::default()
         };
         // Step 10
-        request.headers.set(Accept(vec![qitem(mime!(Text / EventStream))]));
+        request.headers.typed_insert(&Accept(vec![QualityItem::new(mime::TEXT_EVENT_STREAM, Quality::from_u16(1000))]));
         // Step 11
         request.cache_mode = CacheMode::NoStore;
         // Step 12
@@ -578,7 +583,7 @@ impl EventSourceTimeoutCallback {
         let mut request = event_source.request();
         // Step 5.3
         if !event_source.last_event_id.borrow().is_empty() {
-            request.headers.set(LastEventId(String::from(event_source.last_event_id.borrow().clone())));
+            request.headers.typed_insert(&LastEventId(String::from(event_source.last_event_id.borrow().clone())));
         }
         // Step 5.4
         global.core_resource_thread().send(

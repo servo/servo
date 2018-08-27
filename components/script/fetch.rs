@@ -188,7 +188,8 @@ impl FetchResponseListener for FetchContext {
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         match fetch_metadata {
             // Step 4.1
-            Err(_) => {
+            Err(e) => {
+                error!("Network error: {:?}", e);
                 promise.reject_error(Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 self.response_object.root().set_type(DOMResponseType::Error);

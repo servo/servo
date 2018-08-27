@@ -14,11 +14,10 @@ use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
 use encoding_rs::UTF_8;
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use mime;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
@@ -36,6 +35,7 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::stylesheets::import_rule::ImportSheet;
 use style::values::CssUrl;
 use task_source::TaskSourceName;
+use typed_headers::ContentType;
 
 pub trait StylesheetOwner {
     /// Returns whether this element was inserted by the parser (i.e., it should
@@ -121,8 +121,8 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css = metadata.content_type.map_or(false, |Serde(ContentType(Mime(top, sub, _)))|
-                top == TopLevel::Text && sub == SubLevel::Css);
+            let is_css = metadata.content_type.map_or(false, |Serde(ContentType(mime))|
+                mime.type_() == mime::TEXT && mime.subtype() == mime::CSS);
 
             let data = if is_css { mem::replace(&mut self.data, vec![]) } else { vec![] };
 
