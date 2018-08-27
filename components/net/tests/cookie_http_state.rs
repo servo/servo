@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use hyper::header::{Header, SetCookie};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
 use servo_url::ServoUrl;
-
 
 fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String {
     let mut storage = CookieStorage::new(150);
@@ -16,14 +14,8 @@ fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String
 
     // Add all cookies to the store
     for str_cookie in set_cookies {
-        let bytes = str_cookie.to_string().into_bytes();
-        let header = Header::parse_header(&[bytes]);
-        if let Ok(SetCookie(cookies)) = header {
-            for bare_cookie in cookies {
-                if let Some(cookie) = Cookie::from_cookie_string(bare_cookie, &url, source) {
-                    storage.push(cookie, &url, source);
-                }
-            }
+        if let Some(cookie) = Cookie::from_cookie_string(str_cookie.to_owned().into(), &url, source) {
+            storage.push(cookie, &url, source);
         }
     }
 

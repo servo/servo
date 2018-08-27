@@ -29,7 +29,7 @@ app_units = "0.7"
 cssparser = "0.24.0"
 euclid = "0.19"
 hashglobe = { path = "../hashglobe" }
-hyper = { version = "0.10", optional = true }
+hyper = { version = "0.12", optional = true }
 hyper_serde = { version = "0.8", optional = true }
 keyboard-types = {version = "0.4.2-servo", features = ["serde"], optional = true}
 mozjs = { version = "0.9.3", optional = true }

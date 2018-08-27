@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
-use hyper::header::{Header, SetCookie};
+//use hyper::header::{Header, SetCookie};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
@@ -90,7 +90,7 @@ fn fn_cookie_constructor() {
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
     assert_eq!(cookie.cookie.value(), "bar");
     assert_eq!(cookie.cookie.name(), "baz");
-    assert!(cookie.cookie.secure());
+    assert!(cookie.cookie.secure().unwrap_or(false));
     assert_eq!(&cookie.cookie.path().as_ref().unwrap()[..], "/foo/bar/");
     assert_eq!(&cookie.cookie.domain().as_ref().unwrap()[..], "example.com");
     assert!(cookie.host_only);
@@ -324,13 +324,8 @@ fn add_retrieve_cookies(set_location: &str,
 
     // Add all cookies to the store
     for str_cookie in set_cookies {
-        let bytes = str_cookie.to_string().into_bytes();
-        let header = Header::parse_header(&[bytes]).unwrap();
-        let SetCookie(cookies) = header;
-        for bare_cookie in cookies {
-            let cookie = Cookie::from_cookie_string(bare_cookie, &url, source).unwrap();
-            storage.push(cookie, &url, source);
-        }
+        let cookie = Cookie::from_cookie_string(str_cookie.to_owned(), &url, source).unwrap();
+        storage.push(cookie, &url, source);
     }
 
     // Get cookies for the test location

@@ -95,14 +95,13 @@ use encoding_rs::{Encoding, UTF_8};
 use euclid::Point2D;
 use fetch::FetchCanceller;
 use html5ever::{LocalName, Namespace, QualName};
-use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
 use keyboard_types::{Key, KeyState, Modifiers};
 use metrics::{InteractiveFlag, InteractiveMetrics, InteractiveWindow, ProfilerMetadataFactory, ProgressiveWebMetric};
-use mime::{Mime, TopLevel, SubLevel};
+use mime::{self, Mime};
 use msg::constellation_msg::BrowsingContextId;
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
@@ -2530,14 +2529,12 @@ impl Document {
             implementation: Default::default(),
             content_type: match content_type {
                 Some(mime_data) => mime_data,
-                None => Mime::from(match is_html_document {
+                None => match is_html_document {
                     // https://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => Mime(TopLevel::Text, SubLevel::Html, vec![]),
+                    IsHTMLDocument::HTMLDocument => mime::TEXT_HTML,
                     // https://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => {
-                        Mime(TopLevel::Application, SubLevel::Xml, vec![])
-                    },
-                }),
+                    IsHTMLDocument::NonHTMLDocument => "application/xml".parse().unwrap(),
+                },
             },
             last_modified: last_modified,
             url: DomRefCell::new(url),
@@ -3345,8 +3342,10 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
 
-        let is_xhtml = self.content_type.0 == TopLevel::Application &&
-            self.content_type.1.as_str() == "xhtml+xml";
+        let is_xhtml = self.content_type.type_() == mime::APPLICATION &&
+            self.content_type.subtype().as_str() == "xhtml" &&
+            self.content_type.suffix() == Some(mime::XML);
+
         let ns = if self.is_html_document || is_xhtml {
             ns!(html)
         } else {
@@ -3947,18 +3946,16 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        if let Ok(cookie_header) = SetCookie::parse_header(&vec![cookie.to_string().into_bytes()]) {
-            let cookies = cookie_header
-                .0
-                .into_iter()
-                .filter_map(|cookie| cookie_rs::Cookie::parse(cookie).ok().map(Serde))
-                .collect();
-            let _ = self
-                .window
+        let cookies = if let Some(cookie) = cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde) {
+            vec![cookie]
+        } else {
+            vec![]
+        };
+
+        let _ = self.window
                 .upcast::<GlobalScope>()
                 .resource_threads()
                 .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
-        }
         Ok(())
     }
 

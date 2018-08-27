@@ -3,11 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use filemanager_thread::FileManager;
-use hyper::header::{Charset, ContentLength, ContentType, Headers};
-use hyper::header::{ContentDisposition, DispositionParam, DispositionType};
+use headers_core::HeaderMapExt;
+use headers_ext::{ContentLength, ContentType};
+use http::HeaderMap;
+use http::header::{self, HeaderValue};
 use ipc_channel::ipc;
-use mime::{Attr, Mime};
-use net_traits::NetworkError;
+use mime::{self, Mime};
+use net_traits::{http_percent_encode, NetworkError};
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::ReadFileProgress;
 use servo_url::ServoUrl;
@@ -20,7 +22,7 @@ use servo_url::ServoUrl;
 pub fn load_blob_sync
             (url: ServoUrl,
              filemanager: FileManager)
-             -> Result<(Headers, Vec<u8>), NetworkError> {
+             -> Result<(HeaderMap, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {
         Ok((id, origin)) => (id, origin),
         Err(()) => {
@@ -43,26 +45,32 @@ pub fn load_blob_sync
         }
     };
 
-    let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime!(Text / Plain));
-    let charset = content_type.get_param(Attr::Charset);
+    let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN);
+    let charset = content_type.get_param(mime::CHARSET);
 
-    let mut headers = Headers::new();
+    let mut headers = HeaderMap::new();
 
     if let Some(name) = blob_buf.filename {
-        let charset = charset.and_then(|c| c.as_str().parse().ok());
-        headers.set(ContentDisposition {
-            disposition: DispositionType::Inline,
-            parameters: vec![
-                DispositionParam::Filename(charset.unwrap_or(Charset::Us_Ascii),
-                                           None, name.as_bytes().to_vec())
-            ]
-        });
+        let charset = charset.map(|c| c.as_ref().into()).unwrap_or("us-ascii".to_owned());
+        // TODO(eijebong): Replace this once the typed header is there
+        headers.insert(
+            header::CONTENT_DISPOSITION,
+            HeaderValue::from_bytes(
+                format!("inline; {}",
+                    if charset.to_lowercase() == "utf-8" {
+                        format!("filename=\"{}\"", String::from_utf8(name.as_bytes().into()).unwrap())
+                    } else {
+                        format!("filename*=\"{}\"''{}", charset, http_percent_encode(name.as_bytes()))
+                    }
+                ).as_bytes()
+            ).unwrap()
+        );
     }
 
     // Basic fetch, Step 4.
-    headers.set(ContentLength(blob_buf.size as u64));
+    headers.typed_insert(ContentLength(blob_buf.size as u64));
     // Basic fetch, Step 5.
-    headers.set(ContentType(content_type.clone()));
+    headers.typed_insert(ContentType::from(content_type.clone()));
 
     let mut bytes = blob_buf.bytes;
     loop {

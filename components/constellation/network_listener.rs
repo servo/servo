@@ -6,7 +6,7 @@
 //! Any redirects that are encountered are followed. Whenever a non-redirect
 //! response is received, it is forwarded to the appropriate script thread.
 
-use hyper::header::Location;
+use http::header::LOCATION;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
@@ -99,7 +99,7 @@ impl NetworkListener {
                 };
 
                 match metadata.headers {
-                    Some(ref headers) if headers.has::<Location>() => {
+                    Some(ref headers) if headers.contains_key(LOCATION) => {
                         if self.req_init.url_list.is_empty() {
                             self.req_init.url_list.push(self.req_init.url.clone());
                         }
