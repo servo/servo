@@ -17,7 +17,7 @@ function makeIceTransport(t) {
 
 test(() => {
   const iceTransport = new RTCIceTransport();
-}, 'RTCIceTransport constructor does not throw.');
+}, 'RTCIceTransport constructor does not throw');
 
 test(() => {
   const iceTransport = new RTCIceTransport();
@@ -35,7 +35,7 @@ test(() => {
     'Expect local parameters generated');
   assert_equals(iceTransport.getRemoteParameters(), null,
     'Expect no remote parameters');
-}, 'RTCIceTransport initial properties are set.');
+}, 'RTCIceTransport initial properties are set');
 
 test(t => {
   const iceTransport = makeIceTransport(t);
@@ -124,5 +124,148 @@ promise_test(async t => {
   assert_array_equals(iceTransport.getLocalCandidates(), []);
 }, `gather() returns no candidates with { gatherPolicy: 'relay'} and no turn` +
     ' servers');
+
+const dummyRemoteParameters = {
+  usernameFragment: 'dummyUsernameFragment',
+  password: 'dummyPassword',
+};
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  iceTransport.stop();
+  assert_throws('InvalidStateError',
+    () => iceTransport.start(dummyRemoteParameters));
+  assert_equals(iceTransport.getRemoteParameters(), null);
+}, `start() throws if closed`);
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  assert_throws(new TypeError(), () => iceTransport.start({}));
+  assert_throws(new TypeError(),
+    () => iceTransport.start({ usernameFragment: 'dummy' }));
+  assert_throws(new TypeError(),
+    () => iceTransport.start({ password: 'dummy' }));
+  assert_equals(iceTransport.getRemoteParameters(), null);
+}, 'start() throws if usernameFragment or password not set');
+
+const assert_ice_parameters_equals = (a, b) => {
+  assert_equals(a.usernameFragment, b.usernameFragment,
+      'usernameFragments are equal');
+  assert_equals(a.password, b.password, 'passwords are equal');
+};
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  assert_equals(iceTransport.state, 'new');
+  assert_ice_parameters_equals(iceTransport.getRemoteParameters(),
+      dummyRemoteParameters);
+}, `start() does not transition state to 'checking' if no remote candidates ` +
+    'added');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  assert_equals(iceTransport.role, 'controlled');
+}, `start() with default role sets role attribute to 'controlled'`);
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters, 'controlling');
+  assert_equals(iceTransport.role, 'controlling');
+}, `start() sets role attribute to 'controlling'`);
+
+const candidate1 = new RTCIceCandidate({
+  candidate: 'candidate:1 1 udp 2113929471 203.0.113.100 10100 typ host',
+});
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  iceTransport.stop();
+  assert_throws('InvalidStateError',
+    () => iceTransport.addRemoteCandidate(candidate1));
+  assert_array_equals(iceTransport.getRemoteCandidates(), []);
+}, 'addRemoteCandidate() throws if closed');
+
+test(() => {
+  const iceTransport = new RTCIceTransport();
+  assert_throws('OperationError',
+    () => iceTransport.addRemoteCandidate(
+      new RTCIceCandidate({ candidate: 'invalid' })));
+  assert_array_equals(iceTransport.getRemoteCandidates(), []);
+}, 'addRemoteCandidate() throws on invalid candidate');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.addRemoteCandidate(candidate1);
+  iceTransport.start(dummyRemoteParameters);
+  assert_equals(iceTransport.state, 'checking');
+  assert_array_equals(iceTransport.getRemoteCandidates(), [candidate1]);
+}, `start() transitions state to 'checking' if one remote candidate had been ` +
+    'added');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  iceTransport.addRemoteCandidate(candidate1);
+  assert_equals(iceTransport.state, 'checking');
+  assert_array_equals(iceTransport.getRemoteCandidates(), [candidate1]);
+}, `addRemoteCandidate() transitions state to 'checking' if start() had been ` +
+    'called before');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start(dummyRemoteParameters);
+  assert_throws('InvalidStateError',
+    () => iceTransport.start(dummyRemoteParameters, 'controlling'));
+}, 'start() throws if later called with a different role');
+
+test(t => {
+  const iceTransport = makeIceTransport(t);
+  iceTransport.start({
+    usernameFragment: 'user',
+    password: 'pass',
+  });
+  iceTransport.addRemoteCandidate(candidate1);
+  const changedRemoteParameters = {
+    usernameFragment: 'user2',
+    password: 'pass',
+  };
+  iceTransport.start(changedRemoteParameters);
+  assert_equals(iceTransport.state, 'new');
+  assert_array_equals(iceTransport.getRemoteCandidates(), []);
+  assert_ice_parameters_equals(iceTransport.getRemoteParameters(),
+      changedRemoteParameters);
+}, `start() flushes remote candidates and transitions state to 'new' if ` +
+   'later called with different remote parameters');
+
+promise_test(async t => {
+  const localTransport = makeIceTransport(t);
+  const remoteTransport = makeIceTransport(t);
+  localTransport.onicecandidate = e => {
+    if (e.candidate) {
+      remoteTransport.addRemoteCandidate(e.candidate);
+    }
+  };
+  remoteTransport.onicecandidate = e => {
+    if (e.candidate) {
+      localTransport.addRemoteCandidate(e.candidate);
+    }
+  };
+  localTransport.gather({});
+  remoteTransport.gather({});
+  localTransport.start(remoteTransport.getLocalParameters(), 'controlling');
+  remoteTransport.start(localTransport.getLocalParameters(), 'controlled');
+  const localWatcher = new EventWatcher(t, localTransport, 'statechange');
+  const remoteWatcher = new EventWatcher(t, remoteTransport, 'statechange');
+  await Promise.all([
+    localWatcher.wait_for('statechange').then(() => {
+      assert_equals(localTransport.state, 'connected');
+    }),
+    remoteWatcher.wait_for('statechange').then(() => {
+      assert_equals(remoteTransport.state, 'connected');
+    }),
+  ]);
+}, 'Two RTCIceTransports connect to each other');
 
 </script>
