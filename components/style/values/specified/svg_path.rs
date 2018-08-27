@@ -7,8 +7,8 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
-use std::iter::Peekable;
-use std::str::Chars;
+use std::iter::{Cloned, Peekable};
+use std::slice;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use values::CSSFloat;
@@ -133,8 +133,8 @@ impl ToCss for PathCommand {
     {
         use self::PathCommand::*;
         match *self {
-            Unknown => dest.write_str("X"),
-            ClosePath => dest.write_str("Z"),
+            Unknown => dest.write_char('X'),
+            ClosePath => dest.write_char('Z'),
             MoveTo { point, absolute } => {
                 dest.write_char(if absolute { 'M' } else { 'm' })?;
                 dest.write_char(' ')?;
@@ -219,7 +219,7 @@ impl CoordPair {
 
 /// SVG Path parser.
 struct PathParser<'a> {
-    chars: Peekable<Chars<'a>>,
+    chars: Peekable<Cloned<slice::Iter<'a, u8>>>,
     path: Vec<PathCommand>,
 }
 
@@ -256,7 +256,7 @@ impl<'a> PathParser<'a> {
     #[inline]
     fn new(string: &'a str) -> Self {
         PathParser {
-            chars: string.chars().peekable(),
+            chars: string.as_bytes().iter().cloned().peekable(),
             path: Vec::new(),
         }
     }
@@ -270,13 +270,13 @@ impl<'a> PathParser<'a> {
         // Handle other commands.
         loop {
             skip_wsp(&mut self.chars);
-            if self.chars.peek().map_or(true, |m| *m == 'M' || *m == 'm') {
+            if self.chars.peek().map_or(true, |&m| m == b'M' || m == b'm') {
                 break;
             }
 
             match self.chars.next() {
                 Some(command) => {
-                    let abs = command.is_uppercase();
+                    let abs = command.is_ascii_uppercase();
                     macro_rules! parse_command {
                         ( $($($p:pat)|+ => $parse_func:ident,)* ) => {
                             match command {
@@ -291,15 +291,15 @@ impl<'a> PathParser<'a> {
                         }
                     }
                     parse_command!(
-                        'Z' | 'z' => parse_closepath,
-                        'L' | 'l' => parse_lineto,
-                        'H' | 'h' => parse_h_lineto,
-                        'V' | 'v' => parse_v_lineto,
-                        'C' | 'c' => parse_curveto,
-                        'S' | 's' => parse_smooth_curveto,
-                        'Q' | 'q' => parse_quadratic_bezier_curveto,
-                        'T' | 't' => parse_smooth_quadratic_bezier_curveto,
-                        'A' | 'a' => parse_elliprical_arc,
+                        b'Z' | b'z' => parse_closepath,
+                        b'L' | b'l' => parse_lineto,
+                        b'H' | b'h' => parse_h_lineto,
+                        b'V' | b'v' => parse_v_lineto,
+                        b'C' | b'c' => parse_curveto,
+                        b'S' | b's' => parse_smooth_curveto,
+                        b'Q' | b'q' => parse_quadratic_bezier_curveto,
+                        b'T' | b't' => parse_smooth_quadratic_bezier_curveto,
+                        b'A' | b'a' => parse_elliprical_arc,
                     );
                 },
                 _ => break, // no more commands.
@@ -311,13 +311,13 @@ impl<'a> PathParser<'a> {
     /// Parse "moveto" command.
     fn parse_moveto(&mut self) -> Result<(), ()> {
         let command = match self.chars.next() {
-            Some(c) if c == 'M' || c == 'm' => c,
+            Some(c) if c == b'M' || c == b'm' => c,
             _ => return Err(()),
         };
 
         skip_wsp(&mut self.chars);
         let point = parse_coord(&mut self.chars)?;
-        let absolute = command == 'M';
+        let absolute = command == b'M';
         self.path.push(PathCommand::MoveTo { point, absolute } );
 
         // End of string or the next character is a possible new command.
@@ -382,13 +382,11 @@ impl<'a> PathParser<'a> {
     /// Parse elliptical arc curve command.
     fn parse_elliprical_arc(&mut self, absolute: bool) -> Result<(), ()> {
         // Parse a flag whose value is '0' or '1'; otherwise, return Err(()).
-        let parse_flag = |iter: &mut Peekable<Chars>| -> Result<bool, ()> {
-            let value = match iter.peek() {
-                Some(c) if *c == '0' || *c == '1' => *c == '1',
-                _ => return Err(()),
-            };
-            iter.next();
-            Ok(value)
+        let parse_flag = |iter: &mut Peekable<Cloned<slice::Iter<u8>>>| -> Result<bool, ()> {
+            match iter.next() {
+                Some(c) if c == b'0' || c == b'1' => Ok(c == b'1'),
+                _ => Err(()),
+            }
         };
         parse_arguments!(self, absolute, EllipticalArc, [
             rx => parse_number,
@@ -403,7 +401,7 @@ impl<'a> PathParser<'a> {
 
 
 /// Parse a pair of numbers into CoordPair.
-fn parse_coord(iter: &mut Peekable<Chars>) -> Result<CoordPair, ()> {
+fn parse_coord(iter: &mut Peekable<Cloned<slice::Iter<u8>>>) -> Result<CoordPair, ()> {
     let x = parse_number(iter)?;
     skip_comma_wsp(iter);
     let y = parse_number(iter)?;
@@ -417,28 +415,28 @@ fn parse_coord(iter: &mut Peekable<Chars>) -> Result<CoordPair, ()> {
 /// input is a Peekable and we only accept an integer of a floating point number.
 ///
 /// The "number" syntax in https://www.w3.org/TR/SVG/paths.html#PathDataBNF
-fn parse_number(iter: &mut Peekable<Chars>) -> Result<CSSFloat, ()> {
+fn parse_number(iter: &mut Peekable<Cloned<slice::Iter<u8>>>) -> Result<CSSFloat, ()> {
     // 1. Check optional sign.
-    let sign = if iter.peek().map_or(false, |&sign: &char| sign == '+' || sign == '-') {
-        if iter.next().unwrap() == '-' { -1. } else { 1. }
+    let sign = if iter.peek().map_or(false, |&sign| sign == b'+' || sign == b'-') {
+        if iter.next().unwrap() == b'-' { -1. } else { 1. }
     } else {
         1.
     };
 
     // 2. Check integer part.
     let mut integral_part: f64 = 0.;
-    let got_dot = if !iter.peek().map_or(false, |&n: &char| n == '.') {
+    let got_dot = if !iter.peek().map_or(false, |&n| n == b'.') {
         // If the first digit in integer part is neither a dot nor a digit, this is not a number.
-        if iter.peek().map_or(true, |n: &char| !n.is_ascii_digit()) {
+        if iter.peek().map_or(true, |n| !n.is_ascii_digit()) {
             return Err(());
         }
 
-        while iter.peek().map_or(false, |n: &char| n.is_ascii_digit()) {
+        while iter.peek().map_or(false, |n| n.is_ascii_digit()) {
             integral_part =
-                integral_part * 10. + iter.next().unwrap().to_digit(10).unwrap() as f64;
+                integral_part * 10. + (iter.next().unwrap() - b'0') as f64;
         }
 
-        iter.peek().map_or(false, |&n: &char| n == '.')
+        iter.peek().map_or(false, |&n| n == b'.')
     } else {
         true
     };
@@ -449,13 +447,13 @@ fn parse_number(iter: &mut Peekable<Chars>) -> Result<CSSFloat, ()> {
         // Consume '.'.
         iter.next();
         // If the first digit in fractional part is not a digit, this is not a number.
-        if iter.peek().map_or(true, |n: &char| !n.is_ascii_digit()) {
+        if iter.peek().map_or(true, |n| !n.is_ascii_digit()) {
             return Err(());
         }
 
         let mut factor = 0.1;
-        while iter.peek().map_or(false, |n: &char| n.is_ascii_digit()) {
-            fractional_part += iter.next().unwrap().to_digit(10).unwrap() as f64 * factor;
+        while iter.peek().map_or(false, |n| n.is_ascii_digit()) {
+            fractional_part += (iter.next().unwrap() - b'0') as f64 * factor;
             factor *= 0.1;
         }
     }
@@ -464,18 +462,18 @@ fn parse_number(iter: &mut Peekable<Chars>) -> Result<CSSFloat, ()> {
 
     // 4. Check exp part. The segment name of SVG Path doesn't include 'E' or 'e', so it's ok to
     //    treat the numbers after 'E' or 'e' are in the exponential part.
-    if iter.peek().map_or(false, |&exp: &char| exp == 'E' || exp == 'e') {
+    if iter.peek().map_or(false, |&exp| exp == b'E' || exp == b'e') {
         // Consume 'E' or 'e'.
         iter.next();
-        let exp_sign = if iter.peek().map_or(false, |&sign: &char| sign == '+' || sign == '-') {
-            if iter.next().unwrap() == '-' { -1. } else { 1. }
+        let exp_sign = if iter.peek().map_or(false, |&sign| sign == b'+' || sign == b'-') {
+            if iter.next().unwrap() == b'-' { -1. } else { 1. }
         } else {
             1.
         };
 
         let mut exp: f64 = 0.;
-        while iter.peek().map_or(false, |n: &char| n.is_ascii_digit()) {
-            exp = exp * 10. + iter.next().unwrap().to_digit(10).unwrap() as f64;
+        while iter.peek().map_or(false, |n| n.is_ascii_digit()) {
+            exp = exp * 10. + (iter.next().unwrap() - b'0') as f64;
         }
 
         value *= f64::powf(10., exp * exp_sign);
@@ -490,12 +488,12 @@ fn parse_number(iter: &mut Peekable<Chars>) -> Result<CSSFloat, ()> {
 
 /// Skip all svg whitespaces, and return true if |iter| hasn't finished.
 #[inline]
-fn skip_wsp(iter: &mut Peekable<Chars>) -> bool {
+fn skip_wsp(iter: &mut Peekable<Cloned<slice::Iter<u8>>>) -> bool {
     // Note: SVG 1.1 defines the whitespaces as \u{9}, \u{20}, \u{A}, \u{D}.
     //       However, SVG 2 has one extra whitespace: \u{C}.
     //       Therefore, we follow the newest spec for the definition of whitespace,
-    //       i.e. \u{9}, \u{20}, \u{A}, \u{C}, \u{D}, by is_ascii_whitespace().
-    while iter.peek().map_or(false, |c: &char| c.is_ascii_whitespace()) {
+    //       i.e. \u{9}, \u{20}, \u{A}, \u{C}, \u{D}.
+    while iter.peek().map_or(false, |c| c.is_ascii_whitespace()) {
         iter.next();
     }
     iter.peek().is_some()
@@ -503,12 +501,12 @@ fn skip_wsp(iter: &mut Peekable<Chars>) -> bool {
 
 /// Skip all svg whitespaces and one comma, and return true if |iter| hasn't finished.
 #[inline]
-fn skip_comma_wsp(iter: &mut Peekable<Chars>) -> bool {
+fn skip_comma_wsp(iter: &mut Peekable<Cloned<slice::Iter<u8>>>) -> bool {
     if !skip_wsp(iter) {
         return false;
     }
 
-    if *iter.peek().unwrap() != ',' {
+    if *iter.peek().unwrap() != b',' {
         return true;
     }
     iter.next();
