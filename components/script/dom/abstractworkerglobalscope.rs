@@ -67,7 +67,7 @@ impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
         let common_msg = match self.recv() {
             Ok(DedicatedWorkerScriptMsg::CommonWorker(_worker, common_msg)) => common_msg,
             Err(_) => return Err(()),
-            _ => panic!("unexpected worker event message!")
+            Ok(DedicatedWorkerScriptMsg::WakeUp) => panic!("unexpected worker event message!")
         };
         match common_msg {
             WorkerScriptMsg::Common(script_msg) => Ok(script_msg),

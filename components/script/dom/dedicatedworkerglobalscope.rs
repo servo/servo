@@ -73,9 +73,9 @@ impl<'a> Drop for AutoWorkerReset<'a> {
 }
 
 pub enum DedicatedWorkerScriptMsg {
-    // Standard message from a worker.
+    /// Standard message from a worker.
     CommonWorker(TrustedWorkerAddress, WorkerScriptMsg),
-    // Wake-up call from the task queue.
+    /// Wake-up call from the task queue.
     WakeUp,
 }
 
@@ -87,8 +87,8 @@ pub enum MixedMessage {
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
     fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
-        let (_worker, common_worker_msg) = match self {
-            DedicatedWorkerScriptMsg::CommonWorker(worker, common_worker_msg) => (worker, common_worker_msg),
+        let common_worker_msg = match self {
+            DedicatedWorkerScriptMsg::CommonWorker(_, common_worker_msg) => common_worker_msg,
             _ => return None,
         };
         let script_msg = match common_worker_msg {
@@ -136,6 +136,8 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
         }
     }
 }
+
+unsafe_no_jsmanaged_fields!(TaskQueue<DedicatedWorkerScriptMsg>);
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
 #[dom_struct]

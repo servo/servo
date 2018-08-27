@@ -243,7 +243,7 @@ pub enum MainThreadScriptMsg {
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
-    // Wake-up call from the task queue.
+    /// Wake-up call from the task queue.
     WakeUp,
 }
 
@@ -444,6 +444,8 @@ impl<'a> Iterator for DocumentsIter<'a> {
 // incomplete parser contexts during GC.
 type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
 unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
+
+unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
@@ -1034,7 +1036,8 @@ impl ScriptThread {
             }
             let ret = sel.wait();
             if ret == script_port.id() {
-                FromScript(self.task_queue.take_tasks().recv().unwrap())
+                self.task_queue.take_tasks();
+                FromScript(self.task_queue.recv().unwrap())
             } else if ret == control_port.id() {
                 FromConstellation(self.control_port.recv().unwrap())
             } else if ret == timer_event_port.id() {
@@ -1127,7 +1130,7 @@ impl ScriptThread {
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
-                Err(_) => match self.task_queue.take_tasks().try_recv() {
+                Err(_) => match self.task_queue.try_recv() {
                     Err(_) => match self.timer_event_port.try_recv() {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {

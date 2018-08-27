@@ -5,9 +5,7 @@
 //! Machinery for [task-queue](https://html.spec.whatwg.org/multipage/#task-queue).
 
 use dom::bindings::cell::DomRefCell;
-use dom::bindings::trace::JSTraceable;
 use dom::worker::TrustedWorkerAddress;
-use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use script_runtime::ScriptThreadEventCategory;
 use std::cell::Cell;
@@ -20,51 +18,7 @@ use task_source::TaskSourceName;
 
 pub type QueuedTask = (Option<TrustedWorkerAddress>, ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>);
 
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for QueuedTask {
-    #[allow(unsafe_code)]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-// Channel-like interface, for use within a single thread.
-pub struct MsgQueue <T> {
-    internal: DomRefCell<VecDeque<T>>
-}
-
-#[allow(unsafe_code)]
-unsafe impl<T> JSTraceable for MsgQueue<T> {
-    #[allow(unsafe_code)]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl<T> MsgQueue <T> {
-    fn new() -> MsgQueue<T> {
-        MsgQueue {
-            internal: DomRefCell::new(VecDeque::new())
-        }
-    }
-
-    // Add a message to the back of the queue.
-    fn send(&self, msg: T) {
-        self.internal.borrow_mut().push_back(msg);
-    }
-
-    // Take a message from the front, without waiting if empty.
-    pub fn recv(&self) -> Result<T, ()> {
-        self.internal.borrow_mut().pop_front().ok_or(())
-    }
-
-    // Same as recv.
-    pub fn try_recv(&self) -> Result<T, ()> {
-        self.recv()
-    }
-}
-
-// Defining the operations used to convert from a msg T to a QueuedTask.
+/// Defining the operations used to convert from a msg T to a QueuedTask.
 pub trait QueuedTaskConversion {
     fn task_category(&self) -> Option<&ScriptThreadEventCategory>;
     fn into_queued_task(self) -> Option<QueuedTask>;
@@ -74,24 +28,16 @@ pub trait QueuedTaskConversion {
 }
 
 pub struct TaskQueue<T> {
-    // The original port on which the task-sources send tasks as messages.
+    /// The original port on which the task-sources send tasks as messages.
     port: Receiver<T>,
-    // A sender to ensure the port doesn't block on select while there are throttled tasks.
+    /// A sender to ensure the port doesn't block on select while there are throttled tasks.
     wake_up_sender: Sender<T>,
-    // A queue from which the event-loop can drain tasks.
-    msg_queue: MsgQueue<T>,
-    // A "business" counter, reset for each iteration of the event-loop
+    /// A queue from which the event-loop can drain tasks.
+    msg_queue: DomRefCell<VecDeque<T>>,
+    /// A "business" counter, reset for each iteration of the event-loop
     taken_task_counter: Cell<u64>,
-    // Tasks that will be throttled for as long as we are "busy".
+    /// Tasks that will be throttled for as long as we are "busy".
     throttled: DomRefCell<HashMap<TaskSourceName, VecDeque<QueuedTask>>>
-}
-
-#[allow(unsafe_code)]
-unsafe impl<T> JSTraceable for TaskQueue<T> {
-    #[allow(unsafe_code)]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
 }
 
 impl<T: QueuedTaskConversion> TaskQueue<T> {
@@ -99,14 +45,14 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         TaskQueue {
             port,
             wake_up_sender,
-            msg_queue: MsgQueue::new(),
+            msg_queue: DomRefCell::new(VecDeque::new()),
             taken_task_counter: Default::default(),
             throttled: Default::default(),
         }
     }
 
-    // Process incoming tasks, immediately sending priority ones downstream,
-    // and categorizing potential throttles.
+    /// Process incoming tasks, immediately sending priority ones downstream,
+    /// and categorizing potential throttles.
     fn process_incoming_tasks(&self) {
         let mut non_throttled: Vec<T> = self.port
             .try_iter()
@@ -130,12 +76,16 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         for msg in non_throttled {
             // Immediately send non-throttled tasks for processing.
-            let _ = self.msg_queue.send(msg);
+            let _ = self.msg_queue.borrow_mut().push_back(msg);
         }
 
         for msg in to_be_throttled {
             // Categorize tasks per task queue.
-            let (worker, category, boxed, pipeline_id) = msg.into_queued_task().unwrap();
+            let (worker, category, boxed, pipeline_id) = match msg.into_queued_task() {
+                Some((worker, category, boxed, pipeline_id)) => (worker, category, boxed, pipeline_id),
+                None => unreachable!(),
+            };
+            // FIXME: Add the task-source name directly to CommonScriptMsg::Task.
             let task_source = match category {
                 ScriptThreadEventCategory::PerformanceTimelineTask => TaskSourceName::PerformanceTimeline,
                 _ => unreachable!(),
@@ -148,54 +98,68 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
     }
 
-    // Reset the queue for a new iteration of the event-loop,
-    // returning the port about whose readiness we want to be notified.
+    /// Reset the queue for a new iteration of the event-loop,
+    /// returning the port about whose readiness we want to be notified.
     pub fn select(&self) -> &Receiver<T> {
-        // This is a new iterations of the event-loop, so we reset the "business" counter.
+        // This is a new iteration of the event-loop, so we reset the "business" counter.
         self.taken_task_counter.set(0);
-        let throttled_length = self.throttled.borrow().values().fold(0, |acc, queue| acc + queue.len());
-        if throttled_length > 0 {
-            // If we have throttled messages, ensure the select wakes up.
-            let _ = self.wake_up_sender.send(T::wake_up_msg());
-        }
         // We want to be notified when the script-port is ready to receive.
         // Hence that's the one we need to include in the select.
         &self.port
     }
 
-    // Drain the queue for the current iteration of the event-loop.
-    // Holding-back throttles above a given high-water mark.
-    pub fn take_tasks(&self) -> &MsgQueue<T> {
+    /// Take a message from the front of the queue, without waiting if empty.
+    pub fn recv(&self) -> Result<T, ()> {
+        self.msg_queue.borrow_mut().pop_front().ok_or(())
+    }
+
+    /// Same as recv.
+    pub fn try_recv(&self) -> Result<T, ()> {
+        self.recv()
+    }
+
+    /// Drain the queue for the current iteration of the event-loop.
+    /// Holding-back throttles above a given high-water mark.
+    pub fn take_tasks(&self) {
         // High-watermark: once reached, throttled tasks will be held-back.
-        let per_iteration_max = 5;
+        const PER_ITERATION_MAX: u64 = 5;
         // Always first check for new tasks, but don't reset 'taken_task_counter'.
         self.process_incoming_tasks();
         let mut throttled = self.throttled.borrow_mut();
-        let mut throttled_length = throttled.values().fold(0, |acc, queue| acc + queue.len());
-        let mut max_reached = self.taken_task_counter.get() > per_iteration_max;
-        let mut none_left = throttled_length == 0;
+        let mut throttled_length: usize = throttled.values().map(|queue| queue.len()).sum();
         let task_source_names = TaskSourceName::all();
         let mut task_source_cycler = task_source_names.iter().cycle();
         // "being busy", is defined as having more than x tasks for this loop's iteration.
         // As long as we're not busy, and there are throttled tasks left:
-        while !(max_reached || none_left) {
-            // Cycle through non-priority task sources, taking one throttled task from each.
-            let task_source = task_source_cycler.next().unwrap();
-            let throttled_queue = match throttled.get_mut(&task_source) {
-                Some(queue) => queue,
-                None => continue,
-            };
-            let queued_task = match throttled_queue.pop_front() {
-                Some(queued_task) => queued_task,
-                None => continue,
-            };
-            let msg = T::from_queued_task(queued_task);
-            let _ = self.msg_queue.send(msg);
-            self.taken_task_counter.set(self.taken_task_counter.get() + 1);
-            throttled_length = throttled_length - 1;
-            max_reached = self.taken_task_counter.get() > per_iteration_max;
-            none_left = throttled_length == 0;
+        loop {
+            let max_reached = self.taken_task_counter.get() > PER_ITERATION_MAX;
+            let none_left = throttled_length == 0;
+            match (max_reached, none_left) {
+                (_, true) => break,
+                (true, false) => {
+                    // We have reached the high-watermark for this iteration of the event-loop,
+                    // yet also have throttled messages left in the queue.
+                    // Ensure the select wakes up in the next iteration of the event-loop
+                    let _ = self.wake_up_sender.send(T::wake_up_msg());
+                    break;
+                },
+                (false, false) => {
+                    // Cycle through non-priority task sources, taking one throttled task from each.
+                    let task_source = task_source_cycler.next().unwrap();
+                    let throttled_queue = match throttled.get_mut(&task_source) {
+                        Some(queue) => queue,
+                        None => continue,
+                    };
+                    let queued_task = match throttled_queue.pop_front() {
+                        Some(queued_task) => queued_task,
+                        None => continue,
+                    };
+                    let msg = T::from_queued_task(queued_task);
+                    let _ = self.msg_queue.borrow_mut().push_back(msg);
+                    self.taken_task_counter.set(self.taken_task_counter.get() + 1);
+                    throttled_length = throttled_length - 1;
+                },
+            }
         }
-        &self.msg_queue
     }
 }

@@ -41,20 +41,16 @@ use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 pub enum ServiceWorkerScriptMsg {
     /// Message common to all workers
     CommonWorker(WorkerScriptMsg),
-    // Message to request a custom response by the service worker
+    /// Message to request a custom response by the service worker
     Response(CustomResponseMediator),
-    // Wake-up call from the task queue.
+    /// Wake-up call from the task queue.
     WakeUp,
 }
 
 impl QueuedTaskConversion for ServiceWorkerScriptMsg {
     fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
-        let worker_script_msg = match self {
-            ServiceWorkerScriptMsg::CommonWorker(worker_script_msg) => worker_script_msg,
-            _ => return None,
-        };
-        let script_msg = match worker_script_msg {
-            WorkerScriptMsg::Common(script_msg) => script_msg,
+        let script_msg = match self {
+            ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg)) => script_msg,
             _ => return None,
         };
         let category = match script_msg {
@@ -65,12 +61,8 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
-        let worker_script_msg = match self {
-            ServiceWorkerScriptMsg::CommonWorker(worker_script_msg) => worker_script_msg,
-            _ => return None,
-        };
-        let script_msg = match worker_script_msg {
-            WorkerScriptMsg::Common(script_msg) => script_msg,
+        let script_msg = match self {
+            ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg)) => script_msg,
             _ => return None,
         };
         let (category, boxed, pipeline_id) = match script_msg {
@@ -123,6 +115,8 @@ impl ScriptChan for ServiceWorkerChan {
         })
     }
 }
+
+unsafe_no_jsmanaged_fields!(TaskQueue<ServiceWorkerScriptMsg>);
 
 #[dom_struct]
 pub struct ServiceWorkerGlobalScope {
