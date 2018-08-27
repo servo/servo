@@ -43,6 +43,7 @@ use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmediaelement::{HTMLMediaElement, LayoutHTMLMediaElementHelpers};
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
@@ -62,9 +63,11 @@ use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use ref_slice::ref_slice;
-use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
-use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
+use script_layout_interface::{
+    HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, OpaqueStyleAndLayoutData,
+    SVGSVGData, TrustedNodeAddress,
+};
 use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
@@ -1030,6 +1033,7 @@ pub trait LayoutNodeHelpers {
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<ServoUrl>;
+    fn media_data(&self) -> Option<HTMLMediaData>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
     fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;
@@ -1171,6 +1175,11 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
                 .expect("not an image!")
                 .image_url()
         }
+    }
+
+    fn media_data(&self) -> Option<HTMLMediaData> {
+        self.downcast::<HTMLMediaElement>()
+            .map(|media| media.data())
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
@@ -2754,6 +2763,8 @@ impl Into<LayoutElementType> for ElementTypeId {
                 LayoutElementType::HTMLIFrameElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement) =>
                 LayoutElementType::HTMLImageElement,
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)) =>
+                LayoutElementType::HTMLMediaElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement) =>
                 LayoutElementType::HTMLInputElement,
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement) =>
