@@ -143,8 +143,10 @@ function notifyFinishedToHarness() {
 
 (function () {
   var oldNotify = notifyFinishedToHarness;
+  var oldOnError = window.onerror;
   var t = async_test("Overall test");
   window.notifyFinishedToHarness = t.step_func_done(oldNotify);
+  window.onerror = t.step_func_done(oldNotify);
 }())
 
 var _bufferedConsoleLogs = [];
