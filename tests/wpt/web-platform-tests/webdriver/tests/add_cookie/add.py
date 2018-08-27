@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.fixtures import clear_all_cookies
-
+from tests.support.helpers import clear_all_cookies
 
 def add_cookie(session, cookie):
     return session.transport.send(

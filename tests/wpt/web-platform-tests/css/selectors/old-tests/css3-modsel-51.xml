@@ -1,0 +1,22 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>NEGATED attribute value selector</title>
+  <style type="text/css"><![CDATA[@namespace a url(http://www.example.org/a);
+div.stub > p {color : red }
+div.stub > a|* { color : red ; display : block ; margin-bottom : 1em }
+div.stub *|*:not([test="1"]) { color : lime }]]></style>
+  <link rel="author" title="Daniel Glazman" href="http://glazman.org/"/>
+  <link rel="help" href="https://www.w3.org/TR/css3-selectors/#selectors"/> <!-- bogus link to make sure it gets found -->
+  <meta name="flags" content=" namespace" />
+ </head>
+ <body>
+<div class="stub">
+<q xmlns="http://www.example.org/a" test="1">
+  <r test="11">This text should be</r>
+  <r>in green characters</r>
+</q>
+<s xmlns="http://www.example.org/a">This text should be in green characters</s>
+<p>This text should be in green characters</p>
+</div>
+</body>
+</html>
