@@ -44,9 +44,12 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
+use headers_core::HeaderMapExt;
+use headers_ext::ContentType;
 use html5ever::{LocalName, Prefix};
-use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
-use hyper::method::Method;
+use hyper::Method;
+use mime::{self, Mime};
+use net_traits::http_percent_encode;
 use script_thread::MainThreadScriptMsg;
 use script_traits::LoadData;
 use servo_rand::random;
@@ -379,23 +382,15 @@ impl HTMLFormElement {
                 // https://html.spec.whatwg.org/multipage/#submit-dialog
             },
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
-            ("http", FormMethod::FormGet) |
-            ("https", FormMethod::FormGet) |
-            ("data", FormMethod::FormGet) => {
-                load_data.headers.set(ContentType::form_url_encoded());
+            ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) | ("data", FormMethod::FormGet) => {
+                load_data.headers.typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
                 self.mutate_action_url(&mut form_data, load_data, encoding, &target_window);
             },
             // https://html.spec.whatwg.org/multipage/#submit-body
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
-                load_data.method = Method::Post;
-                self.submit_entity_body(
-                    &mut form_data,
-                    load_data,
-                    enctype,
-                    encoding,
-                    &target_window,
-                );
-            },
+                load_data.method = Method::POST;
+                self.submit_entity_body(&mut form_data, load_data, enctype, encoding, &target_window);
+            }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) |
             ("about", _) |
@@ -450,7 +445,7 @@ impl HTMLFormElement {
         let bytes = match enctype {
             FormEncType::UrlEncoded => {
                 let charset = encoding.name();
-                load_data.headers.set(ContentType::form_url_encoded());
+                load_data.headers.typed_insert(ContentType::from(mime::APPLICATION_WWW_FORM_URLENCODED));
 
                 self.set_encoding_override(load_data.url.as_mut_url().query_pairs_mut())
                     .clear()
@@ -463,12 +458,12 @@ impl HTMLFormElement {
                 load_data.url.query().unwrap_or("").to_string().into_bytes()
             },
             FormEncType::FormDataEncoded => {
-                let mime = mime!(Multipart / FormData; Boundary =(&boundary));
-                load_data.headers.set(ContentType(mime));
+                let mime: Mime = format!("multipart/form-data; boundary={}", boundary).parse().unwrap();
+                load_data.headers.typed_insert(ContentType::from(mime));
                 encode_multipart_form_data(form_data, boundary, encoding)
             },
             FormEncType::TextPlainEncoded => {
-                load_data.headers.set(ContentType(mime!(Text / Plain)));
+                load_data.headers.typed_insert(ContentType::from(mime::TEXT_PLAIN));
                 self.encode_plaintext(form_data).into_bytes()
             },
         };
@@ -1231,40 +1226,30 @@ pub fn encode_multipart_form_data(
         // what spec says (that it should start with a '\r\n').
         let mut boundary_bytes = format!("--{}\r\n", boundary).into_bytes();
         result.append(&mut boundary_bytes);
-        let mut content_disposition = ContentDisposition {
-            disposition: DispositionType::Ext("form-data".to_owned()),
-            parameters: vec![DispositionParam::Ext(
-                "name".to_owned(),
-                String::from(entry.name.clone()),
-            )],
-        };
 
+        // TODO(eijebong): Everthing related to content-disposition it to redo once typed headers
+        // are capable of it.
         match entry.value {
             FormDatumValue::String(ref s) => {
+                let content_disposition = format!("form-data; name=\"{}\"", entry.name);
                 let mut bytes =
                     format!("Content-Disposition: {}\r\n\r\n{}", content_disposition, s)
                         .into_bytes();
                 result.append(&mut bytes);
             },
             FormDatumValue::File(ref f) => {
-                content_disposition
-                    .parameters
-                    .push(DispositionParam::Filename(
-                        Charset::Ext(String::from(charset.clone())),
-                        None,
-                        f.name().clone().into(),
-                    ));
+                let extra = if charset.to_lowercase() == "utf-8" {
+                    format!("filename=\"{}\"", String::from_utf8(f.name().as_bytes().into()).unwrap())
+                } else {
+                    format!("filename*=\"{}\"''{}", charset, http_percent_encode(f.name().as_bytes()))
+                };
+
+                let content_disposition = format!("form-data; name=\"{}\"; {}", entry.name, extra);
                 // https://tools.ietf.org/html/rfc7578#section-4.4
-                let content_type = ContentType(
-                    f.upcast::<Blob>()
-                        .Type()
-                        .parse()
-                        .unwrap_or(mime!(Text / Plain)),
-                );
-                let mut type_bytes = format!(
-                    "Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
-                    content_disposition, content_type
-                ).into_bytes();
+                let content_type: Mime = f.upcast::<Blob>().Type().parse().unwrap_or(mime::TEXT_PLAIN);
+                let mut type_bytes = format!("Content-Disposition: {}\r\ncontent-type: {}\r\n\r\n",
+                                             content_disposition,
+                                             content_type).into_bytes();
                 result.append(&mut type_bytes);
 
                 let mut bytes = f.upcast::<Blob>().get_bytes().unwrap_or(vec![]);

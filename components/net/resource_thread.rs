@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-use connector::{create_http_connector, create_ssl_client};
+use connector::{create_http_client, create_ssl_connector_builder};
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
@@ -15,7 +15,7 @@ use fetch::methods::{CancellationListener, FetchContext, fetch};
 use filemanager_thread::FileManager;
 use hsts::HstsList;
 use http_cache::HttpCache;
-use http_loader::{HttpState, http_redirect_fetch};
+use http_loader::{HANDLE, HttpState, http_redirect_fetch};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -129,18 +129,17 @@ fn create_http_states(config_dir: Option<&Path>) -> (Arc<HttpState>, Arc<HttpSta
         },
     };
 
-    let ssl_client = create_ssl_client(&certs);
+    let ssl_connector_builder = create_ssl_connector_builder(&certs);
     let http_state = HttpState {
         cookie_jar: RwLock::new(cookie_jar),
         auth_cache: RwLock::new(auth_cache),
         http_cache: RwLock::new(http_cache),
         hsts_list: RwLock::new(hsts_list),
         history_states: RwLock::new(HashMap::new()),
-        ssl_client: ssl_client.clone(),
-        connector: create_http_connector(ssl_client),
+        client: create_http_client(ssl_connector_builder, HANDLE.lock().unwrap().executor()),
     };
 
-    let private_ssl_client = create_ssl_client(&certs);
+    let private_ssl_client = create_ssl_connector_builder(&certs);
     let private_http_state = HttpState::new(private_ssl_client);
 
     (Arc::new(http_state), Arc::new(private_http_state))

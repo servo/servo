@@ -13,15 +13,19 @@ test = false
 doctest = false
 
 [dependencies]
-base64 = "0.6"
-brotli = "1.0.6"
-cookie = "0.10"
+base64 = "0.9"
+brotli = "2.5"
+bytes = "0.4"
+cookie = "0.11"
 devtools_traits = {path = "../devtools_traits"}
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
-hyper = "0.10"
-hyper_serde = "0.8"
-hyper-openssl = "0.2.2"
+headers-core = "0.0.1"
+headers-ext = "0.0.3"
+http = "0.1"
+hyper = "0.12"
+hyper_serde = "0.9"
+hyper-openssl = "0.6"
 immeta = "0.4"
 ipc-channel = "0.11"
 lazy_static = "1"
@@ -29,11 +33,11 @@ log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 matches = "0.1"
-mime = "0.2.1"
-mime_guess = "1.8.0"
+mime = "0.3"
+mime_guess = "2.0.0-alpha.6"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-openssl = "0.9"
+openssl = "0.10"
 pixels = {path = "../pixels"}
 profile_traits = {path = "../profile_traits"}
 serde = "1.0"
@@ -43,9 +47,10 @@ servo_arc = {path = "../servo_arc"}
 servo_channel = {path = "../channel"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
+tokio = "0.1"
+tokio-timer = "0.2"
 threadpool = "1.0"
 time = "0.1.17"
-unicase = "1.4.0"
 url = "1.2"
 uuid = {version = "0.6", features = ["v4"]}
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
@@ -53,6 +58,8 @@ ws = { version = "0.7", features = ["ssl"] }
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }
+futures = "0.1"
+tokio-openssl = "0.2"
 
 [[test]]
 name = "main"

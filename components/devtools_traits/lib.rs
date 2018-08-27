@@ -13,7 +13,7 @@
 
 #[macro_use]
 extern crate bitflags;
-extern crate hyper;
+extern crate http;
 extern crate ipc_channel;
 extern crate malloc_size_of;
 #[macro_use]
@@ -24,8 +24,8 @@ extern crate serde;
 extern crate servo_url;
 extern crate time;
 
-use hyper::header::Headers;
-use hyper::method::Method;
+use http::HeaderMap;
+use http::method::Method;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
@@ -301,7 +301,7 @@ pub enum CachedConsoleMessage {
 pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
-    pub headers: Headers,
+    pub headers: HeaderMap,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,
     pub startedDateTime: Tm,
@@ -313,7 +313,7 @@ pub struct HttpRequest {
 
 #[derive(Debug, PartialEq)]
 pub struct HttpResponse {
-    pub headers: Option<Headers>,
+    pub headers: Option<HeaderMap>,
     pub status: Option<(u16, Vec<u8>)>,
     pub body: Option<Vec<u8>>,
     pub pipeline_id: PipelineId,

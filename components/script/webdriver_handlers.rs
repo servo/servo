@@ -299,7 +299,11 @@ pub fn handle_add_cookie(
         },
     };
     let url = document.url();
-    let method = if cookie.http_only() { HTTP } else { NonHTTP };
+    let method = if cookie.http_only().unwrap_or(false) {
+        HTTP
+    } else {
+        NonHTTP
+    };
 
     let domain = cookie.domain().map(ToOwned::to_owned);
     reply

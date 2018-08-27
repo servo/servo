@@ -25,6 +25,7 @@ extern crate servo_config;
 #[cfg(target_os = "macos")]
 extern crate task_info;
 extern crate time as std_time;
+extern crate tokio;
 
 #[allow(unsafe_code)]
 mod heartbeats;

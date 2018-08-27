@@ -25,6 +25,7 @@ rand = [
   "rayon-core",
   "servo_rand",
   "tempfile",
+  "tokio-threadpool",
   "uuid",
   "ws",
 ]
@@ -32,8 +33,8 @@ rand = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "bitflags",
   "core-graphics",
+  "crossbeam-deque",
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",
@@ -42,9 +43,8 @@ packages = [
   "proc-macro2",
   "quote",
   "rand",
-  # TODO: remove slab when #21426 lands
-  "slab",
   "syn",
+  "unicase",
   "winapi",
 ]
 # Files that are ignored for all tidy and lint checks.

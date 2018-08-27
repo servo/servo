@@ -23,6 +23,8 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
 use std_time::precise_time_ns;
+use tokio;
+use tokio::prelude::Future;
 use trace_dump::TraceDump;
 
 pub trait Formattable {
@@ -470,9 +472,9 @@ impl Profiler {
                         if let Some(ref meta) = *meta {
                             measurement.add_tag("host", meta.url.as_str());
                         };
-                        if client.write_one(measurement, None).is_err() {
-                            warn!("Could not write measurement to profiler db");
-                        }
+
+                        tokio::run(client.write_one(measurement, None)
+                                   .map_err(|e| warn!("Could not write measurement to profiler db: {:?}", e)));
                     }
                 }
             },

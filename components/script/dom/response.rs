@@ -18,8 +18,8 @@ use dom::headers::{is_vchar, is_obs_text};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
-use hyper::header::Headers as HyperHeaders;
-use hyper::status::StatusCode;
+use http::header::HeaderMap as HyperHeaders;
+use hyper::StatusCode;
 use hyper_serde::Serde;
 use net_traits::response::{ResponseBody as NetTraitsResponseBody};
 use servo_url::ServoUrl;
@@ -55,7 +55,7 @@ impl Response {
             headers_reflector: Default::default(),
             mime_type: DomRefCell::new("".to_string().into_bytes()),
             body_used: Cell::new(false),
-            status: DomRefCell::new(Some(StatusCode::Ok)),
+            status: DomRefCell::new(Some(StatusCode::OK)),
             raw_status: DomRefCell::new(Some((200, b"OK".to_vec()))),
             response_type: DomRefCell::new(DOMResponseType::Default),
             url: DomRefCell::new(None),
@@ -99,7 +99,7 @@ impl Response {
         let r = Response::new(global);
 
         // Step 4
-        *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status));
+        *r.status.borrow_mut() = Some(StatusCode::from_u16(init.status).unwrap());
 
         // Step 5
         *r.raw_status.borrow_mut() = Some((init.status, init.statusText.clone().into()));
@@ -189,7 +189,7 @@ impl Response {
         let r = Response::new(global);
 
         // Step 5
-        *r.status.borrow_mut() = Some(StatusCode::from_u16(status));
+        *r.status.borrow_mut() = Some(StatusCode::from_u16(status).unwrap());
         *r.raw_status.borrow_mut() = Some((status, b"".to_vec()));
 
         // Step 6
@@ -300,7 +300,7 @@ impl ResponseMethods for Response {
     fn Ok(&self) -> bool {
         match *self.status.borrow() {
             Some(s) => {
-                let status_num = s.to_u16();
+                let status_num = s.as_u16();
                 return status_num >= 200 && status_num <= 299;
             },
             None => false,
