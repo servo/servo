@@ -255,14 +255,6 @@ pub unsafe fn report_pending_exception(cx: *mut JSContext, dispatch_event: bool)
     }
 }
 
-/// Throw an exception to signal that a `JSVal` can not be converted to any of
-/// the types in an IDL union type.
-pub unsafe fn throw_not_in_union(cx: *mut JSContext, names: &'static str) {
-    assert!(!JS_IsExceptionPending(cx));
-    let error = format!("argument could not be converted to any of: {}", names);
-    throw_type_error(cx, &error);
-}
-
 /// Throw an exception to signal that a `JSObject` can not be converted to a
 /// given DOM type.
 pub unsafe fn throw_invalid_this(cx: *mut JSContext, proto_id: u16) {
