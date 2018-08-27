@@ -5,13 +5,13 @@
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
 use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
-use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
-use hyper::status::StatusCode;
+use http::{HeaderMap, StatusCode};
 use hyper_serde::Serde;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use typed_headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
@@ -81,7 +81,7 @@ pub struct ResponseInit {
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
     #[ignore_malloc_size_of = "Defined in hyper"]
-    pub headers: Headers,
+    pub headers: HeaderMap,
     pub referrer: Option<ServoUrl>,
     pub location_url: Option<Result<ServoUrl, String>>,
 }
@@ -95,10 +95,10 @@ pub struct Response {
     pub url_list: Vec<ServoUrl>,
     /// `None` can be considered a StatusCode of `0`.
     #[ignore_malloc_size_of = "Defined in hyper"]
-    pub status: Option<StatusCode>,
+    pub status: Option<(StatusCode, String)>,
     pub raw_status: Option<(u16, Vec<u8>)>,
     #[ignore_malloc_size_of = "Defined in hyper"]
-    pub headers: Headers,
+    pub headers: HeaderMap,
     #[ignore_malloc_size_of = "Mutex heap size undefined"]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
@@ -126,9 +126,9 @@ impl Response {
             termination_reason: None,
             url: Some(url),
             url_list: vec![],
-            status: Some(StatusCode::Ok),
+            status: Some((StatusCode::OK, "OK".to_string())),
             raw_status: Some((200, b"OK".to_vec())),
-            headers: Headers::new(),
+            headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
@@ -158,7 +158,7 @@ impl Response {
             url_list: vec![],
             status: None,
             raw_status: None,
-            headers: Headers::new(),
+            headers: HeaderMap::new(),
             body: Arc::new(Mutex::new(ResponseBody::Empty)),
             cache_state: CacheState::None,
             https_state: HttpsState::None,
@@ -240,45 +240,45 @@ impl Response {
             ResponseType::Error(..) => unreachable!(),
 
             ResponseType::Basic => {
-                let headers = old_headers.iter().filter(|header| {
-                    match &*header.name().to_ascii_lowercase() {
+                let headers = old_headers.iter().filter(|(name, _)| {
+                    match &*name.as_str().to_ascii_lowercase() {
                         "set-cookie" | "set-cookie2" => false,
                         _ => true
                     }
-                }).collect();
+                }).map(|(n, v)| (n.clone(), v.clone())).collect();
                 response.headers = headers;
             },
 
             ResponseType::Cors => {
-                let access = old_headers.get::<AccessControlExposeHeaders>();
+                let access = old_headers.typed_get::<AccessControlExposeHeaders>().unwrap_or(None);
                 let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
 
-                let headers = old_headers.iter().filter(|header| {
-                    match &*header.name().to_ascii_lowercase() {
+                let headers = old_headers.iter().filter(|(name, _)| {
+                    match &*name.as_str().to_ascii_lowercase() {
                         "cache-control" | "content-language" | "content-type" |
                         "expires" | "last-modified" | "pragma" => true,
                         "set-cookie" | "set-cookie2" => false,
                         header => {
                             let result =
-                                allowed_headers.iter().find(|h| *header == *h.to_ascii_lowercase());
+                                allowed_headers.iter().find(|h| *header == h.as_str().to_ascii_lowercase());
                             result.is_some()
                         }
                     }
-                }).collect();
+                }).map(|(n, v)| (n.clone(), v.clone())).collect();
                 response.headers = headers;
             },
 
             ResponseType::Opaque => {
                 response.url_list = vec![];
                 response.url = None;
-                response.headers = Headers::new();
+                response.headers = HeaderMap::new();
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
             },
 
             ResponseType::OpaqueRedirect => {
-                response.headers = Headers::new();
+                response.headers = HeaderMap::new();
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
@@ -291,9 +291,9 @@ impl Response {
     pub fn metadata(&self) -> Result<FetchMetadata, NetworkError> {
         fn init_metadata(response: &Response, url: &ServoUrl) -> Metadata {
             let mut metadata = Metadata::default(url.clone());
-            metadata.set_content_type(match response.headers.get() {
-                Some(&ContentType(ref mime)) => Some(mime),
-                None => None,
+            metadata.set_content_type(match response.headers.typed_get::<ContentType>() {
+                Ok(Some(ContentType(ref mime))) => Some(mime),
+                _ => None,
             });
             metadata.location_url = response.location_url.clone();
             metadata.headers = Some(Serde(response.headers.clone()));

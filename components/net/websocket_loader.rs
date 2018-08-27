@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use connector::create_ssl_connector;
+use connector::create_ssl_connector_builder;
 use cookie::Cookie;
 use embedder_traits::resources::{self, Resource};
 use fetch::methods::should_be_blocked_due_to_bad_port;
 use hosts::replace_host;
+use http::header::{HeaderMap, HeaderName, HeaderValue};
 use http_loader::HttpState;
-use hyper::header::{Headers, Host, SetCookie};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use net_traits::{CookieSource, MessageData};
 use net_traits::{WebSocketDomAction, WebSocketNetworkEvent};
@@ -20,6 +20,7 @@ use std::fs;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
+use typed_headers::{HeaderMapExt, Host, SetCookie};
 use url::Url;
 use ws::{CloseCode, Factory, Handler, Handshake, Message, Request, Response as WsResponse, Sender, WebSocket};
 use ws::{Error as WebSocketError, ErrorKind as WebSocketErrorKind, Result as WebSocketResult};
@@ -69,14 +70,17 @@ impl<'a> Handler for Client<'a> {
     }
 
     fn on_open(&mut self, shake: Handshake) -> WebSocketResult<()> {
-        let mut headers = Headers::new();
+        let mut headers = HeaderMap::new();
         for &(ref name, ref value) in shake.response.headers().iter() {
-            headers.set_raw(name.clone(), vec![value.clone()]);
+            let name = HeaderName::from_bytes(name.as_bytes()).unwrap();
+            let value = HeaderValue::from_bytes(&value).unwrap();
+
+            headers.insert(name, value);
         }
 
-         if let Some(cookies) = headers.get::<SetCookie>() {
+         if let Some(cookies) = headers.typed_get::<SetCookie>().unwrap_or(None) {
             let mut jar = self.http_state.cookie_jar.write().unwrap();
-            for cookie in &**cookies {
+            for cookie in cookies.0.iter() {
                 if let Some(cookie) =
                     Cookie::from_cookie_string(cookie.clone(), self.resource_url, CookieSource::HTTP)
                 {
@@ -144,7 +148,7 @@ impl<'a> Handler for Client<'a> {
             WebSocketErrorKind::Protocol,
             format!("Unable to parse domain from {}. Needed for SSL.", url),
         ))?;
-        let connector = create_ssl_connector(&certs);
+        let connector = create_ssl_connector_builder(&certs).build();
         connector.connect(domain, stream).map_err(WebSocketError::from)
     }
 
@@ -180,10 +184,10 @@ pub fn init(
         let mut net_url = req_init.url.clone().into_url();
         net_url.set_host(Some(&host)).unwrap();
 
-        let host = Host {
-            hostname: req_init.url.host_str().unwrap().to_owned(),
-            port: req_init.url.port_or_known_default(),
-        };
+        let host = Host::new(
+            req_init.url.host_str().unwrap(),
+            req_init.url.port_or_known_default()
+        ).unwrap();
 
         let client = Client {
             origin: &req_init.origin.ascii_serialization(),

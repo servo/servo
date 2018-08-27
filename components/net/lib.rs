@@ -6,22 +6,25 @@
 
 extern crate base64;
 extern crate brotli;
+extern crate bytes;
+extern crate chrono;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate embedder_traits;
 extern crate flate2;
+extern crate http;
 extern crate hyper;
 extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
+extern crate language_tags;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate malloc_size_of;
 #[macro_use] extern crate malloc_size_of_derive;
 #[macro_use] #[no_link] extern crate matches;
-#[macro_use]
 extern crate mime;
 extern crate mime_guess;
 extern crate msg;
@@ -36,7 +39,8 @@ extern crate servo_arc;
 extern crate servo_config;
 extern crate servo_url;
 extern crate time;
-extern crate unicase;
+extern crate tokio;
+extern crate typed_headers;
 extern crate url;
 extern crate uuid;
 extern crate webrender_api;

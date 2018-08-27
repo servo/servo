@@ -11,11 +11,11 @@ use dom::bindings::root::DomRoot;
 use dom::bindings::str::{ByteString, is_token};
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use hyper::header::Headers as HyperHeaders;
-use mime::{Mime, TopLevel, SubLevel};
+use http::header::{self, HeaderMap as HyperHeaders, HeaderName, HeaderValue};
+use mime::{self, Mime};
 use std::cell::Cell;
 use std::result::Result;
-use std::str;
+use std::str::{self, FromStr};
 
 #[dom_struct]
 pub struct Headers {
@@ -83,12 +83,14 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         let mut combined_value: Vec<u8> = vec![];
-        if let Some(v) = self.header_list.borrow().get_raw(&valid_name) {
-            combined_value = v[0].clone();
+        if let Some(v) = self.header_list.borrow().get(HeaderName::from_str(&valid_name).unwrap()) {
+            combined_value = v.as_bytes().to_vec();
             combined_value.push(b',');
         }
         combined_value.extend(valid_value.iter().cloned());
-        self.header_list.borrow_mut().set_raw(valid_name, vec![combined_value]);
+        self.header_list
+            .borrow_mut()
+            .insert(HeaderName::from_str(&valid_name).unwrap(), HeaderValue::from_bytes(&combined_value).unwrap());
         Ok(())
     }
 
@@ -114,16 +116,16 @@ impl HeadersMethods for Headers {
             return Ok(());
         }
         // Step 6
-        self.header_list.borrow_mut().remove_raw(&valid_name);
+        self.header_list.borrow_mut().remove(&valid_name);
         Ok(())
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers-get
     fn Get(&self, name: ByteString) -> Fallible<Option<ByteString>> {
         // Step 1
-        let valid_name = &validate_name(name)?;
-        Ok(self.header_list.borrow().get_raw(&valid_name).map(|v| {
-            ByteString::new(v[0].clone())
+        let valid_name = validate_name(name)?;
+        Ok(self.header_list.borrow().get(HeaderName::from_str(&valid_name).unwrap()).map(|v| {
+            ByteString::new(v.as_bytes().to_vec())
         }))
     }
 
@@ -132,7 +134,7 @@ impl HeadersMethods for Headers {
         // Step 1
         let valid_name = validate_name(name)?;
         // Step 2
-        Ok(self.header_list.borrow_mut().get_raw(&valid_name).is_some())
+        Ok(self.header_list.borrow_mut().get(&valid_name).is_some())
     }
 
     // https://fetch.spec.whatwg.org/#dom-headers-set
@@ -160,7 +162,9 @@ impl HeadersMethods for Headers {
         }
         // Step 7
         // https://fetch.spec.whatwg.org/#concept-header-list-set
-        self.header_list.borrow_mut().set_raw(valid_name, vec![valid_value]);
+        self.header_list
+            .borrow_mut()
+            .insert(HeaderName::from_str(&valid_name).unwrap(), HeaderValue::from_bytes(&valid_value).unwrap());
         Ok(())
     }
 }
@@ -171,10 +175,10 @@ impl Headers {
         match filler {
             // Step 1
             Some(HeadersInit::Headers(h)) => {
-                for header in h.header_list.borrow().iter() {
+                for (name, value) in h.header_list.borrow().iter() {
                     self.Append(
-                        ByteString::new(Vec::from(header.name())),
-                        ByteString::new(Vec::from(header.value_string().into_bytes()))
+                        ByteString::new(Vec::from(name.as_str())),
+                        ByteString::new(Vec::from(value.to_str().unwrap().as_bytes()))
                     )?;
                 }
                 Ok(())
@@ -235,23 +239,21 @@ impl Headers {
     }
 
     pub fn get_headers_list(&self) -> HyperHeaders {
-        let mut headers = HyperHeaders::new();
-        headers.extend(self.header_list.borrow_mut().iter());
-        headers
+        self.header_list.borrow_mut().clone()
     }
 
     // https://fetch.spec.whatwg.org/#concept-header-extract-mime-type
     pub fn extract_mime_type(&self) -> Vec<u8> {
-        self.header_list.borrow().get_raw("content-type").map_or(vec![], |v| v[0].clone())
+        self.header_list.borrow().get(header::CONTENT_TYPE).map_or(vec![], |v| v.as_bytes().to_owned())
     }
 
     pub fn sort_header_list(&self) -> Vec<(String, String)> {
         let borrowed_header_list = self.header_list.borrow();
         let headers_iter = borrowed_header_list.iter();
         let mut header_vec = vec![];
-        for header in headers_iter {
-            let name = header.name().to_string();
-            let value = header.value_string();
+        for (name, value) in headers_iter {
+            let name = name.as_str().to_owned();
+            let value = value.to_str().unwrap().to_owned();
             let name_value = (name, value);
             header_vec.push(name_value);
         }
@@ -291,10 +293,10 @@ fn is_cors_safelisted_request_content_type(value: &[u8]) -> bool {
     match value_mime_result {
         Err(_) => false,
         Ok(value_mime) => {
-            match value_mime {
-                Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _) |
-                Mime(TopLevel::Multipart, SubLevel::FormData, _) |
-                Mime(TopLevel::Text, SubLevel::Plain, _) => true,
+            match (value_mime.type_(), value_mime.subtype()) {
+                (mime::APPLICATION, mime::WWW_FORM_URLENCODED) |
+                (mime::MULTIPART, mime::FORM_DATA) |
+                (mime::TEXT, mime::PLAIN) => true,
                 _ => false,
             }
         }

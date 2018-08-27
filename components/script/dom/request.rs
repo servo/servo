@@ -25,7 +25,8 @@ use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
 use dom_struct::dom_struct;
-use hyper::method::Method as HttpMethod;
+use http::Method as HttpMethod;
+use http::method::InvalidMethod;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};
 use net_traits::request::CacheMode as NetTraitsRequestCache;
@@ -38,6 +39,7 @@ use net_traits::request::RequestMode as NetTraitsRequestMode;
 use servo_url::ServoUrl;
 use std::cell::{Cell, Ref};
 use std::rc::Rc;
+use std::str::FromStr;
 
 #[dom_struct]
 pub struct Request {
@@ -272,7 +274,7 @@ impl Request {
             }
             // Step 25.2
             let method = match init_method.as_str() {
-                Some(s) => normalize_method(s),
+                Some(s) => normalize_method(s).map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
                 None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
             };
             // Step 25.3
@@ -356,9 +358,9 @@ impl Request {
                 let req = r.request.borrow();
                 let req_method = &req.method;
                 match *req_method {
-                    HttpMethod::Get => return Err(Error::Type(
+                    HttpMethod::GET => return Err(Error::Type(
                         "Init's body is non-null, and request method is GET".to_string())),
-                    HttpMethod::Head => return Err(Error::Type(
+                    HttpMethod::HEAD => return Err(Error::Type(
                         "Init's body is non-null, and request method is HEAD".to_string())),
                     _ => {},
                 }
@@ -447,17 +449,18 @@ fn net_request_from_global(global: &GlobalScope,
 }
 
 // https://fetch.spec.whatwg.org/#concept-method-normalize
-fn normalize_method(m: &str) -> HttpMethod {
+fn normalize_method(m: &str) -> Result<HttpMethod, InvalidMethod> {
     match_ignore_ascii_case! { m,
-        "delete" => return HttpMethod::Delete,
-        "get" => return HttpMethod::Get,
-        "head" => return HttpMethod::Head,
-        "options" => return HttpMethod::Options,
-        "post" => return HttpMethod::Post,
-        "put" => return HttpMethod::Put,
+        "delete" => return Ok(HttpMethod::DELETE),
+        "get" => return Ok(HttpMethod::GET),
+        "head" => return Ok(HttpMethod::HEAD),
+        "options" => return Ok(HttpMethod::OPTIONS),
+        "post" => return Ok(HttpMethod::POST),
+        "put" => return Ok(HttpMethod::PUT),
         _ => (),
     }
-    HttpMethod::Extension(m.to_string())
+    debug!("Method: {:?}", m);
+    HttpMethod::from_str(m)
 }
 
 // https://fetch.spec.whatwg.org/#concept-method
@@ -477,9 +480,9 @@ fn is_forbidden_method(m: &ByteString) -> bool {
 
 // https://fetch.spec.whatwg.org/#cors-safelisted-method
 fn is_cors_safelisted_method(m: &HttpMethod) -> bool {
-    m == &HttpMethod::Get ||
-        m == &HttpMethod::Head ||
-        m == &HttpMethod::Post
+    m == &HttpMethod::GET ||
+        m == &HttpMethod::HEAD ||
+        m == &HttpMethod::POST
 }
 
 // https://url.spec.whatwg.org/#include-credentials

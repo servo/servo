@@ -35,9 +35,8 @@ use html5ever::{Attribute, ExpandedName, LocalName, QualName};
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tendril::{StrTendril, ByteTendril, IncompleteUtf8};
 use html5ever::tree_builder::{NodeOrText, TreeSink, NextParserState, QuirksMode, ElementFlags};
-use hyper::header::ContentType;
-use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
+use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
@@ -51,6 +50,7 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::mem;
 use style::context::QuirksMode as ServoQuirksMode;
+use typed_headers::ContentType;
 
 mod async_html;
 mod html;
@@ -655,7 +655,7 @@ impl FetchResponseListener for ParserContext {
         self.parser = Some(Trusted::new(&*parser));
 
         match content_type {
-            Some(ContentType(Mime(TopLevel::Image, _, _))) => {
+            Some(ContentType(ref mime)) if mime.type_() == mime::IMAGE => {
                 self.is_synthesized_document = true;
                 let page = "<html><body></body></html>".into();
                 parser.push_string_input_chunk(page);
@@ -668,14 +668,14 @@ impl FetchResponseListener for ParserContext {
                 doc_body.AppendChild(&DomRoot::upcast::<Node>(img)).expect("Appending failed");
 
             },
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
+            Some(ContentType(ref mime)) if mime.type_() == mime::TEXT && mime.subtype() == mime::PLAIN => {
                 // https://html.spec.whatwg.org/multipage/#read-text
                 let page = "<pre>\n".into();
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {
+            Some(ContentType(ref mime)) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
                 // Handle text/html
                 if let Some(reason) = ssl_error {
                     self.is_synthesized_document = true;
@@ -692,15 +692,18 @@ impl FetchResponseListener for ParserContext {
                     parser.parse_sync();
                 }
             },
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) | // Handle text/xml, application/xml
-            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) => {},
-            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub), _)))
-                if sub.as_str() == "xhtml+xml".to_owned() => {}, // Handle xhtml (application/xhtml+xml)
-            Some(ContentType(Mime(toplevel, sublevel, _))) => {
+            // Handle text/xml, application/xml
+            Some(ContentType(ref mime)) if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) => {},
+            Some(ContentType(ref mime)) if mime.type_() == mime::APPLICATION &&
+                mime.subtype().as_str() == "xhtml" &&
+                mime.suffix() == Some(mime::XML)
+                => {}, // Handle xhtml (application/xhtml+xml)
+            Some(ContentType(ref mime)) => {
                 // Show warning page for unknown mime types.
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
-                                   toplevel.as_str(),
-                                   sublevel.as_str());
+                                   mime.type_().as_str(),
+                                   mime.subtype().as_str());
                 self.is_synthesized_document = true;
                 parser.push_string_input_chunk(page);
                 parser.parse_sync();

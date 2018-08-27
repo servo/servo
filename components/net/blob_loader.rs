@@ -3,14 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use filemanager_thread::FileManager;
-use hyper::header::{Charset, ContentLength, ContentType, Headers};
-use hyper::header::{ContentDisposition, DispositionParam, DispositionType};
+use http::HeaderMap;
 use ipc_channel::ipc;
-use mime::{Attr, Mime};
+use mime::{self, Mime};
 use net_traits::NetworkError;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::ReadFileProgress;
 use servo_url::ServoUrl;
+use typed_headers::{Charset, ContentLength, ContentType, ContentDisposition, DispositionParam, DispositionType};
+use typed_headers::HeaderMapExt;
 
 // TODO: Check on GET
 // https://w3c.github.io/FileAPI/#requestResponseModel
@@ -20,7 +21,7 @@ use servo_url::ServoUrl;
 pub fn load_blob_sync
             (url: ServoUrl,
              filemanager: FileManager)
-             -> Result<(Headers, Vec<u8>), NetworkError> {
+             -> Result<(HeaderMap, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {
         Ok((id, origin)) => (id, origin),
         Err(()) => {
@@ -43,14 +44,14 @@ pub fn load_blob_sync
         }
     };
 
-    let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime!(Text / Plain));
-    let charset = content_type.get_param(Attr::Charset);
+    let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime::TEXT_PLAIN);
+    let charset = content_type.get_param(mime::CHARSET);
 
-    let mut headers = Headers::new();
+    let mut headers = HeaderMap::new();
 
     if let Some(name) = blob_buf.filename {
-        let charset = charset.and_then(|c| c.as_str().parse().ok());
-        headers.set(ContentDisposition {
+        let charset = charset.and_then(|c| c.as_str_repr().parse().ok());
+        headers.typed_insert(&ContentDisposition {
             disposition: DispositionType::Inline,
             parameters: vec![
                 DispositionParam::Filename(charset.unwrap_or(Charset::Us_Ascii),
@@ -60,9 +61,9 @@ pub fn load_blob_sync
     }
 
     // Basic fetch, Step 4.
-    headers.set(ContentLength(blob_buf.size as u64));
+    headers.typed_insert(&ContentLength(blob_buf.size as u64));
     // Basic fetch, Step 5.
-    headers.set(ContentType(content_type.clone()));
+    headers.typed_insert(&ContentType(content_type.clone()));
 
     let mut bytes = blob_buf.bytes;
     loop {

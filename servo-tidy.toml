@@ -27,6 +27,7 @@ rand = [
   "servo-websocket",
   "tempdir",
   "tempfile",
+  "tokio-threadpool",
   "uuid",
   "ws",
   "rand",
@@ -38,15 +39,17 @@ num = [
 [ignore]
 # Ignored packages with duplicated versions
 packages = [
-  "bitflags",
   "log",
   "rand",
   "winapi",
-  # TODO: remove slab when #21426 lands
-  "slab",
   "syn",
   "quote",
   "proc-macro2",
+  "crossbeam-deque",
+  "crossbeam-epoch",
+  "crossbeam-utils",
+  "lazycell",
+  "unicase",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [

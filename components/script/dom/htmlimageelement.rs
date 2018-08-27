@@ -44,7 +44,7 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
-use mime::{Mime, TopLevel};
+use mime::{self, Mime};
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
@@ -507,8 +507,8 @@ impl HTMLImageElement {
                 let mime = x.value().parse::<Mime>();
                 match mime {
                     Ok(m) =>
-                        match m {
-                            Mime(TopLevel::Image, _, _) => (),
+                        match m.type_() {
+                            mime::IMAGE => (),
                             _ => continue
                         },
                     _ => continue

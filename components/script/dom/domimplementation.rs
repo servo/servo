@@ -24,7 +24,7 @@ use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
 use dom_struct::dom_struct;
-use mime::{Mime, TopLevel, SubLevel};
+use mime;
 use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
@@ -73,9 +73,9 @@ impl DOMImplementationMethods for DOMImplementation {
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_string()), vec![]),
-            ns!(svg) => Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_string()), vec![]),
-            _ => Mime(TopLevel::Application, SubLevel::Xml, vec![])
+            ns!(html) => "application/xhtml+xml".parse().unwrap(),
+            ns!(svg) => mime::IMAGE_SVG,
+            _ => "application/xml".parse().unwrap(),
         };
 
         // Step 1.

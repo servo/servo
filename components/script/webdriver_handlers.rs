@@ -229,7 +229,7 @@ pub fn handle_add_cookie(documents: &Documents,
         None => return reply.send(Err(WebDriverCookieError::UnableToSetCookie)).unwrap(),
     };
     let url = document.url();
-    let method = if cookie.http_only() {
+    let method = if cookie.http_only().unwrap_or(false) {
         HTTP
     } else {
         NonHTTP

@@ -21,6 +21,7 @@ extern crate itertools;
 
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
+use chrono::{DateTime, Utc};
 use devtools;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
@@ -65,9 +66,6 @@ use dom::workletglobalscope::WorkletGlobalScopeInit;
 use embedder_traits::EmbedderMsg;
 use euclid::{Point2D, Vector2D, Rect};
 use fetch::FetchCanceller;
-use hyper::header::{ContentType, HttpDate, Headers, LastModified};
-use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
-use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -77,6 +75,7 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
+use mime;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
@@ -125,7 +124,9 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
-use time::{get_time, precise_time_ns, Tm};
+use time::{get_time, precise_time_ns};
+use typed_headers::{ContentType, HttpDate, HeaderMapExt, LastModified};
+use typed_headers::ReferrerPolicy as ReferrerPolicyHeader;
 use url::Position;
 use url::percent_encoding::percent_decode;
 use webdriver_handlers;
@@ -2253,7 +2254,9 @@ impl ScriptThread {
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
-            headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
+            headers.typed_get::<LastModified>()
+                .unwrap_or(None)
+                .map(|LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
         let content_type = metadata.content_type
@@ -2264,12 +2267,13 @@ impl ScriptThread {
                                                       Some(final_url.clone()));
 
         let is_html_document = match metadata.content_type {
-            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))
-                if sub_level.ends_with("+xml") => IsHTMLDocument::NonHTMLDocument,
+            Some(Serde(ContentType(ref mime))) if mime.type_() == mime::APPLICATION &&
+                mime.subtype().as_str().ends_with("+xml") => IsHTMLDocument::NonHTMLDocument,
 
-            Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _)))) |
-            Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _)))) => IsHTMLDocument::NonHTMLDocument,
-
+            Some(Serde(ContentType(ref mime))) if
+                (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML)
+                => IsHTMLDocument::NonHTMLDocument,
             _ => IsHTMLDocument::HTMLDocument,
         };
 
@@ -2281,7 +2285,7 @@ impl ScriptThread {
         let referrer_policy = metadata.headers
                                       .as_ref()
                                       .map(Serde::deref)
-                                      .and_then(Headers::get::<ReferrerPolicyHeader>)
+                                      .and_then(|h| h.typed_get::<ReferrerPolicyHeader>().unwrap_or(None))
                                       .map(ReferrerPolicy::from);
 
         let document = Document::new(&window,
@@ -2672,7 +2676,7 @@ impl ScriptThread {
         let mut context = ParserContext::new(id, url.clone());
 
         let mut meta = Metadata::default(url);
-        meta.set_content_type(Some(&mime!(Text / Html)));
+        meta.set_content_type(Some(&mime::TEXT_HTML));
 
         // If this page load is the result of a javascript scheme url, map
         // the evaluation result into a response.
@@ -2759,6 +2763,6 @@ impl Drop for ScriptThread {
     }
 }
 
-fn dom_last_modified(tm: &Tm) -> String {
-    tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap().to_string()
+fn dom_last_modified(tm: &DateTime<Utc>) -> String {
+    tm.naive_local().format("%m/%d/%Y %H:%M:%S").to_string()
 }
