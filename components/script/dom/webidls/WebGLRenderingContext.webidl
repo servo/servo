@@ -688,10 +688,7 @@ interface WebGLRenderingContext
 {
     // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
 
-    // FIXME(xanewok): https://github.com/servo/servo/issues/20513
-    [Throws]
-    void bufferData(GLenum target, object? data, GLenum usage);
-    [Throws]
+    void bufferData(GLenum target, /*[AllowShared]*/ BufferSource? data, GLenum usage);
     void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferSource data);
 

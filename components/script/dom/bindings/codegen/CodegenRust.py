@@ -344,12 +344,17 @@ class CGMethodCall(CGThing):
 
             distinguishingIndex = method.distinguishingIndexForArgCount(argCount)
 
-            # We can't handle unions at the distinguishing index.
+            # We can't handle unions of non-object values at the distinguishing index.
             for (returnType, args) in possibleSignatures:
-                if args[distinguishingIndex].type.isUnion():
-                    raise TypeError("No support for unions as distinguishing "
-                                    "arguments yet: %s",
-                                    args[distinguishingIndex].location)
+                type = args[distinguishingIndex].type
+                if type.isUnion():
+                    if type.nullable():
+                        type = type.inner
+                    for type in type.flatMemberTypes:
+                        if not (type.isObject() or type.isNonCallbackInterface()):
+                            raise TypeError("No support for unions with non-object variants "
+                                            "as distinguishing arguments yet: %s",
+                                            args[distinguishingIndex].location)
 
             # Convert all our arguments up to the distinguishing index.
             # Doesn't matter which of the possible signatures we use, since
@@ -388,6 +393,7 @@ class CGMethodCall(CGThing):
             interfacesSigs = [
                 s for s in possibleSignatures
                 if (s[1][distinguishingIndex].type.isObject() or
+                    s[1][distinguishingIndex].type.isUnion() or
                     s[1][distinguishingIndex].type.isNonCallbackInterface())]
             # There might be more than one of these; we need to check
             # which ones we unwrap to.
@@ -2366,7 +2372,6 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::bindings::conversions::ConversionBehavior',
         'dom::bindings::conversions::StringificationBehavior',
         'dom::bindings::conversions::root_from_handlevalue',
-        'dom::bindings::error::throw_not_in_union',
         'std::ptr::NonNull',
         'dom::bindings::mozmap::MozMap',
         'dom::bindings::root::DomRoot',
@@ -4450,8 +4455,8 @@ class CGUnionConversionStruct(CGThing):
                 other.append(booleanConversion[0])
             conversions.append(CGList(other, "\n\n"))
         conversions.append(CGGeneric(
-            "throw_not_in_union(cx, \"%s\");\n"
-            "Err(())" % ", ".join(names)))
+            "Ok(ConversionResult::Failure(\"argument could not be converted to any of: %s\".into()))" % ", ".join(names)
+        ))
         method = CGWrapper(
             CGIndenter(CGList(conversions, "\n\n")),
             pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
