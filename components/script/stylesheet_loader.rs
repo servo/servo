@@ -14,11 +14,9 @@ use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
 use encoding_rs::UTF_8;
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use mime::{self, Mime};
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
@@ -117,18 +115,12 @@ impl FetchResponseListener for StylesheetContext {
                 Some(meta) => meta,
                 None => return,
             };
-            let is_css =
-                metadata
-                    .content_type
-                    .map_or(false, |Serde(ContentType(Mime(top, sub, _)))| {
-                        top == TopLevel::Text && sub == SubLevel::Css
-                    });
+            let is_css = metadata.content_type.map_or(false, |ct| {
+                let mime: Mime = ct.into_inner().into();
+                mime.type_() == mime::TEXT && mime.subtype() == mime::CSS
+            });
 
-            let data = if is_css {
-                mem::replace(&mut self.data, vec![])
-            } else {
-                vec![]
-            };
+            let data = if is_css { mem::replace(&mut self.data, vec![]) } else { vec![] };
 
             // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
             let environment_encoding = UTF_8;

@@ -45,9 +45,11 @@ extern crate euclid;
 extern crate fnv;
 extern crate gleam;
 extern crate half;
+extern crate headers_core;
+extern crate headers_ext;
 #[macro_use]
 extern crate html5ever;
-#[macro_use]
+extern crate http;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image;
@@ -64,7 +66,6 @@ extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 extern crate metrics;
-#[macro_use]
 extern crate mime;
 extern crate mime_guess;
 extern crate mitochondria;

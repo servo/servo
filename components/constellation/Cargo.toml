@@ -22,7 +22,7 @@ euclid = "0.19"
 embedder_traits = { path = "../embedder_traits" }
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-hyper = "0.10"
+http = "0.1"
 ipc-channel = "0.11"
 layout_traits = {path = "../layout_traits"}
 log = "0.4"

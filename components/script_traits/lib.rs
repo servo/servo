@@ -16,6 +16,7 @@ extern crate devtools_traits;
 extern crate embedder_traits;
 extern crate euclid;
 extern crate gfx_traits;
+extern crate http;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
@@ -46,8 +47,8 @@ use canvas_traits::webgl::WebGLPipeline;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::{Length, Point2D, Vector2D, Rect, TypedSize2D, TypedScale};
 use gfx_traits::Epoch;
-use hyper::header::Headers;
-use hyper::method::Method;
+use http::HeaderMap;
+use hyper::Method;
 use ipc_channel::{Error as IpcError};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
@@ -146,7 +147,7 @@ pub struct LoadData {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    pub headers: Headers,
+    pub headers: HeaderMap,
     /// The data.
     pub data: Option<Vec<u8>>,
     /// The result of evaluating a javascript scheme url.
@@ -178,8 +179,8 @@ impl LoadData {
         LoadData {
             url: url,
             creator_pipeline_id: creator_pipeline_id,
-            method: Method::Get,
-            headers: Headers::new(),
+            method: Method::GET,
+            headers: HeaderMap::new(),
             data: None,
             js_eval_result: None,
             referrer_policy: referrer_policy,

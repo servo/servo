@@ -9,7 +9,8 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
-use hyper::method::Method;
+use http::header::HeaderName;
+use hyper::Method;
 use net_traits::request::{CredentialsMode, Origin, Request};
 use servo_url::ServoUrl;
 use time::{self, Timespec};
@@ -19,14 +20,14 @@ use time::{self, Timespec};
 /// Each entry might pertain to a header or method
 #[derive(Clone, Debug)]
 pub enum HeaderOrMethod {
-    HeaderData(String),
+    HeaderData(HeaderName),
     MethodData(Method)
 }
 
 impl HeaderOrMethod {
-    fn match_header(&self, header_name: &str) -> bool {
+    fn match_header(&self, header_name: &HeaderName) -> bool {
         match *self {
-            HeaderOrMethod::HeaderData(ref s) => (&**s).eq_ignore_ascii_case(header_name),
+            HeaderOrMethod::HeaderData(ref n) => n == header_name,
             _ => false
         }
     }
@@ -80,7 +81,7 @@ impl CorsCache {
     }
 
     fn find_entry_by_header<'a>(&'a mut self, request: &Request,
-                                header_name: &str) -> Option<&'a mut CorsCacheEntry> {
+                                header_name: &HeaderName) -> Option<&'a mut CorsCacheEntry> {
         self.cleanup();
         self.0.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_header(header_name))
     }
@@ -113,7 +114,7 @@ impl CorsCache {
 
     /// Returns true if an entry with a
     /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
-    pub fn match_header(&mut self, request: &Request, header_name: &str) -> bool {
+    pub fn match_header(&mut self, request: &Request, header_name: &HeaderName) -> bool {
         self.find_entry_by_header(&request, header_name).is_some()
     }
 
@@ -122,13 +123,13 @@ impl CorsCache {
     ///
     /// If not, it will insert an equivalent entry
     pub fn match_header_and_update(&mut self, request: &Request,
-                                   header_name: &str, new_max_age: u32) -> bool {
+                                   header_name: &HeaderName, new_max_age: u32) -> bool {
         match self.find_entry_by_header(&request, header_name).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
                 self.insert(CorsCacheEntry::new(request.origin.clone(), request.current_url(), new_max_age,
                                                 request.credentials_mode == CredentialsMode::Include,
-                                                HeaderOrMethod::HeaderData(header_name.to_owned())));
+                                                HeaderOrMethod::HeaderData(header_name.clone())));
                 false
             }
         }

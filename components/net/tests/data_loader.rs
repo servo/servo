@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use fetch;
-use hyper::header::ContentType;
-use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
+use headers_core::HeaderMapExt;
+use headers_ext::ContentType;
 use hyper_serde::Serde;
+use mime::{self, Mime};
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use net_traits::request::{Origin, Request};
 use net_traits::response::ResponseBody;
@@ -28,8 +29,8 @@ fn assert_parse(url:          &'static str,
             assert!(!response.is_network_error());
             assert_eq!(response.headers.len(), 1);
 
-            let header_content_type = response.headers.get::<ContentType>();
-            assert_eq!(header_content_type, content_type.as_ref());
+            let header_content_type = response.headers.typed_get::<ContentType>();
+            assert_eq!(header_content_type, content_type);
 
             let metadata = match response.metadata() {
                 Ok(FetchMetadata::Filtered { filtered: FilteredMetadata::Basic(m), .. }) => m,
@@ -62,9 +63,8 @@ fn empty_invalid() {
 fn plain() {
     assert_parse(
         "data:,hello%20world",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))))),
-        Some("US-ASCII"),
+        Some(ContentType::from("text/plain; charset=US-ASCII".parse::<Mime>().unwrap())),
+        Some("us-ascii"),
         Some(b"hello world"));
 }
 
@@ -72,7 +72,7 @@ fn plain() {
 fn plain_ct() {
     assert_parse(
         "data:text/plain,hello",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!()))),
+        Some(ContentType::from(mime::TEXT_PLAIN)),
         None,
         Some(b"hello"));
 }
@@ -81,7 +81,7 @@ fn plain_ct() {
 fn plain_html() {
     assert_parse(
         "data:text/html,<p>Servo</p>",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec!()))),
+        Some(ContentType::from(mime::TEXT_HTML)),
         None,
         Some(b"<p>Servo</p>"));
 }
@@ -90,9 +90,7 @@ fn plain_html() {
 fn plain_charset() {
     assert_parse(
         "data:text/plain;charset=latin1,hello",
-        Some(ContentType(Mime(TopLevel::Text,
-                              SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("latin1".to_owned())))))),
+        Some(ContentType::from("text/plain; charset=latin1".parse::<Mime>().unwrap())),
         Some("latin1"),
         Some(b"hello"));
 }
@@ -101,9 +99,7 @@ fn plain_charset() {
 fn plain_only_charset() {
     assert_parse(
         "data:;charset=utf-8,hello",
-        Some(ContentType(Mime(TopLevel::Text,
-                              SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Utf8))))),
+        Some(ContentType::from(mime::TEXT_PLAIN_UTF_8)),
         Some("utf-8"),
         Some(b"hello"));
 }
@@ -112,10 +108,8 @@ fn plain_only_charset() {
 fn base64() {
     assert_parse(
         "data:;base64,C62+7w==",
-        Some(ContentType(Mime(TopLevel::Text,
-                              SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))))),
-        Some("US-ASCII"),
+        Some(ContentType::from("text/plain; charset=US-ASCII".parse::<Mime>().unwrap())),
+        Some("us-ascii"),
         Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
 }
 
@@ -123,7 +117,7 @@ fn base64() {
 fn base64_ct() {
     assert_parse(
         "data:application/octet-stream;base64,C62+7w==",
-        Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_owned()), vec!()))),
+        Some(ContentType::from(mime::APPLICATION_OCTET_STREAM)),
         None,
         Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
 }
@@ -132,8 +126,7 @@ fn base64_ct() {
 fn base64_charset() {
     assert_parse(
         "data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("koi8-r".to_owned())))))),
+        Some(ContentType::from("text/plain; charset=koi8-r".parse::<Mime>().unwrap())),
         Some("koi8-r"),
         Some(&[0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4]));
 }

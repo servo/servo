@@ -10,7 +10,7 @@ use msg::constellation_msg::TEST_PIPELINE_ID;
 use profile_traits::time::{ProfilerChan, TimerMetadata};
 use servo_url::ServoUrl;
 use time;
-use webrender_api::{AlphaType, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize, ColorF};
+use webrender_api::{AlphaType, ColorF, ImageDisplayItem, ImageKey, ImageRendering, LayoutSize};
 
 struct DummyProfilerMetadataFactory {}
 impl ProfilerMetadataFactory for DummyProfilerMetadataFactory {

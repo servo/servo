@@ -33,12 +33,13 @@ use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use fetch::FetchCanceller;
+use headers_core::HeaderMapExt;
+use headers_ext::ContentLength;
 use html5ever::{LocalName, Prefix};
-use hyper::header::ContentLength;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
-use mime::{Mime, SubLevel, TopLevel};
+use mime::{self, Mime};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseListener, FetchMetadata, Metadata};
 use net_traits::NetworkError;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
@@ -1112,7 +1113,10 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
     // https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype
     fn CanPlayType(&self, type_: DOMString) -> CanPlayTypeResult {
         match type_.parse::<Mime>() {
-            Ok(Mime(TopLevel::Application, SubLevel::OctetStream, _)) | Err(_) => {
+            Ok(ref mime) if (mime.type_() == mime::APPLICATION && mime.subtype() == mime::OCTET_STREAM) => {
+                CanPlayTypeResult::_empty
+            },
+            Err(_) => {
                 CanPlayTypeResult::_empty
             },
             _ => CanPlayTypeResult::Maybe,
@@ -1264,8 +1268,8 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
         if let Some(metadata) = self.metadata.as_ref() {
             if let Some(headers) = metadata.headers.as_ref() {
-                if let Some(content_length) = headers.get::<ContentLength>() {
-                    if let Err(e) = self.elem.root().player.set_input_size(**content_length) {
+                if let Some(content_length) = headers.typed_get::<ContentLength>() {
+                    if let Err(e) = self.elem.root().player.set_input_size(content_length.0) {
                         eprintln!("Could not set player input size {:?}", e);
                     }
                 }
