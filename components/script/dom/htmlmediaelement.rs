@@ -17,7 +17,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
@@ -39,6 +39,7 @@ use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
+use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
 use servo_media::player::{PlaybackState, Player, PlayerEvent};
 use servo_media::ServoMedia;
@@ -1021,6 +1022,23 @@ impl VirtualMethods for HTMLMediaElement {
                 elem: DomRoot::from_ref(self),
             };
             ScriptThread::await_stable_state(Microtask::MediaElement(task));
+        }
+    }
+}
+
+pub trait LayoutHTMLMediaElementHelpers {
+    fn data(&self) -> HTMLMediaData;
+}
+
+impl LayoutHTMLMediaElementHelpers for LayoutDom<HTMLMediaElement> {
+    #[allow(unsafe_code)]
+    fn data(&self) -> HTMLMediaData {
+        unsafe {
+            let media = &*self.unsafe_get();
+
+            HTMLMediaData {
+                frame_source: Box::new(media.frame_renderer.clone()),
+            }
         }
     }
 }
