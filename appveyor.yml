@@ -69,7 +69,7 @@ build_script:
   - mach clean-nightlies --keep 2 --force
   # see https://github.com/servo/servo/issues/20664
   #- mach cargo check -p compositing --no-default-features
-  - mach build -d -v
+  - mach build -d -vv
   - mach test-unit
 
 test: off
