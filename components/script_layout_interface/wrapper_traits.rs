@@ -5,6 +5,7 @@
 #![allow(unsafe_code)]
 
 use HTMLCanvasData;
+use HTMLMediaData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
@@ -252,6 +253,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
     fn svg_data(&self) -> Option<SVGSVGData>;
+
+    fn media_data(&self) -> Option<HTMLMediaData>;
 
     /// If this node is an iframe element, returns its browsing context ID. If this node is
     /// not an iframe element, fails. Returns None if there is no nested browsing context.
