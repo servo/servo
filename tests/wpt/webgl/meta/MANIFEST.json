@@ -10619,17 +10619,13 @@
    "conformance/context/context-creation-and-destruction.html": [
     [
      "/_webgl/conformance/context/context-creation-and-destruction.html",
-     {
-      "timeout": "long"
-     }
+     {}
     ]
    ],
    "conformance/context/context-creation.html": [
     [
      "/_webgl/conformance/context/context-creation.html",
-     {
-      "timeout": "long"
-     }
+     {}
     ]
    ],
    "conformance/context/context-eviction-with-garbage-collection.html": [
@@ -27610,11 +27606,11 @@
    "testharness"
   ],
   "conformance/context/context-creation-and-destruction.html": [
-   "3ad7a02d79cfbae4b9d7b6f6ee16cdc5d1a829dd",
+   "a3912fcf7eaaf2992ec4a82de0c7262d929b035d",
    "testharness"
   ],
   "conformance/context/context-creation.html": [
-   "237258cc9d956acf6b821967c8010db22804e6df",
+   "d8685e48fcb8e5f74132501fa31e00163212be54",
    "testharness"
   ],
   "conformance/context/context-eviction-with-garbage-collection.html": [
@@ -46634,7 +46630,7 @@
    "support"
   ],
   "js/webgl-test-utils.js": [
-   "5ab8b2cfd0794f3c15d7afad0fe98b0f75cff38b",
+   "0ef194eacc296f083fe86a03cdbdb5f72317b516",
    "support"
   ],
   "py/lint/LICENSE": [
