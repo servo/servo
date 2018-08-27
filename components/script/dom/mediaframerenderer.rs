@@ -1,4 +1,5 @@
 use servo_media::player::frame::{Frame, FrameRenderer};
+use script_layout_interface::HTMLMediaFrameSource;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use webrender_api::{
@@ -26,6 +27,17 @@ impl MediaFrameRenderer {
 impl FrameRenderer for MediaFrameRenderer {
     fn render(&self, frame: Frame) {
         self.inner.lock().unwrap().render(frame);
+    }
+}
+
+impl HTMLMediaFrameSource for MediaFrameRenderer {
+    fn get_current_frame(&self) -> Option<(ImageKey, i32, i32)> {
+        let inner = self.inner.lock().unwrap();
+        inner.current_frame.clone()
+    }
+
+    fn clone_boxed(&self) -> Box<HTMLMediaFrameSource> {
+        Box::new(self.clone())
     }
 }
 
