@@ -8,6 +8,7 @@ task_id = taskcluster.slugId()
 payload = {
     "taskGroupId": os.environ["DECISION_TASK_ID"],
     "dependencies": [os.environ["DECISION_TASK_ID"]],
+    "schedulerId": "taskcluster-github",  # FIXME: can we avoid hard-coding this?
     "provisionerId": "aws-provisioner-v1",
     "workerType": "github-worker",
     "created": taskcluster.fromNowJSON(""),
