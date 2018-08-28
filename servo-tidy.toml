@@ -42,7 +42,6 @@ packages = [
   "bitflags",
   "crossbeam-epoch",
   "crossbeam-utils",
-  "ipc-channel",
   "log",
   "rand",
   "winapi",
