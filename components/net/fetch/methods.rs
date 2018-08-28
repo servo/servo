@@ -25,13 +25,15 @@ use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt;
 use std::fs::File;
-use std::io::Read;
+use std::io::{BufReader, BufRead};
 use std::mem;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
+
+const FILE_CHUNK_SIZE: usize = 32768; //32 KB
 
 pub type Target<'a> = &'a mut (FetchTaskTarget + Send);
 
@@ -486,8 +488,20 @@ fn scheme_fetch(request: &mut Request,
                     Ok(file_path) => {
                         match File::open(file_path.clone()) {
                             Ok(mut file) => {
-                                let mut bytes = vec![];
-                                let _ = file.read_to_end(&mut bytes);
+                                let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
+                                let mut bytes = Vec::new();
+                                loop {
+                                    let length = {
+                                        let mut buffer = reader.fill_buf().unwrap().to_vec();
+                                        let buffer_len = buffer.len();
+                                        bytes.append(&mut buffer);
+                                        target.process_response_chunk(buffer);
+                                        buffer_len
+                                    };
+                                    if length == 0 { break; }
+                                    reader.consume(length);
+                                }
+
                                 let mime = guess_mime_type(file_path);
 
                                 let mut response = Response::new(url);
