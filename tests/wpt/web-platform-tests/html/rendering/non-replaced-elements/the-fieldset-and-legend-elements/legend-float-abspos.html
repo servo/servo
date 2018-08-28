@@ -1,0 +1,88 @@
+<!doctype html>
+<title>legend and float and position: absolute/fixed</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ body { margin: 0; }
+ fieldset { margin: 0; padding: 20px; border: 10px solid; width: 300px; }
+ legend { height: 10px; }
+ #legend1 { float: left; }
+ #legend2 { float: right; }
+ #legend3 { position: absolute; }
+ #legend4 { position: fixed; }
+</style>
+<fieldset id=fieldset>
+  <div>div</div>
+  <legend id=legend1>legend1</legend>
+  <legend id=legend2>legend2</legend>
+  <legend id=legend3>legend3</legend>
+  <legend id=legend4>legend4</legend>
+  <legend id=legend5>legend5</legend>
+</fieldset>
+<script>
+ const fieldset = document.getElementById('fieldset');
+ const legends = document.getElementsByTagName('legend');
+ const [legend1, legend2, legend3, legend4, legend5] = legends;
+ const expectedTop = 0;
+ const expectedLeft = 10 + 20;
+
+ function assert_rendered_legend(legend) {
+   assert_equals(legend.offsetTop, expectedTop, `${legend.id}.offsetTop`);
+   assert_equals(legend.offsetLeft, expectedLeft, `${legend.id}.offsetLeft`);
+   for (const other of legends) {
+     if (other === legend) {
+       continue;
+     }
+     if (other.offsetTop === expectedTop && other.offsetLeft === expectedLeft) {
+       assert_unreached(`${other.id} should not be the "rendered legend"`);
+     }
+   }
+ }
+
+ test(t => {
+   assert_rendered_legend(legend5);
+ }, 'no dynamic changes');
+
+ test(t => {
+   const legend = document.createElement('legend');
+   t.add_cleanup(() => {
+     legend.remove();
+   });
+   legend.id = 'script-inserted';
+   legend.textContent = 'script-inserted legend';
+   fieldset.insertBefore(legend, legend1);
+   assert_rendered_legend(legend);
+   legend.remove();
+   assert_rendered_legend(legend5);
+ }, 'inserting a new legend and removing it again');
+
+ test(t => {
+   t.add_cleanup(() => {
+     legend1.id = 'legend1';
+     legend2.id = 'legend2';
+   });
+   legend2.id = '';
+   assert_rendered_legend(legend2);
+   legend1.id = '';
+   assert_rendered_legend(legend1);
+   legend1.id = 'legend1';
+   assert_rendered_legend(legend2);
+   legend2.id = 'legend2';
+   assert_rendered_legend(legend5);
+ }, 'dynamic changes to float');
+
+ test(t => {
+   t.add_cleanup(() => {
+     legend3.id = 'legend3';
+     legend4.id = 'legend4';
+   });
+   legend4.id = '';
+   assert_rendered_legend(legend4);
+   legend3.id = '';
+   assert_rendered_legend(legend3);
+   legend3.id = 'legend3';
+   assert_rendered_legend(legend4);
+   legend4.id = 'legend4';
+   assert_rendered_legend(legend5);
+ }, 'dynamic changes to position');
+</script>
