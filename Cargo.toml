@@ -27,3 +27,5 @@ opt-level = 3
 #
 #     [patch."https://github.com/servo/<repository>"]
 #     <crate> = { path = "/path/to/local/checkout" }
+pkg-config = { git = "https://github.com/sdroege/pkg-config-rs", branch = "msvc-suffix" }
+libz-sys = { git = "https://github.com/ferjm/libz-sys", branch = "pkgconfig.msvc" }
