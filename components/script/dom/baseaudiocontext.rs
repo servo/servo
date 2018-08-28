@@ -412,7 +412,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
             let canceller_ = window.task_canceller(TaskSourceName::DOMManipulation);
             let callbacks = AudioDecoderCallbacks::new()
-                .eos(move || {
+                .eos(move |_| {
                     let _ = task_source.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                             let this = this.root();
