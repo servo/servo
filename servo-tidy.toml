@@ -36,9 +36,11 @@ num = [
 # Ignored packages with duplicated versions
 packages = [
   "bitflags",
+  "byte-slice-cast",
   "crossbeam-epoch",
   "crossbeam-utils",
   "log",
+  "num-rational",
   "rand",
   "winapi",
   # TODO: remove slab when #21426 lands
