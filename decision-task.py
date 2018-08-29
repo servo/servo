@@ -19,18 +19,9 @@ payload = {
         "owner": os.environ["DECISION_TASK_OWNER"],
         "source": os.environ["DECISION_TASK_SOURCE"],
     },
-    # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
-    "scopes": [
-        "docker-worker:cache:cargo-registry-cache",
-        "docker-worker:cache:cargo-git-cache",
-    ],
     "payload": {
         "maxRunTime": 600,
         "image": "buildpack-deps:bionic-scm",
-        "cache": {
-            "cargo-registry-cache": "/root/.cargo/registry",
-            "cargo-git-cache": "/root/.cargo/git",
-        },
         "command": [
             "/bin/bash",
             "--login",
