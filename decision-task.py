@@ -21,7 +21,7 @@ payload = {
     },
     "payload": {
         "maxRunTime": 600,
-        "image": "buildpack-deps:bionic-scm",
+        "image": "buildpack-deps:bionic",
         "command": [
             "/bin/bash",
             "--login",
