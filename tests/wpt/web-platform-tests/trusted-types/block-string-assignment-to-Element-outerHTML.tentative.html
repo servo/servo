@@ -13,19 +13,17 @@
   var container = document.querySelector('#container')
 
   // TrustedHTML assignments do not throw.
-  async_test(t => {
-    createHTML_policy(window)
-      .then(t.step_func_done(p => {
-        let html = p.createHTML(INPUTS.HTML);
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
 
-        var d = document.createElement('div');
-        document.querySelector('#container').appendChild(d);
-        d.outerHTML = html;
-        assert_equals(container.innerText, RESULTS.HTML);
+    var d = document.createElement('div');
+    document.querySelector('#container').appendChild(d);
+    d.outerHTML = html;
+    assert_equals(container.innerText, RESULTS.HTML);
 
-        while (container.firstChild)
-          container.firstChild.remove();
-    }));
+    while (container.firstChild)
+      container.firstChild.remove();
   }, "outerHTML with html assigned via policy (successful HTML transformation).");
 
   // String assignments throw.

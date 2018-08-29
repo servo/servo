@@ -6,46 +6,39 @@
 <script>
 'use strict';
 
-function runIframeDisconnectTest(onDeviceConnected) {
-  return new Promise((resolve, reject) => {
-    let opened = false;
+async function connectInIframe() {
+  let iframe = document.createElement('iframe');
+  let opened = false;
 
-    let iframe = document.createElement('iframe');
-    iframe.src = 'resources/open-in-iframe.html';
-    iframe.onload = () => {
-      navigator.usb.test.attachToWindow(iframe.contentWindow).then(() => {
-        iframe.contentWindow.postMessage('Ready', '*');
-      });
-    };
+  iframe.src = 'resources/open-in-iframe.html';
+  document.body.appendChild(iframe);
 
-    window.onmessage = messageEvent => {
-      if (messageEvent.data == 'Ready') {
-        let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);
-        fakeDevice.onclose = () => {
-          assert_true(opened);
-          resolve();
-        };
-      } else if (messageEvent.data == 'Success') {
-        opened = true;
-        onDeviceConnected(iframe);
-      } else {
-        reject(messageEvent.data);
-      }
-    };
+  await navigator.usb.test.attachToContext(iframe);
+  function nextIFrameMessage() {
+    return new Promise(resolve => window.addEventListener(
+        'message', e => resolve(e.data)));
+  }
+  iframe.contentWindow.postMessage('Ready', '*');
 
-    document.body.appendChild(iframe);
-  });
+  assert_equals('Ready', (await nextIFrameMessage()));
+  let fakeDevice = navigator.usb.test.addFakeDevice(fakeDeviceInit);
+  let closedPromise = new Promise(resolve => fakeDevice.onclose = resolve)
+      .then(() => assert_true(opened));
+
+  assert_equals('Success', (await nextIFrameMessage()));
+  opened = true;
+  return { iframe, closedPromise };
 }
 
-usb_test(() => {
-  return runIframeDisconnectTest(iframe => {
-    document.body.removeChild(iframe);
-  });
+usb_test(async () => {
+  let { iframe, closedPromise } = await connectInIframe();
+  document.body.removeChild(iframe);
+  await closedPromise;
 }, 'detaching iframe disconnects device.');
 
-usb_test(() => {
-  return runIframeDisconnectTest(iframe => {
-    iframe.src = 'about:blank';
-  });
+usb_test(async () => {
+  let { iframe, closedPromise } = await connectInIframe();
+  iframe.src = 'about:blank';
+  await closedPromise;
 }, 'navigating iframe disconnects device.');
 </script>
