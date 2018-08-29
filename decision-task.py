@@ -30,7 +30,7 @@ payload = {
                 git clone %(DECISION_TASK_CLONE_URL)s repo &&
                 cd repo &&
                 git checkout %(DECISION_TASK_COMMIT_SHA)s &&
-                python2.7 child-task.py
+                ./child-task.sh
             """ % os.environ,
         ],
     },
