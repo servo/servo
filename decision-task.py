@@ -33,6 +33,13 @@ payload = {
                 ./child-task.sh
             """ % os.environ,
         ],
+        "artifacts": {
+            "public/executable": {
+                "type": "file",
+                "path": "/repo/something-rust/target/release/something-rust",
+                "expires": taskcluster.fromNowJSON("1 month"),
+            },
+        },
     },
 }
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
