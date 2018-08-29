@@ -4,7 +4,6 @@
 
 use rustc::hir::{self, ExprKind};
 use rustc::hir::intravisit as visit;
-use rustc::hir::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
 use syntax::{ast, source_map, symbol::Ident};
@@ -91,7 +90,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
         let item = match cx.tcx.hir.get(id) {
-            ast_map::Node::NodeItem(item) => item,
+            hir::Node::Item(item) => item,
             _ => cx.tcx.hir.expect_item(cx.tcx.hir.get_parent(id)),
         };
         if item.attrs.iter().all(|a| !a.check_name("must_root")) {
