@@ -48,4 +48,4 @@ payload = {
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
 queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 queue.createTask(task_id, payload)
-print("new task scheduled: " % task_id)
+print("new task scheduled: " + task_id)
