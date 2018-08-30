@@ -342,7 +342,7 @@ pub trait TShadowRoot: Sized + Copy + Clone + PartialEq {
     fn host(&self) -> <Self::ConcreteNode as TNode>::ConcreteElement;
 
     /// Get the style data for this ShadowRoot.
-    fn style_data<'a>(&self) -> &'a CascadeData
+    fn style_data<'a>(&self) -> Option<&'a CascadeData>
     where
         Self: 'a;
 
@@ -824,30 +824,36 @@ pub trait TElement:
 
         if let Some(shadow) = self.containing_shadow() {
             doc_rules_apply = false;
-            f(
-                shadow.style_data(),
-                self.as_node().owner_doc().quirks_mode(),
-                Some(shadow.host()),
-            );
+            if let Some(data) = shadow.style_data() {
+                f(
+                    data,
+                    self.as_node().owner_doc().quirks_mode(),
+                    Some(shadow.host()),
+                );
+            }
         }
 
         if let Some(shadow) = self.shadow_root() {
-            f(
-                shadow.style_data(),
-                self.as_node().owner_doc().quirks_mode(),
-                Some(shadow.host()),
-            );
+            if let Some(data) = shadow.style_data() {
+                f(
+                    data,
+                    self.as_node().owner_doc().quirks_mode(),
+                    Some(shadow.host()),
+                );
+            }
         }
 
         let mut current = self.assigned_slot();
         while let Some(slot) = current {
             // Slots can only have assigned nodes when in a shadow tree.
             let shadow = slot.containing_shadow().unwrap();
-            f(
-                shadow.style_data(),
-                self.as_node().owner_doc().quirks_mode(),
-                Some(shadow.host()),
-            );
+            if let Some(data) = shadow.style_data() {
+                f(
+                    data,
+                    self.as_node().owner_doc().quirks_mode(),
+                    Some(shadow.host()),
+                );
+            }
             current = slot.assigned_slot();
         }
 
