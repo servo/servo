@@ -2,13 +2,10 @@
 
 import os
 import json
-import pprint
 import taskcluster
 
 event = json.loads(os.environ["GITHUB_EVENT"])
-print("GitHub event:")
-pprint.pprint(event)
-print("")
+print("GitHub event:\n%s\n" % json.dumps(event, sort_keys=True, indent=4, separators=(',', ': ')))
 
 task_id = taskcluster.slugId()
 payload = {
