@@ -1150,7 +1150,13 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let ref url = self.current_request.borrow().parsed_url;
         match *url {
             Some(ref url) => DOMString::from_string(url.clone().into_string()),
-            None => DOMString::from(""),
+            None => {
+                let ref unparsed_url = self.current_request.borrow().source_url;
+                match *unparsed_url {
+                    Some(ref url) => url.clone(),
+                    None => DOMString::from("")
+                }
+            },
         }
     }
 

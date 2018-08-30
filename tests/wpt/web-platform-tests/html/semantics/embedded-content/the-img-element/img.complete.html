@@ -38,8 +38,9 @@
       assert_false(loaded);
       loaded = true;
       assert_true(document.getElementById("imgTestTag3").complete);
-      var currentSrc = document.getElementById("imgTestTag3").currentSrc
-      assert_equals(new URL(window.location.origin + "/" + currentSrc).pathname, "/3.jpg");
+      var currentSrc = document.getElementById("imgTestTag3").currentSrc;
+      var expectedUrl = new URL("3.jpg", window.location);
+      assert_equals(new URL(currentSrc).pathname, expectedUrl.pathname);
     }, "Only one onload, despite setting the src twice");
 
     document.getElementById("imgTestTag3").src = 'test' + Math.random();
