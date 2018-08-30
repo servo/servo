@@ -32,8 +32,8 @@ tasks:
           - '--login'
           - '-c'
           - >-
-            git clone $DECISION_TASK_CLONE_URL repo &&
+            git clone ${event.repository.clone_url} repo &&
             cd repo &&
-            git checkout $DECISION_TASK_COMMIT_SHA &&
+            git checkout ${event.after} &&
             python2.7 -m pip install taskcluster &&
             python2.7 decision-task.py
