@@ -17,7 +17,9 @@ macro_rules! unreachable_serializable {
 
         impl<'a, T> Deserialize<'a> for $name<T> {
             fn deserialize<D>(_: D) -> Result<$name<T>, D::Error>
-                            where D: Deserializer<'a> {
+            where
+                D: Deserializer<'a>,
+            {
                 unreachable!();
             }
         }
