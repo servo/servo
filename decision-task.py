@@ -1,8 +1,14 @@
 # coding: utf8
 
 import os
-import datetime
+import json
+import pprint
 import taskcluster
+
+event = json.loads(environ["GITHUB_EVENT"])
+print("GitHub event:")
+pprint.pprint(event)
+print("")
 
 task_id = taskcluster.slugId()
 payload = {
@@ -16,8 +22,8 @@ payload = {
     "metadata": {
         "name": "Taskcluster experiments for Servo: Child task",
         "description": "",
-        "owner": os.environ["DECISION_TASK_OWNER"],
-        "source": os.environ["DECISION_TASK_SOURCE"],
+        "owner": event["pusher"]["name"] + "@users.noreply.github.com",
+        "source": event["compare"],
     },
     "payload": {
         "maxRunTime": 600,
@@ -27,11 +33,11 @@ payload = {
             "--login",
             "-c",
             """
-                git clone %(DECISION_TASK_CLONE_URL)s repo &&
+                git clone {event[repository][clone_url]} repo &&
                 cd repo &&
-                git checkout %(DECISION_TASK_COMMIT_SHA)s &&
+                git checkout {event[after]} &&
                 ./child-task.sh
-            """ % os.environ,
+            """.format(event=event),
         ],
         "artifacts": {
             "public/executable.gz": {
@@ -44,5 +50,5 @@ payload = {
 }
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
 queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
-result = queue.createTask(task_id, payload)
-print("task %s created…? %r" % (task_id, result))
+queue.createTask(task_id, payload)
+print("new task scheduled: " % task_id)

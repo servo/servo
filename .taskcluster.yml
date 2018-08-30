@@ -26,10 +26,7 @@ tasks:
           taskclusterProxy: true
         env:
           DECISION_TASK_ID: {$eval: as_slugid("decision_task")}
-          DECISION_TASK_OWNER: ${event.pusher.name}@users.noreply.github.com
-          DECISION_TASK_SOURCE: ${event.compare}
-          DECISION_TASK_CLONE_URL: ${event.repository.clone_url}
-          DECISION_TASK_COMMIT_SHA: ${event.after}
+          GITHUB_EVENT: {$json: event}
         command:
           - /bin/bash
           - '--login'
