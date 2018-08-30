@@ -26,7 +26,7 @@ tasks:
           taskclusterProxy: true
         env:
           DECISION_TASK_ID: {$eval: as_slugid("decision_task")}
-          GITHUB_EVENT: {$json: event}
+          GITHUB_EVENT: {$json: {$eval: event}}
         command:
           - /bin/bash
           - '--login'
