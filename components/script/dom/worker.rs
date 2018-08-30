@@ -14,7 +14,7 @@ use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
@@ -40,14 +40,14 @@ pub struct Worker {
     #[ignore_malloc_size_of = "Defined in std"]
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
-    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    sender: Sender<DedicatedWorkerScriptMsg>,
     #[ignore_malloc_size_of = "Arc"]
     closing: Arc<AtomicBool>,
     terminated: Cell<bool>,
 }
 
 impl Worker {
-    fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+    fn new_inherited(sender: Sender<DedicatedWorkerScriptMsg>,
                      closing: Arc<AtomicBool>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
@@ -58,7 +58,7 @@ impl Worker {
     }
 
     pub fn new(global: &GlobalScope,
-               sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
+               sender: Sender<DedicatedWorkerScriptMsg>,
                closing: Arc<AtomicBool>) -> DomRoot<Worker> {
         reflect_dom_object(Box::new(Worker::new_inherited(sender, closing)),
                            global,
@@ -148,7 +148,7 @@ impl WorkerMethods for Worker {
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
         // indicates that a nonexistent communication channel should result in a silent error.
-        let _ = self.sender.send((address, WorkerScriptMsg::DOMMessage(data)));
+        let _ = self.sender.send(DedicatedWorkerScriptMsg::CommonWorker(address, WorkerScriptMsg::DOMMessage(data)));
         Ok(())
     }
 

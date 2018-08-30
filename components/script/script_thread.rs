@@ -116,6 +116,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
+use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -242,6 +243,52 @@ pub enum MainThreadScriptMsg {
     },
     /// Dispatches a job queue.
     DispatchJobQueue { scope_url: ServoUrl },
+    /// Wake-up call from the task queue.
+    WakeUp,
+}
+
+impl QueuedTaskConversion for MainThreadScriptMsg {
+    fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
+            _ => return None,
+        };
+        let category = match script_msg {
+            CommonScriptMsg::Task(category, _boxed, _pipeline_id) => category,
+            _ => return None,
+        };
+        Some(&category)
+    }
+
+    fn into_queued_task(self) -> Option<QueuedTask> {
+        let script_msg = match self {
+            MainThreadScriptMsg::Common(script_msg) => script_msg,
+            _ => return None,
+        };
+        let (category, boxed, pipeline_id) = match script_msg {
+            CommonScriptMsg::Task(category, boxed, pipeline_id) =>
+                (category, boxed, pipeline_id),
+            _ => return None,
+        };
+        Some((None, category, boxed, pipeline_id))
+    }
+
+    fn from_queued_task(queued_task: QueuedTask) -> Self {
+        let (_worker, category, boxed, pipeline_id) = queued_task;
+        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id);
+        MainThreadScriptMsg::Common(script_msg)
+    }
+
+    fn wake_up_msg() -> Self {
+        MainThreadScriptMsg::WakeUp
+    }
+
+    fn is_wake_up(&self) -> bool {
+        match self {
+            MainThreadScriptMsg::WakeUp => true,
+            _ => false,
+        }
+    }
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -398,6 +445,8 @@ impl<'a> Iterator for DocumentsIter<'a> {
 type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
 unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
 
+unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -423,8 +472,9 @@ pub struct ScriptThread {
     /// A handle to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// The port on which the script thread receives messages (load URL, exit, etc.)
-    port: Receiver<MainThreadScriptMsg>,
+    /// A queue of tasks to be executed in this script-thread.
+    task_queue: TaskQueue<MainThreadScriptMsg>,
+
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
@@ -856,6 +906,8 @@ impl ScriptThread {
 
         let (image_cache_channel, image_cache_port) = channel();
 
+        let task_queue = TaskQueue::new(port, chan.clone());
+
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
@@ -871,7 +923,7 @@ impl ScriptThread {
             resource_threads: state.resource_threads,
             bluetooth_thread: state.bluetooth_thread,
 
-            port: port,
+            task_queue,
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: chan.clone(),
@@ -968,7 +1020,7 @@ impl ScriptThread {
         debug!("Waiting for event.");
         let mut event = {
             let sel = Select::new();
-            let mut script_port = sel.handle(&self.port);
+            let mut script_port = sel.handle(self.task_queue.select());
             let mut control_port = sel.handle(&self.control_port);
             let mut timer_event_port = sel.handle(&self.timer_event_port);
             let mut devtools_port = sel.handle(&self.devtools_port);
@@ -984,7 +1036,8 @@ impl ScriptThread {
             }
             let ret = sel.wait();
             if ret == script_port.id() {
-                FromScript(self.port.recv().unwrap())
+                self.task_queue.take_tasks();
+                FromScript(self.task_queue.recv().unwrap())
             } else if ret == control_port.id() {
                 FromConstellation(self.control_port.recv().unwrap())
             } else if ret == timer_event_port.id() {
@@ -1077,7 +1130,7 @@ impl ScriptThread {
             // and check for more resize events. If there are no events pending, we'll move
             // on and execute the sequential non-resize events we've seen.
             match self.control_port.try_recv() {
-                Err(_) => match self.port.try_recv() {
+                Err(_) => match self.task_queue.try_recv() {
                     Err(_) => match self.timer_event_port.try_recv() {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {
@@ -1233,6 +1286,7 @@ impl ScriptThread {
                     MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                     MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
                     MainThreadScriptMsg::DispatchJobQueue { .. }  => None,
+                    MainThreadScriptMsg::WakeUp => None,
                 }
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
@@ -1404,6 +1458,7 @@ impl ScriptThread {
             MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
                 self.job_queue_map.run_job(scope_url, self)
             }
+             MainThreadScriptMsg::WakeUp => {},
         }
     }
 
