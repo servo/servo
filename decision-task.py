@@ -5,7 +5,7 @@ import json
 import pprint
 import taskcluster
 
-event = json.loads(environ["GITHUB_EVENT"])
+event = json.loads(os.environ["GITHUB_EVENT"])
 print("GitHub event:")
 pprint.pprint(event)
 print("")
