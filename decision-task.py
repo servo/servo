@@ -34,10 +34,10 @@ payload = {
             """ % os.environ,
         ],
         "artifacts": {
-            "public/executable": {
+            "public/executable.gz": {
                 "type": "file",
-                "path": "/repo/something-rust/target/release/something-rust",
-                "expires": taskcluster.fromNowJSON("1 month"),
+                "path": "/repo/something-rust/something-rust.gz",
+                "expires": taskcluster.fromNowJSON("1 week"),
             },
         },
     },
