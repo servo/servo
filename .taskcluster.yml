@@ -12,7 +12,7 @@ tasks:
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 hour'}
       metadata:
-        name: "Taskcluster experiments for Servo: Decision task"
+        name: "Taskcluster experiments for Servo: decision task"
         description: ""
         owner: ${event.pusher.name}@users.noreply.github.com
         source: ${event.compare}
