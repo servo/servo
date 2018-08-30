@@ -20,7 +20,7 @@ command_prefix = """
     git checkout {event[after]} &&
     """.format(event=event)
 
-def create_task(name, command, artifacts=None, dependencies=None):
+def create_task(name, command, artifacts=None, dependencies=None, env=None):
     task_id = taskcluster.slugId()
     payload = {
         "taskGroupId": os.environ["DECISION_TASK_ID"],
@@ -45,6 +45,7 @@ def create_task(name, command, artifacts=None, dependencies=None):
                 "-c",
                 command_prefix + command
             ],
+            "env": env or {},
             "artifacts": {
                 "public/" + artifact_name: {
                     "type": "file",
@@ -68,4 +69,5 @@ create_task(
     "run task",
     "./run-task.sh",
     dependencies=[build_task],
+    env={"BUILD_TASK_ID": build_task},
 )
