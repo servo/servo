@@ -1,0 +1,23 @@
+Metadata-Version: 2.0
+Name: mohawk
+Version: 0.3.4
+Summary: Library for Hawk HTTP authorization
+Home-page: https://github.com/kumar303/mohawk
+Author: Kumar McMillan, Austin King
+Author-email: kumar.mcmillan@gmail.com
+License: MPL 2.0 (Mozilla Public License)
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Dist: six
+
+UNKNOWN
+
+

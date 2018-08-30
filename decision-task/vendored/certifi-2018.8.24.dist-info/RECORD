@@ -1,0 +1,15 @@
+certifi/__init__.py,sha256=5lCYV1iWxoirX1OAaSHkBYUuZGdcwEjEBS6DS_trL0s,63
+certifi/__main__.py,sha256=FiOYt1Fltst7wk9DRa6GCoBr8qBUxlNQu_MKJf04E6s,41
+certifi/cacert.pem,sha256=XA-4HVBsOrBD5lfg-b3PiUzAvwUd2qlIzwXypIMIRGM,263074
+certifi/core.py,sha256=xPQDdG_siy5A7BfqGWa7RJhcA61xXEqPiSrw9GNyhHE,836
+certifi-2018.8.24.dist-info/DESCRIPTION.rst,sha256=jXrtxvB2mFIsHbuK8aP8RXrMx5yecyAIMZ2cn8Xb_ro,1679
+certifi-2018.8.24.dist-info/LICENSE.txt,sha256=anCkv2sBABbVmmS4rkrY3H9e8W8ftFPMLs13HFo0ETE,1048
+certifi-2018.8.24.dist-info/METADATA,sha256=-ocZf77oRzmADbXuEzjj9Enskw6EFUCTZkmxjKigUNo,2570
+certifi-2018.8.24.dist-info/RECORD,,
+certifi-2018.8.24.dist-info/WHEEL,sha256=5wvfB7GvgZAbKBSE9uX9Zbi6LCL-_KgezgHblXhCRnM,113
+certifi-2018.8.24.dist-info/metadata.json,sha256=kzmm48EBIVIV46xxkvsUtEaV0UrYUjxOQOD-WDpIPrY,1006
+certifi-2018.8.24.dist-info/top_level.txt,sha256=KMu4vUCfsjLrkPbSNdgdekS-pVJzBAJFO__nI8NF6-U,8
+certifi-2018.8.24.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+certifi/core.pyc,,
+certifi/__main__.pyc,,
+certifi/__init__.pyc,,
