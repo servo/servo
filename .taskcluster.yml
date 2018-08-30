@@ -21,7 +21,7 @@ tasks:
 
       payload:
         maxRunTime: 600
-        image: "python:2.7.15-stretch"
+        image: "buildpack-deps:bionic-scm"
         features:
           taskclusterProxy: true
         env:
@@ -35,5 +35,4 @@ tasks:
             git clone ${event.repository.clone_url} repo &&
             cd repo &&
             git checkout ${event.after} &&
-            python2.7 -m pip install taskcluster &&
-            python2.7 decision-task.py
+            python2.7 decision-task/run.py
