@@ -1037,6 +1037,13 @@
         @assert ctx.measureText('Hello').advances[2] >= 58;
         @assert ctx.measureText('Hello').advances[3] >= 70;
         @assert ctx.measureText('Hello').advances[4] >= 80;
+
+        var tm = ctx.measureText('Hello');
+        @assert ctx.measureText('Hello').advances[0] === tm.advances[0];
+        @assert ctx.measureText('Hello').advances[1] === tm.advances[1];
+        @assert ctx.measureText('Hello').advances[2] === tm.advances[2];
+        @assert ctx.measureText('Hello').advances[3] === tm.advances[3];
+        @assert ctx.measureText('Hello').advances[4] === tm.advances[4];
     }), 500);
 
 - name: 2d.text.measure.actualBoundingBox
