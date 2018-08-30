@@ -421,7 +421,8 @@ interface WebGLRenderingContextBase
     const GLenum RGB5_A1                        = 0x8057;
     const GLenum RGB565                         = 0x8D62;
     const GLenum DEPTH_COMPONENT16              = 0x81A5;
-    const GLenum STENCIL_INDEX                  = 0x1901;
+    // https://github.com/KhronosGroup/WebGL/pull/2371
+    // const GLenum STENCIL_INDEX                  = 0x1901;
     const GLenum STENCIL_INDEX8                 = 0x8D48;
     const GLenum DEPTH_STENCIL                  = 0x84F9;
 
@@ -687,10 +688,7 @@ interface WebGLRenderingContext
 {
     // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
 
-    // FIXME(xanewok): https://github.com/servo/servo/issues/20513
-    [Throws]
-    void bufferData(GLenum target, object? data, GLenum usage);
-    [Throws]
+    void bufferData(GLenum target, /*[AllowShared]*/ BufferSource? data, GLenum usage);
     void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferSource data);
 

@@ -10,42 +10,6 @@ index de45ce308c..11a83ac00a 100644
  <title>WebGL Enable Vertex Attrib Zero Test</title>
  <link rel="stylesheet" href="../../resources/js-test-style.css"/>
  <script src=/resources/testharness.js></script>
-diff --git i/conformance/canvas/rapid-resizing.html w/conformance/canvas/rapid-resizing.html
-index 1faa737222..89f9e1e3c2 100644
---- i/conformance/canvas/rapid-resizing.html
-+++ w/conformance/canvas/rapid-resizing.html
-@@ -29,6 +29,7 @@
- <html>
- <head>
- <meta charset="utf-8">
-+<meta name="timeout" content="long">
- <title>WebGL Rapid Resizing Test</title>
- <link rel="stylesheet" href="../../resources/js-test-style.css"/>
- <script src=/resources/testharness.js></script>
-diff --git i/conformance/context/context-creation-and-destruction.html w/conformance/context/context-creation-and-destruction.html
-index a02dd2d14c..47099e57bd 100644
---- i/conformance/context/context-creation-and-destruction.html
-+++ w/conformance/context/context-creation-and-destruction.html
-@@ -29,6 +29,7 @@
- <html>
- <head>
- <meta charset="utf-8">
-+<meta name="timeout" content="long">
- <title>Test that contexts are freed and garbage collected reasonably</title>
- <link rel="stylesheet" href="../../resources/js-test-style.css"/>
- <script src=/resources/testharness.js></script>
-diff --git i/conformance/context/context-creation.html w/conformance/context/context-creation.html
-index 04b138daf4..703bcfa8dc 100644
---- i/conformance/context/context-creation.html
-+++ w/conformance/context/context-creation.html
-@@ -29,6 +29,7 @@
- <html>
- <head>
- <meta charset="utf-8">
-+<meta name="timeout" content="long">
- <title>Test that you can create large numbers of WebGL contexts.</title>
- <link rel="stylesheet" href="../../resources/js-test-style.css"/>
- <script src=/resources/testharness.js></script>
 diff --git i/conformance/context/context-eviction-with-garbage-collection.html w/conformance/context/context-eviction-with-garbage-collection.html
 index 3989c7679a..b52e3a9e9f 100644
 --- i/conformance/context/context-eviction-with-garbage-collection.html

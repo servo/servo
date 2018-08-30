@@ -1165,14 +1165,16 @@ impl WebGLRenderingContext {
             return
         );
 
+        let array_buffer = handle_potential_webgl_error!(
+            self,
+            self.current_vao().element_array_buffer().get().ok_or(InvalidOperation),
+            return
+        );
+
         if count > 0 && primcount > 0 {
-            if let Some(array_buffer) = self.current_vao().element_array_buffer().get() {
-                // This operation cannot overflow in u64 and we know all those values are nonnegative.
-                let val = offset as u64 + (count as u64 * type_size as u64);
-                if val > array_buffer.capacity() as u64 {
-                    return self.webgl_error(InvalidOperation);
-                }
-            } else {
+            // This operation cannot overflow in u64 and we know all those values are nonnegative.
+            let val = offset as u64 + (count as u64 * type_size as u64);
+            if val > array_buffer.capacity() as u64 {
                 return self.webgl_error(InvalidOperation);
             }
         }
@@ -1321,19 +1323,6 @@ impl WebGLRenderingContext {
 impl Drop for WebGLRenderingContext {
     fn drop(&mut self) {
         let _ = self.webgl_sender.send_remove();
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe fn fallible_array_buffer_view_to_vec(
-    cx: *mut JSContext,
-    abv: *mut JSObject,
-) -> Result<Vec<u8>, Error> {
-    assert!(!abv.is_null());
-    typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
-    match array_buffer_view {
-        Ok(v) => Ok(v.to_vec()),
-        Err(_) => Err(Error::Type("Not an ArrayBufferView".to_owned())),
     }
 }
 
@@ -1892,52 +1881,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         handle_potential_webgl_error!(self, texture.generate_mipmap());
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(
+    fn BufferData(
         &self,
-        cx: *mut JSContext,
         target: u32,
-        data: *mut JSObject,
+        data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
-    ) -> ErrorResult {
-        if data.is_null() {
-            return Ok(self.webgl_error(InvalidValue));
-        }
-
-        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
-        let data_vec = match array_buffer {
-            Ok(data) => data.to_vec(),
-            Err(_) => fallible_array_buffer_view_to_vec(cx, data)?,
+    ) {
+        let data = match data {
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(data)) => data.to_vec(),
+            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(data)) => data.to_vec(),
+            None => return self.webgl_error(InvalidValue),
         };
 
-        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return Ok(()));
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidOperation)),
+            None => return self.webgl_error(InvalidOperation),
         };
 
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data_vec, usage));
-        Ok(())
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> ErrorResult {
-        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return Ok(()));
+    fn BufferData_(&self, target: u32, size: i64, usage: u32) {
+        let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
-            None => return Ok(self.webgl_error(InvalidOperation)),
+            None => return self.webgl_error(InvalidOperation),
         };
 
         if size < 0 {
-            return Ok(self.webgl_error(InvalidValue));
+            return self.webgl_error(InvalidValue);
         }
 
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
-        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -2757,7 +2738,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
         buffer.map_or(false, |buf| {
-            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_marked_for_deletion()
+            self.validate_ownership(buf).is_ok() && buf.target().is_some() && !buf.is_deleted()
         })
     }
 
@@ -3643,7 +3624,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 1 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
@@ -3660,7 +3642,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 2 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
@@ -3677,7 +3660,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 3 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
@@ -3694,7 +3678,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Float32ArrayOrUnrestrictedFloatSequence::UnrestrictedFloatSequence(v) => v,
         };
         if values.len() < 4 {
-            return self.webgl_error(InvalidOperation);
+            // https://github.com/KhronosGroup/WebGL/issues/2700
+            return self.webgl_error(InvalidValue);
         }
         self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }

@@ -240,14 +240,18 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GenerateMipmap(target)
     }
 
-    #[allow(unsafe_code)]
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
-        self.base.BufferData(cx, target, data, usage)
+    fn BufferData(
+        &self,
+        target: u32,
+        data: Option<ArrayBufferViewOrArrayBuffer>,
+        usage: u32,
+    ) {
+        self.base.BufferData(target, data, usage)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> Fallible<()> {
+    fn BufferData_(&self, target: u32, size: i64, usage: u32) {
         self.base.BufferData_(target, size, usage)
     }
 
