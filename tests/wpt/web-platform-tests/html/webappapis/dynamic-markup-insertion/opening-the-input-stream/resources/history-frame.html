@@ -1,0 +1,20 @@
+<script>
+function queueTest() {
+  // The timeout is necessary to avoid the parser still being active when
+  // `document.open()` is called and becoming a no-op.
+  //
+  // We also cannot use setTimeout(..., 0), as the parser is terminated in a
+  // task with DOM manipulation task source while the timeout is run in a task
+  // on the timer task source. The order is therefore not guaranteed. Let's
+  // play it safer and use some actual timeout.
+  setTimeout(() => {
+    document.open();
+    document.write("<p>New content</p>");
+    document.close();
+    opener.onDocumentOpen();
+  }, 200);
+}
+</script>
+<body onload="opener.onFrameLoaded(); queueTest();">
+<p>Old content</p>
+</body>

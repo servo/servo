@@ -89,6 +89,7 @@ interface PaymentAddress {
   readonly attribute DOMString city;
   readonly attribute DOMString country;
   readonly attribute DOMString dependentLocality;
+  // "languageCode" is a feature at risk
   readonly attribute DOMString languageCode;
   readonly attribute DOMString organization;
   readonly attribute DOMString phone;

@@ -162,6 +162,7 @@ SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
 SET TIMEOUT: html/semantics/scripting-1/the-script-element/*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/0*
+SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/resources/history-frame.html
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/tasks.window.js
 SET TIMEOUT: html/webappapis/scripting/event-loops/*
 SET TIMEOUT: html/webappapis/scripting/events/event-handler-processing-algorithm-error/*

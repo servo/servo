@@ -60,7 +60,8 @@ usb_test(() => {
 usb_test(() => {
   const expectedFilters = [
     { vendorId: 1234, classCode: 0xFF, serialNumber: "123ABC" },
-    { vendorId: 5678, productId: 0xF00F }
+    { vendorId: 5678, productId: 0xF00F },
+    { vendorId: 9012, classCode: 0xFF, subclassCode: 0xEE, protocolCode: 0xDD },
   ];
 
   navigator.usb.test.onrequestdevice = event => {
@@ -77,7 +78,8 @@ usb_test(() => {
   return callWithTrustedClick(() => {
     return navigator.usb.requestDevice({ filters: expectedFilters })
       .then(device => {
-        assert_unreachable('requestDevice should reject because no device selected');
+        assert_unreachable(
+            'requestDevice should reject because no device selected');
       })
       .catch(error => {
         assert_equals(error.code, DOMException.NOT_FOUND_ERR);

@@ -27,8 +27,8 @@
   ];
 
   testCases.forEach(c => {
-    async_test(t => {
-      assert_element_accepts_trusted_url(window, t, c[0], c[1], RESULTS.URL);
+    test(t => {
+      assert_element_accepts_trusted_url(window, c, t, c[0], c[1], RESULTS.URL);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedURL");
@@ -41,8 +41,8 @@
   ];
 
   scriptTestCases.forEach(c => {
-    async_test(t => {
-      assert_element_accepts_trusted_script_url(window, t, c[0], c[1], RESULTS.SCRIPTURL);
+    test(t => {
+      assert_element_accepts_trusted_script_url(window, c, t, c[0], c[1], RESULTS.SCRIPTURL);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedScriptURL");
@@ -55,8 +55,8 @@
   ];
 
   HTMLTestCases.forEach(c => {
-    async_test(t => {
-      assert_element_accepts_trusted_html(window, t, c[0], c[1], RESULTS.HTML);
+    test(t => {
+      assert_element_accepts_trusted_html(window, c, t, c[0], c[1], RESULTS.HTML);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedHTML");

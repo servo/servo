@@ -19,24 +19,15 @@ interface BackgroundFetchManager {
   Promise<BackgroundFetchRegistration> fetch(DOMString id, (RequestInfo or sequence<RequestInfo>) requests, optional BackgroundFetchOptions options);
   Promise<BackgroundFetchRegistration?> get(DOMString id);
   Promise<sequence<DOMString>> getIds();
-  // TODO: in future this should become an async iterator for BackgroundFetchRegistration objects
 };
 
 dictionary BackgroundFetchUIOptions {
-  sequence<IconDefinition> icons = [];
+  sequence<ImageResource> icons = [];
   DOMString title = "";
 };
 
 dictionary BackgroundFetchOptions : BackgroundFetchUIOptions {
   unsigned long long downloadTotal = 0;
-};
-
-// This is taken from https://w3c.github.io/manifest/#icons-member.
-// This definition should probably be moved somewhere more general.
-dictionary IconDefinition {
-  DOMString src;
-  DOMString sizes = "";
-  DOMString type = "";
 };
 
 [Exposed=(Window,Worker)]
@@ -77,7 +68,6 @@ enum BackgroundFetchFailureReason {
 interface BackgroundFetchRecord {
   readonly attribute Request request;
   readonly attribute Promise<Response> responseReady;
-  // TODO: In future this will include a fetch observer
 };
 
 [Constructor(DOMString type, BackgroundFetchEventInit init), Exposed=ServiceWorker]
