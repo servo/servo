@@ -60,6 +60,15 @@ impl PannerNode {
         if count > 2 {
             return Err(Error::NotSupported)
         }
+        if options.maxDistance < 0. {
+            return Err(Error::NotSupported)
+        }
+        if options.rolloffFactor < 0. {
+            return Err(Error::Range("rolloffFactor should be positive".into()))
+        }
+        if options.coneOuterGain < 0. || options.coneOuterGain > 360. {
+            return Err(Error::NotSupported)
+        }
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(count);
         node_options.channelCountMode = Some(mode);
