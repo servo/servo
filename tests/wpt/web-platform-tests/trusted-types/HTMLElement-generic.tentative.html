@@ -24,8 +24,8 @@
   ];
 
   testCases.forEach(c => {
-    async_test(t => {
-      assert_element_accepts_trusted_url(window, t, c[0], c[1], RESULTS.URL);
+    test(t => {
+      assert_element_accepts_trusted_url(window, c, t, c[0], c[1], RESULTS.URL);
     }, c[0] + "." + c[1] + " assigned via policy (successful URL transformation)");
   });
 
@@ -36,8 +36,8 @@
   ];
 
   scriptTestCases.forEach(c => {
-    async_test(t => {
-      assert_element_accepts_trusted_script_url(window, t, c[0], c[1], RESULTS.SCRIPTURL);
+    test(t => {
+      assert_element_accepts_trusted_script_url(window, c, t, c[0], c[1], RESULTS.SCRIPTURL);
     }, c[0] + "." + c[1] + " assigned via policy (successful ScriptURL transformation)");
   });
 
@@ -48,8 +48,8 @@
   ];
 
   HTMLTestCases.forEach(c => {
-    async_test(t => {
-      assert_element_accepts_trusted_html(window, t, c[0], c[1], RESULTS.HTML);
+    test(t => {
+      assert_element_accepts_trusted_html(window, c, t, c[0], c[1], RESULTS.HTML);
     }, c[0] + "." + c[1] + " assigned via policy (successful HTML transformation)");
   });
 </script>

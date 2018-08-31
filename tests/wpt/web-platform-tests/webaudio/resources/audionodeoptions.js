@@ -40,19 +40,19 @@ function testAudioNodeOptions(should, context, nodeName, expectedNodeOptions) {
                   {channelCount: testChannelCount}));
         },
         'new ' + nodeName + '(c, {channelCount: ' + testChannelCount + '}}')
-        .throw(expectedNodeOptions.channelCount.errorType || TypeError);
+        .throw(DOMException,
+               expectedNodeOptions.channelCount.exceptionType);
   } else {
     // The channel count is not fixed.  Try to set the count to invalid
     // values and make sure an error is thrown.
-    let errorType = 'NotSupportedError';
-
     [0, 99].forEach(testValue => {
       should(() => {
         node = new window[nodeName](
             context, Object.assign({}, expectedNodeOptions.additionalOptions, {
               channelCount: testValue
             }));
-      }, `new ${nodeName}(c, {channelCount: ${testValue}})`).throw(errorType);
+      }, `new ${nodeName}(c, {channelCount: ${testValue}})`)
+          .throw(DOMException, 'NotSupportedError');
     });
   }
 
@@ -88,7 +88,8 @@ function testAudioNodeOptions(should, context, nodeName, expectedNodeOptions) {
                       {channelCountMode: testValue}));
             },
             `new ${nodeName}(c, {channelCountMode: "${testValue}"})`)
-            .throw(expectedNodeOptions.channelCountMode.errorType);
+            .throw(DOMException,
+                   expectedNodeOptions.channelCountMode.exceptionType);
       }
     });
   } else {
@@ -140,7 +141,8 @@ function testAudioNodeOptions(should, context, nodeName, expectedNodeOptions) {
                       {channelInterpretation: testValue}));
             },
             `new ${nodeName}(c, {channelInterpretation: "${testValue}"})`)
-            .throw(expectedNodeOptions.channelInterpretation.errorType);
+            .throw(DOMException,
+                   expectedNodeOptions.channelCountMode.exceptionType);
       }
     });
   } else {

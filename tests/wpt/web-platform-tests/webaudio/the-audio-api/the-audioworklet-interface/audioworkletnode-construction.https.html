@@ -23,7 +23,7 @@
           (task, should) => {
             should(() => new AudioWorkletNode(realtimeContext, 'dummy'),
                    'Creating a node before loading a module should throw.')
-                .throw('InvalidStateError');
+                .throw(DOMException, 'InvalidStateError');
 
             task.done();
           });

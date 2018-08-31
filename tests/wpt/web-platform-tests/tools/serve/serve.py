@@ -378,15 +378,17 @@ def build_routes(aliases):
 
 
 class ServerProc(object):
-    def __init__(self):
+    def __init__(self, scheme=None):
         self.proc = None
         self.daemon = None
         self.stop = Event()
+        self.scheme = scheme
 
     def start(self, init_func, host, port, paths, routes, bind_address, config, **kwargs):
         self.proc = Process(target=self.create_daemon,
                             args=(init_func, host, port, paths, routes, bind_address,
                                   config),
+                            name='%s on port %s' % (self.scheme, port),
                             kwargs=kwargs)
         self.proc.daemon = True
         self.proc.start()
@@ -507,7 +509,7 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
                          "ws":start_ws_server,
                          "wss":start_wss_server}[scheme]
 
-            server_proc = ServerProc()
+            server_proc = ServerProc(scheme=scheme)
             server_proc.start(init_func, host, port, paths, routes, bind_address,
                               config, **kwargs)
             servers[scheme].append((port, server_proc))
@@ -828,9 +830,16 @@ def run(**kwargs):
             servers = start(config, build_routes(config["aliases"]), **kwargs)
 
             try:
-                while any(item.is_alive() for item in iter_procs(servers)):
+                while all(item.is_alive() for item in iter_procs(servers)):
                     for item in iter_procs(servers):
                         item.join(1)
+                exited = [item for item in iter_procs(servers) if not item.is_alive()]
+                subject = "subprocess" if len(exited) == 1 else "subprocesses"
+
+                logger.info("%s %s exited:" % (len(exited), subject))
+
+                for item in iter_procs(servers):
+                    logger.info("Status of %s:\t%s" % (item.name, "running" if item.is_alive() else "not running"))
             except KeyboardInterrupt:
                 logger.info("Shutting down")
 

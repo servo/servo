@@ -127,27 +127,27 @@
         }, '2: buffer.copyFromChannel(context, 0)').throw(TypeError);
         should(() => {
           buffer.copyFromChannel(x, -1);
-        }, '3: buffer.copyFromChannel(x, -1)').throw('IndexSizeError');
+        }, '3: buffer.copyFromChannel(x, -1)').throw(DOMException, 'IndexSizeError');
         should(
             () => {
               buffer.copyFromChannel(x, numberOfChannels);
             },
             '4: buffer.copyFromChannel(x, ' + numberOfChannels + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
         ;
         should(() => {
           buffer.copyFromChannel(x, 0, -1);
-        }, '5: buffer.copyFromChannel(x, 0, -1)').throw('IndexSizeError');
+        }, '5: buffer.copyFromChannel(x, 0, -1)').throw(DOMException, 'IndexSizeError');
         should(
             () => {
               buffer.copyFromChannel(x, 0, bufferLength);
             },
             '6: buffer.copyFromChannel(x, 0, ' + bufferLength + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         should(() => {
           buffer.copyFromChannel(x, 3);
-        }, '7: buffer.copyFromChannel(x, 3)').throw('IndexSizeError');
+        }, '7: buffer.copyFromChannel(x, 3)').throw(DOMException, 'IndexSizeError');
 
         if (window.SharedArrayBuffer) {
           let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
@@ -183,26 +183,26 @@
         }, '1: buffer.copyToChannel(context, 0)').throw(TypeError);
         should(() => {
           buffer.copyToChannel(x, -1);
-        }, '2: buffer.copyToChannel(x, -1)').throw('IndexSizeError');
+        }, '2: buffer.copyToChannel(x, -1)').throw(DOMException, 'IndexSizeError');
         should(
             () => {
               buffer.copyToChannel(x, numberOfChannels);
             },
             '3: buffer.copyToChannel(x, ' + numberOfChannels + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
         should(() => {
           buffer.copyToChannel(x, 0, -1);
-        }, '4: buffer.copyToChannel(x, 0, -1)').throw('IndexSizeError');
+        }, '4: buffer.copyToChannel(x, 0, -1)').throw(DOMException, 'IndexSizeError');
         should(
             () => {
               buffer.copyToChannel(x, 0, bufferLength);
             },
             '5: buffer.copyToChannel(x, 0, ' + bufferLength + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         should(() => {
           buffer.copyToChannel(x, 3);
-        }, '6: buffer.copyToChannel(x, 3)').throw('IndexSizeError');
+        }, '6: buffer.copyToChannel(x, 3)').throw(DOMException, 'IndexSizeError');
 
         if (window.SharedArrayBuffer) {
           let shared_buffer = new Float32Array(new SharedArrayBuffer(32));
