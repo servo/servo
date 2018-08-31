@@ -169,12 +169,6 @@ pub struct PendingImage {
     pub id: PendingImageId,
 }
 
-/// FIXME(victor): probably this doesn't belong here
-pub trait HTMLMediaFrameSource: Send + Sync + 'static {
-    fn get_current_frame(&self) -> Option<(webrender_api::ImageKey, i32, i32)>;
-    fn clone_boxed(&self) -> Box<HTMLMediaFrameSource>;
-}
-
 pub struct HTMLMediaData {
-    pub frame_source: Box<HTMLMediaFrameSource>,
+    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
 }

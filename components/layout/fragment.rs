@@ -32,9 +32,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use script_layout_interface::{
-    HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, HTMLMediaFrameSource, SVGSVGData,
-};
+use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource, HTMLMediaData, SVGSVGData};
 use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use std::{f32, fmt};
@@ -368,23 +366,15 @@ impl CanvasFragmentInfo {
     }
 }
 
+#[derive(Clone)]
 pub struct MediaFragmentInfo {
-    pub frame_source: Box<HTMLMediaFrameSource>,
-}
-
-// XXX
-impl Clone for MediaFragmentInfo {
-    fn clone(&self) -> MediaFragmentInfo {
-        MediaFragmentInfo {
-            frame_source: self.frame_source.clone_boxed(),
-        }
-    }
+    pub current_frame: Option<(webrender_api::ImageKey, i32, i32)>,
 }
 
 impl MediaFragmentInfo {
     pub fn new(data: HTMLMediaData) -> MediaFragmentInfo {
         MediaFragmentInfo {
-            frame_source: data.frame_source,
+            current_frame: data.current_frame,
         }
     }
 }
@@ -987,7 +977,7 @@ impl Fragment {
                 }
             }
             SpecificFragmentInfo::Media(ref info) => {
-                if let Some((_, width, _)) = info.frame_source.get_current_frame() {
+                if let Some((_, width, _)) = info.current_frame {
                     Au::from_px(width as i32)
                 } else {
                     Au(0)
@@ -1017,7 +1007,7 @@ impl Fragment {
                 }
             }
             SpecificFragmentInfo::Media(ref info) => {
-                if let Some((_, _, height)) = info.frame_source.get_current_frame() {
+                if let Some((_, _, height)) = info.current_frame {
                     Au::from_px(height as i32)
                 } else {
                     Au(0)

@@ -1946,7 +1946,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             },
             SpecificFragmentInfo::Media(ref fragment_info) => {
-                if let Some((ref image_key, _, _)) = fragment_info.frame_source.get_current_frame()
+                if let Some((ref image_key, _, _)) = fragment_info.current_frame
                 {
                     let base = create_base_display_item(state);
                     state.add_image_item(

@@ -26,7 +26,6 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlsourceelement::HTMLSourceElement;
 use dom::mediaerror::MediaError;
-use dom::mediaframerenderer::MediaFrameRenderer;
 use dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindContext};
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
@@ -42,6 +41,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::HTMLMediaData;
 use script_thread::ScriptThread;
 use servo_media::player::{PlaybackState, Player, PlayerEvent};
+use servo_media::player::frame::{Frame, FrameRenderer};
 use servo_media::ServoMedia;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -51,9 +51,77 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
 use time::{self, Timespec, Duration};
+use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
+use webrender_api::{RenderApiSender, Transaction};
 
 unsafe_no_jsmanaged_fields!(Player);
-unsafe_no_jsmanaged_fields!(MediaFrameRenderer);
+unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
+
+struct MediaFrameRenderer {
+    api: RenderApi,
+    current_frame: Option<(ImageKey, i32, i32)>,
+    old_frame: Option<ImageKey>,
+    very_old_frame: Option<ImageKey>,
+}
+
+impl MediaFrameRenderer {
+    fn new(render_api_sender: RenderApiSender) -> Self {
+        Self {
+            api: render_api_sender.create_api(),
+            current_frame: None,
+            old_frame: None,
+            very_old_frame: None,
+        }
+    }
+}
+
+impl FrameRenderer for MediaFrameRenderer {
+    fn render(&mut self, frame: Frame) {
+        let descriptor = ImageDescriptor::new(
+            frame.get_width() as u32,
+            frame.get_height() as u32,
+            ImageFormat::BGRA8,
+            false,
+            false,
+        );
+
+        let mut txn = Transaction::new();
+
+        let image_data = ImageData::Raw(frame.get_data().clone());
+
+        if let Some(old_image_key) = mem::replace(&mut self.very_old_frame, self.old_frame.take()) {
+            txn.delete_image(old_image_key);
+        }
+
+        match self.current_frame {
+            Some((ref image_key, ref mut width, ref mut height))
+                if *width == frame.get_width() && *height == frame.get_height() =>
+            {
+                txn.update_image(*image_key, descriptor, image_data, None);
+
+                if let Some(old_image_key) = self.old_frame.take() {
+                    txn.delete_image(old_image_key);
+                }
+            }
+            Some((ref mut image_key, ref mut width, ref mut height)) => {
+                self.old_frame = Some(*image_key);
+
+                let new_image_key = self.api.generate_image_key();
+                txn.add_image(new_image_key, descriptor, image_data, None);
+                *image_key = new_image_key;
+                *width = frame.get_width();
+                *height = frame.get_height();
+            }
+            None => {
+                let image_key = self.api.generate_image_key();
+                txn.add_image(image_key, descriptor, image_data, None);
+                self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
+            }
+        }
+
+        self.api.update_resources(txn.resource_updates);
+    }
+}
 
 #[dom_struct]
 // FIXME(nox): A lot of tasks queued for this element should probably be in the
@@ -92,8 +160,8 @@ pub struct HTMLMediaElement {
     have_metadata: Cell<bool>,
     #[ignore_malloc_size_of = "servo_media"]
     player: Box<Player>,
-    #[ignore_malloc_size_of = "oops"]
-    frame_renderer: MediaFrameRenderer,
+    #[ignore_malloc_size_of = "Arc"]
+    frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -140,7 +208,8 @@ impl HTMLMediaElement {
             in_flight_play_promises_queue: Default::default(),
             have_metadata: Cell::new(false),
             player: ServoMedia::get().unwrap().create_player().unwrap(),
-            frame_renderer: MediaFrameRenderer::new(document.window().get_webrender_api_sender()),
+            frame_renderer:
+                Arc::new(Mutex::new(MediaFrameRenderer::new(document.window().get_webrender_api_sender()))),
         }
     }
 
@@ -847,7 +916,7 @@ impl HTMLMediaElement {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
         self.player.register_event_handler(action_sender);
-        self.player.register_frame_renderer(Arc::new(self.frame_renderer.clone()));
+        self.player.register_frame_renderer(self.frame_renderer.clone());
         // XXXferjm this can fail.
         self.player.setup().unwrap();
 
@@ -1038,12 +1107,9 @@ pub trait LayoutHTMLMediaElementHelpers {
 impl LayoutHTMLMediaElementHelpers for LayoutDom<HTMLMediaElement> {
     #[allow(unsafe_code)]
     fn data(&self) -> HTMLMediaData {
-        unsafe {
-            let media = &*self.unsafe_get();
-
-            HTMLMediaData {
-                frame_source: Box::new(media.frame_renderer.clone()),
-            }
+        let media = unsafe { &*self.unsafe_get() };
+        HTMLMediaData {
+            current_frame: media.frame_renderer.lock().unwrap().current_frame.clone(),
         }
     }
 }

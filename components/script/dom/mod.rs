@@ -387,7 +387,6 @@ pub mod inputevent;
 pub mod keyboardevent;
 pub mod location;
 pub mod mediaerror;
-pub mod mediaframerenderer;
 pub mod medialist;
 pub mod mediaquerylist;
 pub mod mediaquerylistevent;
