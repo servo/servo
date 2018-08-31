@@ -1,0 +1,73 @@
+// META: title=StorageManager API and opaque origins
+
+function load_iframe(src, sandbox) {
+  return new Promise(resolve => {
+    const iframe = document.createElement('iframe');
+    iframe.onload = () => { resolve(iframe); };
+    if (sandbox)
+      iframe.sandbox = sandbox;
+    iframe.srcdoc = src;
+    iframe.style.display = 'none';
+    document.documentElement.appendChild(iframe);
+  });
+}
+
+function wait_for_message(iframe) {
+  return new Promise(resolve => {
+    self.addEventListener('message', function listener(e) {
+      if (e.source === iframe.contentWindow) {
+        resolve(e.data);
+        self.removeEventListener('message', listener);
+      }
+    });
+  });
+}
+
+function make_script(snippet) {
+  return '<script>' +
+         '  window.onmessage = () => {' +
+         '    try {' +
+         '      (' + snippet + ')' +
+         '        .then(' +
+         '          result => {' +
+         '            window.parent.postMessage({result: "no rejection"}, "*");' +
+         '          }, ' +
+         '          error => {' +
+         '            window.parent.postMessage({result: error.name}, "*");' +
+         '          });' +
+         '    } catch (ex) {' +
+         // Report if not implemented/exposed, rather than time out.
+         '      window.parent.postMessage({result: ex.message}, "*");' +
+         '    }' +
+         '  };' +
+         '<\/script>';
+}
+
+['navigator.storage.persist()',
+ 'navigator.storage.persisted()',
+ 'navigator.storage.estimate()'
+].forEach(snippet => {
+  promise_test(t => {
+    return load_iframe(make_script(snippet))
+      .then(iframe => {
+        iframe.contentWindow.postMessage({}, '*');
+        return wait_for_message(iframe);
+      })
+      .then(message => {
+        assert_equals(message.result, 'no rejection',
+                      `${snippet} should not reject`);
+      });
+  }, `${snippet} in non-sandboxed iframe should not reject`);
+
+  promise_test(t => {
+    return load_iframe(make_script(snippet), 'allow-scripts')
+      .then(iframe => {
+        iframe.contentWindow.postMessage({}, '*');
+        return wait_for_message(iframe);
+      })
+      .then(message => {
+        assert_equals(message.result, 'TypeError',
+                      `${snippet} should reject with TypeError`);
+      });
+  }, `${snippet} in sandboxed iframe should reject with TypeError`);
+});

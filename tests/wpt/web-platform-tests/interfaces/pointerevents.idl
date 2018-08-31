@@ -41,6 +41,7 @@ partial interface GlobalEventHandlers {
     attribute EventHandler onlostpointercapture;
     attribute EventHandler onpointerdown;
     attribute EventHandler onpointermove;
+    [RuntimeEnabled=PointerRawMove] attribute EventHandler onpointerrawmove;
     attribute EventHandler onpointerup;
     attribute EventHandler onpointercancel;
     attribute EventHandler onpointerover;

@@ -105,7 +105,7 @@ def check_environ(product):
 
         missing_hosts = set(expected_hosts)
         if is_windows:
-            hosts_path = "C:\Windows\System32\drivers\etc\hosts"
+            hosts_path = "%s\System32\drivers\etc\hosts" % os.environ.get("SystemRoot", "C:\Windows")
         else:
             hosts_path = "/etc/hosts"
 
@@ -120,7 +120,7 @@ def check_environ(product):
                 if is_windows:
                     message = """Missing hosts file configuration. Run
 
-python wpt make-hosts-file | Out-File %SystemRoot%\System32\drivers\etc\hosts -Encoding ascii -Append
+python wpt make-hosts-file | Out-File %s -Encoding ascii -Append
 
 in PowerShell with Administrator privileges.""" % hosts_path
                 else:

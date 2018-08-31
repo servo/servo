@@ -113,7 +113,7 @@ class NoSuchWindowException(WebDriverException):
 
 
 class ScriptTimeoutException(WebDriverException):
-    http_status = 408
+    http_status = 500
     status_code = "script timeout"
 
 
@@ -128,7 +128,7 @@ class StaleElementReferenceException(WebDriverException):
 
 
 class TimeoutException(WebDriverException):
-    http_status = 408
+    http_status = 500
     status_code = "timeout"
 
 

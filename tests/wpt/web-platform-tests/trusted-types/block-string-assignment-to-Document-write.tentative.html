@@ -10,13 +10,11 @@
 <body>
 <script>
   // TrustedURL assignments do not throw.
-  async_test(t => {
-    createHTML_policy(window)
-      .then(t.step_func_done(p => {
-        let html = p.createHTML(INPUTS.HTML);
-        document.write(html);
-        assert_equals(document.body.innerText, RESULTS.HTML);
-    }));
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+    document.write(html);
+    assert_equals(document.body.innerText, RESULTS.HTML);
   }, "document.write with html assigned via policy (successful URL transformation).");
 
   // String assignments throw.

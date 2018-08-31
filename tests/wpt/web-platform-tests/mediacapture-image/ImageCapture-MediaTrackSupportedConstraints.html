@@ -1,0 +1,25 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Tests that getSupportedConstraints() returns what it should.
+test(function() {
+  supported_constraints = navigator.mediaDevices.getSupportedConstraints();
+
+  assert_true(supported_constraints.whiteBalanceMode);
+  assert_true(supported_constraints.exposureMode);
+  assert_true(supported_constraints.focusMode);
+  assert_true(supported_constraints.pointsOfInterest);
+  assert_true(supported_constraints.exposureCompensation);
+  assert_true(supported_constraints.colorTemperature);
+  assert_true(supported_constraints.iso);
+  assert_true(supported_constraints.brightness);
+  assert_true(supported_constraints.contrast);
+  assert_true(supported_constraints.saturation);
+  assert_true(supported_constraints.sharpness);
+  assert_true(supported_constraints.zoom);
+  assert_true(supported_constraints.torch);
+}, 'Image Capture supported constraints');
+
+</script>

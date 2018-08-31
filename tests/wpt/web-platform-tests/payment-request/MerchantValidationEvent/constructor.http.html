@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for MerchantValidationEvent Constructor (insecure)</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#merchantvalidationevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(() => {
+  assert_false("MerchantValidationEvent" in Window);
+}, "MerchantValidationEvent constructor must not be exposed in insecure context");
+</script>

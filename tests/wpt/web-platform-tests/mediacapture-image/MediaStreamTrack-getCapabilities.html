@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10/>
+</body>
+<script>
+
+const meteringModeNames = ['none', 'manual', 'single-shot', 'continuous'];
+
+// This test verifies that MediaTrackCapabilities are returned upon
+// MediaStreamTrack.getCapabilities(), with a mock Mojo service implementation.
+
+image_capture_test(async (t, imageCaptureTest) => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+
+  let mockCapabilities = imageCaptureTest.mockImageCapture().state();
+
+  // |stream| must be created _after_ |mock| is constructed to give the
+  // latter time to override the bindings.
+  let stream = canvas.captureStream();
+  assert_equals(stream.getAudioTracks().length, 0);
+  assert_equals(stream.getVideoTracks().length, 1);
+
+  let videoTrack = stream.getVideoTracks()[0];
+  assert_equals(typeof videoTrack.getCapabilities, 'function');
+
+  // |videoTrack|'s capabilities gathering, just like the actual capture, is
+  // a process kicked off right after creation, we introduce a small delay
+  // to allow for those to be collected.
+  // TODO(mcasas): this shouldn't be needed, https://crbug.com/711524.
+  await new Promise(resolve => step_timeout(resolve, 100));
+
+  let capabilities = videoTrack.getCapabilities();
+  assert_equals(typeof capabilities, 'object');
+
+  assert_equals(capabilities.whiteBalanceMode.length,
+                mockCapabilities.supportedWhiteBalanceModes.length,
+                'whiteBalanceMode');
+  for (i = 0; i < capabilities.whiteBalanceMode.length; ++i) {
+    assert_equals(
+        capabilities.whiteBalanceMode[i],
+        meteringModeNames[mockCapabilities
+                              .supportedWhiteBalanceModes[i]],
+        'whiteBalanceMode');
+  }
+
+  assert_equals(capabilities.exposureMode.length,
+                mockCapabilities.supportedExposureModes.length,
+                'exposureMode');
+  for (i = 0; i < capabilities.exposureMode.length; ++i) {
+    assert_equals(
+        capabilities.exposureMode[i],
+        meteringModeNames[mockCapabilities.supportedExposureModes[i]],
+        'exposureMode');
+  }
+
+  assert_equals(capabilities.focusMode.length,
+                mockCapabilities.supportedFocusModes.length,
+                'focusMode');
+  for (i = 0; i < capabilities.focusMode.length; ++i) {
+    assert_equals(
+        capabilities.focusMode[i],
+        meteringModeNames[mockCapabilities.supportedFocusModes[i]],
+        'focusMode');
+  }
+
+  assert_true(capabilities.exposureCompensation instanceof
+              MediaSettingsRange);
+  assert_equals(capabilities.exposureCompensation.max,
+                mockCapabilities.exposureCompensation.max);
+  assert_equals(capabilities.exposureCompensation.min,
+                mockCapabilities.exposureCompensation.min);
+  assert_equals(capabilities.exposureCompensation.step,
+                mockCapabilities.exposureCompensation.step);
+
+  assert_true(capabilities.colorTemperature instanceof
+              MediaSettingsRange);
+  assert_equals(capabilities.colorTemperature.max,
+                mockCapabilities.colorTemperature.max);
+  assert_equals(capabilities.colorTemperature.min,
+                mockCapabilities.colorTemperature.min);
+  assert_equals(capabilities.colorTemperature.step,
+                mockCapabilities.colorTemperature.step);
+
+  assert_true(capabilities.iso instanceof MediaSettingsRange);
+  assert_equals(capabilities.iso.max, mockCapabilities.iso.max);
+  assert_equals(capabilities.iso.min, mockCapabilities.iso.min);
+  assert_equals(capabilities.iso.step, mockCapabilities.iso.step);
+
+  assert_true(capabilities.brightness instanceof MediaSettingsRange);
+  assert_equals(capabilities.brightness.max,
+                mockCapabilities.brightness.max);
+  assert_equals(capabilities.brightness.min,
+                mockCapabilities.brightness.min);
+  assert_equals(capabilities.brightness.step,
+                mockCapabilities.brightness.step);
+
+  assert_true(capabilities.contrast instanceof MediaSettingsRange);
+  assert_equals(capabilities.contrast.max,
+                mockCapabilities.contrast.max);
+  assert_equals(capabilities.contrast.min,
+                mockCapabilities.contrast.min);
+  assert_equals(capabilities.contrast.step,
+                mockCapabilities.contrast.step);
+
+  assert_true(capabilities.saturation instanceof MediaSettingsRange);
+  assert_equals(capabilities.saturation.max,
+                mockCapabilities.saturation.max);
+  assert_equals(capabilities.saturation.min,
+                mockCapabilities.saturation.min);
+  assert_equals(capabilities.saturation.step,
+                mockCapabilities.saturation.step);
+
+  assert_true(capabilities.sharpness instanceof MediaSettingsRange);
+  assert_equals(capabilities.sharpness.max,
+                mockCapabilities.sharpness.max);
+  assert_equals(capabilities.sharpness.min,
+                mockCapabilities.sharpness.min);
+  assert_equals(capabilities.sharpness.step,
+                mockCapabilities.sharpness.step);
+
+  assert_true(capabilities.zoom instanceof MediaSettingsRange);
+  assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
+  assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);
+  assert_equals(capabilities.zoom.step, mockCapabilities.zoom.step);
+
+  assert_equals(capabilities.torch, mockCapabilities.supportsTorch,
+                'torch');
+
+}, 'exercises MediaStreamTrack.getCapabilities()');
+
+</script>

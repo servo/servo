@@ -6,6 +6,10 @@ function assertRejectsWithNotFoundError(promise) {
   return assertRejectsWithError(promise, 'NotFoundError');
 }
 
+function assertRejectsWithTypeError(promise) {
+  return assertRejectsWithError(promise, 'TypeError');
+}
+
 function assertRejectsWithNotOpenError(promise) {
   return assertRejectsWithError(
       promise, 'InvalidStateError', 'The device must be opened first.');
@@ -15,6 +19,18 @@ function assertRejectsWithNotConfiguredError(promise) {
   return assertRejectsWithError(
       promise, 'InvalidStateError',
       'The device must have a configuration selected.');
+}
+
+function assertRejectsWithDeviceStateChangeInProgressError(promise) {
+  return assertRejectsWithError(
+    promise, 'InvalidStateError',
+    'An operation that changes the device state is in progress.');
+}
+
+function assertRejectsWithInterfaceStateChangeInProgressError(promise) {
+  return assertRejectsWithError(
+    promise, 'InvalidStateError',
+    'An operation that changes interface state is in progress.');
 }
 
 usb_test(() => {
@@ -59,21 +75,62 @@ usb_test(() => {
   });
 }, 'open and close can be called multiple times');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
-    const message =
-        'An operation that changes the device state is in progress.';
-    return Promise.all([
-        device.open(),
-        assertRejectsWithError(device.open(), 'InvalidStateError', message),
-        assertRejectsWithError(device.close(), 'InvalidStateError', message),
-    ]).then(() => Promise.all([
-        device.close(),
-        assertRejectsWithError(device.open(), 'InvalidStateError', message),
-        assertRejectsWithError(device.close(), 'InvalidStateError', message),
-    ]));
-  });
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await Promise.all([
+    device.open(),
+    assertRejectsWithDeviceStateChangeInProgressError(device.open()),
+    assertRejectsWithDeviceStateChangeInProgressError(device.close()),
+  ]);
+  await Promise.all([
+    device.close(),
+    assertRejectsWithDeviceStateChangeInProgressError(device.open()),
+    assertRejectsWithDeviceStateChangeInProgressError(device.close()),
+  ]);
 }, 'open and close cannot be called again while open or close are in progress');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  return Promise.all([
+    device.selectConfiguration(1),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.claimInterface(0)),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.releaseInterface(0)),
+    assertRejectsWithDeviceStateChangeInProgressError(device.open()),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.selectConfiguration(1)),
+    assertRejectsWithDeviceStateChangeInProgressError(device.reset()),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.selectAlternateInterface(0, 0)),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.controlTransferOut({
+          requestType: 'standard',
+          recipient: 'interface',
+          request: 0x42,
+          value: 0x1234,
+          index: 0x0000,
+        })),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.controlTransferOut({
+          requestType: 'standard',
+          recipient: 'interface',
+          request: 0x42,
+          value: 0x1234,
+          index: 0x0000,
+        }, new Uint8Array([1, 2, 3]))),
+    assertRejectsWithDeviceStateChangeInProgressError(
+        device.controlTransferIn({
+          requestType: 'standard',
+          recipient: 'interface',
+          request: 0x42,
+          value: 0x1234,
+          index: 0x0000
+        }, 0)),
+    assertRejectsWithDeviceStateChangeInProgressError(device.close()),
+  ]);
+}, 'device operations reject if an device state change is in progress');
 
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
@@ -138,6 +195,21 @@ usb_test(() => {
   });
 }, 'device configuration can be set and queried');
 
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  assert_equals(device.configuration, null);
+  await device.open();
+  assert_equals(device.configuration, null);
+  await device.selectConfiguration(1);
+  await device.selectConfiguration(1);
+  assertDeviceInfoEquals(
+      device.configuration, fakeDeviceInit.configurations[0]);
+  await device.selectConfiguration(2);
+  assertDeviceInfoEquals(
+      device.configuration, fakeDeviceInit.configurations[1]);
+  await device.close();
+}, 'a device configuration value can be set again');
+
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {
     assert_equals(device.configuration, null);
@@ -198,19 +270,82 @@ usb_test(() => {
   });
 }, 'an interface can be claimed and released');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
-    return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.claimInterface(0))
-      .then(() => {
-        assert_true(device.configuration.interfaces[0].claimed);
-        return device.close(0);
-      })
-      .then(() => {
-        assert_false(device.configuration.interfaces[0].claimed);
-      });
-  });
+usb_test(async () => {
+  let { device } = await getFakeDevice()
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  assert_true(device.configuration.interfaces[0].claimed);
+  await device.claimInterface(0);
+  assert_true(device.configuration.interfaces[0].claimed);
+  await device.close();
+}, 'an interface can be claimed multiple times');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  assert_true(device.configuration.interfaces[0].claimed);
+  await device.releaseInterface(0);
+  assert_false(device.configuration.interfaces[0].claimed);
+  await device.releaseInterface(0);
+  assert_false(device.configuration.interfaces[0].claimed);
+  await device.close();
+}, 'an interface can be released multiple times');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  return Promise.all([
+    device.claimInterface(0),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.claimInterface(0)),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.releaseInterface(0)),
+    assertRejectsWithInterfaceStateChangeInProgressError(device.open()),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.selectConfiguration(1)),
+    assertRejectsWithInterfaceStateChangeInProgressError(device.reset()),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.selectAlternateInterface(0, 0)),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.controlTransferOut({
+          requestType: 'standard',
+          recipient: 'interface',
+          request: 0x42,
+          value: 0x1234,
+          index: 0x0000,
+        })),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.controlTransferOut({
+          requestType: 'standard',
+          recipient: 'interface',
+          request: 0x42,
+          value: 0x1234,
+          index: 0x0000,
+        }, new Uint8Array([1, 2, 3]))),
+    assertRejectsWithInterfaceStateChangeInProgressError(
+        device.controlTransferIn({
+          requestType: 'standard',
+          recipient: 'interface',
+          request: 0x42,
+          value: 0x1234,
+          index: 0x0000
+        }, 0)),
+    assertRejectsWithInterfaceStateChangeInProgressError(device.close()),
+  ]);
+}, 'device operations reject if an interface state change is in progress');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  assert_true(device.configuration.interfaces[0].claimed);
+  await device.close(0);
+  assert_false(device.configuration.interfaces[0].claimed);
 }, 'interfaces are released on close');
 
 usb_test(() => {
@@ -281,29 +416,35 @@ usb_test(() => {
   });
 }, 'selectAlternateInterface rejects when called on a disconnected device');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
-    return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.controlTransferIn({
-        requestType: 'vendor',
-        recipient: 'device',
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['device', 'interface', 'endpoint', 'other'];
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 0);
+  for (const requestType of usbRequestTypes) {
+    for (const recipient of usbRecipients) {
+      let index = recipient === 'interface' ? 0x5600 : 0x5681;
+      let result = await device.controlTransferIn({
+        requestType: requestType,
+        recipient: recipient,
         request: 0x42,
         value: 0x1234,
-        index: 0x5678
-      }, 7))
-      .then(result => {
-        assert_true(result instanceof USBInTransferResult);
-        assert_equals(result.status, 'ok');
-        assert_equals(result.data.byteLength, 7);
-        assert_equals(result.data.getUint16(0), 0x07);
-        assert_equals(result.data.getUint8(2), 0x42);
-        assert_equals(result.data.getUint16(3), 0x1234);
-        assert_equals(result.data.getUint16(5), 0x5678);
-        return device.close();
-      });
-  });
-}, 'can issue IN control transfer');
+        index: index
+      }, 7);
+      assert_true(result instanceof USBInTransferResult);
+      assert_equals(result.status, 'ok');
+      assert_equals(result.data.byteLength, 7);
+      assert_equals(result.data.getUint16(0), 0x07);
+      assert_equals(result.data.getUint8(2), 0x42);
+      assert_equals(result.data.getUint16(3), 0x1234);
+      assert_equals(result.data.getUint16(5), index);
+    }
+  }
+  await device.close();
+}, 'can issue all types of IN control transfers');
 
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
@@ -320,25 +461,39 @@ usb_test(() => {
   });
 }, 'controlTransferIn rejects when called on a disconnected device');
 
-usb_test(() => {
-  return getFakeDevice().then(({ device }) => {
-    return device.open()
-      .then(() => device.selectConfiguration(1))
-      .then(() => device.controlTransferOut({
-        requestType: 'vendor',
-        recipient: 'device',
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  let usbRequestTypes = ['standard', 'class', 'vendor'];
+  let usbRecipients = ['device', 'interface', 'endpoint', 'other'];
+  let dataArray = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+  let dataTypes = [dataArray, dataArray.buffer];
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  await device.selectAlternateInterface(0, 0);
+  for (const requestType of usbRequestTypes) {
+    for (const recipient of usbRecipients) {
+      let index = recipient === 'interface' ? 0x5600 : 0x5681;
+      let transferParams = {
+        requestType: requestType,
+        recipient: recipient,
         request: 0x42,
         value: 0x1234,
-        index: 0x5678
-      }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])))
-    .then(result => {
+        index: index
+      };
+      for (const data of dataTypes) {
+        let result = await device.controlTransferOut(transferParams, data);
+        assert_true(result instanceof USBOutTransferResult);
+        assert_equals(result.status, 'ok');
+        assert_equals(result.bytesWritten, 8);
+      }
+      let result = await device.controlTransferOut(transferParams);
       assert_true(result instanceof USBOutTransferResult);
       assert_equals(result.status, 'ok');
-      assert_equals(result.bytesWritten, 8);
-      return device.close();
-    });
-  });
-}, 'can issue OUT control transfer');
+    }
+  }
+  await device.close();
+}, 'can issue all types of OUT control transfers');
 
 usb_test(() => {
   return getFakeDevice().then(({ device, fakeDevice }) => {
@@ -354,6 +509,70 @@ usb_test(() => {
         }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]))));
   });
 }, 'controlTransferOut rejects when called on a disconnected device');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  assertRejectsWithTypeError(device.controlTransferOut({
+    requestType: 'invalid',
+    recipient: 'device',
+    request: 0x42,
+    value: 0x1234,
+    index: 0x5678
+  }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])));
+  assertRejectsWithTypeError(device.controlTransferIn({
+    requestType: 'invalid',
+    recipient: 'device',
+    request: 0x42,
+    value: 0x1234,
+    index: 0x5678
+  }, 0));
+  await device.close();
+}, 'control transfers with a invalid request type reject');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  assertRejectsWithTypeError(device.controlTransferOut({
+    requestType: 'vendor',
+    recipient: 'invalid',
+    request: 0x42,
+    value: 0x1234,
+    index: 0x5678
+  }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])));
+  assertRejectsWithTypeError(device.controlTransferIn({
+    requestType: 'vendor',
+    recipient: 'invalid',
+    request: 0x42,
+    value: 0x1234,
+    index: 0x5678
+  }, 0));
+}, 'control transfers with a invalid recipient type reject');
+
+usb_test(async () => {
+  let { device } = await getFakeDevice();
+  await device.open();
+  await device.selectConfiguration(1);
+  await device.claimInterface(0);
+  assertRejectsWithNotFoundError(device.controlTransferOut({
+    requestType: 'vendor',
+    recipient: 'interface',
+    request: 0x42,
+    value: 0x1234,
+    index: 0x0002  // Last byte of index is interface number.
+  }, new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])));
+  assertRejectsWithNotFoundError(device.controlTransferIn({
+    requestType: 'vendor',
+    recipient: 'interface',
+    request: 0x42,
+    value: 0x1234,
+    index: 0x0002  // Last byte of index is interface number.
+  }, 0));
+}, 'control transfers to a non-existant interface reject');
 
 usb_test(() => {
   return getFakeDevice().then(({ device }) => {
