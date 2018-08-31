@@ -174,8 +174,12 @@ impl WebGLRenderbuffer {
         Ok(())
     }
 
-    pub fn attach(&self, framebuffer: &WebGLFramebuffer) {
+    pub fn attach(&self, framebuffer: &WebGLFramebuffer) -> WebGLResult<()> {
+        if !self.ever_bound.get() {
+            return Err(WebGLError::InvalidOperation);
+        }
         self.attached_framebuffers.borrow_mut().push(Dom::from_ref(framebuffer));
+        Ok(())
     }
 
     pub fn unattach(&self, fb: &WebGLFramebuffer) {

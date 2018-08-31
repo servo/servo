@@ -274,7 +274,7 @@ impl WebGLFramebuffer {
 
         let rb_id = match rb {
             Some(rb) => {
-                rb.attach(self);
+                rb.attach(self)?;
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
                 Some(rb.id())
             }
