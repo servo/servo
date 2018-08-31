@@ -54,14 +54,14 @@ macro_rules! pseudo_class_name {
                 $s_name(PseudoClassStringArg),
             )*
             /// The `:dir` pseudo-class.
-            Dir(Box<Direction>),
+            Dir(Direction),
             /// The non-standard `:-moz-any` pseudo-class.
             ///
             /// TODO(emilio): We disallow combinators and pseudos here, so we
             /// should use SimpleSelector instead
             MozAny(ThinBoxedSlice<Selector<SelectorImpl>>),
             /// The non-standard `:-moz-locale-dir` pseudo-class.
-            MozLocaleDir(Box<Direction>),
+            MozLocaleDir(Direction),
         }
     }
 }
@@ -411,14 +411,10 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                         NonTSPseudoClass::$s_name(utf16.into_boxed_slice().into())
                     }, )*
                     "-moz-locale-dir" => {
-                        NonTSPseudoClass::MozLocaleDir(
-                            Box::new(Direction::parse(parser)?)
-                        )
+                        NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
                     },
                     "dir" => {
-                        NonTSPseudoClass::Dir(
-                            Box::new(Direction::parse(parser)?)
-                        )
+                        NonTSPseudoClass::Dir(Direction::parse(parser)?)
                     },
                     "-moz-any" => {
                         NonTSPseudoClass::MozAny(

@@ -7,10 +7,13 @@
 #![deny(missing_docs)]
 
 use cssparser::{Parser as CssParser, ParserInput};
+use element_state::ElementState;
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
+use string_cache::Atom;
 use style_traits::{CssWriter, ParseError, ToCss};
 use stylesheets::{Namespaces, Origin, UrlExtraData};
+use values::serialize_atom_identifier;
 
 /// A convenient alias for the type that represents an attribute value used for
 /// selector parser implementation.
@@ -172,27 +175,49 @@ impl<T> PerPseudoElementMap<T> {
 }
 
 /// Values for the :dir() pseudo class
+///
+/// "ltr" and "rtl" values are normalized to lowercase.
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
-pub enum Direction {
-    /// left-to-right semantic directionality
+pub struct Direction(pub Atom);
+
+/// Horizontal values for the :dir() pseudo class
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum HorizontalDirection {
+    /// :dir(ltr)
     Ltr,
-    /// right-to-left semantic directionality
+    /// :dir(rtl)
     Rtl,
-    /// Some other provided directionality value
-    ///
-    /// TODO(emilio): If we atomize we can then unbox in NonTSPseudoClass.
-    Other(Box<str>),
 }
 
 impl Direction {
     /// Parse a direction value.
     pub fn parse<'i, 't>(parser: &mut CssParser<'i, 't>) -> Result<Self, ParseError<'i>> {
         let ident = parser.expect_ident()?;
-        Ok(match_ignore_ascii_case! { &ident,
-            "rtl" => Direction::Rtl,
-            "ltr" => Direction::Ltr,
-            _ => Direction::Other(Box::from(ident.as_ref())),
-        })
+        Ok(Direction(match_ignore_ascii_case! { &ident,
+            "rtl" => atom!("rtl"),
+            "ltr" => atom!("ltr"),
+            _ => Atom::from(ident.as_ref()),
+        }))
+    }
+
+    /// Convert this Direction into a HorizontalDirection, if applicable
+    pub fn as_horizontal_direction(&self) -> Option<HorizontalDirection> {
+        if self.0 == atom!("ltr") {
+            Some(HorizontalDirection::Ltr)
+        } else if self.0 == atom!("rtl") {
+            Some(HorizontalDirection::Rtl)
+        } else {
+            None
+        }
+    }
+
+    /// Gets the element state relevant to this :dir() selector.
+    pub fn element_state(&self) -> ElementState {
+        match self.as_horizontal_direction() {
+            Some(HorizontalDirection::Ltr) => ElementState::IN_LTR_STATE,
+            Some(HorizontalDirection::Rtl) => ElementState::IN_RTL_STATE,
+            None => ElementState::empty(),
+        }
     }
 }
 
@@ -201,12 +226,6 @@ impl ToCss for Direction {
     where
         W: Write,
     {
-        let dir_str = match *self {
-            Direction::Rtl => "rtl",
-            Direction::Ltr => "ltr",
-            // FIXME: This should be escaped as an identifier; see #19231
-            Direction::Other(ref other) => other,
-        };
-        dest.write_str(dir_str)
+        serialize_atom_identifier(&self.0, dest)
     }
 }

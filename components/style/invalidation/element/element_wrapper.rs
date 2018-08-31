@@ -188,8 +188,7 @@ where
             // support we don't forget to update this code?
             #[cfg(feature = "gecko")]
             NonTSPseudoClass::Dir(ref dir) => {
-                use invalidation::element::invalidation_map::dir_selector_to_state;
-                let selector_flag = dir_selector_to_state(dir);
+                let selector_flag = dir.element_state();
                 if selector_flag.is_empty() {
                     // :dir() with some random argument; does not match.
                     return false;
