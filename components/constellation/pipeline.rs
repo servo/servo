@@ -81,10 +81,6 @@ pub struct Pipeline {
     /// The child browsing contexts of this pipeline (these are iframes in the document).
     pub children: Vec<BrowsingContextId>,
 
-    /// Whether this pipeline should be treated as visible for the purposes of scheduling and
-    /// resource management.
-    pub visible: bool,
-
     /// The Load Data used to create this pipeline.
     pub load_data: LoadData,
 
@@ -162,9 +158,6 @@ pub struct InitialPipelineState {
 
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
-
-    /// Pipeline visibility to be inherited
-    pub prev_visibility: Option<bool>,
 
     /// Webrender api.
     pub webrender_api_sender: webrender_api::RenderApiSender,
@@ -311,7 +304,6 @@ impl Pipeline {
             pipeline_chan,
             state.compositor_proxy,
             url,
-            state.prev_visibility.unwrap_or(true),
             state.load_data,
         ))
     }
@@ -327,7 +319,6 @@ impl Pipeline {
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
         url: ServoUrl,
-        visible: bool,
         load_data: LoadData,
     ) -> Pipeline {
         let pipeline = Pipeline {
@@ -341,13 +332,10 @@ impl Pipeline {
             url: url,
             children: vec![],
             running_animations: false,
-            visible: visible,
             load_data: load_data,
             history_state_id: None,
             history_states: HashSet::new(),
         };
-
-        pipeline.notify_visibility();
 
         pipeline
     }
@@ -430,11 +418,11 @@ impl Pipeline {
         };
     }
 
-    /// Notify the script thread that this pipeline is visible.
-    fn notify_visibility(&self) {
+    /// Notify the script thread and compositor that this pipeline is visible.
+    pub fn notify_visibility(&self, is_visible: bool) {
         let script_msg =
-            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible);
-        let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, self.visible);
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
+        let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, is_visible);
         let err = self.event_loop.send(script_msg);
         if let Err(e) = err {
             warn!("Sending visibility change failed ({}).", e);
@@ -442,14 +430,6 @@ impl Pipeline {
         self.compositor_proxy.send(compositor_msg);
     }
 
-    /// Change the visibility of this pipeline.
-    pub fn change_visibility(&mut self, visible: bool) {
-        if visible == self.visible {
-            return;
-        }
-        self.visible = visible;
-        self.notify_visibility();
-    }
 }
 
 /// Creating a new pipeline may require creating a new event loop.

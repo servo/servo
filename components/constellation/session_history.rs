@@ -111,15 +111,27 @@ pub struct SessionHistoryChange {
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
-    /// The parent pipeline of the pipeline for the document being loaded, if
-    /// this is not the top level browsing context.
+    /// The parent pipeline of the browsing context in which the document
+    /// is loaded, if this is not the top level browsing context.
+    ///
+    /// This value needs to be present when a new browsing context is created
+    /// but is only easily available when creating this session history change.
     pub parent_pipeline_id: Option<PipelineId>,
+
+    /// Whether this session change was created in private browsing mode.
+    ///
+    /// This value needs to be present when a new browsing context is created
+    /// but is only easily available when creating this session history change.
+    pub is_private: bool,
+
+    /// Whether this session change was created in a visible browsing context.
+    ///
+    /// This value needs to be present when a new browsing context is created
+    /// but is only easily available when creating this session history change.
+    pub is_visible: bool,
 
     /// The old pipeline that the new pipeline should replace.
     pub replace: Option<NeedsToReload>,
-
-    /// Whether this session change was created in private browsing mode.
-    pub is_private: bool,
 }
 
 /// Represents a pipeline or discarded pipeline in a history entry.
