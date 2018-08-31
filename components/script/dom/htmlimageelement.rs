@@ -1204,7 +1204,8 @@ impl VirtualMethods for HTMLImageElement {
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
-            &local_name!("src") => self.update_the_image_data(),
+            &local_name!("src") | &local_name!("srcset")  |
+            &local_name!("width") | &local_name!("crossorigin") => self.update_the_image_data(),
             _ => {},
         }
     }
