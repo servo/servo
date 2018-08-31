@@ -11,7 +11,9 @@ window.onmessage = (e) => {
       e.source.postMessage(result, '*');
     } catch(ex) {
       result.message = 'Exception';
-      result.details = [ex instanceof DOMException, ex.code, ex.name];
+      const isDomException = ex instanceof DOMException;
+      const stack = "stack" in ex ? ex.stack : "";
+      result.details = [ isDomException, ex.code, ex.name, stack ];
       e.source.postMessage(result, '*');
     }
   } else {

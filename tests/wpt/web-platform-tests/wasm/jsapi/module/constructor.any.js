@@ -25,6 +25,26 @@ test(() => {
 }, "Calling");
 
 test(() => {
+  const invalidArguments = [
+    undefined,
+    null,
+    true,
+    "test",
+    Symbol(),
+    7,
+    NaN,
+    {},
+    ArrayBuffer,
+    ArrayBuffer.prototype,
+    Array.from(emptyModuleBinary),
+  ];
+  for (const argument of invalidArguments) {
+    assert_throws(new TypeError(), () => new WebAssembly.Module(argument),
+                  `new Module(${format_value(argument)})`);
+  }
+}, "Invalid arguments");
+
+test(() => {
   const buffer = new Uint8Array();
   assert_throws(new WebAssembly.CompileError(), () => new WebAssembly.Module(buffer));
 }, "Empty buffer");
@@ -33,3 +53,8 @@ test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   assert_equals(Object.getPrototypeOf(module), WebAssembly.Module.prototype);
 }, "Prototype");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary);
+  assert_true(Object.isExtensible(module));
+}, "Extensibility");

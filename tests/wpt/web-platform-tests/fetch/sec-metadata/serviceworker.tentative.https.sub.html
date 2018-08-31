@@ -8,7 +8,7 @@
   <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/fetch/sec-metadata/resources/record-header.py?file=serviceworker-same-origin').then(function(registration) {
+          navigator.serviceWorker.register('https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=serviceworker-same-origin').then(function(registration) {
             test_same_origin();
 
             // uninstall the serviceworker after the test
@@ -32,20 +32,16 @@
 
 <script>
   function test_same_origin(){
-    var same_origin_test = async_test("Same-Origin serviceworker");
-    same_origin_test.step(function () {
-        key = "serviceworker-same-origin";
-        expected_same_origin = {"destination":"serviceworker", "site":"same-origin"};
-
-        //  Requests from the server the saved value of the Sec-Metadata header
-        same_origin_xhr = new XMLHttpRequest();
-        same_origin_xhr.open("GET", "/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key);
-
-        // Async test step triggered when the response is loaded
-        same_origin_xhr.onreadystatechange = same_origin_test.step_func(function () {
-          verify_response(same_origin_xhr, same_origin_test, expected_same_origin)
-        });
-        same_origin_xhr.send();
-    });
+    promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "serviceworker-same-origin";
+      let expected = {"destination":"serviceworker", "site":"same-origin"};
+      fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+        .then(response => response.text())
+        .then(text => assert_header_equals(text, expected))
+        .then(_ => resolve())
+        .catch(e => reject(e));
+      })
+    })
   }
 </script>

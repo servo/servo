@@ -37,9 +37,9 @@ This test uses the legacy callback API with no media, and thus does not require 
     var parsedOffer = new RTCSessionDescription({ type: 'offer',
                                                   sdp: offerSdp });
     // These functions use the legacy interface extensions to RTCPeerConnection.
-    gSecondConnection.setRemoteDescription(parsedOffer,
+    gSecondConnection.setRemoteDescription(parsedOffer).then(
       function() {
-        gSecondConnection.createAnswer(onAnswerCreated,
+        gSecondConnection.createAnswer().then(onAnswerCreated,
                                        failed('createAnswer'));
       },
       failed('setRemoteDescription second'));
@@ -56,7 +56,7 @@ This test uses the legacy callback API with no media, and thus does not require 
   function handleAnswer(answerSdp) {
     var parsedAnswer = new RTCSessionDescription({ type: 'answer',
                                                    sdp: answerSdp });
-    gFirstConnection.setRemoteDescription(parsedAnswer, ignoreSuccess,
+    gFirstConnection.setRemoteDescription(parsedAnswer).then(ignoreSuccess,
                                           failed('setRemoteDescription first'));
   };
 
@@ -125,7 +125,7 @@ This test uses the legacy callback API with no media, and thus does not require 
 
     // The offerToReceiveVideo is necessary and sufficient to make
     // an actual connection.
-    gFirstConnection.createOffer(onOfferCreated, failed('createOffer'),
+    gFirstConnection.createOffer().then(onOfferCreated, failed('createOffer'),
         {offerToReceiveVideo: true});
   });
 </script>
