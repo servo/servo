@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<link rel="author" title="Anders Hartvoll Ruud" href="andruud@chromium.org">
 <!-- TODO(andruud): Add Typed OM details to spec and link to it here. -->
 <link rel="help" href="https://github.com/w3c/css-houdini-drafts/pull/783" />
 <meta name="assert" content="Verifies that registered custom properties interact correctly with CSS Typed OM" />
@@ -341,99 +340,189 @@ test_style_property_map_set({
 test_style_property_map_set({
     syntax: '<angle>',
     initialValue: '0deg',
-    shouldAccept: [CSS.deg(42), CSS.turn(2)],
-    shouldReject: [unparsed('42deg'), CSS.px(15)],
+    shouldAccept: [CSS.deg(42), CSS.turn(2), '42deg'],
+    shouldReject: [unparsed('42deg'), CSS.px(15), '50px'],
 });
 
 test_style_property_map_set({
     syntax: '<custom-ident>',
     initialValue: 'none',
-    shouldAccept: [keyword('foo')],
-    shouldReject: [unparsed('foo'), CSS.px(15)],
+    shouldAccept: [keyword('foo'), 'foo'],
+    shouldReject: [unparsed('foo'), CSS.px(15), '15px'],
 });
 
 test_style_property_map_set({
     syntax: '<image>',
     initialValue: 'url(a)',
-    shouldAccept: [url_image('url(b)')],
-    shouldReject: [unparsed('url(b)'), CSS.px(100)],
+    shouldAccept: [url_image('url(b)'), 'url(b)'],
+    shouldReject: [unparsed('url(b)'), CSS.px(100), '50px'],
 });
 
 test_style_property_map_set({
     syntax: '<integer>',
     initialValue: '0',
-    shouldAccept: [CSS.number(1), CSS.number(-42)],
-    shouldReject: [unparsed('42'), CSS.px(100)],
+    shouldAccept: [CSS.number(1), CSS.number(-42), '1', '-42'],
+    shouldReject: [unparsed('42'), CSS.px(100), '50px'],
 });
 
 test_style_property_map_set({
     syntax: '<length-percentage>',
     initialValue: '0px',
-    shouldAccept: [CSS.percent(10), CSS.px(1), CSS.em(1)],
-    shouldReject: [unparsed('10%'), unparsed('10px'), CSS.dpi(1)],
+    shouldAccept: [CSS.percent(10), CSS.px(1), CSS.em(1), '10px', '10%'],
+    shouldReject: [unparsed('10%'), unparsed('10px'), CSS.dpi(1), 'url(b)'],
 });
 
 test_style_property_map_set({
     syntax: '<length>',
     initialValue: '0px',
-    shouldAccept: [CSS.px(10), CSS.em(10), CSS.vh(200), sum(CSS.px(10), CSS.em(20))],
-    shouldReject: [unparsed('10px'), CSS.percent(1)],
+    shouldAccept: [CSS.px(10), CSS.em(10), CSS.vh(200), sum(CSS.px(10), CSS.em(20)), '10em', 'calc(10px + 10em)'],
+    shouldReject: [unparsed('10px'), CSS.percent(1), 'url(b)'],
 });
 
 test_style_property_map_set({
     syntax: '<number>',
     initialValue: '0',
-    shouldAccept: [CSS.number(1337), CSS.number(-42.5)],
-    shouldReject: [unparsed('42'), CSS.px(15)],
+    shouldAccept: [CSS.number(1337), CSS.number(-42.5), '1337', '-42.5'],
+    shouldReject: [unparsed('42'), CSS.px(15), '#fef'],
 });
 
 test_style_property_map_set({
     syntax: '<percentage>',
     initialValue: '0%',
-    shouldAccept: [CSS.percent(10)],
-    shouldReject: [unparsed('10%'), CSS.px(1)],
+    shouldAccept: [CSS.percent(10), '10%'],
+    shouldReject: [unparsed('10%'), CSS.px(1), '#fef'],
 });
 
 test_style_property_map_set({
     syntax: '<resolution>',
     initialValue: '0dpi',
-    shouldAccept: [CSS.dpi(100), CSS.dpcm(10), CSS.dppx(50)],
-    shouldReject: [unparsed('42'), CSS.px(15)],
+    shouldAccept: [CSS.dpi(100), CSS.dpcm(10), CSS.dppx(50), '100dpi'],
+    shouldReject: [unparsed('42'), CSS.px(15), '#fef'],
 });
 
 test_style_property_map_set({
     syntax: '<time>',
     initialValue: '0s',
-    shouldAccept: [CSS.s(42), CSS.ms(16)],
-    shouldReject: [unparsed('42s'), CSS.px(15)],
+    shouldAccept: [CSS.s(42), CSS.ms(16), '16ms'],
+    shouldReject: [unparsed('42s'), CSS.px(15), '#fef'],
 });
 
 test_style_property_map_set({
     syntax: '<url>',
     initialValue: 'url(a)',
     shouldAccept: [url_image('url(b)')],
-    shouldReject: [unparsed('url(b)'), CSS.px(100)],
+    shouldReject: [unparsed('url(b)'), CSS.px(100), '#fef'],
 });
 
 test_style_property_map_set({
     syntax: '<transform-list>',
     initialValue: 'translateX(0px)',
     shouldAccept: [CSSStyleValue.parse('transform', 'translateX(10px)')],
-    shouldReject: [unparsed('transformX(10px'), CSS.px(100)],
+    shouldReject: [unparsed('transformX(10px'), CSS.px(100), '#fef'],
 });
 
 test_style_property_map_set({
     syntax: 'none | thing | THING',
     initialValue: 'none',
-    shouldAccept: [keyword('thing'), keyword('THING')],
-    shouldReject: [unparsed('thing'), CSS.px(15), keyword('notathing')],
+    shouldAccept: [keyword('thing'), keyword('THING'), 'thing'],
+    shouldReject: [unparsed('thing'), CSS.px(15), keyword('notathing'), 'notathing'],
 });
 
 test_style_property_map_set({
     syntax: '<angle> | <length>',
     initialValue: '0deg',
-    shouldAccept: [CSS.deg(42), CSS.turn(2), CSS.px(10), CSS.em(10)],
-    shouldReject: [unparsed('42deg'), unparsed('20px'), CSS.s(1)],
+    shouldAccept: [CSS.deg(42), CSS.turn(2), CSS.px(10), CSS.em(10), '10deg', '10px'],
+    shouldReject: [unparsed('42deg'), unparsed('20px'), CSS.s(1), '#fef'],
 });
+
+// CSSStyleValue.parse/parseAll
+
+function assert_parsed_type(prop, value, expected) {
+    let parse_value = CSSStyleValue.parse(prop, value);
+    let parse_all_value = CSSStyleValue.parseAll(prop, value);
+
+    assert_true(parse_value instanceof expected);
+    assert_true(parse_all_value.every(x => x instanceof expected))
+
+    // If CSSStyleValue is expected, the values must be exactly CSSStyleValue.
+    // This is because CSSUnparsedValues are also CSSStyleValues, which would be
+    // wrong in this case.
+    if (expected == CSSStyleValue) {
+        assert_equals(parse_value.constructor, CSSStyleValue);
+        assert_true(parse_all_value.every(x => x.constructor == CSSStyleValue));
+    }
+}
+
+test(function(){
+    assert_parsed_type(gen_prop('*', 'if(){}'), 'while(){}', CSSUnparsedValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnparsedValue for *');
+
+test(function(){
+    assert_parsed_type(gen_prop('<angle> | fail', 'fail'), '42deg', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <angle>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<color> | fail', 'fail'), '#fefefe', CSSStyleValue);
+}, 'CSSStyleValue.parse[All] returns CSSStyleValue for <color>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<custom-ident> | <length>', '10px'), 'none', CSSKeywordValue);
+}, 'CSSStyleValue.parse[All] returns CSSKeywordValue for <custom-ident>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<image> | fail', 'fail'), 'url(thing.png)', CSSImageValue);
+}, 'CSSStyleValue.parse[All] returns CSSImageValue for <image> [url]');
+
+test(function(){
+    assert_parsed_type(gen_prop('<integer> | fail', 'fail'), '100', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <integer>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<length-percentage> | fail', 'fail'), '10%', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <length-percentage> [%]');
+
+test(function(){
+    assert_parsed_type(gen_prop('<length-percentage> | fail', 'fail'), '10px', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <length-percentage> [px]');
+
+test(function(){
+    assert_parsed_type(gen_prop('<length-percentage> | fail', 'fail'), 'calc(10px + 10%)', CSSMathSum);
+}, 'CSSStyleValue.parse[All] returns CSSMathSum for <length-percentage> [px + %]');
+
+test(function(){
+    assert_parsed_type(gen_prop('<length> | fail', 'fail'), '10px', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <length>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<number> | fail', 'fail'), '42', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <number>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<percentage> | fail', 'fail'), '10%', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <percentage>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<resolution> | fail', 'fail'), '300dpi', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <resolution>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<time> | fail', 'fail'), '42s', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns CSSUnitValue for <time>');
+
+test(function(){
+    assert_parsed_type(gen_prop('<url> | fail', 'fail'), 'url(a)', CSSStyleValue);
+}, 'CSSStyleValue.parse[All] returns CSSStyleValue for <url>');
+
+test(function(){
+    assert_parsed_type(gen_prop('thing1 | THING2 | <url>', 'url(fail)'), 'THING2', CSSKeywordValue);
+}, 'CSSStyleValue.parse[All] returns CSSKeywordValue for ident');
+
+test(function(){
+    assert_parsed_type(gen_prop('<length>+ | fail', 'fail'), '10px 20px', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns list of CSSUnitValues for <length>+');
+
+test(function(){
+    assert_parsed_type(gen_prop('<length># | fail', 'fail'), '10px, 20px', CSSUnitValue);
+}, 'CSSStyleValue.parse[All] returns list of CSSUnitValues for <length>#');
 
 </script>

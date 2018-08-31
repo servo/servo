@@ -27,7 +27,7 @@
 
         should(() => {
           convolver.buffer = audioBuffer;
-        }, 'Set buffer a second time').throw('InvalidStateError');
+        }, 'Set buffer a second time').throw(DOMException, 'InvalidStateError');
 
         should(() => {
           convolver.buffer = null;
@@ -40,7 +40,7 @@
         should(() => {
           convolver.buffer = audioBuffer;
         }, 'Set buffer to non-null to verify to throw an error')
-        .throw('InvalidStateError');
+        .throw(DOMException, 'InvalidStateError');
 
         task.done();
       });

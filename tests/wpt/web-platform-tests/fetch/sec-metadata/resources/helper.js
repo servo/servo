@@ -17,10 +17,3 @@ function assert_header_equals(value, expected) {
   assert_equals(result.target, expected.target, "target");
   assert_equals(result.site, expected.site, "site");
 }
-
-function verify_response(xhr, test, expected){
-  if (xhr.readyState === 4) {
-    assert_header_equals(xhr.responseText, expected);
-    test.done();
-  }
-}

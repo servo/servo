@@ -46,12 +46,15 @@
 
       audit.define('test AudioNodeOptions', (task, should) => {
         testAudioNodeOptions(should, context, 'ConvolverNode', {
-          channelCount:
-              {value: 2, isFixed: true, errorType: 'NotSupportedError'},
+          channelCount: {
+            value: 2,
+            isFixed: true,
+            exceptionType: 'NotSupportedError'
+          },
           channelCountMode: {
             value: 'clamped-max',
             isFixed: true,
-            errorType: 'NotSupportedError'
+            exceptionType: 'NotSupportedError'
           },
         });
         task.done();

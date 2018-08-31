@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests basic cookie setting functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "name0001", name: "name0001"},
+        {file: "name0002", name: "name0002"},
+        {file: "name0003", name: "name0003"},
+        {file: "name0004", name: "name0004"},
+        {file: "name0005", name: "name0005"},
+        {file: "name0006", name: "name0006"},
+        {file: "name0007", name: "name0007"},
+        {file: "name0008", name: "name0008"},
+        {file: "name0009", name: "name0009"},
+        {file: "name0010", name: "name0010"},
+        {file: "name0011", name: "name0011"},
+        {file: "name0012", name: "name0012"},
+        {file: "name0013", name: "name0013"},
+        {file: "name0014", name: "name0014"},
+        {file: "name0015", name: "name0015"},
+        {file: "name0016", name: "name0016"},
+        {file: "name0017", name: "name0017"},
+        {file: "name0018", name: "name0018"},
+        {file: "name0019", name: "name0019"},
+        {file: "name0020", name: "name0020"},
+        {file: "name0021", name: "name0021"},
+        {file: "name0022", name: "name0022"},
+        {file: "name0023", name: "name0023"},
+        {file: "name0024", name: "name0024"},
+        {file: "name0025", name: "name0025"},
+        {file: "name0026", name: "name0026"},
+        {file: "name0027", name: "name0027"},
+        {file: "name0028", name: "name0028"},
+        {file: "name0029", name: "name0029"},
+        {file: "name0030", name: "name0030"},
+        {file: "name0031", name: "name0031"},
+        {file: "name0032", name: "name0032"},
+        {file: "name0033", name: "name0033"},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

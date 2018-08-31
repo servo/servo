@@ -28,6 +28,7 @@ function assert_Instance(instance, expected_exports) {
     assert_true(property.enumerable, `${key}: enumerable`);
     assert_false(property.configurable, `${key}: configurable`);
     const actual = property.value;
+    assert_true(Object.isExtensible(actual), `${key}: extensible`);
 
     switch (expected.kind) {
     case "function":
@@ -74,6 +75,39 @@ test(() => {
 test(() => {
   assert_throws(new TypeError(), () => new WebAssembly.Instance());
 }, "No arguments");
+
+test(() => {
+  const invalidArguments = [
+    undefined,
+    null,
+    true,
+    "",
+    Symbol(),
+    1,
+    {},
+    WebAssembly.Module,
+    WebAssembly.Module.prototype,
+  ];
+  for (const argument of invalidArguments) {
+    assert_throws(new TypeError(), () => new WebAssembly.Instance(argument),
+                  `new Instance(${format_value(argument)})`);
+  }
+}, "Non-Module arguments");
+
+test(() => {
+  const module = new WebAssembly.Module(emptyModuleBinary);
+  const invalidArguments = [
+    null,
+    true,
+    "",
+    Symbol(),
+    1,
+  ];
+  for (const argument of invalidArguments) {
+    assert_throws(new TypeError(), () => new WebAssembly.Instance(module, argument),
+                  `new Instance(module, ${format_value(argument)})`);
+  }
+}, "Non-object imports");
 
 test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);

@@ -151,7 +151,7 @@
 
         if (param.isFixed) {
           should(() => audioParam.automationRate = newRate, setMessage)
-              .throw('InvalidStateError');
+              .throw(DOMException, 'InvalidStateError');
         }
         else {
           should(() => audioParam.automationRate = newRate, setMessage)

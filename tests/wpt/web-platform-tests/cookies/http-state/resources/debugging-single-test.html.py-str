@@ -8,9 +8,19 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="cookie-http-state-template.js"></script>
+    <style type="text/css">
+        .scrollable {
+            height:150px;
+            overflow-y:scroll;
+        }
+    </style>
   </head>
   <body>
-    <div id="log"></div>
+    <h3>Log</h3>
+    <div id="log" class="scrollable"></div>
+    <h3>IFrame</h3>
+    <div id="iframes" class="toggleable scrollable"></div>
+    <h3>Test Results</h3>
     <script>
       setup({ explicit_timeout: true });
 

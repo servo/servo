@@ -129,7 +129,7 @@
                   new OfflineAudioContext(options);
                 },
                 'new OfflineAudioContext(' + JSON.stringify(options) + ')')
-                .throw('NotSupportedError');
+                .throw(DOMException, 'NotSupportedError');
 
             // length cannot be 0
             options = {length: 0, sampleRate: 8000};
@@ -138,7 +138,7 @@
                   new OfflineAudioContext(options);
                 },
                 'new OfflineAudioContext(' + JSON.stringify(options) + ')')
-                .throw('NotSupportedError');
+                .throw(DOMException, 'NotSupportedError');
 
             // sampleRate outside valid range
             options = {length: 1, sampleRate: 1};
@@ -147,7 +147,7 @@
                   new OfflineAudioContext(options);
                 },
                 'new OfflineAudioContext(' + JSON.stringify(options) + ')')
-                .throw('NotSupportedError');
+                .throw(DOMException, 'NotSupportedError');
 
             task.done();
           });

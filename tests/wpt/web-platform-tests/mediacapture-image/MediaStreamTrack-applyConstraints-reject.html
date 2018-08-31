@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10/>
+</body>
+<script>
+
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext('2d');
+context.fillStyle = 'red';
+context.fillRect(0, 0, 10, 10);
+
+// This test verifies that MediaStreamTrack.applyConstraints() rejects if any
+// passed constraint is unsupported or outside its allowed range.
+var makePromiseTest = function(getConstraint) {
+  image_capture_test(async (t, imageCaptureTest) => {
+    imageCaptureTest.mockImageCapture().state().supportsTorch = false;
+
+    let stream = canvas.captureStream();
+    let videoTrack = stream.getVideoTracks()[0];
+
+    // |videoTrack|'s capabilities gathering, just like the actual capture,
+    // is a process kicked off right after creation, we introduce a small
+    // delay to allow for those to be collected, since they are needed to
+    // understand which constraints are supported in applyConstraints().
+    // TODO(mcasas): this shouldn't be needed, https://crbug.com/711524.
+    await new Promise(resolve => step_timeout(resolve, 100));
+
+    try {
+      const constraints = {
+        advanced : [ getConstraint(imageCaptureTest.mockImageCapture().state()) ]
+      };
+
+      await videoTrack.applyConstraints(constraints);
+      assert_unreached('expected applyConstraints to reject');
+    } catch (error) {
+      assert_equals(error.name, 'NotSupportedError');
+    }
+  });
+};
+
+const constraintGenerators = [
+  capabilities => ({ whiteBalanceMode: 'manual' }),
+  capabilities => ({ exposureMode: 'manual' }),
+  capabilities => ({ focusMode: 'continuous' }),
+  capabilities => ({
+    exposureCompensation: capabilities.exposureCompensation.max + 1
+  }),
+  capabilities => ({
+    exposureCompensation: capabilities.exposureCompensation.min - 1
+  }),
+  capabilities => ({
+    colorTemperature: capabilities.colorTemperature.max + 1
+  }),
+  capabilities => ({
+    colorTemperature: capabilities.colorTemperature.min - 1
+  }),
+  capabilities => ({ iso: capabilities.iso.max + 1 }),
+  capabilities => ({ iso: capabilities.iso.min - 1 }),
+  capabilities => ({ brightness: capabilities.brightness.max + 1 }),
+  capabilities => ({ brightness: capabilities.brightness.min - 1 }),
+  capabilities => ({ contrast: capabilities.contrast.max + 1 }),
+  capabilities => ({ contrast: capabilities.contrast.min - 1 }),
+  capabilities => ({ saturation: capabilities.saturation.max + 1 }),
+  capabilities => ({ saturation: capabilities.saturation.min - 1 }),
+  capabilities => ({ sharpness: capabilities.sharpness.max + 1 }),
+  capabilities => ({ sharpness: capabilities.sharpness.min - 1 }),
+  capabilities => ({ zoom: capabilities.zoom.max + 1 }),
+  capabilities => ({ zoom: capabilities.zoom.min - 1 }),
+  capabilities => ({ torch: true }),
+];
+
+for (key in constraintGenerators) {
+  generate_tests(
+      makePromiseTest, [[
+        'MediaStreamTrack.applyConstraints(constraints) rejects with bad' +
+        ' constraints, #' + key,
+        constraintGenerators[key]
+      ]]);
+}
+
+</script>

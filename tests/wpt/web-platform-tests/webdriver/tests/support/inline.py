@@ -9,7 +9,7 @@ def inline(doc, doctype="html", mime="text/html;charset=utf-8", protocol="http")
         mime = "text/html;charset=utf-8"
     elif doctype == "xhtml":
         mime = "application/xhtml+xml"
-        doc = r"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        doc = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
@@ -20,6 +20,9 @@ def inline(doc, doctype="html", mime="text/html;charset=utf-8", protocol="http")
     {}
   </body>
 </html>""".format(doc)
+    elif doctype == "xml":
+        mime = "text/xml"
+        doc = """<?xml version="1.0" encoding="UTF-8"?>{}""".format(doc)
 
     query = {"doc": doc}
     if mime != "text/html;charset=utf8":
@@ -41,8 +44,8 @@ def main(request, response):
         rv = 404, [("Content-Type", "text/plain")], "Missing doc parameter in query"
     else:
         response.headers.update([
-          ("Content-Type", content_type),
-          ("X-XSS-Protection", "0")
+            ("Content-Type", content_type),
+            ("X-XSS-Protection", "0")
         ])
         rv = doc
     return rv
