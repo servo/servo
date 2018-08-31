@@ -52,7 +52,7 @@ use std::sync::{Arc, Mutex};
 use task_source::{TaskSource, TaskSourceName};
 use time::{self, Timespec, Duration};
 
-unsafe_no_jsmanaged_fields!(Arc<Mutex<Box<Player>>>);
+unsafe_no_jsmanaged_fields!(Player);
 unsafe_no_jsmanaged_fields!(MediaFrameRenderer);
 
 #[dom_struct]
@@ -91,7 +91,7 @@ pub struct HTMLMediaElement {
     /// Whether the media metadata has been completely received.
     have_metadata: Cell<bool>,
     #[ignore_malloc_size_of = "servo_media"]
-    player: Arc<Mutex<Box<Player>>>,
+    player: Box<Player>,
     #[ignore_malloc_size_of = "oops"]
     frame_renderer: MediaFrameRenderer,
 }
@@ -139,9 +139,7 @@ impl HTMLMediaElement {
             pending_play_promises: Default::default(),
             in_flight_play_promises_queue: Default::default(),
             have_metadata: Cell::new(false),
-            player: Arc::new(Mutex::new(
-                ServoMedia::get().unwrap().create_player().unwrap(),
-            )),
+            player: ServoMedia::get().unwrap().create_player().unwrap(),
             frame_renderer: MediaFrameRenderer::new(document.window().get_webrender_api_sender()),
         }
     }
@@ -241,7 +239,7 @@ impl HTMLMediaElement {
                     }
 
                     this.fulfill_in_flight_play_promises(|| {
-                        this.player.lock().unwrap().play();
+                        this.player.play();
                     });
                 }),
                 window.upcast(),
@@ -289,7 +287,7 @@ impl HTMLMediaElement {
                         this.upcast::<EventTarget>().fire_event(atom!("pause"));
 
                         //FIXME(victor)
-                        //this.player.lock().unwrap().pause();
+                        //this.player.pause();
 
                         // Step 2.3.3.
                         // Done after running this closure in
@@ -326,7 +324,7 @@ impl HTMLMediaElement {
                 this.fulfill_in_flight_play_promises(|| {
                     // Step 2.1.
                     this.upcast::<EventTarget>().fire_event(atom!("playing"));
-                    this.player.lock().unwrap().play();
+                    this.player.play();
 
                     // Step 2.2.
                     // Done after running this closure in
@@ -683,7 +681,7 @@ impl HTMLMediaElement {
                     // Step 5.
                     this.upcast::<EventTarget>().fire_event(atom!("error"));
 
-                    this.player.lock().unwrap().stop();
+                    this.player.stop();
 
                     // Step 6.
                     // Done after running this closure in
@@ -848,15 +846,10 @@ impl HTMLMediaElement {
     fn setup_media_player(&self) {
         let (action_sender, action_receiver) = ipc::channel().unwrap();
 
-        self.player
-            .lock()
-            .unwrap()
-            .register_event_handler(action_sender);
-        self.player
-            .lock()
-            .unwrap()
-            .register_frame_renderer(Arc::new(self.frame_renderer.clone()));
-        self.player.lock().unwrap().setup().unwrap();
+        self.player.register_event_handler(action_sender);
+        self.player.register_frame_renderer(Arc::new(self.frame_renderer.clone()));
+        // XXXferjm this can fail.
+        self.player.setup().unwrap();
 
         let trusted_node = Trusted::new(self);
         let window = window_from_node(self);
@@ -1138,7 +1131,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         let elem = self.elem.root();
 
         // push input data into the player
-        if let Err(_) = elem.player.lock().unwrap().push_data(payload) {
+        if let Err(_) = elem.player.push_data(payload) {
             eprintln!("Couldn't push input data to player");
         }
 
@@ -1162,10 +1155,9 @@ impl FetchResponseListener for HTMLMediaElementContext {
             return;
         }
         let elem = self.elem.root();
-        let player = elem.player.lock().unwrap();
 
         // signal the eos to player
-        if let Err(_) = player.end_of_stream() {
+        if let Err(_) = elem.player.end_of_stream() {
             eprintln!("Couldn't signal EOS to player");
         }
 
