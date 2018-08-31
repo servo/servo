@@ -2992,7 +2992,7 @@ dependencies = [
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_bytes 0.10.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-media 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
  "servo_allocator 0.0.1",
  "servo_arc 0.1.1",
  "servo_atoms 0.0.1",
@@ -3226,9 +3226,9 @@ name = "servo-media"
 version = "0.1.0"
 source = "git+https://github.com/servo/media#e700a0834c3f38d49890d846591fd699e7405a48"
 dependencies = [
- "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
- "servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)",
- "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media-audio 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
+ "servo-media-gstreamer 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
+ "servo-media-player 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
 ]
 
 [[package]]
@@ -3243,7 +3243,7 @@ dependencies = [
  "petgraph 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo_media_derive 0.1.0 (git+https://github.com/servo/media)",
+ "servo_media_derive 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
  "smallvec 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3260,8 +3260,8 @@ dependencies = [
  "gstreamer-player 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-media-audio 0.1.0 (git+https://github.com/servo/media)",
- "servo-media-player 0.1.0 (git+https://github.com/servo/media)",
+ "servo-media-audio 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
+ "servo-media-player 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)",
  "zip 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -4545,14 +4545,14 @@ dependencies = [
 "checksum serde_json 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "5c508584d9913df116b91505eec55610a2f5b16e9ed793c46e4d0152872b3e74"
 "checksum servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
-"checksum servo-fontconfig-sys 4.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "b46d201addcfbd25c1798ad1281d98c40743824e0b0f1e611bd3d5d0d31a7b8d"
-"checksum servo-freetype-sys 4.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "5d00ab791f66cd2ec58e72c91b6076cee20fac560463aa871404eb31dfc9c4ff"
-"checksum servo-media 0.1.0 (git+https://github.com/servo/media)" = "<none>"
-"checksum servo-media-audio 0.1.0 (git+https://github.com/servo/media)" = "<none>"
-"checksum servo-media-gstreamer 0.1.0 (git+https://github.com/servo/media)" = "<none>"
-"checksum servo-media-player 0.1.0 (git+https://github.com/servo/media)" = "<none>"
+"checksum servo-fontconfig-sys 4.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "b0aa080856db55f188aaf36f01cae8c03448a6056552adb77d461179e44e1a14"
+"checksum servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
+"checksum servo-media 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)" = "<none>"
+"checksum servo-media-audio 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)" = "<none>"
+"checksum servo-media-gstreamer 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)" = "<none>"
+"checksum servo-media-player 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)" = "<none>"
 "checksum servo-skia 0.30000019.1 (registry+https://github.com/rust-lang/crates.io-index)" = "82eddddcf9512dd7c60eccdb486e60e5bd4930afaa4da2d7d4afdff75950fb88"
-"checksum servo_media_derive 0.1.0 (git+https://github.com/servo/media)" = "<none>"
+"checksum servo_media_derive 0.1.0 (git+https://github.com/ferjm/media?branch=framerenderer)" = "<none>"
 "checksum sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc30b1e1e8c40c121ca33b86c23308a090d19974ef001b4bf6e61fd1a0fb095c"
 "checksum shared_library 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "8254bf098ce4d8d7cc7cc6de438c5488adc5297e5b7ffef88816c0a91bd289c1"
 "checksum sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "c6649e43c1a1e68d29ed56d0dc3b5b6cf3b901da77cf107c4066b9e3da036df5"
