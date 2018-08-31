@@ -1721,10 +1721,6 @@ impl<'le> TElement for GeckoElement<'le> {
         // Gecko supports :lang() from CSS Selectors 3, which only accepts a
         // single language tag, and which performs simple dash-prefix matching
         // on it.
-        debug_assert!(
-            value.len() > 0 && value[value.len() - 1] == 0,
-            "expected value to be null terminated"
-        );
         let override_lang_ptr = match &override_lang {
             &Some(Some(ref atom)) => atom.as_ptr(),
             _ => ptr::null_mut(),
@@ -1734,7 +1730,7 @@ impl<'le> TElement for GeckoElement<'le> {
                 self.0,
                 override_lang_ptr,
                 override_lang.is_some(),
-                value.as_ptr(),
+                value.as_slice().as_ptr(),
             )
         }
     }

@@ -37,7 +37,7 @@ bitflags! {
 }
 
 /// The type used for storing pseudo-class string arguments.
-pub type PseudoClassStringArg = ThinBoxedSlice<u16>;
+pub type PseudoClassStringArg = Atom;
 
 macro_rules! pseudo_class_name {
     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
@@ -72,24 +72,13 @@ impl ToCss for NonTSPseudoClass {
     where
         W: fmt::Write,
     {
-        use cssparser::CssStringWriter;
-        use std::fmt::Write;
         macro_rules! pseudo_class_serialize {
             (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
              string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     $(NonTSPseudoClass::$s_name(ref s) => {
-                        dest.write_str(concat!(":", $s_css, "("))?;
-                        {
-                            // FIXME(emilio): Avoid the extra allocation!
-                            let mut css = CssStringWriter::new(dest);
-
-                            // Discount the null char in the end from the
-                            // string.
-                            css.write_str(&String::from_utf16(&s[..s.len() - 1]).unwrap())?;
-                        }
-                        return dest.write_str(")")
+                        return write!(dest, concat!(":", $s_css, "({})"), s)
                     }, )*
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
                         dest.write_str(":-moz-locale-dir(")?;
@@ -405,10 +394,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
                 match_ignore_ascii_case! { &name,
                     $($s_css => {
                         let name = parser.expect_ident_or_string()?;
-                        // convert to null terminated utf16 string
-                        // since that's what Gecko deals with
-                        let utf16: Vec<u16> = name.encode_utf16().chain(Some(0u16)).collect();
-                        NonTSPseudoClass::$s_name(utf16.into_boxed_slice().into())
+                        NonTSPseudoClass::$s_name(Atom::from(name.as_ref()))
                     }, )*
                     "-moz-locale-dir" => {
                         NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
