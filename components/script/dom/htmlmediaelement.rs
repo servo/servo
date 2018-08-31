@@ -54,10 +54,7 @@ use time::{self, Timespec, Duration};
 use webrender_api::{ImageData, ImageDescriptor, ImageFormat, ImageKey, RenderApi};
 use webrender_api::{RenderApiSender, Transaction};
 
-unsafe_no_jsmanaged_fields!(Player);
-unsafe_no_jsmanaged_fields!(Mutex<MediaFrameRenderer>);
-
-struct MediaFrameRenderer {
+pub struct MediaFrameRenderer {
     api: RenderApi,
     current_frame: Option<(ImageKey, i32, i32)>,
     old_frame: Option<ImageKey>,
