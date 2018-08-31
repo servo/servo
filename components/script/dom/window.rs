@@ -132,9 +132,7 @@ use time;
 use timers::{IsInterval, TimerCallback};
 use url::Position;
 use webdriver_handlers::jsval_to_webdriver;
-use webrender_api::{
-    DeviceIntPoint, DeviceUintSize, DocumentId, ExternalScrollId, RenderApiSender,
-};
+use webrender_api::{DeviceIntPoint, DeviceUintSize, DocumentId, ExternalScrollId, RenderApiSender};
 use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
@@ -311,14 +309,6 @@ pub struct Window {
     /// Webrender API Sender
     #[ignore_malloc_size_of = "defined in webrender_api"]
     webrender_api_sender: RenderApiSender,
-}
-
-// FIXME(victor):  this doesn't belong here
-#[allow(unsafe_code)]
-unsafe impl ::dom::bindings::trace::JSTraceable for RenderApiSender {
-    unsafe fn trace(&self, _trc: *mut ::js::jsapi::JSTracer) {
-        // Do nothing
-    }
 }
 
 impl Window {
