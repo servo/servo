@@ -2232,11 +2232,13 @@ impl Document {
 
     pub fn register_responsive_image(&self, img: &HTMLImageElement) {
         self.responsive_images.borrow_mut().push(Dom::from_ref(img));
+        img.update_the_image_data();
     }
 
     pub fn unregister_responsive_image(&self, img: &HTMLImageElement) {
         if let Some(index) = self.responsive_images.borrow().iter().position(|x| **x == *img) {
             self.responsive_images.borrow_mut().remove(index);
+            img.update_the_image_data();
         }
     }
 }

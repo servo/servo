@@ -840,7 +840,7 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
-    fn update_the_image_data(&self) {
+    pub fn update_the_image_data(&self) {
         let document = document_from_node(self);
         let window = document.window();
         let elem = self.upcast::<Element>();
