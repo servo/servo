@@ -8,6 +8,27 @@ use pipeline::Pipeline;
 use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 
+// TODO(mandreyel): is this explanation lucid enough?
+//
+/// Because a browsing context is only constructed once the document that's
+/// going to be in it becomes active (i.e. not when a pipeline is spawned),
+/// some values needed in browsing context are not easily available at the
+/// point of constructing it. Thus, every time a pipeline is created for
+/// a browsing context which doesn't exist yet, these values needed for the
+/// new browsing context are stored here so that they may be available later.
+pub struct NewBrowsingContextInfo {
+    /// The parent pipeline of the browsing context, if this is not the top
+    /// level browsing context.
+    pub parent_pipeline_id: Option<PipelineId>,
+
+    /// Whether the to-be-constructed browsing context is going to be in
+    /// private browsing mode.
+    pub is_private: bool,
+
+    /// Whether to construct browsing context as visible.
+    pub is_visible: bool,
+}
+
 /// The constellation's view of a browsing context.
 /// Each browsing context has a session history, caused by navigation and
 /// traversing the history. Each browsing context has its current entry, plus
@@ -34,8 +55,8 @@ pub struct BrowsingContext {
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
-    /// The parent pipeline of the current sesion history entry. None, if this
-    /// is a top-level browsing context.
+    /// The parent pipeline of this browsing context. None, if this is a top-level browsing
+    /// context.
     pub parent_pipeline_id: Option<PipelineId>,
 
     /// All the pipelines that have been presented or will be presented in

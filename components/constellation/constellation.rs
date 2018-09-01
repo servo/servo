@@ -92,6 +92,7 @@
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
 use browsingcontext::{AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator};
+use browsingcontext::NewBrowsingContextInfo;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_thread::WebGLThreads;
 use canvas_traits::canvas::CanvasId;
@@ -606,9 +607,8 @@ where
                     pipelines: HashMap::new(),
                     browsing_contexts: HashMap::new(),
                     pending_changes: vec![],
-                    // We initialize the namespace at 2,
-                    // since we reserved namespace 0 for the embedder,
-                    // and 0 for the constellation
+                    // We initialize the namespace at 2, since we reserved
+                    // namespace 0 for the embedder, and 0 for the constellation
                     next_pipeline_namespace_id: PipelineNamespaceId(2),
                     focus_pipeline_id: None,
                     time_profiler_chan: state.time_profiler_chan,
@@ -1594,10 +1594,18 @@ where
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
-            parent_pipeline_id: None,
             replace: None,
-            is_private: is_private,
-            is_visible: is_visible,
+            // TODO(mandreyel): is it possible for handle_panic to be invoked
+            // when there is no browsing context for pipeline? if not, we need
+            // not add this field
+            //
+            // If this browsing context didn't exist, insert a pending info
+            // entry so that we can construct it later.
+            new_browsing_context_info: Some(NewBrowsingContextInfo {
+                parent_pipeline_id: None,
+                is_private: is_private,
+                is_visible: is_visible,
+            }),
         });
     }
 
@@ -1691,10 +1699,12 @@ where
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: pipeline_id,
-            parent_pipeline_id: None,
             replace: None,
-            is_private: is_private,
-            is_visible: is_visible,
+            new_browsing_context_info: Some(NewBrowsingContextInfo {
+                parent_pipeline_id: None,
+                is_private: is_private,
+                is_visible: is_visible,
+            }),
         });
     }
 
@@ -1852,10 +1862,9 @@ where
             top_level_browsing_context_id: load_info.info.top_level_browsing_context_id,
             browsing_context_id: load_info.info.browsing_context_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
-            parent_pipeline_id: Some(load_info.info.parent_pipeline_id),
             replace: replace,
-            is_private: is_private,
-            is_visible: is_visible,
+            // Browsing context for iframe already exists.
+            new_browsing_context_info: None,
         });
     }
 
@@ -1920,10 +1929,12 @@ where
             top_level_browsing_context_id: top_level_browsing_context_id,
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
-            parent_pipeline_id: Some(parent_pipeline_id),
             replace: None,
-            is_private: is_private,
-            is_visible: is_visible,
+            new_browsing_context_info: Some(NewBrowsingContextInfo {
+                parent_pipeline_id: Some(parent_pipeline_id),
+                is_private: is_private,
+                is_visible: is_visible,
+            }),
         });
     }
 
@@ -1993,11 +2004,13 @@ where
             top_level_browsing_context_id: new_top_level_browsing_context_id,
             browsing_context_id: new_browsing_context_id,
             new_pipeline_id: new_pipeline_id,
-            // Auxiliary browsing contexts are always top-level.
-            parent_pipeline_id: None,
             replace: None,
-            is_private: is_private,
-            is_visible: is_visible,
+            new_browsing_context_info: Some(NewBrowsingContextInfo {
+                // Auxiliary browsing contexts are always top-level.
+                parent_pipeline_id: None,
+                is_private: is_private,
+                is_visible: is_visible,
+            }),
         });
     }
 
@@ -2181,10 +2194,10 @@ where
                     top_level_browsing_context_id: top_level_browsing_context_id,
                     browsing_context_id: source_browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
-                    parent_pipeline_id: None,
                     replace,
-                    is_private: is_private,
-                    is_visible: is_visible,
+                    // `load_url` is always invoked on an existing browsing
+                    // context so this field need not be set.
+                    new_browsing_context_info: None,
                 });
                 Some(new_pipeline_id)
             },
@@ -2492,10 +2505,10 @@ where
                     top_level_browsing_context_id: top_level_id,
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
-                    parent_pipeline_id: parent_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data.clone())),
-                    is_private: is_private,
-                    is_visible: is_visible,
+                    // TODO(mandreyel): browsing context must exist at this
+                    // point, correct?
+                    new_browsing_context_info: None,
                 });
                 return;
             },
@@ -3194,7 +3207,22 @@ where
         if let Some(pending_index) = pending_index {
             let change = self.pending_changes.swap_remove(pending_index);
             // Notify the parent (if there is one).
-            if let Some(parent_pipeline_id) = change.parent_pipeline_id {
+            let parent_pipeline_id = match change.new_browsing_context_info {
+                // It's a yet to be constructed browsing context.
+                Some(ref info) => info.parent_pipeline_id,
+                // It's an existing browsing context.
+                None => match self.browsing_contexts.get(&change.browsing_context_id) {
+                    Some(browsing_context) => browsing_context.parent_pipeline_id,
+                    None => {
+                        return warn!(
+                            "Activated document {} after browsing context {} closure",
+                            pipeline_id,
+                            change.browsing_context_id,
+                        )
+                    },
+                },
+            };
+            if let Some(parent_pipeline_id) = parent_pipeline_id {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
                     let msg = ConstellationControlMsg::UpdatePipelineId(
                         parent_pipeline_id,
@@ -3239,13 +3267,22 @@ where
 
         match old_pipeline_id {
             None => {
+                let new_context_info = match change.new_browsing_context_info {
+                    Some(new_context_info) => new_context_info,
+                    None => {
+                        return warn!(
+                            "No data for new browsing context {}",
+                            change.browsing_context_id
+                        )
+                    },
+                };
                 self.new_browsing_context(
                     change.browsing_context_id,
                     change.top_level_browsing_context_id,
                     change.new_pipeline_id,
-                    change.parent_pipeline_id,
-                    change.is_private,
-                    change.is_visible,
+                    new_context_info.parent_pipeline_id,
+                    new_context_info.is_private,
+                    new_context_info.is_visible,
                 );
                 self.update_activity(change.new_pipeline_id);
                 self.notify_history_changed(change.top_level_browsing_context_id);

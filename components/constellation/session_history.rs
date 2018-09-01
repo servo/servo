@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use browsingcontext::NewBrowsingContextInfo;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId};
 use script_traits::LoadData;
 use servo_url::ServoUrl;
@@ -111,27 +112,12 @@ pub struct SessionHistoryChange {
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
-    /// The parent pipeline of the browsing context in which the document
-    /// is loaded, if this is not the top level browsing context.
-    ///
-    /// This value needs to be present when a new browsing context is created
-    /// but is only easily available when creating this session history change.
-    pub parent_pipeline_id: Option<PipelineId>,
-
-    /// Whether this session change was created in private browsing mode.
-    ///
-    /// This value needs to be present when a new browsing context is created
-    /// but is only easily available when creating this session history change.
-    pub is_private: bool,
-
-    /// Whether this session change was created in a visible browsing context.
-    ///
-    /// This value needs to be present when a new browsing context is created
-    /// but is only easily available when creating this session history change.
-    pub is_visible: bool,
-
     /// The old pipeline that the new pipeline should replace.
     pub replace: Option<NeedsToReload>,
+
+    /// Holds data for not-yet constructed browsing contexts that are not
+    /// easily available when a `BrowsingContext` needs to be constructed.
+    pub new_browsing_context_info: Option<NewBrowsingContextInfo>,
 }
 
 /// Represents a pipeline or discarded pipeline in a history entry.
