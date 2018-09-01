@@ -24,7 +24,7 @@ with testharness.js. See also the [general guidelines][] for all test types.
 A test file can have multiple variants by including `meta` elements,
 for example:
 
-```
+```html
 <meta name="variant" content="">
 <meta name="variant" content="?wss">
 ```
@@ -36,7 +36,7 @@ There are two utility scripts in that work well together with variants,
 a test that would otherwise have too many tests to be useful can be
 split up in ranges of subtests. For example:
 
-```
+```html
 <!doctype html>
 <title>Testing variants</title>
 <meta name="variant" content="?1-1000">
@@ -60,7 +60,7 @@ With `subsetTestByKey`, the key is given as the first argument, and the
 query string can include or exclude a key (will be matched as a regular
 expression).
 
-```
+```html
 <!doctype html>
 <title>Testing variants by key</title>
 <meta name="variant" content="?include=Foo">
@@ -103,13 +103,15 @@ JavaScript file with the `.js` removed.
 For example, one could write a test for the `FileReaderSync` API by
 creating a `FileAPI/FileReaderSync.worker.js` as follows:
 
-    importScripts("/resources/testharness.js");
-    test(function () {
-      var blob = new Blob(["Hello"]);
-      var fr = new FileReaderSync();
-      assert_equals(fr.readAsText(blob), "Hello");
-    }, "FileReaderSync#readAsText.");
-    done();
+```js
+importScripts("/resources/testharness.js");
+test(function () {
+    var blob = new Blob(["Hello"]);
+    var fr = new FileReaderSync();
+    assert_equals(fr.readAsText(blob), "Hello");
+}, "FileReaderSync#readAsText.");
+done();
+```
 
 This test could then be run from `FileAPI/FileReaderSync.worker.html`.
 
@@ -124,12 +126,14 @@ By default, the test runs in a window scope and a dedicated worker scope.
 For example, one could write a test for the `Blob` constructor by
 creating a `FileAPI/Blob-constructor.any.js` as follows:
 
-    test(function () {
-      var blob = new Blob();
-      assert_equals(blob.size, 0);
-      assert_equals(blob.type, "");
-      assert_false(blob.isClosed);
-    }, "The Blob constructor.");
+```js
+test(function () {
+    var blob = new Blob();
+    assert_equals(blob.size, 0);
+    assert_equals(blob.type, "");
+    assert_false(blob.isClosed);
+}, "The Blob constructor.");
+```
 
 This test could then be run from `FileAPI/Blob-constructor.any.worker.html` as well
 as `FileAPI/Blob-constructor.any.html`.
