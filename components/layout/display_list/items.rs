@@ -513,27 +513,29 @@ impl ClippingRegion {
     /// This is a quick, not a precise, test; it can yield false positives.
     #[inline]
     pub fn might_intersect_point(&self, point: &LayoutPoint) -> bool {
-        self.main.contains(point) &&
-            self.complex
-                .iter()
-                .all(|complex| complex.rect.contains(point))
+        self.main.contains(point) && self
+            .complex
+            .iter()
+            .all(|complex| complex.rect.contains(point))
     }
 
     /// Returns true if this clipping region might intersect the given rectangle and false
     /// otherwise. This is a quick, not a precise, test; it can yield false positives.
     #[inline]
     pub fn might_intersect_rect(&self, rect: &LayoutRect) -> bool {
-        self.main.intersects(rect) &&
-            self.complex
-                .iter()
-                .all(|complex| complex.rect.intersects(rect))
+        self.main.intersects(rect) && self
+            .complex
+            .iter()
+            .all(|complex| complex.rect.intersects(rect))
     }
 
     /// Returns true if this clipping region completely surrounds the given rect.
     #[inline]
     pub fn does_not_clip_rect(&self, rect: &LayoutRect) -> bool {
-        self.main.contains(&rect.origin) && self.main.contains(&rect.bottom_right()) &&
-            self.complex.iter().all(|complex| {
+        self.main.contains(&rect.origin) && self.main.contains(&rect.bottom_right()) && self
+            .complex
+            .iter()
+            .all(|complex| {
                 complex.rect.contains(&rect.origin) && complex.rect.contains(&rect.bottom_right())
             })
     }
@@ -588,8 +590,7 @@ impl ClippingRegion {
                     rect: complex.rect.translate(delta),
                     radii: complex.radii,
                     mode: complex.mode,
-                })
-                .collect(),
+                }).collect(),
         }
     }
 

@@ -5,10 +5,15 @@
 #![cfg(target_pointer_width = "64")]
 
 extern crate layout;
-#[macro_use] extern crate size_of_test;
+#[macro_use]
+extern crate size_of_test;
 
 use layout::Fragment;
 use layout::SpecificFragmentInfo;
 
 size_of_test!(test_size_of_fragment, Fragment, 176);
-size_of_test!(test_size_of_specific_fragment_info, SpecificFragmentInfo, 24);
+size_of_test!(
+    test_size_of_specific_fragment_info,
+    SpecificFragmentInfo,
+    24
+);

@@ -40,10 +40,11 @@ pub struct ListItemFlow {
 }
 
 impl ListItemFlow {
-    pub fn from_fragments_and_flotation(main_fragment: Fragment,
-                                        marker_fragments: Vec<Fragment>,
-                                        flotation: Option<FloatKind>)
-                                        -> ListItemFlow {
+    pub fn from_fragments_and_flotation(
+        main_fragment: Fragment,
+        marker_fragments: Vec<Fragment>,
+        flotation: Option<FloatKind>,
+    ) -> ListItemFlow {
         let mut this = ListItemFlow {
             block_flow: BlockFlow::from_fragment_and_float_kind(main_fragment, flotation),
             marker_fragments: marker_fragments,
@@ -56,8 +57,12 @@ impl ListItemFlow {
                 ListStyleType::Circle |
                 ListStyleType::Square |
                 ListStyleType::DisclosureOpen |
-                ListStyleType::DisclosureClosed => {}
-                _ => this.block_flow.base.restyle_damage.insert(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT),
+                ListStyleType::DisclosureClosed => {},
+                _ => this
+                    .block_flow
+                    .base
+                    .restyle_damage
+                    .insert(ServoRestyleDamage::RESOLVE_GENERATED_CONTENT),
             }
         }
 
@@ -77,20 +82,29 @@ impl ListItemFlow {
         let available_rect = base.floats.available_rect(
             -base.position.size.block,
             base.position.size.block,
-            base.block_container_inline_size);
-        let mut marker_inline_start = available_rect.unwrap_or(self.block_flow.fragment.border_box).start.i;
+            base.block_container_inline_size,
+        );
+        let mut marker_inline_start = available_rect
+            .unwrap_or(self.block_flow.fragment.border_box)
+            .start
+            .i;
 
         for marker in self.marker_fragments.iter_mut().rev() {
-            let container_block_size =
-                self.block_flow.explicit_block_containing_size(layout_context.shared_context());
-            marker.assign_replaced_inline_size_if_necessary(base.block_container_inline_size, container_block_size);
+            let container_block_size = self
+                .block_flow
+                .explicit_block_containing_size(layout_context.shared_context());
+            marker.assign_replaced_inline_size_if_necessary(
+                base.block_container_inline_size,
+                container_block_size,
+            );
 
             // Do this now. There's no need to do this in bubble-widths, since markers do not
             // contribute to the inline size of this flow.
             let intrinsic_inline_sizes = marker.compute_intrinsic_inline_sizes();
 
-            marker.border_box.size.inline =
-                intrinsic_inline_sizes.content_intrinsic_sizes.preferred_inline_size;
+            marker.border_box.size.inline = intrinsic_inline_sizes
+                .content_intrinsic_sizes
+                .preferred_inline_size;
             marker_inline_start = marker_inline_start - marker.border_box.size.inline;
             marker.border_box.start.i = marker_inline_start;
         }
@@ -99,18 +113,22 @@ impl ListItemFlow {
     fn assign_marker_block_sizes(&mut self, layout_context: &LayoutContext) {
         // FIXME(pcwalton): Do this during flow construction, like `InlineFlow` does?
         let marker_line_metrics = with_thread_local_font_context(layout_context, |font_context| {
-            InlineFlow::minimum_line_metrics_for_fragments(&self.marker_fragments,
-                                                           font_context,
-                                                           &*self.block_flow.fragment.style)
+            InlineFlow::minimum_line_metrics_for_fragments(
+                &self.marker_fragments,
+                font_context,
+                &*self.block_flow.fragment.style,
+            )
         });
 
         for marker in &mut self.marker_fragments {
             marker.assign_replaced_block_size_if_necessary();
-            let marker_inline_metrics = marker.aligned_inline_metrics(layout_context,
-                                                                      &marker_line_metrics,
-                                                                      Some(&marker_line_metrics));
-            marker.border_box.start.b = marker_line_metrics.space_above_baseline -
-                marker_inline_metrics.ascent;
+            let marker_inline_metrics = marker.aligned_inline_metrics(
+                layout_context,
+                &marker_line_metrics,
+                Some(&marker_line_metrics),
+            );
+            marker.border_box.start.b =
+                marker_line_metrics.space_above_baseline - marker_inline_metrics.ascent;
         }
     }
 }
@@ -144,7 +162,8 @@ impl Flow for ListItemFlow {
     }
 
     fn compute_stacking_relative_position(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.compute_stacking_relative_position(layout_context)
+        self.block_flow
+            .compute_stacking_relative_position(layout_context)
     }
 
     fn place_float_if_applicable<'a>(&mut self) {
@@ -160,11 +179,13 @@ impl Flow for ListItemFlow {
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
-        self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
+        self.block_flow
+            .update_late_computed_inline_position_if_necessary(inline_position)
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
-        self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+        self.block_flow
+            .update_late_computed_block_position_if_necessary(block_position)
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {
@@ -181,9 +202,17 @@ impl Flow for ListItemFlow {
 
     fn compute_overflow(&self) -> Overflow {
         let mut overflow = self.block_flow.compute_overflow();
-        let flow_size = self.block_flow.base.position.size.to_physical(self.block_flow.base.writing_mode);
-        let relative_containing_block_size =
-            &self.block_flow.base.early_absolute_position_info.relative_containing_block_size;
+        let flow_size = self
+            .block_flow
+            .base
+            .position
+            .size
+            .to_physical(self.block_flow.base.writing_mode);
+        let relative_containing_block_size = &self
+            .block_flow
+            .base
+            .early_absolute_position_info
+            .relative_containing_block_size;
 
         for fragment in &self.marker_fragments {
             overflow.union(&fragment.compute_overflow(&flow_size, &relative_containing_block_size))
@@ -200,32 +229,38 @@ impl Flow for ListItemFlow {
         self.block_flow.positioning()
     }
 
-    fn iterate_through_fragment_border_boxes(&self,
-                                             iterator: &mut FragmentBorderBoxIterator,
-                                             level: i32,
-                                             stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator,
-                                                              level,
-                                                              stacking_context_position);
+    fn iterate_through_fragment_border_boxes(
+        &self,
+        iterator: &mut FragmentBorderBoxIterator,
+        level: i32,
+        stacking_context_position: &Point2D<Au>,
+    ) {
+        self.block_flow.iterate_through_fragment_border_boxes(
+            iterator,
+            level,
+            stacking_context_position,
+        );
 
         for marker in &self.marker_fragments {
             if iterator.should_process(marker) {
                 iterator.process(
                     marker,
                     level,
-                    &marker.stacking_relative_border_box(&self.block_flow
-                                                              .base
-                                                              .stacking_relative_position,
-                                                         &self.block_flow
-                                                              .base
-                                                              .early_absolute_position_info
-                                                              .relative_containing_block_size,
-                                                         self.block_flow
-                                                             .base
-                                                             .early_absolute_position_info
-                                                             .relative_containing_block_mode,
-                                                         CoordinateSystem::Own)
-                           .translate(&stacking_context_position.to_vector()));
+                    &marker
+                        .stacking_relative_border_box(
+                            &self.block_flow.base.stacking_relative_position,
+                            &self
+                                .block_flow
+                                .base
+                                .early_absolute_position_info
+                                .relative_containing_block_size,
+                            self.block_flow
+                                .base
+                                .early_absolute_position_info
+                                .relative_containing_block_mode,
+                            CoordinateSystem::Own,
+                        ).translate(&stacking_context_position.to_vector()),
+                );
             }
         }
     }
@@ -260,7 +295,7 @@ impl ListStyleTypeContent {
             ListStyleType::DisclosureClosed => {
                 let text = generated_content::static_representation(list_style_type);
                 ListStyleTypeContent::StaticText(text)
-            }
+            },
             _ => ListStyleTypeContent::GeneratedContent(Box::new(GeneratedContentInfo::ListItem)),
         }
     }

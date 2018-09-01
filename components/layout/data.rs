@@ -24,7 +24,6 @@ impl StyleAndLayoutData {
     }
 }
 
-
 /// Data that layout associates with a node.
 #[repr(C)]
 pub struct LayoutData {

@@ -47,7 +47,7 @@ impl ScopeData {
             name: name,
             pre: pre,
             post: Value::Null,
-            children: vec!(),
+            children: vec![],
         }
     }
 }
