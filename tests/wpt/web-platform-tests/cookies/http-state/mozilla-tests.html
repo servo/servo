@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests basic cookie setting functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "mozilla0001", name: "mozilla0001"},
+        {file: "mozilla0002", name: "mozilla0002"},
+        {file: "mozilla0003", name: "mozilla0003"},
+        {file: "mozilla0004", name: "mozilla0004"},
+        {file: "mozilla0005", name: "mozilla0005"},
+        {file: "mozilla0006", name: "mozilla0006"},
+        {file: "mozilla0007", name: "mozilla0007"},
+        {file: "mozilla0008", name: "mozilla0008"},
+        {file: "mozilla0009", name: "mozilla0009"},
+        {file: "mozilla0010", name: "mozilla0010"},
+        {file: "mozilla0011", name: "mozilla0011"},
+        {file: "mozilla0012", name: "mozilla0012"},
+        {file: "mozilla0013", name: "mozilla0013"},
+        {file: "mozilla0014", name: "mozilla0014"},
+        {file: "mozilla0015", name: "mozilla0015"},
+        {file: "mozilla0016", name: "mozilla0016"},
+        {file: "mozilla0017", name: "mozilla0017"},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

@@ -23,14 +23,17 @@
 .columns { grid-template-columns: 100px 100px; }
 .rows { grid-template-rows: 100px 100px; }
 
-.min-content-columns { grid-auto-columns: min-content; }
-.max-content-columns { grid-auto-columns: max-content; }
-.fit-content-columns { grid-auto-columns: fit-content; }
-.flex-columns        { grid-auto-columns: 1fr; }
-.min-content-rows { grid-auto-rows: min-content; }
-.max-content-rows { grid-auto-rows: max-content; }
-.fit-content-rows { grid-auto-rows: fit-content; }
-.flex-rows        { grid-auto-rows: 1fr; }
+.min-content-columns { grid-template-columns: min-content; }
+.max-content-columns { grid-template-columns: max-content; }
+.fit-content-columns { grid-template-columns: fit-content; }
+.min-content-rows { grid-template-rows: min-content; }
+.max-content-rows { grid-template-rows: max-content; }
+.fit-content-rows { grid-template-rows: fit-content; }
+
+.flex-columns     { grid-template-columns: 1fr; }
+.max-flex-columns { grid-template-columns: minmax(0px, 1fr); }
+.flex-rows        { grid-template-rows: 1fr; }
+.max-flex-rows    { grid-template-rows: minmax(0px, 1fr); }
 
 .height25  { height: 25px; }
 .height50  { height: 50px; }
@@ -47,82 +50,113 @@
 <script src="/resources/check-layout-th.js"></script>
 <body onload="checkLayout('.inline-grid')">
 
-<pre>auto-sized rows - items with relative height</pre>
-
-<div class="inline-grid alignItemsBaseline columns">
-  <div class="firstRowFirstColumn height50"          data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50"></div>
-  <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="100"></div>
-  <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="50" data-expected-width="200" data-expected-height="25"></div>
+<div style="height: 125px">
+    <pre>auto-sized rows - items with relative height</pre>
+    <div class="inline-grid alignItemsBaseline columns">
+        <div class="firstRowFirstColumn height50"          data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50"></div>
+        <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="100"></div>
+        <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="50" data-expected-width="200" data-expected-height="25"></div>
+    </div>
 </div>
 
-<pre>min-content-sized rows - items with relative height</pre>
-
-<div class="inline-grid alignItemsBaseline columns min-content-rows">
-  <div class="firstRowFirstColumn"                   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="80">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="160"></div>
-  <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="80" data-expected-width="200" data-expected-height="25"></div>
+<div style="height: 200px">
+    <pre>min-content-sized rows - items with relative height</pre>
+    <div class="inline-grid alignItemsBaseline columns min-content-rows">
+        <div class="firstRowFirstColumn"                   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="80">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+        <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="160"></div>
+        <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="80" data-expected-width="200" data-expected-height="25"></div>
+    </div>
 </div>
 
-<pre>max-content-sized rows - items with relative height</pre>
-
-<div class="inline-grid alignItemsBaseline columns max-content-rows">
-  <div class="firstRowFirstColumn"                   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="80">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="160"></div>
-  <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="80" data-expected-width="200" data-expected-height="25"></div>
+<div style="height: 200px">
+    <pre>max-content-sized rows - items with relative height</pre>
+    <div class="inline-grid alignItemsBaseline columns max-content-rows">
+        <div class="firstRowFirstColumn"                   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="80">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+        <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="160"></div>
+        <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="80" data-expected-width="200" data-expected-height="25"></div>
+    </div>
 </div>
 
-<pre>fit-content-sized rows - items with relative height</pre>
-
-<div class="inline-grid alignItemsBaseline columns fit-content-rows">
-  <div class="firstRowFirstColumn"                   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="80">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="160"></div>
-  <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="80" data-expected-width="200" data-expected-height="25"></div>
+<div style="height: 200px">
+    <pre>fit-content-sized rows - items with relative height</pre>
+    <div class="inline-grid alignItemsBaseline columns fit-content-rows">
+        <div class="firstRowFirstColumn"                   data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="80">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+        <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="160"></div>
+        <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="80" data-expected-width="200" data-expected-height="25"></div>
+    </div>
 </div>
 
-<pre>flexible-sized rows - items with relative height</pre>
-
-<div class="inline-grid alignItemsBaseline columns flex-rows">
-  <div class="firstRowFirstColumn height50"          data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50"></div>
-  <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="100"></div>
-  <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="50" data-expected-width="200" data-expected-height="25"></div>
+<div style="height: 125px">
+    <pre>flexible-sized rows - items with relative height</pre>
+    <div class="inline-grid alignItemsBaseline columns flex-rows">
+        <div class="firstRowFirstColumn height50"          data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50"></div>
+        <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="100"></div>
+        <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="50" data-expected-width="200" data-expected-height="25"></div>
+    </div>
 </div>
 
-<pre>auto-sized columns - items with relative width</pre>
-
-<div class="inline-grid justifyItemsBaseline rows">
-  <div class="firstRowFirstColumn verticalRL width50"          data-offset-x="0"  data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
-  <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
-  <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="50" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div style="height: 125px">
+    <pre>flex max-function rows - items with relative height</pre>
+    <div class="inline-grid alignItemsBaseline columns max-flex-rows">
+        <div class="firstRowFirstColumn height50"          data-offset-x="0"   data-offset-y="0"  data-expected-width="100" data-expected-height="50"></div>
+        <div class="firstRowSecondColumn height200Percent" data-offset-x="100" data-offset-y="0"  data-expected-width="100" data-expected-height="100"></div>
+        <div class="autoRowAutoColumnSpanning2 height25"   data-offset-x="0"   data-offset-y="50" data-expected-width="200" data-expected-height="25"></div>
+    </div>
 </div>
 
-<pre>min-content-sized columns - items with relative width</pre>
-
-<div class="inline-grid justifyItemsBaseline rows min-content-columns">
-  <div class="firstRowFirstColumn verticalRL"                  data-offset-x="0"  data-offset-y="0"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="160" data-expected-height="100"></div>
-  <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="80" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div style="height: 250px">
+    <pre>auto-sized columns - items with relative width</pre>
+    <div class="inline-grid justifyItemsBaseline rows">
+        <div class="firstRowFirstColumn verticalRL width50"          data-offset-x="0"  data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
+        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
+        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="50" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    </div>
 </div>
 
-<pre>max-content-sized columns - items with relative width</pre>
-
-<div class="inline-grid justifyItemsBaseline rows max-content-columns">
-  <div class="firstRowFirstColumn verticalRL"                  data-offset-x="0"  data-offset-y="0"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="160" data-expected-height="100"></div>
-  <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="80" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div style="height: 250px">
+    <pre>min-content-sized columns - items with relative width</pre>
+    <div class="inline-grid justifyItemsBaseline rows min-content-columns">
+        <div class="firstRowFirstColumn verticalRL"                  data-offset-x="0"  data-offset-y="0"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="160" data-expected-height="100"></div>
+        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="80" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    </div>
 </div>
 
-<pre>fit-content-sized columns - items with relative width</pre>
-
-<div class="inline-grid justifyItemsBaseline rows fit-content-columns">
-  <div class="firstRowFirstColumn verticalRL"                  data-offset-x="0"  data-offset-y="0"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
-  <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="160" data-expected-height="100"></div>
-  <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="80" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div style="height: 250px">
+    <pre>max-content-sized columns - items with relative width</pre>
+    <div class="inline-grid justifyItemsBaseline rows max-content-columns">
+        <div class="firstRowFirstColumn verticalRL"                  data-offset-x="0"  data-offset-y="0"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="160" data-expected-height="100"></div>
+        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="80" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    </div>
 </div>
 
-<pre>flexible-sized columns - items with relative width</pre>
-
-<div class="inline-grid justifyItemsBaseline rows flex-columns">
-  <div class="firstRowFirstColumn verticalRL width50"          data-offset-x="0"  data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
-  <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
-  <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="50" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+<div style="height: 250px">
+    <pre>fit-content-sized columns - items with relative width</pre>
+    <div class="inline-grid justifyItemsBaseline rows fit-content-columns">
+        <div class="firstRowFirstColumn verticalRL"                  data-offset-x="0"  data-offset-y="0"   data-expected-width="80"  data-expected-height="100">ÉÉ É ÉÉ ÉÉÉÉ É ÉÉ ÉÉÉ ÉÉ É</div>
+        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="160" data-expected-height="100"></div>
+        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="80" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    </div>
 </div>
+
+<div style="height: 250px">
+    <pre>flexible-sized columns - items with relative width</pre>
+    <div class="inline-grid justifyItemsBaseline rows flex-columns">
+        <div class="firstRowFirstColumn verticalRL width50"          data-offset-x="0"  data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
+        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="0"  data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
+        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="50" data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    </div>
+</div>
+
+<div style="height: 250px">
+    <pre>flex max-function columns - items with relative width<br>baseline is not applied initially, but orthogonal items force repeating the track sizing and height is not indefinite in that phase.</pre>
+    <!-- https://github.com/w3c/csswg-drafts/issues/3046 -->
+    <div class="inline-grid justifyItemsBaseline rows max-flex-columns">
+        <div class="firstRowFirstColumn verticalRL width50"          data-offset-x="0"   data-offset-y="0"   data-expected-width="50"  data-expected-height="100"></div>
+        <div class="secondRowFirstColumn verticalRL width200Percent" data-offset-x="-50" data-offset-y="100" data-expected-width="100" data-expected-height="100"></div>
+        <div class="firstRowSpanning2AutoColumn verticalRL width25"  data-offset-x="50"  data-offset-y="0"   data-expected-width="25"  data-expected-height="200"></div>
+    </div>
+</div>
+
+</body>

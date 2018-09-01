@@ -1,16 +1,17 @@
 let state = "send-sw-failure"
 onconnect = initialE => {
-  initialE.source.postMessage(state)
-  initialE.source.onmessage = e => {
+  let port = initialE.source;
+  port.postMessage(state)
+  port.onmessage = e => {
     if(state === "" && e.data === "send-window-failure") {
-      e.postMessage(new SharedArrayBuffer())
+      port.postMessage(new SharedArrayBuffer())
     } else {
-      e.postMessage("failure")
+      port.postMessage("failure")
     }
   }
-  initialE.source.onmessageerror = e => {
+  port.onmessageerror = e => {
     if(state === "send-sw-failure") {
-      e.postMessage("send-sw-failure-success")
+      port.postMessage("send-sw-failure-success")
       state = ""
     }
   }

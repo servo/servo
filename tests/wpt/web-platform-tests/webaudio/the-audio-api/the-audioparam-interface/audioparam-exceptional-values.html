@@ -174,10 +174,15 @@
               },
             ]);
 
-            // One final test for setValueCurve: duration can't be 0.
+            // Two final tests for setValueCurve: duration must be strictly
+            // positive.
             should(
                 () => gain.gain.setValueCurveAtTime(curve, 1, 0),
                 'gain.gain.setValueCurveAtTime(curve, 1, 0)')
+                .throw(RangeError);
+            should(
+                () => gain.gain.setValueCurveAtTime(curve, 1, -1),
+                'gain.gain.setValueCurveAtTime(curve, 1, -1)')
                 .throw(RangeError);
 
             task.done();

@@ -3,19 +3,15 @@
 <title>RTCQuicTransport.https.html</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCQuicTransport-helper.js"></script>
 <script>
 'use strict';
 
 // These tests are based on the following specification:
 // https://w3c.github.io/webrtc-quic/
 
-function makeQuicTransport(t, certificates) {
-  const iceTransport = new RTCIceTransport();
-  t.add_cleanup(() => iceTransport.stop());
-  const quicTransport = new RTCQuicTransport(iceTransport, certificates);
-  t.add_cleanup(() => quicTransport.stop());
-  return quicTransport;
-}
+// The following helper functions are called from RTCQuicTransport-helper.js:
+//   makeQuicTransport
 
 function generateCertificate(keygenAlgorithm) {
   return RTCPeerConnection.generateCertificate({

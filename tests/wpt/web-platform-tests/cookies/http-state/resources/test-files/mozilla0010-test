@@ -1,0 +1,4 @@
+Set-Cookie: foo=bar; max-age=60
+Set-Cookie: foo1=bar; max-age=60
+Set-Cookie: foo=differentvalue; max-age=0
+Set-Cookie: foo2=evendifferentvalue; max-age=0

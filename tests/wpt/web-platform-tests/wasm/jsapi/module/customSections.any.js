@@ -4,12 +4,14 @@
 
 function assert_ArrayBuffer(buffer, expected) {
   assert_equals(Object.getPrototypeOf(buffer), ArrayBuffer.prototype, "Prototype");
+  assert_true(Object.isExtensible(buffer), "isExtensible");
   assert_array_equals(new Uint8Array(buffer), expected);
 }
 
 function assert_sections(sections, expected) {
   assert_true(Array.isArray(sections), "Should be array");
   assert_equals(Object.getPrototypeOf(sections), Array.prototype, "Prototype");
+  assert_true(Object.isExtensible(sections), "isExtensible");
 
   assert_equals(sections.length, expected.length);
   for (let i = 0; i < expected.length; ++i) {
@@ -29,10 +31,21 @@ test(() => {
 }, "Missing arguments");
 
 test(() => {
-  assert_throws(new TypeError(), () => WebAssembly.Module.customSections({}, ""));
-  assert_throws(new TypeError(), () => WebAssembly.Module.customSections("", ""));
-  assert_throws(new TypeError(), () => WebAssembly.Module.customSections(undefined, ""));
-  assert_throws(new TypeError(), () => WebAssembly.Module.customSections(null, ""));
+  const invalidArguments = [
+    undefined,
+    null,
+    true,
+    "",
+    Symbol(),
+    1,
+    {},
+    WebAssembly.Module,
+    WebAssembly.Module.prototype,
+  ];
+  for (const argument of invalidArguments) {
+    assert_throws(new TypeError(), () => WebAssembly.Module.customSections(argument, ""),
+                  `customSections(${format_value(argument)})`);
+  }
 }, "Non-Module arguments");
 
 test(() => {
@@ -102,3 +115,48 @@ test(() => {
   assert_sections(WebAssembly.Module.customSections(module, "name\0"), [])
   assert_sections(WebAssembly.Module.customSections(module, "foo\0"), [])
 }, "Custom sections");
+
+test(() => {
+  const bytes = [87, 101, 98, 65, 115, 115, 101, 109, 98, 108, 121];
+  const name = "yee\uD801\uDC37eey"
+
+  const binary = new Binary;
+  binary.emit_section(kUnknownSectionCode, section => {
+    section.emit_string(name);
+    section.emit_bytes(bytes);
+  });
+
+  const builder = new WasmModuleBuilder();
+  builder.addExplicitSection(binary);
+  const buffer = builder.toBuffer();
+  const module = new WebAssembly.Module(buffer);
+
+  assert_sections(WebAssembly.Module.customSections(module, name), [
+    bytes,
+  ]);
+  assert_sections(WebAssembly.Module.customSections(module, "yee\uFFFDeey"), []);
+  assert_sections(WebAssembly.Module.customSections(module, "yee\uFFFD\uFFFDeey"), []);
+}, "Custom sections with surrogate pairs");
+
+test(() => {
+  const bytes = [87, 101, 98, 65, 115, 115, 101, 109, 98, 108, 121];
+
+  const binary = new Binary;
+  binary.emit_section(kUnknownSectionCode, section => {
+    section.emit_string("na\uFFFDme");
+    section.emit_bytes(bytes);
+  });
+
+  const builder = new WasmModuleBuilder();
+  builder.addExplicitSection(binary);
+  const buffer = builder.toBuffer();
+  const module = new WebAssembly.Module(buffer);
+
+  assert_sections(WebAssembly.Module.customSections(module, "name"), []);
+  assert_sections(WebAssembly.Module.customSections(module, "na\uFFFDme"), [
+    bytes,
+  ]);
+  assert_sections(WebAssembly.Module.customSections(module, "na\uDC01me"), [
+    bytes,
+  ]);
+}, "Custom sections with U+FFFD");

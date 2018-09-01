@@ -6,5 +6,7 @@ function get_worklet(type) {
     return CSS.layoutWorklet;
   if (type == 'paint')
     return CSS.paintWorklet;
+  if (type == 'audio')
+    return new OfflineAudioContext(2,44100*40,44100).audioWorklet;
   return undefined;
 }

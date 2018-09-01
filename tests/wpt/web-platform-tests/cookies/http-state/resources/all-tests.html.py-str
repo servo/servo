@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests basic cookie setting functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h1>Cookie Tests</h1>
+    This page is a debug page for cookie tests. To run a test in isolation,
+    append "?debug=" and the test id to this URL. E.g. to debug "value0001", use
+    this url:<br>
+    <a href="cookie-setter.py?debug=value0001">
+        cookie-setter.py?debug=value0001
+    </a><br>
+    <br>
+    To request, append "?file=" and the file name (stripped of
+    "-tests.html"). For value0001, this would be:<br>
+    <a href="cookie-setter.py?file=value0001">
+        cookie-setter.py?file=value0001
+    </a><br>
+    <br>
+    Please note, the general tests are one level higher:<br>
+    <a href="../attribute-tests.html"> ../attribute-tests.html </a><br>
+    <a href="../charset-tests.html"> ../charset-tests.html </a><br>
+    <a href="../chromium-tests.html"> ../chromium-tests.html </a><br>
+    <a href="../comma-tests.html"> ../comma-tests.html </a><br>
+    <a href="../domain-tests.html"> ../domain-tests.html </a><br>
+    <a href="../general-tests.html"> ../general-tests.html </a><br>
+    <a href="../mozilla-tests.html"> ../mozilla-tests.html </a><br>
+    <a href="../name-tests.html"> ../name-tests.html </a><br>
+    <a href="../ordering-tests.html"> ../ordering-tests.html </a><br>
+    <a href="../path-tests.html"> ../path-tests.html </a><br>
+    <a href="../value-tests.html"> ../value-tests.html </a><br>
+
+    <h2>Current Cookies</h2>
+    These are all cookies, currently set by the browser for this domain: <br>
+    <span id="cookies">(None)</span>
+    <script type="text/javascript">
+        setInterval(() => {
+            document.getElementById("cookies").textContent =
+                document.cookie || "(None)";
+        }, 500);
+    </script>
+
+    <h2>All Tests</h2>
+    Below, all tests are running. The Log contains messages (e.g. when cookies
+    are left over) and the IFrames list preserves all requested files and shows
+    which cookies were expected to show. <br>
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <!-- No element should come after this - the test harness appends the result
+    here when it finished running all of them. -->
+
+    <script type="text/javascript">
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [%s];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+
+    </script>
+  </body>
+</html>

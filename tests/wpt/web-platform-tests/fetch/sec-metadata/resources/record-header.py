@@ -21,20 +21,23 @@ def main(request, response):
   if 'retrieve' in request.GET:
     response.writer.write_status(200)
     response.writer.end_headers()
-    header_value = request.server.stash.take(testId)
-    if header_value != None:
+    try:
+      header_value = request.server.stash.take(testId)
       response.writer.write(header_value)
+    except (KeyError, ValueError) as e:
+      response.writer.write("No header has been recorded")
+      pass
 
     response.close_connection = True
 
   ## Record incoming Sec-Metadata header value
   else:
-    ## Return empty string as a default value ##
-    header = request.headers.get("Sec-Metadata", "")
     try:
+      ## Return empty string as a default value ##
+      header = request.headers.get("Sec-Metadata", "")
       request.server.stash.put(testId, header)
     except KeyError:
-      ## The header is already recorded
+      ## The header is already recorded or it doesn't exist
       pass
 
     ## Prevent the browser from caching returned responses and allow CORS ##
@@ -61,6 +64,7 @@ def main(request, response):
 
     ## Return a valid font content and Content-Type ##
     if key.startswith("font"):
+      response.headers.set("Content-Type", "application/x-font-ttf")
       file = open("fonts/Ahem.ttf", "r")
       font = file.read()
       file.close()
