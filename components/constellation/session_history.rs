@@ -116,7 +116,7 @@ pub struct SessionHistoryChange {
     pub replace: Option<NeedsToReload>,
 
     /// Holds data for not-yet constructed browsing contexts that are not
-    /// easily available when a `BrowsingContext` needs to be constructed.
+    /// easily available when they need to be constructed.
     pub new_browsing_context_info: Option<NewBrowsingContextInfo>,
 }
 

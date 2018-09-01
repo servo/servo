@@ -8,14 +8,12 @@ use pipeline::Pipeline;
 use std::collections::{HashMap, HashSet};
 use style_traits::CSSPixel;
 
-// TODO(mandreyel): is this explanation lucid enough?
-//
 /// Because a browsing context is only constructed once the document that's
-/// going to be in it becomes active (i.e. not when a pipeline is spawned),
-/// some values needed in browsing context are not easily available at the
-/// point of constructing it. Thus, every time a pipeline is created for
-/// a browsing context which doesn't exist yet, these values needed for the
-/// new browsing context are stored here so that they may be available later.
+/// going to be in it becomes active (i.e. not when a pipeline is spawned), some
+/// values needed in browsing context are not easily available at the point of
+/// constructing it. Thus, every time a pipeline is created for a browsing
+/// context which doesn't exist yet, these values needed for the new browsing
+/// context are stored here so that they may be available later.
 pub struct NewBrowsingContextInfo {
     /// The parent pipeline of the browsing context, if this is not the top
     /// level browsing context.

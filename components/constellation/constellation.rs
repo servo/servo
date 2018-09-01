@@ -1595,17 +1595,7 @@ where
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             replace: None,
-            // TODO(mandreyel): is it possible for handle_panic to be invoked
-            // when there is no browsing context for pipeline? if not, we need
-            // not add this field
-            //
-            // If this browsing context didn't exist, insert a pending info
-            // entry so that we can construct it later.
-            new_browsing_context_info: Some(NewBrowsingContextInfo {
-                parent_pipeline_id: None,
-                is_private: is_private,
-                is_visible: is_visible,
-            }),
+            new_browsing_context_info: None,
         });
     }
 
@@ -1930,6 +1920,7 @@ where
             browsing_context_id: browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             replace: None,
+            // Browsing context for iframe doesn't exist yet.
             new_browsing_context_info: Some(NewBrowsingContextInfo {
                 parent_pipeline_id: Some(parent_pipeline_id),
                 is_private: is_private,
@@ -1974,7 +1965,6 @@ where
                         browsing_context.is_visible,
                     ),
                     None => {
-                        // TODO(mandreyel): message?
                         return warn!(
                             "Auxiliary browsing context created with closed opener browsing context {}.",
                             opener_browsing_context_id
@@ -2195,8 +2185,7 @@ where
                     browsing_context_id: source_browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
                     replace,
-                    // `load_url` is always invoked on an existing browsing
-                    // context so this field need not be set.
+                    // `load_url` is always invoked on an existing browsing context.
                     new_browsing_context_info: None,
                 });
                 Some(new_pipeline_id)
@@ -2506,8 +2495,7 @@ where
                     browsing_context_id: browsing_context_id,
                     new_pipeline_id: new_pipeline_id,
                     replace: Some(NeedsToReload::Yes(pipeline_id, load_data.clone())),
-                    // TODO(mandreyel): browsing context must exist at this
-                    // point, correct?
+                    // Browsing context must exist at this point.
                     new_browsing_context_info: None,
                 });
                 return;
@@ -3609,14 +3597,9 @@ where
         size_type: WindowSizeType,
         browsing_context_id: BrowsingContextId,
     ) {
-        // TODO(mandreyel): can we avoid the second lookup?
         if let Some(browsing_context) = self.browsing_contexts.get_mut(&browsing_context_id) {
             browsing_context.size = Some(new_size.initial_viewport);
-        }
-
-        if let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) {
-            // Send Resize (or ResizeInactive) messages to each
-            // pipeline in the frame tree.
+            // Send Resize (or ResizeInactive) messages to each pipeline in the frame tree.
             let pipeline_id = browsing_context.pipeline_id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
@@ -3627,18 +3610,17 @@ where
                 new_size,
                 size_type,
             ));
-            let pipelines = browsing_context
-                .pipelines
+            let pipeline_ids = browsing_context.pipelines
                 .iter()
-                .filter(|pipeline_id| **pipeline_id != pipeline.id)
-                .filter_map(|pipeline_id| self.pipelines.get(&pipeline_id));
-            for pipeline in pipelines {
-                let _ = pipeline
-                    .event_loop
-                    .send(ConstellationControlMsg::ResizeInactive(
-                        pipeline.id,
-                        new_size,
-                    ));
+                .filter(|pipeline_id| **pipeline_id != pipeline.id);
+            for id in pipeline_ids {
+                if let Some(pipeline) = self.pipelines.get(&id) {
+                    let _ = pipeline.event_loop
+                        .send(ConstellationControlMsg::ResizeInactive(
+                            pipeline.id,
+                            new_size,
+                        ));
+                }
             }
         }
 
