@@ -91,25 +91,25 @@
               node = new AnalyserNode(context, {fftSize: 33});
             },
             'node = new AnalyserNode(c, { fftSize: 33 })')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
         should(
             () => {
               node = new AnalyserNode(context, {maxDecibels: -500});
             },
             'node = new AnalyserNode(c, { maxDecibels: -500 })')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
         should(
             () => {
               node = new AnalyserNode(context, {minDecibels: -10});
             },
             'node = new AnalyserNode(c, { minDecibels: -10 })')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
         should(
             () => {
               node = new AnalyserNode(context, {smoothingTimeConstant: 2});
             },
             'node = new AnalyserNode(c, { smoothingTimeConstant: 2 })')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
         should(function() {
           node = new AnalyserNode(context, {frequencyBinCount: 33});
         }, 'node = new AnalyserNode(c, { frequencyBinCount: 33 })').notThrow();
@@ -164,7 +164,7 @@
               node = new AnalyserNode(context, options);
             },
             'node = new AnalyserNode(c, ' + JSON.stringify(options) + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         options = {minDecibels: -10, maxDecibels: -150};
         should(
@@ -172,7 +172,7 @@
               node = new AnalyserNode(context, options);
             },
             'node = new AnalyserNode(c, ' + JSON.stringify(options) + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         task.done();
       });

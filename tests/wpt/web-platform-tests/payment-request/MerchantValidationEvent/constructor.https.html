@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<!-- Copyright © 2017 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<meta charset="utf-8">
+<title>Test for MerchantValidationEvent Constructor</title>
+<link rel="help" href="https://w3c.github.io/browser-payment-api/#merchantvalidationevent-constructor">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const applePay = Object.freeze({ supportedMethods: "https://apple.com/apple-pay"});
+const basicCard = Object.freeze({ supportedMethods: "basic-card" });
+const defaultMethods = Object.freeze([basicCard, applePay]);
+const defaultDetails = Object.freeze({
+  total: {
+    label: "Total",
+    amount: {
+      currency: "USD",
+      value: "1.00",
+    },
+  },
+});
+
+test(() => {
+  new MerchantValidationEvent("test");
+}, "MerchantValidationEvent can be constructed in secure-context.");
+
+test(() => {
+  const ev = new MerchantValidationEvent("test", {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  });
+  assert_false(ev.isTrusted, "constructed in script, so not trusted");
+  assert_true(ev.bubbles, "set by EventInitDict");
+  assert_true(ev.cancelable, "set by EventInitDict");
+  assert_true(ev.composed, "set by EventInitDict");
+  assert_equals(ev.target, null, "initially null");
+  assert_equals(ev.type, "test");
+}, "MerchantValidationEvent can be constructed with an EventInitDict, even if not trusted.");
+
+test(() => {
+  const request = new PaymentRequest(defaultMethods, defaultDetails);
+  const ev = new MerchantValidationEvent("test");
+  request.addEventListener("test", evt => {
+    assert_equals(ev, evt);
+  });
+  request.dispatchEvent(ev);
+}, "MerchantValidationEvent can be dispatched, even if not trusted.");
+
+test(() => {
+  const validationURL = "https://pass.com";
+  const event = new MerchantValidationEvent("test", { validationURL });
+  assert_idl_attribute(event, "validationURL");
+  assert_equals(event.validationURL, "https://pass.com/");
+}, "Must have a validationURL IDL attribute, which is initialized with to the validationURL dictionary value.");
+
+test(() => {
+  const validationURL = "http://\u005B"; // invalid URL
+  assert_throws(new TypeError(), () => {
+    new MerchantValidationEvent("test", { validationURL })
+  });
+}, "Must throw TypeError if initialized with an invalid URL.");
+
+test(() => {
+  const validationURL = "";
+  const relativePaths = [
+    "",
+    ".",
+    "/test",
+  ]
+  for(const path of relativePaths ) {
+    const event = new MerchantValidationEvent("test", { validationURL: path });
+    const expected = new URL(path, document.location.href).href;
+    assert_equals(event.validationURL, expected);
+  }
+}, "Relative validationURLs use the document as the base.");
+</script>

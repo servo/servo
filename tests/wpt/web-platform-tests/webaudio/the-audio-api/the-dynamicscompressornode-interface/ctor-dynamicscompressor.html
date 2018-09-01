@@ -182,9 +182,12 @@
         let message = 'new DynamicsCompressorNode(c, ' +
             JSON.stringify(options.nodeOptions) + ')';
 
-        if (options.expectedErrorType) {
+        if (options.expectedErrorType === TypeError) {
           should(createNodeFunction(), message)
               .throw(options.expectedErrorType);
+        } else if (options.expectedErrorType === 'NotSupportedError') {
+          should(createNodeFunction(), message)
+              .throw(DOMException, 'NotSupportedError');
         } else {
           should(createNodeFunction(), message).notThrow();
           should(node[options.testAttribute], 'node.' + options.testAttribute)

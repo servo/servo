@@ -80,17 +80,23 @@
           entry.tests.forEach(testItem => {
             let options = {};
             options[entry.attribute] = testItem.value;
-            let method = testItem.error ? 'throw' : 'notThrow';
 
-            should(
-                () => {
-                  node = new StereoPannerNode(context, options);
-                },
-                `new StereoPannerNode(c, ${JSON.stringify(options)})`)[method](
-                testItem.error);
-            if (!testItem.error)
+            const testFunction = () => {
+              node = new StereoPannerNode(context, options);
+            };
+            const testDescription =
+                `new StereoPannerNode(c, ${JSON.stringify(options)})`;
+
+            if (testItem.error) {
+              testItem.error === TypeError
+              ? should(testFunction, testDescription).throw(TypeError)
+              : should(testFunction, testDescription)
+                  .throw(DOMException, 'NotSupportedError');
+            } else {
+              should(testFunction, testDescription).notThrow();
               should(node[entry.attribute], `node.${entry.attribute}`)
                   .beEqualTo(options[entry.attribute]);
+            }
           });
         });
 

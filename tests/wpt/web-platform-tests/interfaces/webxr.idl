@@ -162,7 +162,7 @@ typedef (WebGLRenderingContext or
 
 dictionary XRWebGLLayerInit {
   boolean antialias = true;
-  boolean depth = false;
+  boolean depth = true;
   boolean stencil = false;
   boolean alpha = true;
   boolean multiview = false;

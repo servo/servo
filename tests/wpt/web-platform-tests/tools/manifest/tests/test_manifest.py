@@ -43,7 +43,7 @@ def rel_dir_file_path(draw):
 @hs.composite
 def sourcefile_strategy(draw):
     item_classes = [item.TestharnessTest, item.RefTest, item.RefTestNode,
-                    item.ManualTest, item.Stub, item.WebdriverSpecTest,
+                    item.ManualTest, item.Stub, item.WebDriverSpecTest,
                     item.ConformanceCheckerTest, item.SupportFile]
     cls = draw(hs.sampled_from(item_classes))
 

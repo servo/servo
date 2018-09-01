@@ -1,0 +1,2 @@
+Set-Cookie: foo=bar; path=/cookie-parser-result/foo/bar
+Location: /cookie-parser-result/f%6Fo/bar?disabled-path0029

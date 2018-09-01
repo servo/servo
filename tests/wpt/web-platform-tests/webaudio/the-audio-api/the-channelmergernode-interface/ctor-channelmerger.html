@@ -43,12 +43,15 @@
 
       audit.define('test AudioNodeOptions', (task, should) => {
         testAudioNodeOptions(should, context, 'ChannelMergerNode', {
-          channelCount:
-              {value: 1, isFixed: true, errorType: 'InvalidStateError'},
+          channelCount: {
+            value: 1,
+            isFixed: true,
+            exceptionType: 'InvalidStateError'
+          },
           channelCountMode: {
             value: 'explicit',
             isFixed: true,
-            errorType: 'InvalidStateError'
+            exceptionType: 'InvalidStateError'
           }
         });
         task.done();
@@ -82,7 +85,7 @@
               node = new ChannelMergerNode(context, options);
             },
             'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('IndexSizeError');
+            .throw(DOMException, 'IndexSizeError');
 
         options = {channelCount: 3};
         should(
@@ -90,7 +93,7 @@
               node = new ChannelMergerNode(context, options);
             },
             'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         options = {channelCountMode: 'max'};
         should(
@@ -98,7 +101,7 @@
               node = new ChannelMergerNode(context, options);
             },
             'new ChannelMergerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
 
         task.done();
       });

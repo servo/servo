@@ -75,11 +75,11 @@ Tests that AudioChannelSplitter works correctly.
             let splitternode;
             should(() => {
               let splitternode = context.createChannelSplitter(0);
-            }, 'createChannelSplitter(0)').throw('IndexSizeError');
+            }, 'createChannelSplitter(0)').throw(DOMException, 'IndexSizeError');
 
             should(() => {
               splitternode = context.createChannelSplitter(33);
-            }, 'createChannelSplitter(33)').throw('IndexSizeError');
+            }, 'createChannelSplitter(33)').throw(DOMException, 'IndexSizeError');
 
             should(() => {
               splitternode = context.createChannelSplitter(32);

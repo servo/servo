@@ -38,6 +38,13 @@ step_timeout(t.step_func_done(function () {
     _assert(ctx.measureText('Hello').advances[2] >= 58, "ctx.measureText('Hello').advances[\""+(2)+"\"] >= 58");
     _assert(ctx.measureText('Hello').advances[3] >= 70, "ctx.measureText('Hello').advances[\""+(3)+"\"] >= 70");
     _assert(ctx.measureText('Hello').advances[4] >= 80, "ctx.measureText('Hello').advances[\""+(4)+"\"] >= 80");
+
+    var tm = ctx.measureText('Hello');
+    _assertSame(ctx.measureText('Hello').advances[0], tm.advances[0], "ctx.measureText('Hello').advances[\""+(0)+"\"]", "tm.advances[\""+(0)+"\"]");
+    _assertSame(ctx.measureText('Hello').advances[1], tm.advances[1], "ctx.measureText('Hello').advances[\""+(1)+"\"]", "tm.advances[\""+(1)+"\"]");
+    _assertSame(ctx.measureText('Hello').advances[2], tm.advances[2], "ctx.measureText('Hello').advances[\""+(2)+"\"]", "tm.advances[\""+(2)+"\"]");
+    _assertSame(ctx.measureText('Hello').advances[3], tm.advances[3], "ctx.measureText('Hello').advances[\""+(3)+"\"]", "tm.advances[\""+(3)+"\"]");
+    _assertSame(ctx.measureText('Hello').advances[4], tm.advances[4], "ctx.measureText('Hello').advances[\""+(4)+"\"]", "tm.advances[\""+(4)+"\"]");
 }), 500);
 
 

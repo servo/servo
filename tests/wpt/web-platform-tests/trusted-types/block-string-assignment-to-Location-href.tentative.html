@@ -10,13 +10,11 @@
 <body>
 <script>
   // TrustedURL assignments do not throw.
-  async_test(t => {
-    createURL_policy(window)
-      .then(t.step_func_done(p => {
-        let url = p.createURL(location.href + "#xxx");
-        location.href = url;
-        assert_equals("" + url, location.href, "location href");
-    }));
+  test(t => {
+    let p = createURL_policy(window, 1);
+    let url = p.createURL(location.href + "#xxx");
+    location.href = url;
+    assert_equals("" + url, location.href, "location href");
   }, "location.href assigned via policy (successful URL transformation).");
 
   // String assignments throw.

@@ -74,4 +74,18 @@ promise_test(function() {
       });
 }, 'getDisplayMedia() call with non-bool constraint');
 
+// Content shell picks a fake desktop device by default.
+promise_test(function() {
+  assert_idl_attribute(navigator, 'getDisplayMedia');
+
+  return navigator.getDisplayMedia({video: true}).then(function(s) {
+    assert_equals(s.getVideoTracks().length, 1);
+    assert_equals(s.getAudioTracks().length, 0);
+    var settings = s.getVideoTracks()[0].getSettings();
+    assert_equals(settings.displaySurface, "monitor");
+    assert_equals(settings.logicalSurface, true);
+    assert_equals(settings.cursor, "never");
+  });
+}, 'getDisplayMedia() with getSettings');
+
 </script>

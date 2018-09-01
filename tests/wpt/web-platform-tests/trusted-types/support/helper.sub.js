@@ -31,52 +31,44 @@ function createURLJS(url) {
       .replace("an.url", "successfully.transformed");
 }
 
-function createHTML_policy(win) {
-  return win.trustedTypes.createPolicy('SomeName', { createHTML: createHTMLJS });
+function createHTML_policy(win, c) {
+  return win.TrustedTypes.createPolicy('SomeHTMLPolicyName' + c, { createHTML: createHTMLJS });
 }
 
-function createScript_policy(win) {
-  return win.trustedTypes.createPolicy('SomeName', { createScript: createScriptJS });
+function createScript_policy(win, c) {
+  return win.TrustedTypes.createPolicy('SomeScriptPolicyName' + c, { createScript: createScriptJS });
 }
 
-function createScriptURL_policy(win) {
-  return win.trustedTypes.createPolicy('SomeName', { createScriptURL: createScriptURLJS });
+function createScriptURL_policy(win, c) {
+  return win.TrustedTypes.createPolicy('SomeScriptURLPolicyName' + c, { createScriptURL: createScriptURLJS });
 }
 
-function createURL_policy(win) {
-  return win.trustedTypes.createPolicy('SomeName', { createURL: createURLJS });
+function createURL_policy(win, c) {
+  return win.TrustedTypes.createPolicy('SomeURLPolicyName' + c, { createURL: createURLJS });
 }
 
-function assert_element_accepts_trusted_html(win, t, tag, attribute, expected) {
-  createHTML_policy(win)
-      .then(t.step_func_done(p => {
-          let html = p.createHTML(INPUTS.HTML);
-          assert_element_accepts_trusted_type(tag, attribute, html, expected);
-      }));
+function assert_element_accepts_trusted_html(win, c, t, tag, attribute, expected) {
+  let p = createHTML_policy(win, c);
+  let html = p.createHTML(INPUTS.HTML);
+  assert_element_accepts_trusted_type(tag, attribute, html, expected);
 }
 
-function assert_element_accepts_trusted_script(win, t, tag, attribute, expected) {
-  createScript_policy(win)
-      .then(t.step_func_done(p => {
-          let script = p.createScript(INPUTS.SCRIPT);
-          assert_element_accepts_trusted_type(tag, attribute, script, expected);
-      }));
+function assert_element_accepts_trusted_script(win, c, t, tag, attribute, expected) {
+  let p = createScript_policy(win, c);
+  let script = p.createScript(INPUTS.SCRIPT);
+  assert_element_accepts_trusted_type(tag, attribute, script, expected);
 }
 
-function assert_element_accepts_trusted_script_url(win, t, tag, attribute, expected) {
-  createScriptURL_policy(win)
-      .then(t.step_func_done(p => {
-          let scripturl = p.createScriptURL(INPUTS.SCRIPTURL);
-          assert_element_accepts_trusted_type(tag, attribute, scripturl, expected);
-      }));
+function assert_element_accepts_trusted_script_url(win, c, t, tag, attribute, expected) {
+  let p = createScriptURL_policy(win, c);
+  let scripturl = p.createScriptURL(INPUTS.SCRIPTURL);
+  assert_element_accepts_trusted_type(tag, attribute, scripturl, expected);
 }
 
-function assert_element_accepts_trusted_url(win, t, tag, attribute, expected) {
-  createURL_policy(win)
-      .then(t.step_func_done(p => {
-          let url = p.createURL(INPUTS.URL);
-          assert_element_accepts_trusted_type(tag, attribute, url, expected);
-      }));
+function assert_element_accepts_trusted_url(win, c, t, tag, attribute, expected) {
+  let p = createURL_policy(win, c);
+  let url = p.createURL(INPUTS.URL);
+  assert_element_accepts_trusted_type(tag, attribute, url, expected);
 }
 
 function assert_element_accepts_trusted_type(tag, attribute, value, expected) {
