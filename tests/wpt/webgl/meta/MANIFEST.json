@@ -15796,6 +15796,12 @@
      {}
     ]
    ],
+   "conformance2/context/context-mode.html": [
+    [
+     "/_webgl/conformance2/context/context-mode.html",
+     {}
+    ]
+   ],
    "conformance2/context/context-resize-changes-buffer-binding-bug.html": [
     [
      "/_webgl/conformance2/context/context-resize-changes-buffer-binding-bug.html",
@@ -27482,7 +27488,7 @@
    "testharness"
   ],
   "conformance/buffers/buffer-data-array-buffer-delete.html": [
-   "c2a8d35e1a965eff1ea8d7117cf030a7471d6231",
+   "579aa2037882da16836eb1e5183afcc3b153d1f6",
    "testharness"
   ],
   "conformance/buffers/buffer-data-dynamic-delay.html": [
@@ -27534,7 +27540,7 @@
    "testharness"
   ],
   "conformance/canvas/canvas-test.html": [
-   "e1a900a31b53eca74de2e6692fcd28533fe26f41",
+   "072f144888a7dad5ea71ddb941d49bf1c85a4131",
    "testharness"
   ],
   "conformance/canvas/canvas-zero-size.html": [
@@ -27542,11 +27548,11 @@
    "testharness"
   ],
   "conformance/canvas/draw-static-webgl-to-multiple-canvas-test.html": [
-   "0770cb5ffc303d66b92b9a9715190afb11485e6b",
+   "35bead3cc5eb245b055bdf312adb187329c4629b",
    "testharness"
   ],
   "conformance/canvas/draw-webgl-to-canvas-test.html": [
-   "45b79bbde40f316699aae227160de34c14028092",
+   "27f01d41dfe211fbdafa44ead612daa820746a1e",
    "testharness"
   ],
   "conformance/canvas/drawingbuffer-hd-dpi-test.html": [
@@ -27562,7 +27568,7 @@
    "testharness"
   ],
   "conformance/canvas/framebuffer-bindings-affected-by-to-data-url.html": [
-   "9cb944a3392de4b14c728a067d01908d1e0e9c96",
+   "b09b00bfde56521dc1cf2bd269e3465fc01133e5",
    "testharness"
   ],
   "conformance/canvas/framebuffer-bindings-unaffected-on-resize.html": [
@@ -27570,7 +27576,7 @@
    "testharness"
   ],
   "conformance/canvas/rapid-resizing.html": [
-   "f423e17f563da0751d96604adc64bbc0537a52bc",
+   "cd3dbb8e9575036c33b12264e9c46b339336db7e",
    "testharness"
   ],
   "conformance/canvas/render-after-resize-test.html": [
@@ -27582,7 +27588,7 @@
    "testharness"
   ],
   "conformance/canvas/to-data-url-test.html": [
-   "67e26a408ea461faa66394dad11d3efca1c712d9",
+   "d7e77c869899a9d8dfa15a2eb7068c95f66b1c0a",
    "testharness"
   ],
   "conformance/canvas/viewport-unchanged-upon-resize.html": [
@@ -27598,7 +27604,7 @@
    "testharness"
   ],
   "conformance/context/context-attribute-preserve-drawing-buffer.html": [
-   "2726815a7c4ebf3d6a19c29a3e301830ef0ff11d",
+   "64b9e5bf377e131f9d10ef0a68282a485a63dd52",
    "testharness"
   ],
   "conformance/context/context-attributes-alpha-depth-stencil-antialias.html": [
@@ -27658,7 +27664,7 @@
    "testharness"
   ],
   "conformance/context/premultiplyalpha-test.html": [
-   "4f63c2ef232a2e17a83d90d72ba2098c02bbb6a5",
+   "6bf9503c359d71f841fdd9724c3d12bafb006d28",
    "testharness"
   ],
   "conformance/context/resources/context-release-child-with-worker.html": [
@@ -36310,7 +36316,7 @@
    "testharness"
   ],
   "conformance/renderbuffers/framebuffer-state-restoration.html": [
-   "4028029e468238e6506bef01797e6ad04b4fb784",
+   "dbef36b66f50a2715395c9773b48246b8b7d586f",
    "testharness"
   ],
   "conformance/renderbuffers/framebuffer-test.html": [
@@ -36414,7 +36420,7 @@
    "testharness"
   ],
   "conformance/rendering/multisample-corruption.html": [
-   "d3d25e0a876973ea397097823ed9132dc892ddcc",
+   "7de9b47f229ac935cdb76b14e6237243ae14ce04",
    "testharness"
   ],
   "conformance/rendering/negative-one-index.html": [
@@ -36446,7 +36452,7 @@
    "testharness"
   ],
   "conformance/rendering/preservedrawingbuffer-leak.html": [
-   "bd1dccbdeea10de6d62f31ce9e6c46048134b276",
+   "3df53551ef062f8c5a9b52003f2a564db14d990f",
    "testharness"
   ],
   "conformance/rendering/rendering-stencil-large-viewport.html": [
@@ -36970,7 +36976,7 @@
    "testharness"
   ],
   "conformance/textures/misc/tex-video-using-tex-unit-non-zero.html": [
-   "8db7d43610e820a46b9662103cffe9c86f819edc",
+   "9abe3bd71772133857507f18a5a6fcfc95b080da",
    "testharness"
   ],
   "conformance/textures/misc/texparameter-test.html": [
@@ -37062,7 +37068,7 @@
    "testharness"
   ],
   "conformance/textures/misc/texture-upload-size.html": [
-   "59934e4ede1ab612ad2c7342bac79ddbe4db4d68",
+   "8832033dd705cc6ccea02c58eff879a8f2f59e3e",
    "testharness"
   ],
   "conformance/textures/misc/texture-with-flip-y-and-premultiply-alpha.html": [
@@ -37426,7 +37432,7 @@
    "testharness"
   ],
   "conformance2/context/00_test_list.txt": [
-   "c2d13238b2991ae4e3d0ea802f6a63c2c40dd455",
+   "fc4f8b8c07fcbe15156d55a4a58ddb2727567dc9",
    "support"
   ],
   "conformance2/context/constants-and-properties-2.html": [
@@ -37435,6 +37441,10 @@
   ],
   "conformance2/context/context-attributes-depth-stencil-antialias-obeyed.html": [
    "5476f4e3a68be618c89380128f77d0b97b333457",
+   "testharness"
+  ],
+  "conformance2/context/context-mode.html": [
+   "fa44ce4c877adf82bf6245776b9b1237ad557d89",
    "testharness"
   ],
   "conformance2/context/context-resize-changes-buffer-binding-bug.html": [
@@ -37934,7 +37944,7 @@
    "testharness"
   ],
   "conformance2/rendering/canvas-resizing-with-pbo-bound.html": [
-   "bb303081fc8e012d03d2056f6c1028026eb91236",
+   "78f7f9da22268d73fddb2e33c9c08e929efe65ab",
    "testharness"
   ],
   "conformance2/rendering/clear-func-buffer-type-match.html": [
@@ -46534,7 +46544,7 @@
    "support"
   ],
   "js/tests/tex-image-and-sub-image-2d-with-webgl-canvas.js": [
-   "61578ab040f12208119f9afbbf156a8aea47a9d4",
+   "8ade197c61c116a25bbb6dc380334b9cca1010de",
    "support"
   ],
   "js/tests/tex-image-and-sub-image-3d-with-canvas-sub-rectangle.js": [

@@ -137,6 +137,9 @@ var runNextTest = function() {
       var img = wtu.makeImage(test.src, function() {
         testImage(test, img);
         setTimeout(runNextTest, 0);
+      }, function () {
+        testFailed("could not create image" + (test.isSVG ? " (SVG)" : ""));
+        setTimeout(runNextTest, 0);
       });
     } else if (test.type == "video") {
       debug("HTMLVideoElement (" + test.videoType + ")");

@@ -48,6 +48,11 @@ description();
 
 function test() {
   var gl = wtu.create3DContext("example", {preserveDrawingBuffer: true});
+  if (!gl) {
+    testFailed("context does not exist");
+    finishTest();
+    return;
+  }
   var program = wtu.setupColorQuad(gl);
   var colorLoc = gl.getUniformLocation(program, "u_color");
   gl.enable(gl.DEPTH_TEST);
