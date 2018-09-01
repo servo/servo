@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<title>The legend element: block formatting context</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+/* Set margin and padding for fieldset to 0 to make things simpler */
+fieldset {
+  margin: 0;
+  padding: 0;
+}
+.wrapper {
+  height: 200px;
+  position: relative;
+}
+.float {
+  float: left;
+  width: 50px;
+  height: 50px;
+  background-color: orange;
+}
+</style>
+
+<div class=wrapper>
+ <div class=float></div>
+ <legend id=in-body><div class=float></div></legend>
+ <div class=float></div>
+</div>
+
+<div class=wrapper>
+ <fieldset>
+  <div class=float></div>
+  <legend id=rendered-legend><div class=float></div></legend>
+  <legend id=in-fieldset-second-child><div class=float></div></legend>
+  <div><legend id=in-fieldset-descendant><div class=float></div></legend></div>
+ </fieldset>
+</div>
+
+<script>
+const fieldsetBorderWidth = 2;
+const legendPadding = 2;
+
+test(() => {
+  const legend = document.getElementById('in-body');
+  assert_equals(legend.offsetLeft, 0, 'legend.offsetLeft');
+  assert_equals(legend.offsetTop, 0, 'legend.offsetTop');
+  assert_equals(legend.clientHeight, 0, 'legend.clientHeight');
+  const divAfter = legend.nextElementSibling;
+  assert_equals(divAfter.offsetLeft, 100, 'divAfter.offsetLeft');
+  assert_equals(divAfter.offsetTop, 0, 'divAfter.offsetTop');
+}, 'in-body');
+
+test(() => {
+  const legend = document.getElementById('rendered-legend');
+  assert_equals(legend.offsetLeft, fieldsetBorderWidth, 'legend.offsetLeft');
+  assert_equals(legend.offsetTop, 0, 'legend.offsetTop');
+  assert_equals(legend.clientHeight, 50, 'legend.clientHeight');
+  const divChild = legend.firstChild;
+  assert_equals(divChild.offsetLeft, fieldsetBorderWidth + legendPadding, 'divChild.offsetLeft');
+  assert_equals(divChild.offsetTop, 0, 'divChild.offsetTop');
+}, 'rendered-legend');
+
+test(() => {
+  const legend = document.getElementById('in-fieldset-second-child');
+  assert_equals(legend.offsetLeft, fieldsetBorderWidth, 'legend.offsetLeft');
+  assert_equals(legend.offsetTop, 50, 'legend.offsetTop');
+  assert_equals(legend.clientHeight, 0, 'legend.clientHeight');
+  const divChild = legend.firstChild;
+  assert_equals(divChild.offsetLeft, fieldsetBorderWidth + 50, 'divChild.offsetLeft');
+  assert_equals(divChild.offsetTop, 50, 'divChild.offsetTop');
+}, 'in-fieldset-second-child');
+
+test(() => {
+  const legend = document.getElementById('in-fieldset-descendant');
+  assert_equals(legend.offsetLeft, fieldsetBorderWidth, 'legend.offsetLeft');
+  assert_equals(legend.offsetTop, 50, 'legend.offsetTop');
+  assert_equals(legend.clientHeight, 0, 'legend.clientHeight');
+  const divChild = legend.firstChild;
+  assert_equals(divChild.offsetLeft, fieldsetBorderWidth + 50 + 50, 'divChild.offsetLeft');
+  assert_equals(divChild.offsetTop, 50, 'divChild.offsetTop');
+}, 'in-fieldset-descendant');
+</script>
