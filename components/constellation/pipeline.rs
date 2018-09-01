@@ -170,6 +170,12 @@ pub struct InitialPipelineState {
 
     /// A channel to the webvr thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
+
+    /// Whether the browsing context in which pipeline is embedded is visible
+    /// for the purposes of scheduling and resource management. This field is
+    /// only used to notify script and compositor threads after spawning
+    /// a pipeline.
+    pub is_visible: bool,
 }
 
 impl Pipeline {
@@ -305,6 +311,7 @@ impl Pipeline {
             state.compositor_proxy,
             url,
             state.load_data,
+            state.is_visible,
         ))
     }
 
@@ -320,6 +327,7 @@ impl Pipeline {
         compositor_proxy: CompositorProxy,
         url: ServoUrl,
         load_data: LoadData,
+        is_visible: bool,
     ) -> Pipeline {
         let pipeline = Pipeline {
             id: id,
@@ -336,6 +344,8 @@ impl Pipeline {
             history_state_id: None,
             history_states: HashSet::new(),
         };
+
+        pipeline.notify_visibility(is_visible);
 
         pipeline
     }
