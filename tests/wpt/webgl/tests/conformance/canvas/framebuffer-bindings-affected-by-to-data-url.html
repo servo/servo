@@ -47,6 +47,11 @@ function test() {
   var glCanvas = document.getElementById("example");
   var gl = wtu.create3DContext(glCanvas, {preserveDrawingBuffer: true, premultipliedAlpha: true});
 
+  if (!gl) {
+    testFailed("context does not exist");
+    return;
+  }
+
   var program = wtu.setupColorQuad(gl);
 
   // Clear backbuffer in red.
