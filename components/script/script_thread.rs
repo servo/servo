@@ -117,6 +117,7 @@ use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use task_source::TaskSourceName;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -254,7 +255,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             _ => return None,
         };
         let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id) => category,
+            CommonScriptMsg::Task(category, _boxed, _pipeline_id, TaskSourceName::DOMManipulation) => category,
             _ => return None,
         };
         Some(&category)
@@ -266,7 +267,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             _ => return None,
         };
         let (category, boxed, pipeline_id) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id) =>
+            CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation) =>
                 (category, boxed, pipeline_id),
             _ => return None,
         };
@@ -275,7 +276,7 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
         let (_worker, category, boxed, pipeline_id) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id);
+        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation);
         MainThreadScriptMsg::Common(script_msg)
     }
 
@@ -1279,7 +1280,7 @@ impl ScriptThread {
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => {
                 match *inner_msg {
-                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id)) =>
+                    MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) =>
                         pipeline_id,
                     MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
                     MainThreadScriptMsg::Navigate(pipeline_id, ..) => Some(pipeline_id),
@@ -1433,7 +1434,7 @@ impl ScriptThread {
             MainThreadScriptMsg::Navigate(parent_pipeline_id, load_data, replace) => {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace)
             },
-            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _)) => {
+            MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, task, _, _)) => {
                 task.run_box()
             }
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(chan)) => {

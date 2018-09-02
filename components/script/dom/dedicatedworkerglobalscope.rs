@@ -45,6 +45,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use task_source::TaskSourceName;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -96,7 +97,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             _ => return None,
         };
         let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id) => category,
+            CommonScriptMsg::Task(category, _boxed, _pipeline_id, TaskSourceName::DOMManipulation) => category,
             _ => return None,
         };
         Some(category)
@@ -112,7 +113,7 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             _ => return None,
         };
         let (category, boxed, pipeline_id) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id) =>
+            CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation) =>
                 (category, boxed, pipeline_id),
             _ => return None,
         };
@@ -121,7 +122,12 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
         let (worker, category, boxed, pipeline_id) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id);
+        let script_msg = CommonScriptMsg::Task(
+            category,
+            boxed,
+            pipeline_id,
+            TaskSourceName::DOMManipulation
+        );
         DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
     }
 
@@ -295,7 +301,8 @@ impl DedicatedWorkerGlobalScope {
                     parent_sender.send(CommonScriptMsg::Task(
                         WorkerEvent,
                         Box::new(SimpleWorkerErrorHandler::new(worker)),
-                        pipeline_id
+                        pipeline_id,
+                        TaskSourceName::DOMManipulation,
                     )).unwrap();
                     return;
                 }
@@ -447,7 +454,12 @@ impl DedicatedWorkerGlobalScope {
             }
         }));
         // TODO: Should use the DOM manipulation task source.
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(
+            WorkerEvent,
+            task,
+            Some(pipeline_id),
+            TaskSourceName::DOMManipulation,
+            )).unwrap();
     }
 }
 
@@ -472,7 +484,12 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(
+            WorkerEvent,
+            task,
+            Some(pipeline_id),
+            TaskSourceName::DOMManipulation,
+        )).unwrap();
         Ok(())
     }
 

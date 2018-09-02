@@ -37,6 +37,7 @@ use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {
@@ -55,7 +56,7 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             _ => return None,
         };
         let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id) => category,
+            CommonScriptMsg::Task(category, _boxed, _pipeline_id, TaskSourceName::DOMManipulation) => category,
             _ => return None,
         };
         Some(&category)
@@ -67,7 +68,7 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
             _ => return None,
         };
         let (category, boxed, pipeline_id) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id) =>
+            CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation) =>
                 (category, boxed, pipeline_id),
             _ => return None,
         };
@@ -76,7 +77,7 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
         let (_worker, category, boxed, pipeline_id) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id);
+        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation);
         ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg))
     }
 

@@ -268,7 +268,12 @@ impl WebSocket {
             let pipeline_id = self.global().pipeline_id();
             self.global()
                 .script_chan()
-                .send(CommonScriptMsg::Task(WebSocketEvent, task, Some(pipeline_id)))
+                .send(CommonScriptMsg::Task(
+                    WebSocketEvent,
+                    task,
+                    Some(pipeline_id),
+                    TaskSourceName::Networking,
+                ))
                 .unwrap();
         }
 
