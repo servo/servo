@@ -112,21 +112,21 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             WorkerScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation) =>
-                (category, boxed, pipeline_id),
+        let (category, boxed, pipeline_id, task_source) = match script_msg {
+            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) =>
+                (category, boxed, pipeline_id, task_source),
             _ => return None,
         };
-        Some((Some(worker), category, boxed, pipeline_id))
+        Some((Some(worker), category, boxed, pipeline_id, task_source))
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (worker, category, boxed, pipeline_id) = queued_task;
+        let (worker, category, boxed, pipeline_id, task_source) = queued_task;
         let script_msg = CommonScriptMsg::Task(
             category,
             boxed,
             pipeline_id,
-            TaskSourceName::DOMManipulation
+            task_source
         );
         DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
     }

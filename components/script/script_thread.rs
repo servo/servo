@@ -271,12 +271,12 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
                 (category, boxed, pipeline_id),
             _ => return None,
         };
-        Some((None, category, boxed, pipeline_id))
+        Some((None, category, boxed, pipeline_id, TaskSourceName::DOMManipulation))
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (_worker, category, boxed, pipeline_id) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation);
+        let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
+        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
         MainThreadScriptMsg::Common(script_msg)
     }
 
