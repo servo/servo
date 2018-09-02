@@ -31,6 +31,7 @@ impl TaskSource for NetworkingTaskSource {
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(canceller.wrap_task(task)),
             Some(self.1),
+            TaskSourceName::Networking,
         ))
     }
 }
@@ -46,6 +47,7 @@ impl NetworkingTaskSource {
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(task),
             Some(self.1),
+            TaskSourceName::Networking,
         ))
     }
 }
