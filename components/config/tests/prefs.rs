@@ -12,10 +12,10 @@ use std::io::{Read, Write};
 #[test]
 fn test_create_pref() {
     let json_str = "{\
-  \"layout.writing-mode.enabled\": true,\
-  \"network.mime.sniff\": false,\
-  \"shell.homepage\": \"https://servo.org\"\
-}";
+                    \"layout.writing-mode.enabled\": true,\
+                    \"network.mime.sniff\": false,\
+                    \"shell.homepage\": \"https://servo.org\"\
+                    }";
 
     let prefs = read_prefs(json_str);
     assert!(prefs.is_ok());
@@ -27,40 +27,52 @@ fn test_create_pref() {
 #[test]
 fn test_get_set_reset_extend() {
     let json_str = "{\
-  \"layout.writing-mode.enabled\": true,\
-  \"extra.stuff\": false,\
-  \"shell.homepage\": \"https://google.com\"\
-}";
+                    \"layout.writing-mode.enabled\": true,\
+                    \"extra.stuff\": false,\
+                    \"shell.homepage\": \"https://google.com\"\
+                    }";
 
     assert_eq!(*PREFS.get("test"), PrefValue::Missing);
     PREFS.set("test", PrefValue::String("hi".to_owned()));
     assert_eq!(*PREFS.get("test"), PrefValue::String("hi".to_owned()));
-    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://servo.org".to_owned()));
+    assert_eq!(
+        *PREFS.get("shell.homepage"),
+        PrefValue::String("https://servo.org".to_owned())
+    );
     PREFS.set("shell.homepage", PrefValue::Boolean(true));
     assert_eq!(*PREFS.get("shell.homepage"), PrefValue::Boolean(true));
     PREFS.reset("shell.homepage");
-    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://servo.org".to_owned()));
+    assert_eq!(
+        *PREFS.get("shell.homepage"),
+        PrefValue::String("https://servo.org".to_owned())
+    );
 
     let extension = read_prefs(json_str).unwrap();
     PREFS.extend(extension);
-    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://google.com".to_owned()));
-    assert_eq!(*PREFS.get("layout.writing-mode.enabled"), PrefValue::Boolean(true));
+    assert_eq!(
+        *PREFS.get("shell.homepage"),
+        PrefValue::String("https://google.com".to_owned())
+    );
+    assert_eq!(
+        *PREFS.get("layout.writing-mode.enabled"),
+        PrefValue::Boolean(true)
+    );
     assert_eq!(*PREFS.get("extra.stuff"), PrefValue::Boolean(false));
 }
 
 #[cfg(not(target_os = "android"))]
 #[test]
 fn test_default_config_dir_create_read_write() {
-  let json_str = "{\
-  \"layout.writing-mode.enabled\": true,\
-  \"extra.stuff\": false,\
-  \"shell.homepage\": \"https://google.com\"\
-}";
+    let json_str = "{\
+                    \"layout.writing-mode.enabled\": true,\
+                    \"extra.stuff\": false,\
+                    \"shell.homepage\": \"https://google.com\"\
+                    }";
     let mut expected_json = String::new();
     let config_path = basedir::default_config_dir().unwrap();
 
     if !config_path.exists() {
-      fs::create_dir_all(&config_path).unwrap();
+        fs::create_dir_all(&config_path).unwrap();
     }
 
     let json_path = config_path.join("test_config.json");
