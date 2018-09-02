@@ -1723,20 +1723,20 @@ where
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let browsing_context_id = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.browsing_context_id,
-            None => return warn!("Pipeline {} loaded after closure.", pipeline_id),
+            None => return warn!("Subframe {} loaded after closure.", pipeline_id),
         };
         let parent_pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
             Some(browsing_context) => browsing_context.parent_pipeline_id,
             None => {
                 return warn!(
-                    "Pipeline {} loaded in closed browsing context {}.",
+                    "Subframe {} loaded in closed browsing context {}.",
                     pipeline_id, browsing_context_id
                 )
             },
         };
         let parent_pipeline_id = match parent_pipeline_id {
             Some(parent_pipeline_id) => parent_pipeline_id,
-            None => return warn!("Pipeline {} has no parent.", pipeline_id),
+            None => return warn!("Subframe {} has no parent.", pipeline_id),
         };
         let msg = ConstellationControlMsg::DispatchIFrameLoadEvent {
             target: browsing_context_id,
@@ -2264,8 +2264,9 @@ where
                     EmbedderMsg::LoadComplete,
                 ));
             }
+        } else {
+            self.handle_subframe_loaded(pipeline_id);
         }
-        self.handle_subframe_loaded(pipeline_id);
     }
 
     fn handle_navigated_to_fragment(
