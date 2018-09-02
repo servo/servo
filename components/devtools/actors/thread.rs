@@ -35,7 +35,7 @@ struct ThreadResumedReply {
 
 #[derive(Serialize)]
 struct ReconfigureReply {
-    from: String
+    from: String,
 }
 
 #[derive(Serialize)]
@@ -53,9 +53,7 @@ pub struct ThreadActor {
 
 impl ThreadActor {
     pub fn new(name: String) -> ThreadActor {
-        ThreadActor {
-            name: name,
-        }
+        ThreadActor { name: name }
     }
 }
 
@@ -64,11 +62,13 @@ impl Actor for ThreadActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      registry: &ActorRegistry,
-                      msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "attach" => {
                 let msg = ThreadAttachedReply {
@@ -76,7 +76,9 @@ impl Actor for ThreadActor {
                     type_: "paused".to_owned(),
                     actor: registry.new_name("pause"),
                     poppedFrames: vec![],
-                    why: WhyMsg { type_: "attached".to_owned() },
+                    why: WhyMsg {
+                        type_: "attached".to_owned(),
+                    },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -94,7 +96,7 @@ impl Actor for ThreadActor {
             "reconfigure" => {
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 ActorMessageStatus::Processed
-            }
+            },
 
             "sources" => {
                 let msg = SourcesReply {
@@ -103,7 +105,7 @@ impl Actor for ThreadActor {
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
-            }
+            },
 
             _ => ActorMessageStatus::Ignored,
         })

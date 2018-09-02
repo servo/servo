@@ -55,11 +55,11 @@ impl JsonPacketStream for TcpStream {
     fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
         // https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
         // In short, each JSON packet is [ascii length]:[JSON data of given length]
-        let mut buffer = vec!();
+        let mut buffer = vec![];
         loop {
             let mut buf = [0];
             let byte = match self.read(&mut buf) {
-                Ok(0) => return Ok(None),  // EOF
+                Ok(0) => return Ok(None), // EOF
                 Ok(1) => buf[0],
                 Ok(_) => unreachable!(),
                 Err(e) => return Err(e.description().to_owned()),
