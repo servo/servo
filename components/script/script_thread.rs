@@ -249,16 +249,15 @@ pub enum MainThreadScriptMsg {
 }
 
 impl QueuedTaskConversion for MainThreadScriptMsg {
-    fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
+    fn task_source_name(&self) -> Option<&TaskSourceName> {
         let script_msg = match self {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id, TaskSourceName::DOMManipulation) => category,
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => Some(&task_source),
             _ => return None,
-        };
-        Some(&category)
+        }
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
@@ -266,12 +265,12 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id, TaskSourceName::DOMManipulation) =>
-                (category, boxed, pipeline_id),
+        let (category, boxed, pipeline_id, task_source) = match script_msg {
+            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) =>
+                (category, boxed, pipeline_id, task_source),
             _ => return None,
         };
-        Some((None, category, boxed, pipeline_id, TaskSourceName::DOMManipulation))
+        Some((None, category, boxed, pipeline_id, task_source))
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {

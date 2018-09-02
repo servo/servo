@@ -33,7 +33,7 @@ use js::rust::HandleValue;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, new_rt_and_cx, Runtime};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx, Runtime};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -87,22 +87,6 @@ pub enum MixedMessage {
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
-    fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
-        let common_worker_msg = match self {
-            DedicatedWorkerScriptMsg::CommonWorker(_, common_worker_msg) => common_worker_msg,
-            _ => return None,
-        };
-        let script_msg = match common_worker_msg {
-            WorkerScriptMsg::Common(ref script_msg) => script_msg,
-            _ => return None,
-        };
-        let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id, TaskSourceName::DOMManipulation) => category,
-            _ => return None,
-        };
-        Some(category)
-    }
-
     fn into_queued_task(self) -> Option<QueuedTask> {
         let (worker, common_worker_msg) = match self {
             DedicatedWorkerScriptMsg::CommonWorker(worker, common_worker_msg) => (worker, common_worker_msg),
@@ -129,6 +113,21 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             task_source
         );
         DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
+    }
+
+    fn task_source_name(&self) -> Option<&TaskSourceName> {
+        let common_worker_msg = match self {
+            DedicatedWorkerScriptMsg::CommonWorker(_, common_worker_msg) => common_worker_msg,
+            _ => return None,
+        };
+        let script_msg = match common_worker_msg {
+            WorkerScriptMsg::Common(ref script_msg) => script_msg,
+            _ => return None,
+        };
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, source_name) => Some(&source_name),
+            _ => return None,
+        }
     }
 
     fn wake_up_msg() -> Self {

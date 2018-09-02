@@ -27,7 +27,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, JS_AddInterruptCallback};
 use js::jsval::UndefinedValue;
 use net_traits::{load_whole_resource, IpcSend, CustomResponseMediator};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, new_rt_and_cx, Runtime};
+use script_runtime::{CommonScriptMsg, ScriptChan, new_rt_and_cx, Runtime};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
 use servo_config::prefs::PREFS;
 use servo_rand::random;
@@ -50,16 +50,15 @@ pub enum ServiceWorkerScriptMsg {
 }
 
 impl QueuedTaskConversion for ServiceWorkerScriptMsg {
-    fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
+    fn task_source_name(&self) -> Option<&TaskSourceName> {
         let script_msg = match self {
             ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg)) => script_msg,
             _ => return None,
         };
-        let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id, TaskSourceName::DOMManipulation) => category,
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => Some(&task_source),
             _ => return None,
-        };
-        Some(&category)
+        }
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {

@@ -20,7 +20,7 @@ pub type QueuedTask = (Option<TrustedWorkerAddress>, ScriptThreadEventCategory, 
 
 /// Defining the operations used to convert from a msg T to a QueuedTask.
 pub trait QueuedTaskConversion {
-    fn task_category(&self) -> Option<&ScriptThreadEventCategory>;
+    fn task_source_name(&self) -> Option<&TaskSourceName>;
     fn into_queued_task(self) -> Option<QueuedTask>;
     fn from_queued_task(queued_task: QueuedTask) -> Self;
     fn wake_up_msg() -> Self;
@@ -60,12 +60,12 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             .collect();
 
         let to_be_throttled: Vec<T> = non_throttled.drain_filter(|msg|{
-            let category = match msg.task_category() {
-                Some(category) => category,
+            let task_source= match msg.task_source_name() {
+                Some(task_source) => task_source,
                 None => return false,
             };
-            match category {
-                ScriptThreadEventCategory::PerformanceTimelineTask => return true,
+            match task_source {
+                TaskSourceName::PerformanceTimeline => return true,
                 _ => {
                     // A task that will not be throttled, start counting "business"
                     self.taken_task_counter.set(self.taken_task_counter.get() + 1);
