@@ -31,6 +31,7 @@ impl TaskSource for RemoteEventTaskSource {
             ScriptThreadEventCategory::NetworkEvent,
             Box::new(canceller.wrap_task(task)),
             Some(self.1),
+            RemoteEventTaskSource::NAME,
         ))
     }
 }

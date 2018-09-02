@@ -16,11 +16,17 @@ use task::TaskBox;
 use task_source::TaskSourceName;
 
 
-pub type QueuedTask = (Option<TrustedWorkerAddress>, ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>);
+pub type QueuedTask = (
+    Option<TrustedWorkerAddress>,
+    ScriptThreadEventCategory,
+    Box<TaskBox>,
+    Option<PipelineId>,
+    TaskSourceName
+);
 
 /// Defining the operations used to convert from a msg T to a QueuedTask.
 pub trait QueuedTaskConversion {
-    fn task_category(&self) -> Option<&ScriptThreadEventCategory>;
+    fn task_source_name(&self) -> Option<&TaskSourceName>;
     fn into_queued_task(self) -> Option<QueuedTask>;
     fn from_queued_task(queued_task: QueuedTask) -> Self;
     fn wake_up_msg() -> Self;
@@ -60,12 +66,12 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             .collect();
 
         let to_be_throttled: Vec<T> = non_throttled.drain_filter(|msg|{
-            let category = match msg.task_category() {
-                Some(category) => category,
+            let task_source = match msg.task_source_name() {
+                Some(task_source) => task_source,
                 None => return false,
             };
-            match category {
-                ScriptThreadEventCategory::PerformanceTimelineTask => return true,
+            match task_source {
+                TaskSourceName::PerformanceTimeline => return true,
                 _ => {
                     // A task that will not be throttled, start counting "business"
                     self.taken_task_counter.set(self.taken_task_counter.get() + 1);
@@ -81,20 +87,15 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         for msg in to_be_throttled {
             // Categorize tasks per task queue.
-            let (worker, category, boxed, pipeline_id) = match msg.into_queued_task() {
-                Some((worker, category, boxed, pipeline_id)) => (worker, category, boxed, pipeline_id),
+            let (worker, category, boxed, pipeline_id, task_source) = match msg.into_queued_task() {
+                Some(queued_task) => queued_task,
                 None => unreachable!("A message to be throttled should always be convertible into a queued task"),
-            };
-            // FIXME: Add the task-source name directly to CommonScriptMsg::Task.
-            let task_source = match category {
-                ScriptThreadEventCategory::PerformanceTimelineTask => TaskSourceName::PerformanceTimeline,
-                _ => unreachable!(),
             };
             let mut throttled_tasks = self.throttled.borrow_mut();
             throttled_tasks
-                .entry(task_source)
+                .entry(task_source.clone())
                 .or_insert(VecDeque::new())
-                .push_back((worker, category, boxed, pipeline_id));
+                .push_back((worker, category, boxed, pipeline_id, task_source));
         }
     }
 

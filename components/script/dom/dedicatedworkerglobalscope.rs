@@ -33,7 +33,7 @@ use js::rust::HandleValue;
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory, new_rt_and_cx, Runtime};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, new_rt_and_cx, Runtime};
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_traits::{TimerEvent, TimerSource, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
@@ -45,6 +45,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
+use task_source::TaskSourceName;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -86,7 +87,7 @@ pub enum MixedMessage {
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
-    fn task_category(&self) -> Option<&ScriptThreadEventCategory> {
+    fn task_source_name(&self) -> Option<&TaskSourceName> {
         let common_worker_msg = match self {
             DedicatedWorkerScriptMsg::CommonWorker(_, common_worker_msg) => common_worker_msg,
             _ => return None,
@@ -95,11 +96,10 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             WorkerScriptMsg::Common(ref script_msg) => script_msg,
             _ => return None,
         };
-        let category = match script_msg {
-            CommonScriptMsg::Task(category, _boxed, _pipeline_id) => category,
+        match script_msg {
+            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, source_name) => Some(&source_name),
             _ => return None,
-        };
-        Some(category)
+        }
     }
 
     fn into_queued_task(self) -> Option<QueuedTask> {
@@ -111,17 +111,22 @@ impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
             WorkerScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id) = match script_msg {
-            CommonScriptMsg::Task(category, boxed, pipeline_id) =>
-                (category, boxed, pipeline_id),
+        let (category, boxed, pipeline_id, task_source) = match script_msg {
+            CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) =>
+                (category, boxed, pipeline_id, task_source),
             _ => return None,
         };
-        Some((Some(worker), category, boxed, pipeline_id))
+        Some((Some(worker), category, boxed, pipeline_id, task_source))
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (worker, category, boxed, pipeline_id) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id);
+        let (worker, category, boxed, pipeline_id, task_source) = queued_task;
+        let script_msg = CommonScriptMsg::Task(
+            category,
+            boxed,
+            pipeline_id,
+            task_source
+        );
         DedicatedWorkerScriptMsg::CommonWorker(worker.unwrap(), WorkerScriptMsg::Common(script_msg))
     }
 
@@ -295,7 +300,8 @@ impl DedicatedWorkerGlobalScope {
                     parent_sender.send(CommonScriptMsg::Task(
                         WorkerEvent,
                         Box::new(SimpleWorkerErrorHandler::new(worker)),
-                        pipeline_id
+                        pipeline_id,
+                        TaskSourceName::DOMManipulation,
                     )).unwrap();
                     return;
                 }
@@ -446,8 +452,12 @@ impl DedicatedWorkerGlobalScope {
                 global.report_an_error(error_info, HandleValue::null());
             }
         }));
-        // TODO: Should use the DOM manipulation task source.
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        self.parent_sender.send(CommonScriptMsg::Task(
+            WorkerEvent,
+            task,
+            Some(pipeline_id),
+            TaskSourceName::DOMManipulation,
+            )).unwrap();
     }
 }
 
@@ -472,7 +482,13 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));
-        self.parent_sender.send(CommonScriptMsg::Task(WorkerEvent, task, Some(pipeline_id))).unwrap();
+        // TODO: Change this task source to a new `unshipped-port-message-queue` task source
+        self.parent_sender.send(CommonScriptMsg::Task(
+            WorkerEvent,
+            task,
+            Some(pipeline_id),
+            TaskSourceName::DOMManipulation,
+        )).unwrap();
         Ok(())
     }
 

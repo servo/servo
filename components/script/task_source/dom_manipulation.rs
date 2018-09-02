@@ -27,7 +27,7 @@ impl fmt::Debug for DOMManipulationTaskSource {
 }
 
 impl TaskSource for DOMManipulationTaskSource {
-     const NAME: TaskSourceName = TaskSourceName::DOMManipulation;
+    const NAME: TaskSourceName = TaskSourceName::DOMManipulation;
 
     fn queue_with_canceller<T>(
         &self,
@@ -40,7 +40,8 @@ impl TaskSource for DOMManipulationTaskSource {
         let msg = MainThreadScriptMsg::Common(CommonScriptMsg::Task(
             ScriptThreadEventCategory::ScriptEvent,
             Box::new(canceller.wrap_task(task)),
-            Some(self.1)
+            Some(self.1),
+            DOMManipulationTaskSource::NAME,
         ));
         self.0.send(msg).map_err(|_| ())
     }

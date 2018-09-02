@@ -43,6 +43,7 @@ use std::panic::AssertUnwindSafe;
 use std::ptr;
 use style::thread_state::{self, ThreadState};
 use task::TaskBox;
+use task_source::TaskSourceName;
 use time::{Tm, now};
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -51,14 +52,14 @@ pub enum CommonScriptMsg {
     /// supplied channel.
     CollectReports(ReportsChan),
     /// Generic message that encapsulates event handling.
-    Task(ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>),
+    Task(ScriptThreadEventCategory, Box<TaskBox>, Option<PipelineId>, TaskSourceName),
 }
 
 impl fmt::Debug for CommonScriptMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             CommonScriptMsg::CollectReports(_) => write!(f, "CollectReports(...)"),
-            CommonScriptMsg::Task(ref category, ref task, _) => {
+            CommonScriptMsg::Task(ref category, ref task, _, _) => {
                 f.debug_tuple("Task").field(category).field(task).finish()
             },
         }

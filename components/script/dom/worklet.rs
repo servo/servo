@@ -66,6 +66,7 @@ use style::thread_state::{self, ThreadState};
 use swapper::Swapper;
 use swapper::swapper;
 use task::TaskBox;
+use task_source::TaskSourceName;
 use uuid::Uuid;
 
 // Magic numbers
@@ -644,7 +645,14 @@ impl WorkletThread {
     where
         T: TaskBox + 'static,
     {
-        let msg = CommonScriptMsg::Task(ScriptThreadEventCategory::WorkletEvent, Box::new(task), None);
+        // NOTE: It's unclear which task source should be used here:
+        // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
+        let msg = CommonScriptMsg::Task(
+            ScriptThreadEventCategory::WorkletEvent,
+            Box::new(task),
+            None,
+            TaskSourceName::DOMManipulation,
+        );
         let msg = MainThreadScriptMsg::Common(msg);
         self.global_init.to_script_thread_sender.send(msg).expect("Worklet thread outlived script thread.");
     }
