@@ -28,11 +28,13 @@ impl Actor for MemoryActor {
         self.name.clone()
     }
 
-    fn handle_message(&self,
-                      _registry: &ActorRegistry,
-                      _msg_type: &str,
-                      _msg: &Map<String, Value>,
-                      _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
+    fn handle_message(
+        &self,
+        _registry: &ActorRegistry,
+        _msg_type: &str,
+        _msg: &Map<String, Value>,
+        _stream: &mut TcpStream,
+    ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }
 }
@@ -42,7 +44,7 @@ impl MemoryActor {
     pub fn create(registry: &ActorRegistry) -> String {
         let actor_name = registry.new_name("memory");
         let actor = MemoryActor {
-            name: actor_name.clone()
+            name: actor_name.clone(),
         };
 
         registry.register_later(Box::new(actor));

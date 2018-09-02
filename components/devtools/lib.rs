@@ -9,7 +9,6 @@
 
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
-
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
@@ -19,7 +18,8 @@ extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate msg;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate serde_json;
 extern crate time;
 
@@ -128,23 +128,24 @@ pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = channel();
     {
         let sender = sender.clone();
-        thread::Builder::new().name("Devtools".to_owned()).spawn(move || {
-            run_server(sender, receiver, port)
-        }).expect("Thread spawning failed");
+        thread::Builder::new()
+            .name("Devtools".to_owned())
+            .spawn(move || run_server(sender, receiver, port))
+            .expect("Thread spawning failed");
     }
     sender
 }
 
-fn run_server(sender: Sender<DevtoolsControlMsg>,
-              receiver: Receiver<DevtoolsControlMsg>,
-              port: u16) {
+fn run_server(
+    sender: Sender<DevtoolsControlMsg>,
+    receiver: Receiver<DevtoolsControlMsg>,
+    port: u16,
+) {
     let listener = TcpListener::bind(&("127.0.0.1", port)).unwrap();
 
     let mut registry = ActorRegistry::new();
 
-    let root = Box::new(RootActor {
-        tabs: vec!(),
-    });
+    let root = Box::new(RootActor { tabs: vec![] });
 
     registry.register(root);
     registry.find::<RootActor>("root");
@@ -158,7 +159,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
 
-
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         debug!("connection established to {}", stream.peer_addr().unwrap());
@@ -171,21 +171,24 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         'outer: loop {
             match stream.read_json_packet() {
                 Ok(Some(json_packet)) => {
-                    if let Err(()) = actors.lock().unwrap().handle_message(json_packet.as_object().unwrap(),
-                                                                           &mut stream) {
+                    if let Err(()) = actors
+                        .lock()
+                        .unwrap()
+                        .handle_message(json_packet.as_object().unwrap(), &mut stream)
+                    {
                         debug!("error: devtools actor stopped responding");
                         let _ = stream.shutdown(Shutdown::Both);
-                        break 'outer
+                        break 'outer;
                     }
-                }
+                },
                 Ok(None) => {
                     debug!("error: EOF");
-                    break 'outer
-                }
+                    break 'outer;
+                },
                 Err(err_msg) => {
                     debug!("error: {}", err_msg);
-                    break 'outer
-                }
+                    break 'outer;
+                },
             }
         }
     }
@@ -199,12 +202,14 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or tab modules?
-    fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
-                         ids: (PipelineId, Option<WorkerId>),
-                         script_sender: IpcSender<DevtoolScriptControlMsg>,
-                         actor_pipelines: &mut HashMap<PipelineId, String>,
-                         actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
-                         page_info: DevtoolsPageInfo) {
+    fn handle_new_global(
+        actors: Arc<Mutex<ActorRegistry>>,
+        ids: (PipelineId, Option<WorkerId>),
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        actor_pipelines: &mut HashMap<PipelineId, String>,
+        actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
+        page_info: DevtoolsPageInfo,
+    ) {
         let mut actors = actors.lock().unwrap();
 
         let (pipeline, worker_id) = ids;
@@ -226,9 +231,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 pipeline: pipeline,
             };
 
-            let timeline = TimelineActor::new(actors.new_name("timeline"),
-                                              pipeline,
-                                              script_sender);
+            let timeline = TimelineActor::new(actors.new_name("timeline"), pipeline, script_sender);
 
             let profiler = ProfilerActor::new(actors.new_name("profiler"));
             let performance = PerformanceActor::new(actors.new_name("performance"));
@@ -251,7 +254,15 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
 
-            (tab, console, inspector, timeline, profiler, performance, thread)
+            (
+                tab,
+                console,
+                inspector,
+                timeline,
+                profiler,
+                performance,
+                thread,
+            )
         };
 
         if let Some(id) = worker_id {
@@ -274,14 +285,21 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(Box::new(thread));
     }
 
-    fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
-                              id: PipelineId,
-                              worker_id: Option<WorkerId>,
-                              console_message: ConsoleMessage,
-                              actor_pipelines: &HashMap<PipelineId, String>,
-                              actor_workers: &HashMap<(PipelineId, WorkerId), String>) {
-        let console_actor_name = match find_console_actor(actors.clone(), id, worker_id, actor_workers,
-                                                          actor_pipelines) {
+    fn handle_console_message(
+        actors: Arc<Mutex<ActorRegistry>>,
+        id: PipelineId,
+        worker_id: Option<WorkerId>,
+        console_message: ConsoleMessage,
+        actor_pipelines: &HashMap<PipelineId, String>,
+        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+    ) {
+        let console_actor_name = match find_console_actor(
+            actors.clone(),
+            id,
+            worker_id,
+            actor_workers,
+            actor_pipelines,
+        ) {
             Some(name) => name,
             None => return,
         };
@@ -296,10 +314,10 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     LogLevel::Info => "info",
                     LogLevel::Warn => "warn",
                     LogLevel::Error => "error",
-                    _ => "log"
+                    _ => "log",
                 }.to_owned(),
                 timeStamp: precise_time_ns(),
-                arguments: vec!(console_message.message),
+                arguments: vec![console_message.message],
                 filename: console_message.filename,
                 lineNumber: console_message.lineNumber,
                 columnNumber: console_message.columnNumber,
@@ -310,11 +328,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         }
     }
 
-    fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
-                          id: PipelineId,
-                          worker_id: Option<WorkerId>,
-                          actor_workers: &HashMap<(PipelineId, WorkerId), String>,
-                          actor_pipelines: &HashMap<PipelineId, String>) -> Option<String> {
+    fn find_console_actor(
+        actors: Arc<Mutex<ActorRegistry>>,
+        id: PipelineId,
+        worker_id: Option<WorkerId>,
+        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        actor_pipelines: &HashMap<PipelineId, String>,
+    ) -> Option<String> {
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
             let actor_name = (*actor_workers).get(&(id, worker_id))?;
@@ -325,20 +345,28 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         }
     }
 
-    fn handle_network_event(actors: Arc<Mutex<ActorRegistry>>,
-                            mut connections: Vec<TcpStream>,
-                            actor_pipelines: &HashMap<PipelineId, String>,
-                            actor_requests: &mut HashMap<String, String>,
-                            actor_workers: &HashMap<(PipelineId, WorkerId), String>,
-                            pipeline_id: PipelineId,
-                            request_id: String,
-                            network_event: NetworkEvent) {
-        let console_actor_name = match find_console_actor(actors.clone(), pipeline_id, None,
-                                                          actor_workers, actor_pipelines) {
+    fn handle_network_event(
+        actors: Arc<Mutex<ActorRegistry>>,
+        mut connections: Vec<TcpStream>,
+        actor_pipelines: &HashMap<PipelineId, String>,
+        actor_requests: &mut HashMap<String, String>,
+        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        pipeline_id: PipelineId,
+        request_id: String,
+        network_event: NetworkEvent,
+    ) {
+        let console_actor_name = match find_console_actor(
+            actors.clone(),
+            pipeline_id,
+            None,
+            actor_workers,
+            actor_pipelines,
+        ) {
             Some(name) => name,
             None => return,
         };
-        let netevent_actor_name = find_network_event_actor(actors.clone(), actor_requests, request_id.clone());
+        let netevent_actor_name =
+            find_network_event_actor(actors.clone(), actor_requests, request_id.clone());
         let mut actors = actors.lock().unwrap();
         let actor = actors.find_mut::<NetworkEventActor>(&netevent_actor_name);
 
@@ -356,8 +384,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
-
-            }
+            },
             NetworkEvent::HttpResponse(httpresponse) => {
                 //Store the response information in the actor
                 actor.add_response(httpresponse);
@@ -385,7 +412,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "responseStart".to_owned(),
-                    response: actor.response_start()
+                    response: actor.response_start(),
                 };
 
                 for stream in &mut connections {
@@ -441,78 +468,109 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &mut connections {
                     stream.write_merged_json_packet(&msg, &actor.response_headers());
                 }
-            }
+            },
         }
     }
 
     // Find the name of NetworkEventActor corresponding to request_id
     // Create a new one if it does not exist, add it to the actor_requests hashmap
-    fn find_network_event_actor(actors: Arc<Mutex<ActorRegistry>>,
-                                actor_requests: &mut HashMap<String, String>,
-                                request_id: String) -> String {
+    fn find_network_event_actor(
+        actors: Arc<Mutex<ActorRegistry>>,
+        actor_requests: &mut HashMap<String, String>,
+        request_id: String,
+    ) -> String {
         let mut actors = actors.lock().unwrap();
         match (*actor_requests).entry(request_id) {
             Occupied(name) => {
                 //TODO: Delete from map like Firefox does?
                 name.into_mut().clone()
-            }
+            },
             Vacant(entry) => {
                 let actor_name = actors.new_name("netevent");
                 let actor = NetworkEventActor::new(actor_name.clone());
                 entry.insert(actor_name.clone());
                 actors.register(Box::new(actor));
                 actor_name
-            }
+            },
         }
     }
 
     let sender_clone = sender.clone();
-    thread::Builder::new().name("DevtoolsClientAcceptor".to_owned()).spawn(move || {
-        // accept connections and process them, spawning a new thread for each one
-        for stream in listener.incoming() {
-            // connection succeeded
-            sender_clone.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()))).unwrap();
-        }
-    }).expect("Thread spawning failed");
+    thread::Builder::new()
+        .name("DevtoolsClientAcceptor".to_owned())
+        .spawn(move || {
+            // accept connections and process them, spawning a new thread for each one
+            for stream in listener.incoming() {
+                // connection succeeded
+                sender_clone
+                    .send(DevtoolsControlMsg::FromChrome(
+                        ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()),
+                    )).unwrap();
+            }
+        }).expect("Thread spawning failed");
 
     while let Ok(msg) = receiver.recv() {
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.try_clone().unwrap());
-                thread::Builder::new().name("DevtoolsClientHandler".to_owned()).spawn(move || {
-                    handle_client(actors, stream.try_clone().unwrap())
-                }).expect("Thread spawning failed");
-            }
+                thread::Builder::new()
+                    .name("DevtoolsClientHandler".to_owned())
+                    .spawn(move || handle_client(actors, stream.try_clone().unwrap()))
+                    .expect("Thread spawning failed");
+            },
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
-                        actor_name, tick)) =>
-                handle_framerate_tick(actors.clone(), actor_name, tick),
+                actor_name,
+                tick,
+            )) => handle_framerate_tick(actors.clone(), actor_name, tick),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
-                        ids, script_sender, pageinfo)) =>
-                handle_new_global(actors.clone(), ids, script_sender, &mut actor_pipelines,
-                                  &mut actor_workers, pageinfo),
+                ids,
+                script_sender,
+                pageinfo,
+            )) => handle_new_global(
+                actors.clone(),
+                ids,
+                script_sender,
+                &mut actor_pipelines,
+                &mut actor_workers,
+                pageinfo,
+            ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
-                        id,
-                        console_message,
-                        worker_id)) =>
-                handle_console_message(actors.clone(), id, worker_id, console_message,
-                                       &actor_pipelines, &actor_workers),
+                id,
+                console_message,
+                worker_id,
+            )) => handle_console_message(
+                actors.clone(),
+                id,
+                worker_id,
+                console_message,
+                &actor_pipelines,
+                &actor_workers,
+            ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
-                        id,
-                        css_error)) => {
-                let console_message =  ConsoleMessage {
+                id,
+                css_error,
+            )) => {
+                let console_message = ConsoleMessage {
                     message: css_error.msg,
                     logLevel: LogLevel::Warn,
                     filename: css_error.filename,
                     lineNumber: css_error.line as usize,
                     columnNumber: css_error.column as usize,
                 };
-                handle_console_message(actors.clone(), id, None, console_message,
-                                       &actor_pipelines, &actor_workers)
+                handle_console_message(
+                    actors.clone(),
+                    id,
+                    None,
+                    console_message,
+                    &actor_pipelines,
+                    &actor_workers,
+                )
             },
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
-                        request_id, network_event)) => {
+                request_id,
+                network_event,
+            )) => {
                 // copy the accepted_connections vector
                 let mut connections = Vec::<TcpStream>::new();
                 for stream in &accepted_connections {
@@ -523,10 +581,18 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                     NetworkEvent::HttpResponse(ref response) => response.pipeline_id,
                     NetworkEvent::HttpRequest(ref request) => request.pipeline_id,
                 };
-                handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
-                                     &actor_workers, pipeline_id, request_id, network_event);
+                handle_network_event(
+                    actors.clone(),
+                    connections,
+                    &actor_pipelines,
+                    &mut actor_requests,
+                    &actor_workers,
+                    pipeline_id,
+                    request_id,
+                    network_event,
+                );
             },
-            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break
+            DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
         }
     }
     for connection in &mut accepted_connections {
