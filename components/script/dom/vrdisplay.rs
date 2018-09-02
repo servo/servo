@@ -42,6 +42,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::mpsc;
 use std::thread;
+use task_source::TaskSourceName;
 use webvr_traits::{WebVRDisplayData, WebVRDisplayEvent, WebVRFrameData, WebVRLayer, WebVRMsg};
 
 #[dom_struct]
@@ -517,7 +518,14 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
-                js_sender.send(CommonScriptMsg::Task(WebVREvent, task, Some(pipeline_id))).unwrap();
+                // NOTE: WebVR spec doesn't specify what task source we should use. Is
+                // dom-manipulation a good choice long term?
+                js_sender.send(CommonScriptMsg::Task(
+                    WebVREvent,
+                    task,
+                    Some(pipeline_id),
+                    TaskSourceName::DOMManipulation,
+                )).unwrap();
 
                 // Run Sync Poses in parallell on Render thread
                 let msg = WebVRCommand::SyncPoses(display_id, near, far, sync_sender.clone());
