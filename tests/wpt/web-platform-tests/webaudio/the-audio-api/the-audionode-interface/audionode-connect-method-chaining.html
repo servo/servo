@@ -114,7 +114,7 @@
         // does not have the second output, so it should throw.
         should(function() {
           gain1.connect(gain2, 1).connect(contextA.destination);
-        }, 'Connecting with an invalid output').throw('IndexSizeError');
+        }, 'Connecting with an invalid output').throw(DOMException, 'IndexSizeError');
 
         // Test if the second connection throws correctly. The contextB's
         // destination is not compatible with the nodes from contextA, thus the
@@ -124,7 +124,7 @@
               gain1.connect(gain2).connect(contextB.destination);
             },
             'Connecting to a node from the different context')
-            .throw('InvalidAccessError');
+            .throw(DOMException, 'InvalidAccessError');
 
         task.done();
       });

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10/>
+</body>
+<script>
+
+// This test verifies that ImageCapture can takePhoto()s, with a mock Mojo
+// interface implementation.
+
+image_capture_test(async t => {
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+  let stream = canvas.captureStream();
+
+  let capturer = new ImageCapture(stream.getVideoTracks()[0]);
+  let blob = await capturer.takePhoto();
+
+  // JS Blob is almost-opaque, can only check |type| and |size|.
+  assert_equals(blob.type, 'image/cat');
+  assert_equals(blob.size, 2);
+
+}, 'exercises ImageCapture.takePhoto()');
+
+</script>

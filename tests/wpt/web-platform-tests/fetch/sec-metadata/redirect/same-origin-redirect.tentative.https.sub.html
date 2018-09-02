@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+
+<link rel="author" href="mtrzos@google.com" title="Maciek Trzos">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/fetch/sec-metadata/resources/helper.js></script>
+<body></body>
+<script>
+promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "redirect-same-origin-same-origin";
+
+      let e = document.createElement('img');
+      e.src = "/xhr/resources/redirect.py?location=https://{{host}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      let expected = {"destination":"image", "site":"same-origin"};
+
+      e.onload = e => {
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+      e.onerror = e => {
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+
+      document.body.appendChild(e);
+    })
+  }, "Same-Origin -> Same-Origin redirect");
+
+promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "redirect-same-origin-same-site";
+
+      let e = document.createElement('img');
+      e.src = "/xhr/resources/redirect.py?location=https://{{hosts[][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      let expected = {"destination":"image", "site":"same-site"};
+
+      e.onload = e => {
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+      e.onerror = e => {
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+
+      document.body.appendChild(e);
+    })
+  }, "Same-Origin -> Same-Site redirect");
+
+promise_test(t => {
+    return new Promise((resolve, reject) => {
+      let key = "redirect-same-origin-cross-site";
+
+      let e = document.createElement('img');
+      e.src = "/xhr/resources/redirect.py?location=https://{{hosts[alt][www]}}:{{ports[https][0]}}/fetch/sec-metadata/resources/record-header.py?file=" + key;
+      let expected = {"destination":"image", "site":"cross-site"};
+
+      e.onload = e => {
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+      e.onerror = e => {
+        fetch("/fetch/sec-metadata/resources/record-header.py?retrieve=true&file=" + key)
+          .then(response => response.text())
+          .then(text => assert_header_equals(text, expected))
+          .then(_ => resolve())
+          .catch(e => reject(e));
+      };
+
+      document.body.appendChild(e);
+    })
+  }, "Same-Origin -> Cross-Site redirect");
+</script>

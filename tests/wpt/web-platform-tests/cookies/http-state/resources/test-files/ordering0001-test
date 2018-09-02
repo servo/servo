@@ -1,0 +1,7 @@
+Set-Cookie: key=val0;
+Set-Cookie: key=val1; path=/cookie-parser-result
+Set-Cookie: key=val2; path=/
+Set-Cookie: key=val3; path=/bar
+Set-Cookie: key=val4; domain=.example.org
+Set-Cookie: key=val5; domain=.example.org; path=/cookie-parser-result/foo
+Location: /cookie-parser-result/foo/baz?ordering0001

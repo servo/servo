@@ -1,12 +1,23 @@
 // META: global=jsshell
-// META: script=/wasm/jsapi/wasm-constants.js
-// META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=/wasm/jsapi/assertions.js
 
-let emptyModuleBinary;
-setup(() => {
-  emptyModuleBinary = new WasmModuleBuilder().toBuffer();
-});
+function assert_Memory(memory, expected) {
+  assert_equals(Object.getPrototypeOf(memory), WebAssembly.Memory.prototype,
+                "prototype");
+  assert_true(Object.isExtensible(memory), "extensible");
+
+  // https://github.com/WebAssembly/spec/issues/840
+  assert_equals(memory.buffer, memory.buffer, "buffer should be idempotent");
+  assert_equals(Object.getPrototypeOf(memory.buffer), ArrayBuffer.prototype,
+                "prototype of buffer");
+  assert_true(Object.isExtensible(memory.buffer), "buffer extensibility");
+  assert_equals(memory.buffer.byteLength, 0x10000 * expected.size, "size of buffer");
+  if (expected.size > 0) {
+    const array = new Uint8Array(memory.buffer);
+    assert_equals(array[0], 0, "first element of buffer");
+    assert_equals(array[array.byteLength - 1], 0, "last element of buffer");
+  }
+}
 
 test(() => {
   assert_function_name(WebAssembly.Memory, "Memory", "WebAssembly.Memory");
@@ -26,8 +37,24 @@ test(() => {
 }, "Calling");
 
 test(() => {
-  assert_throws(new TypeError(), () => new WebAssembly.Memory({}));
-}, "Empty descriptor");
+  const invalidArguments = [
+    undefined,
+    null,
+    false,
+    true,
+    "",
+    "test",
+    Symbol(),
+    1,
+    NaN,
+    {},
+  ];
+  for (const invalidArgument of invalidArguments) {
+    assert_throws(new TypeError(),
+                  () => new WebAssembly.Memory(invalidArgument),
+                  `new Memory(${format_value(invalidArgument)})`);
+  }
+}, "Invalid descriptor argument");
 
 test(() => {
   assert_throws(new TypeError(), () => new WebAssembly.Memory({ "initial": undefined }));
@@ -65,7 +92,46 @@ test(() => {
 }, "Proxy descriptor");
 
 test(() => {
+  const order = [];
+
+  new WebAssembly.Memory({
+    get maximum() {
+      order.push("maximum");
+      return {
+        valueOf() {
+          order.push("maximum valueOf");
+          return 1;
+        },
+      };
+    },
+
+    get initial() {
+      order.push("initial");
+      return {
+        valueOf() {
+          order.push("initial valueOf");
+          return 1;
+        },
+      };
+    },
+  });
+
+  assert_array_equals(order, [
+    "initial",
+    "initial valueOf",
+    "maximum",
+    "maximum valueOf",
+  ]);
+}, "Order of evaluation for descriptor");
+
+test(() => {
   const argument = { "initial": 0 };
   const memory = new WebAssembly.Memory(argument);
-  assert_equals(Object.getPrototypeOf(memory), WebAssembly.Memory.prototype);
-}, "Prototype");
+  assert_Memory(memory, { "size": 0 });
+}, "Zero initial");
+
+test(() => {
+  const argument = { "initial": 4 };
+  const memory = new WebAssembly.Memory(argument);
+  assert_Memory(memory, { "size": 4 });
+}, "Non-zero initial");

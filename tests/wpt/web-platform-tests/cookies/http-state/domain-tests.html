@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Tests cookie setting domain functionality</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#page-8">
+
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/cookie-http-state-template.js"></script>
+  </head>
+  <body style="background:#EEE">
+    <h3>Log</h3>
+    <div id="log" style="height:50px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>IFrames</h3>
+    <div id="iframes" style="height:170px; overflow-y:scroll; background: #FFF">
+    </div>
+    <h3>Test Results</h3>
+    <script>
+      setup({ explicit_timeout: true });
+
+      const TEST_CASES = [
+        {file: "domain0001", name: "domain0001"},
+        {file: "domain0002", name: "domain0002"},
+        {file: "domain0003", name: "domain0003"},
+        {file: "domain0004", name: "domain0004"},
+        {file: "domain0005", name: "domain0005"},
+        {file: "domain0006", name: "domain0006"},
+        {file: "domain0007", name: "domain0007"},
+        {file: "domain0008", name: "domain0008"},
+        {file: "domain0009", name: "domain0009"},
+        {file: "domain0010", name: "domain0010"},
+        {file: "domain0011", name: "domain0011"},
+        {file: "domain0012", name: "domain0012"},
+        {file: "domain0013", name: "domain0013"},
+        {file: "domain0014", name: "domain0014"},
+        {file: "domain0015", name: "domain0015"},
+        {file: "domain0016", name: "domain0016"},
+        {file: "domain0017", name: "domain0017"},
+        {file: "domain0018", name: "domain0018"},
+        {file: "domain0019", name: "domain0019"},
+        {file: "domain0020", name: "domain0020"},
+        {file: "domain0021", name: "domain0021"},
+        {file: "domain0022", name: "domain0022"},
+        {file: "domain0023", name: "domain0023"},
+        {file: "domain0024", name: "domain0024"},
+        {file: "domain0025", name: "domain0025"},
+        {file: "domain0026", name: "domain0026"},
+        {file: "domain0027", name: "domain0027"},
+        {file: "domain0028", name: "domain0028"},
+        {file: "domain0029", name: "domain0029"},
+        {file: "optional-domain0030", name: "optional-domain0030"},
+        {file: "domain0031", name: "domain0031"},
+        {file: "domain0033", name: "domain0033"},
+        {file: "domain0034", name: "domain0034"},
+        {file: "domain0035", name: "domain0035"},
+        {file: "domain0036", name: "domain0036"},
+        {file: "domain0037", name: "domain0037"},
+        {file: "domain0038", name: "domain0038"},
+        {file: "domain0039", name: "domain0039"},
+        {file: "domain0040", name: "domain0040"},
+        {file: "domain0041", name: "domain0041"},
+        {file: "domain0042", name: "domain0042"},
+        {file: "optional-domain0041", name: "optional-domain0041"},
+        {file: "optional-domain0042", name: "optional-domain0042"},
+        {file: "optional-domain0043", name: "optional-domain0043"},
+      ];
+
+      for (const i in TEST_CASES) {
+        const t = TEST_CASES[i];
+        promise_test(createCookieTest(t.file),
+                     t.file + " - " + t.name,
+                     { timeout: 3000 });
+      }
+
+    </script>
+  </body>
+</html>

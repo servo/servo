@@ -7,15 +7,13 @@
 <body>
 <script>
   // TrustedHTML assignments do not throw.
-  async_test(t => {
-    createHTML_policy(window)
-      .then(t.step_func_done(p => {
-        let html = p.createHTML(INPUTS.HTML);
-        var range = document.createRange();
-        range.selectNodeContents(document.documentElement);
-        var result = range.createContextualFragment(html);
-        assert_equals(result.textContent, RESULTS.HTML);
-    }));
+  test(t => {
+    let p = createHTML_policy(window, 1);
+    let html = p.createHTML(INPUTS.HTML);
+    var range = document.createRange();
+    range.selectNodeContents(document.documentElement);
+    var result = range.createContextualFragment(html);
+    assert_equals(result.textContent, RESULTS.HTML);
   }, "range.createContextualFragment assigned via policy (successful HTML transformation).");
 
   // String assignments throw.

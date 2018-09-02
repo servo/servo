@@ -1,12 +1,16 @@
 // META: global=jsshell
-// META: script=/wasm/jsapi/wasm-constants.js
-// META: script=/wasm/jsapi/wasm-module-builder.js
 // META: script=/wasm/jsapi/assertions.js
 
-let emptyModuleBinary;
-setup(() => {
-  emptyModuleBinary = new WasmModuleBuilder().toBuffer();
-});
+function assert_Table(actual, expected) {
+  assert_equals(Object.getPrototypeOf(actual), WebAssembly.Table.prototype,
+                "prototype");
+  assert_true(Object.isExtensible(actual), "extensible");
+
+  assert_equals(actual.length, expected.length, "length");
+  for (let i = 0; i < expected.length; ++i) {
+    assert_equals(actual.get(i), null, `actual.get(${i})`);
+  }
+}
 
 test(() => {
   assert_function_name(WebAssembly.Table, "Table", "WebAssembly.Table");
@@ -21,13 +25,33 @@ test(() => {
 }, "No arguments");
 
 test(() => {
-  const argument = { "initial": 0 };
+  const argument = { "element": "anyfunc", "initial": 0 };
   assert_throws(new TypeError(), () => WebAssembly.Table(argument));
 }, "Calling");
 
 test(() => {
   assert_throws(new TypeError(), () => new WebAssembly.Table({}));
 }, "Empty descriptor");
+
+test(() => {
+  const invalidArguments = [
+    undefined,
+    null,
+    false,
+    true,
+    "",
+    "test",
+    Symbol(),
+    1,
+    NaN,
+    {},
+  ];
+  for (const invalidArgument of invalidArguments) {
+    assert_throws(new TypeError(),
+                  () => new WebAssembly.Table(invalidArgument),
+                  `new Table(${format_value(invalidArgument)})`);
+  }
+}, "Invalid descriptor argument");
 
 test(() => {
   assert_throws(new TypeError(), () => new WebAssembly.Table({ "element": "anyfunc", "initial": undefined }));
@@ -57,6 +81,22 @@ for (const value of outOfRangeValues) {
 }
 
 test(() => {
+  assert_throws(new RangeError(), () => new WebAssembly.Table({ "element": "anyfunc", "initial": 10, "maximum": 9 }));
+}, "Initial value exceeds maximum");
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 0 };
+  const table = new WebAssembly.Table(argument);
+  assert_Table(table, { "length": 0 });
+}, "Basic (zero)");
+
+test(() => {
+  const argument = { "element": "anyfunc", "initial": 5 };
+  const table = new WebAssembly.Table(argument);
+  assert_Table(table, { "length": 5 });
+}, "Basic (non-zero)");
+
+test(() => {
   const proxy = new Proxy({}, {
     has(o, x) {
       assert_unreached(`Should not call [[HasProperty]] with ${x}`);
@@ -73,11 +113,61 @@ test(() => {
       }
     },
   });
-  new WebAssembly.Table(proxy);
+  const table = new WebAssembly.Table(proxy);
+  assert_Table(table, { "length": 0 });
 }, "Proxy descriptor");
 
 test(() => {
-  const argument = { "element": "anyfunc", "initial": 0 };
-  const table = new WebAssembly.Table(argument);
-  assert_equals(Object.getPrototypeOf(table), WebAssembly.Table.prototype);
-}, "Prototype");
+  const table = new WebAssembly.Table({
+    "element": {
+      toString() { return "anyfunc"; },
+    },
+    "initial": 1,
+  });
+  assert_Table(table, { "length": 1 });
+}, "Type conversion for descriptor.element");
+
+test(() => {
+  const order = [];
+
+  new WebAssembly.Table({
+    get maximum() {
+      order.push("maximum");
+      return {
+        valueOf() {
+          order.push("maximum valueOf");
+          return 1;
+        },
+      };
+    },
+
+    get initial() {
+      order.push("initial");
+      return {
+        valueOf() {
+          order.push("initial valueOf");
+          return 1;
+        },
+      };
+    },
+
+    get element() {
+      order.push("element");
+      return {
+        toString() {
+          order.push("element toString");
+          return "anyfunc";
+        },
+      };
+    },
+  });
+
+  assert_array_equals(order, [
+    "element",
+    "element toString",
+    "initial",
+    "initial valueOf",
+    "maximum",
+    "maximum valueOf",
+  ]);
+}, "Order of evaluation for descriptor");

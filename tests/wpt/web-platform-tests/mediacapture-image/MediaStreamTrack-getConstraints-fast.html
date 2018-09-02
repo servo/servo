@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<canvas id='canvas' width=10 height=10/>
+</body>
+<script>
+
+const constraints = { whiteBalanceMode     : "manual",
+                      exposureMode         : "continuous",
+                      focusMode            : "single-shot",
+
+                      exposureCompensation : 133.77,
+                      colorTemperature     : 6000,
+                      iso                  : 120.0,
+
+                      brightness           : 3,
+                      contrast             : 4,
+                      saturation           : 5,
+                      sharpness            : 6,
+
+                      zoom                 : 3.141592
+                      // TODO: torch https://crbug.com/700607.
+                    };
+
+var canvas = document.getElementById('canvas');
+var context = canvas.getContext("2d");
+context.fillStyle = "red";
+context.fillRect(0, 0, 10, 10);
+
+// These tests verify that MediaStreamTrack.getConstraints() exists and that,
+// returns the constraints passed beforehand with applyConstraints.
+var makeAsyncTest = function(c) {
+  async_test(function(t) {
+    var stream = canvas.captureStream();
+    var videoTrack = stream.getVideoTracks()[0];
+
+    const constraintsIn = { advanced : [ c ]};
+
+    // Method applyConstraints() will fail since there is no Image Capture
+    // service in this Layout Test, but |constraintsIn| should be cached.
+    videoTrack.applyConstraints(constraintsIn)
+        .then(() => { /* ignore */ })
+        .catch((e) => { /* ignore */ })
+        .then(() => {
+          const constraintsOut = videoTrack.getConstraints();
+          assert_object_equals(constraintsOut, constraintsIn, "constraints");
+          t.done();
+        });
+
+    // Clear constraints by sending an empty constraint set.
+    videoTrack.applyConstraints({})
+        .then(() => {
+          const constraintsOut = videoTrack.getConstraints();
+          assert_object_equals(constraintsOut, {}, "constraints");
+          t.done();
+        });
+  });
+};
+
+// Send each line of |constraints| in turn and then the whole dictionary.
+for (key in constraints) {
+  var one_constraint = {};
+  one_constraint[key] = constraints[key];
+  generate_tests(
+      makeAsyncTest,
+      [[ 'MediaStreamTrack.getConstraints(), key: ' + key, one_constraint ]]);
+}
+
+generate_tests(makeAsyncTest, [[
+                 'MediaStreamTrack.getConstraints(), complete ', constraints
+               ]]);
+
+</script>

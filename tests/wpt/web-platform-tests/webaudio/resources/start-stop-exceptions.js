@@ -13,7 +13,7 @@ function testStartStop(should, node, options) {
 
   should(() => {
     node.stop();
-  }, 'Calling stop() before start()').throw('InvalidStateError');
+  }, 'Calling stop() before start()').throw(DOMException, 'InvalidStateError');
 
   should(() => {
     node.start(-1);
@@ -29,7 +29,7 @@ function testStartStop(should, node, options) {
   node.start();
   should(() => {
     node.start();
-  }, 'Calling start() twice').throw('InvalidStateError');
+  }, 'Calling start() twice').throw(DOMException, 'InvalidStateError');
   should(() => {
     node.stop(-1);
   }, 'stop(-1)').throw(RangeError);
