@@ -12,21 +12,12 @@
  * Expected usage is as follows:
  * ```
  * macro_rules! pseudo_class_macro{
- *     (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
- *      string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
- *      keyword: [$(($k_css:expr, $k_name:ident, $k_gecko_type:tt, $k_state:tt, $k_flags:tt),)*]) => {
+ *     ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
  *         // do stuff
  *     }
  * }
  * apply_non_ts_list!(pseudo_class_macro)
  * ```
- *
- * The `string` and `keyword` variables will be applied to pseudoclasses that are of the form of
- * functions with string or keyword arguments.
- *
- * Pending pseudo-classes:
- *
- *  :scope -> <style scoped>, pending discussion.
  *
  * $gecko_type can be either "_" or an ident in Gecko's CSSPseudoClassType.
  * $state can be either "_" or an expression of type ElementState.  If present,
@@ -39,7 +30,7 @@
 macro_rules! apply_non_ts_list {
     ($apply_macro:ident) => {
         $apply_macro! {
-            bare: [
+            [
                 ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("link", Link, link, IN_UNVISITED_STATE, _),
@@ -111,9 +102,6 @@ macro_rules! apply_non_ts_list {
                 ("-moz-lwtheme-brighttext", MozLWThemeBrightText, mozLWThemeBrightText, _, _),
                 ("-moz-lwtheme-darktext", MozLWThemeDarkText, mozLWThemeDarkText, _, _),
                 ("-moz-window-inactive", MozWindowInactive, mozWindowInactive, _, _),
-            ],
-            string: [
-                ("lang", Lang, lang, _, _),
             ]
         }
     }

@@ -19,7 +19,7 @@ use element_state::ElementState;
 use font_metrics::FontMetricsProvider;
 use media_queries::Device;
 use properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
-use selector_parser::{AttrValue, PseudoClassStringArg, PseudoElement, SelectorImpl};
+use selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
 use selectors::Element as SelectorsElement;
 use selectors::matching::{ElementSelectorFlags, QuirksMode, VisitedHandlingMode};
 use selectors::sink::Push;
@@ -895,7 +895,7 @@ pub trait TElement:
     fn match_element_lang(
         &self,
         override_lang: Option<Option<AttrValue>>,
-        value: &PseudoClassStringArg,
+        value: &Lang,
     ) -> bool;
 
     /// Returns whether this element is the main body element of the HTML

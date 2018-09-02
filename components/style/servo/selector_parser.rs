@@ -284,8 +284,8 @@ impl PseudoElement {
     }
 }
 
-/// The type used for storing pseudo-class string arguments.
-pub type PseudoClassStringArg = Box<str>;
+/// The type used for storing `:lang` arguments.
+pub type Lang = Box<str>;
 
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
@@ -302,7 +302,7 @@ pub enum NonTSPseudoClass {
     Fullscreen,
     Hover,
     Indeterminate,
-    Lang(PseudoClassStringArg),
+    Lang(Lang),
     Link,
     PlaceholderShown,
     ReadWrite,

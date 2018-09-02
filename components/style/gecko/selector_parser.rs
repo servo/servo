@@ -37,12 +37,11 @@ bitflags! {
     }
 }
 
-/// The type used for storing pseudo-class string arguments.
-pub type PseudoClassStringArg = Atom;
+/// The type used to store the language argument to the `:lang` pseudo-class.
+pub type Lang = Atom;
 
 macro_rules! pseudo_class_name {
-    (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-     string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+    ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
         /// Our representation of a non tree-structural pseudo-class.
         #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq)]
         pub enum NonTSPseudoClass {
@@ -50,10 +49,8 @@ macro_rules! pseudo_class_name {
                 #[doc = $css]
                 $name,
             )*
-            $(
-                #[doc = $s_css]
-                $s_name(PseudoClassStringArg),
-            )*
+            /// The `:lang` pseudo-class.
+            Lang(Lang),
             /// The `:dir` pseudo-class.
             Dir(Direction),
             /// The non-standard `:-moz-any` pseudo-class.
@@ -74,15 +71,14 @@ impl ToCss for NonTSPseudoClass {
         W: fmt::Write,
     {
         macro_rules! pseudo_class_serialize {
-            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
-                    $(NonTSPseudoClass::$s_name(ref s) => {
-                        write!(dest, concat!(":", $s_css, "("))?;
+                    NonTSPseudoClass::Lang(ref s) => {
+                        dest.write_str(":lang(")?;
                         serialize_atom_identifier(s, dest)?;
                         return dest.write_char(')');
-                    }, )*
+                    },
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
                         dest.write_str(":-moz-locale-dir(")?;
                         dir.to_css(&mut CssWriter::new(dest))?;
@@ -137,8 +133,7 @@ impl NonTSPseudoClass {
     /// in a particular state.
     pub fn parse_non_functional(name: &str) -> Option<Self> {
         macro_rules! pseudo_class_parse {
-            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => Some(NonTSPseudoClass::$name),)*
                     _ => None,
@@ -159,12 +154,11 @@ impl NonTSPseudoClass {
             };
         }
         macro_rules! pseudo_class_check_is_enabled_in {
-            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-            string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
-                    $(NonTSPseudoClass::$s_name(..) => check_flag!($s_flags),)*
                     NonTSPseudoClass::MozLocaleDir(_) |
+                    NonTSPseudoClass::Lang(_) |
                     NonTSPseudoClass::Dir(_) |
                     NonTSPseudoClass::MozAny(_) => false,
                 }
@@ -214,13 +208,12 @@ impl NonTSPseudoClass {
             };
         }
         macro_rules! pseudo_class_state {
-            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
-                    $(NonTSPseudoClass::$s_name(..) => flag!($s_state),)*
                     NonTSPseudoClass::Dir(..) |
                     NonTSPseudoClass::MozLocaleDir(..) |
+                    NonTSPseudoClass::Lang(..) |
                     NonTSPseudoClass::MozAny(..) => ElementState::empty(),
                 }
             }
@@ -391,35 +384,29 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         name: CowRcStr<'i>,
         parser: &mut Parser<'i, 't>,
     ) -> Result<NonTSPseudoClass, ParseError<'i>> {
-        macro_rules! pseudo_class_string_parse {
-            (bare: [$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*],
-             string: [$(($s_css:expr, $s_name:ident, $s_gecko_type:tt, $s_state:tt, $s_flags:tt),)*]) => {
-                match_ignore_ascii_case! { &name,
-                    $($s_css => {
-                        let name = parser.expect_ident_or_string()?;
-                        NonTSPseudoClass::$s_name(Atom::from(name.as_ref()))
-                    }, )*
-                    "-moz-locale-dir" => {
-                        NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
-                    },
-                    "dir" => {
-                        NonTSPseudoClass::Dir(Direction::parse(parser)?)
-                    },
-                    "-moz-any" => {
-                        NonTSPseudoClass::MozAny(
-                            selector_parser::parse_compound_selector_list(
-                                self,
-                                parser,
-                            )?.into()
-                        )
-                    }
-                    _ => return Err(parser.new_custom_error(
-                        SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())
-                    ))
-                }
+        let pseudo_class = match_ignore_ascii_case! { &name,
+            "lang" => {
+                let name = parser.expect_ident_or_string()?;
+                NonTSPseudoClass::Lang(Atom::from(name.as_ref()))
+            },
+            "-moz-locale-dir" => {
+                NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)
+            },
+            "dir" => {
+                NonTSPseudoClass::Dir(Direction::parse(parser)?)
+            },
+            "-moz-any" => {
+                NonTSPseudoClass::MozAny(
+                    selector_parser::parse_compound_selector_list(
+                        self,
+                        parser,
+                    )?.into()
+                )
             }
-        }
-        let pseudo_class = apply_non_ts_list!(pseudo_class_string_parse);
+            _ => return Err(parser.new_custom_error(
+                SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone())
+            ))
+        };
         if self.is_pseudo_class_enabled(&pseudo_class) {
             Ok(pseudo_class)
         } else {
