@@ -21,6 +21,7 @@ use str::starts_with_ignore_ascii_case;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 use thin_slice::ThinBoxedSlice;
+use values::serialize_atom_identifier;
 
 pub use gecko::pseudo_element::{PseudoElement, EAGER_PSEUDOS, EAGER_PSEUDO_COUNT, PSEUDO_COUNT};
 pub use gecko::snapshot::SnapshotMap;
@@ -78,7 +79,9 @@ impl ToCss for NonTSPseudoClass {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     $(NonTSPseudoClass::$s_name(ref s) => {
-                        return write!(dest, concat!(":", $s_css, "({})"), s)
+                        write!(dest, concat!(":", $s_css, "("))?;
+                        serialize_atom_identifier(s, dest)?;
+                        return dest.write_char(')');
                     }, )*
                     NonTSPseudoClass::MozLocaleDir(ref dir) => {
                         dest.write_str(":-moz-locale-dir(")?;
@@ -99,7 +102,7 @@ impl ToCss for NonTSPseudoClass {
                             dest.write_str(", ")?;
                             selector.to_css(dest)?;
                         }
-                        return dest.write_str(")")
+                        return dest.write_char(')')
                     }
                 }
             }
