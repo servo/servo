@@ -478,13 +478,22 @@ class CommandBase(object):
         return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
 
     def needs_gstreamer_env(self, target):
+        if check_gstreamer_lib():
+            return False
         gstpath = path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
-        if sys.platform == "linux2" and path.isdir(gstpath):
-            if not check_gstreamer_lib():
-                if "x86_64" not in (target or host_triple()):
-                    raise Exception("We don't currently support using local gstreamer builds \
+        if sys.platform == "linux2":
+            if "x86_64" not in (target or host_triple()):
+                raise Exception("We don't currently support using local gstreamer builds \
                                      for non-x86_64, please file a bug")
+            if path.isdir(gstpath):
                 return True
+            else:
+                raise Exception("Your system's gstreamer libraries are out of date \
+                                     (we need at least 1.12). Please run ./mach bootstrap-gstreamer")
+        else:
+                raise Exception("Your system's gstreamer libraries are out of date \
+                                     (we need at least 1.12). If you're unable to \
+                                     install them, let us know by filing a bug!")
         return False
 
     def set_run_env(self):
