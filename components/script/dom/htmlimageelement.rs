@@ -538,12 +538,17 @@ impl HTMLImageElement {
     /// https://html.spec.whatwg.org/multipage/#matches-the-environment
     fn matches_environment(&self, media_query: String) -> bool {
         let document = document_from_node(self);
-        let device = document.device();
-        if !device.is_some() {
-            return false;
-        }
+        let device = match document.device() {
+            Some(device) => device,
+            None => return false,
+        };
         let quirks_mode = document.quirks_mode();
         let document_url = &document.url();
+        // FIXME(emilio): This should do the same that we do for other media
+        // lists regarding the rule type and such, though it doesn't really
+        // matter right now...
+        //
+        // Also, ParsingMode::all() is wrong, and should be DEFAULT.
         let context = ParserContext::new(
             Origin::Author,
             document_url,
@@ -551,11 +556,12 @@ impl HTMLImageElement {
             ParsingMode::all(),
             quirks_mode,
             None,
+            None,
         );
         let mut parserInput = ParserInput::new(&media_query);
         let mut parser = Parser::new(&mut parserInput);
         let media_list = MediaList::parse(&context, &mut parser);
-        media_list.evaluate(&device.unwrap(), quirks_mode)
+        media_list.evaluate(&device, quirks_mode)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalise-the-source-densities>
@@ -1039,8 +1045,11 @@ pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
         Origin::Author,
         &url,
         Some(CssRuleType::Style),
+        // FIXME(emilio): why ::empty() instead of ::DEFAULT? Also, what do
+        // browsers do regarding quirks-mode in a media list?
         ParsingMode::empty(),
         QuirksMode::NoQuirks,
+        None,
         None,
     );
     SourceSizeList::parse(&context, &mut parser)

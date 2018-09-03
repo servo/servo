@@ -70,7 +70,7 @@ use style::dom::{TDocument, TElement, TNode, TShadowRoot};
 use style::element_state::*;
 use style::font_metrics::ServoMetricsProvider;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, PseudoClassStringArg};
+use style::selector_parser::{AttrValue as SelectorAttrValue, NonTSPseudoClass, Lang};
 use style::selector_parser::{PseudoElement, SelectorImpl, extended_filtering};
 use style::shared_lock::{SharedRwLock as StyleSharedRwLock, Locked as StyleLocked};
 use style::str::is_whitespace;
@@ -168,7 +168,7 @@ impl<'lr> TShadowRoot for ShadowRoot<'lr> {
         match self.0 { }
     }
 
-    fn style_data<'a>(&self) -> &'a CascadeData
+    fn style_data<'a>(&self) -> Option<&'a CascadeData>
     where
         Self: 'a,
     {
@@ -531,7 +531,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn match_element_lang(
         &self,
         override_lang: Option<Option<SelectorAttrValue>>,
-        value: &PseudoClassStringArg,
+        value: &Lang,
     ) -> bool {
         // Servo supports :lang() from CSS Selectors 4, which can take a comma-
         // separated list of language tags in the pseudo-class, and which

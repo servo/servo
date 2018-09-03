@@ -69,6 +69,7 @@ impl CSSSupportsRule {
                 ParsingMode::DEFAULT,
                 quirks_mode,
                 None,
+                None,
             );
             let enabled = cond.eval(&context);
             let mut guard = self.cssconditionrule.shared_lock().write();
