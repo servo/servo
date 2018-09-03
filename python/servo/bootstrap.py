@@ -17,13 +17,43 @@ import servo.packages as packages
 from servo.util import extract, download_file, host_triple
 
 
+def install_trusty_deps(force):
+    version = str(subprocess.check_output(['gcc', '-dumpversion'])).split('.')
+    gcc = True
+    if int(version[0]) > 4:
+        gcc = False
+    elif int(version[0]) == 4 and int(version[1]) >= 9:
+        gcc = False
+
+    version = str(subprocess.check_output(['clang', '-dumpversion'])).split('.')
+    clang = int(version[0]) < 4
+
+    if gcc:
+        run_as_root(["add-apt-repository", "ppa:ubuntu-toolchain-r/test"], force)
+        run_as_root(["apt-get", "update"])
+        run_as_root(["apt-get", "install", "gcc-4.9", "g++-4.9"], force)
+        run_as_root(['update-alternatives', '--install', '/usr/bin/gcc', 'gcc',
+                     '/usr/bin/gcc-4.9', '60', '--slave', '/usr/bin/g++', 'g++',
+                     '/usr/bin/g++-4.9'])
+    if clang:
+        run_as_root(["bash", "-c", 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -'])
+        run_as_root(["apt-add-repository" "deb http://apt.llvm.org/trusty/ llvm-toolchain-xenial-4.0 main"], force)
+        run_as_root(["apt-get", "update"])
+        run_as_root(["apt-get", "install", "clang-4.0"], force)
+
+    return gcc or clang
+
+
 def check_gstreamer_lib():
     return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
                            stdout=PIPE, stderr=PIPE) == 0
 
-def run_as_root(command):
+
+def run_as_root(command, force=False):
     if os.geteuid() != 0:
         command.insert(0, 'sudo')
+    if force:
+        command += "-y"
     return subprocess.call(command)
 
 
@@ -110,6 +140,9 @@ def linux(context, force=False):
 
     if not check_gstreamer_lib():
         installed_something |= gstreamer(context, force)
+
+    if context.distro == "Ubuntu" and context.distro_version == "14.04":
+        installed_something |= install_trusty_deps(force)
 
     if not installed_something:
         print("Dependencies were already installed!")
