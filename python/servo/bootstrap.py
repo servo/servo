@@ -108,8 +108,7 @@ def linux(context, force=False):
                 'build-essential', 'cmake', 'python-pip',
                 'libbz2-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
-                'ccache', 'clang', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
-                'libgstreamer-plugins-bad1.0-dev', 'autoconf2.13']
+                'ccache', 'clang', 'autoconf2.13']
     pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
                 'mesa-libGL-devel', 'mesa-libEGL-devel', 'glib2-devel', 'libX11-devel',
                 'libXrandr-devel', 'gperf', 'fontconfig-devel', 'cabextract', 'ttmkfdir',
@@ -130,6 +129,8 @@ def linux(context, force=False):
             pkgs_apt += ["python-virtualenv"]
         else:
             pkgs_apt += ["virtualenv"]
+            pkgs_apt += ['libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
+                         'libgstreamer-plugins-bad1.0-dev']
 
     elif context.distro == "Debian" and context.distro_version == "Sid":
         pkgs_apt += ["libssl-dev"]
