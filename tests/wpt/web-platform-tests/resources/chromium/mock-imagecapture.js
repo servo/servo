@@ -77,6 +77,13 @@ var ImageCaptureTest = (() => {
             step: 1.0
           },
 
+          focusDistance: {
+            min: 1.0,
+            max: 10.0,
+            current: 3.0,
+            step: 1.0
+          },
+
           zoom: {
             min: 0.0,
             max: 10.0,
@@ -130,6 +137,8 @@ var ImageCaptureTest = (() => {
         this.state_.state.zoom.current = settings.zoom;
       if (settings.hasFocusMode)
         this.state_.state.currentFocusMode = settings.focusMode;
+      if (settings.hasFocusDistance)
+        this.state_.state.focusDistance.current = settings.focusDistance;
 
       if (settings.pointsOfInterest.length > 0) {
         this.state_.state.pointsOfInterest =

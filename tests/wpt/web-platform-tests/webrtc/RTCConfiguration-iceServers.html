@@ -85,19 +85,6 @@
 
   config_test(makePc => {
     const pc = makePc({ iceServers: [{
-      urls: []
-    }] });
-
-    const { iceServers } = pc.getConfiguration();
-    assert_equals(iceServers.length, 1);
-
-    const server = iceServers[0];
-    assert_array_equals(server.urls, []);
-    assert_equals(server.credentialType, 'password');
-  }, 'with empty list urls should succeed');
-
-  config_test(makePc => {
-    const pc = makePc({ iceServers: [{
       urls: 'stun:stun1.example.net'
     }] });
 
@@ -322,32 +309,11 @@
   }, 'with invalid stun url should throw SyntaxError');
 
   config_test(makePc => {
-    const pc = makePc({ iceServers: [{
-      urls: [],
-      credentialType: 'password'
-    }] });
-
-    const { iceServers } = pc.getConfiguration();
-    assert_equals(iceServers.length, 1);
-
-    const server = iceServers[0];
-    assert_array_equals(server.urls, []);
-    assert_equals(server.credentialType, 'password');
-  }, `with empty urls and credentialType password should succeed`);
-
-  config_test(makePc => {
-    const pc = makePc({ iceServers: [{
-      urls: [],
-      credentialType: 'oauth'
-    }] });
-
-    const { iceServers } = pc.getConfiguration();
-    assert_equals(iceServers.length, 1);
-
-    const server = iceServers[0];
-    assert_array_equals(server.urls, []);
-    assert_equals(server.credentialType, 'oauth');
-  }, `with empty urls and credentialType oauth should succeed`);
+    assert_throws('SyntaxError', () =>
+      makePc({ iceServers: [{
+        urls: []
+      }] }));
+  }, `with empty urls should throw SyntaxError`);
 
   config_test(makePc => {
     assert_throws(new TypeError(), () =>

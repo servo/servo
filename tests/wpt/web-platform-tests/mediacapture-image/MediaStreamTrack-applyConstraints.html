@@ -33,6 +33,7 @@ image_capture_test(async (t, imageCaptureTest) => {
                                       contrast             : 4,
                                       saturation           : 5,
                                       sharpness            : 6,
+                                      focusDistance        : 7,
 
                                       zoom                 : 3.141592,
 
@@ -101,6 +102,9 @@ image_capture_test(async (t, imageCaptureTest) => {
                   'saturation');
     assert_equals(constraintsDict.sharpness, theMock.options().sharpness,
                   'sharpness');
+    assert_equals(constraintsDict.focusDistance, theMock.options().focusDistance
+                  ,'focusDistance');
+
 
     assert_equals(constraintsDict.torch, theMock.options().torch, 'torch');
 
