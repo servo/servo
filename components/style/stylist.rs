@@ -1249,7 +1249,8 @@ impl Stylist {
                 }
             }
 
-            if let Some(containing_shadow) = rule_hash_target.containing_shadow() {
+            let mut current_containing_shadow = rule_hash_target.containing_shadow();
+            while let Some(containing_shadow) = current_containing_shadow {
                 let cascade_data = containing_shadow.style_data();
                 let host = containing_shadow.host();
                 if let Some(map) = cascade_data.and_then(|data| data.normal_rules(pseudo_element)) {
@@ -1267,31 +1268,37 @@ impl Stylist {
                     shadow_cascade_order += 1;
                 }
 
-                // NOTE(emilio): Hack so <svg:use> matches document rules as
-                // expected.
-                //
-                // This is not a problem for invalidation and that kind of stuff
-                // because they still don't match rules based on elements
-                // outside of the shadow tree, and because the <svg:use> subtree
-                // is immutable and recreated each time the source tree changes.
-                //
-                // See: https://github.com/w3c/svgwg/issues/504
-                //
-                // Note that we always resolve URLs against the document, so we
-                // can't get into a nested shadow situation here.
-                //
-                // See: https://github.com/w3c/svgwg/issues/505
-                //
-                // FIXME(emilio, bug 1487259): We now do after bug 1483882, we
-                // should jump out of the <svg:use> shadow tree chain now.
-                //
-                // Unless the used node is cross-doc, I guess, in which case doc
-                // rules are probably ok...
-                let host_is_svg_use =
+                let host_is_svg_use_element =
                     host.is_svg_element() &&
                     host.local_name() == &*local_name!("use");
 
-                match_document_author_rules = host_is_svg_use;
+                if !host_is_svg_use_element {
+                    match_document_author_rules = false;
+                    break;
+                }
+
+                debug_assert!(
+                    cascade_data.is_none(),
+                    "We allow no stylesheets in <svg:use> subtrees"
+                );
+
+                // NOTE(emilio): Hack so <svg:use> matches the rules of the
+                // enclosing tree.
+                //
+                // This is not a problem for invalidation and that kind of stuff
+                // because they still don't match rules based on elements
+                // outside of the shadow tree, and because the <svg:use>
+                // subtrees are immutable and recreated each time the source
+                // tree changes.
+                //
+                // We historically allow cross-document <svg:use> to have these
+                // rules applied, but I think that's not great. Gecko is the
+                // only engine supporting that.
+                //
+                // See https://github.com/w3c/svgwg/issues/504 for the relevant
+                // spec discussion.
+                current_containing_shadow = host.containing_shadow();
+                match_document_author_rules = current_containing_shadow.is_none();
             }
         }
 
