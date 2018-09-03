@@ -1452,7 +1452,13 @@ impl VirtualMethods for HTMLImageElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("src") => self.update_the_image_data(),
+            &local_name!("srcset") => self.update_the_image_data(),
             _ => {},
+        }
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            if parent.is::<HTMLPictureElement>() {
+                self.update_the_image_data();
+            }
         }
     }
 
@@ -1508,6 +1514,11 @@ impl VirtualMethods for HTMLImageElement {
         let document = document_from_node(self);
         if tree_in_doc {
             document.register_responsive_image(self);
+        }
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            if parent.is::<HTMLPictureElement>() {
+                self.update_the_image_data();
+            }
         }
     }
 

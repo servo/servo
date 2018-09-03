@@ -2235,7 +2235,7 @@ impl Document {
     }
 
     pub fn unregister_responsive_image(&self, img: &HTMLImageElement) {
-        if let Some(index) = self.responsive_images.borrow().iter().position(|x| **x == *img) {
+        if let Some(index) = self.responsive_images.borrow().clone().iter().position(|x| **x == *img) {
             self.responsive_images.borrow_mut().remove(index);
         }
     }
