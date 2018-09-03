@@ -84,7 +84,7 @@ impl PannerNode {
             &node_options,
             1, // inputs
             1, // outputs
-        );
+        )?;
         let id = node.node_id();
         let position_x = AudioParam::new(
             window,

@@ -44,7 +44,7 @@ impl AudioBufferSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
-    ) -> AudioBufferSourceNode {
+    ) -> Fallible<AudioBufferSourceNode> {
         let mut node_options = AudioNodeOptions::empty();
         node_options.channelCount = Some(2);
         node_options.channelCountMode = Some(ChannelCountMode::Max);
@@ -55,7 +55,7 @@ impl AudioBufferSourceNode {
             &node_options,
             0, /* inputs */
             1, /* outputs */
-        );
+        )?;
         let node_id = source_node.node().node_id();
         let playback_rate = AudioParam::new(
             &window,
@@ -77,7 +77,7 @@ impl AudioBufferSourceNode {
             f32::MIN,
             f32::MAX,
         );
-        AudioBufferSourceNode {
+        Ok(AudioBufferSourceNode {
             source_node,
             buffer: Default::default(),
             playback_rate: Dom::from_ref(&playback_rate),
@@ -85,7 +85,7 @@ impl AudioBufferSourceNode {
             loop_enabled: Cell::new(options.loop_),
             loop_start: Cell::new(*options.loopStart),
             loop_end: Cell::new(*options.loopEnd),
-        }
+        })
     }
 
     #[allow(unrooted_must_root)]
@@ -93,9 +93,9 @@ impl AudioBufferSourceNode {
         window: &Window,
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
-    ) -> DomRoot<AudioBufferSourceNode> {
-        let node = AudioBufferSourceNode::new_inherited(window, context, options);
-        reflect_dom_object(Box::new(node), window, AudioBufferSourceNodeBinding::Wrap)
+    ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
+        let node = AudioBufferSourceNode::new_inherited(window, context, options)?;
+        Ok(reflect_dom_object(Box::new(node), window, AudioBufferSourceNodeBinding::Wrap))
     }
 
     pub fn Constructor(
@@ -103,7 +103,7 @@ impl AudioBufferSourceNode {
         context: &BaseAudioContext,
         options: &AudioBufferSourceOptions,
     ) -> Fallible<DomRoot<AudioBufferSourceNode>> {
-        Ok(AudioBufferSourceNode::new(window, context, options))
+        AudioBufferSourceNode::new(window, context, options)
     }
 }
 

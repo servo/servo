@@ -30,13 +30,13 @@ interface BaseAudioContext : EventTarget {
   Promise<AudioBuffer> decodeAudioData(ArrayBuffer audioData,
                                        optional DecodeSuccessCallback successCallback,
                                        optional DecodeErrorCallback errorCallback);
-  AudioBufferSourceNode createBufferSource();
+  [Throws] AudioBufferSourceNode createBufferSource();
   // ConstantSourceNode createConstantSource();
   // ScriptProcessorNode createScriptProcessor(optional unsigned long bufferSize = 0,
   //                                           optional unsigned long numberOfInputChannels = 2,
   //                                           optional unsigned long numberOfOutputChannels = 2);
   // AnalyserNode createAnalyser();
-  GainNode createGain();
+  [Throws]  GainNode createGain();
   // DelayNode createDelay(optional double maxDelayTime = 1);
   // BiquadFilterNode createBiquadFilter();
   // IIRFilterNode createIIRFilter(sequence<double> feedforward,
@@ -48,7 +48,7 @@ interface BaseAudioContext : EventTarget {
   // ChannelSplitterNode createChannelSplitter(optional unsigned long numberOfOutputs = 6);
   // ChannelMergerNode createChannelMerger(optional unsigned long numberOfInputs = 6);
   // DynamicsCompressorNode createDynamicsCompressor();
-  OscillatorNode createOscillator();
+  [Throws]  OscillatorNode createOscillator();
   // PeriodicWave createPeriodicWave(sequence<float> real,
   //                                 sequence<float> imag,
   //                                 optional PeriodicWaveConstraints constraints);

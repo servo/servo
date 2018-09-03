@@ -317,7 +317,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createoscillator
-    fn CreateOscillator(&self) -> DomRoot<OscillatorNode> {
+    fn CreateOscillator(&self) -> Fallible<DomRoot<OscillatorNode>> {
         OscillatorNode::new(
             &self.global().as_window(),
             &self,
@@ -326,7 +326,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain
-    fn CreateGain(&self) -> DomRoot<GainNode> {
+    fn CreateGain(&self) -> Fallible<DomRoot<GainNode>> {
         GainNode::new(&self.global().as_window(), &self, &GainOptions::empty())
     }
 
@@ -360,7 +360,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
     }
 
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffersource
-    fn CreateBufferSource(&self) -> DomRoot<AudioBufferSourceNode> {
+    fn CreateBufferSource(&self) -> Fallible<DomRoot<AudioBufferSourceNode>> {
         AudioBufferSourceNode::new(
             &self.global().as_window(),
             &self,

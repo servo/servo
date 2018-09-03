@@ -49,7 +49,7 @@ impl ChannelMergerNode {
             &node_options,
             options.numberOfInputs, // inputs
             1, // outputs
-        );
+        )?;
         Ok(ChannelMergerNode {
             node,
         })
