@@ -549,9 +549,16 @@ class CommandBase(object):
             gstpath = path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib", "x86_64-linux-gnu")
-            extra_path += [libpath]
-            extra_lib += [libpath]
+            # we append in the reverse order so that system gstreamer libraries
+            # do not get precedence
+            extra_path = [libpath] + extra_path
+            extra_lib = [libpath] + extra_path
             append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
+
+        if sys.platform == "linux2":
+            distro, version, _ = platform.linux_distribution()
+            if distro == "Ubuntu" and (version == "16.04" or version == "14.04"):
+                env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
