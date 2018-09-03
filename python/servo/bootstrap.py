@@ -18,8 +18,8 @@ from servo.util import extract, download_file, host_triple
 
 
 def check_gstreamer_lib():
-    subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
-                                   stdout=PIPE, stderr=PIPE) == 0
+    return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
+                           stdout=PIPE, stderr=PIPE) == 0
 
 def run_as_root(command):
     if os.geteuid() != 0:
@@ -56,7 +56,12 @@ def install_salt_dependencies(context, force):
     install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
 
 def gstreamer(context, force=False):
-    pass
+    cur = os.curdir
+    gstdir = os.path.join(cur, "support", "linux", "gstreamer")
+    if not os.path.isdir(os.path.join(gstdir, "gstreamer", "lib")):
+        os.chdir(gstdir)
+        subprocess.call(["bash", "gstreamer.sh"])
+        os.chdir(cur)
 
 def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
