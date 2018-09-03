@@ -31,6 +31,7 @@ matrix:
          # see https://github.com/servo/servo/issues/20664
          #- ./mach cargo check -p compositing --no-default-features
          - ./mach build -d --verbose -p servo
+         - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
          - ./mach test-unit
          - ./mach clean
          - bash etc/ci/lockfile_changed.sh
