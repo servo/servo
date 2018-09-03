@@ -36,7 +36,16 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None):
             "owner": event["pusher"]["name"] + "@users.noreply.github.com",
             "source": event["compare"],
         },
+        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
+        "scopes": [
+            "docker-worker:cache:cargo-registry-cache",
+            "docker-worker:cache:cargo-git-cache",
+        ],
         "payload": {
+            "cache": {
+                "cargo-registry-cache": "/root/.cargo/registry",
+                "cargo-git-cache": "/root/.cargo/git",
+            },
             "maxRunTime": 600,
             "image": "buildpack-deps:bionic",
             "command": [

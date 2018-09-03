@@ -18,6 +18,8 @@ tasks:
         source: ${event.compare}
       scopes:
         - "queue:create-task:aws-provisioner-v1/github-worker"
+        - "docker-worker:cache:cargo-registry-cache"
+        - "docker-worker:cache:cargo-git-cache"
 
       payload:
         maxRunTime: 600
