@@ -17,22 +17,27 @@ import servo.packages as packages
 from servo.util import extract, download_file, host_triple
 
 
+def check_gstreamer_lib():
+    subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
+                                   stdout=PIPE, stderr=PIPE) == 0
+
 def run_as_root(command):
     if os.geteuid() != 0:
         command.insert(0, 'sudo')
     return subprocess.call(command)
 
 
-def install_salt_dependencies(context, force):
+def install_linux_deps(context, pkgs_ubuntu, pkgs_fedora, force):
     install = False
+    pkgs = []
     if context.distro == 'Ubuntu':
-        pkgs = ['build-essential', 'libssl-dev', 'libffi-dev', 'python-dev']
         command = ['apt-get', 'install']
+        pkgs = pkgs_ubuntu
         if subprocess.call(['dpkg', '-s'] + pkgs, stdout=PIPE, stderr=PIPE) != 0:
             install = True
     elif context.distro in ['CentOS', 'CentOS Linux', 'Fedora']:
         installed_pkgs = str(subprocess.check_output(['rpm', '-qa'])).replace('\n', '|')
-        pkgs = ['gcc', 'libffi-devel', 'python-devel', 'openssl-devel']
+        pkgs = pkgs_fedora
         for p in pkgs:
             command = ['dnf', 'install']
             if "|{}".format(p) not in installed_pkgs:
@@ -42,8 +47,51 @@ def install_salt_dependencies(context, force):
     if install:
         if force:
             command.append('-y')
-        print("Installing missing Salt dependencies...")
+        print("Installing missing dependencies...")
         run_as_root(command + pkgs)
+
+def install_salt_dependencies(context, force):
+    pkgs_apt = ['build-essential', 'libssl-dev', 'libffi-dev', 'python-dev']
+    pkgs_dnf = ['gcc', 'libffi-devel', 'python-devel', 'openssl-devel']
+    install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
+
+def gstreamer(context, force=False):
+    pass
+
+def linux(context, force=False):
+    # Please keep these in sync with the packages in README.md
+    pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
+                'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
+                'build-essential', 'cmake', 'virtualenv', 'python-pip',
+                'libbz2-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
+                'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
+                'ccache', 'clang', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
+                'libgstreamer-plugins-bad1.0-dev', 'autoconf2.13']
+    pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
+                'mesa-libGL-devel', 'mesa-libEGL-devel', 'glib2-devel', 'libX11-devel',
+                'libXrandr-devel', 'gperf', 'fontconfig-devel', 'cabextract', 'ttmkfdir',
+                'python2', 'python2-virtualenv', 'python2-pip', 'expat-devel', 'rpm-build',
+                'openssl-devel', 'cmake', 'bzip2-devel', 'libXcursor-devel', 'libXmu-devel',
+                'mesa-libOSMesa-devel', 'dbus-devel', 'ncurses-devel', 'harfbuzz-devel',
+                'ccache', 'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
+                'gstreamer1-plugins-base-devel', 'gstreamer1-plugins-bad-free-devel', 'autoconf213']
+    if context.distro == "Ubuntu":
+        if context.distro_version == "17.04":
+            pkgs_apt += ["libssl-dev"]
+        elif int(context.distro_version.split(".")[0]) < 17:
+            pkgs_apt += ["libssl-dev"]
+        else:
+            pkgs_apt += ["libssl1.0-dev"]
+    elif context.distro == "Debian" and context.distro_version == "Sid":
+        pkgs_apt += ["libssl-dev"]
+    else:
+        pkgs_apt += ["libssl1.0-dev"]
+
+    install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
+
+    if not check_gstreamer_lib():
+        gstreamer(context, force)
+
 
 
 def salt(context, force=False):
@@ -226,11 +274,10 @@ def windows_msvc(context, force=False):
     return 0
 
 
-def bootstrap(context, force=False):
+def bootstrap(context, force=False, specific=None):
     '''Dispatches to the right bootstrapping function for the OS.'''
 
     bootstrapper = None
-
     if "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
@@ -243,7 +290,15 @@ def bootstrap(context, force=False):
             'ubuntu',
         ]:
             context.distro = distro
-            bootstrapper = salt
+            context.distro_version = version
+            if specific == "salt":
+                bootstrapper = salt
+            elif specific == "gstreamer":
+                bootstrapper = gstreamer
+            else:
+                bootstrapper = linux
+        else:
+            raise Exception("mach bootstrap does not support %s, please file a bug" % distro)
 
     if bootstrapper is None:
         print('Bootstrap support is not yet available for your OS.')
