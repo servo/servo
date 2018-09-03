@@ -518,6 +518,8 @@ impl VRDisplay {
                 let task = Box::new(task!(handle_vrdisplay_raf: move || {
                     this.root().handle_raf(&sender);
                 }));
+                // NOTE: WebVR spec doesn't specify what task source we should use. Is
+                // dom-manipulation a good choise long term?
                 js_sender.send(CommonScriptMsg::Task(
                     WebVREvent,
                     task,

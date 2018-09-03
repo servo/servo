@@ -2837,6 +2837,8 @@ impl Document {
         let trusted_pending = Trusted::new(pending);
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenEnter::new(trusted_pending, trusted_promise, error);
+        // NOTE: This steps should be running in parallel
+        // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
         let script_msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::EnterFullscreen,
             handler,
@@ -2875,6 +2877,8 @@ impl Document {
         let trusted_promise = TrustedPromise::new(promise.clone());
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
         let pipeline_id = Some(global.pipeline_id());
+        // NOTE: This steps should be running in parallel
+        // https://fullscreen.spec.whatwg.org/#exit-fullscreen
         let script_msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::ExitFullscreen,
             handler,

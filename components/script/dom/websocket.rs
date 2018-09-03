@@ -268,6 +268,7 @@ impl WebSocket {
             let pipeline_id = self.global().pipeline_id();
             self.global()
                 .script_chan()
+                // TODO: Use a dedicated `websocket-task-source` task source instead.
                 .send(CommonScriptMsg::Task(
                     WebSocketEvent,
                     task,

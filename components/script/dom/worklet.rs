@@ -645,6 +645,8 @@ impl WorkletThread {
     where
         T: TaskBox + 'static,
     {
+        // NOTE: It's unclear which task source should be used here:
+        // https://drafts.css-houdini.org/worklets/#dom-worklet-addmodule
         let msg = CommonScriptMsg::Task(
             ScriptThreadEventCategory::WorkletEvent,
             Box::new(task),
