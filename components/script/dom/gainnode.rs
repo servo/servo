@@ -30,14 +30,17 @@ impl GainNode {
     pub fn new_inherited(
         window: &Window,
         context: &BaseAudioContext,
-        gain_options: &GainOptions,
+        options: &GainOptions,
     ) -> GainNode {
         let mut node_options = AudioNodeOptions::empty();
-        node_options.channelCount = Some(2);
-        node_options.channelCountMode = Some(ChannelCountMode::Max);
-        node_options.channelInterpretation = Some(ChannelInterpretation::Speakers);
+        let count = options.parent.channelCount.unwrap_or(2);
+        let mode = options.parent.channelCountMode.unwrap_or(ChannelCountMode::Max);
+        let interpretation = options.parent.channelInterpretation.unwrap_or(ChannelInterpretation::Speakers);
+        node_options.channelCount = Some(count);
+        node_options.channelCountMode = Some(mode);
+        node_options.channelInterpretation = Some(interpretation);
         let node = AudioNode::new_inherited(
-            AudioNodeInit::GainNode(gain_options.into()),
+            AudioNodeInit::GainNode(options.into()),
             context,
             &node_options,
             1, // inputs
