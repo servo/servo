@@ -124,6 +124,14 @@ image_capture_test(async (t, imageCaptureTest) => {
   assert_equals(capabilities.sharpness.step,
                 mockCapabilities.sharpness.step);
 
+  assert_true(capabilities.focusDistance instanceof MediaSettingsRange);
+  assert_equals(capabilities.focusDistance.max,
+                mockCapabilities.focusDistance.max);
+  assert_equals(capabilities.focusDistance.min,
+                mockCapabilities.focusDistance.min);
+  assert_equals(capabilities.focusDistance.step,
+                mockCapabilities.focusDistance.step);
+
   assert_true(capabilities.zoom instanceof MediaSettingsRange);
   assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
   assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);

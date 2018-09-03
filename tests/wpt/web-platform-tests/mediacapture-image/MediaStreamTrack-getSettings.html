@@ -58,6 +58,7 @@ image_capture_test(async (t, imageCaptureTest) => {
   assert_equals(settings.saturation, mockSettings.saturation.current);
   assert_equals(settings.sharpness, mockSettings.sharpness.current);
 
+  assert_equals(settings.focusDistance, mockSettings.focusDistance.current);
   assert_equals(settings.zoom, mockSettings.zoom.current);
 
   assert_equals(settings.torch, mockSettings.torch, 'torch');
