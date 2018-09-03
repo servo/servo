@@ -722,7 +722,7 @@ pub mod basic_shape {
                     let result: Vec<PathCommand> =
                         gecko_path.mPath.iter().map(|gecko: &StylePathCommand| {
                             // unsafe: cbindgen ensures the representation is the same.
-                            unsafe{ ::std::mem::transmute(*gecko) }
+                            unsafe { ::std::mem::transmute(*gecko) }
                         }).collect();
                     Some(SVGPathData::new(result.into_boxed_slice()))
                 },
