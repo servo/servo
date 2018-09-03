@@ -6,11 +6,11 @@
 
 #![deny(missing_docs)]
 
+use Atom;
 use cssparser::{Parser as CssParser, ParserInput};
 use element_state::ElementState;
 use selectors::parser::SelectorList;
 use std::fmt::{self, Debug, Write};
-use string_cache::Atom;
 use style_traits::{CssWriter, ParseError, ToCss};
 use stylesheets::{Namespaces, Origin, UrlExtraData};
 use values::serialize_atom_identifier;

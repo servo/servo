@@ -135,6 +135,10 @@ impl PseudoElement {
         self.is_before() || self.is_after()
     }
 
+    /// Whether this is an unknown ::-webkit- pseudo-element.
+    #[inline]
+    pub fn is_unknown_webkit_pseudo_element(&self) -> bool { false }
+
     /// Whether this pseudo-element is the ::before pseudo.
     #[inline]
     pub fn is_before(&self) -> bool {

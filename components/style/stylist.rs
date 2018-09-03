@@ -1948,7 +1948,7 @@ pub struct CascadeData {
     /// to avoid taking element snapshots when an irrelevant attribute changes.
     /// (We don't bother storing the namespace, since namespaced attributes are
     /// rare.)
-    attribute_dependencies: PrecomputedHashSet<Atom>,
+    attribute_dependencies: PrecomputedHashSet<LocalName>,
 
     /// The element state bits that are relied on by selectors.  Like
     /// `attribute_dependencies`, this is used to avoid taking element snapshots
@@ -1964,7 +1964,7 @@ pub struct CascadeData {
     /// hence in our selector maps).  Used to determine when sharing styles is
     /// safe: we disallow style sharing for elements whose id matches this
     /// filter, and hence might be in one of our selector maps.
-    mapped_ids: PrecomputedHashSet<LocalName>,
+    mapped_ids: PrecomputedHashSet<Atom>,
 
     /// Selectors that require explicit cache revalidation (i.e. which depend
     /// on state that is not otherwise visible to the cache, like attributes or

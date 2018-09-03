@@ -378,10 +378,11 @@ ${helpers.predefined_type(
     "offset-path",
     "OffsetPath",
     "computed::OffsetPath::none()",
+    products="gecko",
     animation_value_type="none",
     gecko_pref="layout.css.motion-path.enabled",
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
-    spec="https://drafts.fxtf.org/motion-1/#offset-path-property"
+    spec="https://drafts.fxtf.org/motion-1/#offset-path-property",
 )}
 
 // CSSOM View Module
