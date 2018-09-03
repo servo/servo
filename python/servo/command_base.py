@@ -476,6 +476,10 @@ class CommandBase(object):
             bin_folder = path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
         return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
 
+    def check_gstreamer_lib(self):
+        return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
+                               stdout=PIPE, stderr=PIPE) == 0
+
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
@@ -513,11 +517,22 @@ class CommandBase(object):
             # Link LLVM
             env["LIBCLANG_PATH"] = path.join(package_dir("llvm"), "lib")
 
-        if is_windows():
             if not os.environ.get("NATIVE_WIN32_PYTHON"):
                 env["NATIVE_WIN32_PYTHON"] = sys.executable
             # Always build harfbuzz from source
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
+
+        gstpath = path.join(os.getcwd(), "support", "linux", "gstreamer", "gstreamer")
+        if sys.platform == "linux2" and path.isdir(gstpath):
+            if True:
+                if "x86_64" not in (target or host_triple()):
+                    raise Exception("We don't currently support using local gstreamer builds \
+                                     for non-x86_64, please file a bug")
+                extra_path += [path.join(gstpath, "bin")]
+                libpath = path.join(gstpath, "lib", "x86_64-linux-gnu")
+                extra_path += [libpath]
+                extra_lib += [libpath]
+                append_to_path_env(path.join(libpath, "pkgconfig"), env, "PKG_CONFIG_PATH")
 
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
