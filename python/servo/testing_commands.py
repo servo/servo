@@ -383,6 +383,7 @@ class MachCommands(CommandBase):
         return self._test_wpt(**kwargs)
 
     def _test_wpt(self, **kwargs):
+        self.set_run_env()
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
         os.environ["hosts_file_path"] = hosts_file_path
         run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run.py"))
