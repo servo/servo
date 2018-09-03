@@ -37,6 +37,10 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None):
             "source": event["compare"],
         },
         # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
+        # For this to be allowed, I created role
+        # "repo:github.com/servo/servo-taskcluster-experiments:branch:master"
+        # with scope "assume:project:servo:grants/cargo-caches"
+        # at https://tools.taskcluster.net/auth/roles/
         "scopes": [
             "docker-worker:cache:cargo-registry-cache",
             "docker-worker:cache:cargo-git-cache",
