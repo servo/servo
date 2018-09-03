@@ -218,6 +218,11 @@ impl AudioNodeMethods for AudioNode {
                     return Err(Error::NotSupported)
                 }
             }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
+                if value != 1 {
+                    return Err(Error::InvalidState)
+                }
+            }
             // XXX We do not support any of the other AudioNodes with
             // constraints yet. Add more cases here as we add support
             // for new AudioNodes.
@@ -254,6 +259,11 @@ impl AudioNodeMethods for AudioNode {
             EventTargetTypeId::AudioNode(AudioNodeTypeId::PannerNode) => {
                 if value == ChannelCountMode::Max {
                     return Err(Error::NotSupported)
+                }
+            }
+            EventTargetTypeId::AudioNode(AudioNodeTypeId::ChannelMergerNode) => {
+                if value != ChannelCountMode::Explicit {
+                    return Err(Error::InvalidState)
                 }
             }
             // XXX We do not support any of the other AudioNodes with
