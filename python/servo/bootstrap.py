@@ -67,7 +67,7 @@ def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
-                'build-essential', 'cmake', 'virtualenv', 'python-pip',
+                'build-essential', 'cmake', 'python-pip',
                 'libbz2-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev', 'libglu1-mesa-dev',
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev', 'libharfbuzz-dev',
                 'ccache', 'clang', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
@@ -87,6 +87,12 @@ def linux(context, force=False):
             pkgs_apt += ["libssl-dev"]
         else:
             pkgs_apt += ["libssl1.0-dev"]
+
+        if context.distro_version == "14.04":
+            pkgs_apt += ["python-virtualenv"]
+        else:
+            pkgs_apt += ["virtualenv"]
+
     elif context.distro == "Debian" and context.distro_version == "Sid":
         pkgs_apt += ["libssl-dev"]
     else:
