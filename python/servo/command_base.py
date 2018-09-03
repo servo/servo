@@ -24,6 +24,7 @@ import tarfile
 from xml.etree.ElementTree import XML
 from servo.util import download_file
 import urllib2
+from bootstrap import check_gstreamer_lib
 
 from mach.registrar import Registrar
 import toml
@@ -476,10 +477,6 @@ class CommandBase(object):
             bin_folder = path.join(destination_folder, "PFiles", "Mozilla research", "Servo Tech Demo")
         return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
 
-    def check_gstreamer_lib(self):
-        return subprocess.call(["pkg-config", "gstreamer-1.0 >= 1.12"],
-                               stdout=PIPE, stderr=PIPE) == 0
-
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
@@ -524,7 +521,7 @@ class CommandBase(object):
 
         gstpath = path.join(os.getcwd(), "support", "linux", "gstreamer", "gstreamer")
         if sys.platform == "linux2" and path.isdir(gstpath):
-            if True:
+            if not check_gstreamer_lib():
                 if "x86_64" not in (target or host_triple()):
                     raise Exception("We don't currently support using local gstreamer builds \
                                      for non-x86_64, please file a bug")

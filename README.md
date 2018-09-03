@@ -78,6 +78,8 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 
 #### On Debian-based Linuxes
 
+Simply running `./mach bootstrap` should be enough. If not, run the commands below:
+
 ``` sh
 sudo apt install git curl autoconf libx11-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
@@ -98,6 +100,8 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 
 #### On Fedora
 
+Simply running `./mach bootstrap` should be enough. If not, run the commands below:
+
 ``` sh
 sudo dnf install curl libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
@@ -107,6 +111,8 @@ sudo dnf install curl libtool gcc-c++ libXi-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
 #### On CentOS
+
+Simply running `./mach bootstrap` should be enough. If not, run the commands below:
 
 ``` sh
 sudo yum install curl libtool gcc-c++ libXi-devel \
