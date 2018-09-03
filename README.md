@@ -78,7 +78,7 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 
 #### On Debian-based Linuxes
 
-Please run `sudo apt install python-virtualenv build-essential libssl-dev libffi-dev python-dev` followed by `./mach bootstrap`.
+Please run `./mach bootstrap`.
 
 If this doesn't work, file a bug, and, run the commands below:
 
@@ -103,7 +103,7 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 
 #### On Fedora
 
-Please run `sudo dnf install python2-virtualenv gcc libffi-devel python-devel openssl-devel` followed by `./mach bootstrap`.
+Please run `./mach bootstrap`.
 
 If this doesn't work, file a bug, and, run the commands below:
 
@@ -118,7 +118,7 @@ sudo dnf install curl libtool gcc-c++ libXi-devel \
 #### On CentOS
 
 
-Please run `sudo yum install python2-virtualenv gcc libffi-devel python-devel openssl-devel` followed by `./mach bootstrap`.
+Please run `./mach bootstrap`.
 
 If this doesn't work, file a bug, and, run the commands below:
 
