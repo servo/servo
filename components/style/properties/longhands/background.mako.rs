@@ -18,14 +18,17 @@ ${helpers.predefined_type(
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}
 
-${helpers.predefined_type("background-image", "ImageLayer",
+${helpers.predefined_type(
+    "background-image",
+    "ImageLayer",
     initial_value="Either::First(None_)",
     initial_specified_value="Either::First(None_)",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
     animation_value_type="discrete",
     ignored_when_colors_disabled="True",
-    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+)}
 
 % for (axis, direction, initial) in [("x", "Horizontal", "left"), ("y", "Vertical", "top")]:
     ${helpers.predefined_type(
@@ -52,13 +55,15 @@ ${helpers.predefined_type(
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
 )}
 
-${helpers.single_keyword("background-attachment",
-                         "scroll fixed" + (" local" if product == "gecko" else ""),
-                         vector=True,
-                         gecko_enum_prefix="StyleImageLayerAttachment",
-                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
-                         animation_value_type="discrete",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+${helpers.single_keyword(
+    "background-attachment",
+    "scroll fixed" + (" local" if product == "gecko" else ""),
+    vector=True,
+    gecko_enum_prefix="StyleImageLayerAttachment",
+    spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
+    animation_value_type="discrete",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+)}
 
 ${helpers.single_keyword(
     "background-clip",
@@ -96,12 +101,14 @@ ${helpers.predefined_type(
     extra_prefixes="webkit")}
 
 // https://drafts.fxtf.org/compositing/#background-blend-mode
-${helpers.single_keyword("background-blend-mode",
-                         """normal multiply screen overlay darken lighten color-dodge
-                            color-burn hard-light soft-light difference exclusion hue
-                            saturation color luminosity""",
-                         gecko_constant_prefix="NS_STYLE_BLEND",
-                         gecko_pref="layout.css.background-blend-mode.enabled",
-                         vector=True, products="gecko", animation_value_type="discrete",
-                         spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
-                         flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER")}
+${helpers.single_keyword(
+    "background-blend-mode",
+    """normal multiply screen overlay darken lighten color-dodge
+    color-burn hard-light soft-light difference exclusion hue
+    saturation color luminosity""",
+    gecko_constant_prefix="NS_STYLE_BLEND",
+    gecko_pref="layout.css.background-blend-mode.enabled",
+    vector=True, products="gecko", animation_value_type="discrete",
+    spec="https://drafts.fxtf.org/compositing/#background-blend-mode",
+    flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
+)}

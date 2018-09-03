@@ -15,7 +15,7 @@ ${helpers.predefined_type(
     animation_value_type="AnimatedRGBA",
     flags="APPLIES_TO_FIRST_LETTER APPLIES_TO_FIRST_LINE APPLIES_TO_PLACEHOLDER",
     ignored_when_colors_disabled="True",
-    spec="https://drafts.csswg.org/css-color/#color"
+    spec="https://drafts.csswg.org/css-color/#color",
 )}
 
 // FIXME(#15973): Add servo support for system colors
@@ -96,8 +96,10 @@ pub mod system_colors {
         #[inline]
         fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
             unsafe {
-                Gecko_GetLookAndFeelSystemColor(*self as i32,
-                                                cx.device().pres_context())
+                Gecko_GetLookAndFeelSystemColor(
+                    *self as i32,
+                    cx.device().pres_context(),
+                )
             }
         }
 

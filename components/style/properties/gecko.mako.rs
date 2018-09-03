@@ -3053,7 +3053,7 @@ fn static_assert() {
                           scroll-snap-points-x scroll-snap-points-y
                           scroll-snap-type-x scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin -moz-binding will-change
-                          overscroll-behavior-x overscroll-behavior-y
+                          offset-path overscroll-behavior-x overscroll-behavior-y
                           overflow-clip-box-inline overflow-clip-box-block
                           perspective-origin -moz-binding will-change
                           shape-outside contain touch-action translate
@@ -3681,6 +3681,40 @@ fn static_assert() {
     ${impl_simple_copy("contain", "mContain")}
 
     ${impl_simple_type_with_conversion("touch_action")}
+
+    pub fn set_offset_path(&mut self, v: longhands::offset_path::computed_value::T) {
+        use gecko_bindings::bindings::{Gecko_NewStyleMotion, Gecko_SetStyleMotion};
+        use gecko_bindings::structs::StyleShapeSourceType;
+        use values::generics::basic_shape::FillRule;
+        use values::specified::OffsetPath;
+
+        let motion = unsafe { Gecko_NewStyleMotion().as_mut().unwrap() };
+        match v {
+            OffsetPath::None => motion.mOffsetPath.mType = StyleShapeSourceType::None,
+            OffsetPath::Path(p) => {
+                set_style_svg_path(&mut motion.mOffsetPath, &p, FillRule::Nonzero)
+            },
+        }
+        unsafe { Gecko_SetStyleMotion(&mut self.gecko.mMotion, motion) };
+    }
+
+    pub fn clone_offset_path(&self) -> longhands::offset_path::computed_value::T {
+        use values::specified::OffsetPath;
+        match unsafe { self.gecko.mMotion.mPtr.as_ref() } {
+            None => OffsetPath::none(),
+            Some(v) => (&v.mOffsetPath).into()
+        }
+    }
+
+    pub fn copy_offset_path_from(&mut self, other: &Self) {
+        use gecko_bindings::bindings::Gecko_CopyStyleMotions;
+        unsafe { Gecko_CopyStyleMotions(&mut self.gecko.mMotion, other.gecko.mMotion.mPtr) };
+    }
+
+    pub fn reset_offset_path(&mut self, other: &Self) {
+        self.copy_offset_path_from(other);
+    }
+
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
@@ -4937,14 +4971,43 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+// Set SVGPathData to StyleShapeSource.
+fn set_style_svg_path(
+    shape_source: &mut structs::mozilla::StyleShapeSource,
+    servo_path: &values::specified::svg_path::SVGPathData,
+    fill: values::generics::basic_shape::FillRule,
+) {
+    use gecko_bindings::bindings::Gecko_NewStyleSVGPath;
+    use gecko_bindings::structs::StyleShapeSourceType;
+
+    // Setup type.
+    shape_source.mType = StyleShapeSourceType::Path;
+
+    // Setup path.
+    let gecko_path = unsafe {
+        Gecko_NewStyleSVGPath(shape_source);
+        &mut shape_source.__bindgen_anon_1.mSVGPath.as_mut().mPtr.as_mut().unwrap()
+    };
+    unsafe { gecko_path.mPath.set_len(servo_path.commands().len() as u32) };
+    debug_assert_eq!(gecko_path.mPath.len(), servo_path.commands().len());
+    for (servo, gecko) in servo_path.commands().iter().zip(gecko_path.mPath.iter_mut()) {
+        // unsafe: cbindgen ensures the representation is the same.
+        *gecko = unsafe { transmute(*servo) };
+    }
+
+    // Setup fill-rule.
+    // unsafe: cbindgen ensures the representation is the same.
+    gecko_path.mFillRule = unsafe { transmute(fill) };
+}
+
 <%def name="impl_shape_source(ident, gecko_ffi_name)">
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyShapeSource};
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
-        use gecko_bindings::structs::{StyleFillRule, StyleGeometryBox, StyleShapeSource};
+        use gecko_bindings::structs::{StyleGeometryBox, StyleShapeSource};
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
-        use values::generics::basic_shape::{BasicShape, FillRule, ShapeSource};
+        use values::generics::basic_shape::{BasicShape, ShapeSource};
 
         let ref mut ${ident} = self.gecko.${gecko_ffi_name};
 
@@ -4976,6 +5039,7 @@ fn static_assert() {
                 ${ident}.mReferenceBox = reference.into();
                 ${ident}.mType = StyleShapeSourceType::Box;
             }
+            ShapeSource::Path(p) => set_style_svg_path(${ident}, &p.path, p.fill),
             ShapeSource::Shape(servo_shape, maybe_box) => {
                 fn init_shape(${ident}: &mut StyleShapeSource, basic_shape_type: StyleBasicShapeType)
                               -> &mut StyleBasicShape {
@@ -5038,11 +5102,8 @@ fn static_assert() {
                             coord.0.to_gecko_style_coord(&mut shape.mCoordinates[2 * i]);
                             coord.1.to_gecko_style_coord(&mut shape.mCoordinates[2 * i + 1]);
                         }
-                        shape.mFillRule = if poly.fill == FillRule::Evenodd {
-                            StyleFillRule::Evenodd
-                        } else {
-                            StyleFillRule::Nonzero
-                        };
+                        // unsafe: cbindgen ensures the representation is the same.
+                        shape.mFillRule = unsafe { transmute(poly.fill) };
                     }
                 }
 

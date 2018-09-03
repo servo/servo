@@ -135,6 +135,10 @@ impl PseudoElement {
         self.is_before() || self.is_after()
     }
 
+    /// Whether this is an unknown ::-webkit- pseudo-element.
+    #[inline]
+    pub fn is_unknown_webkit_pseudo_element(&self) -> bool { false }
+
     /// Whether this pseudo-element is the ::before pseudo.
     #[inline]
     pub fn is_before(&self) -> bool {
@@ -284,8 +288,8 @@ impl PseudoElement {
     }
 }
 
-/// The type used for storing pseudo-class string arguments.
-pub type PseudoClassStringArg = Box<str>;
+/// The type used for storing `:lang` arguments.
+pub type Lang = Box<str>;
 
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
@@ -302,7 +306,7 @@ pub enum NonTSPseudoClass {
     Fullscreen,
     Hover,
     Indeterminate,
-    Lang(PseudoClassStringArg),
+    Lang(Lang),
     Link,
     PlaceholderShown,
     ReadWrite,

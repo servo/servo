@@ -845,8 +845,8 @@ macro_rules! malloc_size_of_is_0(
 );
 
 malloc_size_of_is_0!(bool, char, str);
-malloc_size_of_is_0!(u8, u16, u32, u64, usize);
-malloc_size_of_is_0!(i8, i16, i32, i64, isize);
+malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
+malloc_size_of_is_0!(i8, i16, i32, i64, i128, isize);
 malloc_size_of_is_0!(f32, f64);
 
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);

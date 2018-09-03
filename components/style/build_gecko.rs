@@ -406,11 +406,7 @@ mod bindings {
     fn generate_structs() {
         let builder = Builder::get_initial_builder()
             .enable_cxx_namespaces()
-            .with_codegen_config(CodegenConfig {
-                types: true,
-                vars: true,
-                ..CodegenConfig::nothing()
-            });
+            .with_codegen_config(CodegenConfig::TYPES | CodegenConfig::VARS);
         let mut fixups = vec![];
         let builder = BuilderWithConfig::new(builder, CONFIG["structs"].as_table().unwrap())
             .handle_common(&mut fixups)
@@ -500,10 +496,7 @@ mod bindings {
     fn generate_bindings() {
         let builder = Builder::get_initial_builder()
             .disable_name_namespacing()
-            .with_codegen_config(CodegenConfig {
-                functions: true,
-                ..CodegenConfig::nothing()
-            });
+            .with_codegen_config(CodegenConfig::FUNCTIONS);
         let config = CONFIG["bindings"].as_table().unwrap();
         let mut structs_types = HashSet::new();
         let mut fixups = vec![];

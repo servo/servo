@@ -264,6 +264,7 @@ impl CssRule {
             ParsingMode::DEFAULT,
             parent_stylesheet_contents.quirks_mode,
             None,
+            None,
         );
 
         let mut input = ParserInput::new(css);

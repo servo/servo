@@ -1089,6 +1089,7 @@ impl WindowMethods for Window {
             ParsingMode::DEFAULT,
             quirks_mode,
             self.css_error_reporter(),
+            None,
         );
         let media_query_list =
             media_queries::MediaList::parse(&context, &mut parser);

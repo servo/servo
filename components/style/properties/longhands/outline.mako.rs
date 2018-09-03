@@ -29,24 +29,34 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-ui/#propdef-outline-style",
 )}
 
-${helpers.predefined_type("outline-width",
-                          "BorderSideWidth",
-                          "::values::computed::NonNegativeLength::new(3.)",
-                          initial_specified_value="specified::BorderSideWidth::Medium",
-                          computed_type="::values::computed::NonNegativeLength",
-                          animation_value_type="NonNegativeLength",
-                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-width")}
+${helpers.predefined_type(
+    "outline-width",
+    "BorderSideWidth",
+    "::values::computed::NonNegativeLength::new(3.)",
+    initial_specified_value="specified::BorderSideWidth::Medium",
+    computed_type="::values::computed::NonNegativeLength",
+    animation_value_type="NonNegativeLength",
+    spec="https://drafts.csswg.org/css-ui/#propdef-outline-width",
+)}
 
 // The -moz-outline-radius-* properties are non-standard and not on a standards track.
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
-    ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderCornerRadius",
+    ${helpers.predefined_type(
+        "-moz-outline-radius-" + corner,
+        "BorderCornerRadius",
         "computed::BorderCornerRadius::zero()",
         products="gecko",
         boxed=True,
         animation_value_type="BorderCornerRadius",
-        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
+        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)",
+    )}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "::values::computed::Length::new(0.)",
-                          products="servo gecko", animation_value_type="ComputedValue",
-                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset")}
+${helpers.predefined_type(
+    "outline-offset",
+    "Length",
+    "::values::computed::Length::new(0.)",
+    products="servo gecko",
+    animation_value_type="ComputedValue",
+    spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset",
+)}

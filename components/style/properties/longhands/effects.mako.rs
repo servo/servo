@@ -15,7 +15,7 @@ ${helpers.predefined_type(
     flags="CREATES_STACKING_CONTEXT APPLIES_TO_PLACEHOLDER \
            CAN_ANIMATE_ON_COMPOSITOR",
     spec="https://drafts.csswg.org/css-color/#opacity",
-    servo_restyle_damage = "reflow_out_of_flow"
+    servo_restyle_damage = "reflow_out_of_flow",
 )}
 
 ${helpers.predefined_type(
@@ -31,13 +31,15 @@ ${helpers.predefined_type(
     spec="https://drafts.csswg.org/css-backgrounds/#box-shadow",
 )}
 
-${helpers.predefined_type("clip",
-                          "ClipRectOrAuto",
-                          "computed::ClipRectOrAuto::auto()",
-                          animation_value_type="ComputedValue",
-                          boxed=True,
-                          allow_quirks=True,
-                          spec="https://drafts.fxtf.org/css-masking/#clip-property")}
+${helpers.predefined_type(
+    "clip",
+    "ClipRectOrAuto",
+    "computed::ClipRectOrAuto::auto()",
+    animation_value_type="ComputedValue",
+    boxed=True,
+    allow_quirks=True,
+    spec="https://drafts.fxtf.org/css-masking/#clip-property",
+)}
 
 ${helpers.predefined_type(
     "filter",
@@ -52,11 +54,14 @@ ${helpers.predefined_type(
     spec="https://drafts.fxtf.org/filters/#propdef-filter",
 )}
 
-${helpers.single_keyword("mix-blend-mode",
-                         """normal multiply screen overlay darken lighten color-dodge
-                            color-burn hard-light soft-light difference exclusion hue
-                            saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND",
-                         animation_value_type="discrete",
-                         flags="CREATES_STACKING_CONTEXT",
-                         gecko_pref="layout.css.mix-blend-mode.enabled",
-                         spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode")}
+${helpers.single_keyword(
+    "mix-blend-mode",
+    """normal multiply screen overlay darken lighten color-dodge
+    color-burn hard-light soft-light difference exclusion hue
+    saturation color luminosity""",
+    gecko_constant_prefix="NS_STYLE_BLEND",
+    animation_value_type="discrete",
+    flags="CREATES_STACKING_CONTEXT",
+    gecko_pref="layout.css.mix-blend-mode.enabled",
+    spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode",
+)}

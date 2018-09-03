@@ -40,25 +40,31 @@ ${helpers.single_keyword("list-style-position", "outside inside", animation_valu
     )}
 % endif
 
-${helpers.predefined_type("list-style-image",
-                          "url::ImageUrlOrNone",
-                          initial_value="computed::url::ImageUrlOrNone::none()",
-                          initial_specified_value="specified::url::ImageUrlOrNone::none()",
-                          animation_value_type="discrete",
-                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
-                          servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type(
+    "list-style-image",
+    "url::ImageUrlOrNone",
+    initial_value="computed::url::ImageUrlOrNone::none()",
+    initial_specified_value="specified::url::ImageUrlOrNone::none()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
-${helpers.predefined_type("quotes",
-                          "Quotes",
-                          "computed::Quotes::get_initial_value()",
-                          animation_value_type="discrete",
-                          spec="https://drafts.csswg.org/css-content/#propdef-quotes",
-                          servo_restyle_damage="rebuild_and_reflow")}
+${helpers.predefined_type(
+    "quotes",
+    "Quotes",
+    "computed::Quotes::get_initial_value()",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-content/#propdef-quotes",
+    servo_restyle_damage="rebuild_and_reflow",
+)}
 
-${helpers.predefined_type("-moz-image-region",
-                          "ClipRectOrAuto",
-                          "computed::ClipRectOrAuto::auto()",
-                          animation_value_type="ComputedValue",
-                          products="gecko",
-                          boxed=True,
-                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)")}
+${helpers.predefined_type(
+    "-moz-image-region",
+    "ClipRectOrAuto",
+    "computed::ClipRectOrAuto::auto()",
+    animation_value_type="ComputedValue",
+    products="gecko",
+    boxed=True,
+    spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)",
+)}

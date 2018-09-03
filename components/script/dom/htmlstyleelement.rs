@@ -91,6 +91,7 @@ impl HTMLStyleElement {
             ParsingMode::DEFAULT,
             doc.quirks_mode(),
             css_error_reporter,
+            None,
         );
         let shared_lock = node.owner_doc().style_shared_lock().clone();
         let mut input = ParserInput::new(&mq_str);

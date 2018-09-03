@@ -157,6 +157,7 @@ pub mod thread_state;
 pub mod timer;
 pub mod traversal;
 pub mod traversal_flags;
+pub mod use_counters;
 #[macro_use]
 #[allow(non_camel_case_types)]
 pub mod values;

@@ -12,6 +12,7 @@ use values::distance::{ComputeSquaredDistance, SquaredDistance};
 use values::generics::border::BorderRadius;
 use values::generics::position::Position;
 use values::generics::rect::Rect;
+use values::specified::SVGPathData;
 
 /// A clipping shape, for `clip-path`.
 pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, Url>;
@@ -53,6 +54,9 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     Shape(BasicShape, Option<ReferenceBox>),
     #[animation(error)]
     Box(ReferenceBox),
+    #[animation(error)]
+    #[css(function)]
+    Path(Path),
     #[animation(error)]
     None,
 }
@@ -113,15 +117,22 @@ pub enum ShapeRadius<LengthOrPercentage> {
 /// A generic type for representing the `polygon()` function
 ///
 /// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
-#[css(function)]
+#[css(comma, function)]
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+         ToComputedValue, ToCss)]
 pub struct Polygon<LengthOrPercentage> {
     /// The filling rule for a polygon.
+    #[css(skip_if = "fill_is_default")]
     pub fill: FillRule,
     /// A collection of (x, y) coordinates to draw the polygon.
-    pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
+    #[css(iterable)]
+    pub coordinates: Vec<PolygonCoord<LengthOrPercentage>>,
 }
+
+/// Coordinates for Polygon.
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
+         ToComputedValue, ToCss)]
+pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOrPercentage);
 
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
 // NOTE: Basic shapes spec says that these are the only two values, however
@@ -131,9 +142,23 @@ pub struct Polygon<LengthOrPercentage> {
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
          SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[repr(u8)]
 pub enum FillRule {
     Nonzero,
     Evenodd,
+}
+
+/// The path function defined in css-shape-2.
+///
+/// https://drafts.csswg.org/css-shapes-2/#funcdef-path
+#[css(comma)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+pub struct Path {
+    /// The filling rule for the svg path.
+    #[css(skip_if = "fill_is_default")]
+    pub fill: FillRule,
+    /// The svg path data.
+    pub path: SVGPathData,
 }
 
 // FIXME(nox): Implement ComputeSquaredDistance for T types and stop
@@ -203,7 +228,7 @@ where
             .iter()
             .zip(other.coordinates.iter())
             .map(|(this, other)| {
-                Ok((
+                Ok(PolygonCoord(
                     this.0.animate(&other.0, procedure)?,
                     this.1.animate(&other.1, procedure)?,
                 ))
@@ -239,34 +264,14 @@ where
     }
 }
 
-impl<L: ToCss> ToCss for Polygon<L> {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        dest.write_str("polygon(")?;
-        if self.fill != FillRule::default() {
-            self.fill.to_css(dest)?;
-            dest.write_str(", ")?;
-        }
-
-        for (i, coord) in self.coordinates.iter().enumerate() {
-            if i > 0 {
-                dest.write_str(", ")?;
-            }
-
-            coord.0.to_css(dest)?;
-            dest.write_str(" ")?;
-            coord.1.to_css(dest)?;
-        }
-
-        dest.write_str(")")
-    }
-}
-
 impl Default for FillRule {
     #[inline]
     fn default() -> Self {
         FillRule::Nonzero
     }
+}
+
+#[inline]
+fn fill_is_default(fill: &FillRule) -> bool {
+    *fill == FillRule::default()
 }
