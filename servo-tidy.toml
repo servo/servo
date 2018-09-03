@@ -65,6 +65,7 @@ files = [
   "./resources/hsts_preload.json",
   "./tests/wpt/metadata/MANIFEST.json",
   "./support/android/openssl.sh",
+  "./support/linux/gstreamer/gstreamer.sh",
   # Upstream code from Khronos/WebGL uses tabs for indentation
   "./tests/wpt/webgl/tests",
   # Our import script is not currently respecting the lint.
