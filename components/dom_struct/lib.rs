@@ -25,7 +25,6 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     // Work around https://github.com/rust-lang/rust/issues/46489
     let attributes: TokenStream = attributes.to_string().parse().unwrap();
 
-
     let output: TokenStream = attributes.into_iter().chain(input.into_iter()).collect();
 
     let item: Item = syn::parse(output).unwrap();
@@ -36,7 +35,11 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
             return quote!(#s2).into();
         }
         if let Fields::Named(ref f) = s.fields {
-            let f = f.named.first().expect("Must have at least one field").into_value();
+            let f = f
+                .named
+                .first()
+                .expect("Must have at least one field")
+                .into_value();
             let ident = f.ident.as_ref().expect("Must have named fields");
             let name = &s.ident;
             let ty = &f.ty;
