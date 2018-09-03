@@ -224,10 +224,28 @@ def _is_windows():
     return sys.platform == 'win32'
 
 
+class DummyContext(object):
+    pass
+
+
+def bootstrap_command_only(topdir):
+    from servo.bootstrap import bootstrap
+
+    context = DummyContext()
+    context.topdir = topdir
+    force = False
+    if len(sys.argv) == 3 and sys.argv[2] == "-f":
+        force = True
+    bootstrap(context, force)
+    return 0
+
+
 def bootstrap(topdir):
     _ensure_case_insensitive_if_windows()
 
     topdir = os.path.abspath(topdir)
+
+    len(sys.argv) > 1 and sys.argv[1] == "bootstrap"
 
     # We don't support paths with Unicode characters for now
     # https://github.com/servo/servo/issues/10002

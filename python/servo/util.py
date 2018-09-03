@@ -20,7 +20,6 @@ import StringIO
 import sys
 import zipfile
 import urllib2
-import certifi
 
 
 try:
@@ -30,6 +29,7 @@ except ImportError:
 
 # The cafile parameter was added in 2.7.9
 if HAS_SNI and sys.version_info >= (2, 7, 9):
+    import certifi
     STATIC_RUST_LANG_ORG_DIST = "https://static.rust-lang.org/dist"
     URLOPEN_KWARGS = {"cafile": certifi.where()}
 else:

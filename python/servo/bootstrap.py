@@ -49,11 +49,16 @@ def install_linux_deps(context, pkgs_ubuntu, pkgs_fedora, force):
             command.append('-y')
         print("Installing missing dependencies...")
         run_as_root(command + pkgs)
+        return True
+    return False
+
 
 def install_salt_dependencies(context, force):
     pkgs_apt = ['build-essential', 'libssl-dev', 'libffi-dev', 'python-dev']
     pkgs_dnf = ['gcc', 'libffi-devel', 'python-devel', 'openssl-devel']
-    install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
+    if not install_linux_deps(context, pkgs_apt, pkgs_dnf, force):
+        print("Dependencies are already installed")
+
 
 def gstreamer(context, force=False):
     cur = os.curdir
@@ -62,6 +67,9 @@ def gstreamer(context, force=False):
         os.chdir(gstdir)
         subprocess.call(["bash", "gstreamer.sh"])
         os.chdir(cur)
+        return True
+    return False
+
 
 def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
@@ -98,11 +106,13 @@ def linux(context, force=False):
     else:
         pkgs_apt += ["libssl1.0-dev"]
 
-    install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
+    installed_something = install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
 
     if not check_gstreamer_lib():
-        gstreamer(context, force)
+        installed_something |= gstreamer(context, force)
 
+    if not installed_something:
+        print("Dependencies were already installed!")
 
 
 def salt(context, force=False):
