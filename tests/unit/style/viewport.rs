@@ -301,9 +301,15 @@ fn multiple_stylesheets_cascading() {
 #[test]
 fn constrain_viewport() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Some(CssRuleType::Viewport),
-                                     ParsingMode::DEFAULT,
-                                     QuirksMode::NoQuirks, None);
+    let context = ParserContext::new(
+        Origin::Author,
+        &url,
+        Some(CssRuleType::Viewport),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        None,
+        None,
+    );
 
     macro_rules! from_css {
         ($css:expr) => {
