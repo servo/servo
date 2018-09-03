@@ -20,7 +20,7 @@ command_prefix = """
     git checkout {event[after]} &&
     """.format(event=event)
 
-def create_task(name, command, artifacts=None, dependencies=None, env=None):
+def create_task(name, command, artifacts=None, dependencies=None, env=None, cache=None, scopes=None):
     task_id = taskcluster.slugId()
     payload = {
         "taskGroupId": os.environ["DECISION_TASK_ID"],
@@ -36,20 +36,9 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None):
             "owner": event["pusher"]["name"] + "@users.noreply.github.com",
             "source": event["compare"],
         },
-        # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
-        # For this to be allowed, I created role
-        # "repo:github.com/servo/servo-taskcluster-experiments:branch:master"
-        # with scope "assume:project:servo:grants/cargo-caches"
-        # at https://tools.taskcluster.net/auth/roles/
-        "scopes": [
-            "docker-worker:cache:cargo-registry-cache",
-            "docker-worker:cache:cargo-git-cache",
-        ],
+        "scopes": scopes or [],
         "payload": {
-            "cache": {
-                "cargo-registry-cache": "/root/.cargo/registry",
-                "cargo-git-cache": "/root/.cargo/git",
-            },
+            "cache": cache or {},
             "maxRunTime": 600,
             "image": "buildpack-deps:bionic",
             "command": [
@@ -77,7 +66,22 @@ build_task = create_task(
     "build task",
     "./build-task.sh",
     artifacts=[("executable.gz", "/repo/something-rust/something-rust.gz")],
+
+    # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
+    # For this to be allowed, I created role
+    # "repo:github.com/servo/servo-taskcluster-experiments:branch:master"
+    # with scope "assume:project:servo:grants/cargo-caches"
+    # at https://tools.taskcluster.net/auth/roles/
+    scopes=[
+        "docker-worker:cache:cargo-registry-cache",
+        "docker-worker:cache:cargo-git-cache",
+    ],
+    cache={
+        "cargo-registry-cache": "/root/.cargo/registry",
+        "cargo-git-cache": "/root/.cargo/git",
+    },
 )
+
 create_task(
     "run task",
     "./run-task.sh",
