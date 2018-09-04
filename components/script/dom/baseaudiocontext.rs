@@ -16,6 +16,7 @@ use dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeErrorCallback;
 use dom::bindings::codegen::Bindings::BaseAudioContextBinding::DecodeSuccessCallback;
+use dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::ChannelMergerOptions;
 use dom::bindings::codegen::Bindings::GainNodeBinding::GainOptions;
 use dom::bindings::codegen::Bindings::OscillatorNodeBinding::OscillatorOptions;
 use dom::bindings::codegen::Bindings::PannerNodeBinding::PannerOptions;
@@ -25,6 +26,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::root::{DomRoot, MutNullableDom};
+use dom::channelmergernode::ChannelMergerNode;
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::eventtarget::EventTarget;
 use dom::gainnode::GainNode;
@@ -335,6 +337,12 @@ impl BaseAudioContextMethods for BaseAudioContext {
         PannerNode::new(&self.global().as_window(), &self, &PannerOptions::empty())
     }
 
+    /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createchannelmerger
+    fn CreateChannelMerger(&self, count: u32) -> Fallible<DomRoot<ChannelMergerNode>> {
+        let mut opts = ChannelMergerOptions::empty();
+        opts.numberOfInputs = count;
+        ChannelMergerNode::new(&self.global().as_window(), &self, &opts)
+    }
 
     /// https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createbuffer
     fn CreateBuffer(
