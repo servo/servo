@@ -24,7 +24,7 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
         "dependencies": [decision_task_id] + (dependencies or []),
         "schedulerId": "taskcluster-github",
         "provisionerId": "aws-provisioner-v1",
-        "workerType": "github-worker",
+        "workerType": "servo-docker-worker",
         "created": taskcluster.fromNowJSON(""),
         "deadline": taskcluster.fromNowJSON("1 hour"),
         "metadata": {

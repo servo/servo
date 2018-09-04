@@ -8,7 +8,7 @@ tasks:
       taskGroupId: {$eval: as_slugid("decision_task")}
       taskId: {$eval: as_slugid("decision_task")}
       provisionerId: aws-provisioner-v1
-      workerType: github-worker
+      workerType: servo-docker-worker
       created: {$fromNow: ''}
       deadline: {$fromNow: '1 hour'}
       metadata:
