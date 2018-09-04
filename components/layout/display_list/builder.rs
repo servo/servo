@@ -15,10 +15,10 @@ use block::BlockFlow;
 use canvas_traits::canvas::{CanvasMsg, FromLayoutMsg};
 use context::LayoutContext;
 use display_list::ToLayout;
-use display_list::background::{build_border_radius, build_image_border_details};
-use display_list::background::{calculate_border_image_outset, calculate_inner_border_radii};
-use display_list::background::{compute_background_clip, compute_background_placement};
-use display_list::background::{convert_linear_gradient, convert_radial_gradient, get_cyclic};
+use display_list::background::{build_border_radius, build_border_image_details};
+use display_list::background::{calculate_inner_border_radii, compute_background_clip};
+use display_list::background::{compute_background_placement, convert_linear_gradient};
+use display_list::background::{convert_radial_gradient, get_cyclic};
 use display_list::background::simple_normal_border;
 use display_list::items::{BaseDisplayItem, BLUR_INFLATION_FACTOR, ClipScrollNode};
 use display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
@@ -71,8 +71,8 @@ use style_traits::cursor::CursorKind;
 use table_cell::CollapsedBordersForCell;
 use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 use webrender_api::{ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LayoutRect};
-use webrender_api::{LayoutSize, LayoutTransform, LayoutVector2D, LineStyle, NormalBorder};
-use webrender_api::{StickyOffsetBounds, ScrollSensitivity};
+use webrender_api::{LayoutSize, LayoutTransform, LayoutVector2D, LineStyle};
+use webrender_api::{NinePatchBorderSource, NormalBorder, StickyOffsetBounds, ScrollSensitivity};
 
 fn establishes_containing_block_for_absolute(
     flags: StackingContextCollectionFlags,
@@ -1263,6 +1263,21 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list_section: DisplayListSection,
         clip: Rect<Au>,
     ) {
+        fn convert_image_to_border(
+            image: WebRenderImageInfo,
+        ) -> Option<(NinePatchBorderSource, Size2D<u32>)> {
+            image.key.map(|key| {
+                (
+                    NinePatchBorderSource::Image(key),
+                    Size2D::new(image.width, image.height),
+                )
+            })
+        }
+
+        fn convert_size_au_to_u32(size: Size2D<Au>) -> Size2D<u32> {
+            Size2D::new(size.width.to_px() as u32, size.height.to_px() as u32)
+        }
+
         let mut border = style.logical_border_width();
 
         if let Some(inline_info) = inline_info {
@@ -1275,10 +1290,6 @@ impl FragmentDisplayListBuilding for Fragment {
                 collapsed_borders.adjust_border_widths_for_painting(&mut border)
             },
             BorderPaintingMode::Hidden => return,
-        }
-        if border.is_zero() {
-            // TODO: check if image-border-outset is zero
-            return;
         }
 
         let border_style_struct = style.get_border();
@@ -1319,110 +1330,102 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let border_radius = build_border_radius(bounds, border_style_struct);
         let border_widths = border.to_physical(style.writing_mode);
-        let outset =
-            calculate_border_image_outset(border_style_struct.border_image_outset, border_widths);
-        let outset_layout = SideOffsets2D::new(
-            outset.top.to_f32_px(),
-            outset.right.to_f32_px(),
-            outset.bottom.to_f32_px(),
-            outset.left.to_f32_px(),
-        );
-        let size = bounds.outer_rect(outset).size;
+        let mut layout_border_width = border_widths.to_layout();
 
         let mut stops = Vec::new();
         let details = match border_style_struct.border_image_source {
-            Either::First(_) => Some(BorderDetails::Normal(NormalBorder {
-                left: BorderSide {
-                    color: style.resolve_color(colors.left).to_layout(),
-                    style: border_style.left.to_layout(),
-                },
-                right: BorderSide {
-                    color: style.resolve_color(colors.right).to_layout(),
-                    style: border_style.right.to_layout(),
-                },
-                top: BorderSide {
-                    color: style.resolve_color(colors.top).to_layout(),
-                    style: border_style.top.to_layout(),
-                },
-                bottom: BorderSide {
-                    color: style.resolve_color(colors.bottom).to_layout(),
-                    style: border_style.bottom.to_layout(),
-                },
-                radius: border_radius,
-            })),
-            Either::Second(Image::Gradient(ref gradient)) => Some(match gradient.kind {
-                GradientKind::Linear(angle_or_corner) => {
-                    let (wr_gradient, linear_stops) = convert_linear_gradient(
-                        style,
-                        bounds.size,
-                        &gradient.items[..],
-                        angle_or_corner,
-                        gradient.repeating,
-                    );
-                    stops = linear_stops;
-                    BorderDetails::NinePatch(webrender_api::NinePatchBorder {
-                        source: webrender_api::NinePatchBorderSource::Gradient(wr_gradient),
-                        width: 0,
-                        height: 0,
-                        slice: SideOffsets2D::zero(),
-                        fill: false,
-                        repeat_horizontal: webrender_api::RepeatMode::Stretch,
-                        repeat_vertical: webrender_api::RepeatMode::Stretch,
-                        outset: outset_layout,
-                    })
-                },
-                GradientKind::Radial(shape, center, _angle) => {
-                    let (wr_gradient, radial_stops) = convert_radial_gradient(
-                        style,
-                        bounds.size,
-                        &gradient.items[..],
-                        shape,
-                        center,
-                        gradient.repeating,
-                    );
-                    stops = radial_stops;
-                    BorderDetails::NinePatch(webrender_api::NinePatchBorder {
-                        source: webrender_api::NinePatchBorderSource::RadialGradient(wr_gradient),
-                        width: 0,
-                        height: 0,
-                        slice: SideOffsets2D::zero(),
-                        fill: false,
-                        repeat_horizontal: webrender_api::RepeatMode::Stretch,
-                        repeat_vertical: webrender_api::RepeatMode::Stretch,
-                        outset: outset_layout,
-                    })
-                },
-            }),
-            Either::Second(Image::PaintWorklet(ref paint_worklet)) => self
-                .get_webrender_image_for_paint_worklet(state, style, paint_worklet, size)
-                .and_then(|image| {
-                    build_image_border_details(image, border_style_struct, outset_layout)
-                }),
-            Either::Second(Image::Rect(..)) => {
-                // TODO: Handle border-image with `-moz-image-rect`.
-                None
+            Either::First(_) => {
+                if border_widths == SideOffsets2D::zero() {
+                    None
+                } else {
+                    Some(BorderDetails::Normal(NormalBorder {
+                        left: BorderSide {
+                            color: style.resolve_color(colors.left).to_layout(),
+                            style: border_style.left.to_layout(),
+                        },
+                        right: BorderSide {
+                            color: style.resolve_color(colors.right).to_layout(),
+                            style: border_style.right.to_layout(),
+                        },
+                        top: BorderSide {
+                            color: style.resolve_color(colors.top).to_layout(),
+                            style: border_style.top.to_layout(),
+                        },
+                        bottom: BorderSide {
+                            color: style.resolve_color(colors.bottom).to_layout(),
+                            style: border_style.bottom.to_layout(),
+                        },
+                        radius: border_radius,
+                    }))
+                }
             },
-            Either::Second(Image::Element(..)) => {
-                // TODO: Handle border-image with `-moz-element`.
-                None
+            Either::Second(ref image) => {
+                build_border_image_details(
+                    bounds,
+                    border_widths,
+                    border_style_struct,
+                    |fallback_size| match image {
+                        Image::Url(ref image_url) => image_url
+                            .url()
+                            .and_then(|url| {
+                                state.layout_context.get_webrender_image_for_url(
+                                    self.node,
+                                    url.clone(),
+                                    UsePlaceholder::No,
+                                )
+                            }).and_then(convert_image_to_border),
+                        Image::PaintWorklet(ref paint_worklet) => self
+                            .get_webrender_image_for_paint_worklet(
+                                state,
+                                style,
+                                paint_worklet,
+                                fallback_size,
+                            ).and_then(convert_image_to_border),
+                        Image::Gradient(ref gradient) => match gradient.kind {
+                            GradientKind::Linear(angle_or_corner) => {
+                                let (wr_gradient, linear_stops) = convert_linear_gradient(
+                                    style,
+                                    fallback_size,
+                                    &gradient.items[..],
+                                    angle_or_corner,
+                                    gradient.repeating,
+                                );
+                                stops = linear_stops;
+                                Some((
+                                    NinePatchBorderSource::Gradient(wr_gradient),
+                                    convert_size_au_to_u32(fallback_size),
+                                ))
+                            },
+                            GradientKind::Radial(shape, center, _angle) => {
+                                let (wr_gradient, radial_stops) = convert_radial_gradient(
+                                    style,
+                                    fallback_size,
+                                    &gradient.items[..],
+                                    shape,
+                                    center,
+                                    gradient.repeating,
+                                );
+                                stops = radial_stops;
+                                Some((
+                                    NinePatchBorderSource::RadialGradient(wr_gradient),
+                                    convert_size_au_to_u32(fallback_size),
+                                ))
+                            },
+                        },
+                        _ => None,
+                    },
+                ).map(|(details, border)| {
+                    // The image's border width can differ from the "simple" color border width.
+                    layout_border_width = border;
+                    BorderDetails::NinePatch(details)
+                })
             },
-            Either::Second(Image::Url(ref image_url)) => image_url
-                .url()
-                .and_then(|url| {
-                    state.layout_context.get_webrender_image_for_url(
-                        self.node,
-                        url.clone(),
-                        UsePlaceholder::No,
-                    )
-                }).and_then(|image| {
-                    build_image_border_details(image, border_style_struct, outset_layout)
-                }),
         };
         if let Some(details) = details {
             state.add_display_item(DisplayItem::Border(CommonDisplayItem::with_data(
                 base,
                 webrender_api::BorderDisplayItem {
-                    widths: border_widths.to_layout(),
+                    widths: layout_border_width,
                     details,
                 },
                 stops,
