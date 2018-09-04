@@ -4982,7 +4982,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('RawHandleObject', 'proxy'),
                 Argument('RawHandleId', 'id'),
-                Argument('RawMutableHandle<PropertyDescriptor>', 'desc')]
+                Argument('RawMutableHandle<PropertyDescriptor>', 'mut desc')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
                                         "bool", args)
         self.descriptor = descriptor
@@ -5055,7 +5055,6 @@ if %s {
         else:
             namedGet = ""
 
-        # FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
         return get + """\
 rooted!(in(cx) let mut expando = ptr::null_mut::<JSObject>());
 get_expando_object(proxy, expando.handle_mut());
@@ -5068,7 +5067,7 @@ if !expando.is_null() {
     }
     if !desc.obj.is_null() {
         // Pretend the property lives on the wrapper.
-        desc.get().obj = proxy.get();
+        desc.obj = proxy.get();
         return true;
     }
 }
