@@ -24,7 +24,11 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
         "dependencies": [decision_task_id] + (dependencies or []),
         "schedulerId": "taskcluster-github",
         "provisionerId": "aws-provisioner-v1",
+
+        # Granted scope queue:create-task:highest:aws-provisioner-v1/servo-*
+        # to role repo:github.com/servo/servo-taskcluster-experiments:branch:master
         "workerType": "servo-docker-worker",
+
         "created": taskcluster.fromNowJSON(""),
         "deadline": taskcluster.fromNowJSON("1 hour"),
         "metadata": {
