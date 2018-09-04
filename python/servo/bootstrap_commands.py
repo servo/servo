@@ -53,6 +53,9 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Boostrap without confirmation')
     def bootstrap(self, force=False):
+        # This entry point isn't actually invoked, ./mach bootstrap is directly
+        # called by mach (see mach_bootstrap.bootstrap_command_only) so that
+        # it can install dependencies without needing mach's dependencies
         return bootstrap.bootstrap(self.context, force=force)
 
     @Command('bootstrap-salt',
