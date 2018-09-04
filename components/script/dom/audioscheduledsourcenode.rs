@@ -24,24 +24,25 @@ pub struct AudioScheduledSourceNode {
 }
 
 impl AudioScheduledSourceNode {
+    #[allow(unrooted_must_root)]
     pub fn new_inherited(
         node_type: AudioNodeInit,
         context: &BaseAudioContext,
         options: &AudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
-    ) -> AudioScheduledSourceNode {
-        AudioScheduledSourceNode {
+    ) -> Fallible<AudioScheduledSourceNode> {
+        Ok(AudioScheduledSourceNode {
             node: AudioNode::new_inherited(
                 node_type,
                 context,
                 options,
                 number_of_inputs,
                 number_of_outputs,
-            ),
+            )?,
             started: Cell::new(false),
             stopped: Cell::new(false),
-        }
+        })
     }
 
     pub fn node(&self) -> &AudioNode {
