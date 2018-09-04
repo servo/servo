@@ -6,21 +6,17 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "vendored"))
 
 import json
+
 import taskcluster
-
-event = json.loads(os.environ["GITHUB_EVENT"])
-print("GitHub event:\n%s\n" % json.dumps(event, sort_keys=True, indent=4, separators=(',', ': ')))
-
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
 queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 
-command_prefix = """
-    git clone {event[repository][clone_url]} repo &&
-    cd repo &&
-    git checkout {event[after]} &&
-    """.format(event=event)
 
 def create_task(name, command, artifacts=None, dependencies=None, env=None, cache=None, scopes=None):
+    env = env or {}
+    for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
+        env.setdefault(k, os.environ[k])
+
     task_id = taskcluster.slugId()
     payload = {
         "taskGroupId": os.environ["DECISION_TASK_ID"],
@@ -33,8 +29,8 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
         "metadata": {
             "name": "Taskcluster experiments for Servo: " + name,
             "description": "",
-            "owner": event["pusher"]["name"] + "@users.noreply.github.com",
-            "source": event["compare"],
+            "owner": os.environ["GITHUB_EVENT_OWNER"],
+            "source": os.environ["GITHUB_EVENT_SOURCE"],
         },
         "scopes": scopes or [],
         "payload": {
@@ -45,9 +41,13 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
                 "/bin/bash",
                 "--login",
                 "-c",
-                command_prefix + command
+                """
+                    git clone $GITHUB_EVENT_CLONE_URL repo &&
+                    cd repo &&
+                    git checkout $GITHUB_EVENT_COMMIT_SHA &&
+                """ + command
             ],
-            "env": env or {},
+            "env": env,
             "artifacts": {
                 "public/" + artifact_name: {
                     "type": "file",

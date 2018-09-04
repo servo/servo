@@ -28,13 +28,16 @@ tasks:
           taskclusterProxy: true
         env:
           DECISION_TASK_ID: {$eval: as_slugid("decision_task")}
-          GITHUB_EVENT: {$json: {$eval: event}}
+          GITHUB_EVENT_OWNER: ${event.pusher.name}@users.noreply.github.com
+          GITHUB_EVENT_SOURCE: ${event.compare}
+          GITHUB_EVENT_CLONE_URL: ${event.repository.clone_url}
+          GITHUB_EVENT_COMMIT_SHA: ${event.after}
         command:
           - /bin/bash
           - '--login'
           - '-c'
           - >-
-            git clone ${event.repository.clone_url} repo &&
+            git clone $GITHUB_EVENT_CLONE_URL repo &&
             cd repo &&
-            git checkout ${event.after} &&
+            git checkout $GITHUB_EVENT_COMMIT_SHA &&
             python2.7 decision-task/run.py
