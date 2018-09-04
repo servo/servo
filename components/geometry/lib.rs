@@ -6,7 +6,8 @@ extern crate app_units;
 extern crate euclid;
 extern crate malloc_size_of;
 extern crate style_traits;
-#[macro_use] extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate malloc_size_of_derive;
 extern crate webrender_api;
 
 use app_units::{Au, MAX_AU, MIN_AU};
@@ -48,7 +49,7 @@ impl MaxRect for Rect<Au> {
     fn max_rect() -> Rect<Au> {
         Rect::new(
             Point2D::new(MIN_AU / 2, MIN_AU / 2),
-            Size2D::new(MAX_AU, MAX_AU)
+            Size2D::new(MAX_AU, MAX_AU),
         )
     }
 }
@@ -64,12 +65,22 @@ impl MaxRect for LayoutRect {
 
 /// A helper function to convert a rect of `f32` pixels to a rect of app units.
 pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
-    Rect::new(Point2D::new(Au::from_f32_px(rect.origin.x), Au::from_f32_px(rect.origin.y)),
-              Size2D::new(Au::from_f32_px(rect.size.width), Au::from_f32_px(rect.size.height)))
+    Rect::new(
+        Point2D::new(
+            Au::from_f32_px(rect.origin.x),
+            Au::from_f32_px(rect.origin.y),
+        ),
+        Size2D::new(
+            Au::from_f32_px(rect.size.width),
+            Au::from_f32_px(rect.size.height),
+        ),
+    )
 }
 
 /// A helper function to convert a rect of `Au` pixels to a rect of f32 units.
 pub fn au_rect_to_f32_rect(rect: Rect<Au>) -> Rect<f32> {
-    Rect::new(Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
-              Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()))
+    Rect::new(
+        Point2D::new(rect.origin.x.to_f32_px(), rect.origin.y.to_f32_px()),
+        Size2D::new(rect.size.width.to_f32_px(), rect.size.height.to_f32_px()),
+    )
 }
