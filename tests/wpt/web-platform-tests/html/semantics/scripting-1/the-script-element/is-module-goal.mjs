@@ -1,0 +1,1 @@
+import "./serve-with-content-type.py?fn=is-module-goal.mjs&ct=text%2Fjavascript%3Bgoal=module";
