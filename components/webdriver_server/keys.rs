@@ -4,7 +4,6 @@
 
 use msg::constellation_msg::{Key, KeyState, KeyModifiers};
 
-
 /// Takes a character and returns an Option containing a tuple of the
 /// corresponding keycode and whether shift is required. This is
 /// currently pretty much ascii-only and the webdriver spec isn't
@@ -164,7 +163,7 @@ fn key_from_char(key_string: &char) -> Option<(Key, bool)> {
         '\u{E03C}' => Some((Key::F12, false)),
         '\u{E03D}' => None,
         '\u{E040}' => None,
-        _ => None
+        _ => None,
     }
 }
 
@@ -172,7 +171,8 @@ pub fn keycodes_to_keys(key_codes: &str) -> Result<Vec<(Key, KeyModifiers, KeySt
     let mut rv = vec![];
 
     for char_code in key_codes.chars() {
-        let (key, with_shift) = key_from_char(&char_code).ok_or(format!("Unsupported character code {}", char_code))?;
+        let (key, with_shift) =
+            key_from_char(&char_code).ok_or(format!("Unsupported character code {}", char_code))?;
         let modifiers = if with_shift {
             KeyModifiers::SHIFT
         } else {
@@ -180,6 +180,6 @@ pub fn keycodes_to_keys(key_codes: &str) -> Result<Vec<(Key, KeyModifiers, KeySt
         };
         rv.push((key, modifiers, KeyState::Pressed));
         rv.push((key, modifiers, KeyState::Released));
-    };
+    }
     Ok(rv)
 }
