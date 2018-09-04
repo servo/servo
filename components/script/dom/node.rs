@@ -64,10 +64,8 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use ref_slice::ref_slice;
 use script_layout_interface::message::Msg;
-use script_layout_interface::{
-    HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType, OpaqueStyleAndLayoutData,
-    SVGSVGData, TrustedNodeAddress,
-};
+use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
+use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
 use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
