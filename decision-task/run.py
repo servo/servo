@@ -2,12 +2,13 @@
 
 import os
 import sys
+import json
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "vendored"))
 
-import json
-
 import taskcluster
+
+decision_task_id = os.environ["TASK_ID"]
 # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/features#feature-taskclusterproxy
 queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 
@@ -19,8 +20,8 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
 
     task_id = taskcluster.slugId()
     payload = {
-        "taskGroupId": os.environ["DECISION_TASK_ID"],
-        "dependencies": [os.environ["DECISION_TASK_ID"]] + (dependencies or []),
+        "taskGroupId": decision_task_id,
+        "dependencies": [decision_task_id] + (dependencies or []),
         "schedulerId": "taskcluster-github",
         "provisionerId": "aws-provisioner-v1",
         "workerType": "github-worker",

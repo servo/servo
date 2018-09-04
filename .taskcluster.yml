@@ -27,7 +27,6 @@ tasks:
         features:
           taskclusterProxy: true
         env:
-          DECISION_TASK_ID: {$eval: as_slugid("decision_task")}
           GITHUB_EVENT_OWNER: ${event.pusher.name}@users.noreply.github.com
           GITHUB_EVENT_SOURCE: ${event.compare}
           GITHUB_EVENT_CLONE_URL: ${event.repository.clone_url}
