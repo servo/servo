@@ -22,7 +22,7 @@ tasks:
         - "docker-worker:cache:cargo-git-cache"
 
       payload:
-        maxRunTime: 600
+        maxRunTime: 1200
         image: "buildpack-deps:bionic-scm"
         features:
           taskclusterProxy: true

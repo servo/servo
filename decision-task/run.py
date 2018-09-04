@@ -36,7 +36,7 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
         "scopes": scopes or [],
         "payload": {
             "cache": cache or {},
-            "maxRunTime": 600,
+            "maxRunTime": 3600,
             "image": "buildpack-deps:bionic",
             "command": [
                 "/bin/bash",
