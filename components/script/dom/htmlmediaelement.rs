@@ -620,7 +620,7 @@ impl HTMLMediaElement {
             },
             Mode::Children(_source) => {
                 // Step 9.children.
-                // FIXME(victor): seems not implemeted yet
+                // FIXME: https://github.com/servo/servo/issues/21481
                 self.queue_dedicated_media_source_failure_steps()
             },
         }
@@ -1193,9 +1193,10 @@ impl FetchResponseListener for HTMLMediaElementContext {
 
         let elem = self.elem.root();
 
-        // push input data into the player
+        // Push input data into the player.
         if let Err(_) = elem.player.push_data(payload) {
             eprintln!("Couldn't push input data to player");
+            return;
         }
 
         // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
@@ -1219,7 +1220,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         }
         let elem = self.elem.root();
 
-        // signal the eos to player
+        // Signal the eos to player.
         if let Err(_) = elem.player.end_of_stream() {
             eprintln!("Couldn't signal EOS to player");
         }
@@ -1227,9 +1228,17 @@ impl FetchResponseListener for HTMLMediaElementContext {
         // => "If the media data can be fetched but is found by inspection to be in an unsupported
         //     format, or can otherwise not be rendered at all"
         if !elem.have_metadata.get() {
-            // FIXME(victor): adjust player's max-size (or buffering)
+            // FIXME(victor): adjust player's max-size (or buffering).
+            //
+            // In short streams the EOS might arrive before extracting the stream
+            // metadata. This is because the internal queue in the GStreamer appsrc element,
+            // has a size of 200K and it pushes the data until it is reached. It would be nice
+            // to add a property to set the max-data in appsrc according to reported size of
+            // the stream.
+            // Until then, we comment out the failure steps.
+            //
             //elem.queue_dedicated_media_source_failure_steps();
-            // => "Once the entire media resource has been fetched..."
+        // => "Once the entire media resource has been fetched..."
         } else if status.is_ok() {
             elem.change_ready_state(ReadyState::HaveEnoughData);
 
