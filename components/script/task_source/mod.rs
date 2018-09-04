@@ -28,7 +28,8 @@ pub enum TaskSourceName {
     Networking,
     PerformanceTimeline,
     UserInteraction,
-    RemoteEvent
+    RemoteEvent,
+    UnshippedPortMessageQueue,
 }
 
 impl TaskSourceName {

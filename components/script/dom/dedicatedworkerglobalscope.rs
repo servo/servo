@@ -487,7 +487,7 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
             WorkerEvent,
             task,
             Some(pipeline_id),
-            TaskSourceName::DOMManipulation,
+            TaskSourceName::UnshippedPortMessageQueue,
         )).unwrap();
         Ok(())
     }
