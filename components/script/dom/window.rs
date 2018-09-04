@@ -1667,7 +1667,8 @@ impl Window {
                     let _ = self.script_chan.send(CommonScriptMsg::Task(
                         ScriptThreadEventCategory::DomEvent,
                         Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
-                        self.pipeline_id()
+                        self.pipeline_id(),
+                        TaskSourceName::DOMManipulation,
                     ));
                     doc.set_url(url.clone());
                     return
@@ -2124,7 +2125,8 @@ impl Window {
         let _ = self.script_chan.send(CommonScriptMsg::Task(
             ScriptThreadEventCategory::DomEvent,
             Box::new(self.task_canceller(TaskSourceName::DOMManipulation).wrap_task(task)),
-            self.pipeline_id()
+            self.pipeline_id(),
+            TaskSourceName::DOMManipulation,
         ));
     }
 }
