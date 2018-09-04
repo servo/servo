@@ -134,8 +134,8 @@ impl AudioBuffer {
 
             // Move the channel data from shared_channels to js_channels.
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            let shared_channel = (*self.shared_channels.borrow_mut()).buffers.remove(i);
-            if Float32Array::create(cx, CreateWith::Slice(&shared_channel), array.handle_mut())
+            let shared_channel = &(*self.shared_channels.borrow_mut()).buffers[i];
+            if Float32Array::create(cx, CreateWith::Slice(shared_channel), array.handle_mut())
                 .is_err()
             {
                 return false;
@@ -181,8 +181,6 @@ impl AudioBuffer {
             // Step 4 will complete turning shared_channels
             // data into js_channels ArrayBuffers in restore_js_channel_data.
         }
-
-        self.js_channels.borrow_mut().clear();
 
         Some((*self.shared_channels.borrow()).clone())
     }
