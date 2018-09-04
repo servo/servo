@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Goal Parameter on JavaScript MIME</title>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+        <meta description="This test checks the Async property on a dynamically-created script element. By default it should be true." />
+        <link rel="author" title="" href="http://www.microsoft.com/" />
+        <link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-script-async"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+    </head>
+    <body>
+      <script type="module">
+
+        function makeTest({
+          fileName,
+          scriptType,
+          contentType,
+          shouldLoad
+        }) {
+          const elem = Object.assign(document.createElement("script"), {
+            type: scriptType,
+            src: `./serve-with-content-type.py?fn=${scriptType === "module" ? "is-module-goal.mjs" : "is-script-goal.js"}&ct=${contentType}`
+          });
+          const name = `${shouldLoad ? "Loads" : "Errors on"} type=${scriptType} when given content-type=${decodeURIComponent(contentType)}`;
+          const t = async_test(name);
+          if (!shouldLoad) {
+            elem.onload = t.unreached_func("Script should not load.");
+            elem.onerror = t.step_func_done();
+          } else {
+            elem.onload = t.step_func_done();
+            elem.onerror = t.unreached_func("Script should load.");
+          }
+          document.body.appendChild(elem);
+        }
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fhtml%3Bgoal=script',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=%20script',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=script%20',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fhtml%3Bgoal=module',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=%20module',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=module%20',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=%22%20module%22',
+          shouldLoad: false
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=script',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=SCRIPT',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3BGOAL=script',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3BGoal=Script',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3BgOal=script',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=scrIpt',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=%22script%22',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'text/javascript',
+          contentType: 'text%2Fjavascript%3Bgoal=%22%5Cs%5Cc%5Cr%5Ci%5Cp%5Ct%22',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=%22%5Cm%5Co%5Cd%5Cu%5Cl%5Ce%22',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=module',
+          shouldLoad: true
+        });
+        makeTest({
+          scriptType: 'module',
+          contentType: 'text%2Fjavascript%3Bgoal=%22module%22',
+          shouldLoad: true
+        });
+      </script>
+    </body>
+</html>

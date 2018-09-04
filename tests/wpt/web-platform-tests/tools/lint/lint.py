@@ -216,7 +216,8 @@ def check_css_globally_unique(repo_root, paths):
         elif source_file.name_is_reference:
             ref_files[source_file.name].add(path)
         else:
-            test_files[source_file.name].add(path)
+            name = source_file.name.replace('-manual', '')
+            test_files[name].add(path)
 
     errors = []
 

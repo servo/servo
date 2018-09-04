@@ -2,14 +2,15 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>multicolumn | column-rule</title>
+<title>CSS Multi-column Layout Test: 'column-rule' shorthand</title>
 <link rel="author" title="Opera Software ASA" href="http://www.opera.com/"/>
 <link rel="help" href=""/>
 <link rel="match" href="multicol-rule-shorthand-2-ref.xht"/>
-<meta name="flags" content=""/>
+<meta name="assert" content="Tests that column rules are not displayed for invalid properties and values."/>
+<meta name="flags" content="invalid"/>
 <style type="text/css"><![CDATA[
 body {
-	margin: 0;
+	margin: 1em;
 }
 body>div {
 	font-family: Ahem;
@@ -17,36 +18,22 @@ body>div {
 	line-height: 1em;
 	color: black;
 	background: yellow;
-	margin: 1em;
+	margin: 1em 0;
 	border: 1em solid gray;
 	width: 15em;
-	orphans: 1;
-	widows: 1;
 
 	column-count: 4;
 	column-gap: 1em;
 	column-rule: solid blue 1em;
-	column-rule: normal red 1em;
-	column: normal red 1em;
+	column-rule: normal red 1em; /* invalid: 'normal' is not a 'border-style' */
+	column: normal red 1em; /* invalid: 'column' is not a valid property name; 'normal' can only apply to 'column-gap' */
 }
-span {
-	background: blue;
-	position: absolute;
-	top: 0;
-	left: 3em;
-	height: 2em;
-	width: 1em;
-}
-span+span {
-	left: 7em;
-}
-span+span+span {
-	left: 11em;
-}
+
 ]]></style>
 </head>
 
 <body>
+<p>Pass if there is no red visible.</p>
 
 <div>
 	xx xx

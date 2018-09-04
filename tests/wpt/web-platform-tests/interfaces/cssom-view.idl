@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: CSSOM View Module (https://drafts.csswg.org/cssom-view/)
 
-enum ScrollBehavior { "auto", "instant", "smooth" };
+enum ScrollBehavior { "auto", "smooth" };
 
 dictionary ScrollOptions {
     ScrollBehavior behavior = "auto";

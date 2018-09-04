@@ -287,6 +287,11 @@ scheme host and port.""")
     sauce_group.add_argument("--sauce-connect-binary",
                              dest="sauce_connect_binary",
                              help="Path to Sauce Connect binary")
+    sauce_group.add_argument("--sauce-init-timeout", action="store",
+                             type=int, default=30,
+                             help="Number of seconds to wait for Sauce "
+                                  "Connect tunnel to be available before "
+                                  "aborting")
 
     webkit_group = parser.add_argument_group("WebKit-specific")
     webkit_group.add_argument("--webkit-port", dest="webkit_port",
