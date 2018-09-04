@@ -17,6 +17,7 @@ tasks:
         owner: ${event.pusher.name}@users.noreply.github.com
         source: ${event.compare}
       scopes:
+        - "queue:scheduler-id:taskcluster-github"
         - "queue:create-task:highest:aws-provisioner-v1/servo-*"
         - "docker-worker:cache:cargo-registry-cache"
         - "docker-worker:cache:cargo-git-cache"
