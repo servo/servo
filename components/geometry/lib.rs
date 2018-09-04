@@ -5,9 +5,9 @@
 extern crate app_units;
 extern crate euclid;
 extern crate malloc_size_of;
-extern crate style_traits;
 #[macro_use]
 extern crate malloc_size_of_derive;
+extern crate style_traits;
 extern crate webrender_api;
 
 use app_units::{Au, MAX_AU, MIN_AU};
