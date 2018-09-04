@@ -57,9 +57,9 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
                 }
                 for artifact_name, path in artifacts or []
             },
-            "features": [
-                "dind",  # docker-in-docker
-            ],
+            "features": {
+                "dind": True,  # docker-in-docker
+            },
         },
     }
     queue.createTask(task_id, payload)
