@@ -27,10 +27,12 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::mem;
+use std::sync::mpsc::channel;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
 use std::sync::mpsc::{Sender, Receiver};
+use std::thread;
 use subresource_integrity::is_response_integrity_valid;
 
 const FILE_CHUNK_SIZE: usize = 32768; //32 KB
@@ -488,25 +490,51 @@ fn scheme_fetch(request: &mut Request,
                     Ok(file_path) => {
                         match File::open(file_path.clone()) {
                             Ok(mut file) => {
-                                let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
-                                let mut bytes = Vec::new();
-                                loop {
-                                    let length = {
-                                        let mut buffer = reader.fill_buf().unwrap().to_vec();
-                                        let buffer_len = buffer.len();
-                                        bytes.append(&mut buffer);
-                                        target.process_response_chunk(buffer);
-                                        buffer_len
-                                    };
-                                    if length == 0 { break; }
-                                    reader.consume(length);
-                                }
-
                                 let mime = guess_mime_type(file_path);
 
                                 let mut response = Response::new(url);
-                                *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                                 response.headers.set(ContentType(mime));
+
+                                let (done_sender, done_receiver) = channel();
+                                *done_chan = Some((done_sender.clone(), done_receiver));
+                                *response.body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+
+                                let mut res_body = response.body.clone();
+
+                                let cancellation_listener = context.cancellation_listener.clone();
+
+                                thread::Builder::new().name("fetch file worker thread".to_string()).spawn(move || {
+                                    let mut reader = BufReader::with_capacity(FILE_CHUNK_SIZE, file);
+                                    loop {
+                                        if cancellation_listener.lock().unwrap().cancelled() {
+                                            *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                                            let _ = done_sender.send(Data::Cancelled);
+                                            return;
+                                        }
+                                        let length = {
+                                            let mut buffer = reader.fill_buf().unwrap().to_vec();
+                                            let buffer_len = buffer.len();
+                                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                                                body.extend_from_slice(&buffer);
+                                                let _ = done_sender.send(Data::Payload(buffer.clone()));
+                                            }
+                                            buffer_len
+                                        };
+                                        if length == 0 {
+                                            let mut body = res_body.lock().unwrap();
+                                            let completed_body = match *body {
+                                                ResponseBody::Receiving(ref mut body) => {
+                                                    mem::replace(body, vec![])
+                                                },
+                                                _ => vec![],
+                                            };
+                                            *body = ResponseBody::Done(completed_body);
+                                            let _ = done_sender.send(Data::Done);
+                                            break;
+                                        }
+                                        reader.consume(length);
+                                    }
+                                }).expect("Failed to create fetch file worker thread");
                                 response
                             },
                             _ => Response::network_error(NetworkError::Internal("Opening file failed".into())),
