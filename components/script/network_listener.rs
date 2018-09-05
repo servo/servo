@@ -7,7 +7,7 @@ use dom::bindings::root::DomRoot;
 use dom::globalscope::GlobalScope;
 use dom::performanceentry::PerformanceEntry;
 use dom::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
-use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Action, FetchResponseListener, FetchResponseMsg, ResourceTimingType};
 use servo_url::ServoUrl;
 use std::sync::{Arc, Mutex};
 use task::{TaskCanceller, TaskOnce};
@@ -27,7 +27,12 @@ pub trait ResourceTimingListener {
     fn resource_timing_global(&self) -> DomRoot<GlobalScope>;
 }
 
+// Currently can only submit resource timing events
 pub fn submit_timing<T: ResourceTimingListener + FetchResponseListener>(listener: &T) {
+	if listener.resource_timing().timing_type != ResourceTimingType::Resource {
+		warn!("Submitting non-resource ({:?}) timing as resource", listener.resource_timing().timing_type);
+		return;
+	}
     let (initiator_type, url) = listener.resource_timing_information();
     let global = listener.resource_timing_global();
     let performance_entry = PerformanceResourceTiming::new(

@@ -16,7 +16,8 @@ use dom::node::{Node, document_from_node};
 use dom::performanceresourcetiming::InitiatorType;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::image_cache::{ImageCache, PendingImageId};
 use net_traits::request::{Destination, RequestInit as FetchRequestInit};
 use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -44,11 +45,12 @@ impl FetchResponseListener for LayoutImageContext {
             .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseChunk(payload));
     }
 
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
         // TODO notify_pending_response doesn't use the ResourceFetchTiming
         self.cache.notify_pending_response(self.id,
                                            FetchResponseMsg::ProcessResponseEOF(
-                                           response.map(|_| ResourceFetchTiming::new())));
+                                           response.map(|_| ResourceFetchTiming::new(
+                                           ResourceTimingType::Resource))));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -88,7 +90,7 @@ pub fn fetch_image_for_layout(
     let context = Arc::new(Mutex::new(LayoutImageContext {
         id: id,
         cache: cache,
-        resource_timing: ResourceFetchTiming::new(),
+        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         doc: Trusted::new(&document),
     }));
 

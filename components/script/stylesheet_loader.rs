@@ -23,7 +23,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
-use net_traits::ResourceFetchTiming;
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use parking_lot::RwLock;
@@ -120,7 +120,7 @@ impl FetchResponseListener for StylesheetContext {
         self.data.append(&mut payload);
     }
 
-    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         let elem = self.elem.root();
         let document = self.document.root();
         let mut successful = false;
@@ -279,7 +279,7 @@ impl<'a> StylesheetLoader<'a> {
             document: Trusted::new(&*document),
             origin_clean: true,
             request_generation_id: gen,
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

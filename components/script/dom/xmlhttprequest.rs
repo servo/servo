@@ -55,7 +55,8 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
-use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use net_traits::{FetchResponseListener, NetworkError, ReferrerPolicy};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
@@ -259,11 +260,11 @@ impl XMLHttpRequest {
                     .process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+            fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
                 let rv = self
                     .xhr
                     .root()
-                    .process_response_complete(self.gen_id, response);
+                    .process_response_complete(self.gen_id, response.map(|_| ()));
                 *self.sync_status.borrow_mut() = Some(rv);
             }
 
@@ -1404,7 +1405,7 @@ impl XMLHttpRequest {
             gen_id: self.generation_id.get(),
             buf: DomRefCell::new(vec![]),
             sync_status: DomRefCell::new(None),
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         }));
 
         let (task_source, script_port) = if self.sync.get() {

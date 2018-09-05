@@ -8,24 +8,20 @@
 async_test(function (t) {
   var observer = new PerformanceObserver(
     window.onload = t.step_func(function (entryList, obs) {
-    // window.onload = function() {
 
-      // var window_entries = window.performance.getEntries();
       var entries = window.performance.getEntries();
-      console.log(window.performance.getEntries()[0]);
       assert_greater_than(entries.length, 0);
-      console.log(entries.length);
       var navigation = entries[0];
-      console.log(navigation instanceof PerformanceNavigationTiming);
       assert_true(navigation instanceof PerformanceNavigationTiming);
+
+      assert_true(navigation.domContentLoadedEventStart <= navigation.topLevelDomComplete);
+      assert_true(navigation.topLevelDomComplete <= navigation.domComplete);
 
       observer.disconnect();
       t.done();
     }));
     
   observer.observe({entryTypes: ["navigation"]});
-
-
 
 }, "top level dom complete");
 </script>

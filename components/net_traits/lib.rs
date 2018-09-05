@@ -209,7 +209,7 @@ pub trait FetchResponseListener {
     fn process_request_eof(&mut self);
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>);
     fn process_response_chunk(&mut self, chunk: Vec<u8>);
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>);
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>);
     fn resource_timing(&self) -> &ResourceFetchTiming;
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming;
     fn submit_resource_timing(&mut self);
@@ -232,6 +232,8 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         let _ = self.send(FetchResponseMsg::ProcessResponseChunk(chunk));
     }
 
+    // This process_response_eof is being called for navigation timings, but the listener process_response_eof isn't
+    // That's only called by resources
     fn process_response_eof(&mut self, response: &Response) {
         if let Some(e) = response.get_network_error() {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
@@ -257,8 +259,8 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseEOF(data) => {
                 match data {
                     Ok(ref response_resource_timing) => {
-                        *listener.resource_timing_mut() = response_resource_timing.clone();
-                        listener.process_response_eof(Ok(()));
+                        *listener.resource_timing_mut() = response_resource_timing.clone(); // TODO needed?
+                        listener.process_response_eof(Ok(response_resource_timing.clone()));
                         // TODO timing check https://w3c.github.io/resource-timing/#dfn-timing-allow-check
 
                         listener.submit_resource_timing();
@@ -423,6 +425,7 @@ pub struct ResourceCorsData {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ResourceFetchTiming {
+    pub timing_type: ResourceTimingType,
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
     pub request_start: u64,
@@ -440,9 +443,18 @@ pub enum ResourceAttribute {
     ResponseStart,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum ResourceTimingType {
+    Resource,
+    Navigation,
+    Error,
+    None,
+}
+
 impl ResourceFetchTiming {
-    pub fn new() -> ResourceFetchTiming {
+    pub fn new(timing_type: ResourceTimingType) -> ResourceFetchTiming {
         ResourceFetchTiming {
+            timing_type: timing_type,
             redirect_count: 0,
             request_start: 0,
             response_start: 0,
@@ -491,6 +503,9 @@ pub struct Metadata {
 
     /// Referrer Policy of the Request used to obtain Response
     pub referrer_policy: Option<ReferrerPolicy>,
+
+    /// Performance information for navigation events
+    pub timing: Option<ResourceFetchTiming>,
 }
 
 impl Metadata {
@@ -507,6 +522,7 @@ impl Metadata {
             https_state: HttpsState::None,
             referrer: None,
             referrer_policy: None,
+            timing: None,
         }
     }
 
@@ -559,7 +575,7 @@ pub fn load_whole_resource(request: RequestInit,
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
-            //TODO return timing information
+            //TODO maybe return timing information
             FetchResponseMsg::ProcessResponseEOF(Ok(_)) => return Ok((metadata.unwrap(), buf)),
             FetchResponseMsg::ProcessResponse(Err(e)) |
             FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),

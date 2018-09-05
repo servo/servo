@@ -26,7 +26,8 @@ use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use mime::{Mime, TopLevel, SubLevel};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata};
-use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchResponseMsg, FetchResponseListener, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{CacheMode, CorsSettings, CredentialsMode};
 use net_traits::request::{RequestInit, RequestMode};
 use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
@@ -395,7 +396,7 @@ impl FetchResponseListener for EventSourceContext {
         }
     }
 
-    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
         if let Some(_) = self.incomplete_utf8.take() {
             self.parse("\u{FFFD}".chars());
         }
@@ -554,7 +555,7 @@ impl EventSource {
             event_type: String::new(),
             data: String::new(),
             last_event_id: String::new(),
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
         };
         let listener = NetworkListener {
             context: Arc::new(Mutex::new(context)),

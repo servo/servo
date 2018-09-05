@@ -34,7 +34,7 @@ use hyper_serde::Serde;
 use log;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
-use net_traits::{ResourceFetchTiming, ResourceAttribute};
+use net_traits::{ResourceAttribute, ResourceTimingType};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
@@ -499,7 +499,9 @@ pub fn http_fetch(request: &mut Request,
     *done_chan = None;
     // Step 1
     let mut response: Option<Response> = None;
-    let mut resource_timing = ResourceFetchTiming::new();
+    if context.timing.timing_type == ResourceTimingType::None {
+        context.timing.timing_type = request.timing_type();
+    }
 
     // Step 2
     // nothing to do, since actual_response is a function on response
@@ -578,10 +580,10 @@ pub fn http_fetch(request: &mut Request,
         // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
-        resource_timing.set_attribute(ResourceAttribute::RequestStart);
+        context.timing.set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
-            request, authentication_fetch_flag, cors_flag, done_chan, context, &mut resource_timing);
+            request, authentication_fetch_flag, cors_flag, done_chan, context);
 
         // Substep 4
         if cors_flag && cors_check(&request, &fetch_result).is_err() {
@@ -629,9 +631,8 @@ pub fn http_fetch(request: &mut Request,
 
     // set back to default
     response.return_internal = true;
-    resource_timing.set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
-
-    *response.get_resource_timing_mut() = resource_timing;
+    context.timing.set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
+    response.resource_timing = context.timing.clone();
 
     // Step 6
     response
@@ -737,8 +738,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
                                authentication_fetch_flag: bool,
                                cors_flag: bool,
                                done_chan: &mut DoneChannel,
-                               context: &mut FetchContext,
-                               mut resource_timing: &mut ResourceFetchTiming)
+                               context: &mut FetchContext)
                                -> Response {
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
@@ -967,7 +967,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
     if response.is_none() {
         // Substep 2
         let forward_response = http_network_fetch(http_request, credentials_flag,
-                                                  done_chan, context, &resource_timing);
+                                                  done_chan, context);
         // Substep 3
         if let Some((200...399, _)) = forward_response.raw_status {
             if !http_request.method.safe() {
@@ -1023,8 +1023,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
         // Substep 4
         response = http_network_or_cache_fetch(http_request,
                                                true /* authentication flag */,
-                                               cors_flag, done_chan, context,
-                                               &mut resource_timing);
+                                               cors_flag, done_chan, context);
     }
 
     // Step 24
@@ -1063,8 +1062,7 @@ fn http_network_or_cache_fetch(request: &mut Request,
 fn http_network_fetch(request: &Request,
                       credentials_flag: bool,
                       done_chan: &mut DoneChannel,
-                      context: &mut FetchContext,
-                      resource_timing: &ResourceFetchTiming)
+                      context: &mut FetchContext)
                       -> Response {
     // Step 1
     // nothing to do here, since credentials_flag is already a boolean
@@ -1110,7 +1108,7 @@ fn http_network_fetch(request: &Request,
         }
     }
 
-    let mut response = Response::new(url.clone(), resource_timing.to_owned());
+    let mut response = Response::new(url.clone(), context.timing.clone());
     response.status = Some(res.status);
     response.raw_status = Some((res.status_raw().0,
                                 res.status_raw().1.as_bytes().to_vec()));
@@ -1281,8 +1279,7 @@ fn cors_preflight_fetch(request: &Request,
     }
 
     // Step 5
-    let mut resource_timing = ResourceFetchTiming::new();
-    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context, &mut resource_timing);
+    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
 
     // Step 6
     if cors_check(&request, &response).is_ok() &&

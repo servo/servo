@@ -311,7 +311,7 @@ fn create_cached_response(request: &Request,
     cached_headers: &Headers,
     done_chan: &mut DoneChannel)
     -> CachedResponse {
-    let resource_timing = ResourceFetchTiming::new();
+    let resource_timing = ResourceFetchTiming::new(request.timing_type());
     let mut response = Response::new(cached_resource.data.metadata.data.final_url.clone(), resource_timing);
     response.headers = cached_headers.clone();
     response.body = cached_resource.body.clone();
@@ -645,7 +645,7 @@ impl HttpCache {
                 // Received a response with 304 status code, in response to a request that matches a cached resource.
                 // 1. update the headers of the cached resource.
                 // 2. return a response, constructed from the cached resource.
-                let resource_timing = ResourceFetchTiming::new();
+                let resource_timing = ResourceFetchTiming::new(request.timing_type());
                 let mut constructed_response = Response::new(cached_resource.data.metadata.data.final_url.clone(),
                     resource_timing);
                 constructed_response.body = cached_resource.body.clone();

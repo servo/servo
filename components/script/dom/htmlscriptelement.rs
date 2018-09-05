@@ -29,7 +29,8 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use servo_atoms::Atom;
@@ -209,7 +210,7 @@ impl FetchResponseListener for ScriptContext {
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
         // Step 5.
         let load = response.and(self.status.clone()).map(|_| {
             let metadata = self.metadata.take().unwrap();
@@ -315,7 +316,7 @@ fn fetch_a_classic_script(
         metadata: None,
         url: url.clone(),
         status: Ok(()),
-        resource_timing: ResourceFetchTiming::new(),
+        resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();

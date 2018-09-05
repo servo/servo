@@ -22,8 +22,9 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoCompartment;
-use net_traits::{FetchChannels, FetchResponseListener, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
 use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::request::RequestInit as NetTraitsRequestInit;
@@ -145,6 +146,8 @@ pub fn Fetch(
         },
         Ok(r) => r.get_request(),
     };
+    let timing_type = request.timing_type();
+    
     let mut request_init = request_init_from_request(request);
 
     // Step 3
@@ -161,7 +164,7 @@ pub fn Fetch(
         fetch_promise: Some(TrustedPromise::new(promise.clone())),
         response_object: Trusted::new(&*response),
         body: vec![],
-        resource_timing: ResourceFetchTiming::new(),
+        resource_timing: ResourceFetchTiming::new(timing_type),
     }));
     let listener = NetworkListener {
         context: fetch_context,
@@ -252,7 +255,7 @@ impl FetchResponseListener for FetchContext {
         self.body.append(&mut chunk);
     }
 
-    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, _response: Result<ResourceFetchTiming, NetworkError>) {
         let response = self.response_object.root();
         let global = response.global();
         let cx = global.get_cx();
@@ -271,7 +274,19 @@ impl FetchResponseListener for FetchContext {
     }
 
     fn submit_resource_timing(&mut self) {
-        network_listener::submit_timing(self)
+        match self.resource_timing.timing_type {
+           ResourceTimingType::Resource => network_listener::submit_timing(self),
+           // TODO remove?
+           ResourceTimingType::Navigation => {
+                println!("submit navigation");
+                //TODO nav_start and nav_start_precise
+                // let performance_entry = PerformanceNavigationTiming::new(
+                    // &global, 0, 0, &document);
+                // global.performance().queue_entry(
+                    // performance_entry.upcast::<PerformanceEntry>(), false);
+           }
+           _ => {},
+        };
     }
 }
 
