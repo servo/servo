@@ -42,7 +42,8 @@ packages = [
   "log",
   "rand",
   "winapi",
-
+  # TODO: remove slab when #21426 lands
+  "slab",
   "syn",
   "quote",
   "proc-macro2",
