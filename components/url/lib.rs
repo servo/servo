@@ -3,13 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
-
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
-#[macro_use] extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate malloc_size_of;
+#[macro_use]
+extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate serde;
 extern crate servo_rand;
 extern crate url;
 extern crate url_serde;
@@ -29,10 +31,7 @@ use url::{Url, Position};
 pub use url::Host;
 
 #[derive(Clone, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
-pub struct ServoUrl(
-    #[ignore_malloc_size_of = "Arc"]
-    Arc<Url>
-);
+pub struct ServoUrl(#[ignore_malloc_size_of = "Arc"] Arc<Url>);
 
 impl ServoUrl {
     pub fn from_url(url: Url) -> Self {
@@ -40,11 +39,16 @@ impl ServoUrl {
     }
 
     pub fn parse_with_base(base: Option<&Self>, input: &str) -> Result<Self, url::ParseError> {
-        Url::options().base_url(base.map(|b| &*b.0)).parse(input).map(Self::from_url)
+        Url::options()
+            .base_url(base.map(|b| &*b.0))
+            .parse(input)
+            .map(Self::from_url)
     }
 
     pub fn into_string(self) -> String {
-        Arc::try_unwrap(self.0).unwrap_or_else(|s| (*s).clone()).into_string()
+        Arc::try_unwrap(self.0)
+            .unwrap_or_else(|s| (*s).clone())
+            .into_string()
     }
 
     pub fn into_url(self) -> Url {
@@ -209,7 +213,8 @@ impl From<Url> for ServoUrl {
 
 impl serde::Serialize for ServoUrl {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where S: serde::Serializer,
+    where
+        S: serde::Serializer,
     {
         url_serde::serialize(&*self.0, serializer)
     }
@@ -217,7 +222,8 @@ impl serde::Serialize for ServoUrl {
 
 impl<'de> serde::Deserialize<'de> for ServoUrl {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: serde::Deserializer<'de>,
+    where
+        D: serde::Deserializer<'de>,
     {
         url_serde::deserialize(deserializer).map(Self::from_url)
     }
