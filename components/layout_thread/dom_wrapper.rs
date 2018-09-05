@@ -133,17 +133,13 @@ impl<'ln> ServoLayoutNode<'ln> {
     }
 
     fn script_type_id(&self) -> NodeTypeId {
-        unsafe {
-            self.node.type_id_for_layout()
-        }
+        unsafe { self.node.type_id_for_layout() }
     }
 }
 
 impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
     fn is_element(&self) -> bool {
-        unsafe {
-            self.node.is_element_for_layout()
-        }
+        unsafe { self.node.is_element_for_layout() }
     }
 
     fn is_text_node(&self) -> bool {
@@ -152,7 +148,7 @@ impl<'ln> NodeInfo for ServoLayoutNode<'ln> {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-enum Impossible { }
+enum Impossible {}
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct ShadowRoot<'lr>(Impossible, PhantomData<&'lr ()>);
@@ -161,18 +157,18 @@ impl<'lr> TShadowRoot for ShadowRoot<'lr> {
     type ConcreteNode = ServoLayoutNode<'lr>;
 
     fn as_node(&self) -> Self::ConcreteNode {
-        match self.0 { }
+        match self.0 {}
     }
 
     fn host(&self) -> ServoLayoutElement<'lr> {
-        match self.0 { }
+        match self.0 {}
     }
 
     fn style_data<'a>(&self) -> &'a CascadeData
     where
         Self: 'a,
     {
-        match self.0 { }
+        match self.0 {}
     }
 }
 
@@ -183,31 +179,41 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
 
     fn parent_node(&self) -> Option<Self> {
         unsafe {
-            self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
+            self.node
+                .parent_node_ref()
+                .map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
     fn first_child(&self) -> Option<Self> {
         unsafe {
-            self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
+            self.node
+                .first_child_ref()
+                .map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
     fn last_child(&self) -> Option<Self> {
         unsafe {
-            self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
+            self.node
+                .last_child_ref()
+                .map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
     fn prev_sibling(&self) -> Option<Self> {
         unsafe {
-            self.node.prev_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
+            self.node
+                .prev_sibling_ref()
+                .map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
     fn next_sibling(&self) -> Option<Self> {
         unsafe {
-            self.node.next_sibling_ref().map(|node| self.new_with_this_lifetime(&node))
+            self.node
+                .next_sibling_ref()
+                .map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
@@ -232,7 +238,9 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     }
 
     fn as_document(&self) -> Option<ServoLayoutDocument<'ln>> {
-        self.node.downcast().map(ServoLayoutDocument::from_layout_js)
+        self.node
+            .downcast()
+            .map(ServoLayoutDocument::from_layout_js)
     }
 
     fn as_shadow_root(&self) -> Option<ShadowRoot<'ln>> {
@@ -257,8 +265,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
     unsafe fn initialize_data(&self) {
         if self.get_raw_data().is_none() {
-            let ptr: *mut StyleAndLayoutData =
-                Box::into_raw(Box::new(StyleAndLayoutData::new()));
+            let ptr: *mut StyleAndLayoutData = Box::into_raw(Box::new(StyleAndLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
                 ptr: NonNull::new_unchecked(ptr as *mut StyleData),
             };
@@ -277,9 +284,7 @@ impl<'ln> LayoutNode for ServoLayoutNode<'ln> {
 
 impl<'ln> GetLayoutData for ServoLayoutNode<'ln> {
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
-        unsafe {
-            self.get_jsmanaged().get_style_and_layout_data()
-        }
+        unsafe { self.get_jsmanaged().get_style_and_layout_data() }
     }
 }
 
@@ -334,20 +339,26 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
 
 impl<'ld> ServoLayoutDocument<'ld> {
     pub fn root_element(&self) -> Option<ServoLayoutElement<'ld>> {
-        self.as_node().dom_children().flat_map(|n| n.as_element()).next()
+        self.as_node()
+            .dom_children()
+            .flat_map(|n| n.as_element())
+            .next()
     }
 
     pub fn drain_pending_restyles(&self) -> Vec<(ServoLayoutElement<'ld>, PendingRestyle)> {
-        let elements =  unsafe { self.document.drain_pending_restyles() };
-        elements.into_iter().map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot)).collect()
+        let elements = unsafe { self.document.drain_pending_restyles() };
+        elements
+            .into_iter()
+            .map(|(el, snapshot)| (ServoLayoutElement::from_layout_js(el), snapshot))
+            .collect()
     }
 
     pub fn needs_paint_from_layout(&self) {
-        unsafe { self.document.needs_paint_from_layout(); }
+        unsafe { self.document.needs_paint_from_layout() }
     }
 
     pub fn will_paint(&self) {
-        unsafe { self.document.will_paint(); }
+        unsafe { self.document.will_paint() }
     }
 
     pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
@@ -407,7 +418,9 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     fn style_attribute(&self) -> Option<ArcBorrow<StyleLocked<PropertyDeclarationBlock>>> {
         unsafe {
-            (*self.element.style_attribute()).as_ref().map(|x| x.borrow_arc())
+            (*self.element.style_attribute())
+                .as_ref()
+                .map(|x| x.borrow_arc())
         }
     }
 
@@ -422,13 +435,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     #[inline]
     fn id(&self) -> Option<&Atom> {
-        unsafe {
-            (*self.element.id_attribute()).as_ref()
-        }
+        unsafe { (*self.element.id_attribute()).as_ref() }
     }
 
     #[inline(always)]
-    fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
+    fn each_class<F>(&self, mut callback: F)
+    where
+        F: FnMut(&Atom),
+    {
         unsafe {
             if let Some(ref classes) = self.element.get_classes_for_layout() {
                 for class in *classes {
@@ -439,7 +453,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn has_dirty_descendants(&self) -> bool {
-        unsafe { self.as_node().node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS) }
+        unsafe {
+            self.as_node()
+                .node
+                .get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS)
+        }
     }
 
     fn has_snapshot(&self) -> bool {
@@ -451,26 +469,37 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     unsafe fn set_handled_snapshot(&self) {
-        self.as_node().node.set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
+        self.as_node()
+            .node
+            .set_flag(NodeFlags::HANDLED_SNAPSHOT, true);
     }
 
     unsafe fn set_dirty_descendants(&self) {
         debug_assert!(self.as_node().is_in_document());
-        self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
+        self.as_node()
+            .node
+            .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, true)
     }
 
     unsafe fn unset_dirty_descendants(&self) {
-        self.as_node().node.set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
+        self.as_node()
+            .node
+            .set_flag(NodeFlags::HAS_DIRTY_DESCENDANTS, false)
     }
 
     fn store_children_to_process(&self, n: isize) {
         let data = self.get_style_data().unwrap();
-        data.parallel.children_to_process.store(n, Ordering::Relaxed);
+        data.parallel
+            .children_to_process
+            .store(n, Ordering::Relaxed);
     }
 
     fn did_process_child(&self) -> isize {
         let data = self.get_style_data().unwrap();
-        let old_value = data.parallel.children_to_process.fetch_sub(1, Ordering::Relaxed);
+        let old_value = data
+            .parallel
+            .children_to_process
+            .fetch_sub(1, Ordering::Relaxed);
         debug_assert!(old_value >= 1);
         old_value - 1
     }
@@ -488,9 +517,8 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| {
-                &(*(d.ptr.as_ptr() as *mut StyleData)).element_data
-            })
+            self.get_style_and_layout_data()
+                .map(|d| &(*(d.ptr.as_ptr() as *mut StyleData)).element_data)
         }
     }
 
@@ -566,12 +594,12 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         &self,
         _visited_handling: VisitedHandlingMode,
         hints: &mut V,
-    )
-    where
+    ) where
         V: Push<ApplicableDeclarationBlock>,
     {
         unsafe {
-            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+            self.element
+                .synthesize_presentational_hints_for_legacy_attributes(hints);
         }
     }
 
@@ -608,26 +636,25 @@ impl<'le> ServoLayoutElement<'le> {
 
     #[inline]
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_for_layout(namespace, name)
-        }
+        unsafe { (*self.element.unsafe_get()).get_attr_for_layout(namespace, name) }
     }
 
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str> {
-        unsafe {
-            (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
-        }
+        unsafe { (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name) }
     }
 
     fn get_style_data(&self) -> Option<&StyleData> {
         unsafe {
-            self.get_style_and_layout_data().map(|d| &*(d.ptr.as_ptr() as *mut StyleData))
+            self.get_style_and_layout_data()
+                .map(|d| &*(d.ptr.as_ptr() as *mut StyleData))
         }
     }
 
     pub unsafe fn unset_snapshot_flags(&self) {
-        self.as_node().node.set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
+        self.as_node()
+            .node
+            .set_flag(NodeFlags::HAS_SNAPSHOT | NodeFlags::HANDLED_SNAPSHOT, false);
     }
 
     pub unsafe fn set_has_snapshot(&self) {
@@ -662,9 +689,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     fn parent_element(&self) -> Option<ServoLayoutElement<'le>> {
-        unsafe {
-            self.element.upcast().parent_node_ref().and_then(as_element)
-        }
+        unsafe { self.element.upcast().parent_node_ref().and_then(as_element) }
     }
 
     fn parent_node_is_shadow_root(&self) -> bool {
@@ -679,7 +704,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         let mut node = self.as_node();
         while let Some(sibling) = node.prev_sibling() {
             if let Some(element) = sibling.as_element() {
-                return Some(element)
+                return Some(element);
             }
             node = sibling;
         }
@@ -690,52 +715,51 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         let mut node = self.as_node();
         while let Some(sibling) = node.next_sibling() {
             if let Some(element) = sibling.as_element() {
-                return Some(element)
+                return Some(element);
             }
             node = sibling;
         }
         None
     }
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&Namespace>,
-                    local_name: &LocalName,
-                    operation: &AttrSelectorOperation<&String>)
-                    -> bool {
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&Namespace>,
+        local_name: &LocalName,
+        operation: &AttrSelectorOperation<&String>,
+    ) -> bool {
         match *ns {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr_enum(ns, local_name)
-                    .map_or(false, |value| value.eval_selector(operation))
-            }
+            NamespaceConstraint::Specific(ref ns) => self
+                .get_attr_enum(ns, local_name)
+                .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => {
-                let values = unsafe {
-                    (*self.element.unsafe_get()).get_attr_vals_for_layout(local_name)
-                };
+                let values =
+                    unsafe { (*self.element.unsafe_get()).get_attr_vals_for_layout(local_name) };
                 values.iter().any(|value| value.eval_selector(operation))
-            }
+            },
         }
     }
 
     fn is_root(&self) -> bool {
         match self.as_node().parent_node() {
             None => false,
-            Some(node) => {
-                match node.script_type_id() {
-                    NodeTypeId::Document(_) => true,
-                    _ => false
-                }
+            Some(node) => match node.script_type_id() {
+                NodeTypeId::Document(_) => true,
+                _ => false,
             },
         }
     }
 
     fn is_empty(&self) -> bool {
-        self.as_node().dom_children().all(|node| match node.script_type_id() {
-            NodeTypeId::Element(..) => false,
-            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
-                node.node.downcast().unwrap().data_for_layout().is_empty()
-            },
-            _ => true
-        })
+        self.as_node()
+            .dom_children()
+            .all(|node| match node.script_type_id() {
+                NodeTypeId::Element(..) => false,
+                NodeTypeId::CharacterData(CharacterDataTypeId::Text) => unsafe {
+                    node.node.downcast().unwrap().data_for_layout().is_empty()
+                },
+                _ => true,
+            })
     }
 
     #[inline]
@@ -767,24 +791,26 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     {
         match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
-            NonTSPseudoClass::Link |
-            NonTSPseudoClass::AnyLink => self.is_link(),
+            NonTSPseudoClass::Link | NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Visited => false,
 
             NonTSPseudoClass::Lang(ref lang) => self.match_element_lang(None, &*lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
-                match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {
+                match (*self.element.unsafe_get())
+                    .get_attr_for_layout(&ns!(), &local_name!("border"))
+                {
                     None | Some(&AttrValue::UInt(_, 0)) => false,
                     _ => true,
                 }
             },
-            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => {
-                self.get_attr_enum(&ns!(), &local_name!("type"))
-                    .map_or(false, |attr| attr == expected_value)
-            }
-            NonTSPseudoClass::ReadOnly =>
-                !self.element.get_state_for_layout().contains(pseudo_class.state_flag()),
+            NonTSPseudoClass::ServoCaseSensitiveTypeAttr(ref expected_value) => self
+                .get_attr_enum(&ns!(), &local_name!("type"))
+                .map_or(false, |attr| attr == expected_value),
+            NonTSPseudoClass::ReadOnly => !self
+                .element
+                .get_state_for_layout()
+                .contains(pseudo_class.state_flag()),
 
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
@@ -796,8 +822,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::Target =>
-                self.element.get_state_for_layout().contains(pseudo_class.state_flag())
+            NonTSPseudoClass::Target => self
+                .element
+                .get_state_for_layout()
+                .contains(pseudo_class.state_flag()),
         }
     }
 
@@ -806,10 +834,17 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         unsafe {
             match self.as_node().script_type_id() {
                 // https://html.spec.whatwg.org/multipage/#selector-link
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) =>
-                    (*self.element.unsafe_get()).get_attr_val_for_layout(&ns!(), &local_name!("href")).is_some(),
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLAnchorElement,
+                )) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLAreaElement,
+                )) |
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLLinkElement,
+                )) => (*self.element.unsafe_get())
+                    .get_attr_val_for_layout(&ns!(), &local_name!("href"))
+                    .is_some(),
                 _ => false,
             }
         }
@@ -826,16 +861,11 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
     #[inline]
     fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        unsafe {
-            self.element.has_class_for_layout(name, case_sensitivity)
-        }
+        unsafe { self.element.has_class_for_layout(name, case_sensitivity) }
     }
 
     fn is_html_slot_element(&self) -> bool {
-        unsafe {
-            self.element.is_html_element() &&
-            self.local_name() == &local_name!("slot")
-        }
+        unsafe { self.element.is_html_element() && self.local_name() == &local_name!("slot") }
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
@@ -868,18 +898,23 @@ impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
 
 impl<'ln> DangerousThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     unsafe fn dangerous_first_child(&self) -> Option<Self> {
-            self.get_jsmanaged().first_child_ref()
-                .map(|node| self.new_with_this_lifetime(&node))
+        self.get_jsmanaged()
+            .first_child_ref()
+            .map(|node| self.new_with_this_lifetime(&node))
     }
     unsafe fn dangerous_next_sibling(&self) -> Option<Self> {
-            self.get_jsmanaged().next_sibling_ref()
-                .map(|node| self.new_with_this_lifetime(&node))
+        self.get_jsmanaged()
+            .next_sibling_ref()
+            .map(|node| self.new_with_this_lifetime(&node))
     }
 }
 
 impl<'ln> ServoThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
-    pub unsafe fn new_with_this_lifetime(&self, node: &LayoutDom<Node>) -> ServoThreadSafeLayoutNode<'ln> {
+    pub unsafe fn new_with_this_lifetime(
+        &self,
+        node: &LayoutDom<Node>,
+    ) -> ServoThreadSafeLayoutNode<'ln> {
         ServoThreadSafeLayoutNode {
             node: self.node.new_with_this_lifetime(node),
             pseudo: PseudoElementType::Normal,
@@ -944,10 +979,12 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn as_element(&self) -> Option<ServoThreadSafeLayoutElement<'ln>> {
-        self.node.as_element().map(|el| ServoThreadSafeLayoutElement {
-            element: el,
-            pseudo: self.pseudo,
-        })
+        self.node
+            .as_element()
+            .map(|el| ServoThreadSafeLayoutElement {
+                element: el,
+                pseudo: self.pseudo,
+            })
     }
 
     fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData> {
@@ -958,11 +995,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         unsafe {
             let text: LayoutDom<Text> = match self.get_jsmanaged().downcast() {
                 Some(text) => text,
-                None => return false
+                None => return false,
             };
 
             if !is_whitespace(text.upcast().data_for_layout()) {
-                return false
+                return false;
             }
 
             // NB: See the rules for `white-space` here:
@@ -971,7 +1008,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             //
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
-            !self.style(context).get_inherited_text().white_space.preserve_newlines()
+            !self
+                .style(context)
+                .get_inherited_text()
+                .white_space
+                .preserve_newlines()
         }
     }
 
@@ -988,8 +1029,10 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         let this = unsafe { self.get_jsmanaged() };
 
         this.selection().map(|range| {
-            Range::new(ByteIndex(range.start as isize),
-                       ByteIndex(range.len() as isize))
+            Range::new(
+                ByteIndex(range.start as isize),
+                ByteIndex(range.len() as isize),
+            )
         })
     }
 
@@ -1022,13 +1065,19 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn get_colspan(&self) -> u32 {
         unsafe {
-            self.get_jsmanaged().downcast::<Element>().unwrap().get_colspan()
+            self.get_jsmanaged()
+                .downcast::<Element>()
+                .unwrap()
+                .get_colspan()
         }
     }
 
     fn get_rowspan(&self) -> u32 {
         unsafe {
-            self.get_jsmanaged().downcast::<Element>().unwrap().get_rowspan()
+            self.get_jsmanaged()
+                .downcast::<Element>()
+                .unwrap()
+                .get_rowspan()
         }
     }
 }
@@ -1039,16 +1088,17 @@ pub struct ThreadSafeLayoutNodeChildrenIterator<ConcreteNode: ThreadSafeLayoutNo
 }
 
 impl<ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
-                   where ConcreteNode: DangerousThreadSafeLayoutNode {
+where
+    ConcreteNode: DangerousThreadSafeLayoutNode,
+{
     pub fn new(parent: ConcreteNode) -> Self {
         let first_child: Option<ConcreteNode> = match parent.get_pseudo_element_type() {
-            PseudoElementType::Normal => {
-                parent.get_before_pseudo().or_else(|| parent.get_details_summary_pseudo()).or_else(|| {
-                    unsafe { parent.dangerous_first_child() }
-                })
-            },
-            PseudoElementType::DetailsContent | PseudoElementType::DetailsSummary => {
-                unsafe { parent.dangerous_first_child() }
+            PseudoElementType::Normal => parent
+                .get_before_pseudo()
+                .or_else(|| parent.get_details_summary_pseudo())
+                .or_else(|| unsafe { parent.dangerous_first_child() }),
+            PseudoElementType::DetailsContent | PseudoElementType::DetailsSummary => unsafe {
+                parent.dangerous_first_child()
             },
             _ => None,
         };
@@ -1060,7 +1110,9 @@ impl<ConcreteNode> ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
 }
 
 impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNode>
-                            where ConcreteNode: DangerousThreadSafeLayoutNode {
+where
+    ConcreteNode: DangerousThreadSafeLayoutNode,
+{
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         use ::selectors::Element;
@@ -1073,7 +1125,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                     let next_node = if let Some(ref node) = current_node {
                         if let Some(element) = node.as_element() {
                             if element.local_name() == &local_name!("summary") &&
-                               element.namespace() == &ns!(html) {
+                                element.namespace() == &ns!(html)
+                            {
                                 self.current_node = None;
                                 return Some(node.clone());
                             }
@@ -1081,18 +1134,19 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                         unsafe { node.dangerous_next_sibling() }
                     } else {
                         self.current_node = None;
-                        return None
+                        return None;
                     };
                     current_node = next_node;
                 }
-            }
+            },
 
             PseudoElementType::DetailsContent => {
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                       node.as_element().unwrap().local_name() == &local_name!("summary") &&
-                       node.as_element().unwrap().namespace() == &ns!(html) {
+                        node.as_element().unwrap().local_name() == &local_name!("summary") &&
+                        node.as_element().unwrap().namespace() == &ns!(html)
+                    {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
                         Some(node)
@@ -1100,28 +1154,28 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 });
                 self.current_node = node.and_then(|node| unsafe { node.dangerous_next_sibling() });
                 node
-            }
+            },
 
             PseudoElementType::Normal => {
                 let node = self.current_node.clone();
                 if let Some(ref node) = node {
                     self.current_node = match node.get_pseudo_element_type() {
-                        PseudoElementType::Before => {
-                            self.parent_node.get_details_summary_pseudo()
-                                .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
-                                .or_else(|| self.parent_node.get_after_pseudo())
+                        PseudoElementType::Before => self
+                            .parent_node
+                            .get_details_summary_pseudo()
+                            .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
+                            .or_else(|| self.parent_node.get_after_pseudo()),
+                        PseudoElementType::Normal => unsafe { node.dangerous_next_sibling() }
+                            .or_else(|| self.parent_node.get_after_pseudo()),
+                        PseudoElementType::DetailsSummary => {
+                            self.parent_node.get_details_content_pseudo()
                         },
-                        PseudoElementType::Normal => {
-                            unsafe { node.dangerous_next_sibling() }.or_else(|| self.parent_node.get_after_pseudo())
-                        },
-                        PseudoElementType::DetailsSummary => self.parent_node.get_details_content_pseudo(),
                         PseudoElementType::DetailsContent => self.parent_node.get_after_pseudo(),
                         PseudoElementType::After => None,
                     };
                 }
                 node
-            }
-
+            },
         }
     }
 }
@@ -1176,7 +1230,8 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn style_data(&self) -> AtomicRef<ElementData> {
-        self.element.get_data()
+        self.element
+            .get_data()
             .expect("Unstyled layout node?")
             .borrow()
     }
@@ -1200,7 +1255,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn opaque(&self) -> ::selectors::OpaqueElement {
         ::selectors::OpaqueElement::new(self.as_node().opaque().0 as *const ())
     }
-
 
     fn parent_element(&self) -> Option<Self> {
         warn!("ServoThreadSafeLayoutElement::parent_element called");
@@ -1249,27 +1303,27 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn match_pseudo_element(
         &self,
         _pseudo: &PseudoElement,
-        _context: &mut MatchingContext<Self::Impl>
+        _context: &mut MatchingContext<Self::Impl>,
     ) -> bool {
         false
     }
 
-    fn attr_matches(&self,
-                    ns: &NamespaceConstraint<&Namespace>,
-                    local_name: &LocalName,
-                    operation: &AttrSelectorOperation<&String>)
-                    -> bool {
+    fn attr_matches(
+        &self,
+        ns: &NamespaceConstraint<&Namespace>,
+        local_name: &LocalName,
+        operation: &AttrSelectorOperation<&String>,
+    ) -> bool {
         match *ns {
-            NamespaceConstraint::Specific(ref ns) => {
-                self.get_attr_enum(ns, local_name)
-                    .map_or(false, |value| value.eval_selector(operation))
-            }
+            NamespaceConstraint::Specific(ref ns) => self
+                .get_attr_enum(ns, local_name)
+                .map_or(false, |value| value.eval_selector(operation)),
             NamespaceConstraint::Any => {
                 let values = unsafe {
                     (*self.element.element.unsafe_get()).get_attr_vals_for_layout(local_name)
                 };
                 values.iter().any(|v| v.eval_selector(operation))
-            }
+            },
         }
     }
 
