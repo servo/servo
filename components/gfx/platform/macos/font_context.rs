@@ -6,7 +6,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 #[derive(Clone, Debug)]
 pub struct FontContextHandle {
-    ctx: ()
+    ctx: (),
 }
 
 impl FontContextHandle {

@@ -98,14 +98,21 @@ fn create_face(
         let face_index = 0 as FT_Long;
 
         let result = if let Some(ref bytes) = template.bytes {
-            FT_New_Memory_Face(lib, bytes.as_ptr(), bytes.len() as FT_Long, face_index, &mut face)
+            FT_New_Memory_Face(
+                lib,
+                bytes.as_ptr(),
+                bytes.len() as FT_Long,
+                face_index,
+                &mut face,
+            )
         } else {
             // This will trigger a synchronous file read in the layout thread, which we may want to
             // revisit at some point. See discussion here:
             //
             // https://github.com/servo/servo/pull/20506#issuecomment-378838800
 
-            let filename = CString::new(&*template.identifier).expect("filename contains NUL byte!");
+            let filename =
+                CString::new(&*template.identifier).expect("filename contains NUL byte!");
             FT_New_Face(lib, filename.as_ptr(), face_index, &mut face)
         };
 
@@ -122,25 +129,27 @@ fn create_face(
 }
 
 impl FontHandleMethods for FontHandle {
-    fn new_from_template(fctx: &FontContextHandle,
-                       template: Arc<FontTemplateData>,
-                       pt_size: Option<Au>)
-                        -> Result<FontHandle, ()> {
+    fn new_from_template(
+        fctx: &FontContextHandle,
+        template: Arc<FontTemplateData>,
+        pt_size: Option<Au>,
+    ) -> Result<FontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
-        if ft_ctx.is_null() { return Err(()); }
+        if ft_ctx.is_null() {
+            return Err(());
+        }
 
         let face = create_face(ft_ctx, &template, pt_size)?;
 
         let mut handle = FontHandle {
-              face: face,
-              font_data: template.clone(),
-              handle: fctx.clone(),
-              can_do_fast_shaping: false,
+            face: face,
+            font_data: template.clone(),
+            handle: fctx.clone(),
+            can_do_fast_shaping: false,
         };
         // TODO (#11310): Implement basic support for GPOS and GSUB.
-        handle.can_do_fast_shaping = handle.has_table(KERN) &&
-                                     !handle.has_table(GPOS) &&
-                                     !handle.has_table(GSUB);
+        handle.can_do_fast_shaping =
+            handle.has_table(KERN) && !handle.has_table(GPOS) && !handle.has_table(GSUB);
         Ok(handle)
     }
 
@@ -203,7 +212,7 @@ impl FontHandleMethods for FontHandle {
                 7 => FontStretchKeyword::Expanded,
                 8 => FontStretchKeyword::ExtraExpanded,
                 9 => FontStretchKeyword::UltraExpanded,
-                _ => FontStretchKeyword::Normal
+                _ => FontStretchKeyword::Normal,
             }
         } else {
             FontStretchKeyword::Normal
@@ -218,20 +227,26 @@ impl FontHandleMethods for FontHandle {
             if idx != 0 as FT_UInt {
                 Some(idx as GlyphId)
             } else {
-                debug!("Invalid codepoint: U+{:04X} ('{}')", codepoint as u32, codepoint);
+                debug!(
+                    "Invalid codepoint: U+{:04X} ('{}')",
+                    codepoint as u32, codepoint
+                );
                 None
             }
         }
     }
 
-    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
-                       -> FractionalPixel {
+    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
         assert!(!self.face.is_null());
         let mut delta = FT_Vector { x: 0, y: 0 };
         unsafe {
-            FT_Get_Kerning(self.face, first_glyph, second_glyph,
-                           FT_Kerning_Mode::FT_KERNING_DEFAULT as FT_UInt,
-                           &mut delta);
+            FT_Get_Kerning(
+                self.face,
+                first_glyph,
+                second_glyph,
+                FT_Kerning_Mode::FT_KERNING_DEFAULT as FT_UInt,
+                &mut delta,
+            );
         }
         fixed_to_float_ft(delta.x as i32)
     }
@@ -243,9 +258,7 @@ impl FontHandleMethods for FontHandle {
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         assert!(!self.face.is_null());
         unsafe {
-            let res =  FT_Load_Glyph(self.face,
-                                     glyph as FT_UInt,
-                                     GLYPH_LOAD_FLAGS);
+            let res = FT_Load_Glyph(self.face, glyph as FT_UInt, GLYPH_LOAD_FLAGS);
             if succeeded(res) {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = mem::transmute(void_glyph);
@@ -291,23 +304,24 @@ impl FontHandleMethods for FontHandle {
             x_height = self.font_units_to_au(os2.sx_height as f64);
         }
 
-        let average_advance = self.glyph_index('0')
-                                  .and_then(|idx| self.glyph_h_advance(idx))
-                                  .map_or(max_advance, |advance| self.font_units_to_au(advance));
+        let average_advance = self
+            .glyph_index('0')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .map_or(max_advance, |advance| self.font_units_to_au(advance));
 
         let metrics = FontMetrics {
-            underline_size:   underline_size,
+            underline_size: underline_size,
             underline_offset: underline_offset,
-            strikeout_size:   strikeout_size,
+            strikeout_size: strikeout_size,
             strikeout_offset: strikeout_offset,
-            leading:          leading,
-            x_height:         x_height,
-            em_size:          em_size,
-            ascent:           ascent,
-            descent:          -descent, // linux font's seem to use the opposite sign from mac
-            max_advance:      max_advance,
-            average_advance:  average_advance,
-            line_gap:         height,
+            leading: leading,
+            x_height: x_height,
+            em_size: em_size,
+            ascent: ascent,
+            descent: -descent, // linux font's seem to use the opposite sign from mac
+            max_advance: max_advance,
+            average_advance: average_advance,
+            line_gap: height,
         };
 
         debug!("Font metrics (@{}px): {:?}", em_size.to_f32_px(), metrics);
@@ -320,13 +334,25 @@ impl FontHandleMethods for FontHandle {
         unsafe {
             // Get the length
             let mut len = 0;
-            if !succeeded(FT_Load_Sfnt_Table(self.face, tag, 0, ptr::null_mut(), &mut len)) {
-                return None
+            if !succeeded(FT_Load_Sfnt_Table(
+                self.face,
+                tag,
+                0,
+                ptr::null_mut(),
+                &mut len,
+            )) {
+                return None;
             }
             // Get the bytes
             let mut buf = vec![0u8; len as usize];
-            if !succeeded(FT_Load_Sfnt_Table(self.face, tag, 0, buf.as_mut_ptr(), &mut len)) {
-                return None
+            if !succeeded(FT_Load_Sfnt_Table(
+                self.face,
+                tag,
+                0,
+                buf.as_mut_ptr(),
+                &mut len,
+            )) {
+                return None;
             }
             Some(FontTable { buffer: buf })
         }
@@ -338,25 +364,33 @@ impl FontHandleMethods for FontHandle {
 }
 
 impl<'a> FontHandle {
-    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()>{
+    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()> {
         let char_size = pt_size.to_f64_px() * 64.0 + 0.5;
 
         unsafe {
             let result = FT_Set_Char_Size(face, char_size as FT_F26Dot6, 0, 0, 0);
-            if succeeded(result) { Ok(()) } else { Err(()) }
+            if succeeded(result) {
+                Ok(())
+            } else {
+                Err(())
+            }
         }
     }
 
     fn has_table(&self, tag: FontTableTag) -> bool {
         unsafe {
-            succeeded(FT_Load_Sfnt_Table(self.face, tag as FT_ULong, 0, ptr::null_mut(), &mut 0))
+            succeeded(FT_Load_Sfnt_Table(
+                self.face,
+                tag as FT_ULong,
+                0,
+                ptr::null_mut(),
+                &mut 0,
+            ))
         }
     }
 
     fn face_rec_mut(&'a self) -> &'a mut FT_FaceRec {
-        unsafe {
-            &mut (*self.face)
-        }
+        unsafe { &mut (*self.face) }
     }
 
     fn font_units_to_au(&self, value: f64) -> Au {
@@ -378,11 +412,12 @@ impl<'a> FontHandle {
 
     fn os2_table(&self) -> Option<OS2Table> {
         unsafe {
-            let os2 = FT_Get_Sfnt_Table(self.face_rec_mut(), FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
+            let os2 =
+                FT_Get_Sfnt_Table(self.face_rec_mut(), FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
             let valid = !os2.is_null() && (*os2).version != 0xffff;
 
             if !valid {
-                return None
+                return None;
             }
 
             Some(OS2Table {

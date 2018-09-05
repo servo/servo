@@ -116,21 +116,18 @@ struct FontFamily {
 struct FontAlias {
     from: String,
     to: String,
-    weight: Option<i32>
+    weight: Option<i32>,
 }
 
 struct FontList {
     families: Vec<FontFamily>,
-    aliases: Vec<FontAlias>
+    aliases: Vec<FontAlias>,
 }
 
 impl FontList {
     fn new() -> FontList {
         // Possible paths containing the font mapping xml file.
-        let paths = [
-            "/etc/fonts.xml",
-            "/system/etc/system_fonts.xml"
-        ];
+        let paths = ["/etc/fonts.xml", "/system/etc/system_fonts.xml"];
 
         // Try to load and parse paths until one of them success.
         let mut result = None;
@@ -146,7 +143,7 @@ impl FontList {
             None => FontList {
                 families: Self::fallback_font_families(),
                 aliases: Vec::new(),
-            }
+            },
         }
     }
 
@@ -154,25 +151,26 @@ impl FontList {
     fn from_path(path: &str) -> Option<FontList> {
         let xml = match Self::load_file(path) {
             Ok(xml) => xml,
-            _=> { return None; },
+            _ => {
+                return None;
+            },
         };
 
-        let dom: RcDom = parse_document(RcDom::default(), Default::default())
-                         .one(xml);
+        let dom: RcDom = parse_document(RcDom::default(), Default::default()).one(xml);
         let doc = &dom.document;
 
         // find familyset root node
         let children = doc.children.borrow();
-        let familyset = children.iter().find(|child| {
-            match child.data {
-                NodeData::Element { ref name, .. } => &*name.local == "familyset",
-                _ => false,
-            }
+        let familyset = children.iter().find(|child| match child.data {
+            NodeData::Element { ref name, .. } => &*name.local == "familyset",
+            _ => false,
         });
 
         let familyset = match familyset {
             Some(node) => node,
-            _ => { return None; }
+            _ => {
+                return None;
+            },
         };
 
         // Parse familyset node
@@ -181,7 +179,11 @@ impl FontList {
 
         for node in familyset.children.borrow().iter() {
             match node.data {
-                NodeData::Element { ref name, ref attrs, .. } => {
+                NodeData::Element {
+                    ref name,
+                    ref attrs,
+                    ..
+                } => {
                     if &*name.local == "family" {
                         Self::parse_family(&node, attrs, &mut families);
                     } else if &*name.local == "alias" {
@@ -191,13 +193,13 @@ impl FontList {
                         }
                     }
                 },
-                _=> {}
+                _ => {},
             }
         }
 
         Some(FontList {
             families: families,
-            aliases: aliases
+            aliases: aliases,
         })
     }
 
@@ -209,17 +211,16 @@ impl FontList {
             ("Droid Sans", "DroidSans.ttf"),
         ];
 
-        alternatives.iter().filter(|item| {
-            Path::new(&Self::font_absolute_path(item.1)).exists()
-        }).map(|item| {
-            FontFamily {
+        alternatives
+            .iter()
+            .filter(|item| Path::new(&Self::font_absolute_path(item.1)).exists())
+            .map(|item| FontFamily {
                 name: item.0.into(),
                 fonts: vec![Font {
                     filename: item.1.into(),
                     weight: None,
-                }]
-            }
-        }). collect()
+                }],
+            }).collect()
     }
 
     // All Android fonts are located in /system/fonts
@@ -227,14 +228,13 @@ impl FontList {
         format!("/system/fonts/{}", filename)
     }
 
-    fn find_family(&self, name: &str) -> Option<&FontFamily>{
+    fn find_family(&self, name: &str) -> Option<&FontFamily> {
         self.families.iter().find(|f| f.name == name)
     }
 
-    fn find_alias(&self, name: &str) -> Option<&FontAlias>{
+    fn find_alias(&self, name: &str) -> Option<&FontAlias> {
         self.aliases.iter().find(|f| f.from == name)
     }
-
 
     fn load_file(path: &str) -> Result<String, io::Error> {
         let mut file = File::open(path)?;
@@ -253,14 +253,16 @@ impl FontList {
     //     <font weight="300" style="italic">Roboto-LightItalic.ttf</font>
     //     <font weight="400" style="normal">Roboto-Regular.ttf</font>
     // </family>
-    fn parse_family(familyset: &Node, attrs: &RefCell<Vec<Attribute>>, out:&mut Vec<FontFamily>) {
+    fn parse_family(familyset: &Node, attrs: &RefCell<Vec<Attribute>>, out: &mut Vec<FontFamily>) {
         // Fallback to old Android API v17 xml format if required
-        let using_api_17 = familyset.children.borrow().iter().any(|node| {
-            match node.data {
+        let using_api_17 = familyset
+            .children
+            .borrow()
+            .iter()
+            .any(|node| match node.data {
                 NodeData::Element { ref name, .. } => &*name.local == "nameset",
-                _=> false,
-            }
-        });
+                _ => false,
+            });
         if using_api_17 {
             Self::parse_family_v17(familyset, out);
             return;
@@ -269,25 +271,31 @@ impl FontList {
         // Parse family name
         let name = match Self::find_attrib("name", attrs) {
             Some(name) => name,
-            _ => { return; },
+            _ => {
+                return;
+            },
         };
 
         let mut fonts = Vec::new();
         // Parse font variants
         for node in familyset.children.borrow().iter() {
             match node.data {
-                NodeData::Element { ref name, ref attrs, .. } => {
+                NodeData::Element {
+                    ref name,
+                    ref attrs,
+                    ..
+                } => {
                     if &*name.local == "font" {
                         FontList::parse_font(&node, attrs, &mut fonts);
                     }
                 },
-                _=> {}
+                _ => {},
             }
         }
 
         out.push(FontFamily {
             name: name,
-            fonts: fonts
+            fonts: fonts,
         });
     }
 
@@ -308,7 +316,7 @@ impl FontList {
     //         <file>Roboto-BoldItalic.ttf</file>
     //     </fileset>
     // </family>
-    fn parse_family_v17(familyset: &Node, out:&mut Vec<FontFamily>) {
+    fn parse_family_v17(familyset: &Node, out: &mut Vec<FontFamily>) {
         let mut nameset = Vec::new();
         let mut fileset = Vec::new();
         for node in familyset.children.borrow().iter() {
@@ -320,21 +328,23 @@ impl FontList {
                         Self::collect_contents_with_tag(node, "file", &mut fileset);
                     }
                 },
-                _=> {}
+                _ => {},
             }
         }
 
         // Create a families for each variation
         for name in nameset {
-            let fonts: Vec<Font> = fileset.iter().map(|f| Font {
-                filename: f.clone(),
-                weight: None,
-            }).collect();
+            let fonts: Vec<Font> = fileset
+                .iter()
+                .map(|f| Font {
+                    filename: f.clone(),
+                    weight: None,
+                }).collect();
 
             if !fonts.is_empty() {
                 out.push(FontFamily {
                     name: name,
-                    fonts: fonts
+                    fonts: fonts,
                 })
             }
         }
@@ -342,11 +352,13 @@ impl FontList {
 
     // Example:
     // <font weight="100" style="normal">Roboto-Thin.ttf</font>
-    fn parse_font(node: &Node, attrs: &RefCell<Vec<Attribute>>, out:&mut Vec<Font>) {
+    fn parse_font(node: &Node, attrs: &RefCell<Vec<Attribute>>, out: &mut Vec<Font>) {
         // Parse font filename
         let filename = match Self::text_content(node) {
             Some(filename) => filename,
-            _ => { return; }
+            _ => {
+                return;
+            },
         };
 
         // Parse font weight
@@ -367,17 +379,21 @@ impl FontList {
     // <alias name="helvetica" to="sans-serif" />
     // <alias name="tahoma" to="sans-serif" />
     // <alias name="verdana" to="sans-serif" />
-    fn parse_alias(attrs: &RefCell<Vec<Attribute>>, out:&mut Vec<FontAlias>) {
+    fn parse_alias(attrs: &RefCell<Vec<Attribute>>, out: &mut Vec<FontAlias>) {
         // Parse alias name and referenced font
         let from = match Self::find_attrib("name", attrs) {
             Some(from) => from,
-            _ => { return; },
+            _ => {
+                return;
+            },
         };
 
         // Parse referenced font
         let to = match Self::find_attrib("to", attrs) {
             Some(to) => to,
-            _ => { return; },
+            _ => {
+                return;
+            },
         };
 
         // Parse optional weight filter
@@ -391,23 +407,28 @@ impl FontList {
     }
 
     fn find_attrib(name: &str, attrs: &RefCell<Vec<Attribute>>) -> Option<String> {
-        attrs.borrow().iter().find(|attr| &*attr.name.local == name).map(|s| String::from(&s.value))
+        attrs
+            .borrow()
+            .iter()
+            .find(|attr| &*attr.name.local == name)
+            .map(|s| String::from(&s.value))
     }
 
     fn text_content(node: &Node) -> Option<String> {
-        node.children.borrow().get(0).and_then(|child| {
-            match child.data {
+        node.children
+            .borrow()
+            .get(0)
+            .and_then(|child| match child.data {
                 NodeData::Text { ref contents } => {
                     let mut result = String::new();
                     result.push_str(&contents.borrow());
                     Some(result)
                 },
-                _ => None
-            }
-        })
+                _ => None,
+            })
     }
 
-    fn collect_contents_with_tag(node: &Node, tag: &str, out:&mut Vec<String>) {
+    fn collect_contents_with_tag(node: &Node, tag: &str, out: &mut Vec<String>) {
         for child in node.children.borrow().iter() {
             match child.data {
                 NodeData::Element { ref name, .. } => {
@@ -417,14 +438,17 @@ impl FontList {
                         }
                     }
                 },
-                _=> {}
+                _ => {},
             }
         }
     }
 }
 
 // Functions used by FontCacheThread
-pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
+pub fn for_each_available_family<F>(mut callback: F)
+where
+    F: FnMut(String),
+{
     for family in &FONT_LIST.families {
         callback(family.name.clone());
     }
@@ -434,7 +458,8 @@ pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
 }
 
 pub fn for_each_variation<F>(family_name: &str, mut callback: F)
-    where F: FnMut(String)
+where
+    F: FnMut(String),
 {
     if let Some(family) = FONT_LIST.find_family(family_name) {
         for font in &family.fonts {
@@ -453,7 +478,7 @@ pub fn for_each_variation<F>(family_name: &str, mut callback: F)
                             callback(FontList::font_absolute_path(&font.filename))
                         }
                     },
-                    _ => {}
+                    _ => {},
                 }
             }
         }
@@ -473,46 +498,44 @@ pub fn system_default_family(generic_name: &str) -> Option<String> {
 
 // Based on gfxAndroidPlatform::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
-    let mut families = vec!();
+    let mut families = vec![];
 
     if let Some(block) = codepoint.and_then(|c| c.block()) {
         match block {
             UnicodeBlock::Armenian => {
                 families.push("Droid Sans Armenian");
-            }
+            },
 
             UnicodeBlock::Hebrew => {
                 families.push("Droid Sans Hebrew");
-            }
+            },
 
             UnicodeBlock::Arabic => {
                 families.push("Droid Sans Arabic");
-            }
+            },
 
             UnicodeBlock::Devanagari => {
                 families.push("Noto Sans Devanagari");
                 families.push("Droid Sans Devanagari");
-            }
+            },
 
             UnicodeBlock::Tamil => {
                 families.push("Noto Sans Tamil");
                 families.push("Droid Sans Tamil");
-            }
+            },
 
             UnicodeBlock::Thai => {
                 families.push("Noto Sans Thai");
                 families.push("Droid Sans Thai");
-            }
+            },
 
-            UnicodeBlock::Georgian |
-            UnicodeBlock::GeorgianSupplement => {
+            UnicodeBlock::Georgian | UnicodeBlock::GeorgianSupplement => {
                 families.push("Droid Sans Georgian");
-            }
+            },
 
-            UnicodeBlock::Ethiopic |
-            UnicodeBlock::EthiopicSupplement => {
+            UnicodeBlock::Ethiopic | UnicodeBlock::EthiopicSupplement => {
                 families.push("Droid Sans Ethiopic");
-            }
+            },
 
             _ => {
                 if is_cjk(codepoint.unwrap()) {
@@ -520,7 +543,7 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
                     families.push("Noto Sans CJK JP");
                     families.push("Droid Sans Japanese");
                 }
-            }
+            },
         }
     }
 

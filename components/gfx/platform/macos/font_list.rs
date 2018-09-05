@@ -6,14 +6,20 @@ use core_text;
 use text::util::unicode_plane;
 use ucd::{Codepoint, UnicodeBlock};
 
-pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
+pub fn for_each_available_family<F>(mut callback: F)
+where
+    F: FnMut(String),
+{
     let family_names = core_text::font_collection::get_family_names();
     for family_name in family_names.iter() {
         callback(family_name.to_string());
     }
 }
 
-pub fn for_each_variation<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
+pub fn for_each_variation<F>(family_name: &str, mut callback: F)
+where
+    F: FnMut(String),
+{
     debug!("Looking for faces of family: {}", family_name);
 
     let family_collection = core_text::font_collection::create_for_family(family_name);
@@ -31,7 +37,7 @@ pub fn system_default_family(_generic_name: &str) -> Option<String> {
 
 // Based on gfxPlatformMac::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
-    let mut families = vec!("Lucida Grande");
+    let mut families = vec!["Lucida Grande"];
 
     if let Some(codepoint) = codepoint {
         match unicode_plane(codepoint) {
@@ -45,66 +51,65 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
                         UnicodeBlock::Thaana |
                         UnicodeBlock::NKo => {
                             families.push("Geeza Pro");
-                        }
+                        },
 
                         UnicodeBlock::Devanagari => {
                             families.push("Devanagari Sangam MN");
-                        }
+                        },
 
                         UnicodeBlock::Gurmukhi => {
                             families.push("Gurmukhi MN");
-                        }
+                        },
 
                         UnicodeBlock::Gujarati => {
                             families.push("Gujarati Sangam MN");
-                        }
+                        },
 
                         UnicodeBlock::Tamil => {
                             families.push("Tamil MN");
-                        }
+                        },
 
                         UnicodeBlock::Lao => {
                             families.push("Lao MN");
-                        }
+                        },
 
                         UnicodeBlock::Tibetan => {
                             families.push("Songti SC");
-                        }
+                        },
 
                         UnicodeBlock::Myanmar => {
                             families.push("Myanmar MN");
-                        }
+                        },
 
                         UnicodeBlock::Ethiopic |
                         UnicodeBlock::EthiopicSupplement |
                         UnicodeBlock::EthiopicExtended |
                         UnicodeBlock::EthiopicExtendedA => {
                             families.push("Kefa");
-                        }
+                        },
 
                         UnicodeBlock::Cherokee => {
                             families.push("Plantagenet Cherokee");
-                        }
+                        },
 
                         UnicodeBlock::UnifiedCanadianAboriginalSyllabics |
                         UnicodeBlock::UnifiedCanadianAboriginalSyllabicsExtended => {
                             families.push("Euphemia UCAS");
-                        }
+                        },
 
                         UnicodeBlock::Mongolian |
                         UnicodeBlock::YiSyllables |
                         UnicodeBlock::YiRadicals => {
                             families.push("STHeiti");
-                        }
+                        },
 
-                        UnicodeBlock::Khmer |
-                        UnicodeBlock::KhmerSymbols => {
+                        UnicodeBlock::Khmer | UnicodeBlock::KhmerSymbols => {
                             families.push("Khmer MN");
-                        }
+                        },
 
                         UnicodeBlock::TaiLe => {
                             families.push("Microsoft Tai Le");
-                        }
+                        },
 
                         UnicodeBlock::GeneralPunctuation |
                         UnicodeBlock::SuperscriptsandSubscripts |
@@ -134,11 +139,11 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
                             families.push("Apple Symbols");
                             families.push("Menlo");
                             families.push("STIXGeneral");
-                        }
+                        },
 
                         UnicodeBlock::BraillePatterns => {
                             families.push("Apple Braille");
-                        }
+                        },
 
                         UnicodeBlock::Bopomofo |
                         UnicodeBlock::HangulCompatibilityJamo |
@@ -147,7 +152,7 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
                         UnicodeBlock::CJKStrokes |
                         UnicodeBlock::KatakanaPhoneticExtensions => {
                             families.push("Hiragino Sans GB");
-                        }
+                        },
 
                         UnicodeBlock::YijingHexagramSymbols |
                         UnicodeBlock::CyrillicExtendedB |
@@ -158,27 +163,27 @@ pub fn fallback_font_families(codepoint: Option<char>) -> Vec<&'static str> {
                         UnicodeBlock::HalfwidthandFullwidthForms |
                         UnicodeBlock::Specials => {
                             families.push("Apple Symbols");
-                        }
+                        },
 
-                        _ => {}
+                        _ => {},
                     }
                 }
-            }
+            },
 
             // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Multilingual_Plane
             1 => {
                 families.push("Apple Symbols");
                 families.push("STIXGeneral");
-            }
+            },
 
             // https://en.wikipedia.org/wiki/Plane_(Unicode)#Supplementary_Ideographic_Plane
             2 => {
                 // Systems with MS Office may have these fonts
                 families.push("MingLiU-ExtB");
                 families.push("SimSun-ExtB");
-            }
+            },
 
-            _ => {}
+            _ => {},
         }
     }
 
