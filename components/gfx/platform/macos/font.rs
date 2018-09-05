@@ -211,8 +211,9 @@ impl FontHandleMethods for FontHandle {
 
     fn boldness(&self) -> FontWeight {
         let normalized = self.ctfont.all_traits().normalized_weight(); // [-1.0, 1.0]
-                                                                       // TODO(emilio): It may make sense to make this range [.01, 10.0], to
-                                                                       // align with css-fonts-4's range of [1, 1000].
+
+        // TODO(emilio): It may make sense to make this range [.01, 10.0], to
+        // align with css-fonts-4's range of [1, 1000].
         let normalized = if normalized <= 0.0 {
             4.0 + normalized * 3.0 // [1.0, 4.0]
         } else {
