@@ -255,6 +255,7 @@ class MachCommands(CommandBase):
             return -1
         env = self.build_env(target=target)
         ndk_stack = path.join(env["ANDROID_NDK"], "ndk-stack")
+        self.handle_android_target(target)
         sym_path = path.join(
             "target",
             target,
@@ -262,5 +263,5 @@ class MachCommands(CommandBase):
             "apk",
             "obj",
             "local",
-            "armeabi-v7a")
+            self.config["android"]["lib"])
         print(subprocess.check_output([ndk_stack, "-sym", sym_path, "-dump", logfile]))
