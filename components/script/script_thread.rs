@@ -79,7 +79,7 @@ use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
 use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
@@ -1449,10 +1449,12 @@ impl ScriptThread {
         match msg {
             ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
                 match fetch_data {
-                    FetchResponseMsg::ProcessResponse(metadata) => self.handle_fetch_metadata(id, metadata),
-                    FetchResponseMsg::ProcessResponseChunk(chunk) => self.handle_fetch_chunk(id, chunk),
-                    // TODO don't throw away resource timing
-                    FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof.map(|_| ())),
+                    FetchResponseMsg::ProcessResponse(metadata) => {
+                        self.handle_fetch_metadata(id, metadata)},
+                    FetchResponseMsg::ProcessResponseChunk(chunk) => {
+                        self.handle_fetch_chunk(id, chunk)},
+                    FetchResponseMsg::ProcessResponseEOF(eof) => {
+                        self.handle_fetch_eof(id, eof)},
                     _ => unreachable!(),
                 };
             },
@@ -3060,7 +3062,7 @@ impl ScriptThread {
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match fetch_metadata {
-            Ok(_) => (),
+            Ok(_) => (), 
             Err(ref e) => {
                 warn!("Network error: {:?}", e);
             },
@@ -3091,6 +3093,7 @@ impl ScriptThread {
             .borrow()
             .iter()
             .position(|&(pipeline_id, _)| pipeline_id == id);
+
         if let Some(idx) = idx {
             let (_, mut ctxt) = self.incomplete_parser_contexts.borrow_mut().remove(idx);
             ctxt.process_response_eof(eof);
@@ -3127,7 +3130,7 @@ impl ScriptThread {
 
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(chunk);
-        context.process_response_eof(Ok(()));
+        context.process_response_eof(Ok(ResourceFetchTiming::new(ResourceTimingType::None)));
     }
 
     fn handle_css_error_reporting(

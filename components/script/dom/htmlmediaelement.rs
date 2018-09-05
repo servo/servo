@@ -43,7 +43,7 @@ use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, SubLevel, TopLevel};
 use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseListener, FetchMetadata, Metadata};
-use net_traits::{NetworkError, ResourceFetchTiming};
+use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use script_layout_interface::HTMLMediaData;
@@ -1557,7 +1557,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
     }
 
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
-    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         if self.ignore_response {
             // An error was received previously, skip processing the payload.
             return;
@@ -1650,7 +1650,7 @@ impl HTMLMediaElementContext {
             generation_id: elem.generation_id.get(),
             next_progress_event: time::get_time() + Duration::milliseconds(350),
             ignore_response: false,
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: url,
         }
     }

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ReferrerPolicy;
+use ResourceTimingType;
 use hyper::header::Headers;
 use hyper::method::Method;
 use msg::constellation_msg::PipelineId;
@@ -354,6 +355,14 @@ impl Request {
             Destination::Script | Destination::Style | Destination::Track | Destination::Video |
             Destination::Xslt | Destination::None => true,
             _ => false,
+        }
+    }
+
+    pub fn timing_type(&self) -> ResourceTimingType {
+        if self.is_navigation_request() {
+            ResourceTimingType::Navigation
+        } else {
+            ResourceTimingType::Resource
         }
     }
 }

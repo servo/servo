@@ -41,7 +41,8 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
 use msg::constellation_msg::PipelineId;
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
@@ -668,7 +669,7 @@ impl ParserContext {
             is_synthesized_document: false,
             id: id,
             url: url,
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Navigation),
         }
     }
 }
@@ -788,7 +789,9 @@ impl FetchResponseListener for ParserContext {
         parser.parse_bytes_chunk(payload);
     }
 
-    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
+    // This method is called via script_thread::handle_fetch_eof, so we must call submit_resource_timing in this function
+    // Resource listeners are called via net_traits::Action::process, which handles submission for them
+    fn process_response_eof(&mut self, status: Result<ResourceFetchTiming, NetworkError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,
@@ -808,6 +811,8 @@ impl FetchResponseListener for ParserContext {
         if !parser.suspended.get() {
             parser.parse_sync();
         }
+
+        self.submit_resource_timing();
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -830,6 +835,7 @@ impl FetchResponseListener for ParserContext {
 
         let document = &parser.document;
 
+        //TODO nav_start and nav_start_precise
         let performance_entry = PerformanceNavigationTiming::new(&document.global(), 0, 0, &document);
         document.global().performance().queue_entry(performance_entry.upcast::<PerformanceEntry>(), true);
     }

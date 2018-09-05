@@ -17,7 +17,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use ipc_channel::ipc::IpcReceiver;
 use mime_guess::guess_mime_type;
-use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
 use net_traits::request::{ResponseTainting, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
@@ -50,6 +50,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
+    pub timing: ResourceFetchTiming,
 }
 
 pub struct CancellationListener {
@@ -86,6 +87,10 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 pub fn fetch(request: &mut Request,
              target: Target,
              context: &mut FetchContext) {
+    context.timing = match request.destination {
+        Destination::Document => ResourceFetchTiming::new(ResourceTimingType::Navigation),
+        _ => ResourceFetchTiming::new(ResourceTimingType::Resource),
+    };
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 
@@ -136,6 +141,7 @@ pub fn main_fetch(request: &mut Request,
                   done_chan: &mut DoneChannel,
                   context: &mut FetchContext)
                   -> Response {
+
     // Step 1.
     let mut response = None;
 
@@ -461,7 +467,7 @@ fn scheme_fetch(request: &mut Request,
 
     match url.scheme() {
         "about" if url.path() == "blank" => {
-            let mut response = Response::new(url, ResourceFetchTiming::new());
+            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
             response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
             response
@@ -474,7 +480,7 @@ fn scheme_fetch(request: &mut Request,
         "data" => {
             match decode(&url) {
                 Ok((mime, bytes)) => {
-                    let mut response = Response::new(url, ResourceFetchTiming::new());
+                    let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response.headers.set(ContentType(mime));
                     response
@@ -491,7 +497,7 @@ fn scheme_fetch(request: &mut Request,
                             Ok(mut file) => {
                                 let mime = guess_mime_type(file_path);
 
-                                let mut response = Response::new(url, ResourceFetchTiming::new());
+                                let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                                 *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                                 response.headers.set(ContentType(mime));
 
@@ -556,7 +562,7 @@ fn scheme_fetch(request: &mut Request,
 
             match load_blob_sync(url.clone(), context.filemanager.clone()) {
                 Ok((headers, bytes)) => {
-                    let mut response = Response::new(url, ResourceFetchTiming::new());
+                    let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
                     response.headers = headers;
                     *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                     response

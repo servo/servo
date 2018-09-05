@@ -22,8 +22,9 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CustomResponseMediator, FetchChannels};
 use net_traits::{FetchResponseMsg, ResourceThreads, WebSocketDomAction};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::WebSocketNetworkEvent;
-use net_traits::request::{Request, RequestInit};
+use net_traits::request::{Destination, Request, RequestInit};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::mem::{Report, ReportsChan, ReportKind};
@@ -401,10 +402,16 @@ impl CoreResourceManager {
              mut sender: IpcSender<FetchResponseMsg>,
              http_state: &Arc<HttpState>,
              cancel_chan: Option<IpcReceiver<()>>) {
+
         let http_state = http_state.clone();
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
+
+        let timing_type = match req_init.destination {
+            Destination::Document => ResourceTimingType::Navigation,
+            _ => ResourceTimingType::Resource,
+        };
 
         thread::Builder::new().name(format!("fetch thread for {}", req_init.url)).spawn(move || {
             let mut request = Request::from_init(req_init);
@@ -418,11 +425,12 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
+                timing: ResourceFetchTiming::new(timing_type),//TODO arc?
             };
 
             match res_init_ {
                 Some(res_init) => {
-                    let response = Response::from_init(res_init);
+                    let response = Response::from_init(res_init, timing_type);
                     http_redirect_fetch(&mut request,
                                         &mut CorsCache::new(),
                                         response,
@@ -432,6 +440,13 @@ impl CoreResourceManager {
                                         &mut context);
                 },
                 None => fetch(&mut request, &mut sender, &mut context),
+            };
+
+            // TODO remove
+            match context.timing.timing_type {
+                ResourceTimingType::Navigation => {},
+                ResourceTimingType::Resource => {},
+                _ => (),
             };
         }).expect("Thread spawning failed");
     }

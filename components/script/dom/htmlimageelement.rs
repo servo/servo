@@ -48,6 +48,7 @@ use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, TopLevel, SubLevel};
 use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg, ResourceFetchTiming};
+use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageOrMetadataAvailable};
 use net_traits::image_cache::{ImageResponder, ImageResponse, ImageState, PendingImageId};
@@ -222,15 +223,13 @@ impl FetchResponseListener for ImageContext {
         }
     }
 
+    // FIXME
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-<<<<<<< d60b14bed5085598a25f016c96c4789a5b01f6e1
-        self.image_cache
-            .notify_pending_response(self.id, FetchResponseMsg::ProcessResponseEOF(response));
-=======
         // notify_pending_response doesn't use the resource timing
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponseEOF(response.map(|_| ResourceFetchTiming::new())));
+            FetchResponseMsg::ProcessResponseEOF(response.map(|_|
+                ResourceFetchTiming::new(ResourceTimingType::Resource))));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -342,13 +341,10 @@ impl HTMLImageElement {
             image_cache: window.image_cache(),
             status: Ok(()),
             id: id,
-<<<<<<< d60b14bed5085598a25f016c96c4789a5b01f6e1
             aborted: Cell::new(false),
-=======
             doc: Trusted::new(&document),
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
             url: img_url.clone(),
->>>>>>> refactored performance timing to align with updated spec
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

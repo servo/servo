@@ -4,7 +4,8 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use {ResourceFetchTiming, ResourceTimingType};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -119,7 +120,7 @@ pub struct Response {
     #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
     pub aborted: Arc<AtomicBool>,
     /// track network metrics
-    resource_timing: ResourceFetchTiming,
+    pub resource_timing: ResourceFetchTiming,
 }
 
 impl Response {
@@ -146,8 +147,8 @@ impl Response {
         }
     }
 
-    pub fn from_init(init: ResponseInit) -> Response {
-        let mut res = Response::new(init.url, ResourceFetchTiming::new());
+    pub fn from_init(init: ResponseInit, resource_timing_type: ResourceTimingType) -> Response {
+        let mut res = Response::new(init.url, ResourceFetchTiming::new(resource_timing_type));
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
@@ -174,7 +175,7 @@ impl Response {
             internal_response: None,
             return_internal: true,
             aborted: Arc::new(AtomicBool::new(false)),
-            resource_timing: ResourceFetchTiming::new(),
+            resource_timing: ResourceFetchTiming::new(ResourceTimingType::Error),
         }
     }
 
