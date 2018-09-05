@@ -5,10 +5,11 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="support/helper.sub.js"></script>
 
-  <meta http-equiv="Content-Security-Policy" content="require-trusted-types">
+  <meta http-equiv="Content-Security-Policy" content="trusted-types">
 </head>
 <body>
 <script>
+  var testnb = 0;
   // TrustedURL Assignments
   let testCases = [
     [ 'a', 'href' ],
@@ -28,7 +29,7 @@
 
   testCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_url(window, c, t, c[0], c[1], RESULTS.URL);
+      assert_element_accepts_trusted_url(window, ++testnb, t, c[0], c[1], RESULTS.URL);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedURL");
@@ -40,9 +41,10 @@
     [ 'script', 'src' ]
   ];
 
+  testnb = 0;
   scriptTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_script_url(window, c, t, c[0], c[1], RESULTS.SCRIPTURL);
+      assert_element_accepts_trusted_script_url(window, ++testnb, t, c[0], c[1], RESULTS.SCRIPTURL);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedScriptURL");
@@ -54,9 +56,10 @@
     [ 'iframe', 'srcdoc' ]
   ];
 
+  testnb = 0;
   HTMLTestCases.forEach(c => {
     test(t => {
-      assert_element_accepts_trusted_html(window, c, t, c[0], c[1], RESULTS.HTML);
+      assert_element_accepts_trusted_html(window, ++testnb, t, c[0], c[1], RESULTS.HTML);
       assert_throws_no_trusted_type(c[0], c[1], 'A string');
       assert_throws_no_trusted_type(c[0], c[1], null);
     }, c[0] + "." + c[1] + " accepts only TrustedHTML");

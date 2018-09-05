@@ -33,12 +33,15 @@ function send_result(message_id, result) {
       host_info['HTTPS_ORIGIN']);
 }
 
-function get_intercepted_urls(worker) {
+function get_request_infos(worker) {
   return new Promise(function(resolve) {
-      var channel = new MessageChannel();
-      channel.port1.onmessage = function(msg) { resolve(msg.data.urls); };
-      worker.postMessage({port: channel.port2}, [channel.port2]);
-    });
+    var channel = new MessageChannel();
+    channel.port1.onmessage = (msg) => {
+      resolve(msg.data.requestInfos);
+    };
+    worker.postMessage({command: 'getRequestInfos', port: channel.port2},
+                       [channel.port2]);
+  });
 }
 
 window.addEventListener('message', on_message, false);
@@ -48,14 +51,15 @@ function on_message(e) {
     console.error('invalid origin: ' + e.origin);
     return;
   }
-  if (e.data.message == 'wait_for_worker') {
+  const command = e.data.message.command;
+  if (command == 'wait_for_worker') {
     wait_for_worker_promise.then(function() { send_result(e.data.id, 'ok'); });
-  } else if (e.data.message == 'get_intercepted_urls') {
-    get_intercepted_urls(worker)
-      .then(function(urls) {
-          send_result(e.data.id, urls);
+  } else if (command == 'get_request_infos') {
+    get_request_infos(worker)
+      .then(function(data) {
+          send_result(e.data.id, data);
         });
-  } else if (e.data.message == 'unregister') {
+  } else if (command == 'unregister') {
     registration.unregister()
       .then(function() {
           send_result(e.data.id, 'ok');

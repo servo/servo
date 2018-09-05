@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js" ></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.sub.js"></script>
+<meta http-equiv="Content-Security-Policy" content="trusted-types SomeName JustOneMoreName">
+<body>
+<script>
+  //Whitelisted name test
+  test(t => {
+    let policy = window.TrustedTypes.createPolicy('SomeName', { createHTML: s => s } );
+    assert_equals(policy.name, 'SomeName');
+  }, "Whitelisted policy creation works");
+  //Another whitelisted name test
+  test(t => {
+    let policy = window.TrustedTypes.createPolicy('JustOneMoreName', { createHTML: s => s } );
+    assert_equals(policy.name, 'JustOneMoreName');
+  }, "Another whitelisted policy creation works");
+  //Non-whitelisted names test
+  test(t => {
+    assert_throws(new TypeError(), _ => {
+     window.TrustedTypes.createPolicy('SomeOtherName', { createURL: s => s } );
+    });
+  }, "Non-whitelisted policy creation throws");
+</script>

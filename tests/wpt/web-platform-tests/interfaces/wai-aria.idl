@@ -1,0 +1,59 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Accessible Rich Internet Applications (WAI-ARIA) 1.2 (https://w3c.github.io/aria/)
+
+interface mixin AccessibilityRole {
+  attribute DOMString? role;
+};
+Element includes AccessibilityRole;
+
+interface mixin AriaAttributes {
+  attribute DOMString? ariaActiveDescendant;
+  attribute DOMString? ariaAtomic;
+  attribute DOMString? ariaAutoComplete;
+  attribute DOMString? ariaBusy;
+  attribute DOMString? ariaChecked;
+  attribute DOMString? ariaColCount;
+  attribute DOMString? ariaColIndex;
+  attribute DOMString? ariaColSpan;
+  attribute DOMString? ariaControls;
+  attribute DOMString? ariaCurrent;
+  attribute DOMString? ariaDescribedBy;
+  attribute DOMString? ariaDetails;
+  attribute DOMString? ariaDisabled;
+  attribute DOMString? ariaErrorMessage;
+  attribute DOMString? ariaExpanded;
+  attribute DOMString? ariaFlowTo;
+  attribute DOMString? ariaHasPopup;
+  attribute DOMString? ariaHidden;
+  attribute DOMString? ariaInvalid;
+  attribute DOMString? ariaKeyShortcuts;
+  attribute DOMString? ariaLabel;
+  attribute DOMString? ariaLabelledBy;
+  attribute DOMString? ariaLevel;
+  attribute DOMString? ariaLive;
+  attribute DOMString? ariaModal;
+  attribute DOMString? ariaMultiLine;
+  attribute DOMString? ariaMultiSelectable;
+  attribute DOMString? ariaOrientation;
+  attribute DOMString? ariaOwns;
+  attribute DOMString? ariaPlaceholder;
+  attribute DOMString? ariaPosInSet;
+  attribute DOMString? ariaPressed;
+  attribute DOMString? ariaReadOnly;
+  attribute DOMString? ariaRelevant;
+  attribute DOMString? ariaRequired;
+  attribute DOMString? ariaRoleDescription;
+  attribute DOMString? ariaRowCount;
+  attribute DOMString? ariaRowIndex;
+  attribute DOMString? ariaRowSpan;
+  attribute DOMString? ariaSelected;
+  attribute DOMString? ariaSetSize;
+  attribute DOMString? ariaSort;
+  attribute DOMString? ariaValueMax;
+  attribute DOMString? ariaValueMin;
+  attribute DOMString? ariaValueNow;
+  attribute DOMString? ariaValueText;
+};
+Element includes AriaAttributes;

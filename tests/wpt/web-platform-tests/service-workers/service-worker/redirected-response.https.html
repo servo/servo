@@ -49,12 +49,15 @@ function redirected_test(options) {
       });
 }
 
-function take_intercepted_urls() {
-  return new Promise((resolve) => {
-      let channel = new MessageChannel();
-      channel.port1.onmessage = msg => { resolve(msg.data.urls); };
-      worker.postMessage({port: channel.port2}, [channel.port2]);
-    });
+async function take_intercepted_urls() {
+  const message = new Promise((resolve) => {
+    let channel = new MessageChannel();
+    channel.port1.onmessage = msg => { resolve(msg.data.requestInfos); };
+    worker.postMessage({command: 'getRequestInfos', port: channel.port2},
+                       [channel.port2]);
+  });
+  const request_infos = await message;
+  return request_infos.map(info => { return info.url; });
 }
 
 function check_intercepted_urls(expected_urls) {

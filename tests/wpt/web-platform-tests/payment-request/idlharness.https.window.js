@@ -25,6 +25,7 @@ idl_test(
       PaymentRequest: ['paymentRequest'],
       PaymentMethodChangeEvent: ['new PaymentMethodChangeEvent("paymentmethodchange")'],
       PaymentRequestUpdateEvent: ['new PaymentRequestUpdateEvent("paymentrequestupdate")'],
+      MerchantValidationEvent: ['new MerchantValidationEvent("merchantvalidation")'],
     });
   }
 );
