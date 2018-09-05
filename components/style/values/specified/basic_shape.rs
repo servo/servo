@@ -49,17 +49,24 @@ pub type ShapeRadius = generic::ShapeRadius<LengthOrPercentage>;
 /// The specified value of `Polygon`
 pub type Polygon = generic::Polygon<LengthOrPercentage>;
 
+#[cfg(feature = "gecko")]
+fn is_clip_path_path_enabled(context: &ParserContext) -> bool {
+    use gecko_bindings::structs::mozilla;
+    context.chrome_rules_enabled() ||
+        unsafe { mozilla::StaticPrefs_sVarCache_layout_css_clip_path_path_enabled }
+}
+#[cfg(feature = "servo")]
+fn is_clip_path_path_enabled(_: &ParserContext) -> bool {
+    false
+}
+
 impl Parse for ClippingShape {
     #[inline]
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        // |clip-path:path()| is a chrome-only property value support for now. `path()` is
-        // defined in css-shape-2, but the spec is not stable enough, and we haven't decided
-        // to make it public yet. However, it has some benefits for the front-end, so we
-        // implement it.
-        if context.chrome_rules_enabled() {
+        if is_clip_path_path_enabled(context) {
             if let Ok(p) = input.try(|i| Path::parse(context, i)) {
                 return Ok(ShapeSource::Path(p));
             }
