@@ -18,6 +18,7 @@ interface PaymentRequest : EventTarget {
   readonly attribute DOMString? shippingOption;
   readonly attribute PaymentShippingType? shippingType;
 
+  attribute EventHandler onmerchantvalidation;
   attribute EventHandler onshippingaddresschange;
   attribute EventHandler onshippingoptionchange;
   attribute EventHandler onpaymentmethodchange;
@@ -176,6 +177,17 @@ dictionary PayerErrorFields {
   DOMString email;
   DOMString name;
   DOMString phone;
+};
+
+[Constructor(DOMString type, optional MerchantValidationEventInit eventInitDict),
+SecureContext, Exposed=Window]
+interface MerchantValidationEvent : Event {
+  readonly attribute USVString validationURL;
+  void complete(Promise<any> merchantSessionPromise);
+};
+
+dictionary MerchantValidationEventInit : EventInit {
+  USVString validationURL = "";
 };
 
 [Constructor(DOMString type, optional PaymentMethodChangeEventInit eventInitDict), SecureContext, Exposed=Window]

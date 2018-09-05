@@ -47,7 +47,6 @@ test(t => {
 
   const oldReadableStream = self.ReadableStream;
 
-  /* eslint-disable no-native-reassign */
   self.ReadableStream = function() {
     throw new Error('ReadableStream called on global object');
   };
@@ -60,8 +59,6 @@ test(t => {
 
   assert_true(isReadableStream(branch1), 'branch1 should be a ReadableStream');
   assert_true(isReadableStream(branch2), 'branch2 should be a ReadableStream');
-
-  /* eslint-enable no-native-reassign */
 }, 'ReadableStream tee() should not call the global ReadableStream');
 
 done();

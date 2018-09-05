@@ -6,7 +6,8 @@
   function create_test(prefix, params, shouldExistInDOM, shouldExistViaHTTP, title) {
     promise_test(t => {
       var name = prefix + "prefixtestcookie";
-      erase_cookie_from_js(name);
+      erase_cookie_from_js(name, params);
+      t.add_cleanup(() => erase_cookie_from_js(name, params));
       var value = "" + Math.random();
       document.cookie = name + "=" + value + ";" + params;
 

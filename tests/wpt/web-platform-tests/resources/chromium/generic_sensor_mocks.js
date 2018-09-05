@@ -109,7 +109,7 @@ var GenericSensorTest = (() => {
       this.readingSizeInBytes_ =
           device.mojom.SensorInitParams.kReadBufferSizeForTests;
       this.sharedBufferSizeInBytes_ = this.readingSizeInBytes_ *
-              device.mojom.SensorType.LAST;
+              (device.mojom.SensorType.RELATIVE_ORIENTATION_QUATERNION + 1);
       let rv = Mojo.createSharedBuffer(this.sharedBufferSizeInBytes_);
       assert_equals(rv.result, Mojo.RESULT_OK, "Failed to create buffer");
       this.sharedBufferHandle_ = rv.handle;
@@ -130,8 +130,7 @@ var GenericSensorTest = (() => {
     }
 
     async getSensor(type) {
-      const offset = (device.mojom.SensorType.LAST - type) *
-                      this.readingSizeInBytes_;
+      const offset = type * this.readingSizeInBytes_;
       const reportingMode = device.mojom.ReportingMode.ON_CHANGE;
 
       let sensorPtr = new device.mojom.SensorPtr();

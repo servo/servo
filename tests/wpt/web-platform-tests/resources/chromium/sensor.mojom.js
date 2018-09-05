@@ -20,8 +20,7 @@
 
 
   var SensorType = {};
-  SensorType.FIRST = 1;
-  SensorType.AMBIENT_LIGHT = SensorType.FIRST;
+  SensorType.AMBIENT_LIGHT = 0;
   SensorType.PROXIMITY = SensorType.AMBIENT_LIGHT + 1;
   SensorType.ACCELEROMETER = SensorType.PROXIMITY + 1;
   SensorType.LINEAR_ACCELERATION = SensorType.ACCELEROMETER + 1;
@@ -32,10 +31,10 @@
   SensorType.ABSOLUTE_ORIENTATION_QUATERNION = SensorType.ABSOLUTE_ORIENTATION_EULER_ANGLES + 1;
   SensorType.RELATIVE_ORIENTATION_EULER_ANGLES = SensorType.ABSOLUTE_ORIENTATION_QUATERNION + 1;
   SensorType.RELATIVE_ORIENTATION_QUATERNION = SensorType.RELATIVE_ORIENTATION_EULER_ANGLES + 1;
-  SensorType.LAST = SensorType.RELATIVE_ORIENTATION_QUATERNION;
 
   SensorType.isKnownEnumValue = function(value) {
     switch (value) {
+    case 0:
     case 1:
     case 2:
     case 3:
@@ -46,7 +45,6 @@
     case 8:
     case 9:
     case 10:
-    case 11:
       return true;
     }
     return false;
