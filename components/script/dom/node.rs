@@ -1030,6 +1030,7 @@ pub trait LayoutNodeHelpers {
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<ServoUrl>;
+    fn image_density(&self) -> Option<f64>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
     fn svg_data(&self) -> Option<SVGSVGData>;
     fn iframe_browsing_context_id(&self) -> Option<BrowsingContextId>;
@@ -1170,6 +1171,15 @@ impl LayoutNodeHelpers for LayoutDom<Node> {
             self.downcast::<HTMLImageElement>()
                 .expect("not an image!")
                 .image_url()
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn image_density(&self) -> Option<f64> {
+        unsafe {
+            self.downcast::<HTMLImageElement>()
+                .expect("not an image!")
+                .image_density()
         }
     }
 

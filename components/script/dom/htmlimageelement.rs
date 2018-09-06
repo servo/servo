@@ -706,7 +706,7 @@ impl HTMLImageElement {
     }
 
     /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
-    fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString) {
+    fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString, current_pixel_density: Option<f64>) {
         match self.image_request.get() {
             ImageRequestPhase::Pending => {
                 if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
@@ -731,15 +731,18 @@ impl HTMLImageElement {
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return
                         }
+                        pending_request.current_pixel_density = current_pixel_density;
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 17
+                        current_request.current_pixel_density = current_pixel_density;
                         self.init_image_request(&mut current_request, &url, &src);
                     },
                     (_, _) => {
                         // step 17
+                        pending_request.current_pixel_density = current_pixel_density;
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
                     },
@@ -755,12 +758,11 @@ impl HTMLImageElement {
         let window = document.window();
         let task_source = window.dom_manipulation_task_source();
         let this = Trusted::new(self);
-        let src = match self.select_image_source() {
-            Some(src) => {
+        let (src, pixel_density) = match self.select_image_source() {
+            Some(data) => {
                 // Step 8
-                // TODO: Handle pixel density.
-                src.0
-            },
+                data
+            }
             None => {
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
@@ -816,7 +818,7 @@ impl HTMLImageElement {
         match parsed_url {
             Ok(url) => {
                 // Step 13-17
-                self.prepare_image_request(&url, &src);
+                self.prepare_image_request(&url, &src, Some(pixel_density));
             },
             Err(_) => {
                 // Step 12.1-12.5.
@@ -1230,6 +1232,9 @@ pub trait LayoutHTMLImageElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<ServoUrl>;
 
+    #[allow(unsafe_code)]
+    unsafe fn image_density(&self) -> Option<f64>;
+
     fn get_width(&self) -> LengthOrPercentageOrAuto;
     fn get_height(&self) -> LengthOrPercentageOrAuto;
 }
@@ -1243,6 +1248,11 @@ impl LayoutHTMLImageElementHelpers for LayoutDom<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<ServoUrl> {
         (*self.unsafe_get()).current_request.borrow_for_layout().parsed_url.clone()
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn image_density(&self) -> Option<f64> {
+        (*self.unsafe_get()).current_request.borrow_for_layout().current_pixel_density.clone()
     }
 
     #[allow(unsafe_code)]
@@ -1350,9 +1360,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
         let ref metadata = self.current_request.borrow().metadata;
+        let pixel_density = (*self).current_request.borrow().current_pixel_density.clone().unwrap_or(1f64);
 
         match *metadata {
-            Some(ref metadata) => metadata.width,
+            Some(ref metadata) => (metadata.width as f64 / pixel_density) as u32,
             None => 0,
         }
     }
@@ -1360,9 +1371,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
         let ref metadata = self.current_request.borrow().metadata;
+        let pixel_density = (*self).current_request.borrow().current_pixel_density.clone().unwrap_or(1f64);
 
         match *metadata {
-            Some(ref metadata) => metadata.height,
+            Some(ref metadata) => (metadata.height as f64 / pixel_density) as u32,
             None => 0,
         }
     }

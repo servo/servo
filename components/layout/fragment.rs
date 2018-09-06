@@ -393,6 +393,7 @@ impl ImageFragmentInfo {
     /// sense to me.
     pub fn new<N: ThreadSafeLayoutNode>(
         url: Option<ServoUrl>,
+        density: Option<f64>,
         node: &N,
         layout_context: &LayoutContext,
     ) -> ImageFragmentInfo {
@@ -400,14 +401,25 @@ impl ImageFragmentInfo {
             layout_context.get_or_request_image_or_meta(node.opaque(), url, UsePlaceholder::Yes)
         });
 
+        let mut current_pixel_density = 1 as f64;
+        if density.is_some() {
+            current_pixel_density = density.unwrap();
+        }
+
         let (image, metadata) = match image_or_metadata {
-            Some(ImageOrMetadataAvailable::ImageAvailable(i, _)) => (
-                Some(i.clone()),
-                Some(ImageMetadata {
-                    height: i.height,
-                    width: i.width,
-                }),
-            ),
+            Some(ImageOrMetadataAvailable::ImageAvailable(i, _)) => {
+                (
+                    Some(Arc::new(Image {
+                        height: (i.height as f64 / current_pixel_density) as u32,
+                        width: (i.width as f64 / current_pixel_density) as u32,
+                        ..(*i).clone()
+                    })),
+                    Some(ImageMetadata {
+                        height: (i.height as f64 / current_pixel_density) as u32,
+                        width: (i.width as f64 / current_pixel_density) as u32,
+                    }),
+                )
+            },
             Some(ImageOrMetadataAvailable::MetadataAvailable(m)) => (None, Some(m)),
             None => (None, None),
         };
