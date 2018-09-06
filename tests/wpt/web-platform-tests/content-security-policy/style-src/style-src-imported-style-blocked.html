@@ -10,7 +10,7 @@
       var t_spv = async_test("Should fire a securitypolicyviolation event");
 
       document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-        assert_equals("style-src", e.violatedDirective);
+        assert_equals("style-src-elem", e.violatedDirective);
       }));
 
       var l = document.createElement("link");

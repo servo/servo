@@ -19,7 +19,7 @@
         window.onmessage = t1.unreached_func("Should have not received any message");
 
         window.addEventListener('securitypolicyviolation', t1.step_func_done(function(e) {
-            assert_equals(e.violatedDirective, 'script-src');
+            assert_equals(e.violatedDirective, 'script-src-elem');
             assert_equals(e.blockedURI, 'inline');
         }));
 

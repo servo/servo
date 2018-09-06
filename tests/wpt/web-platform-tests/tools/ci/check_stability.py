@@ -20,7 +20,7 @@ from tools.wpt import markdown
 from tools import localpaths  # noqa: F401
 
 logger = None
-run_step, write_inconsistent, write_results = None, None, None
+run_step, write_inconsistent, write_slow_tests, write_results = None, None, None, None
 wptrunner = None
 
 def setup_logging():
@@ -35,9 +35,9 @@ def setup_logging():
 
 
 def do_delayed_imports():
-    global wptrunner, run_step, write_inconsistent, write_results
+    global wptrunner, run_step, write_inconsistent, write_slow_tests, write_results
     from wptrunner import wptrunner
-    from wptrunner.stability import run_step, write_inconsistent, write_results
+    from wptrunner.stability import run_step, write_inconsistent, write_slow_tests, write_results
 
 
 class TravisFold(object):
@@ -283,11 +283,14 @@ def run(venv, wpt_args, **kwargs):
         logger.info("Starting tests")
 
         wpt_logger = wptrunner.logger
-        results, inconsistent, iterations = run_step(wpt_logger, wpt_kwargs["repeat"], True, {}, **wpt_kwargs)
+        results, inconsistent, slow, iterations = run_step(wpt_logger, wpt_kwargs["repeat"], True, {}, **wpt_kwargs)
 
     if results:
         if inconsistent:
             write_inconsistent(logger.error, inconsistent, iterations)
+            retcode = 2
+        elif slow:
+            write_slow_tests(logger.error, slow)
             retcode = 2
         else:
             logger.info("All results were stable\n")

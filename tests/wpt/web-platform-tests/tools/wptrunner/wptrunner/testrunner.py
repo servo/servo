@@ -590,6 +590,8 @@ class TestRunnerManager(threading.Thread):
                                             test.min_assertion_count,
                                             test.max_assertion_count)
 
+        file_result.extra["test_timeout"] = test.timeout * self.executor_kwargs['timeout_multiplier']
+
         self.logger.test_end(test.id,
                              status,
                              message=file_result.message,

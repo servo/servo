@@ -7,7 +7,7 @@
     <title>combine-header-and-meta-policies</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE", "violated-directive=img-src", "violated-directive=style-src"]'></script>
+    <script src='../support/logTest.sub.js?logs=["TEST COMPLETE", "violated-directive=img-src", "violated-directive=style-src-elem"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <!-- enforcing multiple policies:
 Content-Security-Policy: script-src 'self' 'unsafe-inline'; connect-src 'self'; style-src 'self'
@@ -23,7 +23,7 @@ Content-Security-Policy: img-src 'none'
         window.addEventListener('securitypolicyviolation', function(e) {
             log("violated-directive=" + e.violatedDirective);
         });
-    
+
         var img = document.createElement('img');
         img.src = '../support/fail.png';
         img.onerror = function() {

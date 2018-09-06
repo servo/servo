@@ -3,7 +3,7 @@
   var test_count = 2;
 
   window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-   assert_equals(e.violatedDirective, "script-src");
+   assert_equals(e.violatedDirective, "script-src-elem");
    if (--test_count <= 0) {
     t_spv.done();
    }

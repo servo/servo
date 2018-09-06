@@ -18,7 +18,7 @@
         var t1 = async_test("Test that the inline style attribute is blocked");
 
         window.addEventListener('securitypolicyviolation', t1.step_func_done(function(e) {
-            assert_equals(e.violatedDirective, 'style-src');
+            assert_equals(e.violatedDirective, 'style-src-attr');
             assert_equals(e.blockedURI, 'inline');
         }));
 

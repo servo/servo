@@ -83,9 +83,9 @@ simple_async.step(function (){
                         + uuid_token, true)
 
     client.setRequestHeader('Accept', 'jewelry')
-    client.setRequestHeader('accept-language', 'nn_NO,nn,en')
+    client.setRequestHeader('accept-language', 'nn-NO,nn,en')
     client.setRequestHeader('content-type', 'text/plain; parameter=extra')
-    client.setRequestHeader('content-Language', 'nn_NO')
+    client.setRequestHeader('content-Language', 'nn-NO')
 
     client.onload = simple_async.step_func(function() {
         assert_equals(client.getResponseHeader('content-type'), "text/plain", 'content-type response header')

@@ -100,9 +100,12 @@ class WrapperHandler(object):
         :param request: The Request being processed.
         """
         path = self._get_path(filesystem_path(self.base_path, request, self.url_base), False)
-        with open(path, "rb") as f:
-            for key, value in read_script_metadata(f, js_meta_re):
-                yield key, value
+        try:
+            with open(path, "rb") as f:
+                for key, value in read_script_metadata(f, js_meta_re):
+                    yield key, value
+        except IOError:
+            raise HTTPException(404)
 
     def _get_meta(self, request):
         """Get an iterator over strings to inject into the wrapper document

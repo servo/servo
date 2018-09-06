@@ -8,10 +8,10 @@
     <script>
         var t_spv = async_test("Should fire violation event");
         window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-            assert_equals(e.violatedDirective, "script-src");
-        }));        
+            assert_equals(e.violatedDirective, "script-src-elem");
+        }));
     </script>
-    
+
 </head>
 
 <body>
@@ -20,7 +20,7 @@
     not redirect to a different resource.</p>
     <div id="log"></div>
     <?xml version="1.0" standalone="no"?>
-    
+
     <svg width="6cm" height="5cm" viewBox="0 0 600 500"
         xmlns="http://www.w3.org/2000/svg" version="1.1">
 
