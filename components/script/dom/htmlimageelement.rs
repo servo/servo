@@ -706,7 +706,7 @@ impl HTMLImageElement {
     }
 
     /// Step 13-17 of html.spec.whatwg.org/multipage/#update-the-image-data
-    fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString, current_pixel_density: Option<f64>) {
+    fn prepare_image_request(&self, url: &ServoUrl, src: &DOMString, selected_pixel_density: f64) {
         match self.image_request.get() {
             ImageRequestPhase::Pending => {
                 if let Some(pending_url) = self.pending_request.borrow().parsed_url.clone() {
@@ -731,18 +731,18 @@ impl HTMLImageElement {
                             // TODO: queue a task to restart animation, if restart-animation is set
                             return
                         }
-                        pending_request.current_pixel_density = current_pixel_density;
+                        pending_request.current_pixel_density = Some(selected_pixel_density);
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
                     },
                     (_, State::Broken) | (_, State::Unavailable) => {
                         // Step 17
-                        current_request.current_pixel_density = current_pixel_density;
+                        current_request.current_pixel_density = Some(selected_pixel_density);
                         self.init_image_request(&mut current_request, &url, &src);
                     },
                     (_, _) => {
                         // step 17
-                        pending_request.current_pixel_density = current_pixel_density;
+                        pending_request.current_pixel_density = Some(selected_pixel_density);
                         self.image_request.set(ImageRequestPhase::Pending);
                         self.init_image_request(&mut pending_request, &url, &src);
                     },
@@ -759,10 +759,8 @@ impl HTMLImageElement {
         let task_source = window.dom_manipulation_task_source();
         let this = Trusted::new(self);
         let (src, pixel_density) = match self.select_image_source() {
-            Some(data) => {
-                // Step 8
-                data
-            }
+            // Step 8
+            Some(data) => data,
             None => {
                 // Step 9.
                 // FIXME(nox): Why are errors silenced here?
@@ -818,7 +816,7 @@ impl HTMLImageElement {
         match parsed_url {
             Ok(url) => {
                 // Step 13-17
-                self.prepare_image_request(&url, &src, Some(pixel_density));
+                self.prepare_image_request(&url, &src, pixel_density);
             },
             Err(_) => {
                 // Step 12.1-12.5.
@@ -1360,10 +1358,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
-        let ref metadata = self.current_request.borrow().metadata;
-        let pixel_density = (*self).current_request.borrow().current_pixel_density.clone().unwrap_or(1f64);
+        let request = self.current_request.borrow();
+        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
 
-        match *metadata {
+        match request.metadata {
             Some(ref metadata) => (metadata.width as f64 / pixel_density) as u32,
             None => 0,
         }
@@ -1371,10 +1369,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
-        let ref metadata = self.current_request.borrow().metadata;
-        let pixel_density = (*self).current_request.borrow().current_pixel_density.clone().unwrap_or(1f64);
+        let request = self.current_request.borrow();
+        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
 
-        match *metadata {
+        match request.metadata {
             Some(ref metadata) => (metadata.height as f64 / pixel_density) as u32,
             None => 0,
         }
