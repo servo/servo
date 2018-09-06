@@ -336,17 +336,12 @@ impl WebGLRenderingContext {
     //
     // The WebGL spec mentions a couple more operations that trigger
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
-    fn validate_framebuffer_complete(&self) -> bool {
+    fn validate_framebuffer(&self) -> WebGLResult<()> {
         match self.bound_framebuffer.get() {
-            Some(fb) => match fb.check_status() {
-                constants::FRAMEBUFFER_COMPLETE => return true,
-                _ => {
-                    self.webgl_error(InvalidFramebufferOperation);
-                    return false;
-                }
+            Some(ref fb) if fb.check_status() != constants::FRAMEBUFFER_COMPLETE => {
+                Err(InvalidFramebufferOperation)
             },
-            // The default framebuffer is always complete.
-            None => return true,
+            _ => Ok(()),
         }
     }
 
@@ -1104,9 +1099,7 @@ impl WebGLRenderingContext {
             &current_program.active_attribs(),
         )?;
 
-        if !self.validate_framebuffer_complete() {
-            return Ok(());
-        }
+        self.validate_framebuffer()?;
 
         if count == 0 || primcount == 0 {
             return Ok(());
@@ -1166,9 +1159,7 @@ impl WebGLRenderingContext {
         // TODO(nox): Pass the correct number of vertices required.
         self.current_vao().validate_for_draw(0, primcount as u32, &current_program.active_attribs())?;
 
-        if !self.validate_framebuffer_complete() {
-            return Ok(());
-        }
+        self.validate_framebuffer()?;
 
         if count == 0 || primcount == 0 {
             return Ok(());
@@ -1200,9 +1191,7 @@ impl WebGLRenderingContext {
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
     pub fn get_image_data(&self, mut width: u32, mut height: u32) -> Option<Vec<u8>> {
-        if !self.validate_framebuffer_complete() {
-            return None;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
 
         if let Some((fb_width, fb_height)) = self.get_current_framebuffer_size() {
             width = cmp::min(width, fb_width as u32);
@@ -1406,18 +1395,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             // GL_OES_read_format support (assuming an underlying GLES
             // driver. Desktop is happy to format convert for us).
             constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
-                if !self.validate_framebuffer_complete() {
-                    return NullValue();
-                } else {
-                    return Int32Value(constants::RGBA as i32);
-                }
+                handle_potential_webgl_error!(self, self.validate_framebuffer(), return NullValue());
+                return Int32Value(constants::RGBA as i32);
             }
             constants::IMPLEMENTATION_COLOR_READ_TYPE => {
-                if !self.validate_framebuffer_complete() {
-                    return NullValue();
-                } else {
-                    return Int32Value(constants::UNSIGNED_BYTE as i32);
-                }
+                handle_potential_webgl_error!(self, self.validate_framebuffer(), return NullValue());
+                return Int32Value(constants::UNSIGNED_BYTE as i32);
             }
             constants::COMPRESSED_TEXTURE_FORMATS => {
                 // FIXME(nox): https://github.com/servo/servo/issues/20594
@@ -1951,9 +1934,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CopyTexImage2D(&self, target: u32, level: i32, internal_format: u32,
                       x: i32, y: i32, width: i32, height: i32, border: i32) {
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
 
         let validator = CommonTexImage2DValidator::new(self, target, level,
                                                        internal_format, width,
@@ -2008,9 +1989,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CopyTexSubImage2D(&self, target: u32, level: i32, xoffset: i32, yoffset: i32,
                          x: i32, y: i32, width: i32, height: i32) {
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
 
         // NB: We use a dummy (valid) format and border in order to reuse the
         // common validations, but this should have its own validator.
@@ -2051,9 +2030,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(&self, mask: u32) {
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
         if mask & !(constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT | constants::COLOR_BUFFER_BIT) != 0 {
             return self.webgl_error(InvalidValue);
         }
@@ -2836,9 +2813,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(ref mut data) => (data.get_array_type(), unsafe { data.as_mut_slice() }),
         };
 
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
 
         match array_type {
             Type::Uint8 => (),
