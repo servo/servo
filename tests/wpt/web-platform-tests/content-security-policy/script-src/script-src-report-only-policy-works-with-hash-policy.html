@@ -11,7 +11,7 @@
     var t = async_test("Test that script executes if allowed by proper hash values");
     var t_spv = async_test("Test that the securitypolicyviolation event is fired");
     document.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-      assert_equals(e.violatedDirective, "script-src");
+      assert_equals(e.violatedDirective, "script-src-elem");
       assert_equals(e.disposition, "report");
       assert_equals(e.blockedURI, "inline");
     }));

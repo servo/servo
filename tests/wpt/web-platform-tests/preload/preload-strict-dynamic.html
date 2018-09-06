@@ -22,7 +22,7 @@
   }
   window.addEventListener("securitypolicyviolation", (e) => {
     counter++;
-    if (e.violatedDirective == "script-src" && e.blockedURI.includes("static-no-nonce")) {
+    if (e.violatedDirective == "script-src-elem" && e.blockedURI.includes("static-no-nonce")) {
       cspViolation = true;
     }
   });

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Display: parsing display with invalid values</title>
+<link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css2/visuren.html#display-prop">
+<link rel="help" href="https://drafts.csswg.org/css-display/#the-display-properties">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<meta name="assert" content="display supports only the spec grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_invalid_value("display", "grid inline-grid");
+test_invalid_value("display", "none grid");
+</script>
+</body>
+</html>

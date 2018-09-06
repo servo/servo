@@ -19,8 +19,8 @@
         });
     </script>
     <script nonce='noncynonce'>
-        var t_alert = async_test('Expecting alerts: ["PASS (1/2)","PASS (2/2)", "violated-directive=script-src"]');
-        var expected_alerts = ["PASS (1/2)", "PASS (2/2)", "violated-directive=script-src"];
+        var t_alert = async_test('Expecting alerts: ["PASS (1/2)","PASS (2/2)", "violated-directive=script-src-elem"]');
+        var expected_alerts = ["PASS (1/2)", "PASS (2/2)", "violated-directive=script-src-elem"];
 
         function alert_assert(msg) {
             t_alert.step(function() {

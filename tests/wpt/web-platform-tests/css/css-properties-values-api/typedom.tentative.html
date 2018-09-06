@@ -57,11 +57,11 @@ function assert_computed_type(name, value, expected) {
     }
 }
 
-function assert_attribute_get_type(syntax, value, expected) {
+function assert_attribute_get_type(styleDecl, propertyMap, syntax, value, expected) {
     let name = gen_name();
-    target.style = `${name}: ${value}`;
+    styleDecl.setProperty(name, value);
 
-    assert_true(target.attributeStyleMap.get(name) instanceof CSSUnparsedValue);
+    assert_true(propertyMap.get(name) instanceof CSSUnparsedValue);
 
     CSS.registerProperty({
         name: name,
@@ -71,10 +71,10 @@ function assert_attribute_get_type(syntax, value, expected) {
     });
 
     if (expected == CSSStyleValue) {
-        assert_false(target.attributeStyleMap.get(name) instanceof CSSUnparsedValue);
+        assert_false(propertyMap.get(name) instanceof CSSUnparsedValue);
     }
 
-    assert_true(target.attributeStyleMap.get(name) instanceof expected);
+    assert_true(propertyMap.get(name) instanceof expected);
 }
 
 // computedStyleMap
@@ -193,111 +193,123 @@ test(function(){
     assert_true(target.computedStyleMap().getAll(name).every(x => x instanceof CSSUnitValue));
 }, 'All computed values correctly reified in comma-separated list');
 
-// attributeStyleMap.get
+// attributeStyleMap.get / styleMap.get
 
-test(function(){
+function test_style_property_map_get(test_fn, name_fn) {
+    let rule = style.sheet.rules[0];
+
+    test(function(){
+        target.attributeStyleMap.clear();
+        test_fn(target.style, target.attributeStyleMap);
+    }, name_fn('attributeStyleMap'));
+
+    test(function(){
+        rule.styleMap.clear();
+        test_fn(rule.style, rule.styleMap);
+    }, name_fn('styleMap'));
+}
+
+test_style_property_map_get(function(styleDecl, propertyMap){
     let name1 = gen_prop('<length>', '100px');
     let name2 = gen_prop('<length>', '0px');
-    target.style = `${name2}: var(${name1})`;
-    assert_true(target.attributeStyleMap.get(name2) instanceof CSSUnparsedValue);
-}, 'attributeStyleMap.get returns CSSUnparsedValue for value with var references');
+    styleDecl.setProperty(name2, `var(${name1})`);
+    assert_true(propertyMap.get(name2) instanceof CSSUnparsedValue);
+}, name => `${name}.get returns CSSUnparsedValue for value with var references`);
 
-test(function(){
+test_style_property_map_get(function(styleDecl, propertyMap){
     let name1 = gen_prop('<length>', '100px');
     let name2 = gen_prop('<length>#', '0px');
-    target.style = `${name2}: 1px, var(${name1}), 3px`;
-    assert_true(target.attributeStyleMap.get(name2) instanceof CSSUnparsedValue);
-}, 'attributeStyleMap.get returns CSSUnparsedValue for value with var reference in list');
+    styleDecl.setProperty(name2, `1px, var(${name1}), 3px`);
+    assert_true(propertyMap.get(name2) instanceof CSSUnparsedValue);
+}, name => `${name}.get returns CSSUnparsedValue for value with var references in list`);
 
-test(function(){
-    assert_attribute_get_type('*', 'if(){}', CSSUnparsedValue);
-}, 'attributeStyleMap.get returns CSSUnparsedValue for *');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '*', 'if(){}', CSSUnparsedValue);
+}, name => `${name}.get returns CSSUnparsedValue for *`);
 
-test(function(){
-    assert_attribute_get_type('<angle>', '42deg', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <angle>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<angle>', '42deg', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <angle>`);
 
-test(function(){
-    assert_attribute_get_type('<color>', '#fefefe', CSSStyleValue);
-}, 'attributeStyleMap.get returns CSSStyleValue for <color>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<color>', '#fefefe', CSSStyleValue);
+}, name => `${name}.get returns CSSStyleValue for <color>`);
 
-test(function(){
-    assert_attribute_get_type('<custom-ident>', 'none', CSSKeywordValue);
-}, 'attributeStyleMap.get returns CSSKeywordValue for <custom-ident>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<custom-ident>', 'none', CSSKeywordValue);
+}, name => `${name}.get returns CSSKeywordValue for <custom-ident>`);
 
-test(function(){
-    assert_attribute_get_type('<image>', 'url(thing.png)', CSSImageValue);
-}, 'attributeStyleMap.get returns CSSImageValue for <image>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<image>', 'url(thing.png)', CSSImageValue);
+}, name => `${name}.get returns CSSImageValue for <image>`);
 
-test(function(){
-    assert_attribute_get_type('<integer>', '100', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <integer>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<integer>', '100', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <integer>`);
 
-test(function(){
-    assert_attribute_get_type('<length-percentage>', '10%', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <length-percentage> [10%]');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<length-percentage>', '10%', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <length-percentage> [10%]`);
 
-test(function(){
-    assert_attribute_get_type('<length-percentage>', '10px', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <length-percentage> [10px]');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<length-percentage>', '10px', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <length-percentage> [10px]`);
 
-test(function(){
-    assert_attribute_get_type('<length-percentage>', 'calc(10px + 10%)', CSSMathSum);
-}, 'attributeStyleMap.get returns CSSMathSum for <length-percentage> [calc(10px + 10%)]');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<length-percentage>', 'calc(10px + 10%)', CSSMathSum);
+}, name => `${name}.get returns CSSMathSum for <length-percentage> [calc(10px + 10%)]`);
 
-test(function(){
-    assert_attribute_get_type('<length>', '10px', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <length>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<length>', '10px', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <length>`);
 
-test(function(){
-    assert_attribute_get_type('<number>', '42', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <number>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<number>', '42', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <number>`);
 
-test(function(){
-    assert_attribute_get_type('<percentage>', '10%', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <percentage>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<percentage>', '10%', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <percentage>`);
 
-test(function(){
-    assert_attribute_get_type('<resolution>', '300dpi', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <resolution>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<resolution>', '300dpi', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <resolution>`);
 
-test(function(){
-    assert_attribute_get_type('<time>', '42s', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <time>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<time>', '42s', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <time>`);
 
-test(function(){
-    assert_attribute_get_type('<url>', 'url(a)', CSSStyleValue);
-}, 'attributeStyleMap.get returns CSSStyleValue for <url>');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<url>', 'url(a)', CSSStyleValue);
+}, name => `${name}.get returns CSSStyleValue for <url>`);
 
-test(function(){
-    assert_attribute_get_type('thing1 | THING2', 'thing1', CSSKeywordValue);
-}, 'attributeStyleMap.get returns CSSKeywordValue for thing1 | THING2');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, 'thing1 | THING2', 'thing1', CSSKeywordValue);
+}, name => `${name}.get returns CSSKeywordValue for thing1 | THING2`);
 
-test(function(){
-    assert_attribute_get_type('<length>+', '10px 20px', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <length>+');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<length>+', '10px 20px', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <length>+`);
 
-test(function(){
-    assert_attribute_get_type('<length>#', '10px 20px', CSSUnitValue);
-}, 'attributeStyleMap.get returns CSSUnitValue for <length>#');
+test_style_property_map_get(function(styleDecl, propertyMap){
+    assert_attribute_get_type(styleDecl, propertyMap, '<length>#', '10px 20px', CSSUnitValue);
+}, name => `${name}.get returns CSSUnitValue for <length>#`);
 
 // attributeStyleMap.getAll
 
-test(function(){
+test_style_property_map_get(function(styleDecl, propertyMap){
     let name = gen_prop('<length>+', '0px');
-    target.attributeStyleMap.clear();
-    target.style = `${name}: 10px 20px 30px`;
-    assert_equals(target.attributeStyleMap.getAll(name).length, 3);
-    assert_true(target.attributeStyleMap.getAll(name).every(x => x instanceof CSSUnitValue));
-}, 'attributeStyleMap.getAll returns a list of CSSUnitValues for <length>+');
+    styleDecl.setProperty(name, '10px 20px 30px');
+    assert_equals(propertyMap.getAll(name).length, 3);
+    assert_true(propertyMap.getAll(name).every(x => x instanceof CSSUnitValue));
+}, name => `${name}.getAll returns a list of CSSUnitValues for <length>+`);
 
-test(function(){
+test_style_property_map_get(function(styleDecl, propertyMap){
     let name = gen_prop('<length>#', '0px');
-    target.attributeStyleMap.clear();
-    target.style = `${name}: 10px, 20px, 30px`;
-    assert_equals(target.attributeStyleMap.getAll(name).length, 3);
-    assert_true(target.attributeStyleMap.getAll(name).every(x => x instanceof CSSUnitValue));
-}, 'attributeStyleMap.getAll returns a list of CSSUnitValues for <length>#');
+    styleDecl.setProperty(name, '10px, 20px, 30px');
+    assert_equals(propertyMap.getAll(name).length, 3);
+    assert_true(propertyMap.getAll(name).every(x => x instanceof CSSUnitValue));
+}, name => `${name}.getAll returns a list of CSSUnitValues for <length>#`);
 
 // StylePropertyMap.set
 

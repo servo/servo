@@ -314,85 +314,21 @@
               g.gain.setValueCurveAtTime(curve, startTime, curveDuration);
             },
             `second g.gain.setValueCurveAtTime([${curve}], ${startTime}, ${curveDuration})`)
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
         // Same start time, shorter end time
         should(
             () => {
               g.gain.setValueCurveAtTime(curve, startTime, curveDurationShorter);
             },
             `g.gain.setValueCurveAtTime([${curve}], ${startTime}, ${curveDurationShorter})`)
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
         // Earlier start time, end time after the start time an another curve
         should(
             () => {
               g.gain.setValueCurveAtTime(curve, startTimeEarlier, curveDuration);
             },
             `g.gain.setValueCurveAtTime([${curve}], ${startTimeEarlier}, ${curveDuration})`)
-            .throw('NotSupportedError');
-        // Start time after the start time of the other curve, but earlier that
-        // its end.
-        should(
-            () => {
-              g.gain.setValueCurveAtTime(curve, startTimeLater, curveDuration);
-            },
-            `g.gain.setValueCurveAtTime([${curve}], ${startTimeLater}, ${curveDuration})`)
-            .throw('NotSupportedError');
-
-        task.done();
-      });
-
-      audit.define('curve overlap', (task, should) => {
-        let context =
-            new OfflineAudioContext(1, testDurationFrames, sampleRate);
-        let g = context.createGain();
-        let startTime = 5;
-        let startTimeLater = 10;
-        let startTimeEarlier = 2.5;
-        let curveDuration = 10;
-        let curveDurationShorter = 5;
-        let curve = [1, 2, 3];
-
-        // Having an event that ends at time t and then starting a ramp at time
-        // t should work.
-        should(
-            () => {
-              g.gain.linearRampToValueAtTime(1.0, startTime);
-            },
-            `g.gain.linearRampToValueAtTime(1.0, ${startTime})`)
-            .notThrow();
-
-        // An initial curve event, starting from the end of the linear ramp.
-        should(
-            () => {
-              g.gain.setValueCurveAtTime(curve, startTime, curveDuration);
-            },
-            `g.gain.setValueCurveAtTime([${curve}], ${startTime}, ${curveDuration})`)
-            .notThrow();
-
-        // Check that an exception is thrown when trying to overlap two curves,
-        // in various ways
-
-        // Same start time and end time (curve exactly overlapping)
-        should(
-            () => {
-              g.gain.setValueCurveAtTime(curve, startTime, curveDuration);
-            },
-            `second g.gain.setValueCurveAtTime([${curve}], ${startTime}, ${curveDuration})`)
-            .throw('NotSupportedError');
-        // Same start time, shorter end time
-        should(
-            () => {
-              g.gain.setValueCurveAtTime(curve, startTime, curveDurationShorter);
-            },
-            `g.gain.setValueCurveAtTime([${curve}], ${startTime}, ${curveDurationShorter})`)
-            .throw('NotSupportedError');
-        // Earlier start time, end time after the start time of an another curve
-        should(
-            () => {
-              g.gain.setValueCurveAtTime(curve, startTimeEarlier, curveDuration);
-            },
-            `g.gain.setValueCurveAtTime([${curve}], ${startTimeEarlier}, ${curveDuration})`)
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
         // Start time after the start time of the other curve, but earlier than
         // its end.
         should(
@@ -400,7 +336,22 @@
               g.gain.setValueCurveAtTime(curve, startTimeLater, curveDuration);
             },
             `g.gain.setValueCurveAtTime([${curve}], ${startTimeLater}, ${curveDuration})`)
-            .throw('NotSupportedError');
+            .throw(DOMException, 'NotSupportedError');
+
+        // New event wholly contained inside existing event
+        should(
+            () => {
+              g.gain.setValueCurveAtTime(curve, startTime + 1, curveDuration - 1);
+            },
+            `g.gain.setValueCurveAtTime([${curve}], ${startTime+1}, ${curveDuration-1})`)
+            .throw(DOMException, 'NotSupportedError');
+        // Old event completely contained inside new event
+        should(
+            () => {
+              g.gain.setValueCurveAtTime(curve, startTime - 1, curveDuration + 1);
+            },
+            `g.gain.setValueCurveAtTime([${curve}], ${startTime-1}, ${curveDuration+1})`)
+            .throw(DOMException, 'NotSupportedError');
         // Setting an event exactly at the end of the curve should work.
         should(
             () => {

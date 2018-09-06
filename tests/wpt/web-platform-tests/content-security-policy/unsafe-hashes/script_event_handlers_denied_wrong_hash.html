@@ -12,9 +12,9 @@
     <div id='log'></div>
     <script nonce='abc'>
         var t1 = async_test("Test that the inline event handler is not allowed to run");
-        
+
         window.addEventListener('securitypolicyviolation', t1.step_func_done(function(e) {
-            assert_equals(e.violatedDirective, 'script-src');
+            assert_equals(e.violatedDirective, 'script-src-attr');
             assert_equals(e.blockedURI, 'inline');
         }));
     </script>

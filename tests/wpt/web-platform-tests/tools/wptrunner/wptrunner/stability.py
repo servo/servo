@@ -15,6 +15,11 @@ localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os
 from wpt.markdown import markdown_adjust, table
 
 
+# If a test takes more than (FLAKY_THRESHOLD*timeout) and does not consistently
+# time out, it is considered slow (potentially flaky).
+FLAKY_THRESHOLD = 0.8
+
+
 class LogActionFilter(BaseHandler):
 
     """Handler that filters out messages not of a given set of actions.
@@ -53,7 +58,8 @@ class LogHandler(reader.LogHandler):
 
         test = {
             "subtests": OrderedDict(),
-            "status": defaultdict(int)
+            "status": defaultdict(int),
+            "longest_duration": defaultdict(float),
         }
         self.results[test_name] = test
         return test
@@ -73,6 +79,10 @@ class LogHandler(reader.LogHandler):
 
         return subtest
 
+    def test_start(self, data):
+        test = self.find_or_create_test(data)
+        test["start_time"] = data["time"]
+
     def test_status(self, data):
         subtest = self.find_or_create_subtest(data)
         subtest["status"][data["status"]] += 1
@@ -82,6 +92,12 @@ class LogHandler(reader.LogHandler):
     def test_end(self, data):
         test = self.find_or_create_test(data)
         test["status"][data["status"]] += 1
+        # Timestamps are in ms since epoch.
+        duration = data["time"] - test.pop("start_time")
+        test["longest_duration"][data["status"]] = max(
+            duration, test["longest_duration"][data["status"]])
+        # test_timeout is in seconds; convert it to ms.
+        test["timeout"] = data["extra"]["test_timeout"] * 1000
 
 
 def is_inconsistent(results_dict, iterations):
@@ -91,9 +107,29 @@ def is_inconsistent(results_dict, iterations):
     return len(results_dict) > 1 or sum(results_dict.values()) != iterations
 
 
+def find_slow_status(test):
+    """Check if a single test almost times out.
+
+    We are interested in tests that almost time out (i.e. likely to be flaky).
+    Therefore, timeout statuses are ignored, including (EXTERNAL-)TIMEOUT &
+    CRASH (tests that time out may be marked as CRASH if crashes are detected).
+
+    Returns:
+        A result status produced by a run that almost times out; None, if no
+        runs almost time out.
+    """
+    threshold = test["timeout"] * FLAKY_THRESHOLD
+    for status in ['PASS', 'FAIL', 'OK', 'ERROR']:
+        if (status in test["longest_duration"] and
+            test["longest_duration"][status] > threshold):
+            return status
+    return None
+
+
 def process_results(log, iterations):
     """Process test log and return overall results and list of inconsistent tests."""
     inconsistent = []
+    slow = []
     handler = LogHandler()
     reader.handle_log(reader.read(log), handler)
     results = handler.results
@@ -103,7 +139,17 @@ def process_results(log, iterations):
         for subtest_name, subtest in test["subtests"].iteritems():
             if is_inconsistent(subtest["status"], iterations):
                 inconsistent.append((test_name, subtest_name, subtest["status"], subtest["messages"]))
-    return results, inconsistent
+
+        slow_status = find_slow_status(test)
+        if slow_status is not None:
+            slow.append((
+                test_name,
+                slow_status,
+                test["longest_duration"][slow_status],
+                test["timeout"]
+            ))
+
+    return results, inconsistent, slow
 
 
 def err_string(results_dict, iterations):
@@ -131,6 +177,17 @@ def write_inconsistent(log, inconsistent, iterations):
         ("`%s`" % markdown_adjust(";".join(messages))) if len(messages) else "")
         for test, subtest, results, messages in inconsistent]
     table(["Test", "Subtest", "Results", "Messages"], strings, log)
+
+
+def write_slow_tests(log, slow):
+    log("## Slow tests ##\n")
+    strings = [(
+        "`%s`" % markdown_adjust(test),
+        "`%s`" % status,
+        "`%.0f`" % duration,
+        "`%.0f`" % timeout)
+        for test, status, duration, timeout in slow]
+    table(["Test", "Result", "Longest duration (ms)", "Timeout (ms)"], strings, log)
 
 
 def write_results(log, results, iterations, pr_number=None, use_details=False):
@@ -202,8 +259,8 @@ def run_step(logger, iterations, restart_after_iteration, kwargs_extras, **kwarg
     logger._state.suite_started = False
 
     log.seek(0)
-    results, inconsistent = process_results(log, iterations)
-    return results, inconsistent, iterations
+    results, inconsistent, slow = process_results(log, iterations)
+    return results, inconsistent, slow, iterations
 
 
 def get_steps(logger, repeat_loop, repeat_restart, kwargs_extras):
@@ -242,7 +299,6 @@ def write_summary(logger, step_results, final_result):
 
     logger.info(':::')
 
-
 def check_stability(logger, repeat_loop=10, repeat_restart=5, chaos_mode=True, max_time=None,
                     output_results=True, **kwargs):
     kwargs_extras = [{}]
@@ -264,13 +320,19 @@ def check_stability(logger, repeat_loop=10, repeat_restart=5, chaos_mode=True, m
         logger.info(':::')
         logger.info('::: Running test verification step "%s"...' % desc)
         logger.info(':::')
-        results, inconsistent, iterations = step_func(**kwargs)
+        results, inconsistent, slow, iterations = step_func(**kwargs)
         if output_results:
             write_results(logger.info, results, iterations)
 
         if inconsistent:
             step_results.append((desc, "FAIL"))
             write_inconsistent(logger.info, inconsistent, iterations)
+            write_summary(logger, step_results, "FAIL")
+            return 1
+
+        if slow:
+            step_results.append((desc, "FAIL"))
+            write_slow_tests(logger.info, slow)
             write_summary(logger, step_results, "FAIL")
             return 1
 

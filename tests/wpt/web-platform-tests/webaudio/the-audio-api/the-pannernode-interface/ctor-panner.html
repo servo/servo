@@ -218,7 +218,27 @@
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
             .throw(RangeError);
+        options = {rolloffFactor: 0};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node8 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.rolloffFactor, 'node8.rolloffFactor')
+            .beEqualTo(options.rolloffFactor);
+
         options = {rolloffFactor: 0.5};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node8 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.rolloffFactor, 'node8.rolloffFactor')
+            .beEqualTo(options.rolloffFactor);
+
+        options = {rolloffFactor: 100};
         should(
             () => {
               node = new PannerNode(context, options);
@@ -235,15 +255,34 @@
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
         options = {coneOuterGain: 1.1};
         should(
             () => {
               node = new PannerNode(context, options);
             },
             'new PannerNode(c, ' + JSON.stringify(options) + ')')
-            .throw('InvalidStateError');
+            .throw(DOMException, 'InvalidStateError');
+        options = {coneOuterGain: 0.0};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node9 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.coneOuterGain, 'node9.coneOuterGain')
+            .beEqualTo(options.coneOuterGain);
         options = {coneOuterGain: 0.5};
+        should(
+            () => {
+              node = new PannerNode(context, options);
+            },
+            'node9 = new PannerNode(c, ' + JSON.stringify(options) + ')')
+            .notThrow();
+        should(node.coneOuterGain, 'node9.coneOuterGain')
+            .beEqualTo(options.coneOuterGain);
+
+        options = {coneOuterGain: 1.0};
         should(
             () => {
               node = new PannerNode(context, options);
