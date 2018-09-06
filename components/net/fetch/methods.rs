@@ -27,11 +27,10 @@ use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::mem;
-use std::sync::mpsc::channel;
 use std::str;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::Ordering;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread;
 use subresource_integrity::is_response_integrity_valid;
 
@@ -516,7 +515,7 @@ fn scheme_fetch(request: &mut Request,
                                             let buffer_len = buffer.len();
                                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
                                                 body.extend_from_slice(&buffer);
-                                                let _ = done_sender.send(Data::Payload(buffer.clone()));
+                                                let _ = done_sender.send(Data::Payload(buffer));
                                             }
                                             buffer_len
                                         };
