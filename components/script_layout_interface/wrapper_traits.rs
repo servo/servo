@@ -249,6 +249,9 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
 
+    /// If this is an image element, returns its current-pixel-density. If this is not an image element, fails.
+    fn image_density(&self) -> Option<f64>;
+
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
 
     fn svg_data(&self) -> Option<SVGSVGData>;
