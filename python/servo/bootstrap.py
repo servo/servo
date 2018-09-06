@@ -37,7 +37,7 @@ def install_trusty_deps(force):
                      '/usr/bin/g++-4.9'])
     if clang:
         run_as_root(["bash", "-c", 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -'])
-        run_as_root(["apt-add-repository" "deb http://apt.llvm.org/trusty/ llvm-toolchain-xenial-4.0 main"], force)
+        run_as_root(["apt-add-repository", "deb http://apt.llvm.org/trusty/ llvm-toolchain-xenial-4.0 main"], force)
         run_as_root(["apt-get", "update"])
         run_as_root(["apt-get", "install", "clang-4.0"], force)
 
@@ -94,9 +94,7 @@ def gstreamer(context, force=False):
     cur = os.curdir
     gstdir = os.path.join(cur, "support", "linux", "gstreamer")
     if not os.path.isdir(os.path.join(gstdir, "gstreamer", "lib")):
-        os.chdir(gstdir)
-        subprocess.call(["bash", "gstreamer.sh"])
-        os.chdir(cur)
+        subprocess.check_call(["bash", "gstreamer.sh"], cwd=gstdir)
         return True
     return False
 
@@ -328,6 +326,10 @@ def windows_msvc(context, force=False):
 
     return 0
 
+LINUX_SPECIFIC_BOOTSTRAPPERS = {
+    "salt": salt,
+    "gstreamer": gstreamer,
+}
 
 def bootstrap(context, force=False, specific=None):
     '''Dispatches to the right bootstrapping function for the OS.'''
@@ -346,12 +348,7 @@ def bootstrap(context, force=False, specific=None):
         ]:
             context.distro = distro
             context.distro_version = version
-            if specific == "salt":
-                bootstrapper = salt
-            elif specific == "gstreamer":
-                bootstrapper = gstreamer
-            else:
-                bootstrapper = linux
+            bootstrapper = LINUX_SPECIFIC_BOOTSTRAPPERS.get(specific, linux)
         else:
             raise Exception("mach bootstrap does not support %s, please file a bug" % distro)
 

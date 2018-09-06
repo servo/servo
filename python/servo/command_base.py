@@ -348,6 +348,9 @@ class CommandBase(object):
         build_type = "release" if release else "debug"
         return path.join(base_path, build_type, apk_name)
 
+    def get_gstreamer_path(self):
+        return path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
+
     def get_binary_path(self, release, dev, android=False):
         # TODO(autrilla): this function could still use work - it shouldn't
         # handle quitting, or printing. It should return the path, or an error.
@@ -480,7 +483,7 @@ class CommandBase(object):
     def needs_gstreamer_env(self, target):
         if check_gstreamer_lib():
             return False
-        gstpath = path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
+        gstpath = self.get_gstreamer_path()
         if sys.platform == "linux2":
             if "x86_64" not in (target or host_triple()):
                 raise Exception("We don't currently support using local gstreamer builds \
@@ -500,7 +503,7 @@ class CommandBase(object):
         """Some commands, like test-wpt, don't use a full build env,
            but may still need dynamic search paths. This command sets that up"""
         if self.needs_gstreamer_env(None):
-            gstpath = path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
+            gstpath = self.get_gstreamer_path()
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib", "x86_64-linux-gnu")
 
     def build_env(self, hosts_file_path=None, target=None, is_build=False, test_unit=False):
@@ -546,7 +549,7 @@ class CommandBase(object):
             env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if self.needs_gstreamer_env(target):
-            gstpath = path.join(self.context.topdir, "support", "linux", "gstreamer", "gstreamer")
+            gstpath = self.get_gstreamer_path()
             extra_path += [path.join(gstpath, "bin")]
             libpath = path.join(gstpath, "lib", "x86_64-linux-gnu")
             # we append in the reverse order so that system gstreamer libraries
