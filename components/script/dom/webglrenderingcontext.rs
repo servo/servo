@@ -1076,48 +1076,40 @@ impl WebGLRenderingContext {
         first: i32,
         count: i32,
         primcount: i32,
-    ) {
+    ) -> WebGLResult<()> {
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {},
             _ => {
-                return self.webgl_error(InvalidEnum);
+                return Err(InvalidEnum);
             }
         }
         if first < 0 || count < 0 || primcount < 0 {
-            return self.webgl_error(InvalidValue);
+            return Err(InvalidValue);
         }
 
-        let current_program = handle_potential_webgl_error!(
-            self,
-            self.current_program.get().ok_or(InvalidOperation),
-            return
-        );
+        let current_program = self.current_program.get().ok_or(InvalidOperation)?;
 
         let required_len = if count > 0 {
-            handle_potential_webgl_error!(
-                self,
-                first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation),
-                return
-            )
+            first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation)?
         } else {
             0
         };
 
-        handle_potential_webgl_error!(
-            self,
-            self.current_vao().validate_for_draw(required_len, primcount as u32, &current_program.active_attribs()),
-            return
-        );
+        self.current_vao().validate_for_draw(
+            required_len,
+            primcount as u32,
+            &current_program.active_attribs(),
+        )?;
 
         if !self.validate_framebuffer_complete() {
-            return;
+            return Ok(());
         }
 
         if count == 0 || primcount == 0 {
-            return;
+            return Ok(());
         }
 
         self.send_command(if primcount == 1 {
@@ -1126,6 +1118,7 @@ impl WebGLRenderingContext {
             WebGLCommand::DrawArraysInstanced { mode, first, count, primcount }
         });
         self.mark_as_dirty();
+        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -1136,62 +1129,49 @@ impl WebGLRenderingContext {
         type_: u32,
         offset: i64,
         primcount: i32,
-    ) {
+    ) -> WebGLResult<()> {
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {},
             _ => {
-                return self.webgl_error(InvalidEnum);
+                return Err(InvalidEnum);
             }
         }
         if count < 0 || offset < 0 || primcount < 0 {
-            return self.webgl_error(InvalidValue);
+            return Err(InvalidValue);
         }
         let type_size = match type_ {
             constants::UNSIGNED_BYTE => 1,
             constants::UNSIGNED_SHORT => 2,
             constants::UNSIGNED_INT if self.extension_manager.is_element_index_uint_enabled() => 4,
-            _ => return self.webgl_error(InvalidEnum),
+            _ => return Err(InvalidEnum),
         };
         if offset % type_size != 0 {
-            return self.webgl_error(InvalidOperation);
+            return Err(InvalidOperation);
         }
 
-        let current_program = handle_potential_webgl_error!(
-            self,
-            self.current_program.get().ok_or(InvalidOperation),
-            return
-        );
-
-        let array_buffer = handle_potential_webgl_error!(
-            self,
-            self.current_vao().element_array_buffer().get().ok_or(InvalidOperation),
-            return
-        );
+        let current_program = self.current_program.get().ok_or(InvalidOperation)?;
+        let array_buffer = self.current_vao().element_array_buffer().get().ok_or(InvalidOperation)?;
 
         if count > 0 && primcount > 0 {
             // This operation cannot overflow in u64 and we know all those values are nonnegative.
             let val = offset as u64 + (count as u64 * type_size as u64);
             if val > array_buffer.capacity() as u64 {
-                return self.webgl_error(InvalidOperation);
+                return Err(InvalidOperation);
             }
         }
 
         // TODO(nox): Pass the correct number of vertices required.
-        handle_potential_webgl_error!(
-            self,
-            self.current_vao().validate_for_draw(0, primcount as u32, &current_program.active_attribs()),
-            return
-        );
+        self.current_vao().validate_for_draw(0, primcount as u32, &current_program.active_attribs())?;
 
         if !self.validate_framebuffer_complete() {
-            return;
+            return Ok(());
         }
 
         if count == 0 || primcount == 0 {
-            return;
+            return Ok(());
         }
 
         let offset = offset as u32;
@@ -1201,6 +1181,7 @@ impl WebGLRenderingContext {
             WebGLCommand::DrawElementsInstanced { mode, count, type_, offset, primcount }
         });
         self.mark_as_dirty();
+        Ok(())
     }
 
     pub fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
@@ -2328,12 +2309,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
-        self.draw_arrays_instanced(mode, first, count, 1);
+        handle_potential_webgl_error!(self, self.draw_arrays_instanced(mode, first, count, 1));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
-        self.draw_elements_instanced(mode, count, type_, offset, 1);
+        handle_potential_webgl_error!(self, self.draw_elements_instanced(mode, count, type_, offset, 1));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
