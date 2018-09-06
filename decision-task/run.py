@@ -70,6 +70,11 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
     print("Scheduled %s: %s" % (name, task_id))
     return task_id
 
+create_task(
+    "docker image build task",
+    "./docker-image-build-task.sh servo-x86_64-linux",
+)
+
 build_task = create_task(
     "build task",
     "./build-task.sh",
