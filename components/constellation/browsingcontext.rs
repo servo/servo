@@ -15,15 +15,8 @@ use style_traits::CSSPixel;
 /// context which doesn't exist yet, these values needed for the new browsing
 /// context are stored here so that they may be available later.
 pub struct NewBrowsingContextInfo {
-    /// The parent pipeline of the browsing context, if this is not the top
-    /// level browsing context.
     pub parent_pipeline_id: Option<PipelineId>,
-
-    /// Whether the to-be-constructed browsing context is going to be in
-    /// private browsing mode.
     pub is_private: bool,
-
-    /// Whether to construct browsing context as visible.
     pub is_visible: bool,
 }
 
@@ -53,8 +46,8 @@ pub struct BrowsingContext {
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
 
-    /// The parent pipeline of this browsing context. None, if this is a top-level browsing
-    /// context.
+    /// The parent pipeline that contains this browsing context. `None` if this
+    /// is a top level browsing context.
     pub parent_pipeline_id: Option<PipelineId>,
 
     /// All the pipelines that have been presented or will be presented in

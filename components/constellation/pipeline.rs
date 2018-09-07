@@ -159,6 +159,9 @@ pub struct InitialPipelineState {
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
 
+    /// Pipeline visibility to be inherited
+    pub prev_visibility: bool,
+
     /// Webrender api.
     pub webrender_api_sender: webrender_api::RenderApiSender,
 
@@ -170,12 +173,6 @@ pub struct InitialPipelineState {
 
     /// A channel to the webvr thread.
     pub webvr_chan: Option<IpcSender<WebVRMsg>>,
-
-    /// Whether the browsing context in which pipeline is embedded is visible
-    /// for the purposes of scheduling and resource management. This field is
-    /// only used to notify script and compositor threads after spawning
-    /// a pipeline.
-    pub is_visible: bool,
 }
 
 impl Pipeline {
@@ -310,8 +307,8 @@ impl Pipeline {
             pipeline_chan,
             state.compositor_proxy,
             url,
+            state.prev_visibility,
             state.load_data,
-            state.is_visible,
         ))
     }
 
@@ -326,8 +323,8 @@ impl Pipeline {
         layout_chan: IpcSender<LayoutControlMsg>,
         compositor_proxy: CompositorProxy,
         url: ServoUrl,
-        load_data: LoadData,
         is_visible: bool,
+        load_data: LoadData,
     ) -> Pipeline {
         let pipeline = Pipeline {
             id: id,
@@ -428,7 +425,7 @@ impl Pipeline {
         };
     }
 
-    /// Notify the script thread and compositor that this pipeline is visible.
+    /// Notify the script thread that this pipeline is visible.
     pub fn notify_visibility(&self, is_visible: bool) {
         let script_msg =
             ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, is_visible);
@@ -439,7 +436,6 @@ impl Pipeline {
         }
         self.compositor_proxy.send(compositor_msg);
     }
-
 }
 
 /// Creating a new pipeline may require creating a new event loop.
