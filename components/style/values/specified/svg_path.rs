@@ -8,10 +8,13 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Write};
 use std::iter::{Cloned, Peekable};
+use std::ops::AddAssign;
 use std::slice;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use values::CSSFloat;
+use values::animated::{Animate, Procedure};
+use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 
 /// The SVG path data.
@@ -33,6 +36,17 @@ impl SVGPathData {
     pub fn commands(&self) -> &[PathCommand] {
         debug_assert!(!self.0.is_empty());
         &self.0
+    }
+
+    /// Create a normalized copy of this path by converting each relative command to an absolute
+    /// command.
+    fn normalize(&self) -> Self {
+        let mut state = PathTraversalState {
+            subpath_start: CoordPair::new(0.0, 0.0),
+            pos: CoordPair::new(0.0, 0.0),
+        };
+        let result = self.0.iter().map(|seg| seg.normalize(&mut state)).collect::<Vec<_>>();
+        SVGPathData(result.into_boxed_slice())
     }
 }
 
@@ -82,6 +96,33 @@ impl Parse for SVGPathData {
     }
 }
 
+impl Animate for SVGPathData {
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        if self.0.len() != other.0.len() {
+            return Err(());
+        }
+
+        let result = self.normalize().0
+            .iter()
+            .zip(other.normalize().0.iter())
+            .map(|(a, b)| a.animate(&b, procedure))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(SVGPathData::new(result.into_boxed_slice()))
+    }
+}
+
+impl ComputeSquaredDistance for SVGPathData {
+    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
+        if self.0.len() != other.0.len() {
+            return Err(());
+        }
+        self.normalize().0
+            .iter()
+            .zip(other.normalize().0.iter())
+            .map(|(this, other)| this.compute_squared_distance(&other))
+            .sum()
+    }
+}
 
 /// The SVG path command.
 /// The fields of these commands are self-explanatory, so we skip the documents.
@@ -89,7 +130,8 @@ impl Parse for SVGPathData {
 /// points of the Bézier curve in the spec.
 ///
 /// https://www.w3.org/TR/SVG11/paths.html#PathData
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo)]
 #[allow(missing_docs)]
 #[repr(C, u8)]
 pub enum PathCommand {
@@ -124,6 +166,98 @@ pub enum PathCommand {
     },
     /// The "closepath" command.
     ClosePath,
+}
+
+/// For internal SVGPath normalization.
+#[allow(missing_docs)]
+struct PathTraversalState {
+    subpath_start: CoordPair,
+    pos: CoordPair,
+}
+
+impl PathCommand {
+    /// Create a normalized copy of this PathCommand. Absolute commands will be copied as-is while
+    /// for relative commands an equivalent absolute command will be returned.
+    ///
+    /// See discussion: https://github.com/w3c/svgwg/issues/321
+    fn normalize(&self, state: &mut PathTraversalState) -> Self {
+        use self::PathCommand::*;
+        match *self {
+            Unknown => Unknown,
+            ClosePath => {
+                state.pos = state.subpath_start;
+                ClosePath
+            },
+            MoveTo { mut point, absolute } => {
+                if !absolute {
+                    point += state.pos;
+                }
+                state.pos = point;
+                state.subpath_start = point;
+                MoveTo { point, absolute: true }
+            },
+            LineTo { mut point, absolute } => {
+                if !absolute {
+                    point += state.pos;
+                }
+                state.pos = point;
+                LineTo { point, absolute: true }
+            },
+            HorizontalLineTo { mut x, absolute } => {
+                if !absolute {
+                    x += state.pos.0;
+                }
+                state.pos.0 = x;
+                HorizontalLineTo { x, absolute: true }
+            },
+            VerticalLineTo { mut y, absolute } => {
+                if !absolute {
+                    y += state.pos.1;
+                }
+                state.pos.1 = y;
+                VerticalLineTo { y, absolute: true }
+            },
+            CurveTo { mut control1, mut control2, mut point, absolute } => {
+                if !absolute {
+                    control1 += state.pos;
+                    control2 += state.pos;
+                    point += state.pos;
+                }
+                state.pos = point;
+                CurveTo { control1, control2, point, absolute: true }
+            },
+            SmoothCurveTo { mut control2, mut point, absolute } => {
+                if !absolute {
+                    control2 += state.pos;
+                    point += state.pos;
+                }
+                state.pos = point;
+                SmoothCurveTo { control2, point, absolute: true }
+            },
+            QuadBezierCurveTo { mut control1, mut point, absolute } => {
+                if !absolute {
+                    control1 += state.pos;
+                    point += state.pos;
+                }
+                state.pos = point;
+                QuadBezierCurveTo { control1, point, absolute: true }
+            },
+            SmoothQuadBezierCurveTo { mut point, absolute } => {
+                if !absolute {
+                    point += state.pos;
+                }
+                state.pos = point;
+                SmoothQuadBezierCurveTo { point, absolute: true }
+            },
+            EllipticalArc { rx, ry, angle, large_arc_flag, sweep_flag, mut point, absolute } => {
+                if !absolute {
+                    point += state.pos;
+                }
+                state.pos = point;
+                EllipticalArc { rx, ry, angle, large_arc_flag, sweep_flag, point, absolute: true }
+            },
+        }
+    }
 }
 
 impl ToCss for PathCommand {
@@ -204,7 +338,8 @@ impl ToCss for PathCommand {
 
 
 /// The path coord type.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToCss)]
 #[repr(C)]
 pub struct CoordPair(CSSFloat, CSSFloat);
 
@@ -216,6 +351,13 @@ impl CoordPair {
     }
 }
 
+impl AddAssign for CoordPair {
+    #[inline]
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+        self.1 += other.1;
+    }
+}
 
 /// SVG Path parser.
 struct PathParser<'a> {

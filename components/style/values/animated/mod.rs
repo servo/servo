@@ -141,6 +141,20 @@ impl Animate for f64 {
     }
 }
 
+/// This is only used in SVG PATH. We return Err(()) if the flags are mismatched.
+// FIXME: Bug 653928: If we want to do interpolation on the flags in Arc, we have to update this
+// because `absolute`, `large_arc_flag`, and `sweep_flag` are using this implementation for now.
+impl Animate for bool {
+    #[inline]
+    fn animate(&self, other: &Self, _procedure: Procedure) -> Result<Self, ()> {
+        if *self == *other {
+            Ok(*other)
+        } else {
+            Err(())
+        }
+    }
+}
+
 impl<T> Animate for Option<T>
 where
     T: Animate,
