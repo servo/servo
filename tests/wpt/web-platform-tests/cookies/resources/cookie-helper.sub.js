@@ -28,7 +28,13 @@
 
 // A tiny helper which returns the result of fetching |url| with credentials.
 function credFetch(url) {
-  return fetch(url, {"credentials": "include"});
+  return fetch(url, {"credentials": "include"})
+    .then(response => {
+      if (response.status !== 200) {
+        throw new Error(response.statusText);
+      }
+      return response;
+    });
 }
 
 // Returns a URL on |origin| which redirects to a given absolute URL.
@@ -87,23 +93,20 @@ function set_prefixed_cookie_via_dom_test(options) {
 
 function set_prefixed_cookie_via_http_test(options) {
   promise_test(t => {
-    var postDelete = _ => {
-      var value = "" + Math.random();
-      return credFetch(options.origin + "/cookies/resources/set.py?" + name + "=" + value + ";" + options.params)
-        .then(_ => credFetch(options.origin + "/cookies/resources/list.py"))
-        .then(r => r.json())
-        .then(cookies => assert_equals(cookies[name], options.shouldExistViaHTTP ? value : undefined));
-    };
-
     var name = options.prefix + "prefixtestcookie";
-    if (!options.origin) {
-      options.origin = self.origin;
-      erase_cookie_from_js(name, options.params);
-      return postDelete;
-    } else {
-      return credFetch(options.origin + "/cookies/resources/drop.py?name=" + name)
-        .then(_ => postDelete());
-    }
+    var value = "" + Math.random();
+
+    t.add_cleanup(() => {
+      var cookie = name + "=0;expires=" + new Date(0).toUTCString() + ";" +
+        options.params;
+
+      return credFetch(options.origin + "/cookies/resources/set.py?" + cookie);
+    });
+
+    return credFetch(options.origin + "/cookies/resources/set.py?" + name + "=" + value + ";" + options.params)
+      .then(_ => credFetch(options.origin + "/cookies/resources/list.py"))
+      .then(r => r.json())
+      .then(cookies => assert_equals(cookies[name], options.shouldExistViaHTTP ? value : undefined));
   }, options.title);
 }
 

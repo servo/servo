@@ -18,9 +18,11 @@ the global scope.
 NB: presently, testdriver.js only works in the top-level test browsing
 context (and not therefore in any frame or window opened from it).
 
-### `test_driver.bless(intent, action)`
-#### `intent: a string describing the motivation for this invocation`
-#### `action: an optional function`
+### bless
+
+Usage: `test_driver.bless(intent, action)`
+ * `intent`: a string describing the motivation for this invocation
+ * `action`: an optional function
 
 This function simulates [activation][activation], allowing tests to
 perform privileged operations that require user interaction. For
@@ -44,8 +46,10 @@ test_driver.bless('initiate media playback', function () {
 });
 ```
 
-### `test_driver.click(element)`
-#### `element: a DOM Element object`
+### click
+
+Usage: `test_driver.click(element)`
+ * `element`: a DOM Element object
 
 This function causes a click to occur on the target element (an
 `Element` object), potentially scrolling the document to make it
@@ -57,9 +61,11 @@ Note that if the element to be clicked does not have a unique ID, the
 document must not have any DOM mutations made between the function
 being called and the promise settling.
 
-### `test_driver.send_keys(element, keys)`
-#### `element: a DOM Element object`
-#### `keys: string to send to the element`
+### send_keys
+
+Usage: `test_driver.send_keys(element, keys)`
+ * `element`: a DOM Element object
+ * `keys`: string to send to the element
 
 This function causes the string `keys` to be send to the target
 element (an `Element` object), potentially scrolling the document to

@@ -266,8 +266,7 @@ def run(venv, wpt_args, **kwargs):
         do_delayed_imports()
 
         wpt_kwargs["prompt"] = False
-        wpt_kwargs["install_browser"] = True
-        wpt_kwargs["install"] = wpt_kwargs["product"].split(":")[0] == "firefox"
+        wpt_kwargs["install_browser"] = wpt_kwargs["product"].split(":")[0] == "firefox"
 
         wpt_kwargs["pause_after_test"] = False
         wpt_kwargs["verify_log_full"] = False
