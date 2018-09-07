@@ -326,10 +326,12 @@ def windows_msvc(context, force=False):
 
     return 0
 
+
 LINUX_SPECIFIC_BOOTSTRAPPERS = {
     "salt": salt,
     "gstreamer": gstreamer,
 }
+
 
 def bootstrap(context, force=False, specific=None):
     '''Dispatches to the right bootstrapping function for the OS.'''

@@ -483,20 +483,19 @@ class CommandBase(object):
     def needs_gstreamer_env(self, target):
         if check_gstreamer_lib():
             return False
-        gstpath = self.get_gstreamer_path()
+        if "x86_64" not in (target or host_triple()):
+            # We don't build gstreamer for non-x86_64 yet
+            return False
         if sys.platform == "linux2":
-            if "x86_64" not in (target or host_triple()):
-                raise Exception("We don't currently support using local gstreamer builds \
-                                     for non-x86_64, please file a bug")
-            if path.isdir(gstpath):
+            if path.isdir(self.get_gstreamer_path()):
                 return True
             else:
                 raise Exception("Your system's gstreamer libraries are out of date \
-                                     (we need at least 1.12). Please run ./mach bootstrap-gstreamer")
+(we need at least 1.12). Please run ./mach bootstrap-gstreamer")
         else:
                 raise Exception("Your system's gstreamer libraries are out of date \
-                                     (we need at least 1.12). If you're unable to \
-                                     install them, let us know by filing a bug!")
+(we need at least 1.12). If you're unable to \
+install them, let us know by filing a bug!")
         return False
 
     def set_run_env(self):
