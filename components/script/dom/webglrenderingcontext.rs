@@ -1191,16 +1191,16 @@ impl WebGLRenderingContext {
     // can fail and that it is UB what happens in that case.
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
-    pub fn get_image_data(&self, mut width: u32, mut height: u32) -> Option<Vec<u8>> {
+    pub fn get_image_data(&self, width: u32, height: u32) -> Option<Vec<u8>> {
         handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
 
-        if let Some((fb_width, fb_height)) = self.get_current_framebuffer_size() {
-            width = cmp::min(width, fb_width as u32);
-            height = cmp::min(height, fb_height as u32);
-        } else {
-            self.webgl_error(InvalidOperation);
-            return None;
-        }
+        let (fb_width, fb_height) = handle_potential_webgl_error!(
+            self,
+            self.get_current_framebuffer_size().ok_or(InvalidOperation),
+            return None
+        );
+        let width = cmp::min(width, fb_width as u32);
+        let height = cmp::min(height, fb_height as u32);
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
