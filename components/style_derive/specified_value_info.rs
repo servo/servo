@@ -17,8 +17,8 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     let input_name = || cg::to_css_identifier(input_ident.as_ref());
     if let Some(function) = css_attrs.function {
         values.push(function.explicit().unwrap_or_else(input_name));
-        // If the whole value is wrapped in a function, value types of
-        // its fields should not be propagated.
+    // If the whole value is wrapped in a function, value types of
+    // its fields should not be propagated.
     } else {
         let mut where_clause = input.generics.where_clause.take();
         for param in input.generics.type_params() {
@@ -66,12 +66,12 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                         }
                     }
                 }
-            }
+            },
             Data::Struct(ref s) => {
                 if !derive_struct_fields(&s.fields, &mut types, &mut values) {
                     values.push(input_name());
                 }
-            }
+            },
             Data::Union(_) => unreachable!("union is not supported"),
         }
     }
@@ -84,13 +84,17 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
     }
 
     let mut types_value = quote!(0);
-    types_value.append_all(types.iter().map(|ty| quote! {
-        | <#ty as ::style_traits::SpecifiedValueInfo>::SUPPORTED_TYPES
+    types_value.append_all(types.iter().map(|ty| {
+        quote! {
+            | <#ty as ::style_traits::SpecifiedValueInfo>::SUPPORTED_TYPES
+        }
     }));
 
     let mut nested_collects = quote!();
-    nested_collects.append_all(types.iter().map(|ty| quote! {
-        <#ty as ::style_traits::SpecifiedValueInfo>::collect_completion_keywords(_f);
+    nested_collects.append_all(types.iter().map(|ty| {
+        quote! {
+            <#ty as ::style_traits::SpecifiedValueInfo>::collect_completion_keywords(_f);
+        }
     }));
 
     if let Some(ty) = info_attrs.ty {
@@ -144,7 +148,9 @@ fn derive_struct_fields<'a>(
         }
         let css_attrs = cg::parse_field_attrs::<CssFieldAttrs>(field);
         if css_attrs.represents_keyword {
-            let ident = field.ident.as_ref()
+            let ident = field
+                .ident
+                .as_ref()
                 .expect("only named field should use represents_keyword");
             values.push(cg::to_css_identifier(ident.as_ref()));
             return None;

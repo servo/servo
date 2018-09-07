@@ -31,7 +31,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
             Err(()) => {
                 append_error_clause = true;
                 return body;
-            }
+            },
         };
         quote! { #body #arm }
     });

@@ -19,15 +19,16 @@ pub fn derive(mut input: syn::DeriveInput) -> Tokens {
 
     let input_attrs = cg::parse_input_attrs::<CssInputAttrs>(&input);
     if let Data::Enum(_) = input.data {
-        assert!(input_attrs.function.is_none(), "#[css(function)] is not allowed on enums");
+        assert!(
+            input_attrs.function.is_none(),
+            "#[css(function)] is not allowed on enums"
+        );
         assert!(!input_attrs.comma, "#[css(comma)] is not allowed on enums");
     }
 
     let match_body = {
         let s = Structure::new(&input);
-        s.each_variant(|variant| {
-            derive_variant_arm(variant, &mut where_clause)
-        })
+        s.each_variant(|variant| derive_variant_arm(variant, &mut where_clause))
     };
     input.generics.where_clause = where_clause;
 
@@ -68,10 +69,7 @@ pub fn derive(mut input: syn::DeriveInput) -> Tokens {
     impls
 }
 
-fn derive_variant_arm(
-    variant: &VariantInfo,
-    generics: &mut Option<WhereClause>,
-) -> Tokens {
+fn derive_variant_arm(variant: &VariantInfo, generics: &mut Option<WhereClause>) -> Tokens {
     let bindings = variant.bindings();
     let identifier = cg::to_css_identifier(variant.ast().ident.as_ref());
     let ast = variant.ast();
@@ -124,13 +122,15 @@ fn derive_variant_fields_expr(
     where_clause: &mut Option<WhereClause>,
     separator: &str,
 ) -> Tokens {
-    let mut iter = bindings.iter().filter_map(|binding| {
-        let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
-        if attrs.skip {
-            return None;
-        }
-        Some((binding, attrs))
-    }).peekable();
+    let mut iter = bindings
+        .iter()
+        .filter_map(|binding| {
+            let attrs = cg::parse_field_attrs::<CssFieldAttrs>(&binding.ast());
+            if attrs.skip {
+                return None;
+            }
+            Some((binding, attrs))
+        }).peekable();
 
     let (first, attrs) = match iter.next() {
         Some(pair) => pair,
@@ -190,8 +190,11 @@ fn derive_single_field_expr(
             }
         }
     } else if attrs.represents_keyword {
-        let ident =
-            field.ast().ident.as_ref().expect("Unnamed field with represents_keyword?");
+        let ident = field
+            .ast()
+            .ident
+            .as_ref()
+            .expect("Unnamed field with represents_keyword?");
         let ident = cg::to_css_identifier(ident.as_ref());
         quote! {
             if *#field {

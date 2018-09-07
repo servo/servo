@@ -23,9 +23,11 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
             if attrs.field_bound {
                 let ty = &binding.ast().ty;
 
-                let output_type = cg::map_type_params(ty, &params, &mut |ident| {
-                    parse_quote!(<#ident as ::values::computed::ToComputedValue>::ComputedValue)
-                });
+                let output_type = cg::map_type_params(
+                    ty,
+                    &params,
+                    &mut |ident| parse_quote!(<#ident as ::values::computed::ToComputedValue>::ComputedValue),
+                );
 
                 cg::add_predicate(
                     &mut where_clause,
@@ -71,7 +73,7 @@ pub fn derive(mut input: DeriveInput) -> Tokens {
                     ::std::clone::Clone::clone(computed)
                 }
             }
-        }
+        };
     }
 
     let computed_value_type = cg::fmap_trait_output(
