@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /// Implementation of Quartz (CoreGraphics) fonts.
-
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use core_foundation::base::CFIndex;
@@ -111,8 +110,8 @@ impl FontHandle {
                         return None;
                     }
 
-                    let pt_per_font_unit = self.ctfont.pt_size() as f64 /
-                                           self.ctfont.units_per_em() as f64;
+                    let pt_per_font_unit =
+                        self.ctfont.pt_size() as f64 / self.ctfont.units_per_em() as f64;
                     result.px_per_font_unit = pt_to_px(pt_per_font_unit);
                 }
                 start = end;
@@ -160,15 +159,15 @@ impl fmt::Debug for CachedKernTable {
     }
 }
 
-
 impl FontHandleMethods for FontHandle {
-    fn new_from_template(_fctx: &FontContextHandle,
-                         template: Arc<FontTemplateData>,
-                         pt_size: Option<Au>)
-                         -> Result<FontHandle, ()> {
+    fn new_from_template(
+        _fctx: &FontContextHandle,
+        template: Arc<FontTemplateData>,
+        pt_size: Option<Au>,
+    ) -> Result<FontHandle, ()> {
         let size = match pt_size {
             Some(s) => s.to_f64_px(),
-            None => 0.0
+            None => 0.0,
         };
         match template.ctfont(size) {
             Some(ref ctfont) => {
@@ -181,13 +180,11 @@ impl FontHandleMethods for FontHandle {
                 handle.h_kern_subtable = handle.find_h_kern_subtable();
                 // TODO (#11310): Implement basic support for GPOS and GSUB.
                 handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
-                                             handle.table_for_tag(GPOS).is_none() &&
-                                             handle.table_for_tag(GSUB).is_none();
+                    handle.table_for_tag(GPOS).is_none() &&
+                    handle.table_for_tag(GSUB).is_none();
                 Ok(handle)
-            }
-            None => {
-                Err(())
-            }
+            },
+            None => Err(()),
         }
     }
 
@@ -213,13 +210,14 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn boldness(&self) -> FontWeight {
-        let normalized = self.ctfont.all_traits().normalized_weight();  // [-1.0, 1.0]
+        let normalized = self.ctfont.all_traits().normalized_weight(); // [-1.0, 1.0]
+
         // TODO(emilio): It may make sense to make this range [.01, 10.0], to
         // align with css-fonts-4's range of [1, 1000].
         let normalized = if normalized <= 0.0 {
-            4.0 + normalized * 3.0  // [1.0, 4.0]
+            4.0 + normalized * 3.0 // [1.0, 4.0]
         } else {
-            4.0 + normalized * 5.0  // [4.0, 9.0]
+            4.0 + normalized * 5.0 // [4.0, 9.0]
         }; // [1.0, 9.0], centered on 4.0
         FontWeight(normalized as f32 * 100.)
     }
@@ -228,7 +226,7 @@ impl FontHandleMethods for FontHandle {
         use style::values::computed::Percentage;
         use style::values::generics::NonNegative;
 
-        let normalized = self.ctfont.all_traits().normalized_width();  // [-1.0, 1.0]
+        let normalized = self.ctfont.all_traits().normalized_width(); // [-1.0, 1.0]
         FontStretch(NonNegative(Percentage(normalized as f32 + 1.0)))
     }
 
@@ -237,9 +235,9 @@ impl FontHandleMethods for FontHandle {
         let mut glyphs: [CGGlyph; 1] = [0 as CGGlyph];
         let count: CFIndex = 1;
 
-        let result = self.ctfont.get_glyphs_for_characters(&characters[0],
-                                                           &mut glyphs[0],
-                                                           count);
+        let result = self
+            .ctfont
+            .get_glyphs_for_characters(&characters[0], &mut glyphs[0], count);
 
         if !result {
             // No glyph for this character
@@ -265,10 +263,12 @@ impl FontHandleMethods for FontHandle {
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         let glyphs = [glyph as CGGlyph];
-        let advance = self.ctfont.get_advances_for_glyphs(kCTFontDefaultOrientation,
-                                                          &glyphs[0],
-                                                          ptr::null_mut(),
-                                                          1);
+        let advance = self.ctfont.get_advances_for_glyphs(
+            kCTFontDefaultOrientation,
+            &glyphs[0],
+            ptr::null_mut(),
+            1,
+        );
         Some(advance as FractionalPixel)
     }
 
@@ -283,39 +283,42 @@ impl FontHandleMethods for FontHandle {
         let line_gap = (ascent + descent + leading + 0.5).floor();
 
         let max_advance_width = au_from_pt(bounding_rect.size.width as f64);
-        let average_advance = self.glyph_index('0')
-                                  .and_then(|idx| self.glyph_h_advance(idx))
-                                  .map(Au::from_f64_px)
-                                  .unwrap_or(max_advance_width);
+        let average_advance = self
+            .glyph_index('0')
+            .and_then(|idx| self.glyph_h_advance(idx))
+            .map(Au::from_f64_px)
+            .unwrap_or(max_advance_width);
 
         let metrics = FontMetrics {
-            underline_size:   au_from_pt(self.ctfont.underline_thickness() as f64),
+            underline_size: au_from_pt(self.ctfont.underline_thickness() as f64),
             // TODO(Issue #201): underline metrics are not reliable. Have to pull out of font table
             // directly.
             //
             // see also: https://bugs.webkit.org/show_bug.cgi?id=16768
             // see also: https://bugreports.qt-project.org/browse/QTBUG-13364
             underline_offset: au_from_pt(self.ctfont.underline_position() as f64),
-            strikeout_size:   Au(0), // FIXME(Issue #942)
+            strikeout_size: Au(0),   // FIXME(Issue #942)
             strikeout_offset: Au(0), // FIXME(Issue #942)
-            leading:          au_from_pt(leading),
-            x_height:         au_from_pt((self.ctfont.x_height() as f64) * scale),
-            em_size:          em_size,
-            ascent:           au_from_pt(ascent * scale),
-            descent:          au_from_pt(descent * scale),
-            max_advance:      max_advance_width,
-            average_advance:  average_advance,
-            line_gap:         Au::from_f64_px(line_gap),
+            leading: au_from_pt(leading),
+            x_height: au_from_pt((self.ctfont.x_height() as f64) * scale),
+            em_size: em_size,
+            ascent: au_from_pt(ascent * scale),
+            descent: au_from_pt(descent * scale),
+            max_advance: max_advance_width,
+            average_advance: average_advance,
+            line_gap: Au::from_f64_px(line_gap),
         };
-        debug!("Font metrics (@{} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
+        debug!(
+            "Font metrics (@{} pt): {:?}",
+            self.ctfont.pt_size() as f64,
+            metrics
+        );
         metrics
     }
 
     fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
-        result.and_then(|data| {
-            Some(FontTable::wrap(data))
-        })
+        result.and_then(|data| Some(FontTable::wrap(data)))
     }
 
     fn identifier(&self) -> Atom {
