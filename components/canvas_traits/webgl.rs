@@ -4,6 +4,7 @@
 
 use euclid::Size2D;
 use gleam::gl;
+use ipc_channel::ipc::IpcBytesReceiver;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
@@ -24,7 +25,7 @@ pub use ::webgl_channel::WebGLPipeline;
 pub use ::webgl_channel::WebGLChan;
 
 /// WebGL Message API
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebGLMsg {
     /// Creates a new WebGLContext.
     CreateContext(WebGLVersion, Size2D<i32>, GLContextAttributes,
@@ -155,7 +156,7 @@ impl WebGLMsgSender {
 }
 
 /// WebGL Commands for a specific WebGLContext
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLCommand {
     GetContextAttributes(WebGLSender<GLContextAttributes>),
     ActiveTexture(u32),
@@ -167,8 +168,8 @@ pub enum WebGLCommand {
     AttachShader(WebGLProgramId, WebGLShaderId),
     DetachShader(WebGLProgramId, WebGLShaderId),
     BindAttribLocation(WebGLProgramId, u32, String),
-    BufferData(u32, ByteBuf, u32),
-    BufferSubData(u32, isize, ByteBuf),
+    BufferData(u32, IpcBytesReceiver, u32),
+    BufferSubData(u32, isize, IpcBytesReceiver),
     Clear(u32),
     ClearColor(f32, f32, f32, f32),
     ClearDepth(f32),

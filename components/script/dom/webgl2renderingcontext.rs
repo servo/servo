@@ -961,7 +961,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         count: i32,
         primcount: i32,
     ) {
-        self.base.draw_arrays_instanced(mode, first, count, primcount);
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.draw_arrays_instanced(mode, first, count, primcount)
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9
@@ -973,7 +976,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         offset: i64,
         primcount: i32,
     ) {
-        self.base.draw_elements_instanced(mode, count, type_, offset, primcount);
+        handle_potential_webgl_error!(
+            self.base,
+            self.base.draw_elements_instanced(mode, count, type_, offset, primcount)
+        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.9

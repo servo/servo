@@ -26,9 +26,14 @@ macro_rules! unreachable_serializable {
     };
 }
 
-#[derive(Clone)]
 pub struct WebGLSender<T>(mpsc::Sender<T>);
 pub struct WebGLReceiver<T>(mpsc::Receiver<T>);
+
+impl<T> Clone for WebGLSender<T> {
+    fn clone(&self) -> Self {
+        WebGLSender(self.0.clone())
+    }
+}
 
 impl<T> WebGLSender<T> {
     #[inline]

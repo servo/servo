@@ -52,6 +52,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use half::f16;
+use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
 use js::jsval::{ObjectValue, NullValue, UndefinedValue};
@@ -336,17 +337,12 @@ impl WebGLRenderingContext {
     //
     // The WebGL spec mentions a couple more operations that trigger
     // this: clear() and getParameter(IMPLEMENTATION_COLOR_READ_*).
-    fn validate_framebuffer_complete(&self) -> bool {
+    fn validate_framebuffer(&self) -> WebGLResult<()> {
         match self.bound_framebuffer.get() {
-            Some(fb) => match fb.check_status() {
-                constants::FRAMEBUFFER_COMPLETE => return true,
-                _ => {
-                    self.webgl_error(InvalidFramebufferOperation);
-                    return false;
-                }
+            Some(ref fb) if fb.check_status() != constants::FRAMEBUFFER_COMPLETE => {
+                Err(InvalidFramebufferOperation)
             },
-            // The default framebuffer is always complete.
-            None => return true,
+            _ => Ok(()),
         }
     }
 
@@ -1076,48 +1072,38 @@ impl WebGLRenderingContext {
         first: i32,
         count: i32,
         primcount: i32,
-    ) {
+    ) -> WebGLResult<()> {
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {},
             _ => {
-                return self.webgl_error(InvalidEnum);
+                return Err(InvalidEnum);
             }
         }
         if first < 0 || count < 0 || primcount < 0 {
-            return self.webgl_error(InvalidValue);
+            return Err(InvalidValue);
         }
 
-        let current_program = handle_potential_webgl_error!(
-            self,
-            self.current_program.get().ok_or(InvalidOperation),
-            return
-        );
+        let current_program = self.current_program.get().ok_or(InvalidOperation)?;
 
         let required_len = if count > 0 {
-            handle_potential_webgl_error!(
-                self,
-                first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation),
-                return
-            )
+            first.checked_add(count).map(|len| len as u32).ok_or(InvalidOperation)?
         } else {
             0
         };
 
-        handle_potential_webgl_error!(
-            self,
-            self.current_vao().validate_for_draw(required_len, primcount as u32, &current_program.active_attribs()),
-            return
-        );
+        self.current_vao().validate_for_draw(
+            required_len,
+            primcount as u32,
+            &current_program.active_attribs(),
+        )?;
 
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        self.validate_framebuffer()?;
 
         if count == 0 || primcount == 0 {
-            return;
+            return Ok(());
         }
 
         self.send_command(if primcount == 1 {
@@ -1126,6 +1112,7 @@ impl WebGLRenderingContext {
             WebGLCommand::DrawArraysInstanced { mode, first, count, primcount }
         });
         self.mark_as_dirty();
+        Ok(())
     }
 
     // https://www.khronos.org/registry/webgl/extensions/ANGLE_instanced_arrays/
@@ -1136,62 +1123,47 @@ impl WebGLRenderingContext {
         type_: u32,
         offset: i64,
         primcount: i32,
-    ) {
+    ) -> WebGLResult<()> {
         match mode {
             constants::POINTS | constants::LINE_STRIP |
             constants::LINE_LOOP | constants::LINES |
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {},
             _ => {
-                return self.webgl_error(InvalidEnum);
+                return Err(InvalidEnum);
             }
         }
         if count < 0 || offset < 0 || primcount < 0 {
-            return self.webgl_error(InvalidValue);
+            return Err(InvalidValue);
         }
         let type_size = match type_ {
             constants::UNSIGNED_BYTE => 1,
             constants::UNSIGNED_SHORT => 2,
             constants::UNSIGNED_INT if self.extension_manager.is_element_index_uint_enabled() => 4,
-            _ => return self.webgl_error(InvalidEnum),
+            _ => return Err(InvalidEnum),
         };
         if offset % type_size != 0 {
-            return self.webgl_error(InvalidOperation);
+            return Err(InvalidOperation);
         }
 
-        let current_program = handle_potential_webgl_error!(
-            self,
-            self.current_program.get().ok_or(InvalidOperation),
-            return
-        );
-
-        let array_buffer = handle_potential_webgl_error!(
-            self,
-            self.current_vao().element_array_buffer().get().ok_or(InvalidOperation),
-            return
-        );
+        let current_program = self.current_program.get().ok_or(InvalidOperation)?;
+        let array_buffer = self.current_vao().element_array_buffer().get().ok_or(InvalidOperation)?;
 
         if count > 0 && primcount > 0 {
             // This operation cannot overflow in u64 and we know all those values are nonnegative.
             let val = offset as u64 + (count as u64 * type_size as u64);
             if val > array_buffer.capacity() as u64 {
-                return self.webgl_error(InvalidOperation);
+                return Err(InvalidOperation);
             }
         }
 
         // TODO(nox): Pass the correct number of vertices required.
-        handle_potential_webgl_error!(
-            self,
-            self.current_vao().validate_for_draw(0, primcount as u32, &current_program.active_attribs()),
-            return
-        );
+        self.current_vao().validate_for_draw(0, primcount as u32, &current_program.active_attribs())?;
 
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        self.validate_framebuffer()?;
 
         if count == 0 || primcount == 0 {
-            return;
+            return Ok(());
         }
 
         let offset = offset as u32;
@@ -1201,6 +1173,7 @@ impl WebGLRenderingContext {
             WebGLCommand::DrawElementsInstanced { mode, count, type_, offset, primcount }
         });
         self.mark_as_dirty();
+        Ok(())
     }
 
     pub fn vertex_attrib_divisor(&self, index: u32, divisor: u32) {
@@ -1219,9 +1192,7 @@ impl WebGLRenderingContext {
     //
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2
     pub fn get_image_data(&self, mut width: u32, mut height: u32) -> Option<Vec<u8>> {
-        if !self.validate_framebuffer_complete() {
-            return None;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
 
         if let Some((fb_width, fb_height)) = self.get_current_framebuffer_size() {
             width = cmp::min(width, fb_width as u32);
@@ -1425,18 +1396,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             // GL_OES_read_format support (assuming an underlying GLES
             // driver. Desktop is happy to format convert for us).
             constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
-                if !self.validate_framebuffer_complete() {
-                    return NullValue();
-                } else {
-                    return Int32Value(constants::RGBA as i32);
-                }
+                handle_potential_webgl_error!(self, self.validate_framebuffer(), return NullValue());
+                return Int32Value(constants::RGBA as i32);
             }
             constants::IMPLEMENTATION_COLOR_READ_TYPE => {
-                if !self.validate_framebuffer_complete() {
-                    return NullValue();
-                } else {
-                    return Int32Value(constants::UNSIGNED_BYTE as i32);
-                }
+                handle_potential_webgl_error!(self, self.validate_framebuffer(), return NullValue());
+                return Int32Value(constants::UNSIGNED_BYTE as i32);
             }
             constants::COMPRESSED_TEXTURE_FORMATS => {
                 // FIXME(nox): https://github.com/servo/servo/issues/20594
@@ -1882,34 +1847,32 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    #[allow(unsafe_code)]
     fn BufferData(
         &self,
         target: u32,
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
     ) {
-        let data = match data {
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(data)) => data.to_vec(),
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(data)) => data.to_vec(),
-            None => return self.webgl_error(InvalidValue),
-        };
+        let data = handle_potential_webgl_error!(self, data.ok_or(InvalidValue), return);
 
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return self.webgl_error(InvalidOperation),
-        };
+        let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
+        let data = unsafe {
+            // Safe because we don't do anything with JS until the end of the method.
+            match data {
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
+            }
+        };
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(data, usage));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) {
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return self.webgl_error(InvalidOperation),
-        };
+        let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
         if size < 0 {
             return self.webgl_error(InvalidValue);
@@ -1918,35 +1881,36 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(&data, usage));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    #[allow(unsafe_code)]
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
-        let data_vec = match data {
-            // Typed array is rooted, so we can safely temporarily retrieve its slice
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(inner) => inner.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(inner) => inner.to_vec(),
-        };
-
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return self.webgl_error(InvalidOperation),
-        };
+        let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
         if offset < 0 {
             return self.webgl_error(InvalidValue);
         }
 
-        if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
+        let data = unsafe {
+            // Safe because we don't do anything with JS until the end of the method.
+            match data {
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
+            }
+        };
+        if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
             return self.webgl_error(InvalidValue);
         }
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::BufferSubData(
             target,
             offset as isize,
-            data_vec.into(),
+            receiver,
         ));
+        sender.send(data).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1970,9 +1934,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CopyTexImage2D(&self, target: u32, level: i32, internal_format: u32,
                       x: i32, y: i32, width: i32, height: i32, border: i32) {
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
 
         let validator = CommonTexImage2DValidator::new(self, target, level,
                                                        internal_format, width,
@@ -2027,9 +1989,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn CopyTexSubImage2D(&self, target: u32, level: i32, xoffset: i32, yoffset: i32,
                          x: i32, y: i32, width: i32, height: i32) {
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
 
         // NB: We use a dummy (valid) format and border in order to reuse the
         // common validations, but this should have its own validator.
@@ -2070,9 +2030,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(&self, mask: u32) {
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
         if mask & !(constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT | constants::COLOR_BUFFER_BIT) != 0 {
             return self.webgl_error(InvalidValue);
         }
@@ -2328,12 +2286,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawArrays(&self, mode: u32, first: i32, count: i32) {
-        self.draw_arrays_instanced(mode, first, count, 1);
+        handle_potential_webgl_error!(self, self.draw_arrays_instanced(mode, first, count, 1));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn DrawElements(&self, mode: u32, count: i32, type_: u32, offset: i64) {
-        self.draw_elements_instanced(mode, count, type_, offset, 1);
+        handle_potential_webgl_error!(self, self.draw_elements_instanced(mode, count, type_, offset, 1));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2855,9 +2813,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Some(ref mut data) => (data.get_array_type(), unsafe { data.as_mut_slice() }),
         };
 
-        if !self.validate_framebuffer_complete() {
-            return;
-        }
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
 
         match array_type {
             Type::Uint8 => (),
