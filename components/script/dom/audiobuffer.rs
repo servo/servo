@@ -77,7 +77,9 @@ impl AudioBuffer {
         window: &Window,
         options: &AudioBufferOptions,
     ) -> Fallible<DomRoot<AudioBuffer>> {
-        if options.numberOfChannels > MAX_CHANNEL_COUNT ||
+        if options.length <= 0 ||
+            options.numberOfChannels <= 0 ||
+            options.numberOfChannels > MAX_CHANNEL_COUNT ||
             *options.sampleRate < MIN_SAMPLE_RATE ||
             *options.sampleRate > MAX_SAMPLE_RATE
         {
