@@ -62,10 +62,7 @@ impl WebGLBuffer {
         self.id
     }
 
-    pub fn buffer_data<T>(&self, target: u32, data: T, usage: u32) -> WebGLResult<()>
-    where
-        T: Into<Vec<u8>>,
-    {
+    pub fn buffer_data(&self, data: Vec<u8>, usage: u32) -> WebGLResult<()> {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
@@ -73,17 +70,11 @@ impl WebGLBuffer {
             _ => return Err(WebGLError::InvalidEnum),
         }
 
-        if let Some(previous_target) = self.target.get() {
-            if target != previous_target {
-                return Err(WebGLError::InvalidOperation);
-            }
-        }
-        let data = data.into();
         self.capacity.set(data.len());
         self.usage.set(usage);
         self.upcast::<WebGLObject>()
             .context()
-            .send_command(WebGLCommand::BufferData(target, data.into(), usage));
+            .send_command(WebGLCommand::BufferData(self.target.get().unwrap(), data.into(), usage));
         Ok(())
     }
 

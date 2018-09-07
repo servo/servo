@@ -1859,21 +1859,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return self.webgl_error(InvalidOperation),
-        };
+        let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(data, usage));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData_(&self, target: u32, size: i64, usage: u32) {
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return self.webgl_error(InvalidOperation),
-        };
+        let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
         if size < 0 {
             return self.webgl_error(InvalidValue);
@@ -1882,7 +1876,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, data, usage));
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(data, usage));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
@@ -1894,10 +1888,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
-        let bound_buffer = match bound_buffer {
-            Some(bound_buffer) => bound_buffer,
-            None => return self.webgl_error(InvalidOperation),
-        };
+        let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
         if offset < 0 {
             return self.webgl_error(InvalidValue);
