@@ -30,12 +30,14 @@ use dom::node::{document_from_node, window_from_node, Node, NodeDamage, UnbindCo
 use dom::promise::Promise;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
+use fetch::FetchCanceller;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use microtask::{Microtask, MicrotaskRunnable};
 use mime::{Mime, SubLevel, TopLevel};
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
+use net_traits::{CoreResourceMsg, FetchChannels, FetchResponseListener, FetchMetadata, Metadata};
+use net_traits::NetworkError;
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use network_listener::{NetworkListener, PreInvoke};
 use script_layout_interface::HTMLMediaData;
@@ -159,6 +161,7 @@ pub struct HTMLMediaElement {
     player: Box<Player>,
     #[ignore_malloc_size_of = "Arc"]
     frame_renderer: Arc<Mutex<MediaFrameRenderer>>,
+    fetch_canceller: DomRefCell<FetchCanceller>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -203,6 +206,7 @@ impl HTMLMediaElement {
             player: ServoMedia::get().unwrap().create_player().unwrap(),
             frame_renderer:
                 Arc::new(Mutex::new(MediaFrameRenderer::new(document.window().get_webrender_api_sender()))),
+            fetch_canceller: DomRefCell::new(Default::default()),
         }
     }
 
@@ -689,9 +693,10 @@ impl HTMLMediaElement {
                         listener.notify_fetch(message.to().unwrap());
                     }),
                 );
-                document
-                    .loader_mut()
-                    .fetch_async_background(request, action_sender);
+                let cancel_receiver = self.fetch_canceller.borrow_mut().initialize();
+                let global = self.global();
+                global.core_resource_thread().send(
+                    CoreResourceMsg::Fetch(request, FetchChannels::ResponseMsg(action_sender, Some(cancel_receiver)))).unwrap();
             },
             Resource::Object => {
                 // FIXME(nox): Actually do something with the object.
@@ -779,7 +784,7 @@ impl HTMLMediaElement {
             task_source.queue_simple_event(self.upcast(), atom!("emptied"), &window);
 
             // Step 6.2.
-            // FIXME(nox): Abort in-progress fetching process.
+            self.fetch_canceller.borrow_mut().cancel();
 
             // Step 6.3.
             // FIXME(nox): Detach MediaSource media provider object.
