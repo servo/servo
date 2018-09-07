@@ -4,7 +4,7 @@
 
 use euclid::Size2D;
 use gleam::gl;
-use ipc_channel::ipc::IpcBytesReceiver;
+use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use serde_bytes::ByteBuf;
 use std::borrow::Cow;
@@ -214,7 +214,7 @@ pub enum WebGLCommand {
     GetRenderbufferParameter(u32, u32, WebGLSender<i32>),
     PolygonOffset(f32, f32),
     RenderbufferStorage(u32, u32, i32, i32),
-    ReadPixels(i32, i32, i32, i32, u32, u32, WebGLSender<ByteBuf>),
+    ReadPixels(i32, i32, i32, i32, u32, u32, IpcBytesSender),
     SampleCoverage(f32, bool),
     Scissor(i32, i32, i32, i32),
     StencilFunc(u32, i32, u32),

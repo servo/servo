@@ -7,8 +7,8 @@ use canvas_traits::webgl::*;
 use euclid::Size2D;
 use fnv::FnvHashMap;
 use gleam::gl;
+use ipc_channel::ipc::IpcBytesSender;
 use offscreen_gl_context::{GLContext, GLContextAttributes, GLLimits, NativeGLContextMethods};
-use serde_bytes::ByteBuf;
 use std::thread;
 use super::gl_context::{GLContextFactory, GLContextWrapper};
 use webrender;
@@ -713,8 +713,9 @@ impl WebGLImpl {
                 ctx.gl().pixel_store_i(name, val),
             WebGLCommand::PolygonOffset(factor, units) =>
                 ctx.gl().polygon_offset(factor, units),
-            WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, ref chan) =>
-                Self::read_pixels(ctx.gl(), x, y, width, height, format, pixel_type, chan),
+            WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, ref chan) => {
+                Self::read_pixels(ctx.gl(), x, y, width, height, format, pixel_type, chan)
+            }
             WebGLCommand::RenderbufferStorage(target, format, width, height) =>
                 ctx.gl().renderbuffer_storage(target, format, width, height),
             WebGLCommand::SampleCoverage(value, invert) =>
@@ -1165,10 +1166,10 @@ impl WebGLImpl {
         height: i32,
         format: u32,
         pixel_type: u32,
-        chan: &WebGLSender<ByteBuf>,
+        chan: &IpcBytesSender,
     ) {
       let result = gl.read_pixels(x, y, width, height, format, pixel_type);
-      chan.send(result.into()).unwrap()
+      chan.send(&result).unwrap()
     }
 
     fn finish(gl: &gl::Gl, chan: &WebGLSender<()>) {

@@ -1202,7 +1202,7 @@ impl WebGLRenderingContext {
         let width = cmp::min(width, fb_width as u32);
         let height = cmp::min(height, fb_height as u32);
 
-        let (sender, receiver) = webgl_channel().unwrap();
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(
             0,
             0,
@@ -1212,7 +1212,7 @@ impl WebGLRenderingContext {
             constants::UNSIGNED_BYTE,
             sender,
         ));
-        Some(receiver.recv().unwrap().into())
+        Some(receiver.recv().unwrap())
     }
 
     pub fn array_buffer(&self) -> Option<DomRoot<WebGLBuffer>> {
@@ -2894,7 +2894,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => return self.webgl_error(InvalidOperation),
         };
 
-        let (sender, receiver) = webgl_channel().unwrap();
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender));
 
         let result = receiver.recv().unwrap();
