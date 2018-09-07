@@ -11,23 +11,21 @@ use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
 use syn::{Variant, WherePredicate};
 use synstructure::{self, BindingInfo, BindStyle, VariantAst, VariantInfo};
 
-pub fn add_predicate(
-    where_clause: &mut Option<syn::WhereClause>,
-    pred: WherePredicate,
-) {
-    where_clause.get_or_insert(parse_quote!(where)).predicates.push(pred);
+pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePredicate) {
+    where_clause
+        .get_or_insert(parse_quote!(where))
+        .predicates
+        .push(pred);
 }
 
-pub fn fmap_match<F>(
-    input: &DeriveInput,
-    bind_style: BindStyle,
-    mut f: F,
-) -> Tokens
+pub fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, mut f: F) -> Tokens
 where
     F: FnMut(BindingInfo) -> Tokens,
 {
     let mut s = synstructure::Structure::new(input);
-    s.variants_mut().iter_mut().for_each(|v| { v.bind_with(|_| bind_style); });
+    s.variants_mut().iter_mut().for_each(|v| {
+        v.bind_with(|_| bind_style);
+    });
     s.each_variant(|variant| {
         let (mapped, mapped_fields) = value(variant, "mapped");
         let fields_pairs = variant.bindings().into_iter().zip(mapped_fields);
@@ -41,31 +39,30 @@ where
     })
 }
 
-pub fn fmap_trait_output(
-    input: &DeriveInput,
-    trait_path: &Path,
-    trait_output: Ident,
-) -> Path {
+pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: Ident) -> Path {
     let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
-            args: input.generics.params.iter().map(|arg| {
-                match arg {
-                    &GenericParam::Lifetime(ref data) => GenericArgument::Lifetime(data.lifetime.clone()),
+            args: input
+                .generics
+                .params
+                .iter()
+                .map(|arg| match arg {
+                    &GenericParam::Lifetime(ref data) => {
+                        GenericArgument::Lifetime(data.lifetime.clone())
+                    },
                     &GenericParam::Type(ref data) => {
                         let ident = data.ident;
                         GenericArgument::Type(
                             parse_quote!(<#ident as ::#trait_path>::#trait_output),
                         )
                     },
-                    ref arg => panic!("arguments {:?} cannot be mapped yet", arg)
-                }
-            }).collect(),
+                    ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
+                }).collect(),
             colon2_token: Default::default(),
             gt_token: Default::default(),
             lt_token: Default::default(),
-
-        })
+        }),
     };
     segment.into()
 }
@@ -75,44 +72,55 @@ where
     F: FnMut(&Ident) -> Type,
 {
     match *ty {
-        Type::Slice(ref inner) => {
-            Type::from(TypeSlice { elem: Box::new(map_type_params(&inner.elem, params, f)), ..inner.clone() })
-        },
-        Type::Array(ref inner) => { //ref ty, ref expr) => {
-            Type::from(TypeArray { elem: Box::new(map_type_params(&inner.elem, params, f)), ..inner.clone() })
+        Type::Slice(ref inner) => Type::from(TypeSlice {
+            elem: Box::new(map_type_params(&inner.elem, params, f)),
+            ..inner.clone()
+        }),
+        Type::Array(ref inner) => {
+            //ref ty, ref expr) => {
+            Type::from(TypeArray {
+                elem: Box::new(map_type_params(&inner.elem, params, f)),
+                ..inner.clone()
+            })
         },
         ref ty @ Type::Never(_) => ty.clone(),
-        Type::Tuple(ref inner) => {
-            Type::from(
-                TypeTuple {
-                    elems: inner.elems.iter().map(|ty| map_type_params(&ty, params, f)).collect(),
-                    ..inner.clone()
-                }
-            )
-        },
-        Type::Path(TypePath { qself: None, ref path }) => {
+        Type::Tuple(ref inner) => Type::from(TypeTuple {
+            elems: inner
+                .elems
+                .iter()
+                .map(|ty| map_type_params(&ty, params, f))
+                .collect(),
+            ..inner.clone()
+        }),
+        Type::Path(TypePath {
+            qself: None,
+            ref path,
+        }) => {
             if let Some(ident) = path_to_ident(path) {
                 if params.iter().any(|param| param.ident == ident) {
                     return f(ident);
                 }
             }
-            Type::from(TypePath { qself: None, path: map_type_params_in_path(path, params, f) })
-        }
-        Type::Path(TypePath { ref qself, ref path }) => {
             Type::from(TypePath {
-                qself: qself.as_ref().map(|qself| {
-                    QSelf {
-                        ty: Box::new(map_type_params(&qself.ty, params, f)),
-                        position: qself.position,
-                        ..qself.clone()
-                    }
-                }),
+                qself: None,
                 path: map_type_params_in_path(path, params, f),
             })
         },
-        Type::Paren(ref inner) => {
-            Type::from(TypeParen { elem: Box::new(map_type_params(&inner.elem, params, f)), ..inner.clone() })
-        },
+        Type::Path(TypePath {
+            ref qself,
+            ref path,
+        }) => Type::from(TypePath {
+            qself: qself.as_ref().map(|qself| QSelf {
+                ty: Box::new(map_type_params(&qself.ty, params, f)),
+                position: qself.position,
+                ..qself.clone()
+            }),
+            path: map_type_params_in_path(path, params, f),
+        }),
+        Type::Paren(ref inner) => Type::from(TypeParen {
+            elem: Box::new(map_type_params(&inner.elem, params, f)),
+            ..inner.clone()
+        }),
         ref ty => panic!("type {:?} cannot be mapped yet", ty),
     }
 }
@@ -123,41 +131,48 @@ where
 {
     Path {
         leading_colon: path.leading_colon,
-        segments: path.segments.iter().map(|segment| {
-            PathSegment {
+        segments: path
+            .segments
+            .iter()
+            .map(|segment| PathSegment {
                 ident: segment.ident.clone(),
                 arguments: match segment.arguments {
                     PathArguments::AngleBracketed(ref data) => {
                         PathArguments::AngleBracketed(AngleBracketedGenericArguments {
-                            args: data.args.iter().map(|arg| {
-                                match arg {
+                            args: data
+                                .args
+                                .iter()
+                                .map(|arg| match arg {
                                     ty @ &GenericArgument::Lifetime(_) => ty.clone(),
                                     &GenericArgument::Type(ref data) => {
                                         GenericArgument::Type(map_type_params(data, params, f))
                                     },
-                                    &GenericArgument::Binding(ref data) => GenericArgument::Binding(Binding {
-                                        ty: map_type_params(&data.ty, params, f),
-                                        ..data.clone()
-                                    }),
-                                    ref arg => panic!("arguments {:?} cannot be mapped yet", arg)
-                                }
-                            }).collect(),
+                                    &GenericArgument::Binding(ref data) => {
+                                        GenericArgument::Binding(Binding {
+                                            ty: map_type_params(&data.ty, params, f),
+                                            ..data.clone()
+                                        })
+                                    },
+                                    ref arg => panic!("arguments {:?} cannot be mapped yet", arg),
+                                }).collect(),
                             ..data.clone()
                         })
                     },
                     ref arg @ PathArguments::None => arg.clone(),
-                    ref parameters => {
-                        panic!("parameters {:?} cannot be mapped yet", parameters)
-                    }
+                    ref parameters => panic!("parameters {:?} cannot be mapped yet", parameters),
                 },
-            }
-        }).collect(),
+            }).collect(),
     }
 }
 
 fn path_to_ident(path: &Path) -> Option<&Ident> {
     match *path {
-        Path { leading_colon: None, ref segments } if segments.len() == 1 => {
+        Path {
+            leading_colon: None,
+            ref segments,
+        }
+            if segments.len() == 1 =>
+        {
             if segments[0].arguments.is_empty() {
                 Some(&segments[0].ident)
             } else {
@@ -203,7 +218,7 @@ where
 
 pub fn parse_variant_attrs<A>(variant: &Variant) -> A
 where
-    A: FromVariant
+    A: FromVariant,
 {
     match A::from_variant(variant) {
         Ok(attrs) => attrs,
@@ -211,23 +226,20 @@ where
     }
 }
 
-
-pub fn ref_pattern<'a>(
-    variant: &'a VariantInfo,
-    prefix: &str,
-) -> (Tokens, Vec<BindingInfo<'a>>) {
+pub fn ref_pattern<'a>(variant: &'a VariantInfo, prefix: &str) -> (Tokens, Vec<BindingInfo<'a>>) {
     let mut v = variant.clone();
     v.bind_with(|_| BindStyle::Ref);
-    v.bindings_mut().iter_mut().for_each(|b| { b.binding = Ident::from(format!("{}_{}", b.binding, prefix)) });
+    v.bindings_mut()
+        .iter_mut()
+        .for_each(|b| b.binding = Ident::from(format!("{}_{}", b.binding, prefix)));
     (v.pat(), v.bindings().iter().cloned().collect())
 }
 
-pub fn value<'a>(
-    variant: &'a VariantInfo,
-    prefix: &str,
-) -> (Tokens, Vec<BindingInfo<'a>>) {
+pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (Tokens, Vec<BindingInfo<'a>>) {
     let mut v = variant.clone();
-    v.bindings_mut().iter_mut().for_each(|b| { b.binding = Ident::from(format!("{}_{}", b.binding, prefix)) });
+    v.bindings_mut()
+        .iter_mut()
+        .for_each(|b| b.binding = Ident::from(format!("{}_{}", b.binding, prefix)));
     v.bind_with(|_| BindStyle::Move);
     (v.pat(), v.bindings().iter().cloned().collect())
 }

@@ -27,23 +27,23 @@ pub fn derive(input: DeriveInput) -> Tokens {
             "Parse is only supported for single-variant enums for now"
         );
 
-        let css_variant_attrs =
-            cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
-        let parse_attrs =
-            cg::parse_variant_attrs_from_ast::<ParseVariantAttrs>(&variant.ast());
+        let css_variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
+        let parse_attrs = cg::parse_variant_attrs_from_ast::<ParseVariantAttrs>(&variant.ast());
         if css_variant_attrs.skip {
             return match_body;
         }
 
         let identifier = cg::to_css_identifier(
-            &css_variant_attrs.keyword.unwrap_or(variant.ast().ident.as_ref().into()),
+            &css_variant_attrs
+                .keyword
+                .unwrap_or(variant.ast().ident.as_ref().into()),
         );
         let ident = &variant.ast().ident;
 
         saw_condition |= parse_attrs.condition.is_some();
         let condition = match parse_attrs.condition {
             Some(ref p) => quote! { if #p(context) },
-            None => quote! { },
+            None => quote!{},
         };
 
         let mut body = quote! {
@@ -86,7 +86,6 @@ pub fn derive(input: DeriveInput) -> Tokens {
     } else {
         quote! { Self::parse(input) }
     };
-
 
     let parse_trait_impl = quote! {
         impl ::parser::Parse for #name {
