@@ -24,7 +24,7 @@ pub use ::webgl_channel::WebGLPipeline;
 pub use ::webgl_channel::WebGLChan;
 
 /// WebGL Message API
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebGLMsg {
     /// Creates a new WebGLContext.
     CreateContext(WebGLVersion, Size2D<i32>, GLContextAttributes,
@@ -155,7 +155,7 @@ impl WebGLMsgSender {
 }
 
 /// WebGL Commands for a specific WebGLContext
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum WebGLCommand {
     GetContextAttributes(WebGLSender<GLContextAttributes>),
     ActiveTexture(u32),

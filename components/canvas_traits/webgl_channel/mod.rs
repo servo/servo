@@ -16,10 +16,22 @@ lazy_static! {
     static ref IS_MULTIPROCESS: bool = { opts::multiprocess() };
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub enum WebGLSender<T: Serialize> {
     Ipc(ipc::WebGLSender<T>),
     Mpsc(mpsc::WebGLSender<T>),
+}
+
+impl<T> Clone for WebGLSender<T>
+where
+    T: Serialize,
+{
+    fn clone(&self) -> Self {
+        match *self {
+            WebGLSender::Ipc(ref chan) => WebGLSender::Ipc(chan.clone()),
+            WebGLSender::Mpsc(ref chan) => WebGLSender::Mpsc(chan.clone()),
+        }
+    }
 }
 
 impl<T: Serialize> fmt::Debug for WebGLSender<T> {
