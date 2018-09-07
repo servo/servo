@@ -235,6 +235,10 @@ impl AudioBufferMethods for AudioBuffer {
         channel_number: u32,
         start_in_channel: u32,
     ) -> Fallible<()> {
+        if destination.is_shared() {
+            return Err(Error::Type("Cannot copy to shared buffer".to_owned()));
+        }
+
         if channel_number >= self.number_of_channels || start_in_channel > self.length {
             return Err(Error::IndexSize);
         }
@@ -276,6 +280,10 @@ impl AudioBufferMethods for AudioBuffer {
         channel_number: u32,
         start_in_channel: u32,
     ) -> Fallible<()> {
+        if source.is_shared() {
+            return Err(Error::Type("Cannot copy from shared buffer".to_owned()));
+        }
+
         if channel_number >= self.number_of_channels || start_in_channel > (source.len() as u32) {
             return Err(Error::IndexSize);
         }
