@@ -166,9 +166,9 @@ def test_run_firefox(manifest_dir):
     os.environ["MOZ_HEADLESS"] = "1"
     try:
         if sys.platform == "darwin":
-            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "Firefox Nightly.app")
+            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "Firefox Nightly.app")
         else:
-            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "firefox")
+            fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "firefox")
         if os.path.exists(fx_path):
             shutil.rmtree(fx_path)
         with pytest.raises(SystemExit) as excinfo:
@@ -294,15 +294,14 @@ def test_install_chromedriver():
 @pytest.mark.xfail(sys.platform == "win32",
                    reason="Tests currently don't work on Windows for path reasons")
 def test_install_firefox():
-
     if sys.platform == "darwin":
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "Firefox Nightly.app")
+        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "Firefox Nightly.app")
     else:
-        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "firefox")
+        fx_path = os.path.join(wpt.localpaths.repo_root, "_venv", "browsers", "nightly", "firefox")
     if os.path.exists(fx_path):
         shutil.rmtree(fx_path)
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["install", "firefox", "browser"])
+        wpt.main(argv=["install", "firefox", "browser", "--channel=nightly"])
     assert excinfo.value.code == 0
     assert os.path.exists(fx_path)
     shutil.rmtree(fx_path)

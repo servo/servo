@@ -17,7 +17,7 @@ main() {
     export PATH=$HOME/firefox:$PATH
 
     cd $WPT_ROOT/resources/test
-    tox -- --binary=$HOME/browsers/firefox/firefox
+    tox -- --binary=$HOME/browsers/nightly/firefox/firefox
 }
 
 main
