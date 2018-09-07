@@ -481,7 +481,12 @@ class CommandBase(object):
         return path.join(bin_folder, "servo{}".format(BIN_SUFFIX))
 
     def needs_gstreamer_env(self, target):
-        if check_gstreamer_lib():
+        try:
+            if check_gstreamer_lib():
+                return False
+        except:
+            # Some systems don't have pkg-config; we can't probe in this case
+            # and must hope for the best
             return False
         if "x86_64" not in (target or host_triple()):
             # We don't build gstreamer for non-x86_64 yet
