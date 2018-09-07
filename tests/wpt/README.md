@@ -94,7 +94,11 @@ defaults at `config.default.json`) with the following contents:
     }
 
 Finally, you can run `python serve` from `tests/wpt/web-platform-tests`.
-Then navigate Servo to `http://web-platform.test:8000/path/to/test`.
+Then navigate Servo to `http://web-platform.test:8000/path/to/test` or
+`https://web-platform.test:8443/path/to/test`.
+
+To prevent browser SSL warnings when running HTTPS tests locally,
+you will need to run Servo with `--certificate-path resources/cert-wpt-only`.
 
 [upstream-running]: https://github.com/w3c/web-platform-tests#running-the-tests
 
