@@ -52,6 +52,7 @@ use dom::window::Window;
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use half::f16;
+use ipc_channel::ipc;
 use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value, JSVal};
 use js::jsval::{ObjectValue, NullValue, UndefinedValue};
@@ -1846,21 +1847,30 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    #[allow(unsafe_code)]
     fn BufferData(
         &self,
         target: u32,
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
     ) {
-        let data = match data {
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(data)) => data.to_vec(),
-            Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(data)) => data.to_vec(),
-            None => return self.webgl_error(InvalidValue),
-        };
+        // let data = match data {
+        //     Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(data)) => data.to_vec(),
+        //     Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(data)) => data.to_vec(),
+        //     None => return self.webgl_error(InvalidValue),
+        // };
+        let data = handle_potential_webgl_error!(self, data.ok_or(InvalidValue), return);
 
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
+        let data = unsafe {
+            // Safe because we don't do anything with JS until the end of the method.
+            match data {
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
+            }
+        };
         handle_potential_webgl_error!(self, bound_buffer.buffer_data(data, usage));
     }
 
@@ -1876,17 +1886,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: Allocating a buffer based on user-requested size is
         // not great, but we don't have a fallible allocation to try.
         let data = vec![0u8; size as usize];
-        handle_potential_webgl_error!(self, bound_buffer.buffer_data(data, usage));
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(&data, usage));
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    #[allow(unsafe_code)]
     fn BufferSubData(&self, target: u32, offset: i64, data: ArrayBufferViewOrArrayBuffer) {
-        let data_vec = match data {
-            // Typed array is rooted, so we can safely temporarily retrieve its slice
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(inner) => inner.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(inner) => inner.to_vec(),
-        };
-
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         let bound_buffer = handle_potential_webgl_error!(self, bound_buffer.ok_or(InvalidOperation), return);
 
@@ -1894,14 +1899,23 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        if (offset as usize) + data_vec.len() > bound_buffer.capacity() {
+        let data = unsafe {
+            // Safe because we don't do anything with JS until the end of the method.
+            match data {
+                ArrayBufferViewOrArrayBuffer::ArrayBuffer(ref data) => data.as_slice(),
+                ArrayBufferViewOrArrayBuffer::ArrayBufferView(ref data) => data.as_slice(),
+            }
+        };
+        if (offset as u64) + data.len() as u64 > bound_buffer.capacity() as u64 {
             return self.webgl_error(InvalidValue);
         }
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.send_command(WebGLCommand::BufferSubData(
             target,
             offset as isize,
-            data_vec.into(),
+            receiver,
         ));
+        sender.send(data).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8

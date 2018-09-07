@@ -659,10 +659,12 @@ impl WebGLImpl {
                 ctx.gl().blend_func(src, dest),
             WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha) =>
                 ctx.gl().blend_func_separate(src_rgb, dest_rgb, src_alpha, dest_alpha),
-            WebGLCommand::BufferData(buffer_type, ref data, usage) =>
-                gl::buffer_data(ctx.gl(), buffer_type, data, usage),
-            WebGLCommand::BufferSubData(buffer_type, offset, ref data) =>
-                gl::buffer_sub_data(ctx.gl(), buffer_type, offset, data),
+            WebGLCommand::BufferData(buffer_type, ref receiver, usage) => {
+                gl::buffer_data(ctx.gl(), buffer_type, &receiver.recv().unwrap(), usage)
+            },
+            WebGLCommand::BufferSubData(buffer_type, offset, ref receiver) => {
+                gl::buffer_sub_data(ctx.gl(), buffer_type, offset, &receiver.recv().unwrap())
+            },
             WebGLCommand::Clear(mask) =>
                 ctx.gl().clear(mask),
             WebGLCommand::ClearColor(r, g, b, a) =>

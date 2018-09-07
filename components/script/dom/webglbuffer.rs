@@ -13,6 +13,7 @@ use dom::bindings::root::DomRoot;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::WebGLRenderingContext;
 use dom_struct::dom_struct;
+use ipc_channel::ipc;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -62,7 +63,7 @@ impl WebGLBuffer {
         self.id
     }
 
-    pub fn buffer_data(&self, data: Vec<u8>, usage: u32) -> WebGLResult<()> {
+    pub fn buffer_data(&self, data: &[u8], usage: u32) -> WebGLResult<()> {
         match usage {
             WebGLRenderingContextConstants::STREAM_DRAW |
             WebGLRenderingContextConstants::STATIC_DRAW |
@@ -72,9 +73,11 @@ impl WebGLBuffer {
 
         self.capacity.set(data.len());
         self.usage.set(usage);
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
         self.upcast::<WebGLObject>()
             .context()
-            .send_command(WebGLCommand::BufferData(self.target.get().unwrap(), data.into(), usage));
+            .send_command(WebGLCommand::BufferData(self.target.get().unwrap(), receiver, usage));
+        sender.send(data).unwrap();
         Ok(())
     }
 
