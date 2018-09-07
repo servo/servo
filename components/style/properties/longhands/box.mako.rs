@@ -379,7 +379,7 @@ ${helpers.predefined_type(
     "OffsetPath",
     "computed::OffsetPath::none()",
     products="gecko",
-    animation_value_type="none",
+    animation_value_type="ComputedValue",
     gecko_pref="layout.css.motion-path.enabled",
     flags="CREATES_STACKING_CONTEXT FIXPOS_CB",
     spec="https://drafts.fxtf.org/motion-1/#offset-path-property",

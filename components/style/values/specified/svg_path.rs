@@ -13,14 +13,15 @@ use std::slice;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 use style_traits::values::SequenceWriter;
 use values::CSSFloat;
-use values::animated::{Animate, Procedure};
+use values::animated::{Animate, Procedure, ToAnimatedZero};
 use values::distance::{ComputeSquaredDistance, SquaredDistance};
 
 
 /// The SVG path data.
 ///
 /// https://www.w3.org/TR/SVG11/paths.html#PathData
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToAnimatedZero,
+         ToComputedValue)]
 pub struct SVGPathData(Box<[PathCommand]>);
 
 impl SVGPathData {
@@ -336,10 +337,66 @@ impl ToCss for PathCommand {
     }
 }
 
+impl ToAnimatedZero for PathCommand {
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        use self::PathCommand::*;
+        let absolute = true;
+        match self {
+            &ClosePath => Ok(ClosePath),
+            &Unknown => Ok(Unknown),
+            &MoveTo { ref point, .. } => Ok(MoveTo { point: point.to_animated_zero()?, absolute }),
+            &LineTo { ref point, .. } => Ok(LineTo { point: point.to_animated_zero()?, absolute }),
+            &HorizontalLineTo { x, .. } => {
+                Ok(HorizontalLineTo { x: x.to_animated_zero()?, absolute })
+            },
+            &VerticalLineTo { y, .. } => {
+                Ok(VerticalLineTo { y: y.to_animated_zero()?, absolute })
+            },
+            &CurveTo { ref control1, ref control2, ref point, .. } => {
+                Ok(CurveTo {
+                    control1: control1.to_animated_zero()?,
+                    control2: control2.to_animated_zero()?,
+                    point: point.to_animated_zero()?,
+                    absolute,
+                })
+            },
+            &SmoothCurveTo { ref control2, ref point, .. } => {
+                Ok(SmoothCurveTo {
+                    control2: control2.to_animated_zero()?,
+                    point: point.to_animated_zero()?,
+                    absolute,
+                })
+            },
+            &QuadBezierCurveTo { ref control1, ref point, .. } => {
+                Ok(QuadBezierCurveTo {
+                    control1: control1.to_animated_zero()?,
+                    point: point.to_animated_zero()?,
+                    absolute,
+                })
+            },
+            &SmoothQuadBezierCurveTo { ref point, .. } => {
+                Ok(SmoothQuadBezierCurveTo { point: point.to_animated_zero()?, absolute })
+            },
+            &EllipticalArc { rx, ry, angle, large_arc_flag, sweep_flag, ref point, .. } => {
+                Ok(EllipticalArc {
+                    rx: rx.to_animated_zero()?,
+                    ry: ry.to_animated_zero()?,
+                    angle: angle.to_animated_zero()?,
+                    large_arc_flag,
+                    sweep_flag,
+                    point: point.to_animated_zero()?,
+                    absolute,
+                })
+            },
+        }
+    }
+}
+
 
 /// The path coord type.
 #[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+         SpecifiedValueInfo, ToAnimatedZero, ToCss)]
 #[repr(C)]
 pub struct CoordPair(CSSFloat, CSSFloat);
 

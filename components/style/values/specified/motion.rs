@@ -12,7 +12,8 @@ use values::specified::SVGPathData;
 /// The offset-path value.
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-path-property
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
+         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
 pub enum OffsetPath {
     // We could merge SVGPathData into ShapeSource, so we could reuse them. However,
     // we don't want to support other value for offset-path, so use SVGPathData only for now.
@@ -20,6 +21,7 @@ pub enum OffsetPath {
     #[css(function)]
     Path(SVGPathData),
     /// None value.
+    #[animation(error)]
     None,
     // Bug 1186329: Implement ray(), <basic-shape>, <geometry-box>, and <url>.
 }

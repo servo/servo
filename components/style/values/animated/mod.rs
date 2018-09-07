@@ -406,3 +406,14 @@ where
         ))
     }
 }
+
+impl<T> ToAnimatedZero for Box<[T]>
+where
+    T: ToAnimatedZero,
+{
+    #[inline]
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        let v = self.iter().map(|v| v.to_animated_zero()).collect::<Result<Vec<_>, _>>()?;
+        Ok(v.into_boxed_slice())
+    }
+}
