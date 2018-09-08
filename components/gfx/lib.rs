@@ -21,8 +21,6 @@ extern crate core_text;
 // Windows-specific library dependencies
 #[cfg(target_os = "windows")]
 extern crate dwrote;
-#[cfg(target_os = "windows")]
-extern crate truetype;
 
 extern crate euclid;
 extern crate fnv;
@@ -32,8 +30,6 @@ extern crate fontconfig;
 extern crate fontsan;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 extern crate freetype;
-#[cfg(any(target_os = "linux", target_os = "android"))]
-extern crate servo_allocator;
 extern crate gfx_traits;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
@@ -59,6 +55,8 @@ extern crate packed_simd;
 extern crate range;
 #[macro_use]
 extern crate serde;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+extern crate servo_allocator;
 extern crate servo_arc;
 #[macro_use]
 extern crate servo_atoms;
@@ -66,6 +64,8 @@ extern crate servo_url;
 extern crate smallvec;
 extern crate style;
 extern crate time;
+#[cfg(target_os = "windows")]
+extern crate truetype;
 extern crate ucd;
 extern crate unicode_bidi;
 extern crate unicode_script;
