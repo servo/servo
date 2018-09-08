@@ -18,14 +18,14 @@ test_infrastructure() {
 }
 
 main() {
-    PRODUCTS=( "firefox" "chrome" )
+    PRODUCTS=( "firefox" "chrome" "chrome_webdriver" )
     for PRODUCT in "${PRODUCTS[@]}"; do
         if [ "$PRODUCT" != "firefox" ]; then
             # Firefox is expected to work using pref settings for DNS
             # Don't adjust the hostnames in that case to ensure this keeps working
             hosts_fixup
         fi
-        if [ "$PRODUCT" == "chrome" ]; then
+        if [[ "$PRODUCT" == "chrome"* ]]; then
             install_chrome unstable
             test_infrastructure "--binary=$(which google-chrome-unstable)"
         else

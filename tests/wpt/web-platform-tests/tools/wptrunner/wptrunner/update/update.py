@@ -96,11 +96,38 @@ class UpdateMetadata(Step):
             runner.run()
 
 
+class RemoveObsolete(Step):
+    """Remove metadata files that don't corespond to an existing test file"""
+
+    def create(self, state):
+        if not state.kwargs["remove_obsolete"]:
+            return
+
+        paths = state.kwargs["test_paths"]
+        state.tests_path = state.paths["/"]["tests_path"]
+        state.metadata_path = state.paths["/"]["metadata_path"]
+
+        for url_paths in paths.itervalues():
+            tests_path = url_paths["tests_path"]
+            metadata_path = url_paths["metadata_path"]
+            for dirpath, dirnames, filenames in os.walk(metadata_path):
+                for filename in filenames:
+                    if filename == "__dir__.ini":
+                        continue
+                    if filename.endswith(".ini"):
+                        full_path = os.path.join(dirpath, filename)
+                        rel_path = os.path.relpath(full_path, metadata_path)
+                        test_path = os.path.join(tests_path, rel_path[:-4])
+                        if not os.path.exists(test_path):
+                            os.unlink(full_path)
+
+
 class UpdateRunner(StepRunner):
     """Runner for doing an overall update."""
     steps = [LoadConfig,
              LoadTrees,
              SyncFromUpstream,
+             RemoveObsolete,
              UpdateMetadata]
 
 

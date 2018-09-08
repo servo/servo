@@ -7,12 +7,19 @@
 <script>
 var worker = 'resources/fetch-event-test-worker.js';
 
+function do_test(referrer, value, expected, name)
+{
+    test(() => {
+          assert_equals(value, expected);
+    }, name + (referrer ? " - Custom Referrer" : " - Default Referrer"));
+}
+
 function run_referrer_policy_tests(frame, referrer, href, origin) {
     return frame.contentWindow.fetch('resources/simple.html?referrerFull',
                                      {method: "GET", referrer: referrer})
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: no-referrer-when-downgrade',
@@ -24,7 +31,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: no-referrer-when-downgrade',
@@ -34,7 +41,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: no-referrer-when-downgrade',
@@ -46,7 +53,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: no-referrer-when-downgrade',
@@ -56,7 +63,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
             'ReferrerPolicy: origin',
@@ -68,7 +75,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
             'ReferrerPolicy: origin',
@@ -78,7 +85,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: origin-when-cross-origin',
@@ -90,7 +97,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
             'ReferrerPolicy: origin-when-cross-origin',
@@ -100,7 +107,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: no-referrer-when-downgrade',
@@ -112,7 +119,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: no-referrer-when-downgrade',
@@ -123,7 +130,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: unsafe-url',
@@ -133,7 +140,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: no-referrer',
@@ -143,7 +150,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: same-origin',
@@ -155,7 +162,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: same-origin',
@@ -167,7 +174,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
             'ReferrerPolicy: strict-origin',
@@ -177,7 +184,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
             'ReferrerPolicy: strict-origin',
@@ -189,7 +196,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: strict-origin',
@@ -199,7 +206,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
             'ReferrerPolicy: strict-origin-when-cross-origin',
@@ -211,7 +218,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
             'ReferrerPolicy: strict-origin-when-cross-origin',
@@ -223,7 +230,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
-          assert_equals(
+          do_test(referrer,
             response_text,
             'Referrer: \n' +
             'ReferrerPolicy: strict-origin-when-cross-origin',
@@ -241,17 +248,16 @@ async_test(function(t) {
       .then(function() { return with_iframe(scope); })
       .then(function(f) {
           frame = f;
-          assert_equals(
-            frame.contentDocument.body.textContent,
-            'ReferrerPolicy: no-referrer-when-downgrade',
-            'Service Worker should respond to fetch with the default referrer policy');
+          test(() => {
+            assert_equals(frame.contentDocument.body.textContent, 'ReferrerPolicy: no-referrer-when-downgrade');
+          }, 'Service Worker should respond to fetch with the default referrer policy');
           // First, run the referrer policy tests without passing a referrer in RequestInit.
           return run_referrer_policy_tests(frame, undefined, frame.contentDocument.location.href,
                                            frame.contentDocument.location.origin);
         })
       .then(function() {
           // Now, run the referrer policy tests while passing a referrer in RequestInit.
-          var referrer = get_host_info()['HTTPS_ORIGIN'] + base_path() + 'fake-referrer';
+          var referrer = get_host_info()['HTTPS_ORIGIN'] + base_path() + 'resources/fake-referrer';
           return run_referrer_policy_tests(frame, 'fake-referrer', referrer,
                                            frame.contentDocument.location.origin);
         })

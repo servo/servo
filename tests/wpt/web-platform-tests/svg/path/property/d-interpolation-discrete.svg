@@ -17,27 +17,27 @@
       // Distinct number of path segments
       test_no_interpolation({
         property: 'd',
-        from: "path('M 0 0 H 1 H 2')",
-        to: "path('M 0 0 H 3')"
+        from: 'path("M 0 0 H 1 H 2")',
+        to: 'path("M 0 0 H 3")'
       });
 
       test_no_interpolation({
         property: 'd',
-        from: "path('M 1 2 L 3 4 Z')",
+        from: 'path("M 1 2 L 3 4 Z")',
         to: "none"
       });
 
       // Distinct segment types
       test_no_interpolation({
         property: 'd',
-        from: "path('M 10 0 H 11')",
-        to: "path('M 20 0 V 2')"
+        from: 'path("M 10 0 H 11")',
+        to: 'path("M 20 0 V 2")'
       });
 
       test_no_interpolation({
         property: 'd',
-        from: "path('M 1 2 L 4 6 Z')",
-        to: "path('M 1 2 H 4 V 6')"
+        from: 'path("M 1 2 L 4 6 Z")',
+        to: 'path("M 1 2 H 4 V 6")'
       });
   ]]></script>
 </svg>
