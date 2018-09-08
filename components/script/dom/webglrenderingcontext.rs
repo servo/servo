@@ -871,21 +871,6 @@ impl WebGLRenderingContext {
         }
     }
 
-    // Remove premultiplied alpha.
-    // This is only called when texImage2D is called using a canvas2d source and
-    // UNPACK_PREMULTIPLY_ALPHA_WEBGL is disabled. Pixels got from a canvas2D source
-    // are always RGBA8 with premultiplied alpha, so we don't have to worry about
-    // additional formats as happens in the premultiply_pixels method.
-    fn remove_premultiplied_alpha(&self, mut pixels: Vec<u8>) -> Vec<u8> {
-        for rgba in pixels.chunks_mut(4) {
-            let a = (rgba[3] as f32) / 255.0;
-            rgba[0] = (rgba[0] as f32 / a) as u8;
-            rgba[1] = (rgba[1] as f32 / a) as u8;
-            rgba[2] = (rgba[2] as f32 / a) as u8;
-        }
-        pixels
-    }
-
     fn prepare_pixels(&self,
                       internal_format: TexFormat,
                       data_type: TexDataType,
@@ -904,7 +889,7 @@ impl WebGLRenderingContext {
                 self.premultiply_pixels(internal_format, data_type, &mut pixels);
             }
         } else if source_premultiplied && !dest_premultiply {
-            pixels = self.remove_premultiplied_alpha(pixels);
+            remove_premultiplied_alpha(&mut pixels);
         }
 
         if source_from_image_or_canvas {
@@ -4192,5 +4177,19 @@ impl TextureUnit {
             }
         }
         None
+    }
+}
+
+// Remove premultiplied alpha.
+// This is only called when texImage2D is called using a canvas2d source and
+// UNPACK_PREMULTIPLY_ALPHA_WEBGL is disabled. Pixels got from a canvas2D source
+// are always RGBA8 with premultiplied alpha, so we don't have to worry about
+// additional formats as happens in the premultiply_pixels method.
+fn remove_premultiplied_alpha(pixels: &mut [u8]) {
+    for rgba in pixels.chunks_mut(4) {
+        let a = (rgba[3] as f32) / 255.0;
+        rgba[0] = (rgba[0] as f32 / a) as u8;
+        rgba[1] = (rgba[1] as f32 / a) as u8;
+        rgba[2] = (rgba[2] as f32 / a) as u8;
     }
 }
