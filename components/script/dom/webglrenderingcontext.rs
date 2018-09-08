@@ -966,17 +966,17 @@ impl WebGLRenderingContext {
         let internal_format = self.extension_manager.get_effective_tex_internal_format(format, data_type);
 
         // TODO(emilio): convert colorspace if requested
-        let msg = WebGLCommand::TexImage2D(
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_command(WebGLCommand::TexImage2D(
             target.as_gl_constant(),
             level as i32,
             internal_format as i32,
             width as i32, height as i32,
             format,
             data_type,
-            pixels.into(),
-        );
-
-        self.send_command(msg);
+            receiver,
+        ));
+        sender.send(&pixels).unwrap();
 
         if let Some(fb) = self.bound_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -1021,7 +1021,8 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32));
 
         // TODO(emilio): convert colorspace if requested
-        let msg = WebGLCommand::TexSubImage2D(
+        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        self.send_command(WebGLCommand::TexSubImage2D(
             target.as_gl_constant(),
             level as i32,
             xoffset,
@@ -1030,10 +1031,9 @@ impl WebGLRenderingContext {
             height as i32,
             format.as_gl_constant(),
             data_type.as_gl_constant(),
-            pixels.into(),
-        );
-
-        self.send_command(msg);
+            receiver,
+        ));
+        sender.send(&pixels).unwrap();
     }
 
     fn get_gl_extensions(&self) -> String {

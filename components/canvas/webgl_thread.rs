@@ -834,11 +834,32 @@ impl WebGLImpl {
             WebGLCommand::SetViewport(x, y, width, height) => {
                 ctx.gl().viewport(x, y, width, height);
             }
-            WebGLCommand::TexImage2D(target, level, internal, width, height, format, data_type, ref data) =>
-                ctx.gl().tex_image_2d(target, level, internal, width, height,
-                                      /*border*/0, format, data_type, Some(data)),
-            WebGLCommand::TexSubImage2D(target, level, xoffset, yoffset, x, y, width, height, ref data) =>
-                ctx.gl().tex_sub_image_2d(target, level, xoffset, yoffset, x, y, width, height, data),
+            WebGLCommand::TexImage2D(target, level, internal, width, height, format, data_type, ref chan) => {
+                ctx.gl().tex_image_2d(
+                    target,
+                    level,
+                    internal,
+                    width,
+                    height,
+                    0,
+                    format,
+                    data_type,
+                    Some(&chan.recv().unwrap()),
+                )
+            }
+            WebGLCommand::TexSubImage2D(target, level, xoffset, yoffset, x, y, width, height, ref chan) => {
+                ctx.gl().tex_sub_image_2d(
+                    target,
+                    level,
+                    xoffset,
+                    yoffset,
+                    x,
+                    y,
+                    width,
+                    height,
+                    &chan.recv().unwrap(),
+                )
+            }
             WebGLCommand::DrawingBufferWidth(ref sender) =>
                 sender.send(ctx.borrow_draw_buffer().unwrap().size().width).unwrap(),
             WebGLCommand::DrawingBufferHeight(ref sender) =>
