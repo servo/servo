@@ -4008,7 +4008,7 @@ fn remove_premultiplied_alpha(pixels: &mut [u8]) {
 fn rgba8_image_to_tex_image_data(
     format: TexFormat,
     data_type: TexDataType,
-    pixels: Vec<u8>,
+    mut pixels: Vec<u8>,
 ) -> Vec<u8> {
     // hint for vector allocation sizing.
     let pixel_count = pixels.len() / 4;
@@ -4106,20 +4106,19 @@ fn rgba8_image_to_tex_image_data(
         }
 
         (TexFormat::Alpha, TexDataType::Float) => {
-            let mut alpha = Vec::<u8>::with_capacity(pixel_count * 4);
-            for rgba8 in pixels.chunks(4) {
-                alpha.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+            for rgba8 in pixels.chunks_mut(4) {
+                let p = rgba8[0] as f32;
+                NativeEndian::write_f32(rgba8, p);
             }
-            alpha
+            pixels
         },
 
         (TexFormat::Luminance, TexDataType::Float) => {
-            let mut lum = Vec::<u8>::with_capacity(pixel_count * 4);
-            for rgba8 in pixels.chunks(4) {
+            for rgba8 in pixels.chunks_mut(4) {
                 let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
-                luminance.write_f32::<NativeEndian>(p as f32).unwrap();
+                NativeEndian::write_f32(rgba8, p as f32);
             }
-            luminance
+            pixels
         },
 
         (TexFormat::LuminanceAlpha, TexDataType::Float) => {
