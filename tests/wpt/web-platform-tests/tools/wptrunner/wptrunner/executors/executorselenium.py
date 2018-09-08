@@ -95,14 +95,14 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
 
     def get_test_window(self, window_id, parent):
         test_window = None
-        if window_id:
-            try:
-                # Try this, it's in Level 1 but nothing supports it yet
-                win_s = self.webdriver.execute_script("return window['%s'];" % self.window_id)
-                win_obj = json.loads(win_s)
-                test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
-            except Exception:
-                pass
+        try:
+            # Try using the JSON serialization of the WindowProxy object,
+            # it's in Level 1 but nothing supports it yet
+            win_s = self.webdriver.execute_script("return window['%s'];" % window_id)
+            win_obj = json.loads(win_s)
+            test_window = win_obj["window-fcc6-11e5-b4f8-330a88ab9d7f"]
+        except Exception:
+            pass
 
         if test_window is None:
             after = self.webdriver.window_handles
@@ -296,7 +296,7 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
         parent_window = protocol.testharness.close_old_windows()
         # Now start the test harness
         protocol.base.execute_script(self.script % format_map)
-        test_window = protocol.testharness.get_test_window(webdriver, parent_window)
+        test_window = protocol.testharness.get_test_window(self.window_id, parent_window)
 
         handler = CallbackHandler(self.logger, protocol, test_window)
         while True:

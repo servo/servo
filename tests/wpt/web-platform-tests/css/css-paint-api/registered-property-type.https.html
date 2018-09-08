@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="help" href="https://www.w3.org/TR/css-paint-api-1/#examples">
+<link rel="match" href="parse-input-arguments-ref.html">
+<style>
+.container {
+  width: 100px;
+  height: 100px;
+}
+
+#canvas-geometry {
+  background-image: paint(geometry);
+}
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/worklet-reftest.js"></script>
+<body>
+<div id="canvas-geometry" class="container"></div>
+<script id="code" type="text/worklet">
+  // Globals that must be prepended to this script:
+  // - debugLog: A function that logs errors.
+  // - props: Test data.
+
+  registerPaint('geometry', class {
+    static get inputProperties() { return props.map(p => p.name); }
+
+    paint(ctx, geom, styleMap) {
+      ctx.strokeStyle = 'green';
+      for (let prop of props) {
+        let first = styleMap.get(prop.name);
+        let all = styleMap.getAll(prop.name);
+        let serialize = v => v.constructor.name + '=' + v.toString()
+        let actual = all.map(serialize).join(',');
+        let expected = prop.expected.join(',');
+        let pass = actual === expected
+            && serialize(first) === prop.expected[0];
+        if (!pass)
+          ctx.strokeStyle = 'red';
+        debugLog(pass ? 'PASS' : 'FAIL', prop.syntax, actual, expected);
+      }
+      ctx.lineWidth = 4;
+      ctx.strokeRect(0, 0, geom.width, geom.height);
+    }
+  });
+</script>
+<script>
+    // A copy of this array (automatically enriched with 'name' and 'expected')
+    // is also available in the worklet.
+    let props = [
+      // Initial values.
+      { syntax: '*', initialValue: 'if(){}' },
+      { syntax: '<angle>', initialValue: '42deg' },
+      { syntax: '<color>', initialValue: '#fefefe' },
+      { syntax: '<custom-ident>', initialValue: 'none' },
+      { syntax: '<image>', initialValue: 'linear-gradient(red, red)' },
+      { syntax: '<image>', initialValue: 'url(http://a.com/a)' },
+      { syntax: '<integer>', initialValue: '42' },
+      { syntax: '<length-percentage>', initialValue: '10%' },
+      { syntax: '<length-percentage>', initialValue: '10px' },
+      { syntax: '<length-percentage>', initialValue: 'calc(10px + 10%)' },
+      { syntax: '<length>', initialValue: '1337px' },
+      { syntax: '<number>', initialValue: '42.5' },
+      { syntax: '<percentage>', initialValue: '42%' },
+      { syntax: '<resolution>', initialValue: '300dpi' },
+      { syntax: '<time>', initialValue: '3600s' },
+      { syntax: '<url>', initialValue: 'url(http://a.com/a)' },
+      { syntax: 'thing', initialValue: 'thing' },
+      { syntax: '<length> | <angle>', initialValue: '1337px' },
+      { syntax: '<angle> | <image>', initialValue: '1turn' },
+      { syntax: '<length>+', initialValue: '1337px' },
+      { syntax: '<length>+', initialValue: '1337px 1338px', count: 2 },
+      { syntax: '<length>#', initialValue: '1337px' },
+      { syntax: '<length>#', initialValue: '1337px, 1338px', count: 2 },
+
+      // Non-initial values:
+      { syntax: '*', initialValue: 'fail', value: 'if(){}' },
+      { syntax: '<angle> | fail', initialValue: 'fail', value: '42deg' },
+      { syntax: '<color> | fail', initialValue: 'fail', value: '#fefefe' },
+      { syntax: '<custom-ident> | fail', initialValue: 'fail', value: 'none' },
+      { syntax: '<image> | fail', initialValue: 'fail', value: 'linear-gradient(red, red)' },
+      { syntax: '<image> | fail', initialValue: 'fail', value: 'url(http://a.com/a)' },
+      { syntax: '<integer> | fail', initialValue: 'fail', value: '42' },
+      { syntax: '<length-percentage> | fail', initialValue: 'fail', value: '10%' },
+      { syntax: '<length-percentage> | fail', initialValue: 'fail', value: '10px' },
+      { syntax: '<length-percentage> | fail', initialValue: 'fail', value: 'calc(10px + 10%)' },
+      { syntax: '<length> | fail', initialValue: 'fail', value: '1337px' },
+      { syntax: '<number> | fail', initialValue: 'fail', value: '42.5' },
+      { syntax: '<percentage> | fail', initialValue: 'fail', value: '42%' },
+      { syntax: '<resolution> | fail', initialValue: 'fail', value: '300dpi' },
+      { syntax: '<time> | fail', initialValue: 'fail', value: '3600s' },
+      { syntax: '<url> | fail', initialValue: 'fail', value: 'url(http://a.com/a)' },
+      { syntax: 'thing | fail', initialValue: 'fail', value: 'thing' },
+      { syntax: '<length>+ | fail', initialValue: 'fail', value: '1337px' },
+      { syntax: '<length>+ | fail', initialValue: 'fail', value: '1337px 1338px', count: 2 },
+      { syntax: '<length># | fail', initialValue: 'fail', value: '1337px' },
+      { syntax: '<length># | fail', initialValue: 'fail', value: '1337px, 1338px', count: 2 },
+    ];
+
+    try {
+      let target = document.getElementById('canvas-geometry');
+      let pid = 1;
+
+      for (let p of props) {
+        p.name = `--prop-${++pid}`;
+
+        CSS.registerProperty({
+          name: p.name,
+          syntax: p.syntax,
+          initialValue: p.initialValue,
+          inherits: (typeof p.inherits !== 'undefined') ? p.inherits : false
+        });
+
+        if (typeof p.value !== 'undefined')
+          target.style.setProperty(p.name, p.value);
+        if (typeof p.count === 'undefined')
+          p.count = 1;
+
+        let getValue = p => (typeof p.value !== 'undefined') ? p.value : p.initialValue;
+        let serialize = v => v.constructor.name + '=' + v.toString();
+
+        let parse = function (p) {
+          if (p.count == 1)
+            return [CSSStyleValue.parse(p.name, getValue(p))];
+          return CSSStyleValue.parseAll(p.name, getValue(p));
+        };
+
+        // Generate expected value. We assume that CSSStyleValue.parse/All
+        // returns the correct CSSStyleValue subclass and value.
+        p.expected = parse(p).map(serialize);
+      }
+
+      // Adding '?debug' to the URL will cause this test to emit
+      // test results to console.log.
+      let debugMode = document.location.href.endsWith('?debug');
+      let code = [
+        `const props = ${JSON.stringify(props)};`,
+        `const debugLog = ${debugMode ? 'console.log' : 'function(){}'};`,
+        document.getElementById('code').textContent
+      ].join('\n');
+
+      importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, code);
+    } catch(e) {
+      document.body.textContent = e;
+      takeScreenshot();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<title>legend align does not map to text-align</title>
+<!-- See discussion in https://bugzilla.mozilla.org/show_bug.cgi?id=1488228 -->
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<style>
+ legend { width: 13em }
+</style>
+<fieldset><legend>foo bar abcdefghijklmnopqrstuvwxyz</legend></fieldset>
+<fieldset><legend align=left>foo bar abcdefghijklmnopqrstuvwxyz</legend></fieldset>
+<fieldset><legend align=center>foo bar abcdefghijklmnopqrstuvwxyz</legend></fieldset>
+<fieldset><legend align=right>foo bar abcdefghijklmnopqrstuvwxyz</legend></fieldset>
+<fieldset><legend align=justify>foo bar abcdefghijklmnopqrstuvwxyz</legend></fieldset>
+<script>
+function test_align(selectorTest, expectedAlign) {
+  const testElm = document.querySelector(selectorTest);
+  test(() => {
+    assert_equals(getComputedStyle(testElm).textAlign, expectedAlign);
+  }, selectorTest);
+}
+
+test_align('legend', 'start');
+
+for (const val of ['left', 'center', 'right', 'justify']) {
+  test_align(`legend[align=${val}]`, 'start');
+}
+</script>

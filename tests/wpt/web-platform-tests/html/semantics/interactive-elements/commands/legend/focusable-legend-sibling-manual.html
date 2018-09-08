@@ -1,0 +1,17 @@
+<!doctype html>
+<title>Focusable legend sibling</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=../common/accesskey.js></script>
+<p>Press the access key combination for "a". <kbd></kbd></p>
+<fieldset>
+ <legend accesskey=a>first legend</legend>
+ <legend tabindex=0 onfocus="fail('sibling legend was focused')">second legend</legend>
+</fieldset>
+<script>
+ onkeyup = e => {
+   if (e.keyCode === 65) {
+     pass();
+   }
+ }
+</script>

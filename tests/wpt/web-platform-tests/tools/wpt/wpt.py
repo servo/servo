@@ -101,9 +101,6 @@ def main(prog=None, argv=None):
 
     main_args, command_args = parse_args(argv, commands)
 
-    if not(len(argv) and argv[0] in commands):
-        sys.exit(1)
-
     command = main_args.command
     props = commands[command]
     venv = None

@@ -96,8 +96,12 @@ class LogHandler(reader.LogHandler):
         duration = data["time"] - test.pop("start_time")
         test["longest_duration"][data["status"]] = max(
             duration, test["longest_duration"][data["status"]])
-        # test_timeout is in seconds; convert it to ms.
-        test["timeout"] = data["extra"]["test_timeout"] * 1000
+        try:
+            # test_timeout is in seconds; convert it to ms.
+            test["timeout"] = data["extra"]["test_timeout"] * 1000
+        except KeyError:
+            # If a test is skipped, it won't have extra info.
+            pass
 
 
 def is_inconsistent(results_dict, iterations):
@@ -118,6 +122,8 @@ def find_slow_status(test):
         A result status produced by a run that almost times out; None, if no
         runs almost time out.
     """
+    if "timeout" not in test:
+        return None
     threshold = test["timeout"] * FLAKY_THRESHOLD
     for status in ['PASS', 'FAIL', 'OK', 'ERROR']:
         if (status in test["longest_duration"] and
