@@ -4107,7 +4107,7 @@ fn rgba8_image_to_tex_image_data(
 
         (TexFormat::Alpha, TexDataType::Float) => {
             for rgba8 in pixels.chunks_mut(4) {
-                let p = rgba8[0] as f32;
+                let p = rgba8[3] as f32;
                 NativeEndian::write_f32(rgba8, p);
             }
             pixels
