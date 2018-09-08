@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::canvas::{byte_swap, multiply_u8_pixel};
 use canvas_traits::webgl::{DOMToTextureCommand, Parameter};
 use canvas_traits::webgl::{TexParameter, WebGLCommand, WebGLContextShareMode, WebGLError};
@@ -825,67 +825,49 @@ impl WebGLRenderingContext {
 
     /// Performs premultiplication of the pixels if
     /// UNPACK_PREMULTIPLY_ALPHA_WEBGL is currently enabled.
-    fn premultiply_pixels(&self,
-                          format: TexFormat,
-                          data_type: TexDataType,
-                          pixels: Vec<u8>) -> Vec<u8> {
+    fn premultiply_pixels(&self, format: TexFormat, data_type: TexDataType, pixels: &mut [u8]) {
         if !self.texture_unpacking_settings.get().contains(TextureUnpacking::PREMULTIPLY_ALPHA) {
-            return pixels;
+            return;
         }
 
         match (format, data_type) {
             (TexFormat::RGBA, TexDataType::UnsignedByte) => {
-                let mut premul = Vec::<u8>::with_capacity(pixels.len());
-                for rgba in pixels.chunks(4) {
-                    premul.push(multiply_u8_pixel(rgba[0], rgba[3]));
-                    premul.push(multiply_u8_pixel(rgba[1], rgba[3]));
-                    premul.push(multiply_u8_pixel(rgba[2], rgba[3]));
-                    premul.push(rgba[3]);
+                for rgba in pixels.chunks_mut(4) {
+                    rgba[0] = multiply_u8_pixel(rgba[0], rgba[3]);
+                    rgba[1] = multiply_u8_pixel(rgba[1], rgba[3]);
+                    rgba[2] = multiply_u8_pixel(rgba[2], rgba[3]);
                 }
-                premul
-            }
+            },
             (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
-                let mut premul = Vec::<u8>::with_capacity(pixels.len());
-                for la in pixels.chunks(2) {
-                    premul.push(multiply_u8_pixel(la[0], la[1]));
-                    premul.push(la[1]);
+                for la in pixels.chunks_mut(2) {
+                    la[0] = multiply_u8_pixel(la[0], la[1]);
                 }
-                premul
-            }
-
+            },
             (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
-                let mut premul = Vec::<u8>::with_capacity(pixels.len());
-                for mut rgba in pixels.chunks(2) {
-                    let pix = rgba.read_u16::<NativeEndian>().unwrap();
-                    if pix & (1 << 15) != 0 {
-                        premul.write_u16::<NativeEndian>(pix).unwrap();
-                    } else {
-                        premul.write_u16::<NativeEndian>(0).unwrap();
-                    }
+                for rgba in pixels.chunks_mut(2) {
+                    let pix = NativeEndian::read_u16(rgba);
+                    NativeEndian::write_u16(rgba, if pix & (1 << 15) != 0 { pix } else { 0 });
                 }
-                premul
-            }
-
+            },
             (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
-                let mut premul = Vec::<u8>::with_capacity(pixels.len());
-                for mut rgba in pixels.chunks(2) {
-                    let pix = rgba.read_u16::<NativeEndian>().unwrap();
+                for rgba in pixels.chunks_mut(2) {
+                    let pix = NativeEndian::read_u16(rgba);
                     let extend_to_8_bits = |val| { (val | val << 4) as u8 };
                     let r = extend_to_8_bits(pix & 0x000f);
                     let g = extend_to_8_bits((pix & 0x00f0) >> 4);
                     let b = extend_to_8_bits((pix & 0x0f00) >> 8);
                     let a = extend_to_8_bits((pix & 0xf000) >> 12);
-
-                    premul.write_u16::<NativeEndian>((multiply_u8_pixel(r, a) & 0xf0) as u16 >> 4 |
-                                                     (multiply_u8_pixel(g, a) & 0xf0) as u16 |
-                                                     ((multiply_u8_pixel(b, a) & 0xf0) as u16) << 4 |
-                                                     pix & 0xf000).unwrap();
+                    NativeEndian::write_u16(
+                        rgba,
+                        (multiply_u8_pixel(r, a) & 0xf0) as u16 >> 4 |
+                        (multiply_u8_pixel(g, a) & 0xf0) as u16 |
+                        ((multiply_u8_pixel(b, a) & 0xf0) as u16) << 4 |
+                        pix & 0xf000,
+                    );
                 }
-                premul
-            }
-
+            },
             // Other formats don't have alpha, so return their data untouched.
-            _ => pixels
+            _ => {},
         }
     }
 
@@ -917,9 +899,9 @@ impl WebGLRenderingContext {
         if !source_premultiplied && dest_premultiply {
             if source_from_image_or_canvas {
                 // When the pixels come from image or canvas or imagedata, use RGBA8 format
-                pixels = self.premultiply_pixels(TexFormat::RGBA, TexDataType::UnsignedByte, pixels);
+                self.premultiply_pixels(TexFormat::RGBA, TexDataType::UnsignedByte, &mut pixels);
             } else {
-                pixels = self.premultiply_pixels(internal_format, data_type, pixels);
+                self.premultiply_pixels(internal_format, data_type, &mut pixels);
             }
         } else if source_premultiplied && !dest_premultiply {
             pixels = self.remove_premultiplied_alpha(pixels);
