@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use mime::{self, Name};
+use mime::{self, Mime};
 use net_traits::LoadContext;
-use std::borrow::ToOwned;
 
 pub struct MimeClassifier {
     image_classifier: GroupedClassifier,
@@ -49,8 +48,6 @@ pub enum NoSniffFlag {
     Off
 }
 
-pub type MimeType<'a> = (Name<'a>, String);
-
 
 impl MimeClassifier {
     //Performs MIME Type Sniffing Algorithm (sections 7 and 8)
@@ -58,25 +55,21 @@ impl MimeClassifier {
                     context: LoadContext,
                     no_sniff_flag: NoSniffFlag,
                     apache_bug_flag: ApacheBugFlag,
-                    supplied_type: &Option<MimeType<'a>>,
-                    data: &'a [u8]) -> MimeType<'a> {
-        let supplied_type_or_octet_stream = supplied_type.clone()
-                                                         .unwrap_or((mime::APPLICATION,
-                                                                     "octet-stream".to_owned()));
+                    supplied_type: &Option<Mime>,
+                    data: &'a [u8]) -> Mime {
+        let supplied_type_or_octet_stream = supplied_type.clone().unwrap_or(mime::APPLICATION_OCTET_STREAM);
         match context {
             LoadContext::Browsing => match *supplied_type {
                 None => self.sniff_unknown_type(no_sniff_flag, data),
                 Some(ref supplied_type) => {
-                    let &(ref media_type, ref media_subtype) = supplied_type;
-                    if MimeClassifier::is_explicit_unknown(media_type, media_subtype) {
+                    if MimeClassifier::is_explicit_unknown(supplied_type) {
                         self.sniff_unknown_type(no_sniff_flag, data)
                     } else {
                         match no_sniff_flag {
                             NoSniffFlag::On => supplied_type.clone(),
                             NoSniffFlag::Off => match apache_bug_flag {
                                 ApacheBugFlag::On => self.sniff_text_or_data(data),
-                                ApacheBugFlag::Off => match MimeClassifier::get_media_type(media_type,
-                                                                                           media_subtype) {
+                                ApacheBugFlag::Off => match MimeClassifier::get_media_type(supplied_type) {
                                     Some(MediaType::Html) => self.feeds_classifier.classify(data),
                                     Some(MediaType::Image) => self.image_classifier.classify(data),
                                     Some(MediaType::AudioVideo) => self.audio_video_classifier.classify(data),
@@ -107,7 +100,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => (mime::APPLICATION, "octet-stream".to_owned()),
+                    None => mime::APPLICATION_OCTET_STREAM,
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -117,7 +110,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => (mime::TEXT, "css".to_owned()),
+                    None => mime::TEXT_CSS,
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -127,7 +120,7 @@ impl MimeClassifier {
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
                 match *supplied_type {
-                    None => (mime::TEXT, "javascript".to_owned()),
+                    None => mime::TEXT_JAVASCRIPT,
                     _ => supplied_type_or_octet_stream,
                 }
             },
@@ -143,14 +136,14 @@ impl MimeClassifier {
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                (mime::TEXT, "vtt".to_owned())
+                "text/vtt".parse().unwrap()
             },
             LoadContext::CacheManifest => {
                 // 8.9 Sniffing in a cache manifest context
                 //
                 // This section was *not* finalized in the specs at the time
                 // of this implementation.
-                (mime::TEXT, "cache-manifest".to_owned())
+                "text/cache-manifest".parse().unwrap()
             },
         }
     }
@@ -181,7 +174,7 @@ impl MimeClassifier {
     }
 
     //some sort of iterator over the classifiers might be better?
-    fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> MimeType {
+    fn sniff_unknown_type(&self, no_sniff_flag: NoSniffFlag, data: &[u8]) -> Mime {
         let should_sniff_scriptable = no_sniff_flag == NoSniffFlag::Off;
         let sniffed = if should_sniff_scriptable {
             self.scriptable_classifier.classify(data)
@@ -197,72 +190,59 @@ impl MimeClassifier {
             .expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
-    fn sniff_text_or_data<'a>(&'a self, data: &'a [u8]) -> MimeType<'a> {
+    fn sniff_text_or_data<'a>(&'a self, data: &'a [u8]) -> Mime {
         self.binary_or_plaintext.classify(data).expect("BinaryOrPlaintextClassifier always succeeds")
     }
 
-    fn is_xml(tp: &Name, sub_tp: &str) -> bool {
-        sub_tp.ends_with("+xml") ||
-        match (tp, sub_tp) {
-            (&mime::APPLICATION, "xml") | (&mime::TEXT, "xml") => true,
-            _ => false
-        }
+    fn is_xml(mt: &Mime) -> bool {
+        mt.suffix() == Some(mime::XML) ||
+        mt.type_() == mime::APPLICATION && mt.subtype() == mime::XML
     }
 
-    fn is_html(tp: &Name, sub_tp: &str) -> bool {
-        *tp == mime::TEXT && sub_tp == "html"
+    fn is_html(mt: &Mime) -> bool {
+        mt.type_() == mime::TEXT && mt.subtype() == mime::HTML
     }
 
-    fn is_image(tp: &Name) -> bool {
-        *tp == mime::IMAGE
+    fn is_image(mt: &Mime) -> bool {
+        mt.type_() == mime::IMAGE
     }
 
-    fn is_audio_video(tp: &Name, sub_tp: &str) -> bool {
-        *tp == mime::AUDIO ||
-        *tp == mime::VIDEO ||
-        (*tp == mime::APPLICATION && sub_tp == "ogg")
+    fn is_audio_video(mt: &Mime) -> bool {
+        mt.type_() == mime::AUDIO ||
+        mt.type_() == mime::VIDEO ||
+        mt.type_() == mime::APPLICATION && mt.subtype() == mime::OGG
     }
 
-    fn is_explicit_unknown(tp: &Name, sub_tp: &str) -> bool {
-        if tp.as_str() == "unknown" && sub_tp == "unknown" {
-            return true
-        }
-        match (tp, sub_tp) {
-            (&mime::APPLICATION, "unknown") |
-                (&mime::STAR, "*") => true,
-            _ => false
-        }
+    fn is_explicit_unknown(mt: &Mime) -> bool {
+        mt.type_().as_str() == "unknown" && mt.subtype().as_str() == "unknown" ||
+        mt.type_() == mime::APPLICATION && mt.subtype().as_str() == "unknown" ||
+        mt.type_() == mime::STAR && mt.subtype() == mime::STAR
     }
 
-    fn get_media_type(media_type: &Name,
-                      media_subtype: &str) -> Option<MediaType> {
-        if MimeClassifier::is_xml(media_type, media_subtype) {
+    fn get_media_type(mime: &Mime) -> Option<MediaType> {
+        if MimeClassifier::is_xml(&mime) {
             Some(MediaType::Xml)
-        } else if MimeClassifier::is_html(media_type, media_subtype) {
+        } else if MimeClassifier::is_html(&mime) {
            Some(MediaType::Html)
-        } else if MimeClassifier::is_image(media_type) {
+        } else if MimeClassifier::is_image(&mime) {
             Some(MediaType::Image)
-        } else if MimeClassifier::is_audio_video(media_type, media_subtype) {
+        } else if MimeClassifier::is_audio_video(&mime) {
             Some(MediaType::AudioVideo)
         } else {
             None
         }
     }
 
-    fn maybe_get_media_type<'a>(supplied_type: &'a Option<MimeType<'a>>) -> Option<MediaType> {
-        supplied_type.as_ref().and_then(|&(ref media_type, ref media_subtype)| {
-            MimeClassifier::get_media_type(media_type, media_subtype)
+    fn maybe_get_media_type(supplied_type: &Option<Mime>) -> Option<MediaType> {
+        supplied_type.as_ref().and_then(|ref mime| {
+            MimeClassifier::get_media_type(mime)
         })
     }
 }
 
-pub fn as_string_option<'a>(tup: Option<(Name<'a>, &'static str)>) -> Option<MimeType<'a>> {
-    tup.map(|(a, b)| (a.to_owned(), b.to_owned()))
-}
-
 //Interface used for composite types
 trait MIMEChecker {
-    fn classify(&self, data: &[u8]) -> Option<MimeType>;
+    fn classify(&self, data: &[u8]) -> Option<Mime>;
     /// Validate the MIME checker configuration
     fn validate(&self) -> Result<(), String>;
 }
@@ -303,7 +283,7 @@ struct ByteMatcher {
     pattern: &'static [u8],
     mask: &'static [u8],
     leading_ignore: &'static [u8],
-    content_type: (Name<'static>, &'static str)
+    content_type: Mime,
 }
 
 impl ByteMatcher {
@@ -328,31 +308,31 @@ impl ByteMatcher {
 }
 
 impl MIMEChecker for ByteMatcher {
-    fn classify(&self, data: &[u8]) -> Option<MimeType> {
+    fn classify(&self, data: &[u8]) -> Option<Mime> {
         self.matches(data).map(|_| {
-            (self.content_type.0.to_owned(), self.content_type.1.to_owned())
+            self.content_type.clone()
         })
     }
 
     fn validate(&self) -> Result<(), String> {
         if self.pattern.len() == 0 {
             return Err(format!(
-                "Zero length pattern for {}/{}",
-                self.content_type.0, self.content_type.1
+                "Zero length pattern for {:?}",
+                self.content_type
                 ))
         }
         if self.pattern.len() != self.mask.len() {
             return Err(format!(
-                "Unequal pattern and mask length for {}/{}",
-                self.content_type.0, self.content_type.1
+                "Unequal pattern and mask length for {:?}",
+                self.content_type
             ))
         }
         if self.pattern.iter().zip(self.mask.iter()).any(
             |(&pattern, &mask)| pattern & mask != pattern
         ) {
             return Err(format!(
-                "Pattern not pre-masked for {}/{}",
-                self.content_type.0, self.content_type.1
+                "Pattern not pre-masked for {:?}",
+                self.content_type
             ))
         }
         Ok(())
@@ -364,11 +344,10 @@ struct TagTerminatedByteMatcher {
 }
 
 impl MIMEChecker for TagTerminatedByteMatcher {
-    fn classify(&self, data: &[u8]) -> Option<MimeType> {
+    fn classify(&self, data: &[u8]) -> Option<Mime> {
         self.matcher.matches(data).and_then(|j|
             if j < data.len() && (data[j] == b' ' || data[j] == b'>') {
-                Some((self.matcher.content_type.0.to_owned(),
-                      self.matcher.content_type.1.to_owned()))
+                Some(self.matcher.content_type.clone())
             } else {
                 None
             })
@@ -405,9 +384,9 @@ impl Mp4Matcher {
 
 }
 impl MIMEChecker for Mp4Matcher {
-    fn classify(&self, data: &[u8]) -> Option<MimeType> {
+    fn classify(&self, data: &[u8]) -> Option<Mime> {
         if self.matches(data) {
-            Some((mime::VIDEO, "mp4".to_owned()))
+            Some("video/mp4".parse().unwrap())
         } else {
             None
         }
@@ -421,25 +400,25 @@ impl MIMEChecker for Mp4Matcher {
 struct BinaryOrPlaintextClassifier;
 
 impl BinaryOrPlaintextClassifier {
-    fn classify_impl(&self, data: &[u8]) -> (Name, &'static str) {
+    fn classify_impl(&self, data: &[u8]) -> Mime {
         if data.starts_with(&[0xFFu8, 0xFEu8]) ||
            data.starts_with(&[0xFEu8, 0xFFu8]) ||
            data.starts_with(&[0xEFu8, 0xBBu8, 0xBFu8])
         {
-            (mime::TEXT, "plain")
+            mime::TEXT_PLAIN
         } else if data.iter().any(|&x| x <= 0x08u8 ||
                                        x == 0x0Bu8 ||
                                       (x >= 0x0Eu8 && x <= 0x1Au8) ||
                                       (x >= 0x1Cu8 && x <= 0x1Fu8)) {
-            (mime::APPLICATION, "octet-stream")
+            mime::APPLICATION_OCTET_STREAM
         } else {
-            (mime::TEXT, "plain")
+            mime::TEXT_PLAIN
         }
     }
 }
 impl MIMEChecker for BinaryOrPlaintextClassifier {
-    fn classify(&self, data: &[u8]) -> Option<MimeType> {
-        as_string_option(Some(self.classify_impl(data)))
+    fn classify(&self, data: &[u8]) -> Option<Mime> {
+        Some(self.classify_impl(data))
     }
 
     fn validate(&self) -> Result<(), String> {
@@ -538,7 +517,7 @@ impl GroupedClassifier {
     }
 }
 impl MIMEChecker for GroupedClassifier {
-    fn classify(&self, data: &[u8]) -> Option<MimeType> {
+    fn classify(&self, data: &[u8]) -> Option<Mime> {
         self.byte_matchers
             .iter()
             .filter_map(|matcher| matcher.classify(data))
@@ -591,7 +570,7 @@ where T: Iterator<Item=&'a u8> + Clone {
 struct FeedsClassifier;
 impl FeedsClassifier {
     // Implements sniffing for mislabeled feeds (https://mimesniff.spec.whatwg.org/#sniffing-a-mislabeled-feed)
-    fn classify_impl(&self, data: &[u8]) -> Option<(Name, &'static str)> {
+    fn classify_impl(&self, data: &[u8]) -> Option<Mime> {
         // Step 4: can not be feed unless length is > 3
         if data.len() < 3 {
             return None;
@@ -622,11 +601,11 @@ impl FeedsClassifier {
 
             // Step 5.2.5
             if matcher.matches(b"rss") {
-                return Some((mime::APPLICATION, "rss+xml"));
+                return Some("application/rss+xml".parse().unwrap());
             }
             // Step 5.2.6
             if matcher.matches(b"feed") {
-                return Some((mime::APPLICATION, "atom+xml"));
+                return Some("application/atom+xml".parse().unwrap());
             }
             // Step 5.2.7
             if matcher.matches(b"rdf:RDF") {
@@ -637,7 +616,7 @@ impl FeedsClassifier {
                        .chain(|| eats_until(&mut matcher,
                                             b"http://www.w3.org/1999/02/22-rdf-syntax-ns#",
                                             b"http://purl.org/rss/1.0/")) {
-                        Match::StartAndEnd => return Some((mime::APPLICATION, "rss+xml")),
+                        Match::StartAndEnd => return Some("application/rss+xml".parse().unwrap()),
                         Match::DidNotMatch => {},
                         Match::Start       => return None
                     }
@@ -649,8 +628,8 @@ impl FeedsClassifier {
 }
 
 impl MIMEChecker for FeedsClassifier {
-    fn classify(&self, data: &[u8]) -> Option<MimeType> {
-       as_string_option(self.classify_impl(data))
+    fn classify(&self, data: &[u8]) -> Option<Mime> {
+       self.classify_impl(data)
     }
 
     fn validate(&self) -> Result<(), String> {
@@ -666,7 +645,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x01\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "x-icon"),
+            content_type: "image/x-icon".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -675,7 +654,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x00\x02\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "x-icon"),
+            content_type: "image/x-icon".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -684,7 +663,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"BM",
             mask: b"\xFF\xFF",
-            content_type: (mime::IMAGE, "bmp"),
+            content_type: mime::IMAGE_BMP,
             leading_ignore: &[]
         }
     }
@@ -693,7 +672,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"GIF89a",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "gif"),
+            content_type: mime::IMAGE_GIF,
             leading_ignore: &[]
         }
     }
@@ -702,7 +681,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"GIF87a",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "gif"),
+            content_type: mime::IMAGE_GIF,
             leading_ignore: &[]
         }
     }
@@ -711,7 +690,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WEBPVP",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "webp"),
+            content_type: "image/webp".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -721,7 +700,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x89PNG\r\n\x1A\n",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "png"),
+            content_type: mime::IMAGE_PNG,
             leading_ignore: &[]
         }
     }
@@ -730,7 +709,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFF\xD8\xFF",
             mask: b"\xFF\xFF\xFF",
-            content_type: (mime::IMAGE, "jpeg"),
+            content_type: mime::IMAGE_JPEG,
             leading_ignore: &[]
         }
     }
@@ -739,7 +718,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x1A\x45\xDF\xA3",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::VIDEO, "webm"),
+            content_type: "video/webm".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -748,7 +727,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b".snd",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::AUDIO, "basic"),
+            content_type: "audio/basic".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -757,7 +736,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern:  b"FORM\x00\x00\x00\x00AIFF",
             mask:  b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
-            content_type: (mime::AUDIO, "aiff"),
+            content_type: "audio/aiff".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -766,7 +745,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"ID3",
             mask: b"\xFF\xFF\xFF",
-            content_type: (mime::AUDIO, "mpeg"),
+            content_type: "audio/mpeg".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -775,7 +754,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"OggS\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "ogg"),
+            content_type: "application/ogg".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -785,7 +764,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"MThd\x00\x00\x00\x06",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::AUDIO, "midi"),
+            content_type: "audio/midi".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -794,7 +773,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00AVI ",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
-            content_type: (mime::VIDEO, "avi"),
+            content_type: "video/avi".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -803,7 +782,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"RIFF\x00\x00\x00\x00WAVE",
             mask: b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
-            content_type: (mime::AUDIO, "wave"),
+            content_type: "audio/wave".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -813,7 +792,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<!DOCTYPE HTML",
                 mask: b"\xFF\xFF\xDF\xDF\xDF\xDF\xDF\xDF\xDF\xFF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -825,7 +804,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<HTML",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -837,7 +816,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<HEAD",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -849,7 +828,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<SCRIPT",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -861,7 +840,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<IFRAME",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -873,7 +852,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<H1",
                 mask: b"\xFF\xDF\xFF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -885,7 +864,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<DIV",
                 mask: b"\xFF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -897,7 +876,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<FONT",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -909,7 +888,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
             pattern: b"<TABLE",
             mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
-            content_type: (mime::TEXT, "html"),
+            content_type: mime::TEXT_HTML,
             leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -921,7 +900,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<A",
                 mask: b"\xFF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -933,7 +912,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<STYLE",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -945,7 +924,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<TITLE",
                 mask: b"\xFF\xDF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -957,7 +936,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<B",
                 mask: b"\xFF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -969,7 +948,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<BODY",
                 mask: b"\xFF\xDF\xDF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -981,7 +960,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<BR",
                 mask: b"\xFF\xDF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -993,7 +972,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<P",
                 mask: b"\xFF\xDF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1005,7 +984,7 @@ impl ByteMatcher {
             matcher: ByteMatcher {
                 pattern: b"<!--",
                 mask: b"\xFF\xFF\xFF\xFF",
-                content_type: (mime::TEXT, "html"),
+                content_type: mime::TEXT_HTML,
                 leading_ignore: b"\t\n\x0C\r "
             }
         }
@@ -1016,7 +995,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"<?xml",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::TEXT, "xml"),
+            content_type: mime::TEXT_XML,
             leading_ignore: b"\t\n\x0C\r "
         }
     }
@@ -1025,7 +1004,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"%PDF-",
             mask: b"\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "pdf"),
+            content_type: mime::APPLICATION_PDF,
             leading_ignore: &[]
         }
     }
@@ -1038,7 +1017,7 @@ impl ByteMatcher {
             mask: b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
                     \x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\
                     \x00\x00\xFF\xFF",
-            content_type: (mime::APPLICATION, "vnd.ms-fontobject"),
+            content_type: "application/vnd.ms-fontobject".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1047,7 +1026,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x00\x01\x00\x00",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "font-sfnt"),
+            content_type: "application/font-sfnt".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1056,7 +1035,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"OTTO",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "font-sfnt"),
+            content_type: "application/font-sfnt".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1065,7 +1044,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"ttcf",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "font-sfnt"),
+            content_type: "application/font-sfnt".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1074,7 +1053,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"wOFF",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "font-woff"),
+            content_type: "application/font-woff".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1083,7 +1062,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\x1F\x8B\x08",
             mask: b"\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "x-gzip"),
+            content_type: "application/x-gzip".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1092,7 +1071,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"PK\x03\x04",
             mask: b"\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "zip"),
+            content_type: "application/zip".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1101,7 +1080,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"Rar \x1A\x07\x00",
             mask: b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "x-rar-compressed"),
+            content_type: "application/x-rar-compressed".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1110,7 +1089,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"%!PS-Adobe-",
             mask:  b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
-            content_type: (mime::APPLICATION, "postscript"),
+            content_type: "application/postscript".parse().unwrap(),
             leading_ignore: &[]
         }
     }
@@ -1119,7 +1098,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFE\xFF\x00\x00",
             mask: b"\xFF\xFF\x00\x00",
-            content_type: (mime::TEXT, "plain"),
+            content_type: mime::TEXT_PLAIN,
             leading_ignore: &[]
         }
     }
@@ -1128,7 +1107,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xFF\xFE\x00\x00",
             mask: b"\xFF\xFF\x00\x00",
-            content_type: (mime::TEXT, "plain"),
+            content_type: mime::TEXT_PLAIN,
             leading_ignore: &[]
         }
     }
@@ -1137,7 +1116,7 @@ impl ByteMatcher {
         ByteMatcher {
             pattern: b"\xEF\xBB\xBF\x00",
             mask: b"\xFF\xFF\xFF\x00",
-            content_type: (mime::TEXT, "plain"),
+            content_type: mime::TEXT_PLAIN,
             leading_ignore: &[]
         }
     }
