@@ -4025,65 +4025,78 @@ fn rgba8_image_to_tex_image_data(
             }
             rgb8
         },
-
         (TexFormat::Alpha, TexDataType::UnsignedByte) => {
-            let mut alpha = Vec::<u8>::with_capacity(pixel_count);
-            for rgba8 in pixels.chunks(4) {
-                alpha.push(rgba8[3]);
+            for i in 0..pixel_count {
+                let p = pixels[i * 4 + 3];
+                pixels[i] = p;
             }
-            alpha
+            pixels.truncate(pixel_count);
+            pixels
         },
-
         (TexFormat::Luminance, TexDataType::UnsignedByte) => {
-            let mut lum = Vec::<u8>::with_capacity(pixel_count);
-            for rgba8 in pixels.chunks(4) {
-                lum.push(luminance(rgba8[0], rgba8[1], rgba8[2]));
+            for i in 0..pixel_count {
+                let p = {
+                    let rgb = &pixels[i * 4..i * 4 + 3];
+                    luminance(rgb[0], rgb[1], rgb[2])
+                };
+                pixels[i] = p;
             }
-            lum
+            pixels.truncate(pixel_count);
+            pixels
         },
-
         (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
-            let mut data = Vec::<u8>::with_capacity(pixel_count * 2);
-            for rgba8 in pixels.chunks(4) {
-                data.push(luminance(rgba8[0], rgba8[1], rgba8[2]));
-                data.push(rgba8[3]);
+            for i in 0..pixel_count {
+                let (lum, a) = {
+                    let rgba = &pixels[i * 4..i * 4 + 4];
+                    (luminance(rgba[0], rgba[1], rgba[2]), rgba[3])
+                };
+                pixels[i * 2] = lum;
+                pixels[i * 2 + 1] = a;
             }
-            data
+            pixels.truncate(pixel_count * 2);
+            pixels
         },
-
         (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
-            let mut rgba4 = Vec::<u8>::with_capacity(pixel_count * 2);
-            for rgba8 in pixels.chunks(4) {
-                rgba4.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf0) << 8 |
-                                                (rgba8[1] as u16 & 0xf0) << 4 |
-                                                (rgba8[2] as u16 & 0xf0) |
-                                                (rgba8[3] as u16 & 0xf0) >> 4).unwrap();
+            for i in 0..pixel_count {
+                let p = {
+                    let rgba = &pixels[i * 4..i * 4 + 4];
+                    (rgba[0] as u16 & 0xf0) << 8 |
+                    (rgba[1] as u16 & 0xf0) << 4 |
+                    (rgba[2] as u16 & 0xf0) |
+                    (rgba[3] as u16 & 0xf0) >> 4
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
-            rgba4
-        }
-
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
         (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
-            let mut rgba5551 = Vec::<u8>::with_capacity(pixel_count * 2);
-            for rgba8 in pixels.chunks(4) {
-                rgba5551.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
-                                                    (rgba8[1] as u16 & 0xf8) << 3 |
-                                                    (rgba8[2] as u16 & 0xf8) >> 2 |
-                                                    (rgba8[3] as u16) >> 7).unwrap();
+            for i in 0..pixel_count {
+                let p = {
+                    let rgba = &pixels[i * 4..i * 4 + 4];
+                    (rgba[0] as u16 & 0xf8) << 8 |
+                    (rgba[1] as u16 & 0xf8) << 3 |
+                    (rgba[2] as u16 & 0xf8) >> 2 |
+                    (rgba[3] as u16) >> 7
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
-            rgba5551
-        }
-
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
         (TexFormat::RGB, TexDataType::UnsignedShort565) => {
-            let mut rgb565 = Vec::<u8>::with_capacity(pixel_count * 2);
-            for rgba8 in pixels.chunks(4) {
-                rgb565.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
-                                                    (rgba8[1] as u16 & 0xfc) << 3 |
-                                                    (rgba8[2] as u16 & 0xf8) >> 3).unwrap();
+            for i in 0..pixel_count {
+                let p = {
+                    let rgb = &pixels[i * 4..i * 4 + 3];
+                    (rgb[0] as u16 & 0xf8) << 8 |
+                    (rgb[1] as u16 & 0xfc) << 3 |
+                    (rgb[2] as u16 & 0xf8) >> 3
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
-            rgb565
-        }
-
-
+            pixels.truncate(pixel_count * 2);
+            pixels
+        },
         (TexFormat::RGBA, TexDataType::Float) => {
             let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
             for rgba8 in pixels.chunks(4) {
@@ -4151,24 +4164,25 @@ fn rgba8_image_to_tex_image_data(
             }
             rgbf16
         },
-
         (TexFormat::Alpha, TexDataType::HalfFloat) => {
-            let mut alpha = Vec::<u8>::with_capacity(pixel_count * 2);
-            for rgba8 in pixels.chunks(4) {
-                alpha.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+            for i in 0..pixel_count {
+                let p = f16::from_f32(pixels[i * 4 + 3] as f32).as_bits();
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
-            alpha
+            pixels.truncate(pixel_count * 2);
+            pixels
         },
-
         (TexFormat::Luminance, TexDataType::HalfFloat) => {
-            let mut lum = Vec::<u8>::with_capacity(pixel_count * 2);
-            for rgba8 in pixels.chunks(4) {
-                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
-                lum.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
+            for i in 0..pixel_count {
+                let p = {
+                    let rgb = &pixels[i * 4..i * 4 + 3];
+                    f16::from_f32(luminance(rgb[0], rgb[1], rgb[2]) as f32).as_bits()
+                };
+                NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
-            lum
+            pixels.truncate(pixel_count * 2);
+            pixels
         },
-
         (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
             let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
