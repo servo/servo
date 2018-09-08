@@ -3450,7 +3450,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         border: i32,
         format: u32,
         data_type: u32,
-        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
@@ -3488,7 +3488,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // initialized to 0 is passed.
         let buff = match *pixels {
             None => vec![0u8; expected_byte_length as usize],
-            Some(ref mut data) => data.to_vec(),
+            Some(ref data) => data.to_vec(),
         };
 
         // From the WebGL spec:
