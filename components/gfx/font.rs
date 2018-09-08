@@ -32,9 +32,9 @@ use unicode_script::Script;
 use webrender_api;
 
 macro_rules! ot_tag {
-    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
+    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => {
         (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
-    );
+    };
 }
 
 pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
@@ -87,10 +87,12 @@ trait FontTableTagConversions {
 
 impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
-        let bytes = [(self >> 24) as u8,
-                     (self >> 16) as u8,
-                     (self >>  8) as u8,
-                     (self >>  0) as u8];
+        let bytes = [
+            (self >> 24) as u8,
+            (self >> 16) as u8,
+            (self >> 8) as u8,
+            (self >> 0) as u8,
+        ];
         str::from_utf8(&bytes).unwrap().to_owned()
     }
 }
@@ -101,18 +103,18 @@ pub trait FontTableMethods {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct FontMetrics {
-    pub underline_size:   Au,
+    pub underline_size: Au,
     pub underline_offset: Au,
-    pub strikeout_size:   Au,
+    pub strikeout_size: Au,
     pub strikeout_offset: Au,
-    pub leading:          Au,
-    pub x_height:         Au,
-    pub em_size:          Au,
-    pub ascent:           Au,
-    pub descent:          Au,
-    pub max_advance:      Au,
-    pub average_advance:  Au,
-    pub line_gap:         Au,
+    pub leading: Au,
+    pub x_height: Au,
+    pub em_size: Au,
+    pub ascent: Au,
+    pub descent: Au,
+    pub max_advance: Au,
+    pub average_advance: Au,
+    pub line_gap: Au,
 }
 
 /// `FontDescriptor` describes the parameters of a `Font`. It represents rendering a given font
@@ -149,10 +151,12 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn new(handle: FontHandle,
-               descriptor: FontDescriptor,
-               actual_pt_size: Au,
-               font_key: webrender_api::FontInstanceKey) -> Font {
+    pub fn new(
+        handle: FontHandle,
+        descriptor: FontDescriptor,
+        actual_pt_size: Au,
+        font_key: webrender_api::FontInstanceKey,
+    ) -> Font {
         let metrics = handle.metrics();
 
         Font {
@@ -218,28 +222,39 @@ impl Font {
             text: text.to_owned(),
             options: *options,
         };
-        let result = self.shape_cache.borrow_mut().entry(lookup_key).or_insert_with(|| {
-            let start_time = time::precise_time_ns();
-            let mut glyphs = GlyphStore::new(text.len(),
-                                             options.flags.contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
-                                             options.flags.contains(ShapingFlags::RTL_FLAG));
+        let result = self
+            .shape_cache
+            .borrow_mut()
+            .entry(lookup_key)
+            .or_insert_with(|| {
+                let start_time = time::precise_time_ns();
+                let mut glyphs = GlyphStore::new(
+                    text.len(),
+                    options
+                        .flags
+                        .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
+                    options.flags.contains(ShapingFlags::RTL_FLAG),
+                );
 
-            if self.can_do_fast_shaping(text, options) {
-                debug!("shape_text: Using ASCII fast path.");
-                self.shape_text_fast(text, options, &mut glyphs);
-            } else {
-                debug!("shape_text: Using Harfbuzz.");
-                if shaper.is_none() {
-                    shaper = Some(Shaper::new(this));
+                if self.can_do_fast_shaping(text, options) {
+                    debug!("shape_text: Using ASCII fast path.");
+                    self.shape_text_fast(text, options, &mut glyphs);
+                } else {
+                    debug!("shape_text: Using Harfbuzz.");
+                    if shaper.is_none() {
+                        shaper = Some(Shaper::new(this));
+                    }
+                    shaper
+                        .as_ref()
+                        .unwrap()
+                        .shape_text(text, options, &mut glyphs);
                 }
-                shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
-            }
 
-            let end_time = time::precise_time_ns();
-            TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
-                                                       Ordering::Relaxed);
-            Arc::new(glyphs)
-        }).clone();
+                let end_time = time::precise_time_ns();
+                TEXT_SHAPING_PERFORMANCE_COUNTER
+                    .fetch_add((end_time - start_time) as usize, Ordering::Relaxed);
+                Arc::new(glyphs)
+            }).clone();
         self.shaper = shaper;
         result
     }
@@ -285,12 +300,21 @@ impl Font {
 
     pub fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result = self.handle.table_for_tag(tag);
-        let status = if result.is_some() { "Found" } else { "Didn't find" };
+        let status = if result.is_some() {
+            "Found"
+        } else {
+            "Didn't find"
+        };
 
-        debug!("{} font table[{}] with family={}, face={}",
-               status, tag.tag_to_str(),
-               self.handle.family_name().unwrap_or("unavailable".to_owned()),
-               self.handle.face_name().unwrap_or("unavailable".to_owned()));
+        debug!(
+            "{} font table[{}] with family={}, face={}",
+            status,
+            tag.tag_to_str(),
+            self.handle
+                .family_name()
+                .unwrap_or("unavailable".to_owned()),
+            self.handle.face_name().unwrap_or("unavailable".to_owned())
+        );
 
         result
     }
@@ -308,18 +332,21 @@ impl Font {
         self.glyph_index(codepoint).is_some()
     }
 
-    pub fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
-                           -> FractionalPixel {
+    pub fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
         self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
     pub fn glyph_h_advance(&self, glyph: GlyphId) -> FractionalPixel {
-        *self.glyph_advance_cache.borrow_mut().entry(glyph).or_insert_with(|| {
-            match self.handle.glyph_h_advance(glyph) {
-                Some(adv) => adv,
-                None => 10f64 as FractionalPixel // FIXME: Need fallback strategy
-            }
-        })
+        *self
+            .glyph_advance_cache
+            .borrow_mut()
+            .entry(glyph)
+            .or_insert_with(|| {
+                match self.handle.glyph_h_advance(glyph) {
+                    Some(adv) => adv,
+                    None => 10f64 as FractionalPixel, // FIXME: Need fallback strategy
+                }
+            })
     }
 }
 
@@ -339,10 +366,12 @@ impl FontGroup {
     pub fn new(style: &FontStyleStruct) -> FontGroup {
         let descriptor = FontDescriptor::from(style);
 
-        let families =
-            style.font_family.0.iter()
-                .map(|family| FontGroupFamily::new(descriptor.clone(), &family))
-                .collect();
+        let families = style
+            .font_family
+            .0
+            .iter()
+            .map(|family| FontGroupFamily::new(descriptor.clone(), &family))
+            .collect();
 
         FontGroup {
             descriptor,
@@ -358,25 +387,25 @@ impl FontGroup {
     pub fn find_by_codepoint<S: FontSource>(
         &mut self,
         mut font_context: &mut FontContext<S>,
-        codepoint: char
+        codepoint: char,
     ) -> Option<FontRef> {
         let has_glyph = |font: &FontRef| font.borrow().has_glyph_for(codepoint);
 
         let font = self.find(&mut font_context, |font| has_glyph(font));
         if font.is_some() {
-            return font
+            return font;
         }
 
         if let Some(ref fallback) = self.last_matching_fallback {
             if has_glyph(&fallback) {
-                return self.last_matching_fallback.clone()
+                return self.last_matching_fallback.clone();
             }
         }
 
         let font = self.find_fallback(&mut font_context, Some(codepoint), has_glyph);
         if font.is_some() {
             self.last_matching_fallback = font.clone();
-            return font
+            return font;
         }
 
         self.first(&mut font_context)
@@ -385,7 +414,7 @@ impl FontGroup {
     /// Find the first available font in the group, or the first available fallback font.
     pub fn first<S: FontSource>(
         &mut self,
-        mut font_context: &mut FontContext<S>
+        mut font_context: &mut FontContext<S>,
     ) -> Option<FontRef> {
         self.find(&mut font_context, |_| true)
             .or_else(|| self.find_fallback(&mut font_context, None, |_| true))
@@ -393,16 +422,13 @@ impl FontGroup {
 
     /// Find a font which returns true for `predicate`. This method mutates because we may need to
     /// load new font data in the process of finding a suitable font.
-    fn find<S, P>(
-        &mut self,
-        mut font_context: &mut FontContext<S>,
-        predicate: P,
-    ) -> Option<FontRef>
+    fn find<S, P>(&mut self, mut font_context: &mut FontContext<S>, predicate: P) -> Option<FontRef>
     where
         S: FontSource,
         P: FnMut(&FontRef) -> bool,
     {
-        self.families.iter_mut()
+        self.families
+            .iter_mut()
             .filter_map(|family| family.font(&mut font_context))
             .find(predicate)
     }
@@ -422,15 +448,9 @@ impl FontGroup {
         P: FnMut(&FontRef) -> bool,
     {
         iter::once(FontFamilyDescriptor::default())
-            .chain(
-                fallback_font_families(codepoint).into_iter().map(|family| {
-                     FontFamilyDescriptor::new(
-                         FontFamilyName::from(family),
-                         FontSearchScope::Local,
-                     )
-                })
-            )
-            .filter_map(|family| font_context.font(&self.descriptor, &family))
+            .chain(fallback_font_families(codepoint).into_iter().map(|family| {
+                FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Local)
+            })).filter_map(|family| font_context.font(&self.descriptor, &family))
             .find(predicate)
     }
 }
@@ -448,10 +468,8 @@ struct FontGroupFamily {
 
 impl FontGroupFamily {
     fn new(font_descriptor: FontDescriptor, family: &SingleFontFamily) -> FontGroupFamily {
-        let family_descriptor = FontFamilyDescriptor::new(
-            FontFamilyName::from(family),
-            FontSearchScope::Any
-        );
+        let family_descriptor =
+            FontFamilyDescriptor::new(FontFamilyName::from(family), FontSearchScope::Any);
 
         FontGroupFamily {
             font_descriptor,
@@ -477,17 +495,19 @@ impl FontGroupFamily {
 pub struct RunMetrics {
     // may be negative due to negative width (i.e., kerning of '.' in 'P.T.')
     pub advance_width: Au,
-    pub ascent: Au, // nonzero
+    pub ascent: Au,  // nonzero
     pub descent: Au, // nonzero
     // this bounding box is relative to the left origin baseline.
     // so, bounding_box.position.y = -ascent
-    pub bounding_box: Rect<Au>
+    pub bounding_box: Rect<Au>,
 }
 
 impl RunMetrics {
     pub fn new(advance: Au, ascent: Au, descent: Au) -> RunMetrics {
-        let bounds = Rect::new(Point2D::new(Au(0), -ascent),
-                               Size2D::new(advance, ascent + descent));
+        let bounds = Rect::new(
+            Point2D::new(Au(0), -ascent),
+            Size2D::new(advance, ascent + descent),
+        );
 
         // TODO(Issue #125): support loose and tight bounding boxes; using the
         // ascent+descent and advance is sometimes too generous and
@@ -540,11 +560,13 @@ impl FontFamilyName {
 impl<'a> From<&'a SingleFontFamily> for FontFamilyName {
     fn from(other: &'a SingleFontFamily) -> FontFamilyName {
         match *other {
-            SingleFontFamily::FamilyName(ref family_name) =>
-                FontFamilyName::Specific(family_name.name.clone()),
+            SingleFontFamily::FamilyName(ref family_name) => {
+                FontFamilyName::Specific(family_name.name.clone())
+            },
 
-            SingleFontFamily::Generic(ref generic_name) =>
-                FontFamilyName::Generic(generic_name.clone()),
+            SingleFontFamily::Generic(ref generic_name) => {
+                FontFamilyName::Generic(generic_name.clone())
+            },
         }
     }
 }
