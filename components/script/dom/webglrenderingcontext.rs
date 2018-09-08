@@ -4162,7 +4162,7 @@ fn rgba8_image_to_tex_image_data(
         },
 
         (TexFormat::Luminance, TexDataType::HalfFloat) => {
-            let mut lum = Vec::<u8>::with_capacity(pixel_count * 4);
+            let mut lum = Vec::<u8>::with_capacity(pixel_count * 2);
             for rgba8 in pixels.chunks(4) {
                 let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
                 lum.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
