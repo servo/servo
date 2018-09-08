@@ -4048,7 +4048,7 @@ fn rgba8_image_to_tex_image_data(
             for i in 0..pixel_count {
                 let (lum, a) = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (luminance(rgba[0], rgba[1], rgba[2]), rgba[3])
+                    (rgba[0], rgba[3])
                 };
                 pixels[i * 2] = lum;
                 pixels[i * 2 + 1] = a;
