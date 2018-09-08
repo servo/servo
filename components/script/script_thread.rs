@@ -2268,7 +2268,7 @@ impl ScriptThread {
 
         let is_html_document = match metadata.content_type {
             Some(Serde(ContentType(ref mime))) if mime.type_() == mime::APPLICATION &&
-                mime.subtype().as_str().ends_with("+xml") => IsHTMLDocument::NonHTMLDocument,
+                mime.suffix() == Some(mime::XML) => IsHTMLDocument::NonHTMLDocument,
 
             Some(Serde(ContentType(ref mime))) if
                 (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
