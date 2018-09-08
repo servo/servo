@@ -29,26 +29,13 @@ fn test_transform_compress_none() {
 #[test]
 fn test_transform_discard_newline() {
     let test_strs = [
-        ("  foo bar",
-         "  foo bar"),
-
-        ("foo bar  ",
-         "foo bar  "),
-
-        ("foo\n bar",
-         "foo bar"),
-
-        ("foo \nbar",
-         "foo bar"),
-
-        ("  foo  bar  \nbaz",
-         "  foo  bar  baz"),
-
-        ("foo bar baz",
-         "foo bar baz"),
-
-        ("foobarbaz\n\n",
-         "foobarbaz"),
+        ("  foo bar", "  foo bar"),
+        ("foo bar  ", "foo bar  "),
+        ("foo\n bar", "foo bar"),
+        ("foo \nbar", "foo bar"),
+        ("  foo  bar  \nbaz", "  foo  bar  baz"),
+        ("foo bar baz", "foo bar baz"),
+        ("foobarbaz\n\n", "foobarbaz"),
     ];
 
     let mode = CompressionMode::DiscardNewline;
@@ -62,26 +49,13 @@ fn test_transform_discard_newline() {
 #[test]
 fn test_transform_compress_whitespace() {
     let test_strs = [
-        ("  foo bar",
-         "foo bar"),
-
-        ("foo bar  ",
-         "foo bar "),
-
-        ("foo\n bar",
-         "foo\n bar"),
-
-        ("foo \nbar",
-         "foo \nbar"),
-
-        ("  foo  bar  \nbaz",
-         "foo bar \nbaz"),
-
-        ("foo bar baz",
-         "foo bar baz"),
-
-        ("foobarbaz\n\n",
-         "foobarbaz\n\n"),
+        ("  foo bar", "foo bar"),
+        ("foo bar  ", "foo bar "),
+        ("foo\n bar", "foo\n bar"),
+        ("foo \nbar", "foo \nbar"),
+        ("  foo  bar  \nbaz", "foo bar \nbaz"),
+        ("foo bar baz", "foo bar baz"),
+        ("foobarbaz\n\n", "foobarbaz\n\n"),
     ];
 
     let mode = CompressionMode::CompressWhitespace;
@@ -95,26 +69,13 @@ fn test_transform_compress_whitespace() {
 #[test]
 fn test_transform_compress_whitespace_newline() {
     let test_strs = vec![
-        ("  foo bar",
-         "foo bar"),
-
-        ("foo bar  ",
-         "foo bar "),
-
-        ("foo\n bar",
-         "foo bar"),
-
-        ("foo \nbar",
-         "foo bar"),
-
-        ("  foo  bar  \nbaz",
-         "foo bar baz"),
-
-        ("foo bar baz",
-         "foo bar baz"),
-
-        ("foobarbaz\n\n",
-         "foobarbaz "),
+        ("  foo bar", "foo bar"),
+        ("foo bar  ", "foo bar "),
+        ("foo\n bar", "foo bar"),
+        ("foo \nbar", "foo bar"),
+        ("  foo  bar  \nbaz", "foo bar baz"),
+        ("foo bar baz", "foo bar baz"),
+        ("foobarbaz\n\n", "foobarbaz "),
     ];
 
     let mode = CompressionMode::CompressWhitespaceNewline;
@@ -128,29 +89,14 @@ fn test_transform_compress_whitespace_newline() {
 #[test]
 fn test_transform_compress_whitespace_newline_no_incoming() {
     let test_strs = [
-        ("  foo bar",
-         " foo bar"),
-
-        ("\nfoo bar",
-         " foo bar"),
-
-        ("foo bar  ",
-         "foo bar "),
-
-        ("foo\n bar",
-         "foo bar"),
-
-        ("foo \nbar",
-         "foo bar"),
-
-        ("  foo  bar  \nbaz",
-         " foo bar baz"),
-
-        ("foo bar baz",
-         "foo bar baz"),
-
-        ("foobarbaz\n\n",
-         "foobarbaz "),
+        ("  foo bar", " foo bar"),
+        ("\nfoo bar", " foo bar"),
+        ("foo bar  ", "foo bar "),
+        ("foo\n bar", "foo bar"),
+        ("foo \nbar", "foo bar"),
+        ("  foo  bar  \nbaz", " foo bar baz"),
+        ("foo bar baz", "foo bar baz"),
+        ("foobarbaz\n\n", "foobarbaz "),
     ];
 
     let mode = CompressionMode::CompressWhitespaceNewline;

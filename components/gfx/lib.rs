@@ -9,14 +9,20 @@ extern crate app_units;
 extern crate bitflags;
 
 // Mac OS-specific library dependencies
-#[cfg(target_os = "macos")] extern crate byteorder;
-#[cfg(target_os = "macos")] extern crate core_foundation;
-#[cfg(target_os = "macos")] extern crate core_graphics;
-#[cfg(target_os = "macos")] extern crate core_text;
+#[cfg(target_os = "macos")]
+extern crate byteorder;
+#[cfg(target_os = "macos")]
+extern crate core_foundation;
+#[cfg(target_os = "macos")]
+extern crate core_graphics;
+#[cfg(target_os = "macos")]
+extern crate core_text;
 
 // Windows-specific library dependencies
-#[cfg(target_os = "windows")] extern crate dwrote;
-#[cfg(target_os = "windows")] extern crate truetype;
+#[cfg(target_os = "windows")]
+extern crate dwrote;
+#[cfg(target_os = "windows")]
+extern crate truetype;
 
 extern crate euclid;
 extern crate fnv;
@@ -24,8 +30,10 @@ extern crate fnv;
 #[cfg(target_os = "linux")]
 extern crate fontconfig;
 extern crate fontsan;
-#[cfg(any(target_os = "linux", target_os = "android"))] extern crate freetype;
-#[cfg(any(target_os = "linux", target_os = "android"))] extern crate servo_allocator;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+extern crate freetype;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+extern crate servo_allocator;
 extern crate gfx_traits;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
@@ -35,19 +43,25 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate ipc_channel;
 #[macro_use]
 extern crate lazy_static;
-#[cfg(any(target_os = "linux", target_os = "android"))] extern crate libc;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+extern crate libc;
 #[macro_use]
 extern crate log;
 #[cfg_attr(target_os = "windows", macro_use)]
 extern crate malloc_size_of;
 extern crate net_traits;
 extern crate ordered_float;
-#[cfg(all(feature = "unstable", any(target_feature = "sse2", target_feature = "neon")))]
+#[cfg(all(
+    feature = "unstable",
+    any(target_feature = "sse2", target_feature = "neon")
+))]
 extern crate packed_simd;
 extern crate range;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate serde;
 extern crate servo_arc;
-#[macro_use] extern crate servo_atoms;
+#[macro_use]
+extern crate servo_atoms;
 extern crate servo_url;
 extern crate smallvec;
 extern crate style;
@@ -61,7 +75,8 @@ extern crate xi_unicode;
 extern crate xml5ever;
 
 // Fonts
-#[macro_use] pub mod font;
+#[macro_use]
+pub mod font;
 pub mod font_cache_thread;
 pub mod font_context;
 pub mod font_template;

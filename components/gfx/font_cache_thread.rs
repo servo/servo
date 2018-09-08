@@ -40,14 +40,15 @@ pub struct FontTemplateInfo {
 
 impl FontTemplates {
     pub fn new() -> FontTemplates {
-        FontTemplates {
-            templates: vec!(),
-        }
+        FontTemplates { templates: vec![] }
     }
 
     /// Find a font in this family that matches a given descriptor.
-    pub fn find_font_for_style(&mut self, desc: &FontTemplateDescriptor, fctx: &FontContextHandle)
-                               -> Option<Arc<FontTemplateData>> {
+    pub fn find_font_for_style(
+        &mut self,
+        desc: &FontTemplateDescriptor,
+        fctx: &FontContextHandle,
+    ) -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #189): optimize lookup for
         // regular/bold/italic/bolditalic with fixed offsets and a
         // static decision table for fallback between these values.
@@ -63,7 +64,8 @@ impl FontTemplates {
         let (mut best_template_data, mut best_distance) = (None, f32::MAX);
         for template in &mut self.templates {
             if let Some((template_data, distance)) =
-                    template.data_for_approximate_descriptor(fctx, desc) {
+                template.data_for_approximate_descriptor(fctx, desc)
+            {
                 if distance < best_distance {
                     best_template_data = Some(template_data);
                     best_distance = distance
@@ -71,7 +73,7 @@ impl FontTemplates {
             }
         }
         if best_template_data.is_some() {
-            return best_template_data
+            return best_template_data;
         }
 
         // If a request is made for a font family that exists,
@@ -103,8 +105,16 @@ impl FontTemplates {
 /// Commands that the FontContext sends to the font cache thread.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Command {
-    GetFontTemplate(FontTemplateDescriptor, FontFamilyDescriptor, IpcSender<Reply>),
-    GetFontInstance(webrender_api::FontKey, Au, IpcSender<webrender_api::FontInstanceKey>),
+    GetFontTemplate(
+        FontTemplateDescriptor,
+        FontFamilyDescriptor,
+        IpcSender<Reply>,
+    ),
+    GetFontInstance(
+        webrender_api::FontKey,
+        Au,
+        IpcSender<webrender_api::FontInstanceKey>,
+    ),
     AddWebFont(LowercaseString, EffectiveSources, IpcSender<()>),
     AddDownloadedWebFont(LowercaseString, ServoUrl, Vec<u8>, IpcSender<()>),
     Exit(IpcSender<()>),
@@ -148,14 +158,13 @@ fn populate_generic_fonts() -> HashMap<FontFamilyName, LowercaseString> {
     ) {
         let family_name = match system_default_family(generic_name) {
             Some(system_default) => LowercaseString::new(&system_default),
-            None => LowercaseString::new(mapped_name)
+            None => LowercaseString::new(mapped_name),
         };
 
         let generic_name = FontFamilyName::Generic(Atom::from(generic_name));
 
         generic_fonts.insert(generic_name, family_name);
     }
-
 
     generic_fonts
 }
@@ -167,50 +176,50 @@ impl FontCache {
 
             match msg {
                 Command::GetFontTemplate(template_descriptor, family_descriptor, result) => {
-                    let maybe_font_template = self.find_font_template(&template_descriptor, &family_descriptor);
+                    let maybe_font_template =
+                        self.find_font_template(&template_descriptor, &family_descriptor);
                     let _ = result.send(Reply::GetFontTemplateReply(maybe_font_template));
-                }
+                },
                 Command::GetFontInstance(font_key, size, result) => {
                     let webrender_api = &self.webrender_api;
 
-                    let instance_key = *self.font_instances
-                                            .entry((font_key, size))
-                                            .or_insert_with(|| {
-                                                let key = webrender_api.generate_font_instance_key();
-                                                let mut txn = webrender_api::Transaction::new();
-                                                txn.add_font_instance(key,
-                                                                          font_key,
-                                                                          size,
-                                                                          None,
-                                                                          None,
-                                                                          Vec::new());
-                                                webrender_api.update_resources(txn.resource_updates);
-                                                key
-                                            });
+                    let instance_key =
+                        *self
+                            .font_instances
+                            .entry((font_key, size))
+                            .or_insert_with(|| {
+                                let key = webrender_api.generate_font_instance_key();
+                                let mut txn = webrender_api::Transaction::new();
+                                txn.add_font_instance(key, font_key, size, None, None, Vec::new());
+                                webrender_api.update_resources(txn.resource_updates);
+                                key
+                            });
 
                     let _ = result.send(instance_key);
-                }
+                },
                 Command::AddWebFont(family_name, sources, result) => {
                     self.handle_add_web_font(family_name, sources, result);
-                }
+                },
                 Command::AddDownloadedWebFont(family_name, url, bytes, result) => {
                     let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                     templates.add_template(Atom::from(url.to_string()), Some(bytes));
                     drop(result.send(()));
-                }
+                },
                 Command::Ping => (),
                 Command::Exit(result) => {
                     let _ = result.send(());
                     break;
-                }
+                },
             }
         }
     }
 
-    fn handle_add_web_font(&mut self,
-                           family_name: LowercaseString,
-                           mut sources: EffectiveSources,
-                           sender: IpcSender<()>) {
+    fn handle_add_web_font(
+        &mut self,
+        family_name: LowercaseString,
+        mut sources: EffectiveSources,
+        sender: IpcSender<()>,
+    ) {
         let src = if let Some(src) = sources.next() {
             src
         } else {
@@ -236,7 +245,7 @@ impl FontCache {
                     destination: Destination::Font,
                     // TODO: Add a proper origin - Can't import GlobalScope from gfx
                     // We can leave origin to be set by default
-                    .. RequestInit::default()
+                    ..RequestInit::default()
                 };
 
                 let channel_to_self = self.channel_to_self.clone();
@@ -248,19 +257,27 @@ impl FontCache {
                         FetchResponseMsg::ProcessRequestBody |
                         FetchResponseMsg::ProcessRequestEOF => (),
                         FetchResponseMsg::ProcessResponse(meta_result) => {
-                            trace!("@font-face {} metadata ok={:?}", family_name, meta_result.is_ok());
+                            trace!(
+                                "@font-face {} metadata ok={:?}",
+                                family_name,
+                                meta_result.is_ok()
+                            );
                             *response_valid.lock().unwrap() = meta_result.is_ok();
-                        }
+                        },
                         FetchResponseMsg::ProcessResponseChunk(new_bytes) => {
                             trace!("@font-face {} chunk={:?}", family_name, new_bytes);
                             if *response_valid.lock().unwrap() {
                                 bytes.lock().unwrap().extend(new_bytes.into_iter())
                             }
-                        }
+                        },
                         FetchResponseMsg::ProcessResponseEOF(response) => {
                             trace!("@font-face {} EOF={:?}", family_name, response);
                             if response.is_err() || !*response_valid.lock().unwrap() {
-                                let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                let msg = Command::AddWebFont(
+                                    family_name.clone(),
+                                    sources.clone(),
+                                    sender.clone(),
+                                );
                                 channel_to_self.send(msg).unwrap();
                                 return;
                             }
@@ -270,23 +287,31 @@ impl FontCache {
                                 Ok(san) => san,
                                 Err(_) => {
                                     // FIXME(servo/fontsan#1): get an error message
-                                    debug!("Sanitiser rejected web font: \
-                                            family={} url={:?}", family_name, url);
-                                    let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                    debug!(
+                                        "Sanitiser rejected web font: \
+                                         family={} url={:?}",
+                                        family_name, url
+                                    );
+                                    let msg = Command::AddWebFont(
+                                        family_name.clone(),
+                                        sources.clone(),
+                                        sender.clone(),
+                                    );
                                     channel_to_self.send(msg).unwrap();
                                     return;
                                 },
                             };
-                            let command =
-                                Command::AddDownloadedWebFont(family_name.clone(),
-                                                              url.clone(),
-                                                              bytes,
-                                                              sender.clone());
+                            let command = Command::AddDownloadedWebFont(
+                                family_name.clone(),
+                                url.clone(),
+                                bytes,
+                                sender.clone(),
+                            );
                             channel_to_self.send(command).unwrap();
-                        }
+                        },
                     }
                 });
-            }
+            },
             Source::Local(ref font) => {
                 let font_face_name = LowercaseString::new(&font.name);
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
@@ -301,7 +326,7 @@ impl FontCache {
                     let msg = Command::AddWebFont(family_name, sources, sender);
                     self.channel_to_self.send(msg).unwrap();
                 }
-            }
+            },
         }
     }
 
@@ -319,7 +344,7 @@ impl FontCache {
     fn transform_family(&self, family_name: &FontFamilyName) -> LowercaseString {
         match self.generic_fonts.get(family_name) {
             None => LowercaseString::from(family_name),
-            Some(mapped_family) => (*mapped_family).clone()
+            Some(mapped_family) => (*mapped_family).clone(),
         }
     }
 
@@ -347,7 +372,10 @@ impl FontCache {
 
             s.find_font_for_style(template_descriptor, &self.font_context)
         } else {
-            debug!("FontList: Couldn't find font family with name={}", &*family_name);
+            debug!(
+                "FontList: Couldn't find font family with name={}",
+                &*family_name
+            );
             None
         }
     }
@@ -371,17 +399,19 @@ impl FontCache {
         let webrender_api = &self.webrender_api;
         let webrender_fonts = &mut self.webrender_fonts;
 
-        let font_key = *webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
-            let font_key = webrender_api.generate_font_key();
-            let mut txn = webrender_api::Transaction::new();
-            match (template.bytes_if_in_memory(), template.native_font()) {
-                (Some(bytes), _) => txn.add_raw_font(font_key, bytes, 0),
-                (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
-                (None, None) => txn.add_raw_font(font_key, template.bytes().clone(), 0),
-            }
-            webrender_api.update_resources(txn.resource_updates);
-            font_key
-        });
+        let font_key = *webrender_fonts
+            .entry(template.identifier.clone())
+            .or_insert_with(|| {
+                let font_key = webrender_api.generate_font_key();
+                let mut txn = webrender_api::Transaction::new();
+                match (template.bytes_if_in_memory(), template.native_font()) {
+                    (Some(bytes), _) => txn.add_raw_font(font_key, bytes, 0),
+                    (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
+                    (None, None) => txn.add_raw_font(font_key, template.bytes().clone(), 0),
+                }
+                webrender_api.update_resources(txn.resource_updates);
+                font_key
+            });
 
         FontTemplateInfo {
             font_template: template,
@@ -395,14 +425,15 @@ impl FontCache {
         family_descriptor: &FontFamilyDescriptor,
     ) -> Option<FontTemplateInfo> {
         match family_descriptor.scope {
-            FontSearchScope::Any => {
-                self.find_font_in_web_family(&template_descriptor, &family_descriptor.name)
-                    .or_else(|| self.find_font_in_local_family(&template_descriptor, &family_descriptor.name))
-            }
+            FontSearchScope::Any => self
+                .find_font_in_web_family(&template_descriptor, &family_descriptor.name)
+                .or_else(|| {
+                    self.find_font_in_local_family(&template_descriptor, &family_descriptor.name)
+                }),
 
             FontSearchScope::Local => {
                 self.find_font_in_local_family(&template_descriptor, &family_descriptor.name)
-            }
+            },
         }.map(|t| self.get_font_template_info(t))
     }
 }
@@ -415,59 +446,82 @@ pub struct FontCacheThread {
 }
 
 impl FontCacheThread {
-    pub fn new(core_resource_thread: CoreResourceThread,
-               webrender_api: webrender_api::RenderApi) -> FontCacheThread {
+    pub fn new(
+        core_resource_thread: CoreResourceThread,
+        webrender_api: webrender_api::RenderApi,
+    ) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
         let channel_to_self = chan.clone();
-        thread::Builder::new().name("FontCacheThread".to_owned()).spawn(move || {
-            // TODO: Allow users to specify these.
-            let generic_fonts = populate_generic_fonts();
+        thread::Builder::new()
+            .name("FontCacheThread".to_owned())
+            .spawn(move || {
+                // TODO: Allow users to specify these.
+                let generic_fonts = populate_generic_fonts();
 
-            let mut cache = FontCache {
-                port: port,
-                channel_to_self,
-                generic_fonts,
-                local_families: HashMap::new(),
-                web_families: HashMap::new(),
-                font_context: FontContextHandle::new(),
-                core_resource_thread,
-                webrender_api,
-                webrender_fonts: HashMap::new(),
-                font_instances: HashMap::new(),
-            };
+                let mut cache = FontCache {
+                    port: port,
+                    channel_to_self,
+                    generic_fonts,
+                    local_families: HashMap::new(),
+                    web_families: HashMap::new(),
+                    font_context: FontContextHandle::new(),
+                    core_resource_thread,
+                    webrender_api,
+                    webrender_fonts: HashMap::new(),
+                    font_instances: HashMap::new(),
+                };
 
-            cache.refresh_local_families();
-            cache.run();
-        }).expect("Thread spawning failed");
+                cache.refresh_local_families();
+                cache.run();
+            }).expect("Thread spawning failed");
 
-        FontCacheThread {
-            chan: chan,
-        }
+        FontCacheThread { chan: chan }
     }
 
-    pub fn add_web_font(&self, family: FamilyName, sources: EffectiveSources, sender: IpcSender<()>) {
-        self.chan.send(Command::AddWebFont(LowercaseString::new(&family.name), sources, sender)).unwrap();
+    pub fn add_web_font(
+        &self,
+        family: FamilyName,
+        sources: EffectiveSources,
+        sender: IpcSender<()>,
+    ) {
+        self.chan
+            .send(Command::AddWebFont(
+                LowercaseString::new(&family.name),
+                sources,
+                sender,
+            )).unwrap();
     }
 
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(Command::Exit(response_chan)).expect("Couldn't send FontCacheThread exit message");
-        response_port.recv().expect("Couldn't receive FontCacheThread reply");
+        self.chan
+            .send(Command::Exit(response_chan))
+            .expect("Couldn't send FontCacheThread exit message");
+        response_port
+            .recv()
+            .expect("Couldn't receive FontCacheThread reply");
     }
 }
 
 impl FontSource for FontCacheThread {
-    fn get_font_instance(&mut self, key: webrender_api::FontKey, size: Au) -> webrender_api::FontInstanceKey {
-        let (response_chan, response_port) =
-            ipc::channel().expect("failed to create IPC channel");
-        self.chan.send(Command::GetFontInstance(key, size, response_chan))
+    fn get_font_instance(
+        &mut self,
+        key: webrender_api::FontKey,
+        size: Au,
+    ) -> webrender_api::FontInstanceKey {
+        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
+        self.chan
+            .send(Command::GetFontInstance(key, size, response_chan))
             .expect("failed to send message to font cache thread");
 
         let instance_key = response_port.recv();
         if instance_key.is_err() {
             let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
-            assert!(font_thread_has_closed, "Failed to receive a response from live font cache");
+            assert!(
+                font_thread_has_closed,
+                "Failed to receive a response from live font cache"
+            );
             panic!("Font cache thread has already exited.");
         }
         instance_key.unwrap()
@@ -478,23 +532,27 @@ impl FontSource for FontCacheThread {
         template_descriptor: FontTemplateDescriptor,
         family_descriptor: FontFamilyDescriptor,
     ) -> Option<FontTemplateInfo> {
-        let (response_chan, response_port) =
-            ipc::channel().expect("failed to create IPC channel");
-        self.chan.send(Command::GetFontTemplate(template_descriptor, family_descriptor, response_chan))
-            .expect("failed to send message to font cache thread");
+        let (response_chan, response_port) = ipc::channel().expect("failed to create IPC channel");
+        self.chan
+            .send(Command::GetFontTemplate(
+                template_descriptor,
+                family_descriptor,
+                response_chan,
+            )).expect("failed to send message to font cache thread");
 
         let reply = response_port.recv();
 
         if reply.is_err() {
             let font_thread_has_closed = self.chan.send(Command::Ping).is_err();
-            assert!(font_thread_has_closed, "Failed to receive a response from live font cache");
+            assert!(
+                font_thread_has_closed,
+                "Failed to receive a response from live font cache"
+            );
             panic!("Font cache thread has already exited.");
         }
 
         match reply.unwrap() {
-            Reply::GetFontTemplateReply(data) => {
-                data
-            }
+            Reply::GetFontTemplateReply(data) => data,
         }
     }
 }

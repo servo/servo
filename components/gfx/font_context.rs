@@ -21,14 +21,18 @@ use style::computed_values::font_variant_caps::T as FontVariantCaps;
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api;
 
-static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8;      // Matches FireFox (see gfxFont.h)
+static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
 /// An epoch for the font context cache. The cache is flushed if the current epoch does not match
 /// this one.
 static FONT_CACHE_EPOCH: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub trait FontSource {
-    fn get_font_instance(&mut self, key: webrender_api::FontKey, size: Au) -> webrender_api::FontInstanceKey;
+    fn get_font_instance(
+        &mut self,
+        key: webrender_api::FontKey,
+        size: Au,
+    ) -> webrender_api::FontInstanceKey;
 
     fn font_template(
         &mut self,
@@ -74,7 +78,7 @@ impl<S: FontSource> FontContext<S> {
     fn expire_font_caches_if_necessary(&mut self) {
         let current_epoch = FONT_CACHE_EPOCH.load(Ordering::SeqCst);
         if current_epoch == self.epoch {
-            return
+            return;
         }
 
         self.font_cache.clear();
@@ -95,7 +99,7 @@ impl<S: FontSource> FontContext<S> {
         };
 
         if let Some(ref font_group) = self.font_group_cache.get(&cache_key) {
-            return (*font_group).clone()
+            return (*font_group).clone();
         }
 
         let font_group = Rc::new(RefCell::new(FontGroup::new(&cache_key.style)));
@@ -115,27 +119,31 @@ impl<S: FontSource> FontContext<S> {
             family_descriptor: family_descriptor.clone(),
         };
 
-        self.font_cache.get(&cache_key).map(|v| v.clone()).unwrap_or_else(|| {
-            debug!(
-                "FontContext::font cache miss for font_descriptor={:?} family_descriptor={:?}",
-                font_descriptor,
-                family_descriptor
-            );
+        self.font_cache
+            .get(&cache_key)
+            .map(|v| v.clone())
+            .unwrap_or_else(|| {
+                debug!(
+                    "FontContext::font cache miss for font_descriptor={:?} family_descriptor={:?}",
+                    font_descriptor, family_descriptor
+                );
 
-            let font =
-                self.font_template(&font_descriptor.template_descriptor, family_descriptor)
-                    .and_then(|template_info| self.create_font(template_info, font_descriptor.to_owned()).ok())
-                    .map(|font| Rc::new(RefCell::new(font)));
+                let font = self
+                    .font_template(&font_descriptor.template_descriptor, family_descriptor)
+                    .and_then(|template_info| {
+                        self.create_font(template_info, font_descriptor.to_owned())
+                            .ok()
+                    }).map(|font| Rc::new(RefCell::new(font)));
 
-            self.font_cache.insert(cache_key, font.clone());
-            font
-        })
+                self.font_cache.insert(cache_key, font.clone());
+                font
+            })
     }
 
     fn font_template(
         &mut self,
         template_descriptor: &FontTemplateDescriptor,
-        family_descriptor: &FontFamilyDescriptor
+        family_descriptor: &FontFamilyDescriptor,
     ) -> Option<FontTemplateInfo> {
         let cache_key = FontTemplateCacheKey {
             template_descriptor: template_descriptor.clone(),
@@ -164,7 +172,7 @@ impl<S: FontSource> FontContext<S> {
     fn create_font(
         &mut self,
         info: FontTemplateInfo,
-        descriptor: FontDescriptor
+        descriptor: FontDescriptor,
     ) -> Result<Font, ()> {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // painting. We should also support true small-caps (where the
@@ -177,11 +185,18 @@ impl<S: FontSource> FontContext<S> {
         let handle = FontHandle::new_from_template(
             &self.platform_handle,
             info.font_template,
-            Some(actual_pt_size)
+            Some(actual_pt_size),
         )?;
 
-        let font_instance_key = self.font_source.get_font_instance(info.font_key, actual_pt_size);
-        Ok(Font::new(handle, descriptor.to_owned(), actual_pt_size, font_instance_key))
+        let font_instance_key = self
+            .font_source
+            .get_font_instance(info.font_key, actual_pt_size);
+        Ok(Font::new(
+            handle,
+            descriptor.to_owned(),
+            actual_pt_size,
+            font_instance_key,
+        ))
     }
 }
 
@@ -219,7 +234,10 @@ impl PartialEq for FontGroupCacheKey {
 impl Eq for FontGroupCacheKey {}
 
 impl Hash for FontGroupCacheKey {
-    fn hash<H>(&self, hasher: &mut H) where H: Hasher {
+    fn hash<H>(&self, hasher: &mut H)
+    where
+        H: Hasher,
+    {
         self.style.hash.hash(hasher)
     }
 }
