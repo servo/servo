@@ -481,206 +481,6 @@ impl WebGLRenderingContext {
         }
     }
 
-    // https://en.wikipedia.org/wiki/Relative_luminance
-    #[inline]
-    fn luminance(r: u8, g: u8, b: u8) -> u8 {
-        (0.2126 * (r as f32) +
-         0.7152 * (g as f32) +
-         0.0722 * (b as f32)) as u8
-    }
-
-    /// Translates an image in rgba8 (red in the first byte) format to
-    /// the format that was requested of TexImage.
-    ///
-    /// From the WebGL 1.0 spec, 5.14.8:
-    ///
-    ///     "The source image data is conceptually first converted to
-    ///      the data type and format specified by the format and type
-    ///      arguments, and then transferred to the WebGL
-    ///      implementation. If a packed pixel format is specified
-    ///      which would imply loss of bits of precision from the image
-    ///      data, this loss of precision must occur."
-    fn rgba8_image_to_tex_image_data(&self,
-                                     format: TexFormat,
-                                     data_type: TexDataType,
-                                     pixels: Vec<u8>) -> Vec<u8> {
-        // hint for vector allocation sizing.
-        let pixel_count = pixels.len() / 4;
-
-        match (format, data_type) {
-            (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
-            (TexFormat::RGB, TexDataType::UnsignedByte) => {
-                // Remove alpha channel
-                let mut rgb8 = Vec::<u8>::with_capacity(pixel_count * 3);
-                for rgba8 in pixels.chunks(4) {
-                    rgb8.push(rgba8[0]);
-                    rgb8.push(rgba8[1]);
-                    rgb8.push(rgba8[2]);
-                }
-                rgb8
-            },
-
-            (TexFormat::Alpha, TexDataType::UnsignedByte) => {
-                let mut alpha = Vec::<u8>::with_capacity(pixel_count);
-                for rgba8 in pixels.chunks(4) {
-                    alpha.push(rgba8[3]);
-                }
-                alpha
-            },
-
-            (TexFormat::Luminance, TexDataType::UnsignedByte) => {
-                let mut luminance = Vec::<u8>::with_capacity(pixel_count);
-                for rgba8 in pixels.chunks(4) {
-                    luminance.push(Self::luminance(rgba8[0], rgba8[1], rgba8[2]));
-                }
-                luminance
-            },
-
-            (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
-                let mut data = Vec::<u8>::with_capacity(pixel_count * 2);
-                for rgba8 in pixels.chunks(4) {
-                    data.push(Self::luminance(rgba8[0], rgba8[1], rgba8[2]));
-                    data.push(rgba8[3]);
-                }
-                data
-            },
-
-            (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
-                let mut rgba4 = Vec::<u8>::with_capacity(pixel_count * 2);
-                for rgba8 in pixels.chunks(4) {
-                    rgba4.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf0) << 8 |
-                                                    (rgba8[1] as u16 & 0xf0) << 4 |
-                                                    (rgba8[2] as u16 & 0xf0) |
-                                                    (rgba8[3] as u16 & 0xf0) >> 4).unwrap();
-                }
-                rgba4
-            }
-
-            (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
-                let mut rgba5551 = Vec::<u8>::with_capacity(pixel_count * 2);
-                for rgba8 in pixels.chunks(4) {
-                    rgba5551.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
-                                                       (rgba8[1] as u16 & 0xf8) << 3 |
-                                                       (rgba8[2] as u16 & 0xf8) >> 2 |
-                                                       (rgba8[3] as u16) >> 7).unwrap();
-                }
-                rgba5551
-            }
-
-            (TexFormat::RGB, TexDataType::UnsignedShort565) => {
-                let mut rgb565 = Vec::<u8>::with_capacity(pixel_count * 2);
-                for rgba8 in pixels.chunks(4) {
-                    rgb565.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
-                                                     (rgba8[1] as u16 & 0xfc) << 3 |
-                                                     (rgba8[2] as u16 & 0xf8) >> 3).unwrap();
-                }
-                rgb565
-            }
-
-
-            (TexFormat::RGBA, TexDataType::Float) => {
-                let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
-                for rgba8 in pixels.chunks(4) {
-                    rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
-                    rgbaf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
-                    rgbaf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
-                    rgbaf32.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
-                }
-                rgbaf32
-            }
-
-            (TexFormat::RGB, TexDataType::Float) => {
-                let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
-                for rgba8 in pixels.chunks(4) {
-                    rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
-                    rgbf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
-                    rgbf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
-                }
-                rgbf32
-            }
-
-            (TexFormat::Alpha, TexDataType::Float) => {
-                let mut alpha = Vec::<u8>::with_capacity(pixel_count * 4);
-                for rgba8 in pixels.chunks(4) {
-                    alpha.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
-                }
-                alpha
-            },
-
-            (TexFormat::Luminance, TexDataType::Float) => {
-                let mut luminance = Vec::<u8>::with_capacity(pixel_count * 4);
-                for rgba8 in pixels.chunks(4) {
-                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
-                    luminance.write_f32::<NativeEndian>(p as f32).unwrap();
-                }
-                luminance
-            },
-
-            (TexFormat::LuminanceAlpha, TexDataType::Float) => {
-                let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
-                for rgba8 in pixels.chunks(4) {
-                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
-                    data.write_f32::<NativeEndian>(p as f32).unwrap();
-                    data.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
-                }
-                data
-            },
-
-            (TexFormat::RGBA, TexDataType::HalfFloat) => {
-                let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
-                for rgba8 in pixels.chunks(4) {
-                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
-                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits()).unwrap();
-                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits()).unwrap();
-                    rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
-                }
-                rgbaf16
-            },
-
-            (TexFormat::RGB, TexDataType::HalfFloat) => {
-                let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
-                for rgba8 in pixels.chunks(4) {
-                    rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
-                    rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits()).unwrap();
-                    rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits()).unwrap();
-                }
-                rgbf16
-            },
-
-            (TexFormat::Alpha, TexDataType::HalfFloat) => {
-                let mut alpha = Vec::<u8>::with_capacity(pixel_count * 2);
-                for rgba8 in pixels.chunks(4) {
-                    alpha.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
-                }
-                alpha
-            },
-
-            (TexFormat::Luminance, TexDataType::HalfFloat) => {
-                let mut luminance = Vec::<u8>::with_capacity(pixel_count * 4);
-                for rgba8 in pixels.chunks(4) {
-                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
-                    luminance.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
-                }
-                luminance
-            },
-
-            (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
-                let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
-                for rgba8 in pixels.chunks(4) {
-                    let p = Self::luminance(rgba8[0], rgba8[1], rgba8[2]);
-                    data.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
-                    data.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
-                }
-                data
-            },
-
-            // Validation should have ensured that we only hit the
-            // above cases, but we haven't turned the (format, type)
-            // into an enum yet so there's a default case here.
-            _ => unreachable!("Unsupported formats {:?} {:?}", format, data_type)
-        }
-    }
-
     fn get_image_pixels(
         &self,
         source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
@@ -893,7 +693,7 @@ impl WebGLRenderingContext {
         }
 
         if source_from_image_or_canvas {
-            pixels = self.rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
+            pixels = rgba8_image_to_tex_image_data(internal_format, data_type, pixels);
         }
 
         // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
@@ -4192,4 +3992,205 @@ fn remove_premultiplied_alpha(pixels: &mut [u8]) {
         rgba[1] = (rgba[1] as f32 / a) as u8;
         rgba[2] = (rgba[2] as f32 / a) as u8;
     }
+}
+
+/// Translates an image in rgba8 (red in the first byte) format to
+/// the format that was requested of TexImage.
+///
+/// From the WebGL 1.0 spec, 5.14.8:
+///
+///     "The source image data is conceptually first converted to
+///      the data type and format specified by the format and type
+///      arguments, and then transferred to the WebGL
+///      implementation. If a packed pixel format is specified
+///      which would imply loss of bits of precision from the image
+///      data, this loss of precision must occur."
+fn rgba8_image_to_tex_image_data(
+    format: TexFormat,
+    data_type: TexDataType,
+    pixels: Vec<u8>,
+) -> Vec<u8> {
+    // hint for vector allocation sizing.
+    let pixel_count = pixels.len() / 4;
+
+    match (format, data_type) {
+        (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
+        (TexFormat::RGB, TexDataType::UnsignedByte) => {
+            // Remove alpha channel
+            let mut rgb8 = Vec::<u8>::with_capacity(pixel_count * 3);
+            for rgba8 in pixels.chunks(4) {
+                rgb8.push(rgba8[0]);
+                rgb8.push(rgba8[1]);
+                rgb8.push(rgba8[2]);
+            }
+            rgb8
+        },
+
+        (TexFormat::Alpha, TexDataType::UnsignedByte) => {
+            let mut alpha = Vec::<u8>::with_capacity(pixel_count);
+            for rgba8 in pixels.chunks(4) {
+                alpha.push(rgba8[3]);
+            }
+            alpha
+        },
+
+        (TexFormat::Luminance, TexDataType::UnsignedByte) => {
+            let mut lum = Vec::<u8>::with_capacity(pixel_count);
+            for rgba8 in pixels.chunks(4) {
+                lum.push(luminance(rgba8[0], rgba8[1], rgba8[2]));
+            }
+            lum
+        },
+
+        (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
+            let mut data = Vec::<u8>::with_capacity(pixel_count * 2);
+            for rgba8 in pixels.chunks(4) {
+                data.push(luminance(rgba8[0], rgba8[1], rgba8[2]));
+                data.push(rgba8[3]);
+            }
+            data
+        },
+
+        (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
+            let mut rgba4 = Vec::<u8>::with_capacity(pixel_count * 2);
+            for rgba8 in pixels.chunks(4) {
+                rgba4.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf0) << 8 |
+                                                (rgba8[1] as u16 & 0xf0) << 4 |
+                                                (rgba8[2] as u16 & 0xf0) |
+                                                (rgba8[3] as u16 & 0xf0) >> 4).unwrap();
+            }
+            rgba4
+        }
+
+        (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
+            let mut rgba5551 = Vec::<u8>::with_capacity(pixel_count * 2);
+            for rgba8 in pixels.chunks(4) {
+                rgba5551.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
+                                                    (rgba8[1] as u16 & 0xf8) << 3 |
+                                                    (rgba8[2] as u16 & 0xf8) >> 2 |
+                                                    (rgba8[3] as u16) >> 7).unwrap();
+            }
+            rgba5551
+        }
+
+        (TexFormat::RGB, TexDataType::UnsignedShort565) => {
+            let mut rgb565 = Vec::<u8>::with_capacity(pixel_count * 2);
+            for rgba8 in pixels.chunks(4) {
+                rgb565.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
+                                                    (rgba8[1] as u16 & 0xfc) << 3 |
+                                                    (rgba8[2] as u16 & 0xf8) >> 3).unwrap();
+            }
+            rgb565
+        }
+
+
+        (TexFormat::RGBA, TexDataType::Float) => {
+            let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
+            for rgba8 in pixels.chunks(4) {
+                rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                rgbaf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
+                rgbaf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
+                rgbaf32.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
+            }
+            rgbaf32
+        }
+
+        (TexFormat::RGB, TexDataType::Float) => {
+            let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
+            for rgba8 in pixels.chunks(4) {
+                rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+                rgbf32.write_f32::<NativeEndian>(rgba8[1] as f32).unwrap();
+                rgbf32.write_f32::<NativeEndian>(rgba8[2] as f32).unwrap();
+            }
+            rgbf32
+        }
+
+        (TexFormat::Alpha, TexDataType::Float) => {
+            let mut alpha = Vec::<u8>::with_capacity(pixel_count * 4);
+            for rgba8 in pixels.chunks(4) {
+                alpha.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
+            }
+            alpha
+        },
+
+        (TexFormat::Luminance, TexDataType::Float) => {
+            let mut lum = Vec::<u8>::with_capacity(pixel_count * 4);
+            for rgba8 in pixels.chunks(4) {
+                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
+                luminance.write_f32::<NativeEndian>(p as f32).unwrap();
+            }
+            luminance
+        },
+
+        (TexFormat::LuminanceAlpha, TexDataType::Float) => {
+            let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
+            for rgba8 in pixels.chunks(4) {
+                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
+                data.write_f32::<NativeEndian>(p as f32).unwrap();
+                data.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
+            }
+            data
+        },
+
+        (TexFormat::RGBA, TexDataType::HalfFloat) => {
+            let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
+            for rgba8 in pixels.chunks(4) {
+                rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
+                rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits()).unwrap();
+                rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits()).unwrap();
+                rgbaf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+            }
+            rgbaf16
+        },
+
+        (TexFormat::RGB, TexDataType::HalfFloat) => {
+            let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
+            for rgba8 in pixels.chunks(4) {
+                rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
+                rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits()).unwrap();
+                rgbf16.write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits()).unwrap();
+            }
+            rgbf16
+        },
+
+        (TexFormat::Alpha, TexDataType::HalfFloat) => {
+            let mut alpha = Vec::<u8>::with_capacity(pixel_count * 2);
+            for rgba8 in pixels.chunks(4) {
+                alpha.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+            }
+            alpha
+        },
+
+        (TexFormat::Luminance, TexDataType::HalfFloat) => {
+            let mut lum = Vec::<u8>::with_capacity(pixel_count * 4);
+            for rgba8 in pixels.chunks(4) {
+                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
+                lum.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
+            }
+            lum
+        },
+
+        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
+            let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
+            for rgba8 in pixels.chunks(4) {
+                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
+                data.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
+                data.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+            }
+            data
+        },
+
+        // Validation should have ensured that we only hit the
+        // above cases, but we haven't turned the (format, type)
+        // into an enum yet so there's a default case here.
+        _ => unreachable!("Unsupported formats {:?} {:?}", format, data_type)
+    }
+}
+
+// https://en.wikipedia.org/wiki/Relative_luminance
+#[inline]
+fn luminance(r: u8, g: u8, b: u8) -> u8 {
+    (0.2126 * (r as f32) +
+        0.7152 * (g as f32) +
+        0.0722 * (b as f32)) as u8
 }
