@@ -4035,10 +4035,7 @@ fn rgba8_image_to_tex_image_data(
         },
         (TexFormat::Luminance, TexDataType::UnsignedByte) => {
             for i in 0..pixel_count {
-                let p = {
-                    let rgb = &pixels[i * 4..i * 4 + 3];
-                    luminance(rgb[0], rgb[1], rgb[2])
-                };
+                let p = pixels[i * 4];
                 pixels[i] = p;
             }
             pixels.truncate(pixel_count);
