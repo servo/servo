@@ -17,16 +17,16 @@ use servo_url::ServoUrl;
 
 /// https://fetch.spec.whatwg.org/#concept-basic-fetch (partial)
 // TODO: make async.
-pub fn load_blob_sync
-            (url: ServoUrl,
-             filemanager: FileManager)
-             -> Result<(Headers, Vec<u8>), NetworkError> {
+pub fn load_blob_sync(
+    url: ServoUrl,
+    filemanager: FileManager,
+) -> Result<(Headers, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {
         Ok((id, origin)) => (id, origin),
         Err(()) => {
             let e = format!("Invalid blob URL format {:?}", url);
             return Err(NetworkError::Internal(e));
-        }
+        },
     };
 
     let (sender, receiver) = ipc::channel().unwrap();
@@ -36,11 +36,13 @@ pub fn load_blob_sync
     let blob_buf = match receiver.recv().unwrap() {
         Ok(ReadFileProgress::Meta(blob_buf)) => blob_buf,
         Ok(_) => {
-            return Err(NetworkError::Internal("Invalid filemanager reply".to_string()));
-        }
+            return Err(NetworkError::Internal(
+                "Invalid filemanager reply".to_string(),
+            ));
+        },
         Err(e) => {
             return Err(NetworkError::Internal(format!("{:?}", e)));
-        }
+        },
     };
 
     let content_type: Mime = blob_buf.type_string.parse().unwrap_or(mime!(Text / Plain));
@@ -52,10 +54,11 @@ pub fn load_blob_sync
         let charset = charset.and_then(|c| c.as_str().parse().ok());
         headers.set(ContentDisposition {
             disposition: DispositionType::Inline,
-            parameters: vec![
-                DispositionParam::Filename(charset.unwrap_or(Charset::Us_Ascii),
-                                           None, name.as_bytes().to_vec())
-            ]
+            parameters: vec![DispositionParam::Filename(
+                charset.unwrap_or(Charset::Us_Ascii),
+                None,
+                name.as_bytes().to_vec(),
+            )],
         });
     }
 
@@ -69,16 +72,18 @@ pub fn load_blob_sync
         match receiver.recv().unwrap() {
             Ok(ReadFileProgress::Partial(ref mut new_bytes)) => {
                 bytes.append(new_bytes);
-            }
+            },
             Ok(ReadFileProgress::EOF) => {
                 return Ok((headers, bytes));
-            }
+            },
             Ok(_) => {
-                return Err(NetworkError::Internal("Invalid filemanager reply".to_string()));
-            }
+                return Err(NetworkError::Internal(
+                    "Invalid filemanager reply".to_string(),
+                ));
+            },
             Err(e) => {
                 return Err(NetworkError::Internal(format!("{:?}", e)));
-            }
+            },
         }
     }
 }

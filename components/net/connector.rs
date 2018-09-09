@@ -19,9 +19,7 @@ pub struct HttpsConnector {
 
 impl HttpsConnector {
     fn new(ssl: OpensslClient) -> HttpsConnector {
-        HttpsConnector {
-            ssl: ssl,
-        }
+        HttpsConnector { ssl: ssl }
     }
 }
 
@@ -30,8 +28,10 @@ impl NetworkConnector for HttpsConnector {
 
     fn connect(&self, host: &str, port: u16, scheme: &str) -> HyperResult<Self::Stream> {
         if scheme != "http" && scheme != "https" {
-            return Err(HyperError::Io(io::Error::new(io::ErrorKind::InvalidInput,
-                                                     "Invalid scheme for Http")));
+            return Err(HyperError::Io(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "Invalid scheme for Http",
+            )));
         }
 
         // Perform host replacement when making the actual TCP connection.
@@ -62,22 +62,27 @@ pub fn create_ssl_connector(certs: &str) -> SslConnector {
             let (cert, rest) = certs.split_at(index + token.len());
             certs = rest;
             let cert = x509::X509::from_pem(cert.as_bytes()).unwrap();
-            ssl_connector_builder.cert_store_mut().add_cert(cert).or_else(|e| {
-                let v: Option<Option<&str>> = e.errors().iter().nth(0).map(|e| e.reason());
-                if v == Some(Some("cert already in hash table")) {
-                    warn!("Cert already in hash table. Ignoring.");
-                    // Ignore error X509_R_CERT_ALREADY_IN_HASH_TABLE which means the
-                    // certificate is already in the store.
-                    Ok(())
-                } else {
-                    Err(e)
-                }
-            }).expect("could not set CA file");
+            ssl_connector_builder
+                .cert_store_mut()
+                .add_cert(cert)
+                .or_else(|e| {
+                    let v: Option<Option<&str>> = e.errors().iter().nth(0).map(|e| e.reason());
+                    if v == Some(Some("cert already in hash table")) {
+                        warn!("Cert already in hash table. Ignoring.");
+                        // Ignore error X509_R_CERT_ALREADY_IN_HASH_TABLE which means the
+                        // certificate is already in the store.
+                        Ok(())
+                    } else {
+                        Err(e)
+                    }
+                }).expect("could not set CA file");
         } else {
             break;
         }
     }
-    ssl_connector_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
+    ssl_connector_builder
+        .set_cipher_list(DEFAULT_CIPHERS)
+        .expect("could not set ciphers");
     ssl_connector_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     ssl_connector_builder.build()
 }

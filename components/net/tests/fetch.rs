@@ -74,7 +74,10 @@ fn test_fetch_on_bad_port_is_network_error() {
     let fetch_response = fetch(&mut request, None);
     assert!(fetch_response.is_network_error());
     let fetch_error = fetch_response.get_network_error().unwrap();
-    assert_eq!(fetch_error, &NetworkError::Internal("Request attempted on bad port".into()))
+    assert_eq!(
+        fetch_error,
+        &NetworkError::Internal("Request attempted on bad port".into())
+    )
 }
 
 #[test]
@@ -98,7 +101,7 @@ fn test_fetch_response_body_matches_const_message() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -110,7 +113,10 @@ fn test_fetch_aboutblank() {
     request.referrer = Referrer::NoReferrer;
     let fetch_response = fetch(&mut request, None);
     assert!(!fetch_response.is_network_error());
-    assert_eq!(*fetch_response.body.lock().unwrap(), ResponseBody::Done(vec![]));
+    assert_eq!(
+        *fetch_response.body.lock().unwrap(),
+        ResponseBody::Done(vec![])
+    );
 }
 
 #[test]
@@ -131,10 +137,11 @@ fn test_fetch_blob() {
     let origin = ServoUrl::parse("http://www.example.org/").unwrap();
 
     let (sender, receiver) = ipc::channel().unwrap();
-    context.filemanager.promote_memory(blob_buf, true, sender, "http://www.example.org".into());
+    context
+        .filemanager
+        .promote_memory(blob_buf, true, sender, "http://www.example.org".into());
     let id = receiver.recv().unwrap().unwrap();
     let url = ServoUrl::parse(&format!("blob:{}{}", origin.as_str(), id.simple())).unwrap();
-
 
     let mut request = Request::new(url, Some(Origin::Origin(origin.origin())), None);
     let fetch_response = fetch_with_context(&mut request, &context);
@@ -144,18 +151,25 @@ fn test_fetch_blob() {
     assert_eq!(fetch_response.headers.len(), 2);
 
     let content_type: &ContentType = fetch_response.headers.get().unwrap();
-    assert_eq!(**content_type, Mime(TopLevel::Text, SubLevel::Plain, vec![]));
+    assert_eq!(
+        **content_type,
+        Mime(TopLevel::Text, SubLevel::Plain, vec![])
+    );
 
     let content_length: &ContentLength = fetch_response.headers.get().unwrap();
     assert_eq!(**content_length, bytes.len() as u64);
 
-    assert_eq!(*fetch_response.body.lock().unwrap(),
-               ResponseBody::Done(bytes.to_vec()));
+    assert_eq!(
+        *fetch_response.body.lock().unwrap(),
+        ResponseBody::Done(bytes.to_vec())
+    );
 }
 
 #[test]
 fn test_fetch_file() {
-    let path = Path::new("../../resources/servo.css").canonicalize().unwrap();
+    let path = Path::new("../../resources/servo.css")
+        .canonicalize()
+        .unwrap();
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -175,7 +189,7 @@ fn test_fetch_file() {
         ResponseBody::Done(ref val) => {
             assert_eq!(val, &bytes);
         },
-        _ => panic!()
+        _ => panic!(),
     }
 }
 
@@ -207,10 +221,18 @@ fn test_cors_preflight_fetch() {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());
             assert!(!request.headers.has::<AccessControlRequestHeaders>());
-            assert!(!request.headers.get::<HyperReferer>().unwrap().contains("a.html"));
+            assert!(
+                !request
+                    .headers
+                    .get::<HyperReferer>()
+                    .unwrap()
+                    .contains("a.html")
+            );
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
-            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+            response
+                .headers_mut()
+                .set(AccessControlAllowMethods(vec![Method::Get]));
         } else {
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.send(ACK).unwrap();
@@ -232,7 +254,7 @@ fn test_cors_preflight_fetch() {
     assert!(!fetch_response.is_network_error());
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -248,7 +270,9 @@ fn test_cors_preflight_cache_fetch() {
             assert!(!request.headers.has::<AccessControlRequestHeaders>());
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
-            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+            response
+                .headers_mut()
+                .set(AccessControlAllowMethods(vec![Method::Get]));
             response.headers_mut().set(AccessControlMaxAge(6000));
         } else {
             response.headers_mut().set(AccessControlAllowOrigin::Any);
@@ -280,11 +304,11 @@ fn test_cors_preflight_cache_fetch() {
 
     match *fetch_response0.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
-        _ => panic!()
+        _ => panic!(),
     };
     match *fetch_response1.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -298,7 +322,9 @@ fn test_cors_preflight_fetch_network_error() {
             assert!(!request.headers.has::<AccessControlRequestHeaders>());
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.headers_mut().set(AccessControlAllowCredentials);
-            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+            response
+                .headers_mut()
+                .set(AccessControlAllowMethods(vec![Method::Get]));
         } else {
             response.headers_mut().set(AccessControlAllowOrigin::Any);
             response.send(ACK).unwrap();
@@ -356,19 +382,21 @@ fn test_fetch_response_is_cors_filtered() {
         response.headers_mut().set(CacheControl(vec![]));
         response.headers_mut().set(ContentLanguage(vec![]));
         response.headers_mut().set(ContentType::html());
-        response.headers_mut().set(Expires(HttpDate(time::now() + Duration::days(1))));
-        response.headers_mut().set(LastModified(HttpDate(time::now())));
+        response
+            .headers_mut()
+            .set(Expires(HttpDate(time::now() + Duration::days(1))));
+        response
+            .headers_mut()
+            .set(LastModified(HttpDate(time::now())));
         response.headers_mut().set(Pragma::NoCache);
 
         // these headers should not be kept after filtering, even though they are given a pass
         response.headers_mut().set(SetCookie(vec![]));
         response.headers_mut().set_raw("Set-Cookie2", vec![]);
-        response.headers_mut().set(
-            AccessControlAllowHeaders(vec![
-                UniCase("set-cookie".to_owned()),
-                UniCase("set-cookie2".to_owned())
-            ])
-        );
+        response.headers_mut().set(AccessControlAllowHeaders(vec![
+            UniCase("set-cookie".to_owned()),
+            UniCase("set-cookie2".to_owned()),
+        ]));
 
         response.send(MESSAGE).unwrap();
     };
@@ -422,12 +450,12 @@ fn test_fetch_response_is_opaque_filtered() {
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());
     match *fetch_response.body.lock().unwrap() {
-        ResponseBody::Empty => { },
-        _ => panic!()
+        ResponseBody::Empty => {},
+        _ => panic!(),
     }
     match fetch_response.cache_state {
-        CacheState::None => { },
-        _ => panic!()
+        CacheState::None => {},
+        _ => panic!(),
     }
 }
 
@@ -436,11 +464,19 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
+            RequestUri::AbsolutePath(url) => url
+                .split("/")
+                .collect::<String>()
+                .parse::<u32>()
+                .unwrap_or(0),
+            RequestUri::AbsoluteUri(url) => url
+                .path_segments()
+                .unwrap()
+                .next_back()
+                .unwrap()
+                .parse::<u32>()
+                .unwrap_or(0),
+            _ => panic!(),
         };
 
         if redirects == 1 {
@@ -468,12 +504,12 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     assert!(fetch_response.status.is_none());
     assert_eq!(fetch_response.headers, Headers::new());
     match *fetch_response.body.lock().unwrap() {
-        ResponseBody::Empty => { },
-        _ => panic!()
+        ResponseBody::Empty => {},
+        _ => panic!(),
     }
     match fetch_response.cache_state {
-        CacheState::None => { },
-        _ => panic!()
+        CacheState::None => {},
+        _ => panic!(),
     }
 }
 
@@ -522,17 +558,26 @@ fn test_fetch_with_hsts() {
         response.send(MESSAGE).unwrap();
     };
 
-    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt").canonicalize().unwrap();
-    let key_path = Path::new("../../resources/privatekey_for_testing.key").canonicalize().unwrap();
-
-    let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path.clone())
+    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
+        .canonicalize()
+        .unwrap();
+    let key_path = Path::new("../../resources/privatekey_for_testing.key")
+        .canonicalize()
         .unwrap();
 
+    let ssl = hyper_openssl::OpensslServer::from_files(key_path, cert_path.clone()).unwrap();
+
     //takes an address and something that implements hyper::net::Ssl
-    let mut server = Server::https("0.0.0.0:0", ssl).unwrap().handle_threads(handler, 1).unwrap();
+    let mut server = Server::https("0.0.0.0:0", ssl)
+        .unwrap()
+        .handle_threads(handler, 1)
+        .unwrap();
 
     let mut ca_content = String::new();
-    File::open(cert_path).unwrap().read_to_string(&mut ca_content).unwrap();
+    File::open(cert_path)
+        .unwrap()
+        .read_to_string(&mut ca_content)
+        .unwrap();
     let ssl_client = create_ssl_client(&ca_content);
 
     let context = FetchContext {
@@ -545,8 +590,9 @@ fn test_fetch_with_hsts() {
 
     {
         let mut list = context.state.hsts_list.write().unwrap();
-        list.push(HstsEntry::new("localhost".to_owned(), IncludeSubdomains::NotIncluded, None)
-            .unwrap());
+        list.push(
+            HstsEntry::new("localhost".to_owned(), IncludeSubdomains::NotIncluded, None).unwrap(),
+        );
     }
     let url_string = format!("http://localhost:{}", server.socket.port());
     let url = ServoUrl::parse(&url_string).unwrap();
@@ -557,8 +603,10 @@ fn test_fetch_with_hsts() {
     request.local_urls_only = false;
     let response = fetch_with_context(&mut request, &context);
     let _ = server.close();
-    assert_eq!(response.internal_response.unwrap().url().unwrap().scheme(),
-               "https");
+    assert_eq!(
+        response.internal_response.unwrap().url().unwrap().scheme(),
+        "https"
+    );
 }
 
 #[test]
@@ -575,7 +623,7 @@ fn test_fetch_with_sri_network_error() {
     // To calulate hash use :
     // echo -n "alert('Hello, Network Error');" | openssl dgst -sha384 -binary | openssl base64 -A
     request.integrity_metadata =
-           "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
+        "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
     // Set the flag.
     request.local_urls_only = false;
 
@@ -599,7 +647,7 @@ fn test_fetch_with_sri_sucess() {
     // To calulate hash use :
     // echo -n "alert('Hello, Network Error');" | openssl dgst -sha384 -binary | openssl base64 -A
     request.integrity_metadata =
-            "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
+        "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
     // Set the flag.
     request.local_urls_only = false;
 
@@ -613,9 +661,7 @@ fn test_fetch_with_sri_sucess() {
 #[test]
 fn test_fetch_blocked_nosniff() {
     #[inline]
-    fn test_nosniff_request(destination: Destination,
-                            mime: Mime,
-                            should_error: bool) {
+    fn test_nosniff_request(destination: Destination, mime: Mime, should_error: bool) {
         const MESSAGE: &'static [u8] = b"";
         const HEADER: &'static str = "X-Content-Type-Options";
         const VALUE: &'static [u8] = b"nosniff";
@@ -642,9 +688,21 @@ fn test_fetch_blocked_nosniff() {
     }
 
     let tests = vec![
-        (Destination::Script, Mime(TopLevel::Text, SubLevel::Javascript, vec![]), false),
-        (Destination::Script, Mime(TopLevel::Text, SubLevel::Css, vec![]), true),
-        (Destination::Style,  Mime(TopLevel::Text, SubLevel::Css, vec![]), false),
+        (
+            Destination::Script,
+            Mime(TopLevel::Text, SubLevel::Javascript, vec![]),
+            false,
+        ),
+        (
+            Destination::Script,
+            Mime(TopLevel::Text, SubLevel::Css, vec![]),
+            true,
+        ),
+        (
+            Destination::Style,
+            Mime(TopLevel::Text, SubLevel::Css, vec![]),
+            false,
+        ),
     ];
 
     for test in tests {
@@ -656,11 +714,19 @@ fn test_fetch_blocked_nosniff() {
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
+            RequestUri::AbsolutePath(url) => url
+                .split("/")
+                .collect::<String>()
+                .parse::<u32>()
+                .unwrap_or(0),
+            RequestUri::AbsoluteUri(url) => url
+                .path_segments()
+                .unwrap()
+                .next_back()
+                .unwrap()
+                .parse::<u32>()
+                .unwrap_or(0),
+            _ => panic!(),
         };
 
         if redirects >= redirect_cap {
@@ -697,7 +763,7 @@ fn test_fetch_redirect_count_ceiling() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
-        _ => panic!()
+        _ => panic!(),
     };
 }
 
@@ -713,21 +779,33 @@ fn test_fetch_redirect_count_failure() {
 
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(_) | ResponseBody::Receiving(_) => panic!(),
-        _ => { }
+        _ => {},
     };
 }
 
-fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: StatusCode, method: Method) {
+fn test_fetch_redirect_updates_method_runner(
+    tx: Sender<bool>,
+    status_code: StatusCode,
+    method: Method,
+) {
     let handler_method = method.clone();
     let handler_tx = Arc::new(Mutex::new(tx));
 
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
+            RequestUri::AbsolutePath(url) => url
+                .split("/")
+                .collect::<String>()
+                .parse::<u32>()
+                .unwrap_or(0),
+            RequestUri::AbsoluteUri(url) => url
+                .path_segments()
+                .unwrap()
+                .next_back()
+                .unwrap()
+                .parse::<u32>()
+                .unwrap_or(0),
+            _ => panic!(),
         };
 
         let mut test_pass = true;
@@ -735,7 +813,6 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
         if redirects == 0 {
             *response.status_mut() = StatusCode::TemporaryRedirect;
             response.headers_mut().set(Location("1".to_owned()));
-
         } else if redirects == 1 {
             // this makes sure that the request method does't change from the wrong status code
             if handler_method != Method::Get && request.method == Method::Get {
@@ -743,7 +820,6 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
             }
             *response.status_mut() = status_code;
             response.headers_mut().set(Location("2".to_owned()));
-
         } else if request.method != Method::Get {
             test_pass = false;
         }
@@ -752,7 +828,6 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
         if redirects > 0 {
             handler_tx.lock().unwrap().send(test_pass).unwrap();
         }
-
     };
 
     let (mut server, url) = make_server(handler);
@@ -770,7 +845,11 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
 fn test_fetch_redirect_updates_method() {
     let (tx, rx) = channel();
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
+    test_fetch_redirect_updates_method_runner(
+        tx.clone(),
+        StatusCode::MovedPermanently,
+        Method::Post,
+    );
     assert_eq!(rx.recv().unwrap(), true);
     assert_eq!(rx.recv().unwrap(), true);
     // make sure the test doesn't send more data than expected
@@ -788,7 +867,11 @@ fn test_fetch_redirect_updates_method() {
 
     let extension = Method::Extension("FOO".to_owned());
 
-    test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, extension.clone());
+    test_fetch_redirect_updates_method_runner(
+        tx.clone(),
+        StatusCode::MovedPermanently,
+        extension.clone(),
+    );
     assert_eq!(rx.recv().unwrap(), true);
     // for MovedPermanently and Found, Method should only be changed if it was Post
     assert_eq!(rx.recv().unwrap(), false);
@@ -810,9 +893,9 @@ fn response_is_done(response: &Response) -> bool {
     let response_complete = match response.response_type {
         ResponseType::Default | ResponseType::Basic | ResponseType::Cors => {
             (*response.body.lock().unwrap()).is_done()
-        }
+        },
         // if the internal response cannot have a body, it shouldn't block the "done" state
-        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error(..) => true
+        ResponseType::Opaque | ResponseType::OpaqueRedirect | ResponseType::Error(..) => true,
     };
 
     let internal_complete = if let Some(ref res) = response.internal_response {
@@ -868,11 +951,19 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
-            RequestUri::AbsolutePath(url) =>
-                url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
-            RequestUri::AbsoluteUri(url) =>
-                url.path_segments().unwrap().last().unwrap().parse::<u32>().unwrap_or(0),
-            _ => panic!()
+            RequestUri::AbsolutePath(url) => url
+                .split("/")
+                .collect::<String>()
+                .parse::<u32>()
+                .unwrap_or(0),
+            RequestUri::AbsoluteUri(url) => url
+                .path_segments()
+                .unwrap()
+                .last()
+                .unwrap()
+                .parse::<u32>()
+                .unwrap_or(0),
+            _ => panic!(),
         };
 
         if redirects == 1 {
@@ -925,12 +1016,15 @@ fn test_fetch_with_devtools() {
     let mut headers = Headers::new();
 
     headers.set(AcceptEncoding(vec![
-                                   qitem(Encoding::Gzip),
-                                   qitem(Encoding::Deflate),
-                                   qitem(Encoding::EncodingExt("br".to_owned()))
-                                   ]));
+        qitem(Encoding::Gzip),
+        qitem(Encoding::Deflate),
+        qitem(Encoding::EncodingExt("br".to_owned())),
+    ]));
 
-    headers.set(Host { hostname: url.host_str().unwrap().to_owned() , port: url.port().to_owned() });
+    headers.set(Host {
+        hostname: url.host_str().unwrap().to_owned(),
+        port: url.port().to_owned(),
+    });
 
     let accept = Accept(vec![qitem(Mime(TopLevel::Star, SubLevel::Star, vec![]))]);
     headers.set(accept);

@@ -13,10 +13,12 @@ use servo_url::ServoUrl;
 use std::ops::Deref;
 
 #[cfg(test)]
-fn assert_parse(url:          &'static str,
-                content_type: Option<ContentType>,
-                charset:      Option<&str>,
-                data:         Option<&[u8]>) {
+fn assert_parse(
+    url: &'static str,
+    content_type: Option<ContentType>,
+    charset: Option<&str>,
+    data: Option<&[u8]>,
+) {
     let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), None);
@@ -32,7 +34,10 @@ fn assert_parse(url:          &'static str,
             assert_eq!(header_content_type, content_type.as_ref());
 
             let metadata = match response.metadata() {
-                Ok(FetchMetadata::Filtered { filtered: FilteredMetadata::Basic(m), .. }) => m,
+                Ok(FetchMetadata::Filtered {
+                    filtered: FilteredMetadata::Basic(m),
+                    ..
+                }) => m,
                 result => panic!(result),
             };
             assert_eq!(metadata.content_type.map(Serde::into_inner), content_type);
@@ -48,7 +53,12 @@ fn assert_parse(url:          &'static str,
         },
         None => {
             assert!(response.is_network_error());
-            assert_eq!(response.metadata().err(), Some(NetworkError::Internal("Decoding data URL failed".to_owned())));
+            assert_eq!(
+                response.metadata().err(),
+                Some(NetworkError::Internal(
+                    "Decoding data URL failed".to_owned()
+                ))
+            );
         },
     }
 }
@@ -62,78 +72,104 @@ fn empty_invalid() {
 fn plain() {
     assert_parse(
         "data:,hello%20world",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))))),
+        Some(ContentType(Mime(
+            TopLevel::Text,
+            SubLevel::Plain,
+            vec![(Attr::Charset, Value::Ext("US-ASCII".to_owned()))],
+        ))),
         Some("US-ASCII"),
-        Some(b"hello world"));
+        Some(b"hello world"),
+    );
 }
 
 #[test]
 fn plain_ct() {
     assert_parse(
         "data:text/plain,hello",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec!()))),
+        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, vec![]))),
         None,
-        Some(b"hello"));
+        Some(b"hello"),
+    );
 }
 
 #[test]
 fn plain_html() {
     assert_parse(
         "data:text/html,<p>Servo</p>",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec!()))),
+        Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
         None,
-        Some(b"<p>Servo</p>"));
+        Some(b"<p>Servo</p>"),
+    );
 }
 
 #[test]
 fn plain_charset() {
     assert_parse(
         "data:text/plain;charset=latin1,hello",
-        Some(ContentType(Mime(TopLevel::Text,
-                              SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("latin1".to_owned())))))),
+        Some(ContentType(Mime(
+            TopLevel::Text,
+            SubLevel::Plain,
+            vec![(Attr::Charset, Value::Ext("latin1".to_owned()))],
+        ))),
         Some("latin1"),
-        Some(b"hello"));
+        Some(b"hello"),
+    );
 }
 
 #[test]
 fn plain_only_charset() {
     assert_parse(
         "data:;charset=utf-8,hello",
-        Some(ContentType(Mime(TopLevel::Text,
-                              SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Utf8))))),
+        Some(ContentType(Mime(
+            TopLevel::Text,
+            SubLevel::Plain,
+            vec![(Attr::Charset, Value::Utf8)],
+        ))),
         Some("utf-8"),
-        Some(b"hello"));
+        Some(b"hello"),
+    );
 }
 
 #[test]
 fn base64() {
     assert_parse(
         "data:;base64,C62+7w==",
-        Some(ContentType(Mime(TopLevel::Text,
-                              SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("US-ASCII".to_owned())))))),
+        Some(ContentType(Mime(
+            TopLevel::Text,
+            SubLevel::Plain,
+            vec![(Attr::Charset, Value::Ext("US-ASCII".to_owned()))],
+        ))),
         Some("US-ASCII"),
-        Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
+        Some(&[0x0B, 0xAD, 0xBE, 0xEF]),
+    );
 }
 
 #[test]
 fn base64_ct() {
     assert_parse(
         "data:application/octet-stream;base64,C62+7w==",
-        Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext("octet-stream".to_owned()), vec!()))),
+        Some(ContentType(Mime(
+            TopLevel::Application,
+            SubLevel::Ext("octet-stream".to_owned()),
+            vec![],
+        ))),
         None,
-        Some(&[0x0B, 0xAD, 0xBE, 0xEF]));
+        Some(&[0x0B, 0xAD, 0xBE, 0xEF]),
+    );
 }
 
 #[test]
 fn base64_charset() {
     assert_parse(
         "data:text/plain;charset=koi8-r;base64,8PLl9+XkIO3l5Pfl5A==",
-        Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain,
-                              vec!((Attr::Charset, Value::Ext("koi8-r".to_owned())))))),
+        Some(ContentType(Mime(
+            TopLevel::Text,
+            SubLevel::Plain,
+            vec![(Attr::Charset, Value::Ext("koi8-r".to_owned()))],
+        ))),
         Some("koi8-r"),
-        Some(&[0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4]));
+        Some(&[
+            0xF0, 0xF2, 0xE5, 0xF7, 0xE5, 0xE4, 0x20, 0xED, 0xE5, 0xE4, 0xF7, 0xE5, 0xE4,
+        ]),
+    );
 }

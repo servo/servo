@@ -33,7 +33,12 @@ impl CookieStorage {
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
-    pub fn remove(&mut self, cookie: &Cookie, url: &ServoUrl, source: CookieSource) -> Result<Option<Cookie>, ()> {
+    pub fn remove(
+        &mut self,
+        cookie: &Cookie,
+        url: &ServoUrl,
+        source: CookieSource,
+    ) -> Result<Option<Cookie>, ()> {
         let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
@@ -47,10 +52,10 @@ impl CookieStorage {
                 let existing_path = c.cookie.path().as_ref().unwrap().to_owned();
 
                 c.cookie.name() == cookie.cookie.name() &&
-                c.cookie.secure() &&
-                (Cookie::domain_match(new_domain, existing_domain) ||
-                 Cookie::domain_match(existing_domain, new_domain)) &&
-                Cookie::path_match(new_path, existing_path)
+                    c.cookie.secure() &&
+                    (Cookie::domain_match(new_domain, existing_domain) ||
+                        Cookie::domain_match(existing_domain, new_domain)) &&
+                    Cookie::path_match(new_path, existing_path)
             });
 
             if any_overlapping {
@@ -61,8 +66,8 @@ impl CookieStorage {
         // Step 11.1
         let position = cookies.iter().position(|c| {
             c.cookie.domain() == cookie.cookie.domain() &&
-            c.cookie.path() == cookie.cookie.path() &&
-            c.cookie.name() == cookie.cookie.name()
+                c.cookie.path() == cookie.cookie.path() &&
+                c.cookie.name() == cookie.cookie.name()
         });
 
         if let Some(ind) = position {
@@ -126,7 +131,7 @@ impl CookieStorage {
                 let a_creation_time = a.creation_time.to_timespec();
                 let b_creation_time = b.creation_time.to_timespec();
                 a_creation_time.cmp(&b_creation_time)
-            }
+            },
             // Ensure that longer paths are sorted earlier than shorter paths
             Ordering::Greater => Ordering::Less,
             Ordering::Less => Ordering::Greater,
@@ -136,13 +141,17 @@ impl CookieStorage {
     // http://tools.ietf.org/html/rfc6265#section-5.4
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
         let filterer = |c: &&mut Cookie| -> bool {
-            info!(" === SENT COOKIE : {} {} {:?} {:?}",
-                  c.cookie.name(),
-                  c.cookie.value(),
-                  c.cookie.domain(),
-                  c.cookie.path());
-            info!(" === SENT COOKIE RESULT {}",
-                  c.appropriate_for_url(url, source));
+            info!(
+                " === SENT COOKIE : {} {} {:?} {:?}",
+                c.cookie.name(),
+                c.cookie.value(),
+                c.cookie.domain(),
+                c.cookie.path()
+            );
+            info!(
+                " === SENT COOKIE RESULT {}",
+                c.appropriate_for_url(url, source)
+            );
             // Step 1
             c.appropriate_for_url(url, source)
         };
@@ -161,7 +170,9 @@ impl CookieStorage {
             (match acc.len() {
                 0 => acc,
                 _ => acc + "; ",
-            }) + &c.cookie.name() + "=" + &c.cookie.value()
+            }) + &c.cookie.name() +
+                "=" +
+                &c.cookie.value()
         };
         let result = url_cookies.iter_mut().fold("".to_owned(), reducer);
 
@@ -172,17 +183,21 @@ impl CookieStorage {
         }
     }
 
-    pub fn cookies_data_for_url<'a>(&'a mut self,
-                                    url: &'a ServoUrl,
-                                    source: CookieSource)
-                                    -> impl Iterator<Item = cookie_rs::Cookie<'static>> + 'a {
+    pub fn cookies_data_for_url<'a>(
+        &'a mut self,
+        url: &'a ServoUrl,
+        source: CookieSource,
+    ) -> impl Iterator<Item = cookie_rs::Cookie<'static>> + 'a {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
-        cookies.iter_mut().filter(move |c| c.appropriate_for_url(url, source)).map(|c| {
-            c.touch();
-            c.cookie.clone()
-        })
+        cookies
+            .iter_mut()
+            .filter(move |c| c.appropriate_for_url(url, source))
+            .map(|c| {
+                c.touch();
+                c.cookie.clone()
+            })
     }
 }
 
@@ -219,8 +234,10 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
 fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
     let mut oldest_accessed: Option<(usize, Tm)> = None;
     for (i, c) in cookies.iter().enumerate() {
-        if (c.cookie.secure() == is_secure_cookie) &&
-           oldest_accessed.as_ref().map_or(true, |a| c.last_access < a.1) {
+        if (c.cookie.secure() == is_secure_cookie) && oldest_accessed
+            .as_ref()
+            .map_or(true, |a| c.last_access < a.1)
+        {
             oldest_accessed = Some((i, c.last_access));
         }
     }

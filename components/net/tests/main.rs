@@ -58,18 +58,17 @@ struct FetchResponseCollector {
 
 fn create_embedder_proxy() -> EmbedderProxy {
     let (sender, _) = channel();
-    let event_loop_waker = | | {
-        struct DummyEventLoopWaker {
-        }
+    let event_loop_waker = || {
+        struct DummyEventLoopWaker {}
         impl DummyEventLoopWaker {
             fn new() -> DummyEventLoopWaker {
-                DummyEventLoopWaker { }
+                DummyEventLoopWaker {}
             }
         }
         impl EventLoopWaker for DummyEventLoopWaker {
-            fn wake(&self) { }
+            fn wake(&self) {}
             fn clone(&self) -> Box<EventLoopWaker + Send> {
-                Box::new(DummyEventLoopWaker { })
+                Box::new(DummyEventLoopWaker {})
             }
         }
 
@@ -78,11 +77,14 @@ fn create_embedder_proxy() -> EmbedderProxy {
 
     EmbedderProxy {
         sender: sender,
-        event_loop_waker: event_loop_waker()
+        event_loop_waker: event_loop_waker(),
     }
 }
 
-fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>, fc: Option<EmbedderProxy>) -> FetchContext {
+fn new_fetch_context(
+    dc: Option<Sender<DevtoolsControlMsg>>,
+    fc: Option<EmbedderProxy>,
+) -> FetchContext {
     let ssl_client = create_ssl_client(&resources::read_string(Resource::SSLCertificates));
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
     FetchContext {
@@ -110,9 +112,7 @@ fn fetch(request: &mut Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Respo
 
 fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response {
     let (sender, receiver) = channel();
-    let mut target = FetchResponseCollector {
-        sender: sender,
-    };
+    let mut target = FetchResponseCollector { sender: sender };
 
     methods::fetch(request, &mut target, context);
 
@@ -121,9 +121,7 @@ fn fetch_with_context(request: &mut Request, context: &FetchContext) -> Response
 
 fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Response {
     let (sender, receiver) = channel();
-    let mut target = FetchResponseCollector {
-        sender: sender,
-    };
+    let mut target = FetchResponseCollector { sender: sender };
 
     methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None, None));
 
@@ -132,7 +130,10 @@ fn fetch_with_cors_cache(request: &mut Request, cache: &mut CorsCache) -> Respon
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {
     // this is a Listening server because of handle_threads()
-    let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 2).unwrap();
+    let server = Server::http("0.0.0.0:0")
+        .unwrap()
+        .handle_threads(handler, 2)
+        .unwrap();
     let url_string = format!("http://localhost:{}", server.socket.port());
     let url = ServoUrl::parse(&url_string).unwrap();
     (server, url)

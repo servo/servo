@@ -33,7 +33,7 @@ fn test_sniff_mp4_matcher() {
                 panic!("Didn't read mime type")
             }
         },
-        Err(e) => panic!("Couldn't read from file with error {}", e)
+        Err(e) => panic!("Couldn't read from file with error {}", e),
     }
 }
 
@@ -43,9 +43,9 @@ fn test_sniff_mp4_matcher_long() {
     let matcher = Mp4Matcher;
 
     let mut data: [u8; 260] = [0; 260];
-    &data[.. 11].clone_from_slice(
-        &[0x00, 0x00, 0x01, 0x04, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34]
-    );
+    &data[..11].clone_from_slice(&[
+        0x00, 0x00, 0x01, 0x04, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34,
+    ]);
 
     assert!(matcher.matches(&data));
 }
@@ -57,14 +57,19 @@ fn test_validate_classifier() {
 }
 
 #[cfg(test)]
-fn test_sniff_with_flags(filename_orig: &path::Path,
-                                 type_string: &str,
-                                 subtype_string: &str,
-                                 supplied_type: Option<(&'static str, &'static str)>,
-                                 no_sniff_flag: NoSniffFlag,
-                                 apache_bug_flag: ApacheBugFlag) {
+fn test_sniff_with_flags(
+    filename_orig: &path::Path,
+    type_string: &str,
+    subtype_string: &str,
+    supplied_type: Option<(&'static str, &'static str)>,
+    no_sniff_flag: NoSniffFlag,
+    apache_bug_flag: ApacheBugFlag,
+) {
     let current_working_directory = env::current_dir().unwrap();
-    println!("The current directory is {}", current_working_directory.display());
+    println!(
+        "The current directory is {}",
+        current_working_directory.display()
+    );
 
     let mut filename = PathBuf::from("tests/parsable_mime/");
     filename.push(filename_orig);
@@ -76,37 +81,48 @@ fn test_sniff_with_flags(filename_orig: &path::Path,
     match read_result {
         Ok(data) => {
             let supplied_type = supplied_type.map(|(x, y)| (x.parse().unwrap(), y));
-            let (parsed_type, parsed_subtp) = classifier.classify(LoadContext::Browsing,
-                                                                  no_sniff_flag,
-                                                                  apache_bug_flag,
-                                                                  &as_string_option(supplied_type),
-                                                                  &data);
-            if (&parsed_type[..] != type_string) ||
-                (&parsed_subtp[..] != subtype_string) {
-                    panic!("File {:?} parsed incorrectly should be {}/{}, parsed as {}/{}",
-                            filename, type_string, subtype_string,
-                            parsed_type, parsed_subtp);
+            let (parsed_type, parsed_subtp) = classifier.classify(
+                LoadContext::Browsing,
+                no_sniff_flag,
+                apache_bug_flag,
+                &as_string_option(supplied_type),
+                &data,
+            );
+            if (&parsed_type[..] != type_string) || (&parsed_subtp[..] != subtype_string) {
+                panic!(
+                    "File {:?} parsed incorrectly should be {}/{}, parsed as {}/{}",
+                    filename, type_string, subtype_string, parsed_type, parsed_subtp
+                );
             }
-        }
-        Err(e) => panic!("Couldn't read from file {:?} with error {}",
-                         filename, e),
+        },
+        Err(e) => panic!("Couldn't read from file {:?} with error {}", filename, e),
     }
 }
 
 #[cfg(test)]
-fn test_sniff_full(filename_orig: &path::Path, type_string: &str, subtype_string: &str,
-                   supplied_type: Option<(&'static str, &'static str)>) {
-    test_sniff_with_flags(filename_orig,
-                          type_string,
-                          subtype_string,
-                          supplied_type,
-                          NoSniffFlag::Off,
-                          ApacheBugFlag::Off)
+fn test_sniff_full(
+    filename_orig: &path::Path,
+    type_string: &str,
+    subtype_string: &str,
+    supplied_type: Option<(&'static str, &'static str)>,
+) {
+    test_sniff_with_flags(
+        filename_orig,
+        type_string,
+        subtype_string,
+        supplied_type,
+        NoSniffFlag::Off,
+        ApacheBugFlag::Off,
+    )
 }
 
 #[cfg(test)]
-fn test_sniff_classification(file: &str, type_string: &str, subtype_string: &str,
-                             supplied_type: Option<(&'static str, &'static str)>) {
+fn test_sniff_classification(
+    file: &str,
+    type_string: &str,
+    subtype_string: &str,
+    supplied_type: Option<(&'static str, &'static str)>,
+) {
     let mut x = PathBuf::from("./");
     x.push(type_string);
     x.push(subtype_string);
@@ -215,7 +231,12 @@ fn test_sniff_vsn_ms_fontobject() {
 #[test]
 #[should_panic]
 fn test_sniff_true_type() {
-    test_sniff_full(&PathBuf::from("unknown/true_type.ttf"), "(TrueType)", "", None);
+    test_sniff_full(
+        &PathBuf::from("unknown/true_type.ttf"),
+        "(TrueType)",
+        "",
+        None,
+    );
 }
 
 #[test]
@@ -227,7 +248,12 @@ fn test_sniff_open_type() {
 #[test]
 #[should_panic]
 fn test_sniff_true_type_collection() {
-    test_sniff_full(&PathBuf::from("unknown/true_type_collection.ttc"), "(TrueType Collection)", "", None);
+    test_sniff_full(
+        &PathBuf::from("unknown/true_type_collection.ttc"),
+        "(TrueType Collection)",
+        "",
+        None,
+    );
 }
 
 #[test]
@@ -470,91 +496,145 @@ fn test_sniff_utf_8_bom() {
 #[test]
 fn test_sniff_rss_feed() {
     // RSS feeds
-    test_sniff_full(&PathBuf::from("text/xml/feed.rss"), "application", "rss+xml", Some(("text", "html")));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss.xml"), "application", "rss+xml", Some(("text", "html")));
+    test_sniff_full(
+        &PathBuf::from("text/xml/feed.rss"),
+        "application",
+        "rss+xml",
+        Some(("text", "html")),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss.xml"),
+        "application",
+        "rss+xml",
+        Some(("text", "html")),
+    );
     // Not RSS feeds
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_1.xml"), "text", "html", Some(("text", "html")));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_2.xml"), "text", "html", Some(("text", "html")));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_3.xml"), "text", "html", Some(("text", "html")));
-    test_sniff_full(&PathBuf::from("text/xml/rdf_rss_ko_4.xml"), "text", "html", Some(("text", "html")));
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_1.xml"),
+        "text",
+        "html",
+        Some(("text", "html")),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_2.xml"),
+        "text",
+        "html",
+        Some(("text", "html")),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_3.xml"),
+        "text",
+        "html",
+        Some(("text", "html")),
+    );
+    test_sniff_full(
+        &PathBuf::from("text/xml/rdf_rss_ko_4.xml"),
+        "text",
+        "html",
+        Some(("text", "html")),
+    );
 }
 
 #[test]
 fn test_sniff_atom_feed() {
-    test_sniff_full(&PathBuf::from("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
+    test_sniff_full(
+        &PathBuf::from("text/xml/feed.atom"),
+        "application",
+        "atom+xml",
+        Some(("text", "html")),
+    );
 }
 
 #[test]
 fn test_sniff_binary_file() {
-    test_sniff_full(&PathBuf::from("unknown/binary_file"), "application", "octet-stream", None);
+    test_sniff_full(
+        &PathBuf::from("unknown/binary_file"),
+        "application",
+        "octet-stream",
+        None,
+    );
 }
 
 #[test]
 fn test_sniff_atom_feed_with_no_sniff_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/xml/feed.atom"),
-                                  "text",
-                                  "html",
-                                  Some(("text", "html")),
-                                  NoSniffFlag::On,
-                                  ApacheBugFlag::Off);
+    test_sniff_with_flags(
+        &PathBuf::from("text/xml/feed.atom"),
+        "text",
+        "html",
+        Some(("text", "html")),
+        NoSniffFlag::On,
+        ApacheBugFlag::Off,
+    );
 }
 
 #[test]
 fn test_sniff_with_no_sniff_flag_on_and_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/xml/feed.atom"),
-                                  "text",
-                                  "html",
-                                  Some(("text", "html")),
-                                  NoSniffFlag::On,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/xml/feed.atom"),
+        "text",
+        "html",
+        Some(("text", "html")),
+        NoSniffFlag::On,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_utf_8_bom_with_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/plain/utf8bom.txt"),
-                                  "text",
-                                  "plain",
-                                  Some(("dummy", "text")),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/plain/utf8bom.txt"),
+        "text",
+        "plain",
+        Some(("dummy", "text")),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_utf_16be_bom_with_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/plain/utf16bebom.txt"),
-                                  "text",
-                                  "plain",
-                                  Some(("dummy", "text")),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/plain/utf16bebom.txt"),
+        "text",
+        "plain",
+        Some(("dummy", "text")),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_utf_16le_bom_with_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("text/plain/utf16lebom.txt"),
-                                  "text",
-                                  "plain",
-                                  Some(("dummy", "text")),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("text/plain/utf16lebom.txt"),
+        "text",
+        "plain",
+        Some(("dummy", "text")),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_octet_stream_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("unknown/binary_file"),
-                                  "application",
-                                  "octet-stream",
-                                  Some(("dummy", "binary")),
-                                  NoSniffFlag::Off,
-                                  ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("unknown/binary_file"),
+        "application",
+        "octet-stream",
+        Some(("dummy", "binary")),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }
 
 #[test]
 fn test_sniff_mp4_video_apache_flag_on() {
-    test_sniff_with_flags(&PathBuf::from("video/mp4/test.mp4"),
-                          "application",
-                          "octet-stream",
-                          Some(("video", "mp4")),
-                          NoSniffFlag::Off,
-                          ApacheBugFlag::On);
+    test_sniff_with_flags(
+        &PathBuf::from("video/mp4/test.mp4"),
+        "application",
+        "octet-stream",
+        Some(("video", "mp4")),
+        NoSniffFlag::Off,
+        ApacheBugFlag::On,
+    );
 }

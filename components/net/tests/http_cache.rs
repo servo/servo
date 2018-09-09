@@ -13,12 +13,13 @@ use servo_url::ServoUrl;
 use std::sync::mpsc::channel;
 use time;
 
-
 #[test]
 fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
-    let response_bodies = vec![ResponseBody::Receiving(vec![]),
-                               ResponseBody::Empty,
-                               ResponseBody::Done(vec![])];
+    let response_bodies = vec![
+        ResponseBody::Receiving(vec![]),
+        ResponseBody::Empty,
+        ResponseBody::Done(vec![]),
+    ];
     let url = ServoUrl::parse("https://servo.org").unwrap();
     let request = Request::from_init(RequestInit {
         url: url.clone(),
@@ -26,7 +27,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         destination: Destination::Document,
         origin: url.clone().origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let mut response = Response::new(url.clone());
     // Expires header makes the response cacheable.
@@ -44,7 +45,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         assert!(refreshed_response.is_some());
         match body {
             ResponseBody::Receiving(_) => assert!(done_chan.is_some()),
-            ResponseBody::Empty | ResponseBody::Done(_) => assert!(done_chan.is_none())
+            ResponseBody::Empty | ResponseBody::Done(_) => assert!(done_chan.is_none()),
         }
     })
 }

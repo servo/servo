@@ -31,21 +31,29 @@ pub fn replace_host_table(table: HashMap<String, IpAddr>) {
 }
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
-    hostsfile_content.lines().filter_map(|line| {
-        let mut iter = line.split('#').next().unwrap().split_whitespace();
-        Some((iter.next()?.parse().ok()?, iter))
-    }).flat_map(|(ip, hosts)| {
-        hosts.filter(|host| {
-            let invalid = ['\0', '\t', '\n', '\r', ' ', '#', '%', '/', ':', '?', '@', '[', '\\', ']'];
-            host.parse::<Ipv4Addr>().is_err() && !host.contains(&invalid[..])
-        }).map(move |host| {
-            (host.to_owned(), ip)
-        })
-    }).collect()
+    hostsfile_content
+        .lines()
+        .filter_map(|line| {
+            let mut iter = line.split('#').next().unwrap().split_whitespace();
+            Some((iter.next()?.parse().ok()?, iter))
+        }).flat_map(|(ip, hosts)| {
+            hosts
+                .filter(|host| {
+                    let invalid = [
+                        '\0', '\t', '\n', '\r', ' ', '#', '%', '/', ':', '?', '@', '[', '\\', ']',
+                    ];
+                    host.parse::<Ipv4Addr>().is_err() && !host.contains(&invalid[..])
+                }).map(move |host| (host.to_owned(), ip))
+        }).collect()
 }
 
 pub fn replace_host(host: &str) -> Cow<str> {
-    HOST_TABLE.lock().unwrap().as_ref()
+    HOST_TABLE
+        .lock()
+        .unwrap()
+        .as_ref()
         .and_then(|table| table.get(host))
-        .map_or(host.into(), |replaced_host| replaced_host.to_string().into())
+        .map_or(host.into(), |replaced_host| {
+            replaced_host.to_string().into()
+        })
 }
