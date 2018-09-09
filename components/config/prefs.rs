@@ -26,6 +26,7 @@ lazy_static! {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[serde(untagged)]
 pub enum PrefValue {
     Boolean(bool),
     String(String),
