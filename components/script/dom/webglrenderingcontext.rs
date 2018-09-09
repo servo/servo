@@ -645,24 +645,25 @@ impl WebGLRenderingContext {
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
                 for rgba in pixels.chunks_mut(2) {
-                    let pix = NativeEndian::read_u16(rgba);
-                    NativeEndian::write_u16(rgba, if pix & (1 << 15) != 0 { pix } else { 0 });
+                    if NativeEndian::read_u16(rgba) & 1 == 0 {
+                        NativeEndian::write_u16(rgba, 0);
+                    }
                 }
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
                 for rgba in pixels.chunks_mut(2) {
                     let pix = NativeEndian::read_u16(rgba);
-                    let extend_to_8_bits = |val| { (val | val << 4) as u8 };
-                    let r = extend_to_8_bits(pix & 0x000f);
-                    let g = extend_to_8_bits((pix & 0x00f0) >> 4);
-                    let b = extend_to_8_bits((pix & 0x0f00) >> 8);
-                    let a = extend_to_8_bits((pix & 0xf000) >> 12);
+                    let extend_to_8_bits = |val| (val | val << 4) as u8;
+                    let r = extend_to_8_bits(pix >> 12 & 0x0f);
+                    let g = extend_to_8_bits(pix >> 8 & 0x0f);
+                    let b = extend_to_8_bits(pix >> 4 & 0x0f);
+                    let a = extend_to_8_bits(pix & 0x0f);
                     NativeEndian::write_u16(
                         rgba,
-                        (multiply_u8_pixel(r, a) & 0xf0) as u16 >> 4 |
-                        (multiply_u8_pixel(g, a) & 0xf0) as u16 |
-                        ((multiply_u8_pixel(b, a) & 0xf0) as u16) << 4 |
-                        pix & 0xf000,
+                        ((multiply_u8_pixel(r, a) & 0xf0) as u16) << 8 |
+                        ((multiply_u8_pixel(g, a) & 0xf0) as u16) << 4 |
+                        ((multiply_u8_pixel(b, a) & 0xf0) as u16) |
+                        ((a & 0x0f) as u16),
                     );
                 }
             },
@@ -3450,7 +3451,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         border: i32,
         format: u32,
         data_type: u32,
-        mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
+        pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
         if !self.extension_manager.is_tex_type_enabled(data_type) {
             return Ok(self.webgl_error(InvalidEnum));
@@ -3488,7 +3489,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // initialized to 0 is passed.
         let buff = match *pixels {
             None => vec![0u8; expected_byte_length as usize],
-            Some(ref mut data) => data.to_vec(),
+            Some(ref data) => data.to_vec(),
         };
 
         // From the WebGL spec:
@@ -4035,10 +4036,7 @@ fn rgba8_image_to_tex_image_data(
         },
         (TexFormat::Luminance, TexDataType::UnsignedByte) => {
             for i in 0..pixel_count {
-                let p = {
-                    let rgb = &pixels[i * 4..i * 4 + 3];
-                    luminance(rgb[0], rgb[1], rgb[2])
-                };
+                let p = pixels[i * 4];
                 pixels[i] = p;
             }
             pixels.truncate(pixel_count);
@@ -4048,7 +4046,7 @@ fn rgba8_image_to_tex_image_data(
             for i in 0..pixel_count {
                 let (lum, a) = {
                     let rgba = &pixels[i * 4..i * 4 + 4];
-                    (luminance(rgba[0], rgba[1], rgba[2]), rgba[3])
+                    (rgba[0], rgba[3])
                 };
                 pixels[i * 2] = lum;
                 pixels[i * 2 + 1] = a;
