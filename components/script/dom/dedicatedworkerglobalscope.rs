@@ -482,12 +482,11 @@ impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
         let task = Box::new(task!(post_worker_message: move || {
             Worker::handle_message(worker, data);
         }));
-        // TODO: Change this task source to a new `unshipped-port-message-queue` task source
         self.parent_sender.send(CommonScriptMsg::Task(
             WorkerEvent,
             task,
             Some(pipeline_id),
-            TaskSourceName::DOMManipulation,
+            TaskSourceName::UnshippedPortMessageQueue,
         )).unwrap();
         Ok(())
     }
