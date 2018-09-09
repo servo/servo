@@ -5,6 +5,7 @@
 pub mod dom_manipulation;
 pub mod file_reading;
 pub mod history_traversal;
+pub mod media_element;
 pub mod networking;
 pub mod performance_timeline;
 pub mod remote_event;
@@ -29,6 +30,7 @@ pub enum TaskSourceName {
     PerformanceTimeline,
     UserInteraction,
     RemoteEvent,
+    MediaElement,
     Websocket,
 }
 
