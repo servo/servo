@@ -161,9 +161,9 @@ Test is finished.
 promise_test(test_function, name, properties)
 ```
 
-`test_function` is a function that receives a test as an argument and returns a
-promise. The test completes when the returned promise resolves. The test fails
-if the returned promise rejects.
+`test_function` is a function that receives a test as an argument. It must
+return a promise. The test completes when the returned promise resolves. The
+test fails if the returned promise rejects.
 
 E.g.:
 
