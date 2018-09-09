@@ -110,7 +110,7 @@ macro_rules! impl_generic_specified_value_info {
                 $param::collect_completion_keywords(f);
             }
         }
-    }
+    };
 }
 impl_generic_specified_value_info!(Option<T>);
 impl_generic_specified_value_info!(Vec<T>);

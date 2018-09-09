@@ -44,7 +44,9 @@ use std::fmt::{self, Write};
 ///   implement `Debug` by a single call to `ToCss::to_css`.
 pub trait ToCss {
     /// Serialize `self` in CSS syntax, writing to `dest`.
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write;
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write;
 
     /// Serialize `self` in CSS syntax and return a string.
     ///
@@ -57,22 +59,34 @@ pub trait ToCss {
     }
 }
 
-impl<'a, T> ToCss for &'a T where T: ToCss + ?Sized {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+impl<'a, T> ToCss for &'a T
+where
+    T: ToCss + ?Sized,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         (*self).to_css(dest)
     }
 }
 
 impl ToCss for str {
     #[inline]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         serialize_string(self, dest)
     }
 }
 
 impl ToCss for String {
     #[inline]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         serialize_string(self, dest)
     }
 }
@@ -82,7 +96,10 @@ where
     T: ToCss,
 {
     #[inline]
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.as_ref().map_or(Ok(()), |value| value.to_css(dest))
     }
 }
@@ -103,7 +120,10 @@ where
     /// Creates a new `CssWriter`.
     #[inline]
     pub fn new(inner: &'w mut W) -> Self {
-        Self { inner, prefix: Some("") }
+        Self {
+            inner,
+            prefix: Some(""),
+        }
     }
 }
 
@@ -179,7 +199,7 @@ where
     #[inline]
     fn write_item<F>(&mut self, f: F) -> fmt::Result
     where
-        F: FnOnce(&mut CssWriter<'b, W>) -> fmt::Result
+        F: FnOnce(&mut CssWriter<'b, W>) -> fmt::Result,
     {
         let old_prefix = self.inner.prefix;
         if old_prefix.is_none() {
@@ -192,7 +212,7 @@ where
         match (old_prefix, self.inner.prefix) {
             (_, None) => {
                 // This call produced output and cleaned up after itself.
-            }
+            },
             (None, Some(p)) => {
                 // Some previous call to `item` produced output,
                 // but this one did not, prefix should be the same as
@@ -201,12 +221,12 @@ where
                 // We clean up here even though it's not necessary just
                 // to be able to do all these assertion checks.
                 self.inner.prefix = None;
-            }
+            },
             (Some(old), Some(new)) => {
                 // No previous call to `item` produced output, and this one
                 // either.
                 debug_assert_eq!(old, new);
-            }
+            },
         }
         Ok(())
     }
@@ -282,7 +302,7 @@ impl Separator for Comma {
         parse_one: F,
     ) -> Result<Vec<T>, ParseError<'i, E>>
     where
-        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>,
     {
         input.parse_comma_separated(parse_one)
     }
@@ -298,16 +318,16 @@ impl Separator for Space {
         mut parse_one: F,
     ) -> Result<Vec<T>, ParseError<'i, E>>
     where
-        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>,
     {
-        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+        input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
         let mut results = vec![parse_one(input)?];
         loop {
-            input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+            input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
             if let Ok(item) = input.try(&mut parse_one) {
                 results.push(item);
             } else {
-                return Ok(results)
+                return Ok(results);
             }
         }
     }
@@ -323,15 +343,15 @@ impl Separator for CommaWithSpace {
         mut parse_one: F,
     ) -> Result<Vec<T>, ParseError<'i, E>>
     where
-        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>
+        F: for<'tt> FnMut(&mut Parser<'i, 'tt>) -> Result<T, ParseError<'i, E>>,
     {
-        input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+        input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
         let mut results = vec![parse_one(input)?];
         loop {
-            input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+            input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
             let comma_location = input.current_source_location();
             let comma = input.try(|i| i.expect_comma()).is_ok();
-            input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
+            input.skip_whitespace(); // Unnecessary for correctness, but may help try() rewind less.
             if let Ok(item) = input.try(&mut parse_one) {
                 results.push(item);
             } else if comma {
@@ -355,8 +375,14 @@ impl OneOrMoreSeparated for UnicodeRange {
     type S = Comma;
 }
 
-impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreSeparated {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+impl<T> ToCss for Vec<T>
+where
+    T: ToCss + OneOrMoreSeparated,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         let mut iter = self.iter();
         iter.next().unwrap().to_css(dest)?;
         for item in iter {
@@ -367,24 +393,35 @@ impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreSeparated {
     }
 }
 
-impl<T> ToCss for Box<T> where T: ?Sized + ToCss {
+impl<T> ToCss for Box<T>
+where
+    T: ?Sized + ToCss,
+{
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where W: Write,
+    where
+        W: Write,
     {
         (**self).to_css(dest)
     }
 }
 
-impl<T> ToCss for Arc<T> where T: ?Sized + ToCss {
+impl<T> ToCss for Arc<T>
+where
+    T: ?Sized + ToCss,
+{
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-        where W: Write,
+    where
+        W: Write,
     {
         (**self).to_css(dest)
     }
 }
 
 impl ToCss for Au {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
         self.to_f64_px().to_css(dest)?;
         dest.write_str("px")
     }
@@ -393,7 +430,10 @@ impl ToCss for Au {
 macro_rules! impl_to_css_for_predefined_type {
     ($name: ty) => {
         impl<'a> ToCss for $name {
-            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result where W: Write {
+            fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+            where
+                W: Write,
+            {
                 ::cssparser::ToCss::to_css(self, dest)
             }
         }
