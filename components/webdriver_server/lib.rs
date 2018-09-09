@@ -39,6 +39,7 @@ use regex::Captures;
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
+use serde::de::{Deserializer, MapAccess, Visitor};
 use serde_json::Value;
 use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
@@ -187,7 +188,43 @@ struct GetPrefsParameters {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 struct SetPrefsParameters {
+    #[serde(deserialize_with="map_to_vec")]
     prefs: Vec<(String, PrefValue)>,
+}
+
+fn map_to_vec<'de, D>(de: D) -> Result<Vec<(String, PrefValue)>, D::Error>
+    where D: Deserializer<'de> {
+    de.deserialize_map(TupleVecMapVisitor)
+}
+
+struct TupleVecMapVisitor;
+
+impl<'de> Visitor<'de> for TupleVecMapVisitor
+{
+    type Value = Vec<(String, PrefValue)>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a map")
+    }
+
+    #[inline]
+    fn visit_unit<E>(self) -> Result<Self::Value, E> {
+        Ok(Vec::new())
+    }
+
+    #[inline]
+    fn visit_map<T>(self, mut access: T) -> Result<Self::Value, T::Error>
+    where
+        T: MapAccess<'de>,
+    {
+        let mut values = Vec::new();
+
+        while let Some((key, value)) = access.next_entry()? {
+            values.push((key, value));
+        }
+
+        Ok(values)
+    }
 }
 
 impl Handler {
