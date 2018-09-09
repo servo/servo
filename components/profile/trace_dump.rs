@@ -38,7 +38,8 @@ impl TraceDump {
     /// Create a new TraceDump and write the prologue of the HTML file out to
     /// disk.
     pub fn new<P>(trace_file_path: P) -> io::Result<TraceDump>
-        where P: AsRef<path::Path>
+    where
+        P: AsRef<path::Path>,
     {
         let mut file = fs::File::create(trace_file_path)?;
         write_prologue(&mut file)?;
@@ -46,10 +47,12 @@ impl TraceDump {
     }
 
     /// Write one trace to the trace dump file.
-    pub fn write_one(&mut self,
-                     category: &(ProfilerCategory, Option<TimerMetadata>),
-                     time: (u64, u64),
-                     energy: (u64, u64)) {
+    pub fn write_one(
+        &mut self,
+        category: &(ProfilerCategory, Option<TimerMetadata>),
+        time: (u64, u64),
+        energy: (u64, u64),
+    ) {
         let entry = TraceEntry {
             category: category.0,
             metadata: category.1.clone(),
