@@ -653,17 +653,17 @@ impl WebGLRenderingContext {
             (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
                 for rgba in pixels.chunks_mut(2) {
                     let pix = NativeEndian::read_u16(rgba);
-                    let extend_to_8_bits = |val| { (val | val << 4) as u8 };
-                    let r = extend_to_8_bits(pix & 0x000f);
-                    let g = extend_to_8_bits((pix & 0x00f0) >> 4);
-                    let b = extend_to_8_bits((pix & 0x0f00) >> 8);
-                    let a = extend_to_8_bits((pix & 0xf000) >> 12);
+                    let extend_to_8_bits = |val| (val | val << 4) as u8;
+                    let r = extend_to_8_bits(pix >> 12 & 0x0f);
+                    let g = extend_to_8_bits(pix >> 8 & 0x0f);
+                    let b = extend_to_8_bits(pix >> 4 & 0x0f);
+                    let a = extend_to_8_bits(pix & 0x0f);
                     NativeEndian::write_u16(
                         rgba,
-                        (multiply_u8_pixel(r, a) & 0xf0) as u16 >> 4 |
-                        (multiply_u8_pixel(g, a) & 0xf0) as u16 |
-                        ((multiply_u8_pixel(b, a) & 0xf0) as u16) << 4 |
-                        pix & 0xf000,
+                        ((multiply_u8_pixel(r, a) & 0xf0) as u16) << 8 |
+                        ((multiply_u8_pixel(g, a) & 0xf0) as u16) << 4 |
+                        ((multiply_u8_pixel(b, a) & 0xf0) as u16) |
+                        ((a & 0x0f) as u16),
                     );
                 }
             },
