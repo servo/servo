@@ -375,7 +375,7 @@ fn obtain_response(client: &Client<Connector, WrappedBody>,
     let connect_start = precise_time_ms();
     let request = HyperRequest::builder()
         .method(method)
-        .uri(url.clone().into_url().as_ref().replace("|", "%7C"))
+        .uri(url.clone().into_url().as_ref().replace("|", "%7C").replace("{", "%7B").replace("}", "%7C"))
         .body(WrappedBody::new(request_body.clone().into()));
 
     let mut request = match request {
