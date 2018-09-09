@@ -4,13 +4,15 @@
 
 #![crate_name = "gfx_traits"]
 #![crate_type = "rlib"]
-
 #![deny(unsafe_code)]
 
 extern crate malloc_size_of;
-#[macro_use] extern crate malloc_size_of_derive;
-#[macro_use] extern crate range;
-#[macro_use] extern crate serde;
+#[macro_use]
+extern crate malloc_size_of_derive;
+#[macro_use]
+extern crate range;
+#[macro_use]
+extern crate serde;
 
 pub mod print_tree;
 
@@ -32,7 +34,7 @@ impl Epoch {
 pub struct StackingContextId(
     /// The identifier for this StackingContext, derived from the Flow's memory address
     /// and fragment type.  As a space optimization, these are combined into a single word.
-    pub u64
+    pub u64,
 );
 
 impl StackingContextId {
@@ -87,7 +89,7 @@ fn next_special_id() -> usize {
         SPECIAL_SCROLL_ROOT_ID_MASK
 }
 
-pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) ->  usize {
+pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> usize {
     debug_assert_eq!(id & (fragment_type as usize), 0);
     if fragment_type == FragmentType::FragmentBody {
         id

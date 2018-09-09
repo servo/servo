@@ -44,7 +44,10 @@ pub struct FailedAllocationError {
 impl FailedAllocationError {
     #[inline]
     pub fn new(reason: &'static str) -> Self {
-        Self { reason, allocation_info: None }
+        Self {
+            reason,
+            allocation_info: None,
+        }
     }
 }
 
@@ -57,9 +60,11 @@ impl error::Error for FailedAllocationError {
 impl fmt::Display for FailedAllocationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.allocation_info {
-            Some(ref info) => {
-                write!(f, "{}, allocation: (size: {}, alignment: {})", self.reason, info.size, info.alignment)
-            },
+            Some(ref info) => write!(
+                f,
+                "{}, allocation: (size: {}, alignment: {})",
+                self.reason, info.size, info.alignment
+            ),
             None => self.reason.fmt(f),
         }
     }

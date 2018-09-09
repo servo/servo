@@ -1,25 +1,26 @@
 // FORK NOTE: Copied from liballoc_system, removed unnecessary APIs,
 // APIs take size/align directly instead of Layout
 
-
-
-
 // The minimum alignment guaranteed by the architecture. This value is used to
 // add fast paths for low alignment values. In practice, the alignment is a
 // constant at the call site and the branch will be optimized out.
-#[cfg(all(any(target_arch = "x86",
-              target_arch = "arm",
-              target_arch = "mips",
-              target_arch = "powerpc",
-              target_arch = "powerpc64",
-              target_arch = "asmjs",
-              target_arch = "wasm32")))]
+#[cfg(all(any(
+    target_arch = "x86",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "powerpc64",
+    target_arch = "asmjs",
+    target_arch = "wasm32"
+)))]
 const MIN_ALIGN: usize = 8;
-#[cfg(all(any(target_arch = "x86_64",
-              target_arch = "aarch64",
-              target_arch = "mips64",
-              target_arch = "s390x",
-              target_arch = "sparc64")))]
+#[cfg(all(any(
+    target_arch = "x86_64",
+    target_arch = "aarch64",
+    target_arch = "mips64",
+    target_arch = "s390x",
+    target_arch = "sparc64"
+)))]
 const MIN_ALIGN: usize = 16;
 
 pub use self::platform::{alloc, dealloc, realloc};
@@ -100,7 +101,6 @@ mod platform {
     type DWORD = u32;
     type BOOL = i32;
 
-
     extern "system" {
         fn GetProcessHeap() -> HANDLE;
         fn HeapAlloc(hHeap: HANDLE, dwFlags: DWORD, dwBytes: SIZE_T) -> LPVOID;
@@ -123,8 +123,7 @@ mod platform {
     }
 
     #[inline]
-    unsafe fn allocate_with_flags(size: usize, align: usize, flags: DWORD) -> *mut u8
-    {
+    unsafe fn allocate_with_flags(size: usize, align: usize, flags: DWORD) -> *mut u8 {
         if align <= MIN_ALIGN {
             HeapAlloc(GetProcessHeap(), flags, size)
         } else {
@@ -147,21 +146,16 @@ mod platform {
     pub unsafe fn dealloc(ptr: *mut u8, align: usize) {
         if align <= MIN_ALIGN {
             let err = HeapFree(GetProcessHeap(), 0, ptr as LPVOID);
-            debug_assert!(err != 0, "Failed to free heap memory: {}",
-                          GetLastError());
+            debug_assert!(err != 0, "Failed to free heap memory: {}", GetLastError());
         } else {
             let header = get_header(ptr);
             let err = HeapFree(GetProcessHeap(), 0, header.0 as LPVOID);
-            debug_assert!(err != 0, "Failed to free heap memory: {}",
-                          GetLastError());
+            debug_assert!(err != 0, "Failed to free heap memory: {}", GetLastError());
         }
     }
 
     #[inline]
     pub unsafe fn realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
-        HeapReAlloc(GetProcessHeap(),
-                    0,
-                    ptr as LPVOID,
-                    new_size) as *mut u8
+        HeapReAlloc(GetProcessHeap(), 0, ptr as LPVOID, new_size) as *mut u8
     }
 }
