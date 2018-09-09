@@ -67,7 +67,8 @@ impl RestyleHint {
     /// Returns whether we need to restyle this element.
     pub fn has_non_animation_invalidations(&self) -> bool {
         self.intersects(
-            RestyleHint::RESTYLE_SELF | RestyleHint::RECASCADE_SELF |
+            RestyleHint::RESTYLE_SELF |
+                RestyleHint::RECASCADE_SELF |
                 (Self::replacements() & !Self::for_animations()),
         )
     }
@@ -119,7 +120,8 @@ impl RestyleHint {
     /// The replacements for the animation cascade levels.
     #[inline]
     pub fn for_animations() -> Self {
-        RestyleHint::RESTYLE_SMIL | RestyleHint::RESTYLE_CSS_ANIMATIONS |
+        RestyleHint::RESTYLE_SMIL |
+            RestyleHint::RESTYLE_CSS_ANIMATIONS |
             RestyleHint::RESTYLE_CSS_TRANSITIONS
     }
 

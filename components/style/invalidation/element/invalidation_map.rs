@@ -38,8 +38,10 @@ use smallvec::SmallVec;
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct Dependency {
     /// The dependency selector.
-    #[cfg_attr(feature = "gecko",
-               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
+    #[cfg_attr(
+        feature = "gecko",
+        ignore_malloc_size_of = "CssRules have primary refs, we measure there"
+    )]
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
 
@@ -127,8 +129,10 @@ impl SelectorMapEntry for StateDependency {
 pub struct DocumentStateDependency {
     /// The selector that is affected. We don't need to track an offset, since
     /// when it changes it changes for the whole document anyway.
-    #[cfg_attr(feature = "gecko",
-               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
+    #[cfg_attr(
+        feature = "gecko",
+        ignore_malloc_size_of = "CssRules have primary refs, we measure there"
+    )]
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     pub selector: Selector<SelectorImpl>,
     /// The state this dependency is affected by.
@@ -185,7 +189,8 @@ impl InvalidationMap {
 
     /// Returns the number of dependencies stored in the invalidation map.
     pub fn len(&self) -> usize {
-        self.state_affecting_selectors.len() + self.document_state_selectors.len() +
+        self.state_affecting_selectors.len() +
+            self.document_state_selectors.len() +
             self.other_attribute_affecting_selectors.len() +
             self.id_to_selector
                 .iter()

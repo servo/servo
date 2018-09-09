@@ -375,8 +375,7 @@ impl ViewportRule {
                 Err((error, slice)) => {
                     let location = error.location;
                     let error = ContextualParseError::UnsupportedViewportDescriptorDeclaration(
-                        slice,
-                        error,
+                        slice, error,
                     );
                     context.log_css_error(location, error);
                 },
@@ -760,9 +759,9 @@ impl MaybeNew for ViewportConstraints {
                                 Some(initial_viewport.$dimension.scale_by(value.0))
                             },
                             LengthOrPercentageOrAuto::Auto => None,
-                            LengthOrPercentageOrAuto::Calc(ref calc) => calc.to_computed_value(
-                                &context,
-                            ).to_used_value(Some(initial_viewport.$dimension)),
+                            LengthOrPercentageOrAuto::Calc(ref calc) => calc
+                                .to_computed_value(&context)
+                                .to_used_value(Some(initial_viewport.$dimension)),
                         },
                         ViewportLength::ExtendToZoom => {
                             // $extend_to will be 'None' if 'extend-to-zoom' is 'auto'

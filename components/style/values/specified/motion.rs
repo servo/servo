@@ -12,8 +12,18 @@ use values::specified::SVGPathData;
 /// The offset-path value.
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-path-property
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToAnimatedZero, ToComputedValue, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum OffsetPath {
     // We could merge SVGPathData into ShapeSource, so we could reuse them. However,
     // we don't want to support other value for offset-path, so use SVGPathData only for now.
@@ -37,7 +47,7 @@ impl OffsetPath {
 impl Parse for OffsetPath {
     fn parse<'i, 't>(
         context: &ParserContext,
-        input: &mut Parser<'i, 't>
+        input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // Parse none.
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {

@@ -19,8 +19,9 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
 
 /// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
-#[derive(Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum GeometryBox {
     FillBox,
     StrokeBox,
@@ -34,8 +35,19 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
 /// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum ShapeBox {
     MarginBox,
     BorderBox,
@@ -46,8 +58,9 @@ pub enum ShapeBox {
 /// A shape source, for some reference box.
 #[allow(missing_docs)]
 #[animation(no_bound(ImageOrUrl))]
-#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
     #[animation(error)]
     ImageOrUrl(ImageOrUrl),
@@ -61,8 +74,17 @@ pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
 }
 
 #[allow(missing_docs)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum BasicShape<H, V, LengthOrPercentage> {
     Inset(#[css(field_bound)] InsetRect<LengthOrPercentage>),
     Circle(#[css(field_bound)] Circle<H, V, LengthOrPercentage>),
@@ -73,8 +95,16 @@ pub enum BasicShape<H, V, LengthOrPercentage> {
 /// <https://drafts.csswg.org/css-shapes/#funcdef-inset>
 #[allow(missing_docs)]
 #[css(function = "inset")]
-#[derive(Animate, Clone, ComputeSquaredDistance, Debug, MallocSizeOf, PartialEq,
-         SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+)]
 pub struct InsetRect<LengthOrPercentage> {
     pub rect: Rect<LengthOrPercentage>,
     pub round: Option<BorderRadius<LengthOrPercentage>>,
@@ -83,8 +113,17 @@ pub struct InsetRect<LengthOrPercentage> {
 /// <https://drafts.csswg.org/css-shapes/#funcdef-circle>
 #[allow(missing_docs)]
 #[css(function)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
-         PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+)]
 pub struct Circle<H, V, LengthOrPercentage> {
     pub position: Position<H, V>,
     pub radius: ShapeRadius<LengthOrPercentage>,
@@ -93,8 +132,17 @@ pub struct Circle<H, V, LengthOrPercentage> {
 /// <https://drafts.csswg.org/css-shapes/#funcdef-ellipse>
 #[allow(missing_docs)]
 #[css(function)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
-         PartialEq, SpecifiedValueInfo, ToComputedValue)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+)]
 pub struct Ellipse<H, V, LengthOrPercentage> {
     pub position: Position<H, V>,
     pub semiaxis_x: ShapeRadius<LengthOrPercentage>,
@@ -103,8 +151,18 @@ pub struct Ellipse<H, V, LengthOrPercentage> {
 
 /// <https://drafts.csswg.org/css-shapes/#typedef-shape-radius>
 #[allow(missing_docs)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf,
-         PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum ShapeRadius<LengthOrPercentage> {
     Length(LengthOrPercentage),
     #[animation(error)]
@@ -117,8 +175,7 @@ pub enum ShapeRadius<LengthOrPercentage> {
 ///
 /// <https://drafts.csswg.org/css-shapes/#funcdef-polygon>
 #[css(comma, function)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct Polygon<LengthOrPercentage> {
     /// The filling rule for a polygon.
     #[css(skip_if = "fill_is_default")]
@@ -129,8 +186,7 @@ pub struct Polygon<LengthOrPercentage> {
 }
 
 /// Coordinates for Polygon.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOrPercentage);
 
 // https://drafts.csswg.org/css-shapes/#typedef-fill-rule
@@ -139,8 +195,18 @@ pub struct PolygonCoord<LengthOrPercentage>(pub LengthOrPercentage, pub LengthOr
 // says that it can also be `inherit`
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 #[repr(u8)]
 pub enum FillRule {
     Nonzero,
@@ -151,8 +217,9 @@ pub enum FillRule {
 ///
 /// https://drafts.csswg.org/css-shapes-2/#funcdef-path
 #[css(comma)]
-#[derive(Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Animate, Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 pub struct Path {
     /// The filling rule for the svg path.
     #[css(skip_if = "fill_is_default")]
@@ -174,17 +241,16 @@ where
             (
                 &ShapeSource::Shape(ref this, ref this_box),
                 &ShapeSource::Shape(ref other, ref other_box),
-            ) if this_box == other_box =>
+            )
+                if this_box == other_box =>
             {
                 this.compute_squared_distance(other)
             },
-            (
-                &ShapeSource::Path(ref this),
-                &ShapeSource::Path(ref other),
-            ) if this.fill == other.fill =>
+            (&ShapeSource::Path(ref this), &ShapeSource::Path(ref other))
+                if this.fill == other.fill =>
             {
                 this.path.compute_squared_distance(&other.path)
-            }
+            },
             _ => Err(()),
         }
     }
@@ -232,7 +298,8 @@ where
         if self.coordinates.len() != other.coordinates.len() {
             return Err(());
         }
-        let coordinates = self.coordinates
+        let coordinates = self
+            .coordinates
             .iter()
             .zip(other.coordinates.iter())
             .map(|(this, other)| {
@@ -240,8 +307,7 @@ where
                     this.0.animate(&other.0, procedure)?,
                     this.1.animate(&other.1, procedure)?,
                 ))
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+            }).collect::<Result<Vec<_>, _>>()?;
         Ok(Polygon {
             fill: self.fill,
             coordinates,
@@ -267,8 +333,7 @@ where
                 let d1 = this.0.compute_squared_distance(&other.0)?;
                 let d2 = this.1.compute_squared_distance(&other.1)?;
                 Ok(d1 + d2)
-            })
-            .sum()
+            }).sum()
     }
 }
 

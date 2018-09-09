@@ -20,4 +20,3 @@ pub type Content = generics::Content<ComputedImageUrl>;
 
 /// A computed content item.
 pub type ContentItem = generics::ContentItem<ComputedImageUrl>;
-

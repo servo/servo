@@ -71,7 +71,8 @@ impl UseCounters {
     /// Used for parallel parsing, where we parse off-main-thread.
     #[inline]
     pub fn merge(&self, other: &Self) {
-        self.non_custom_properties.merge(&other.non_custom_properties)
+        self.non_custom_properties
+            .merge(&other.non_custom_properties)
     }
 }
 

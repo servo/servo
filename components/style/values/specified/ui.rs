@@ -52,9 +52,8 @@ impl Parse for CursorKind {
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
         let ident = input.expect_ident()?;
-        CursorKind::from_css_keyword(&ident).map_err(|_| {
-            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-        })
+        CursorKind::from_css_keyword(&ident)
+            .map_err(|_| location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
     }
 }
 
@@ -74,8 +73,7 @@ impl Parse for CursorImage {
 }
 
 /// Specified value of `-moz-force-broken-image-icon`
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct MozForceBrokenImageIcon(pub bool);
 
 impl MozForceBrokenImageIcon {

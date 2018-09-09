@@ -399,7 +399,10 @@ where
 {
     #[inline]
     fn to_animated_zero(&self) -> Result<Self, ()> {
-        let v = self.iter().map(|v| v.to_animated_zero()).collect::<Result<Vec<_>, _>>()?;
+        let v = self
+            .iter()
+            .map(|v| v.to_animated_zero())
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(v.into_boxed_slice())
     }
 }

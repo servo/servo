@@ -30,10 +30,7 @@ impl MediaList {
     /// "not all", see:
     ///
     /// <https://drafts.csswg.org/mediaqueries/#error-handling>
-    pub fn parse(
-        context: &ParserContext,
-        input: &mut Parser,
-    ) -> Self {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Self {
         if input.is_exhausted() {
             return Self::empty();
         }
@@ -48,8 +45,10 @@ impl MediaList {
                 Err(err) => {
                     media_queries.push(MediaQuery::never_matching());
                     let location = err.location;
-                    let error =
-                        ContextualParseError::InvalidMediaRule(input.slice_from(start_position), err);
+                    let error = ContextualParseError::InvalidMediaRule(
+                        input.slice_from(start_position),
+                        err,
+                    );
                     context.log_css_error(location, error);
                 },
             }
@@ -79,8 +78,10 @@ impl MediaList {
             let media_match = mq.media_type.matches(device.media_type());
 
             // Check if the media condition match.
-            let query_match = media_match &&
-                mq.condition.as_ref().map_or(true, |c| c.matches(device, quirks_mode));
+            let query_match = media_match && mq
+                .condition
+                .as_ref()
+                .map_or(true, |c| c.matches(device, quirks_mode));
 
             // Apply the logical NOT qualifier to the result
             match mq.qualifier {

@@ -29,7 +29,8 @@ pub struct GeckoStyleSheet(*const DomStyleSheet);
 impl fmt::Debug for GeckoStyleSheet {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let contents = self.contents();
-        formatter.debug_struct("GeckoStyleSheet")
+        formatter
+            .debug_struct("GeckoStyleSheet")
             .field("origin", &contents.origin)
             .field("url_data", &*contents.url_data.read())
             .finish()
@@ -66,9 +67,7 @@ impl GeckoStyleSheet {
     }
 
     fn inner(&self) -> &StyleSheetInfo {
-        unsafe {
-            &*(self.raw().mInner as *const StyleSheetInfo)
-        }
+        unsafe { &*(self.raw().mInner as *const StyleSheetInfo) }
     }
 
     /// Gets the StylesheetContents for this stylesheet.
@@ -193,7 +192,8 @@ impl PerDocumentStyleDataImpl {
     /// Returns whether visited styles are enabled.
     #[inline]
     pub fn visited_styles_enabled(&self) -> bool {
-        let doc = self.stylist
+        let doc = self
+            .stylist
             .device()
             .pres_context()
             .mDocument

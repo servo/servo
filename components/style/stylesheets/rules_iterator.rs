@@ -100,10 +100,7 @@ where
                         ) {
                             continue;
                         }
-                        import_rule
-                            .stylesheet
-                            .rules(self.guard)
-                            .iter()
+                        import_rule.stylesheet.rules(self.guard).iter()
                     },
                     CssRule::Document(ref doc_rule) => {
                         let doc_rule = doc_rule.read_with(self.guard);

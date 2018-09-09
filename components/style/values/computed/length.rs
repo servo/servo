@@ -80,7 +80,8 @@ impl ComputeSquaredDistance for CalcLengthOrPercentage {
     fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
         // FIXME(nox): This looks incorrect to me, to add a distance between lengths
         // with a distance between percentages.
-        Ok(self.unclamped_length()
+        Ok(self
+            .unclamped_length()
             .compute_squared_distance(&other.unclamped_length())? +
             self.percentage()
                 .compute_squared_distance(&other.percentage())?)
@@ -285,9 +286,15 @@ impl specified::CalcLengthOrPercentage {
     /// Compute the value into pixel length as CSSFloat without context,
     /// so it returns Err(()) if there is any non-absolute unit.
     pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
-        if self.vw.is_some() || self.vh.is_some() || self.vmin.is_some() || self.vmax.is_some() ||
-            self.em.is_some() || self.ex.is_some() || self.ch.is_some() ||
-            self.rem.is_some() || self.percentage.is_some()
+        if self.vw.is_some() ||
+            self.vh.is_some() ||
+            self.vmin.is_some() ||
+            self.vmax.is_some() ||
+            self.em.is_some() ||
+            self.ex.is_some() ||
+            self.ch.is_some() ||
+            self.rem.is_some() ||
+            self.percentage.is_some()
         {
             return Err(());
         }
@@ -324,8 +331,17 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 #[allow(missing_docs)]
 #[animate(fallback = "Self::animate_fallback")]
 #[css(derive_debug)]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, MallocSizeOf, PartialEq,
-         ToAnimatedValue, ToAnimatedZero, ToCss)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    MallocSizeOf,
+    PartialEq,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToCss,
+)]
 #[distance(fallback = "Self::compute_squared_distance_fallback")]
 pub enum LengthOrPercentage {
     Length(Length),
@@ -483,11 +499,9 @@ impl LengthOrPercentageOrAuto {
     fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let this = <Option<CalcLengthOrPercentage>>::from(*self);
         let other = <Option<CalcLengthOrPercentage>>::from(*other);
-        Ok(LengthOrPercentageOrAuto::Calc(this.animate(
-            &other,
-            procedure,
-        )?
-            .ok_or(())?))
+        Ok(LengthOrPercentageOrAuto::Calc(
+            this.animate(&other, procedure)?.ok_or(())?,
+        ))
     }
 
     #[inline]
@@ -602,11 +616,9 @@ impl LengthOrPercentageOrNone {
     fn animate_fallback(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
         let this = <Option<CalcLengthOrPercentage>>::from(*self);
         let other = <Option<CalcLengthOrPercentage>>::from(*other);
-        Ok(LengthOrPercentageOrNone::Calc(this.animate(
-            &other,
-            procedure,
-        )?
-            .ok_or(())?))
+        Ok(LengthOrPercentageOrNone::Calc(
+            this.animate(&other, procedure)?.ok_or(())?,
+        ))
     }
 
     fn compute_squared_distance_fallback(&self, other: &Self) -> Result<SquaredDistance, ()> {
@@ -727,8 +739,18 @@ impl NonNegativeLengthOrPercentage {
 
 /// The computed `<length>` value.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Animate, Clone, ComputeSquaredDistance, Copy, Debug, MallocSizeOf, PartialEq,
-         PartialOrd, ToAnimatedValue, ToAnimatedZero)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    PartialOrd,
+    ToAnimatedValue,
+    ToAnimatedZero,
+)]
 pub struct CSSPixelLength(CSSFloat);
 
 impl CSSPixelLength {
@@ -916,8 +938,7 @@ pub type NonNegativeLengthOrPercentageOrNormal = Either<NonNegativeLengthOrPerce
 /// block-size, and inline-size.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum ExtremumLength {
     MozMaxContent,
     MozMinContent,

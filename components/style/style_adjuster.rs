@@ -64,10 +64,21 @@ where
     // FIXME(emilio): This should be an actual static.
     lazy_static! {
         static ref SPECIAL_HTML_ELEMENTS: [Atom; 16] = [
-            atom!("br"), atom!("wbr"), atom!("meter"), atom!("progress"),
-            atom!("canvas"), atom!("embed"), atom!("object"), atom!("audio"),
-            atom!("iframe"), atom!("img"), atom!("video"), atom!("frame"),
-            atom!("frameset"), atom!("input"), atom!("textarea"),
+            atom!("br"),
+            atom!("wbr"),
+            atom!("meter"),
+            atom!("progress"),
+            atom!("canvas"),
+            atom!("embed"),
+            atom!("object"),
+            atom!("audio"),
+            atom!("iframe"),
+            atom!("img"),
+            atom!("video"),
+            atom!("frame"),
+            atom!("frameset"),
+            atom!("input"),
+            atom!("textarea"),
             atom!("select"),
         ];
     }
@@ -79,15 +90,21 @@ where
     // UA implements this either.
     lazy_static! {
         static ref SPECIAL_SVG_ELEMENTS: [Atom; 6] = [
-            atom!("svg"), atom!("a"), atom!("g"), atom!("use"),
-            atom!("tspan"), atom!("textPath"),
+            atom!("svg"),
+            atom!("a"),
+            atom!("g"),
+            atom!("use"),
+            atom!("tspan"),
+            atom!("textPath"),
         ];
     }
 
     // https://drafts.csswg.org/css-display/#unbox-html
     if element.is_html_element() {
         let local_name = element.local_name();
-        return SPECIAL_HTML_ELEMENTS.iter().any(|name| &**name == local_name);
+        return SPECIAL_HTML_ELEMENTS
+            .iter()
+            .any(|name| &**name == local_name);
     }
 
     // https://drafts.csswg.org/css-display/#unbox-svg
@@ -96,7 +113,9 @@ where
             return true;
         }
         let local_name = element.local_name();
-        return !SPECIAL_SVG_ELEMENTS.iter().any(|name| &**name == local_name);
+        return !SPECIAL_SVG_ELEMENTS
+            .iter()
+            .any(|name| &**name == local_name);
     }
 
     // https://drafts.csswg.org/css-display/#unbox-mathml
@@ -201,11 +220,11 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     pub fn set_bits(&mut self) {
         let display = self.style.get_box().clone_display();
 
-        if !display.is_contents() &&
-            !self.style
-                .get_text()
-                .clone_text_decoration_line()
-                .is_empty()
+        if !display.is_contents() && !self
+            .style
+            .get_text()
+            .clone_text_decoration_line()
+            .is_empty()
         {
             self.style
                 .flags
@@ -280,10 +299,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn adjust_for_text_in_ruby(&mut self) {
         let parent_display = self.style.get_parent_box().clone_display();
-        if parent_display.is_ruby_type() ||
-            self.style
-                .get_parent_flags()
-                .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
+        if parent_display.is_ruby_type() || self
+            .style
+            .get_parent_flags()
+            .contains(ComputedValueFlags::SHOULD_SUPPRESS_LINEBREAK)
         {
             self.style
                 .flags
@@ -370,10 +389,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
     /// The initial value of outline-width may be changed at computed value time.
     fn adjust_for_outline(&mut self) {
-        if self.style
+        if self
+            .style
             .get_outline()
             .clone_outline_style()
-            .none_or_hidden() && self.style.get_outline().outline_has_nonzero_width()
+            .none_or_hidden() &&
+            self.style.get_outline().outline_has_nonzero_width()
         {
             self.style.mutate_outline().set_outline_width(Au(0).into());
         }
@@ -517,7 +538,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         let decorations_in_effect = TextDecorationsInEffect::from_style(&self.style);
         if self.style.get_inherited_text().text_decorations_in_effect != decorations_in_effect {
-            self.style.mutate_inherited_text().text_decorations_in_effect = decorations_in_effect;
+            self.style
+                .mutate_inherited_text()
+                .text_decorations_in_effect = decorations_in_effect;
         }
     }
 
@@ -677,11 +700,8 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// When comparing to Gecko, this is similar to the work done by
     /// `ComputedStyle::ApplyStyleFixups`, plus some parts of
     /// `nsStyleSet::GetContext`.
-    pub fn adjust<E>(
-        &mut self,
-        layout_parent_style: &ComputedValues,
-        element: Option<E>,
-    ) where
+    pub fn adjust<E>(&mut self, layout_parent_style: &ComputedValues, element: Option<E>)
+    where
         E: TElement,
     {
         if cfg!(debug_assertions) {

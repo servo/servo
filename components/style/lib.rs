@@ -200,7 +200,6 @@ pub mod gecko;
 #[allow(unsafe_code)]
 pub mod servo;
 
-
 #[cfg(feature = "gecko")]
 #[allow(unsafe_code, missing_docs)]
 pub mod gecko_properties {

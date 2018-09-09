@@ -22,8 +22,7 @@ impl Parse for ColumnCount {
             return Ok(GenericColumnCount::Auto);
         }
         Ok(GenericColumnCount::Integer(PositiveInteger::parse(
-            context,
-            input,
+            context, input,
         )?))
     }
 }

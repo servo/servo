@@ -63,7 +63,7 @@ pub type UrlExtraData = ::servo_url::ServoUrl;
 #[cfg(feature = "gecko")]
 #[derive(Clone, PartialEq)]
 pub struct UrlExtraData(
-    pub ::gecko_bindings::sugar::refptr::RefPtr<::gecko_bindings::structs::URLExtraData>
+    pub ::gecko_bindings::sugar::refptr::RefPtr<::gecko_bindings::structs::URLExtraData>,
 );
 
 #[cfg(feature = "gecko")]
@@ -102,11 +102,14 @@ impl fmt::Debug for UrlExtraData {
             }
         }
 
-        formatter.debug_struct("URLExtraData")
+        formatter
+            .debug_struct("URLExtraData")
             .field("is_chrome", &self.is_chrome())
             .field("base", &DebugURI(self.0.mBaseURI.raw::<structs::nsIURI>()))
-            .field("referrer", &DebugURI(self.0.mReferrer.raw::<structs::nsIURI>()))
-            .finish()
+            .field(
+                "referrer",
+                &DebugURI(self.0.mReferrer.raw::<structs::nsIURI>()),
+            ).finish()
     }
 }
 
@@ -285,9 +288,7 @@ impl CssRule {
         };
 
         parse_one_rule(&mut input, &mut rule_parser)
-            .map_err(|_| {
-                rule_parser.dom_error.unwrap_or(RulesMutateError::Syntax)
-            })
+            .map_err(|_| rule_parser.dom_error.unwrap_or(RulesMutateError::Syntax))
     }
 }
 
@@ -305,25 +306,22 @@ impl DeepCloneWithLock for CssRule {
                 CssRule::Namespace(Arc::new(lock.wrap(rule.clone())))
             },
             CssRule::Import(ref arc) => {
-                let rule = arc.read_with(guard)
+                let rule = arc
+                    .read_with(guard)
                     .deep_clone_with_lock(lock, guard, params);
                 CssRule::Import(Arc::new(lock.wrap(rule)))
             },
             CssRule::Style(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Style(Arc::new(lock.wrap(rule.deep_clone_with_lock(
-                    lock,
-                    guard,
-                    params,
-                ))))
+                CssRule::Style(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
             },
             CssRule::Media(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Media(Arc::new(lock.wrap(rule.deep_clone_with_lock(
-                    lock,
-                    guard,
-                    params,
-                ))))
+                CssRule::Media(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
             },
             CssRule::FontFace(ref arc) => {
                 let rule = arc.read_with(guard);
@@ -343,35 +341,27 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Keyframes(Arc::new(lock.wrap(rule.deep_clone_with_lock(
-                    lock,
-                    guard,
-                    params,
-                ))))
+                CssRule::Keyframes(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
             },
             CssRule::Supports(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Supports(Arc::new(lock.wrap(rule.deep_clone_with_lock(
-                    lock,
-                    guard,
-                    params,
-                ))))
+                CssRule::Supports(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
             },
             CssRule::Page(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Page(Arc::new(lock.wrap(rule.deep_clone_with_lock(
-                    lock,
-                    guard,
-                    params,
-                ))))
+                CssRule::Page(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
             },
             CssRule::Document(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Document(Arc::new(lock.wrap(rule.deep_clone_with_lock(
-                    lock,
-                    guard,
-                    params,
-                ))))
+                CssRule::Document(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
             },
         }
     }

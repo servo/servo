@@ -156,7 +156,11 @@ impl CssRulesHelpers for RawOffsetArc<Locked<CssRules>> {
             } else if index == 0 {
                 State::Start
             } else {
-                rules.0.get(index - 1).map(CssRule::rule_state).unwrap_or(State::Body)
+                rules
+                    .0
+                    .get(index - 1)
+                    .map(CssRule::rule_state)
+                    .unwrap_or(State::Body)
             };
 
             let insert_rule_context = InsertRuleContext {

@@ -148,9 +148,9 @@ impl ToComputedValue for FontWeight {
 
     #[inline]
     fn from_computed_value(computed: &computed::FontWeight) -> Self {
-        FontWeight::Absolute(AbsoluteFontWeight::Weight(
-            Number::from_computed_value(&computed.0)
-        ))
+        FontWeight::Absolute(AbsoluteFontWeight::Weight(Number::from_computed_value(
+            &computed.0,
+        )))
     }
 }
 
@@ -174,9 +174,7 @@ impl AbsoluteFontWeight {
     pub fn compute(&self) -> computed::FontWeight {
         match *self {
             AbsoluteFontWeight::Weight(weight) => {
-                computed::FontWeight(
-                    weight.get().max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT)
-                )
+                computed::FontWeight(weight.get().max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
             },
             AbsoluteFontWeight::Normal => computed::FontWeight::normal(),
             AbsoluteFontWeight::Bold => computed::FontWeight::bold(),
@@ -194,12 +192,11 @@ impl Parse for AbsoluteFontWeight {
             // seem worth it just for a single property with such a weird range,
             // so we do the clamping here manually.
             if !number.was_calc() &&
-                (number.get() < MIN_FONT_WEIGHT || number.get() > MAX_FONT_WEIGHT) {
-                return Err(input.new_custom_error(
-                    StyleParseErrorKind::UnspecifiedError
-                ))
+                (number.get() < MIN_FONT_WEIGHT || number.get() > MAX_FONT_WEIGHT)
+            {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
             }
-            return Ok(AbsoluteFontWeight::Weight(number))
+            return Ok(AbsoluteFontWeight::Weight(number));
         }
 
         Ok(try_match_ident_ignore_ascii_case! { input,
@@ -228,7 +225,7 @@ impl ToCss for SpecifiedFontStyle {
                     angle.to_css(dest)?;
                 }
                 Ok(())
-            }
+            },
         }
     }
 }
@@ -260,7 +257,7 @@ impl ToComputedValue for SpecifiedFontStyle {
             generics::FontStyle::Italic => generics::FontStyle::Italic,
             generics::FontStyle::Oblique(ref angle) => {
                 generics::FontStyle::Oblique(FontStyleAngle(Self::compute_angle(angle)))
-            }
+            },
         }
     }
 
@@ -270,11 +267,10 @@ impl ToComputedValue for SpecifiedFontStyle {
             generics::FontStyle::Italic => generics::FontStyle::Italic,
             generics::FontStyle::Oblique(ref angle) => {
                 generics::FontStyle::Oblique(Angle::from_computed_value(&angle.0))
-            }
+            },
         }
     }
 }
-
 
 /// The default angle for `font-style: oblique`.
 ///
@@ -299,9 +295,10 @@ impl SpecifiedFontStyle {
     /// Gets a clamped angle from a specified Angle.
     pub fn compute_angle(angle: &Angle) -> ComputedAngle {
         ComputedAngle::Deg(
-            angle.degrees()
+            angle
+                .degrees()
                 .max(FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES)
-                .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES)
+                .min(FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES),
         )
     }
 
@@ -319,11 +316,9 @@ impl SpecifiedFontStyle {
         if degrees < FONT_STYLE_OBLIQUE_MIN_ANGLE_DEGREES ||
             degrees > FONT_STYLE_OBLIQUE_MAX_ANGLE_DEGREES
         {
-            return Err(input.new_custom_error(
-                StyleParseErrorKind::UnspecifiedError
-            ));
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
         }
-        return Ok(angle)
+        return Ok(angle);
     }
 
     /// The default angle for `font-style: oblique`.
@@ -336,8 +331,7 @@ impl SpecifiedFontStyle {
 }
 
 /// The specified value of the `font-style` property.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 #[allow(missing_docs)]
 pub enum FontStyle {
     Specified(SpecifiedFontStyle),
@@ -375,7 +369,9 @@ impl Parse for FontStyle {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(FontStyle::Specified(SpecifiedFontStyle::parse(context, input)?))
+        Ok(FontStyle::Specified(SpecifiedFontStyle::parse(
+            context, input,
+        )?))
     }
 }
 
@@ -383,8 +379,7 @@ impl Parse for FontStyle {
 ///
 /// https://drafts.csswg.org/css-fonts-4/#font-stretch-prop
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum FontStretch {
     Stretch(Percentage),
     Keyword(FontStretchKeyword),
@@ -393,8 +388,7 @@ pub enum FontStretch {
 }
 
 /// A keyword value for `font-stretch`.
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo,
-         ToCss)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 #[allow(missing_docs)]
 pub enum FontStretchKeyword {
     Normal,
@@ -497,9 +491,7 @@ impl ToComputedValue for FontStretch {
             FontStretch::Stretch(ref percentage) => {
                 computed::FontStretch(NonNegative(percentage.to_computed_value(context)))
             },
-            FontStretch::Keyword(ref kw) => {
-                computed::FontStretch(NonNegative(kw.compute()))
-            },
+            FontStretch::Keyword(ref kw) => computed::FontStretch(NonNegative(kw.compute())),
             FontStretch::System(_) => self.compute_system(context),
         }
     }
@@ -690,8 +682,7 @@ impl Parse for FontSizeAdjust {
         }
 
         Ok(FontSizeAdjust::Number(Number::parse_non_negative(
-            context,
-            input,
+            context, input,
         )?))
     }
 }
@@ -906,10 +897,11 @@ impl FontSize {
                     // new ones.
                     //
                     // This is enough of an edge case to not really matter.
-                    let abs = calc.to_computed_value_zoomed(
-                        context,
-                        FontBaseSize::InheritedStyleButStripEmUnits,
-                    ).length_component();
+                    let abs = calc
+                        .to_computed_value_zoomed(
+                            context,
+                            FontBaseSize::InheritedStyleButStripEmUnits,
+                        ).length_component();
 
                     info = parent.keyword_info.map(|i| i.compose(ratio, abs.into()));
                 }
@@ -1939,8 +1931,7 @@ impl Parse for FontFeatureSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 /// Whether user agents are allowed to synthesize bold or oblique font faces
 /// when a font family lacks bold or italic faces
 pub struct FontSynthesis {
@@ -2217,8 +2208,9 @@ impl Parse for VariationValue<Number> {
     }
 }
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 /// text-zoom. Enable if true, disable if false
 pub struct XTextZoom(#[css(skip)] pub bool);
 
@@ -2235,8 +2227,7 @@ impl Parse for XTextZoom {
     }
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// Internal property that reflects the lang attribute
 pub struct XLang(#[css(skip)] pub Atom);
 
@@ -2324,8 +2315,7 @@ impl Parse for MozScriptLevel {
 }
 
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue,
-         ToCss)]
+#[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// Specifies the multiplier to be used to adjust font size
 /// due to changes in scriptlevel.
 ///

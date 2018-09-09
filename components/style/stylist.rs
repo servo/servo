@@ -184,8 +184,10 @@ impl UserAgentCascadeData {
 #[derive(Default)]
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 struct DocumentCascadeData {
-    #[cfg_attr(feature = "servo",
-               ignore_malloc_size_of = "Arc, owned by UserAgentCascadeDataCache")]
+    #[cfg_attr(
+        feature = "servo",
+        ignore_malloc_size_of = "Arc, owned by UserAgentCascadeDataCache"
+    )]
     user_agent: Arc<UserAgentCascadeData>,
     user: CascadeData,
     author: CascadeData,
@@ -350,7 +352,10 @@ pub struct Stylist {
     stylesheets: StylistStylesheetSet,
 
     /// If true, the quirks-mode stylesheet is applied.
-    #[cfg_attr(feature = "servo", ignore_malloc_size_of = "defined in selectors")]
+    #[cfg_attr(
+        feature = "servo",
+        ignore_malloc_size_of = "defined in selectors"
+    )]
     quirks_mode: QuirksMode,
 
     /// Selector maps for all of the style sheets in the stylist, after
@@ -681,7 +686,8 @@ impl Stylist {
         extra_declarations: Option<Vec<ApplicableDeclarationBlock>>,
     ) -> StrongRuleNode {
         let mut decl;
-        let declarations = match self.cascade_data
+        let declarations = match self
+            .cascade_data
             .user_agent
             .precomputed_pseudo_element_decls
             .get(pseudo)
@@ -852,7 +858,7 @@ impl Stylist {
                 } else {
                     None
                 }
-            }
+            },
         };
 
         // Read the comment on `precomputed_values_for_pseudo` to see why it's
@@ -1131,7 +1137,8 @@ impl Stylist {
         let matches_user_rules = rule_hash_target.matches_user_and_author_rules();
 
         // Normal user-agent rules.
-        if let Some(map) = self.cascade_data
+        if let Some(map) = self
+            .cascade_data
             .user_agent
             .cascade_data
             .normal_rules(pseudo_element)
@@ -1207,7 +1214,10 @@ impl Stylist {
         // for !important it should be the other way around. So probably we need
         // to add some sort of AuthorScoped cascade level or something.
         if let Some(shadow) = rule_hash_target.shadow_root() {
-            if let Some(map) = shadow.style_data().and_then(|data| data.host_rules(pseudo_element)) {
+            if let Some(map) = shadow
+                .style_data()
+                .and_then(|data| data.host_rules(pseudo_element))
+            {
                 context.with_shadow_host(Some(rule_hash_target), |context| {
                     map.get_all_matching_rules(
                         element,
@@ -1234,7 +1244,10 @@ impl Stylist {
 
         for slot in slots.iter().rev() {
             let shadow = slot.containing_shadow().unwrap();
-            if let Some(map) = shadow.style_data().and_then(|data| data.slotted_rules(pseudo_element)) {
+            if let Some(map) = shadow
+                .style_data()
+                .and_then(|data| data.slotted_rules(pseudo_element))
+            {
                 context.with_shadow_host(Some(shadow.host()), |context| {
                     map.get_all_matching_rules(
                         element,
@@ -1270,8 +1283,7 @@ impl Stylist {
             }
 
             let host_is_svg_use_element =
-                host.is_svg_element() &&
-                host.local_name() == &*local_name!("use");
+                host.is_svg_element() && host.local_name() == &*local_name!("use");
 
             if !host_is_svg_use_element {
                 match_document_author_rules = false;
@@ -1406,11 +1418,7 @@ impl Stylist {
 
     /// Returns the registered `@keyframes` animation for the specified name.
     #[inline]
-    pub fn get_animation<'a, E>(
-        &'a self,
-        name: &Atom,
-        element: E,
-    ) -> Option<&'a KeyframesAnimation>
+    pub fn get_animation<'a, E>(&'a self, name: &Atom, element: E) -> Option<&'a KeyframesAnimation>
     where
         E: TElement + 'a,
     {
@@ -1419,7 +1427,7 @@ impl Stylist {
                 if let Some(animation) = $data.animations.get(name) {
                     return Some(animation);
                 }
-            }
+            };
         }
 
         // NOTE(emilio): We implement basically what Blink does for this case,
@@ -1547,10 +1555,12 @@ impl Stylist {
 
         let block = declarations.read_with(guards.author);
         let iter_declarations = || {
-            block.declaration_importance_iter().map(|(declaration, importance)| {
-                debug_assert!(!importance.important());
-                (declaration, CascadeLevel::StyleAttributeNormal)
-            })
+            block
+                .declaration_importance_iter()
+                .map(|(declaration, importance)| {
+                    debug_assert!(!importance.important());
+                    (declaration, CascadeLevel::StyleAttributeNormal)
+                })
         };
 
         let metrics = get_metrics_provider_for_product();
@@ -1567,7 +1577,9 @@ impl Stylist {
             Some(parent_style),
             Some(parent_style),
             &metrics,
-            CascadeMode::Unvisited { visited_rules: None },
+            CascadeMode::Unvisited {
+                visited_rules: None,
+            },
             self.quirks_mode,
             /* rule_cache = */ None,
             &mut Default::default(),
@@ -1703,8 +1715,10 @@ impl MallocSizeOf for ExtraStyleData {
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Debug)]
 struct RevalidationSelectorAndHashes {
-    #[cfg_attr(feature = "gecko",
-               ignore_malloc_size_of = "CssRules have primary refs, we measure there")]
+    #[cfg_attr(
+        feature = "gecko",
+        ignore_malloc_size_of = "CssRules have primary refs, we measure there"
+    )]
     selector: Selector<SelectorImpl>,
     selector_offset: usize,
     hashes: AncestorHashes,
@@ -1812,8 +1826,9 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
         // Also, note that this call happens before we visit any of the simple
         // selectors in the next ComplexSelector, so we can use this to skip
         // looking at them.
-        self.passed_rightmost_selector = self.passed_rightmost_selector ||
-            !matches!(combinator, None | Some(Combinator::PseudoElement));
+        self.passed_rightmost_selector =
+            self.passed_rightmost_selector ||
+                !matches!(combinator, None | Some(Combinator::PseudoElement));
 
         true
     }
@@ -1830,8 +1845,9 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        self.needs_revalidation = self.needs_revalidation ||
-            component_needs_revalidation(s, self.passed_rightmost_selector);
+        self.needs_revalidation =
+            self.needs_revalidation ||
+                component_needs_revalidation(s, self.passed_rightmost_selector);
 
         match *s {
             Component::NonTSPseudoClass(ref p) => {
@@ -1883,13 +1899,15 @@ impl ElementAndPseudoRules {
         pseudo_element: Option<&PseudoElement>,
         quirks_mode: QuirksMode,
     ) -> Result<(), FailedAllocationError> {
-        debug_assert!(pseudo_element.map_or(true, |pseudo| {
-            !pseudo.is_precomputed() && !pseudo.is_unknown_webkit_pseudo_element()
-        }));
+        debug_assert!(
+            pseudo_element.map_or(true, |pseudo| !pseudo.is_precomputed() &&
+                !pseudo.is_unknown_webkit_pseudo_element())
+        );
 
         let map = match pseudo_element {
             None => &mut self.element_map,
-            Some(pseudo) => self.pseudos_map
+            Some(pseudo) => self
+                .pseudos_map
                 .get_or_insert_with(pseudo, || Box::new(SelectorMap::new())),
         };
 
@@ -2259,10 +2277,10 @@ impl CascadeData {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
 
                     // Don't let a prefixed keyframes animation override a non-prefixed one.
-                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() ||
-                        self.animations
-                            .get(keyframes_rule.name.as_atom())
-                            .map_or(true, |rule| rule.vendor_prefix.is_some());
+                    let needs_insertion = keyframes_rule.vendor_prefix.is_none() || self
+                        .animations
+                        .get(keyframes_rule.name.as_atom())
+                        .map_or(true, |rule| rule.vendor_prefix.is_some());
                     if needs_insertion {
                         let animation = KeyframesAnimation::from_keyframes(
                             &keyframes_rule.keyframes,
@@ -2352,7 +2370,8 @@ impl CascadeData {
                     let effective_now = import_rule
                         .stylesheet
                         .is_effective_for_device(&device, guard);
-                    let effective_then = self.effective_media_query_results
+                    let effective_then = self
+                        .effective_media_query_results
                         .was_effective(import_rule);
                     if effective_now != effective_then {
                         debug!(
@@ -2378,9 +2397,7 @@ impl CascadeData {
                     if effective_now != effective_then {
                         debug!(
                             " > @media rule {:?} changed {} -> {}",
-                            mq,
-                            effective_then,
-                            effective_now
+                            mq, effective_then, effective_now
                         );
                         return false;
                     }
@@ -2460,8 +2477,10 @@ pub struct Rule {
     pub source_order: u32,
 
     /// The actual style rule.
-    #[cfg_attr(feature = "gecko",
-               ignore_malloc_size_of = "Secondary ref. Primary ref is in StyleRule under Stylesheet.")]
+    #[cfg_attr(
+        feature = "gecko",
+        ignore_malloc_size_of = "Secondary ref. Primary ref is in StyleRule under Stylesheet."
+    )]
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
     pub style_rule: Arc<Locked<StyleRule>>,
 }
@@ -2486,7 +2505,13 @@ impl Rule {
         shadow_cascade_order: ShadowCascadeOrder,
     ) -> ApplicableDeclarationBlock {
         let source = StyleSource::from_rule(self.style_rule.clone());
-        ApplicableDeclarationBlock::new(source, self.source_order, level, self.specificity(), shadow_cascade_order)
+        ApplicableDeclarationBlock::new(
+            source,
+            self.source_order,
+            level,
+            self.specificity(),
+            shadow_cascade_order,
+        )
     }
 
     /// Creates a new Rule.

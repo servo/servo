@@ -88,7 +88,7 @@ macro_rules! descriptor_range_conversion {
                     None => {
                         nscssvalue.set_from(first);
                         return;
-                    }
+                    },
                     Some(ref second) => second,
                 };
 
@@ -101,7 +101,7 @@ macro_rules! descriptor_range_conversion {
                 nscssvalue.set_pair(&a, &b);
             }
         }
-    }
+    };
 }
 
 descriptor_range_conversion!(FontWeight);
@@ -120,7 +120,7 @@ impl<'a> ToNsCssValue for &'a FontStyle {
                 b.set_font_style(SpecifiedFontStyle::compute_angle(second).degrees());
 
                 nscssvalue.set_pair(&a, &b);
-            }
+            },
         }
     }
 }

@@ -32,8 +32,7 @@ impl Resolution {
     /// Convert this resolution value to dppx units.
     pub fn to_dppx(&self) -> CSSFloat {
         match *self {
-            Resolution::X(f) |
-            Resolution::Dppx(f) => f,
+            Resolution::X(f) | Resolution::Dppx(f) => f,
             _ => self.to_dpi() / 96.0,
         }
     }
@@ -42,8 +41,7 @@ impl Resolution {
     pub fn to_dpi(&self) -> CSSFloat {
         match *self {
             Resolution::Dpi(f) => f,
-            Resolution::X(f) |
-            Resolution::Dppx(f) => f * 96.0,
+            Resolution::X(f) | Resolution::Dppx(f) => f * 96.0,
             Resolution::Dpcm(f) => f * 2.54,
         }
     }

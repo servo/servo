@@ -158,15 +158,15 @@ pub fn parse_double(string: &str) -> Result<f64, ()> {
 
 impl AttrValue {
     pub fn from_serialized_tokenlist(tokens: String) -> AttrValue {
-        let atoms = split_html_space_chars(&tokens).map(Atom::from).fold(
-            vec![],
-            |mut acc, atom| {
-                if !acc.contains(&atom) {
-                    acc.push(atom)
-                }
-                acc
-            },
-        );
+        let atoms =
+            split_html_space_chars(&tokens)
+                .map(Atom::from)
+                .fold(vec![], |mut acc, atom| {
+                    if !acc.contains(&atom) {
+                        acc.push(atom)
+                    }
+                    acc
+                });
         AttrValue::TokenList(tokens, atoms)
     }
 

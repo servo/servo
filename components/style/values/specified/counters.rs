@@ -93,8 +93,7 @@ impl Content {
             .try(|input| {
                 input.expect_comma()?;
                 ListStyleType::parse(input)
-            })
-            .unwrap_or(ListStyleType::Decimal)
+            }).unwrap_or(ListStyleType::Decimal)
     }
 
     #[cfg(feature = "gecko")]
@@ -103,8 +102,7 @@ impl Content {
             .try(|input| {
                 input.expect_comma()?;
                 CounterStyleOrNone::parse(context, input)
-            })
-            .unwrap_or(CounterStyleOrNone::decimal())
+            }).unwrap_or(CounterStyleOrNone::decimal())
     }
 }
 

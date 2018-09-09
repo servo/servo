@@ -322,13 +322,11 @@ mod bindings {
                     .expect(&format!(
                         "Unrecognized line in ServoArcTypeList.h: '{}'",
                         line
-                    ))
-                    .get(1)
+                    )).get(1)
                     .unwrap()
                     .as_str()
                     .to_string()
-            })
-            .collect()
+            }).collect()
     }
 
     struct BuilderWithConfig<'a> {
@@ -436,8 +434,7 @@ mod bindings {
                     servo,
                     if generic { "<T>" } else { "" }
                 ))
-            })
-            .get_builder();
+            }).get_builder();
         write_binding_file(builder, STRUCTS_FILE, &fixups);
     }
 
@@ -553,8 +550,7 @@ mod bindings {
                 .raw_line(format!(
                     "pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;",
                     ty
-                ))
-                .borrowed_type(ty)
+                )).borrowed_type(ty)
                 .zero_size_type(ty, &structs_types);
         }
         write_binding_file(builder, BINDINGS_FILE, &fixups);

@@ -45,8 +45,19 @@ pub enum PositionComponent<S> {
 }
 
 /// A keyword for the X direction.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 #[allow(missing_docs)]
 pub enum X {
     Left,
@@ -54,8 +65,19 @@ pub enum X {
 }
 
 /// A keyword for the Y direction.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 #[allow(missing_docs)]
 pub enum Y {
     Top,
@@ -128,10 +150,12 @@ impl Position {
         }
         let y_keyword = Y::parse(input)?;
         let lop_and_x_pos: Result<_, ParseError> = input.try(|i| {
-            let y_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+            let y_lop = i
+                .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                 .ok();
             if let Ok(x_keyword) = i.try(X::parse) {
-                let x_lop = i.try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
+                let x_lop = i
+                    .try(|i| LengthOrPercentage::parse_quirky(context, i, allow_quirks))
                     .ok();
                 let x_pos = PositionComponent::Side(x_keyword, x_lop);
                 return Ok((y_lop, x_pos));
@@ -411,8 +435,9 @@ impl ToCss for LegacyPosition {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 /// Auto-placement algorithm Option
 pub enum AutoFlow {
     /// The auto-placement algorithm places items by filling each row in turn,
@@ -423,8 +448,9 @@ pub enum AutoFlow {
     Column,
 }
 
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss,
+)]
 /// Controls how the auto-placement algorithm works
 /// specifying exactly how auto-placed items get flowed into the grid
 pub struct GridAutoFlow {
@@ -630,8 +656,7 @@ impl Parse for TemplateAreas {
 }
 
 /// Arc type for `Arc<TemplateAreas>`
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
 
 impl Parse for TemplateAreasArc {
@@ -685,8 +710,12 @@ impl<'a> Iterator for TemplateAreasTokenizer<'a> {
 }
 
 fn is_name_code_point(c: char) -> bool {
-    c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '\u{80}' || c == '_' ||
-        c >= '0' && c <= '9' || c == '-'
+    c >= 'A' && c <= 'Z' ||
+        c >= 'a' && c <= 'z' ||
+        c >= '\u{80}' ||
+        c == '_' ||
+        c >= '0' && c <= '9' ||
+        c == '-'
 }
 
 /// This property specifies named grid areas.

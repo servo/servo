@@ -566,14 +566,16 @@ impl Length {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) =>
+                }
+                    if num_context.is_ok(context.parsing_mode, value) =>
                 {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(Length::NoCalc)
                         .map_err(|()| location.new_unexpected_token_error(token.clone()))
                 },
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+                    if value != 0. &&
+                        !context.parsing_mode.allows_unitless_lengths() &&
                         !allow_quirks.allowed(context.quirks_mode)
                     {
                         return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -753,7 +755,8 @@ impl LengthOrPercentage {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) =>
+                }
+                    if num_context.is_ok(context.parsing_mode, value) =>
                 {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentage::Length)
@@ -767,7 +770,8 @@ impl LengthOrPercentage {
                     )))
                 },
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+                    if value != 0. &&
+                        !context.parsing_mode.allows_unitless_lengths() &&
                         !allow_quirks.allowed(context.quirks_mode)
                     {
                         return Err(location.new_unexpected_token_error(token.clone()));
@@ -780,8 +784,9 @@ impl LengthOrPercentage {
             }
         }
 
-        let calc = input
-            .parse_nested_block(|i| CalcNode::parse_length_or_percentage(context, i, num_context))?;
+        let calc = input.parse_nested_block(|i| {
+            CalcNode::parse_length_or_percentage(context, i, num_context)
+        })?;
         Ok(LengthOrPercentage::Calc(Box::new(calc)))
     }
 
@@ -871,7 +876,8 @@ impl LengthOrPercentageOrAuto {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) =>
+                }
+                    if num_context.is_ok(context.parsing_mode, value) =>
                 {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentageOrAuto::Length)
@@ -885,7 +891,8 @@ impl LengthOrPercentageOrAuto {
                     )))
                 },
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+                    if value != 0. &&
+                        !context.parsing_mode.allows_unitless_lengths() &&
                         !allow_quirks.allowed(context.quirks_mode)
                     {
                         return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -902,8 +909,9 @@ impl LengthOrPercentageOrAuto {
             }
         }
 
-        let calc = input
-            .parse_nested_block(|i| CalcNode::parse_length_or_percentage(context, i, num_context))?;
+        let calc = input.parse_nested_block(|i| {
+            CalcNode::parse_length_or_percentage(context, i, num_context)
+        })?;
         Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
     }
 
@@ -998,8 +1006,7 @@ impl Parse for NonNegativeLengthOrPercentageOrAuto {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         Ok(NonNegative(LengthOrPercentageOrAuto::parse_non_negative(
-            context,
-            input,
+            context, input,
         )?))
     }
 }
@@ -1028,7 +1035,8 @@ impl LengthOrPercentageOrNone {
             match *token {
                 Token::Dimension {
                     value, ref unit, ..
-                } if num_context.is_ok(context.parsing_mode, value) =>
+                }
+                    if num_context.is_ok(context.parsing_mode, value) =>
                 {
                     return NoCalcLength::parse_dimension(context, value, unit)
                         .map(LengthOrPercentageOrNone::Length)
@@ -1042,7 +1050,8 @@ impl LengthOrPercentageOrNone {
                     )))
                 },
                 Token::Number { value, .. } if num_context.is_ok(context.parsing_mode, value) => {
-                    if value != 0. && !context.parsing_mode.allows_unitless_lengths() &&
+                    if value != 0. &&
+                        !context.parsing_mode.allows_unitless_lengths() &&
                         !allow_quirks.allowed(context.quirks_mode)
                     {
                         return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -1059,8 +1068,9 @@ impl LengthOrPercentageOrNone {
             }
         }
 
-        let calc = input
-            .parse_nested_block(|i| CalcNode::parse_length_or_percentage(context, i, num_context))?;
+        let calc = input.parse_nested_block(|i| {
+            CalcNode::parse_length_or_percentage(context, i, num_context)
+        })?;
         Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
     }
 

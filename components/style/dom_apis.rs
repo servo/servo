@@ -426,8 +426,7 @@ where
                         return Ok(());
                     }
 
-                    let elements =
-                        fast_connected_elements_with_id(root, id, quirks_mode)?;
+                    let elements = fast_connected_elements_with_id(root, id, quirks_mode)?;
                     if elements.is_empty() {
                         return Ok(());
                     }
