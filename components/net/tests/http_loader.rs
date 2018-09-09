@@ -46,29 +46,34 @@ fn read_response(reader: &mut Read) -> String {
     let mut buf = vec![0; 1024];
     match reader.read(&mut buf) {
         Ok(len) if len > 0 => {
-            unsafe { buf.set_len(len); }
+            unsafe {
+                buf.set_len(len);
+            }
             String::from_utf8(buf).unwrap()
         },
         Ok(_) => "".to_owned(),
-        Err(e) => panic!("problem reading response {}", e)
+        Err(e) => panic!("problem reading response {}", e),
     }
 }
 
-fn assert_cookie_for_domain(cookie_jar: &RwLock<CookieStorage>, domain: &str, cookie: Option<&str>) {
+fn assert_cookie_for_domain(
+    cookie_jar: &RwLock<CookieStorage>,
+    domain: &str,
+    cookie: Option<&str>,
+) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     let url = ServoUrl::parse(&*domain).unwrap();
     let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
     assert_eq!(cookies.as_ref().map(|c| &**c), cookie);
 }
 
-pub fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpRequest {
+pub fn expect_devtools_http_request(
+    devtools_port: &Receiver<DevtoolsControlMsg>,
+) -> DevtoolsHttpRequest {
     match devtools_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(
-        ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
+        DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event)) => {
             match net_event {
-                NetworkEvent::HttpRequest(httprequest) => {
-                    httprequest
-                },
+                NetworkEvent::HttpRequest(httprequest) => httprequest,
 
                 _ => panic!("No HttpRequest Received"),
             }
@@ -77,17 +82,17 @@ pub fn expect_devtools_http_request(devtools_port: &Receiver<DevtoolsControlMsg>
     }
 }
 
-pub fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -> DevtoolsHttpResponse {
+pub fn expect_devtools_http_response(
+    devtools_port: &Receiver<DevtoolsControlMsg>,
+) -> DevtoolsHttpResponse {
     match devtools_port.recv().unwrap() {
-        DevtoolsControlMsg::FromChrome(
-            ChromeToDevtoolsControlMsg::NetworkEvent(_, net_event_response)) => {
-            match net_event_response {
-                NetworkEvent::HttpResponse(httpresponse) => {
-                    httpresponse
-                },
+        DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
+            _,
+            net_event_response,
+        )) => match net_event_response {
+            NetworkEvent::HttpResponse(httpresponse) => httpresponse,
 
-                _ => panic!("No HttpResponse Received"),
-            }
+            _ => panic!("No HttpResponse Received"),
         },
         _ => panic!("No HttpResponse Received"),
     }
@@ -98,29 +103,47 @@ fn test_check_default_headers_loaded_in_every_request() {
     let expected_headers = Arc::new(Mutex::new(None));
     let expected_headers_clone = expected_headers.clone();
     let handler = move |request: HyperRequest, _: HyperResponse| {
-        assert_eq!(request.headers, expected_headers_clone.lock().unwrap().take().unwrap());
+        assert_eq!(
+            request.headers,
+            expected_headers_clone.lock().unwrap().take().unwrap()
+        );
     };
     let (mut server, url) = make_server(handler);
 
     let mut headers = Headers::new();
 
-    headers.set(AcceptEncoding(vec![qitem(Encoding::Gzip),
-                                    qitem(Encoding::Deflate),
-                                    qitem(Encoding::EncodingExt("br".to_owned()))]));
+    headers.set(AcceptEncoding(vec![
+        qitem(Encoding::Gzip),
+        qitem(Encoding::Deflate),
+        qitem(Encoding::EncodingExt("br".to_owned())),
+    ]));
 
     let hostname = match url.host_str() {
         Some(hostname) => hostname.to_owned(),
-        _ => panic!()
+        _ => panic!(),
     };
 
-    headers.set(Host { hostname: hostname, port: url.port() });
+    headers.set(Host {
+        hostname: hostname,
+        port: url.port(),
+    });
 
     let accept = Accept(vec![
-                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
-                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
-                            ]);
+        qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+        qitem(Mime(
+            TopLevel::Application,
+            SubLevel::Ext("xhtml+xml".to_owned()),
+            vec![],
+        )),
+        QualityItem::new(
+            Mime(TopLevel::Application, SubLevel::Xml, vec![]),
+            Quality(900u16),
+        ),
+        QualityItem::new(
+            Mime(TopLevel::Star, SubLevel::Star, vec![]),
+            Quality(800u16),
+        ),
+    ]);
     headers.set(accept);
 
     let mut en_us: LanguageTag = Default::default();
@@ -144,10 +167,17 @@ fn test_check_default_headers_loaded_in_every_request() {
         destination: Destination::Document,
         origin: url.clone().origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     // Testing for method.POST
     let mut post_headers = headers.clone();
@@ -155,7 +185,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     let url_str = url.as_str();
     // request gets header "Origin: http://example.com" but expected_headers has
     // "Origin: http://example.com/" which do not match for equality so strip trailing '/'
-    post_headers.set(Origin::from_str(&url_str[..url_str.len()-1]).unwrap());
+    post_headers.set(Origin::from_str(&url_str[..url_str.len() - 1]).unwrap());
     *expected_headers.lock().unwrap() = Some(post_headers);
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
@@ -163,18 +193,29 @@ fn test_check_default_headers_loaded_in_every_request() {
         destination: Destination::Document,
         origin: url.clone().origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     let _ = server.close();
 }
 
 #[test]
-fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
+fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0(
+) {
     let handler = move |request: HyperRequest, _: HyperResponse| {
-        assert_eq!(request.headers.get::<ContentLength>(), Some(&ContentLength(0)));
+        assert_eq!(
+            request.headers.get::<ContentLength>(),
+            Some(&ContentLength(0))
+        );
     };
     let (mut server, url) = make_server(handler);
 
@@ -185,10 +226,17 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     let _ = server.close();
 }
@@ -196,13 +244,19 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
 #[test]
 fn test_request_and_response_data_with_network_messages() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(Host { hostname: "foo.bar".to_owned(), port: None });
+        response.headers_mut().set(Host {
+            hostname: "foo.bar".to_owned(),
+            port: None,
+        });
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
 
     let mut request_headers = Headers::new();
-    request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
+    request_headers.set(Host {
+        hostname: "bar.foo".to_owned(),
+        port: None,
+    });
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Get,
@@ -211,11 +265,18 @@ fn test_request_and_response_data_with_network_messages() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     let _ = server.close();
 
@@ -227,19 +288,32 @@ fn test_request_and_response_data_with_network_messages() {
     let mut headers = Headers::new();
 
     headers.set(AcceptEncoding(vec![
-                                   qitem(Encoding::Gzip),
-                                   qitem(Encoding::Deflate),
-                                   qitem(Encoding::EncodingExt("br".to_owned()))
-                                   ]));
+        qitem(Encoding::Gzip),
+        qitem(Encoding::Deflate),
+        qitem(Encoding::EncodingExt("br".to_owned())),
+    ]));
 
-    headers.set(Host { hostname: url.host_str().unwrap().to_owned() , port: url.port() });
+    headers.set(Host {
+        hostname: url.host_str().unwrap().to_owned(),
+        port: url.port(),
+    });
 
     let accept = Accept(vec![
-                            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-                            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-                            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900u16)),
-                            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800u16)),
-                            ]);
+        qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+        qitem(Mime(
+            TopLevel::Application,
+            SubLevel::Ext("xhtml+xml".to_owned()),
+            vec![],
+        )),
+        QualityItem::new(
+            Mime(TopLevel::Application, SubLevel::Xml, vec![]),
+            Quality(900u16),
+        ),
+        QualityItem::new(
+            Mime(TopLevel::Star, SubLevel::Star, vec![]),
+            Quality(800u16),
+        ),
+    ]);
     headers.set(accept);
 
     let mut en_us: LanguageTag = Default::default();
@@ -270,8 +344,19 @@ fn test_request_and_response_data_with_network_messages() {
     let content = "Yay!";
     let mut response_headers = Headers::new();
     response_headers.set(ContentLength(content.len() as u64));
-    response_headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
-    response_headers.set(devhttpresponse.headers.as_ref().unwrap().get::<Date>().unwrap().clone());
+    response_headers.set(Host {
+        hostname: "foo.bar".to_owned(),
+        port: None,
+    });
+    response_headers.set(
+        devhttpresponse
+            .headers
+            .as_ref()
+            .unwrap()
+            .get::<Date>()
+            .unwrap()
+            .clone(),
+    );
 
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
@@ -287,7 +372,10 @@ fn test_request_and_response_data_with_network_messages() {
 #[test]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(Host { hostname: "foo.bar".to_owned(), port: None });
+        response.headers_mut().set(Host {
+            hostname: "foo.bar".to_owned(),
+            port: None,
+        });
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -298,11 +386,18 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: None,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
     let response = fetch(&mut request, Some(devtools_chan));
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     let _ = server.close();
 
@@ -321,7 +416,9 @@ fn test_redirected_request_to_devtools() {
     let post_redirect_url = post_url.clone();
     let pre_handler = move |request: HyperRequest, mut response: HyperResponse| {
         assert_eq!(request.method, Method::Post);
-        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        response
+            .headers_mut()
+            .set(Location(post_redirect_url.to_string()));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -332,7 +429,7 @@ fn test_redirected_request_to_devtools() {
         method: Method::Post,
         destination: Destination::Document,
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
     fetch(&mut request, Some(devtools_chan));
@@ -345,7 +442,10 @@ fn test_redirected_request_to_devtools() {
 
     assert_eq!(devhttprequest.method, Method::Post);
     assert_eq!(devhttprequest.url, pre_url);
-    assert_eq!(devhttpresponse.status, Some((301, b"Moved Permanently".to_vec())));
+    assert_eq!(
+        devhttpresponse.status,
+        Some((301, b"Moved Permanently".to_vec()))
+    );
 
     let devhttprequest = expect_devtools_http_request(&devtools_port);
     let devhttpresponse = expect_devtools_http_response(&devtools_port);
@@ -354,8 +454,6 @@ fn test_redirected_request_to_devtools() {
     assert_eq!(devhttprequest.url, post_url);
     assert_eq!(devhttpresponse.status, Some((200, b"OK".to_vec())));
 }
-
-
 
 #[test]
 fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
@@ -368,7 +466,9 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     let post_redirect_url = post_url.clone();
     let pre_handler = move |request: HyperRequest, mut response: HyperResponse| {
         assert_eq!(request.method, Method::Post);
-        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        response
+            .headers_mut()
+            .set(Location(post_redirect_url.to_string()));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -380,7 +480,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -391,9 +491,12 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
 }
 
 #[test]
-fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate() {
+fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_content_encoding_deflate(
+) {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(ContentEncoding(vec![Encoding::Deflate]));
+        response
+            .headers_mut()
+            .set(ContentEncoding(vec![Encoding::Deflate]));
         let mut e = DeflateEncoder::new(Vec::new(), Compression::default());
         e.write(b"Yay!").unwrap();
         let encoded_content = e.finish().unwrap();
@@ -408,7 +511,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -416,14 +519,18 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.unwrap().is_success());
-    assert_eq!(*internal_response.body.lock().unwrap(),
-               ResponseBody::Done(b"Yay!".to_vec()));
+    assert_eq!(
+        *internal_response.body.lock().unwrap(),
+        ResponseBody::Done(b"Yay!".to_vec())
+    );
 }
 
 #[test]
 fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_content_encoding_gzip() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(ContentEncoding(vec![Encoding::Gzip]));
+        response
+            .headers_mut()
+            .set(ContentEncoding(vec![Encoding::Gzip]));
         let mut e = GzEncoder::new(Vec::new(), Compression::default());
         e.write(b"Yay!").unwrap();
         let encoded_content = e.finish().unwrap();
@@ -438,7 +545,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -446,8 +553,10 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.unwrap().is_success());
-    assert_eq!(*internal_response.body.lock().unwrap(),
-               ResponseBody::Done(b"Yay!".to_vec()));
+    assert_eq!(
+        *internal_response.body.lock().unwrap(),
+        ResponseBody::Done(b"Yay!".to_vec())
+    );
 }
 
 #[test]
@@ -464,7 +573,9 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     let pre_handler = move |mut request: HyperRequest, mut response: HyperResponse| {
         let data = read_response(&mut request);
         assert_eq!(data, "Body on POST!");
-        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        response
+            .headers_mut()
+            .set(Location(post_redirect_url.to_string()));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -477,7 +588,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -490,7 +601,9 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
 #[test]
 fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_are_present() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(StrictTransportSecurity::excluding_subdomains(31536000));
+        response
+            .headers_mut()
+            .set(StrictTransportSecurity::excluding_subdomains(31536000));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -502,21 +615,38 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let context = new_fetch_context(None, None);
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
-    assert_eq!(context.state.hsts_list.read().unwrap().is_host_secure(url.host_str().unwrap()), false);
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
+    assert_eq!(
+        context
+            .state
+            .hsts_list
+            .read()
+            .unwrap()
+            .is_host_secure(url.host_str().unwrap()),
+        false
+    );
 }
 
 #[test]
 fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_in_response() {
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(SetCookie(vec!["mozillaIs=theBest".to_owned()]));
+        response
+            .headers_mut()
+            .set(SetCookie(vec!["mozillaIs=theBest".to_owned()]));
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -533,22 +663,35 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
-    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(
+        &context.state.cookie_jar,
+        url.as_str(),
+        Some("mozillaIs=theBest"),
+    );
 }
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<CookieHeader>(),
-                   Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
+        assert_eq!(
+            request.headers.get::<CookieHeader>(),
+            Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()]))
+        );
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -560,7 +703,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
-            CookieSource::HTTP
+            CookieSource::HTTP,
         ).unwrap();
         cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
@@ -573,20 +716,29 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
 fn test_load_sends_cookie_if_nonhttp() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<CookieHeader>(),
-                   Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
+        assert_eq!(
+            request.headers.get::<CookieHeader>(),
+            Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()]))
+        );
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -598,7 +750,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
-            CookieSource::NonHTTP
+            CookieSource::NonHTTP,
         ).unwrap();
         cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
@@ -611,13 +763,20 @@ fn test_load_sends_cookie_if_nonhttp() {
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
@@ -641,17 +800,32 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
-    assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), Some("mozillaIs=theBest"));
+    assert_cookie_for_domain(
+        &context.state.cookie_jar,
+        url.as_str(),
+        Some("mozillaIs=theBest"),
+    );
     let mut cookie_jar = context.state.cookie_jar.write().unwrap();
-    assert!(cookie_jar.cookies_for_url(&url, CookieSource::NonHTTP).is_none());
+    assert!(
+        cookie_jar
+            .cookies_for_url(&url, CookieSource::NonHTTP)
+            .is_none()
+    );
 }
 
 #[test]
@@ -675,13 +849,20 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     assert_cookie_for_domain(&context.state.cookie_jar, url.as_str(), None);
 }
@@ -691,7 +872,10 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let content = b"This is a request body";
     let content_length = ContentLength(content.len() as u64);
     let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<ContentLength>(), Some(&content_length));
+        assert_eq!(
+            request.headers.get::<ContentLength>(),
+            Some(&content_length)
+        );
         response.send(content).unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -703,13 +887,20 @@ fn test_load_sets_content_length_to_length_of_request_body() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
@@ -731,24 +922,41 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
 fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<Accept>(), Some(&Accept(vec![
-            qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
-            qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-            QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), Quality(900)),
-            QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
-        ])));
+        assert_eq!(
+            request.headers.get::<Accept>(),
+            Some(&Accept(vec![
+                qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                qitem(Mime(
+                    TopLevel::Application,
+                    SubLevel::Ext("xhtml+xml".to_owned()),
+                    vec![]
+                )),
+                QualityItem::new(
+                    Mime(TopLevel::Application, SubLevel::Xml, vec![]),
+                    Quality(900)
+                ),
+                QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
+            ]))
+        );
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -759,13 +967,20 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
@@ -773,7 +988,10 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let accept_encoding = AcceptEncoding(vec![qitem(Encoding::Chunked)]);
     let expected_accept_encoding = accept_encoding.clone();
     let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<AcceptEncoding>(), Some(&expected_accept_encoding));
+        assert_eq!(
+            request.headers.get::<AcceptEncoding>(),
+            Some(&expected_accept_encoding)
+        );
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -787,23 +1005,33 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
 fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
-        assert_eq!(request.headers.get::<AcceptEncoding>(), Some(&AcceptEncoding(vec![
-            qitem(Encoding::Gzip),
-            qitem(Encoding::Deflate),
-            qitem(Encoding::EncodingExt("br".to_owned()))
-        ])));
+        assert_eq!(
+            request.headers.get::<AcceptEncoding>(),
+            Some(&AcceptEncoding(vec![
+                qitem(Encoding::Gzip),
+                qitem(Encoding::Deflate),
+                qitem(Encoding::EncodingExt("br".to_owned()))
+            ]))
+        );
         response.send(b"Yay!").unwrap();
     };
     let (mut server, url) = make_server(handler);
@@ -814,13 +1042,20 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
@@ -828,7 +1063,14 @@ fn test_load_errors_when_there_a_redirect_loop() {
     let url_b_for_a = Arc::new(Mutex::new(None::<ServoUrl>));
     let url_b_for_a_clone = url_b_for_a.clone();
     let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
+        response.headers_mut().set(Location(
+            url_b_for_a_clone
+                .lock()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .to_string(),
+        ));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -836,7 +1078,9 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     let url_a_for_b = url_a.clone();
     let handler_b = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(Location(url_a_for_b.to_string()));
+        response
+            .headers_mut()
+            .set(Location(url_a_for_b.to_string()));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -850,15 +1094,17 @@ fn test_load_errors_when_there_a_redirect_loop() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
     let _ = server_a.close();
     let _ = server_b.close();
 
-    assert_eq!(response.get_network_error(),
-               Some(&NetworkError::Internal("Too many redirects".to_owned())));
+    assert_eq!(
+        response.get_network_error(),
+        Some(&NetworkError::Internal("Too many redirects".to_owned()))
+    );
 }
 
 #[test]
@@ -868,7 +1114,14 @@ fn test_load_succeeds_with_a_redirect_loop() {
     let handled_a = AtomicBool::new(false);
     let handler_a = move |_: HyperRequest, mut response: HyperResponse| {
         if !handled_a.swap(true, Ordering::SeqCst) {
-            response.headers_mut().set(Location(url_b_for_a_clone.lock().unwrap().as_ref().unwrap().to_string()));
+            response.headers_mut().set(Location(
+                url_b_for_a_clone
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .unwrap()
+                    .to_string(),
+            ));
             *response.status_mut() = StatusCode::MovedPermanently;
             response.send(b"").unwrap();
         } else {
@@ -879,7 +1132,9 @@ fn test_load_succeeds_with_a_redirect_loop() {
 
     let url_a_for_b = url_a.clone();
     let handler_b = move |_: HyperRequest, mut response: HyperResponse| {
-        response.headers_mut().set(Location(url_a_for_b.to_string()));
+        response
+            .headers_mut()
+            .set(Location(url_a_for_b.to_string()));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -893,7 +1148,7 @@ fn test_load_succeeds_with_a_redirect_loop() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -902,8 +1157,10 @@ fn test_load_succeeds_with_a_redirect_loop() {
 
     let response = response.to_actual();
     assert_eq!(response.url_list, [url_a.clone(), url_b, url_a]);
-    assert_eq!(*response.body.lock().unwrap(),
-               ResponseBody::Done(b"Success".to_vec()));
+    assert_eq!(
+        *response.body.lock().unwrap(),
+        ResponseBody::Done(b"Success".to_vec())
+    );
 }
 
 #[test]
@@ -917,7 +1174,9 @@ fn test_load_follows_a_redirect() {
     let post_redirect_url = post_url.clone();
     let pre_handler = move |request: HyperRequest, mut response: HyperResponse| {
         assert_eq!(request.method, Method::Get);
-        response.headers_mut().set(Location(post_redirect_url.to_string()));
+        response
+            .headers_mut()
+            .set(Location(post_redirect_url.to_string()));
         *response.status_mut() = StatusCode::MovedPermanently;
         response.send(b"").unwrap();
     };
@@ -929,7 +1188,7 @@ fn test_load_follows_a_redirect() {
         destination: Destination::Document,
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -938,8 +1197,10 @@ fn test_load_follows_a_redirect() {
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.unwrap().is_success());
-    assert_eq!(*internal_response.body.lock().unwrap(),
-               ResponseBody::Done(b"Yay!".to_vec()));
+    assert_eq!(
+        *internal_response.body.lock().unwrap(),
+        ResponseBody::Done(b"Yay!".to_vec())
+    );
 }
 
 #[test]
@@ -952,15 +1213,19 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
             uri => panic!("Unexpected uri: {:?}", uri),
         };
         if path == "/com/" {
-            assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec!["mozillaIsNot=dotOrg".to_owned()])));
+            assert_eq!(
+                request.headers.get(),
+                Some(&CookieHeader(vec!["mozillaIsNot=dotOrg".to_owned()]))
+            );
             let location = shared_url_y.lock().unwrap().as_ref().unwrap().to_string();
             response.headers_mut().set(Location(location));
             *response.status_mut() = StatusCode::MovedPermanently;
             response.send(b"").unwrap();
         } else if path == "/org/" {
-            assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
+            assert_eq!(
+                request.headers.get(),
+                Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()]))
+            );
             response.send(b"Yay!").unwrap();
         } else {
             panic!("unexpected path {:?}", path)
@@ -987,7 +1252,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         let cookie_x = Cookie::new_wrapped(
             CookiePair::new("mozillaIsNot".to_owned(), "dotOrg".to_owned()),
             &url_x,
-            CookieSource::HTTP
+            CookieSource::HTTP,
         ).unwrap();
 
         cookie_jar.push(cookie_x, &url_x, CookieSource::HTTP);
@@ -995,7 +1260,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         let cookie_y = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url_y,
-            CookieSource::HTTP
+            CookieSource::HTTP,
         ).unwrap();
         cookie_jar.push(cookie_y, &url_y, CookieSource::HTTP);
     }
@@ -1007,7 +1272,7 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch_with_context(&mut request, &context);
 
@@ -1015,8 +1280,10 @@ fn test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.unwrap().is_success());
-    assert_eq!(*internal_response.body.lock().unwrap(),
-               ResponseBody::Done(b"Yay!".to_vec()));
+    assert_eq!(
+        *internal_response.body.lock().unwrap(),
+        ResponseBody::Done(b"Yay!".to_vec())
+    );
 }
 
 #[test]
@@ -1027,14 +1294,18 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
             uri => panic!("Unexpected uri: {:?}", uri),
         };
         if path == "/initial/" {
-            response.headers_mut().set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
+            response
+                .headers_mut()
+                .set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
             let location = "/subsequent/".to_string();
             response.headers_mut().set(Location(location));
             *response.status_mut() = StatusCode::MovedPermanently;
             response.send(b"").unwrap();
         } else if path == "/subsequent/" {
-            assert_eq!(request.headers.get(),
-                       Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()])));
+            assert_eq!(
+                request.headers.get(),
+                Some(&CookieHeader(vec!["mozillaIs=theBest".to_owned()]))
+            );
             response.send(b"Yay!").unwrap();
         } else {
             panic!("unexpected path {:?}", path)
@@ -1051,7 +1322,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
 
@@ -1059,8 +1330,10 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
     let internal_response = response.internal_response.unwrap();
     assert!(internal_response.status.unwrap().is_success());
-    assert_eq!(*internal_response.body.lock().unwrap(),
-               ResponseBody::Done(b"Yay!".to_vec()));
+    assert_eq!(
+        *internal_response.body.lock().unwrap(),
+        ResponseBody::Done(b"Yay!".to_vec())
+    );
 }
 
 #[test]
@@ -1068,7 +1341,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
     let handler = move |request: HyperRequest, response: HyperResponse| {
         let expected = Authorization(Basic {
             username: "username".to_owned(),
-            password: Some("test".to_owned())
+            password: Some("test".to_owned()),
         });
         assert_eq!(request.headers.get(), Some(&expected));
         response.send(b"").unwrap();
@@ -1083,7 +1356,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let context = new_fetch_context(None, None);
 
@@ -1092,13 +1365,26 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         password: "test".to_owned(),
     };
 
-    context.state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
+    context
+        .state
+        .auth_cache
+        .write()
+        .unwrap()
+        .entries
+        .insert(url.origin().clone().ascii_serialization(), auth_entry);
 
     let response = fetch_with_context(&mut request, &context);
 
     let _ = server.close();
 
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 }
 
 #[test]
@@ -1117,14 +1403,17 @@ fn test_auth_ui_needs_www_auth() {
         origin: mock_origin(),
         pipeline_id: Some(TEST_PIPELINE_ID),
         credentials_mode: CredentialsMode::Include,
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
 
     let response = fetch(&mut request, None);
 
     let _ = server.close();
 
-    assert_eq!(response.internal_response.unwrap().status.unwrap(), StatusCode::Unauthorized);
+    assert_eq!(
+        response.internal_response.unwrap().status.unwrap(),
+        StatusCode::Unauthorized
+    );
 }
 
 #[test]
@@ -1148,13 +1437,24 @@ fn test_origin_set() {
         method: Method::Post,
         body: None,
         origin: url.clone().origin(),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
     let response = fetch(&mut request, None);
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     let origin_url = ServoUrl::parse("http://example.com").unwrap();
-    origin = Origin::new(origin_url.scheme(), origin_url.host_str().unwrap(), origin_url.port());
+    origin = Origin::new(
+        origin_url.scheme(),
+        origin_url.host_str().unwrap(),
+        origin_url.port(),
+    );
     // Test Origin header is set on Get request with CORS mode
     let mut request = Request::from_init(RequestInit {
         url: url.clone(),
@@ -1162,12 +1462,19 @@ fn test_origin_set() {
         mode: RequestMode::CorsMode,
         body: None,
         origin: origin_url.clone().origin(),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
 
     *origin_header_clone.lock().unwrap() = Some(origin.clone());
     let response = fetch(&mut request, None);
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     // Test Origin header is not set on method Head
     let mut request = Request::from_init(RequestInit {
@@ -1175,12 +1482,19 @@ fn test_origin_set() {
         method: Method::Head,
         body: None,
         origin: url.clone().origin(),
-        .. RequestInit::default()
+        ..RequestInit::default()
     });
 
     *origin_header_clone.lock().unwrap() = None;
     let response = fetch(&mut request, None);
-    assert!(response.internal_response.unwrap().status.unwrap().is_success());
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .unwrap()
+            .is_success()
+    );
 
     let _ = server.close();
 }
