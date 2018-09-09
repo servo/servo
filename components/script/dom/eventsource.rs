@@ -41,7 +41,7 @@ use typed_headers::{Accept, HeaderMapExt, Quality, QualityItem};
 use utf8;
 
 lazy_static! {
-    static ref LAST_EVENT_ID: HeaderName = HeaderName::from_static("Last-Event-ID");
+    static ref LAST_EVENT_ID: HeaderName = HeaderName::from_static("last-event-id");
 }
 header! { (LastEventId, LAST_EVENT_ID) => [String] }
 
