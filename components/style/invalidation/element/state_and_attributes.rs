@@ -200,17 +200,12 @@ where
                 debug!(" > state: {:?}", state_changes);
             }
             if snapshot.id_changed() {
-                debug!(
-                    " > id changed: +{:?} -{:?}",
-                    id_added,
-                    id_removed
-                );
+                debug!(" > id changed: +{:?} -{:?}", id_added, id_removed);
             }
             if snapshot.class_changed() {
                 debug!(
                     " > class changed: +{:?} -{:?}",
-                    classes_added,
-                    classes_removed
+                    classes_added, classes_removed
                 );
             }
             if snapshot.other_attr_changed() {
@@ -232,7 +227,6 @@ where
             element.each_applicable_non_document_style_rule_data(|data, quirks_mode, host| {
                 shadow_rule_datas.push((data, quirks_mode, host.map(|h| h.opaque())))
             });
-
 
         let invalidated_self = {
             let mut collector = Collector {
@@ -410,10 +404,7 @@ where
     }
 
     /// Check whether a dependency should be taken into account.
-    fn check_dependency(
-        &mut self,
-        dependency: &Dependency,
-    ) -> bool {
+    fn check_dependency(&mut self, dependency: &Dependency) -> bool {
         let element = &self.element;
         let wrapper = &self.wrapper;
         let matches_now = matches_selector(

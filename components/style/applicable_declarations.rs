@@ -38,7 +38,8 @@ const SOURCE_ORDER_MASK: u32 = SOURCE_ORDER_MAX << SOURCE_ORDER_SHIFT;
 const SHADOW_CASCADE_ORDER_SHIFT: usize = SOURCE_ORDER_BITS;
 const SHADOW_CASCADE_ORDER_BITS: usize = 4;
 const SHADOW_CASCADE_ORDER_MAX: u8 = (1 << SHADOW_CASCADE_ORDER_BITS) - 1;
-const SHADOW_CASCADE_ORDER_MASK: u32 = (SHADOW_CASCADE_ORDER_MAX as u32) << SHADOW_CASCADE_ORDER_SHIFT;
+const SHADOW_CASCADE_ORDER_MASK: u32 =
+    (SHADOW_CASCADE_ORDER_MAX as u32) << SHADOW_CASCADE_ORDER_SHIFT;
 
 const CASCADE_LEVEL_SHIFT: usize = SOURCE_ORDER_BITS + SHADOW_CASCADE_ORDER_BITS;
 const CASCADE_LEVEL_BITS: usize = 4;
@@ -61,7 +62,8 @@ impl ApplicableDeclarationBits {
             "Gotta find more bits!"
         );
         let mut bits = ::std::cmp::min(source_order, SOURCE_ORDER_MAX);
-        bits |= ((shadow_cascade_order & SHADOW_CASCADE_ORDER_MAX) as u32) << SHADOW_CASCADE_ORDER_SHIFT;
+        bits |= ((shadow_cascade_order & SHADOW_CASCADE_ORDER_MAX) as u32) <<
+            SHADOW_CASCADE_ORDER_SHIFT;
         bits |= (cascade_level as u8 as u32) << CASCADE_LEVEL_SHIFT;
         ApplicableDeclarationBits(bits)
     }

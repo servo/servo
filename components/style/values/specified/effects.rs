@@ -118,9 +118,9 @@ impl Parse for BoxShadow {
                 let value = input.try::<_, _, ParseError>(|i| {
                     let horizontal = Length::parse(context, i)?;
                     let vertical = Length::parse(context, i)?;
-                    let (blur, spread) = match i.try::<_, _, ParseError>(|i| {
-                        Length::parse_non_negative(context, i)
-                    }) {
+                    let (blur, spread) = match i
+                        .try::<_, _, ParseError>(|i| Length::parse_non_negative(context, i))
+                    {
                         Ok(blur) => {
                             let spread = i.try(|i| Length::parse(context, i)).ok();
                             (Some(blur.into()), spread)
@@ -143,7 +143,8 @@ impl Parse for BoxShadow {
             break;
         }
 
-        let lengths = lengths.ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
+        let lengths =
+            lengths.ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))?;
         Ok(BoxShadow {
             base: SimpleShadow {
                 color: color,
@@ -164,7 +165,8 @@ impl ToComputedValue for BoxShadow {
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         ComputedBoxShadow {
             base: self.base.to_computed_value(context),
-            spread: self.spread
+            spread: self
+                .spread
                 .as_ref()
                 .unwrap_or(&Length::zero())
                 .to_computed_value(context),
@@ -271,13 +273,15 @@ impl ToComputedValue for SimpleShadow {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
         ComputedSimpleShadow {
-            color: self.color
+            color: self
+                .color
                 .as_ref()
                 .unwrap_or(&Color::currentcolor())
                 .to_computed_value(context),
             horizontal: self.horizontal.to_computed_value(context),
             vertical: self.vertical.to_computed_value(context),
-            blur: self.blur
+            blur: self
+                .blur
                 .as_ref()
                 .unwrap_or(&NonNegativeLength::zero())
                 .to_computed_value(context),

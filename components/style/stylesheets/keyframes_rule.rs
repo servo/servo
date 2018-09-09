@@ -82,16 +82,14 @@ impl DeepCloneWithLock for KeyframesRule {
     ) -> Self {
         KeyframesRule {
             name: self.name.clone(),
-            keyframes: self.keyframes
+            keyframes: self
+                .keyframes
                 .iter()
                 .map(|x| {
-                    Arc::new(lock.wrap(x.read_with(guard).deep_clone_with_lock(
-                        lock,
-                        guard,
-                        params,
-                    )))
-                })
-                .collect(),
+                    Arc::new(
+                        lock.wrap(x.read_with(guard).deep_clone_with_lock(lock, guard, params)),
+                    )
+                }).collect(),
             vendor_prefix: self.vendor_prefix.clone(),
             source_location: self.source_location.clone(),
         }
@@ -142,7 +140,8 @@ impl KeyframePercentage {
             Token::Percentage {
                 unit_value: percentage,
                 ..
-            } if percentage >= 0. && percentage <= 1. =>
+            }
+                if percentage >= 0. && percentage <= 1. =>
             {
                 Ok(KeyframePercentage::new(percentage))
             },
@@ -261,8 +260,10 @@ pub enum KeyframesStepValue {
     /// A step formed by a declaration block specified by the CSS.
     Declarations {
         /// The declaration block per se.
-        #[cfg_attr(feature = "gecko",
-                   ignore_malloc_size_of = "XXX: Primary ref, measure if DMD says it's worthwhile")]
+        #[cfg_attr(
+            feature = "gecko",
+            ignore_malloc_size_of = "XXX: Primary ref, measure if DMD says it's worthwhile"
+        )]
         #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
         block: Arc<Locked<PropertyDeclarationBlock>>,
     },
@@ -326,8 +327,7 @@ impl KeyframesStep {
                 let (declaration, _) = guard
                     .get(PropertyDeclarationId::Longhand(
                         LonghandId::AnimationTimingFunction,
-                    ))
-                    .unwrap();
+                    )).unwrap();
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
                         // Use the first value.
@@ -500,7 +500,7 @@ pub fn parse_keyframe_list(
             declarations: &mut declarations,
         },
     ).filter_map(Result::ok)
-        .collect()
+    .collect()
 }
 
 impl<'a, 'i> AtRuleParser<'i> for KeyframeListParser<'a> {
@@ -525,7 +525,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
             let error = ContextualParseError::InvalidKeyframeRule(
                 input.slice_from(start_position),
                 e.clone(),
-                );
+            );
             self.context.log_css_error(location, error);
             e
         })
@@ -552,10 +552,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
         while let Some(declaration) = iter.next() {
             match declaration {
                 Ok(()) => {
-                    block.extend(
-                        iter.parser.declarations.drain(),
-                        Importance::Normal,
-                    );
+                    block.extend(iter.parser.declarations.drain(), Importance::Normal);
                 },
                 Err((error, slice)) => {
                     iter.parser.declarations.clear();
@@ -599,9 +596,9 @@ impl<'a, 'b, 'i> DeclarationParser<'i> for KeyframeDeclarationParser<'a, 'b> {
     ) -> Result<(), ParseError<'i>> {
         let id = match PropertyId::parse(&name, self.context) {
             Ok(id) => id,
-            Err(()) => return Err(input.new_custom_error(
-                StyleParseErrorKind::UnknownProperty(name)
-            )),
+            Err(()) => {
+                return Err(input.new_custom_error(StyleParseErrorKind::UnknownProperty(name)))
+            },
         };
 
         // TODO(emilio): Shouldn't this use parse_entirely?

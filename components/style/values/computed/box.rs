@@ -34,13 +34,14 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+)]
 /// A computed value for the `float` property.
 pub enum Float {
     Left,
     Right,
-    None
+    None,
 }
 
 impl ToComputedValue for SpecifiedFloat {
@@ -52,7 +53,9 @@ impl ToComputedValue for SpecifiedFloat {
         // https://drafts.csswg.org/css-logical-props/#float-clear
         match *self {
             SpecifiedFloat::InlineStart => {
-                context.rule_cache_conditions.borrow_mut()
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
                 if ltr {
                     Float::Left
@@ -61,7 +64,9 @@ impl ToComputedValue for SpecifiedFloat {
                 }
             },
             SpecifiedFloat::InlineEnd => {
-                context.rule_cache_conditions.borrow_mut()
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
                 if ltr {
                     Float::Right
@@ -71,7 +76,7 @@ impl ToComputedValue for SpecifiedFloat {
             },
             SpecifiedFloat::Left => Float::Left,
             SpecifiedFloat::Right => Float::Right,
-            SpecifiedFloat::None => Float::None
+            SpecifiedFloat::None => Float::None,
         }
     }
 
@@ -80,21 +85,22 @@ impl ToComputedValue for SpecifiedFloat {
         match *computed {
             Float::Left => SpecifiedFloat::Left,
             Float::Right => SpecifiedFloat::Right,
-            Float::None => SpecifiedFloat::None
+            Float::None => SpecifiedFloat::None,
         }
     }
 }
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+)]
 /// A computed value for the `clear` property.
 pub enum Clear {
     None,
     Left,
     Right,
-    Both
+    Both,
 }
 
 impl ToComputedValue for SpecifiedClear {
@@ -106,7 +112,9 @@ impl ToComputedValue for SpecifiedClear {
         // https://drafts.csswg.org/css-logical-props/#float-clear
         match *self {
             SpecifiedClear::InlineStart => {
-                context.rule_cache_conditions.borrow_mut()
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
                 if ltr {
                     Clear::Left
@@ -115,7 +123,9 @@ impl ToComputedValue for SpecifiedClear {
                 }
             },
             SpecifiedClear::InlineEnd => {
-                context.rule_cache_conditions.borrow_mut()
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
                 if ltr {
                     Clear::Right
@@ -126,7 +136,7 @@ impl ToComputedValue for SpecifiedClear {
             SpecifiedClear::None => Clear::None,
             SpecifiedClear::Left => Clear::Left,
             SpecifiedClear::Right => Clear::Right,
-            SpecifiedClear::Both => Clear::Both
+            SpecifiedClear::Both => Clear::Both,
         }
     }
 
@@ -160,23 +170,27 @@ impl ToComputedValue for specified::Resize {
         let is_vertical = context.style().writing_mode.is_vertical();
         match self {
             specified::Resize::Inline => {
-                context.rule_cache_conditions.borrow_mut()
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
                 if is_vertical {
                     Resize::Vertical
                 } else {
                     Resize::Horizontal
                 }
-            }
+            },
             specified::Resize::Block => {
-                context.rule_cache_conditions.borrow_mut()
+                context
+                    .rule_cache_conditions
+                    .borrow_mut()
                     .set_writing_mode_dependency(context.builder.writing_mode);
                 if is_vertical {
                     Resize::Horizontal
                 } else {
                     Resize::Vertical
                 }
-            }
+            },
             specified::Resize::None => Resize::None,
             specified::Resize::Both => Resize::Both,
             specified::Resize::Horizontal => Resize::Horizontal,

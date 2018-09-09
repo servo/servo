@@ -102,13 +102,9 @@ pub enum RangeOrOperator {
 impl RangeOrOperator {
     /// Evaluate a given range given an optional query value and a value from
     /// the browser.
-    pub fn evaluate<T>(
-        range_or_op: Option<Self>,
-        query_value: Option<T>,
-        value: T,
-    ) -> bool
+    pub fn evaluate<T>(range_or_op: Option<Self>, query_value: Option<T>, value: T) -> bool
     where
-        T: PartialOrd + Zero
+        T: PartialOrd + Zero,
     {
         match query_value {
             Some(v) => Self::evaluate_with_query_value(range_or_op, v, value),
@@ -118,11 +114,7 @@ impl RangeOrOperator {
 
     /// Evaluate a given range given a non-optional query value and a value from
     /// the browser.
-    pub fn evaluate_with_query_value<T>(
-        range_or_op: Option<Self>,
-        query_value: T,
-        value: T,
-    ) -> bool
+    pub fn evaluate_with_query_value<T>(range_or_op: Option<Self>, query_value: T, value: T) -> bool
     where
         T: PartialOrd,
     {
@@ -142,20 +134,14 @@ impl RangeOrOperator {
                     Range::Min => cmp == Ordering::Greater,
                     Range::Max => cmp == Ordering::Less,
                 }
-            }
-            RangeOrOperator::Operator(op) => {
-                match op {
-                    Operator::Equal => cmp == Ordering::Equal,
-                    Operator::GreaterThan => cmp == Ordering::Greater,
-                    Operator::GreaterThanEqual => {
-                        cmp == Ordering::Equal || cmp == Ordering::Greater
-                    }
-                    Operator::LessThan => cmp == Ordering::Less,
-                    Operator::LessThanEqual => {
-                        cmp == Ordering::Equal || cmp == Ordering::Less
-                    }
-                }
-            }
+            },
+            RangeOrOperator::Operator(op) => match op {
+                Operator::Equal => cmp == Ordering::Equal,
+                Operator::GreaterThan => cmp == Ordering::Greater,
+                Operator::GreaterThanEqual => cmp == Ordering::Equal || cmp == Ordering::Greater,
+                Operator::LessThan => cmp == Ordering::Less,
+                Operator::LessThanEqual => cmp == Ordering::Equal || cmp == Ordering::Less,
+            },
         }
     }
 }
@@ -172,8 +158,8 @@ pub struct MediaFeatureExpression {
 impl PartialEq for MediaFeatureExpression {
     fn eq(&self, other: &Self) -> bool {
         self.feature as *const _ == other.feature as *const _ &&
-        self.value == other.value &&
-        self.range_or_operator == other.range_or_operator
+            self.value == other.value &&
+            self.range_or_operator == other.range_or_operator
     }
 }
 
@@ -184,7 +170,11 @@ impl ToCss for MediaFeatureExpression {
     {
         dest.write_str("(")?;
 
-        if self.feature.requirements.contains(ParsingRequirements::WEBKIT_PREFIX) {
+        if self
+            .feature
+            .requirements
+            .contains(ParsingRequirements::WEBKIT_PREFIX)
+        {
             dest.write_str("-webkit-")?;
         }
 
@@ -215,9 +205,7 @@ impl ToCss for MediaFeatureExpression {
 }
 
 /// Consumes an operation or a colon, or returns an error.
-fn consume_operation_or_colon(
-    input: &mut Parser,
-) -> Result<Option<Operator>, ()> {
+fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()> {
     let first_delim = {
         let next_token = match input.next() {
             Ok(t) => t,
@@ -238,14 +226,14 @@ fn consume_operation_or_colon(
             } else {
                 Operator::GreaterThan
             }
-        }
+        },
         '<' => {
             if input.try(|i| i.expect_delim('=')).is_ok() {
                 Operator::LessThanEqual
             } else {
                 Operator::LessThan
             }
-        }
+        },
         _ => return Err(()),
     }))
 }
@@ -256,7 +244,11 @@ impl MediaFeatureExpression {
         value: Option<MediaExpressionValue>,
         range_or_operator: Option<RangeOrOperator>,
     ) -> Self {
-        Self { feature, value, range_or_operator }
+        Self {
+            feature,
+            value,
+            range_or_operator,
+        }
     }
 
     /// Parse a media expression of the form:
@@ -269,9 +261,7 @@ impl MediaFeatureExpression {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_parenthesis_block()?;
-        input.parse_nested_block(|input| {
-            Self::parse_in_parenthesis_block(context, input)
-        })
+        input.parse_nested_block(|input| Self::parse_in_parenthesis_block(context, input))
     }
 
     /// Parse a media feature expression where we've already consumed the
@@ -294,9 +284,7 @@ impl MediaFeatureExpression {
 
             let mut requirements = ParsingRequirements::empty();
 
-            if context.chrome_rules_enabled() ||
-                context.stylesheet_origin == Origin::UserAgent
-            {
+            if context.chrome_rules_enabled() || context.stylesheet_origin == Origin::UserAgent {
                 requirements.insert(ParsingRequirements::CHROME_AND_UA_ONLY);
             }
 
@@ -313,7 +301,9 @@ impl MediaFeatureExpression {
                         if unsafe {
                             structs::StaticPrefs_sVarCache_layout_css_prefixes_device_pixel_ratio_webkit
                         } {
-                            requirements.insert(ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED);
+                            requirements.insert(
+                                ParsingRequirements::WEBKIT_DEVICE_PIXEL_RATIO_PREF_ENABLED,
+                            );
                         }
                     }
                 }
@@ -370,45 +360,41 @@ impl MediaFeatureExpression {
                 // Gecko doesn't allow ranged expressions without a
                 // value, so just reject them here too.
                 if range.is_some() {
-                    return Err(input.new_custom_error(
-                        StyleParseErrorKind::RangedExpressionWithNoValue
-                    ));
+                    return Err(
+                        input.new_custom_error(StyleParseErrorKind::RangedExpressionWithNoValue)
+                    );
                 }
 
                 return Ok(Self::new(feature, None, None));
-            }
+            },
             Ok(operator) => operator,
         };
 
         let range_or_operator = match range {
             Some(range) => {
                 if operator.is_some() {
-                    return Err(input.new_custom_error(
-                        StyleParseErrorKind::MediaQueryUnexpectedOperator
-                    ));
+                    return Err(
+                        input.new_custom_error(StyleParseErrorKind::MediaQueryUnexpectedOperator)
+                    );
                 }
                 Some(RangeOrOperator::Range(range))
-            }
-            None => {
-                match operator {
-                    Some(operator) => {
-                        if !feature.allows_ranges() {
-                            return Err(input.new_custom_error(
-                                StyleParseErrorKind::MediaQueryUnexpectedOperator
-                            ));
-                        }
-                        Some(RangeOrOperator::Operator(operator))
+            },
+            None => match operator {
+                Some(operator) => {
+                    if !feature.allows_ranges() {
+                        return Err(input
+                            .new_custom_error(StyleParseErrorKind::MediaQueryUnexpectedOperator));
                     }
-                    None => None,
-                }
-            }
+                    Some(RangeOrOperator::Operator(operator))
+                },
+                None => None,
+            },
         };
 
-        let value =
-            MediaExpressionValue::parse(feature, context, input).map_err(|err| {
-                err.location
-                    .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
-            })?;
+        let value = MediaExpressionValue::parse(feature, context, input).map_err(|err| {
+            err.location
+                .new_custom_error(StyleParseErrorKind::MediaQueryExpectedFeatureValue)
+        })?;
 
         Ok(Self::new(feature, Some(value), range_or_operator))
     }
@@ -419,13 +405,11 @@ impl MediaFeatureExpression {
 
         macro_rules! expect {
             ($variant:ident) => {
-                value.map(|value| {
-                    match *value {
-                        MediaExpressionValue::$variant(ref v) => v,
-                        _ => unreachable!("Unexpected MediaExpressionValue"),
-                    }
+                value.map(|value| match *value {
+                    MediaExpressionValue::$variant(ref v) => v,
+                    _ => unreachable!("Unexpected MediaExpressionValue"),
                 })
-            }
+            };
         }
 
         match self.feature.evaluator {
@@ -436,13 +420,11 @@ impl MediaFeatureExpression {
                     })
                 });
                 eval(device, computed, self.range_or_operator)
-            }
+            },
             Evaluator::Integer(eval) => {
                 eval(device, expect!(Integer).cloned(), self.range_or_operator)
-            }
-            Evaluator::Float(eval) => {
-                eval(device, expect!(Float).cloned(), self.range_or_operator)
-            }
+            },
+            Evaluator::Float(eval) => eval(device, expect!(Float).cloned(), self.range_or_operator),
             Evaluator::IntRatio(eval) => {
                 eval(device, expect!(IntRatio).cloned(), self.range_or_operator)
             },
@@ -453,20 +435,16 @@ impl MediaFeatureExpression {
                     })
                 });
                 eval(device, computed, self.range_or_operator)
-            }
+            },
             Evaluator::Enumerated { evaluator, .. } => {
-                evaluator(
-                    device,
-                    expect!(Enumerated).cloned(),
-                    self.range_or_operator,
-                )
-            }
-            Evaluator::Ident(eval) => {
-                eval(device, expect!(Ident).cloned(), self.range_or_operator)
-            }
-            Evaluator::BoolInteger(eval) => {
-                eval(device, expect!(BoolInteger).cloned(), self.range_or_operator)
-            }
+                evaluator(device, expect!(Enumerated).cloned(), self.range_or_operator)
+            },
+            Evaluator::Ident(eval) => eval(device, expect!(Ident).cloned(), self.range_or_operator),
+            Evaluator::BoolInteger(eval) => eval(
+                device,
+                expect!(BoolInteger).cloned(),
+                self.range_or_operator,
+            ),
         }
     }
 }
@@ -502,11 +480,7 @@ pub enum MediaExpressionValue {
 }
 
 impl MediaExpressionValue {
-    fn to_css<W>(
-        &self,
-        dest: &mut CssWriter<W>,
-        for_expr: &MediaFeatureExpression,
-    ) -> fmt::Result
+    fn to_css<W>(&self, dest: &mut CssWriter<W>, for_expr: &MediaFeatureExpression) -> fmt::Result
     where
         W: fmt::Write,
     {
@@ -515,18 +489,12 @@ impl MediaExpressionValue {
             MediaExpressionValue::Integer(v) => v.to_css(dest),
             MediaExpressionValue::Float(v) => v.to_css(dest),
             MediaExpressionValue::BoolInteger(v) => dest.write_str(if v { "1" } else { "0" }),
-            MediaExpressionValue::IntRatio(ratio) => {
-                ratio.to_css(dest)
-            },
+            MediaExpressionValue::IntRatio(ratio) => ratio.to_css(dest),
             MediaExpressionValue::Resolution(ref r) => r.to_css(dest),
             MediaExpressionValue::Ident(ref ident) => serialize_atom_identifier(ident, dest),
-            MediaExpressionValue::Enumerated(value) => {
-                match for_expr.feature.evaluator {
-                    Evaluator::Enumerated { serializer, .. } => {
-                        dest.write_str(&*serializer(value))
-                    }
-                    _ => unreachable!(),
-                }
+            MediaExpressionValue::Enumerated(value) => match for_expr.feature.evaluator {
+                Evaluator::Enumerated { serializer, .. } => dest.write_str(&*serializer(value)),
+                _ => unreachable!(),
             },
         }
     }
@@ -540,11 +508,11 @@ impl MediaExpressionValue {
             Evaluator::Length(..) => {
                 let length = Length::parse_non_negative(context, input)?;
                 MediaExpressionValue::Length(length)
-            }
+            },
             Evaluator::Integer(..) => {
                 let integer = Integer::parse_non_negative(context, input)?;
                 MediaExpressionValue::Integer(integer.value() as u32)
-            }
+            },
             Evaluator::BoolInteger(..) => {
                 let integer = Integer::parse_non_negative(context, input)?;
                 let value = integer.value();
@@ -552,29 +520,26 @@ impl MediaExpressionValue {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
                 }
                 MediaExpressionValue::BoolInteger(value == 1)
-            }
+            },
             Evaluator::Float(..) => {
                 let number = Number::parse(context, input)?;
                 MediaExpressionValue::Float(number.get())
-            }
+            },
             Evaluator::IntRatio(..) => {
                 let a = Integer::parse_positive(context, input)?;
                 input.expect_delim('/')?;
                 let b = Integer::parse_positive(context, input)?;
-                MediaExpressionValue::IntRatio(AspectRatio(
-                    a.value() as u32,
-                    b.value() as u32
-                ))
-            }
+                MediaExpressionValue::IntRatio(AspectRatio(a.value() as u32, b.value() as u32))
+            },
             Evaluator::Resolution(..) => {
                 MediaExpressionValue::Resolution(Resolution::parse(context, input)?)
-            }
+            },
             Evaluator::Enumerated { parser, .. } => {
                 MediaExpressionValue::Enumerated(parser(context, input)?)
-            }
+            },
             Evaluator::Ident(..) => {
                 MediaExpressionValue::Ident(Atom::from(input.expect_ident()?.as_ref()))
-            }
+            },
         })
     }
 }

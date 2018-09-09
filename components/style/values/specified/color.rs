@@ -89,11 +89,11 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
                 };
 
                 Ok(AngleOrNumber::Angle { degrees })
-            }
+            },
             Token::Number { value, .. } => Ok(AngleOrNumber::Number { value }),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(|i| CalcNode::parse_angle_or_number(self.0, i))
-            }
+            },
             t => return Err(location.new_unexpected_token_error(t)),
         }
     }
@@ -120,10 +120,10 @@ impl<'a, 'b: 'a, 'i: 'a> ::cssparser::ColorComponentParser<'i> for ColorComponen
             Token::Number { value, .. } => Ok(NumberOrPercentage::Number { value }),
             Token::Percentage { unit_value, .. } => {
                 Ok(NumberOrPercentage::Percentage { unit_value })
-            }
+            },
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 input.parse_nested_block(|i| CalcNode::parse_number_or_percentage(self.0, i))
-            }
+            },
             t => return Err(location.new_unexpected_token_error(t)),
         }
     }
@@ -169,10 +169,10 @@ impl Parse for Color {
                         Err(e.location.new_custom_error(StyleParseErrorKind::ValueError(
                             ValueParseErrorKind::InvalidColor(t),
                         )))
-                    }
+                    },
                     _ => Err(e),
                 }
-            }
+            },
         }
     }
 }
@@ -276,10 +276,10 @@ impl Color {
                 }
                 return parse_hash_color(ident.as_bytes())
                     .map_err(|()| location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-            }
+            },
             ref t => {
                 return Err(location.new_unexpected_token_error(t.clone()));
-            }
+            },
         };
         if value < 0 {
             return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
@@ -359,11 +359,11 @@ impl Color {
                         Keyword::MozVisitedhyperlinktext => pres_context.mVisitedLinkColor,
                     })
                 })
-            }
+            },
             #[cfg(feature = "gecko")]
             Color::InheritFromBodyQuirk => {
                 _context.map(|context| ComputedColor::rgba(context.device().body_text_color()))
-            }
+            },
         }
     }
 }

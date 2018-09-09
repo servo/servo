@@ -42,7 +42,10 @@ use traversal_flags::TraversalFlags;
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf, Deserialize, Serialize))]
+#[cfg_attr(
+    feature = "servo",
+    derive(MallocSizeOf, Deserialize, Serialize)
+)]
 pub struct OpaqueNode(pub usize);
 
 impl OpaqueNode {
@@ -459,7 +462,9 @@ pub trait TElement:
     fn is_svg_element(&self) -> bool;
 
     /// Return whether this element is an element in the XUL namespace.
-    fn is_xul_element(&self) -> bool { false }
+    fn is_xul_element(&self) -> bool {
+        false
+    }
 
     /// Return the list of slotted nodes of this node.
     fn slotted_nodes(&self) -> &[Self::ConcreteNode] {
@@ -892,11 +897,7 @@ pub trait TElement:
     /// of the `xml:lang=""` or `lang=""` attribute to use in place of
     /// looking at the element and its ancestors.  (This argument is used
     /// to implement matching of `:lang()` against snapshots.)
-    fn match_element_lang(
-        &self,
-        override_lang: Option<Option<AttrValue>>,
-        value: &Lang,
-    ) -> bool;
+    fn match_element_lang(&self, override_lang: Option<Option<AttrValue>>, value: &Lang) -> bool;
 
     /// Returns whether this element is the main body element of the HTML
     /// document it is on.

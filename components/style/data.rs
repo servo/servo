@@ -272,12 +272,8 @@ impl ElementData {
             return InvalidationResult::empty();
         }
 
-        let mut processor = StateAndAttrInvalidationProcessor::new(
-            shared_context,
-            element,
-            self,
-            nth_index_cache,
-        );
+        let mut processor =
+            StateAndAttrInvalidationProcessor::new(shared_context, element, self, nth_index_cache);
 
         let invalidator = TreeStyleInvalidator::new(element, stack_limit_checker, &mut processor);
 
@@ -305,7 +301,8 @@ impl ElementData {
 
     /// Returns this element's primary style as a resolved style to use for sharing.
     pub fn share_primary_style(&self) -> PrimaryStyle {
-        let reused_via_rule_node = self.flags
+        let reused_via_rule_node = self
+            .flags
             .contains(ElementDataFlags::PRIMARY_STYLE_REUSED_VIA_RULE_NODE);
 
         PrimaryStyle {
@@ -390,7 +387,8 @@ impl ElementData {
         guards: &StylesheetGuards,
     ) -> bool {
         debug_assert!(self.has_styles());
-        let (important_rules, _custom) = self.styles
+        let (important_rules, _custom) = self
+            .styles
             .primary()
             .rules()
             .get_properties_overriding_animations(&guards);

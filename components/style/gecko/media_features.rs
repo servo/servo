@@ -21,7 +21,7 @@ fn viewport_size(device: &Device) -> Size2D<Au> {
         // We want the page size, including unprintable areas and margins.
         // FIXME(emilio, bug 1414600): Not quite!
         let area = &pc.mPageSize;
-        return Size2D::new(Au(area.width), Au(area.height))
+        return Size2D::new(Au(area.width), Au(area.height));
     }
     device.au_viewport_size()
 }
@@ -30,11 +30,7 @@ fn device_size(device: &Device) -> Size2D<Au> {
     let mut width = 0;
     let mut height = 0;
     unsafe {
-        bindings::Gecko_MediaFeatures_GetDeviceSize(
-            device.document(),
-            &mut width,
-            &mut height,
-        );
+        bindings::Gecko_MediaFeatures_GetDeviceSize(device.document(), &mut width, &mut height);
     }
     Size2D::new(Au(width), Au(height))
 }
@@ -152,11 +148,7 @@ enum Orientation {
     Portrait,
 }
 
-fn eval_orientation_for<F>(
-    device: &Device,
-    value: Option<Orientation>,
-    get_size: F,
-) -> bool
+fn eval_orientation_for<F>(device: &Device, value: Option<Orientation>, get_size: F) -> bool
 where
     F: FnOnce(&Device) -> Size2D<Au>,
 {
@@ -176,18 +168,12 @@ where
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#orientation
-fn eval_orientation(
-    device: &Device,
-    value: Option<Orientation>,
-) -> bool {
+fn eval_orientation(device: &Device, value: Option<Orientation>) -> bool {
     eval_orientation_for(device, value, viewport_size)
 }
 
 /// FIXME: There's no spec for `-moz-device-orientation`.
-fn eval_device_orientation(
-    device: &Device,
-    value: Option<Orientation>,
-) -> bool {
+fn eval_device_orientation(device: &Device, value: Option<Orientation>) -> bool {
     eval_orientation_for(device, value, device_size)
 }
 
@@ -196,25 +182,21 @@ fn eval_device_orientation(
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum DisplayMode {
-  Browser = 0,
-  MinimalUi,
-  Standalone,
-  Fullscreen,
+    Browser = 0,
+    MinimalUi,
+    Standalone,
+    Fullscreen,
 }
 
 /// https://w3c.github.io/manifest/#the-display-mode-media-feature
-fn eval_display_mode(
-    device: &Device,
-    query_value: Option<DisplayMode>,
-) -> bool {
+fn eval_display_mode(device: &Device, query_value: Option<DisplayMode>) -> bool {
     let query_value = match query_value {
         Some(v) => v,
         None => return true,
     };
 
-    let gecko_display_mode = unsafe {
-        bindings::Gecko_MediaFeatures_GetDisplayMode(device.document())
-    };
+    let gecko_display_mode =
+        unsafe { bindings::Gecko_MediaFeatures_GetDisplayMode(device.document()) };
 
     // NOTE: cbindgen guarantees the same representation.
     gecko_display_mode as u8 == query_value as u8
@@ -229,11 +211,7 @@ fn eval_grid(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) 
 }
 
 /// https://compat.spec.whatwg.org/#css-media-queries-webkit-transform-3d
-fn eval_transform_3d(
-    _: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
+fn eval_transform_3d(_: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
     let supports_transforms = true;
     query_value.map_or(supports_transforms, |v| v == supports_transforms)
 }
@@ -260,11 +238,7 @@ fn eval_color(
 ) -> bool {
     let color_bits_per_channel =
         unsafe { bindings::Gecko_MediaFeatures_GetColorDepth(device.document()) };
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        query_value,
-        color_bits_per_channel,
-    )
+    RangeOrOperator::evaluate(range_or_operator, query_value, color_bits_per_channel)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#color-index
@@ -275,11 +249,7 @@ fn eval_color_index(
 ) -> bool {
     // We should return zero if the device does not use a color lookup table.
     let index = 0;
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        query_value,
-        index,
-    )
+    RangeOrOperator::evaluate(range_or_operator, query_value, index)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#monochrome
@@ -291,11 +261,7 @@ fn eval_monochrome(
     // For color devices we should return 0.
     // FIXME: On a monochrome device, return the actual color depth, not 0!
     let depth = 0;
-    RangeOrOperator::evaluate(
-        range_or_operator,
-        query_value,
-        depth,
-    )
+    RangeOrOperator::evaluate(range_or_operator, query_value, depth)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#resolution
@@ -304,8 +270,7 @@ fn eval_resolution(
     query_value: Option<Resolution>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
-    let resolution_dppx =
-        unsafe { bindings::Gecko_MediaFeatures_GetResolution(device.document()) };
+    let resolution_dppx = unsafe { bindings::Gecko_MediaFeatures_GetResolution(device.document()) };
     RangeOrOperator::evaluate(
         range_or_operator,
         query_value.map(|r| r.dppx()),
@@ -321,10 +286,7 @@ enum PrefersReducedMotion {
 }
 
 /// https://drafts.csswg.org/mediaqueries-5/#prefers-reduced-motion
-fn eval_prefers_reduced_motion(
-    device: &Device,
-    query_value: Option<PrefersReducedMotion>,
-) -> bool {
+fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReducedMotion>) -> bool {
     let prefers_reduced =
         unsafe { bindings::Gecko_MediaFeatures_PrefersReducedMotion(device.document()) };
     let query_value = match query_value {
@@ -352,9 +314,8 @@ fn eval_moz_is_resource_document(
     query_value: Option<bool>,
     _: Option<RangeOrOperator>,
 ) -> bool {
-    let is_resource_doc  = unsafe {
-        bindings::Gecko_MediaFeatures_IsResourceDocument(device.document())
-    };
+    let is_resource_doc =
+        unsafe { bindings::Gecko_MediaFeatures_IsResourceDocument(device.document()) };
     query_value.map_or(is_resource_doc, |v| v == is_resource_doc)
 }
 
@@ -397,37 +358,30 @@ fn eval_moz_os_version(
         None => return false,
     };
 
-    let os_version = unsafe {
-        bindings::Gecko_MediaFeatures_GetOperatingSystemVersion(device.document())
-    };
+    let os_version =
+        unsafe { bindings::Gecko_MediaFeatures_GetOperatingSystemVersion(device.document()) };
 
     query_value.as_ptr() == os_version
 }
 
 macro_rules! system_metric_feature {
-    ($feature_name:expr) => {
-        {
-            fn __eval(
-                device: &Device,
-                query_value: Option<bool>,
-                _: Option<RangeOrOperator>,
-            ) -> bool {
-                eval_system_metric(
-                    device,
-                    query_value,
-                    $feature_name,
-                    /* accessible_from_content = */ false,
-                )
-            }
-
-            feature!(
+    ($feature_name:expr) => {{
+        fn __eval(device: &Device, query_value: Option<bool>, _: Option<RangeOrOperator>) -> bool {
+            eval_system_metric(
+                device,
+                query_value,
                 $feature_name,
-                AllowsRanges::No,
-                Evaluator::BoolInteger(__eval),
-                ParsingRequirements::CHROME_AND_UA_ONLY,
+                /* accessible_from_content = */ false,
             )
         }
-    }
+
+        feature!(
+            $feature_name,
+            AllowsRanges::No,
+            Evaluator::BoolInteger(__eval),
+            ParsingRequirements::CHROME_AND_UA_ONLY,
+        )
+    }};
 }
 
 lazy_static! {

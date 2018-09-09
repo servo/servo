@@ -145,7 +145,7 @@ pub struct PaintWorklet {
     pub arguments: Vec<Arc<custom_properties::SpecifiedValue>>,
 }
 
-impl ::style_traits::SpecifiedValueInfo for PaintWorklet { }
+impl ::style_traits::SpecifiedValueInfo for PaintWorklet {}
 
 impl ToCss for PaintWorklet {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
@@ -167,8 +167,7 @@ impl ToCss for PaintWorklet {
 /// `-moz-image-rect(<uri>, top, right, bottom, left);`
 #[allow(missing_docs)]
 #[css(comma, function)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 pub struct MozImageRect<NumberOrPercentage, MozImageRectUrl> {
     pub url: MozImageRectUrl,
     pub top: NumberOrPercentage,

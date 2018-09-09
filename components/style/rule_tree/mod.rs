@@ -488,7 +488,8 @@ impl RuleTree {
             return path.clone();
         }
 
-        let iter = path.self_and_ancestors()
+        let iter = path
+            .self_and_ancestors()
             .take_while(|node| node.cascade_level() >= CascadeLevel::SMILOverride);
         let mut last = path;
         let mut children = SmallVec::<[_; 10]>::new();
@@ -1452,7 +1453,8 @@ impl StrongRuleNode {
         // transitions and animations are present for a given element and
         // property, transitions are suppressed so that they don't actually
         // override animations.
-        let iter = self.self_and_ancestors()
+        let iter = self
+            .self_and_ancestors()
             .skip_while(|node| node.cascade_level() == CascadeLevel::Transitions)
             .take_while(|node| node.cascade_level() > CascadeLevel::Animations);
         let mut result = (LonghandIdSet::new(), false);

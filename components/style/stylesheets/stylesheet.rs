@@ -129,7 +129,8 @@ impl DeepCloneWithLock for StylesheetContents {
         params: &DeepCloneParams,
     ) -> Self {
         // Make a deep clone of the rules, using the new lock.
-        let rules = self.rules
+        let rules = self
+            .rules
             .read_with(guard)
             .deep_clone_with_lock(lock, guard, params);
 
@@ -179,7 +180,7 @@ macro_rules! rule_filter {
 }
 
 /// A trait to represent a given stylesheet in a document.
-pub trait StylesheetInDocument : ::std::fmt::Debug {
+pub trait StylesheetInDocument: ::std::fmt::Debug {
     /// Get the stylesheet origin.
     fn origin(&self, guard: &SharedRwLockReadGuard) -> Origin;
 
@@ -399,10 +400,7 @@ impl Stylesheet {
                     Err((error, slice)) => {
                         let location = error.location;
                         let error = ContextualParseError::InvalidRule(slice, error);
-                        iter.parser.context.log_css_error(
-                            location,
-                            error,
-                        );
+                        iter.parser.context.log_css_error(location, error);
                     },
                 }
             }
@@ -478,7 +476,8 @@ impl Clone for Stylesheet {
         // Make a deep clone of the media, using the new lock.
         let media = self.media.read_with(&guard).clone();
         let media = Arc::new(lock.wrap(media));
-        let contents = self.contents
+        let contents = self
+            .contents
             .deep_clone_with_lock(&lock, &guard, &DeepCloneParams);
 
         Stylesheet {

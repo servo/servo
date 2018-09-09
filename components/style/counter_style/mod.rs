@@ -91,8 +91,7 @@ pub fn parse_counter_style_body<'i, 't>(
             if let Err((error, slice)) = declaration {
                 let location = error.location;
                 let error = ContextualParseError::UnsupportedCounterStyleDescriptorDeclaration(
-                    slice,
-                    error,
+                    slice, error,
                 );
                 context.log_css_error(location, error)
             }
@@ -103,7 +102,8 @@ pub fn parse_counter_style_body<'i, 't>(
         ref system @ System::Fixed { .. } |
         ref system @ System::Symbolic |
         ref system @ System::Alphabetic |
-        ref system @ System::Numeric if rule.symbols.is_none() =>
+        ref system @ System::Numeric
+            if rule.symbols.is_none() =>
         {
             let system = system.to_css_string();
             Some(ContextualParseError::InvalidCounterStyleWithoutSymbols(
@@ -496,12 +496,13 @@ impl Parse for Ranges {
                         (opt_start, opt_end)
                     {
                         if start > end {
-                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            );
                         }
                     }
                     Ok(opt_start..opt_end)
-                })
-                .map(Ranges)
+                }).map(Ranges)
         }
     }
 }

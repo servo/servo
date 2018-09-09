@@ -21,26 +21,23 @@ use values::specified::length::{LengthOrPercentage, NonNegativeLength};
 
 fn in_ua_or_chrome_sheet(context: &ParserContext) -> bool {
     use stylesheets::Origin;
-    context.stylesheet_origin == Origin::UserAgent ||
-    context.chrome_rules_enabled()
+    context.stylesheet_origin == Origin::UserAgent || context.chrome_rules_enabled()
 }
 
 #[cfg(feature = "gecko")]
 fn moz_display_values_enabled(context: &ParserContext) -> bool {
     use gecko_bindings::structs;
     in_ua_or_chrome_sheet(context) ||
-    unsafe {
-        structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled
-    }
+        unsafe { structs::StaticPrefs_sVarCache_layout_css_xul_display_values_content_enabled }
 }
 
 #[cfg(feature = "gecko")]
 fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
     use gecko_bindings::structs;
     in_ua_or_chrome_sheet(context) ||
-    unsafe {
-        structs::StaticPrefs_sVarCache_layout_css_xul_box_display_values_content_enabled
-    }
+        unsafe {
+            structs::StaticPrefs_sVarCache_layout_css_xul_box_display_values_content_enabled
+        }
 }
 
 /// Defines an element’s display type, which consists of
@@ -57,8 +54,20 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 /// Also, when you change this from Gecko you may need to regenerate the
 /// C++-side bindings (see components/style/cbindgen.toml).
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, Parse,
-         PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 pub enum Display {
@@ -200,7 +209,10 @@ impl Display {
     pub fn is_ruby_type(&self) -> bool {
         matches!(
             *self,
-            Display::Ruby | Display::RubyBase | Display::RubyText | Display::RubyBaseContainer |
+            Display::Ruby |
+                Display::RubyBase |
+                Display::RubyText |
+                Display::RubyBaseContainer |
                 Display::RubyTextContainer
         )
     }
@@ -346,8 +358,7 @@ impl AnimationIterationCount {
 }
 
 /// A value for the `animation-name` property.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 #[value_info(other_values = "none")]
 pub struct AnimationName(pub Option<KeyframesName>);
 
@@ -391,8 +402,18 @@ impl Parse for AnimationName {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum ScrollSnapType {
     None,
     Mandatory,
@@ -401,8 +422,18 @@ pub enum ScrollSnapType {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum OverscrollBehavior {
     Auto,
     Contain,
@@ -411,15 +442,24 @@ pub enum OverscrollBehavior {
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+)]
 pub enum OverflowClipBox {
     PaddingBox,
     ContentBox,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue, ToCss)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
 /// Provides a rendering hint to the user agent,
 /// stating what kinds of changes the author expects
 /// to perform on the element
@@ -497,11 +537,11 @@ fn change_bits_for_maybe_property(ident: &str, context: &ParserContext) -> WillC
     };
 
     match id.as_shorthand() {
-        Ok(shorthand) => {
-            shorthand.longhands().fold(WillChangeBits::empty(), |flags, p| {
+        Ok(shorthand) => shorthand
+            .longhands()
+            .fold(WillChangeBits::empty(), |flags, p| {
                 flags | change_bits_for_longhand(p)
-            })
-        }
+            }),
         Err(PropertyDeclarationId::Longhand(longhand)) => change_bits_for_longhand(longhand),
         Err(PropertyDeclarationId::Custom(..)) => WillChangeBits::empty(),
     }
@@ -581,9 +621,8 @@ impl ToCss for TouchAction {
             TouchAction::TOUCH_ACTION_NONE => dest.write_str("none"),
             TouchAction::TOUCH_ACTION_AUTO => dest.write_str("auto"),
             TouchAction::TOUCH_ACTION_MANIPULATION => dest.write_str("manipulation"),
-            _ if self.contains(
-                TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y,
-            ) =>
+            _ if self
+                .contains(TouchAction::TOUCH_ACTION_PAN_X | TouchAction::TOUCH_ACTION_PAN_Y) =>
             {
                 dest.write_str("pan-x pan-y")
             },
@@ -756,8 +795,7 @@ impl Parse for Perspective {
             return Ok(GenericPerspective::None);
         }
         Ok(GenericPerspective::Length(NonNegativeLength::parse(
-            context,
-            input,
+            context, input,
         )?))
     }
 }
@@ -789,7 +827,7 @@ impl ToCss for TransitionProperty {
             TransitionProperty::Custom(ref name) => {
                 dest.write_str("--")?;
                 serialize_atom_name(name, dest)
-            }
+            },
             TransitionProperty::Unsupported(ref i) => i.to_css(dest),
         }
     }
@@ -805,21 +843,21 @@ impl Parse for TransitionProperty {
 
         let id = match PropertyId::parse_ignoring_rule_type(&ident, context) {
             Ok(id) => id,
-            Err(..) => return Ok(TransitionProperty::Unsupported(
-                CustomIdent::from_ident(location, ident, &["none"])?,
-            )),
+            Err(..) => {
+                return Ok(TransitionProperty::Unsupported(CustomIdent::from_ident(
+                    location,
+                    ident,
+                    &["none"],
+                )?))
+            },
         };
 
         Ok(match id.as_shorthand() {
             Ok(s) => TransitionProperty::Shorthand(s),
-            Err(longhand_or_custom) => {
-                match longhand_or_custom {
-                    PropertyDeclarationId::Longhand(id) => TransitionProperty::Longhand(id),
-                    PropertyDeclarationId::Custom(custom) => {
-                        TransitionProperty::Custom(custom.clone())
-                    }
-                }
-            }
+            Err(longhand_or_custom) => match longhand_or_custom {
+                PropertyDeclarationId::Longhand(id) => TransitionProperty::Longhand(id),
+                PropertyDeclarationId::Custom(custom) => TransitionProperty::Custom(custom.clone()),
+            },
         })
     }
 }
@@ -846,19 +884,19 @@ impl TransitionProperty {
         Ok(match *self {
             TransitionProperty::Shorthand(ShorthandId::All) => {
                 ::gecko_bindings::structs::nsCSSPropertyID::eCSSPropertyExtra_all_properties
-            }
+            },
             TransitionProperty::Shorthand(ref id) => id.to_nscsspropertyid(),
             TransitionProperty::Longhand(ref id) => id.to_nscsspropertyid(),
-            TransitionProperty::Custom(..) |
-            TransitionProperty::Unsupported(..) => return Err(()),
+            TransitionProperty::Custom(..) | TransitionProperty::Unsupported(..) => return Err(()),
         })
     }
 }
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+)]
 /// https://drafts.csswg.org/css-box/#propdef-float
 pub enum Float {
     Left,
@@ -866,13 +904,14 @@ pub enum Float {
     None,
     // https://drafts.csswg.org/css-logical-props/#float-clear
     InlineStart,
-    InlineEnd
+    InlineEnd,
 }
 
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+)]
 /// https://drafts.csswg.org/css-box/#propdef-clear
 pub enum Clear {
     None,
@@ -881,14 +920,15 @@ pub enum Clear {
     Both,
     // https://drafts.csswg.org/css-logical-props/#float-clear
     InlineStart,
-    InlineEnd
+    InlineEnd,
 }
 
 /// https://drafts.csswg.org/css-ui/#propdef-resize
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
+)]
 pub enum Resize {
     None,
     Both,
@@ -906,8 +946,19 @@ pub enum Resize {
 /// NOTE(emilio): When changing this you may want to regenerate the C++ bindings
 /// (see components/style/cbindgen.toml)
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss, ToComputedValue)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+)]
 #[repr(u8)]
 pub enum Appearance {
     /// No appearance at all.

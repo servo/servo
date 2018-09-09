@@ -20,11 +20,13 @@ pub type BoxShadow = GenericBoxShadow<Color, Length, NonNegativeLength, Length>;
 
 /// A computed value for a single `filter`.
 #[cfg(feature = "gecko")]
-pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, SimpleShadow, ComputedUrl>;
+pub type Filter =
+    GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, SimpleShadow, ComputedUrl>;
 
 /// A computed value for a single `filter`.
 #[cfg(not(feature = "gecko"))]
-pub type Filter = GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Impossible, Impossible>;
+pub type Filter =
+    GenericFilter<Angle, NonNegativeNumber, NonNegativeLength, Impossible, Impossible>;
 
 /// A computed value for the `drop-shadow()` filter.
 pub type SimpleShadow = GenericSimpleShadow<Color, Length, NonNegativeLength>;

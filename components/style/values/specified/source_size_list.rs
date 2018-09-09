@@ -61,7 +61,8 @@ impl SourceSizeList {
 
     /// Evaluate this <source-size-list> to get the final viewport length.
     pub fn evaluate(&self, device: &Device, quirks_mode: QuirksMode) -> Au {
-        let matching_source_size = self.source_sizes
+        let matching_source_size = self
+            .source_sizes
             .iter()
             .find(|source_size| source_size.condition.matches(device, quirks_mode));
 

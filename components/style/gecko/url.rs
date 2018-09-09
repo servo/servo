@@ -55,8 +55,7 @@ impl CssUrl {
 
     /// Convert from URLValueData to SpecifiedUrl.
     unsafe fn from_url_value_data(url: &URLValueData) -> Self {
-        let arc_type =
-            &url.mString as *const _ as *const RawOffsetArc<String>;
+        let arc_type = &url.mString as *const _ as *const RawOffsetArc<String>;
         CssUrl {
             serialization: Arc::from_raw_offset((*arc_type).clone()),
             extra_data: UrlExtraData(url.mExtraData.to_safe()),
@@ -139,7 +138,6 @@ impl SpecifiedUrl {
         Self { url, url_value }
     }
 }
-
 
 impl PartialEq for SpecifiedUrl {
     fn eq(&self, other: &Self) -> bool {
@@ -255,10 +253,7 @@ impl ToComputedValue for SpecifiedImageUrl {
     }
 }
 
-fn serialize_computed_url<W>(
-    url_value_data: &URLValueData,
-    dest: &mut CssWriter<W>,
-) -> fmt::Result
+fn serialize_computed_url<W>(url_value_data: &URLValueData, dest: &mut CssWriter<W>) -> fmt::Result
 where
     W: Write,
 {
@@ -281,7 +276,7 @@ pub struct ComputedUrl(pub SpecifiedUrl);
 impl ToCss for ComputedUrl {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: Write
+        W: Write,
     {
         serialize_computed_url(&self.0.url_value._base, dest)
     }
@@ -302,7 +297,7 @@ pub struct ComputedImageUrl(pub SpecifiedImageUrl);
 impl ToCss for ComputedImageUrl {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
-        W: Write
+        W: Write,
     {
         serialize_computed_url(&self.0.image_value._base, dest)
     }

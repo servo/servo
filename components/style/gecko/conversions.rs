@@ -140,10 +140,7 @@ impl Angle {
     }
 }
 
-fn line_direction(
-    horizontal: LengthOrPercentage,
-    vertical: LengthOrPercentage,
-) -> LineDirection {
+fn line_direction(horizontal: LengthOrPercentage, vertical: LengthOrPercentage) -> LineDirection {
     use values::computed::position::Position;
     use values::specified::position::{X, Y};
 
@@ -178,18 +175,18 @@ fn line_direction(
     });
 
     if let (Some(hc), Some(vc)) = (horizontal_as_corner, vertical_as_corner) {
-        return LineDirection::Corner(hc, vc)
+        return LineDirection::Corner(hc, vc);
     }
 
     if let Some(hc) = horizontal_as_corner {
         if vertical_percentage == Some(0.5) {
-            return LineDirection::Horizontal(hc)
+            return LineDirection::Horizontal(hc);
         }
     }
 
     if let Some(vc) = vertical_as_corner {
         if horizontal_percentage == Some(0.5) {
-            return LineDirection::Vertical(vc)
+            return LineDirection::Vertical(vc);
         }
     }
 
@@ -212,7 +209,10 @@ impl nsStyleImage {
             },
             GenericImage::Rect(ref image_rect) => {
                 unsafe {
-                    bindings::Gecko_SetLayerImageImageValue(self, image_rect.url.0.image_value.get());
+                    bindings::Gecko_SetLayerImageImageValue(
+                        self,
+                        image_rect.url.0.image_value.get(),
+                    );
                     bindings::Gecko_InitializeImageCropRect(self);
 
                     // Set CropRect
@@ -491,7 +491,8 @@ impl nsStyleImage {
 
     unsafe fn get_image_url(&self) -> ComputedImageUrl {
         let image_request = bindings::Gecko_GetImageRequest(self)
-            .as_ref().expect("Null image request?");
+            .as_ref()
+            .expect("Null image request?");
         ComputedImageUrl::from_image_request(image_request)
     }
 
@@ -555,9 +556,9 @@ impl nsStyleImage {
                     structs::NS_STYLE_GRADIENT_SHAPE_CIRCULAR => {
                         let circle = match gecko_gradient.mSize as u32 {
                             structs::NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE => {
-                                let radius = Length::from_gecko_style_coord(
-                                    &gecko_gradient.mRadiusX,
-                                ).expect("mRadiusX could not convert to Length");
+                                let radius =
+                                    Length::from_gecko_style_coord(&gecko_gradient.mRadiusX)
+                                        .expect("mRadiusX could not convert to Length");
                                 debug_assert_eq!(
                                     radius,
                                     Length::from_gecko_style_coord(&gecko_gradient.mRadiusY)
@@ -632,8 +633,7 @@ impl nsStyleImage {
                         position: LengthOrPercentage::from_gecko_style_coord(&stop.mLocation),
                     })
                 }
-            })
-            .collect();
+            }).collect();
 
         let compat_mode = if gecko_gradient.mMozLegacySyntax {
             CompatMode::Moz
@@ -719,8 +719,10 @@ pub mod basic_shape {
             match self.mType {
                 StyleShapeSourceType::Path => {
                     let gecko_path = unsafe { &*self.__bindgen_anon_1.mSVGPath.as_ref().mPtr };
-                    let result: Vec<PathCommand> =
-                        gecko_path.mPath.iter().map(|gecko: &StylePathCommand| {
+                    let result: Vec<PathCommand> = gecko_path
+                        .mPath
+                        .iter()
+                        .map(|gecko: &StylePathCommand| {
                             // unsafe: cbindgen ensures the representation is the same.
                             unsafe { ::std::mem::transmute(*gecko) }
                         }).collect();
@@ -822,11 +824,15 @@ pub mod basic_shape {
                         let y = x + 1;
                         coords.push(PolygonCoord(
                             LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[x])
-                                .expect("polygon() coordinate should be a length, percentage, \
-                                        or calc value"),
+                                .expect(
+                                    "polygon() coordinate should be a length, percentage, \
+                                     or calc value",
+                                ),
                             LengthOrPercentage::from_gecko_style_coord(&other.mCoordinates[y])
-                                .expect("polygon() coordinate should be a length, percentage, \
-                                        or calc value")
+                                .expect(
+                                    "polygon() coordinate should be a length, percentage, \
+                                     or calc value",
+                                ),
                         ))
                     }
                     GenericBasicShape::Polygon(Polygon {

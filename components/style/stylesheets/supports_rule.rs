@@ -168,9 +168,7 @@ impl SupportsCondition {
                             i.expect_string()
                                 .map(|s| s.to_string())
                                 .map_err(CssParseError::<()>::from)
-                        }).and_then(|s| {
-                                CString::new(s).map_err(|_| location.new_custom_error(()))
-                            })
+                        }).and_then(|s| CString::new(s).map_err(|_| location.new_custom_error(())))
                     }) {
                         return Ok(SupportsCondition::MozBoolPref(name));
                     }
@@ -315,24 +313,21 @@ impl Declaration {
 
         let mut input = ParserInput::new(&self.0);
         let mut input = Parser::new(&mut input);
-        input.parse_entirely(|input| -> Result<(), CssParseError<()>> {
-            let prop = input.expect_ident_cloned().unwrap();
-            input.expect_colon().unwrap();
+        input
+            .parse_entirely(|input| -> Result<(), CssParseError<()>> {
+                let prop = input.expect_ident_cloned().unwrap();
+                input.expect_colon().unwrap();
 
-            let id = PropertyId::parse(&prop, context)
-                .map_err(|_| input.new_custom_error(()))?;
+                let id =
+                    PropertyId::parse(&prop, context).map_err(|_| input.new_custom_error(()))?;
 
-            let mut declarations = SourcePropertyDeclaration::new();
-            input.parse_until_before(Delimiter::Bang, |input| {
-                PropertyDeclaration::parse_into(
-                    &mut declarations,
-                    id,
-                    &context,
-                    input,
-                ).map_err(|_| input.new_custom_error(()))
-            })?;
-            let _ = input.try(parse_important);
-            Ok(())
-        }).is_ok()
+                let mut declarations = SourcePropertyDeclaration::new();
+                input.parse_until_before(Delimiter::Bang, |input| {
+                    PropertyDeclaration::parse_into(&mut declarations, id, &context, input)
+                        .map_err(|_| input.new_custom_error(()))
+                })?;
+                let _ = input.try(parse_important);
+                Ok(())
+            }).is_ok()
     }
 }

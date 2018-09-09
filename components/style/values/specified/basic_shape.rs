@@ -268,8 +268,7 @@ impl Ellipse {
                     ShapeRadius::parse(context, i)?,
                     ShapeRadius::parse(context, i)?,
                 ))
-            })
-            .unwrap_or_default();
+            }).unwrap_or_default();
         let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
         } else {
@@ -416,8 +415,7 @@ impl Polygon {
                 let fill = FillRule::parse(i)?;
                 i.expect_comma()?; // only eat the comma if there is something before it
                 Ok(fill)
-            })
-            .unwrap_or_default();
+            }).unwrap_or_default();
 
         let buf = input.parse_comma_separated(|i| {
             Ok(PolygonCoord(
@@ -449,11 +447,12 @@ impl Path {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let fill = input.try(|i| -> Result<_, ParseError> {
-            let fill = FillRule::parse(i)?;
-            i.expect_comma()?;
-            Ok(fill)
-        }).unwrap_or_default();
+        let fill = input
+            .try(|i| -> Result<_, ParseError> {
+                let fill = FillRule::parse(i)?;
+                i.expect_comma()?;
+                Ok(fill)
+            }).unwrap_or_default();
         let path = SVGPathData::parse(context, input)?;
         Ok(Path { fill, path })
     }

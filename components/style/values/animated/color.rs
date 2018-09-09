@@ -61,7 +61,8 @@ impl Animate for RGBA {
         let red =
             (self.red * self.alpha).animate(&(other.red * other.alpha), procedure)? * 1. / alpha;
         let green = (self.green * self.alpha).animate(&(other.green * other.alpha), procedure)? *
-            1. / alpha;
+            1. /
+            alpha;
         let blue =
             (self.blue * self.alpha).animate(&(other.blue * other.alpha), procedure)? * 1. / alpha;
 
@@ -223,7 +224,7 @@ impl Animate for Color {
                 let fg = fg1.animate(&fg2, procedure)?;
 
                 Self::with_ratios(bg_color, ComplexColorRatios { bg: 1., fg })
-            }
+            },
         })
     }
 }
@@ -239,19 +240,19 @@ impl ComputeSquaredDistance for Color {
             (Numeric(c1), Numeric(c2)) => c1.compute_squared_distance(&c2)?,
             (Foreground, Numeric(color)) | (Numeric(color), Foreground) => {
                 // `computed_squared_distance` is symmetric.
-                color.compute_squared_distance(&RGBA::transparent())?
-                    + SquaredDistance::from_sqrt(1.)
-            }
+                color.compute_squared_distance(&RGBA::transparent())? +
+                    SquaredDistance::from_sqrt(1.)
+            },
             (_, _) => {
                 let self_color = self.effective_intermediate_rgba();
                 let other_color = other.effective_intermediate_rgba();
                 let self_ratios = self.effective_ratios();
                 let other_ratios = other.effective_ratios();
 
-                self_color.compute_squared_distance(&other_color)?
-                    + self_ratios.bg.compute_squared_distance(&other_ratios.bg)?
-                    + self_ratios.fg.compute_squared_distance(&other_ratios.fg)?
-            }
+                self_color.compute_squared_distance(&other_color)? +
+                    self_ratios.bg.compute_squared_distance(&other_ratios.bg)? +
+                    self_ratios.fg.compute_squared_distance(&other_ratios.fg)?
+            },
         })
     }
 }

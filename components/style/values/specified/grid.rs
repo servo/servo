@@ -22,7 +22,8 @@ pub fn parse_flex<'i, 't>(input: &mut Parser<'i, 't>) -> Result<CSSFloat, ParseE
     match *input.next()? {
         Token::Dimension {
             value, ref unit, ..
-        } if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive() =>
+        }
+            if unit.eq_ignore_ascii_case("fr") && value.is_sign_positive() =>
         {
             Ok(value)
         },
@@ -76,7 +77,8 @@ impl Parse for TrackSize<LengthOrPercentage> {
         }
 
         input.expect_function_matching("fit-content")?;
-        let lop = input.parse_nested_block(|i| LengthOrPercentage::parse_non_negative(context, i))?;
+        let lop =
+            input.parse_nested_block(|i| LengthOrPercentage::parse_non_negative(context, i))?;
         Ok(TrackSize::FitContent(lop))
     }
 }
@@ -175,7 +177,9 @@ impl TrackRepeat<LengthOrPercentage, Integer> {
                         } else {
                             if values.is_empty() {
                                 // expecting at least one <track-size>
-                                return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                                return Err(
+                                    input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                                );
                             }
 
                             names.push(current_names); // final `<line-names>`
@@ -217,9 +221,11 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
         // assume that everything is <fixed-size>. This flag is useful when we encounter <auto-repeat>
         let mut atleast_one_not_fixed = false;
         loop {
-            current_names.extend_from_slice(&mut input
-                .try(parse_line_names)
-                .unwrap_or(vec![].into_boxed_slice()));
+            current_names.extend_from_slice(
+                &mut input
+                    .try(parse_line_names)
+                    .unwrap_or(vec![].into_boxed_slice()),
+            );
             if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
                 if !track_size.is_fixed() {
                     atleast_one_not_fixed = true;
@@ -244,13 +250,17 @@ impl Parse for TrackList<LengthOrPercentage, Integer> {
                         atleast_one_not_fixed = true;
                         if auto_repeat.is_some() {
                             // only <fixed-repeat>
-                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            );
                         }
                     },
                     RepeatType::Auto => {
                         if auto_repeat.is_some() || atleast_one_not_fixed {
                             // We've either seen <auto-repeat> earlier, or there's at least one non-fixed value
-                            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                            return Err(
+                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
+                            );
                         }
 
                         list_type = TrackListType::Auto(values.len() as u16 + auto_offset);
@@ -342,7 +352,8 @@ impl ToComputedValue for TrackList<LengthOrPercentage, Integer> {
             list_type: self.list_type.to_computed_value(context),
             values: values,
             line_names: line_names.into_boxed_slice(),
-            auto_repeat: self.auto_repeat
+            auto_repeat: self
+                .auto_repeat
                 .clone()
                 .map(|repeat| repeat.to_computed_value(context)),
         }

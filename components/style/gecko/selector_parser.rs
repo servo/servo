@@ -181,9 +181,8 @@ impl NonTSPseudoClass {
             },
             // Otherwise, a pseudo-class is enabled in content when it
             // doesn't have any enabled flag.
-            _ => !self.has_any_flag(
-                NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME,
-            ),
+            _ => !self
+                .has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
         }
     }
 
@@ -233,8 +232,7 @@ impl NonTSPseudoClass {
     /// Returns true if the given pseudoclass should trigger style sharing cache
     /// revalidation.
     pub fn needs_cache_revalidation(&self) -> bool {
-        self.state_flag().is_empty() &&
-            !matches!(*self,
+        self.state_flag().is_empty() && !matches!(*self,
                   // :-moz-any is handled by the revalidation visitor walking
                   // the things inside it; it does not need to cause
                   // revalidation on its own.
@@ -268,7 +266,8 @@ impl NonTSPseudoClass {
     pub fn is_attr_based(&self) -> bool {
         matches!(
             *self,
-            NonTSPseudoClass::MozTableBorderNonzero | NonTSPseudoClass::MozBrowserFrame |
+            NonTSPseudoClass::MozTableBorderNonzero |
+                NonTSPseudoClass::MozBrowserFrame |
                 NonTSPseudoClass::Lang(..)
         )
     }

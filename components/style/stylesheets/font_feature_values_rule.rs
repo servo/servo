@@ -70,7 +70,8 @@ impl Parse for SingleValue {
         match *input.next()? {
             Token::Number {
                 int_value: Some(v), ..
-            } if v >= 0 =>
+            }
+                if v >= 0 =>
             {
                 Ok(SingleValue(v as u32))
             },
@@ -102,7 +103,8 @@ impl Parse for PairValues {
         let first = match *input.next()? {
             Token::Number {
                 int_value: Some(a), ..
-            } if a >= 0 =>
+            }
+                if a >= 0 =>
             {
                 a as u32
             },
@@ -112,7 +114,8 @@ impl Parse for PairValues {
         match input.next() {
             Ok(&Token::Number {
                 int_value: Some(b), ..
-            }) if b >= 0 =>
+            })
+                if b >= 0 =>
             {
                 Ok(PairValues(first, Some(b as u32)))
             },
@@ -154,7 +157,8 @@ impl Parse for VectorValues {
             match input.next() {
                 Ok(&Token::Number {
                     int_value: Some(a), ..
-                }) if a >= 0 =>
+                })
+                    if a >= 0 =>
                 {
                     vec.push(a as u32);
                 }

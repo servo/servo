@@ -197,8 +197,7 @@ impl ValidationData {
                 let values =
                     OpaqueComputedValues::from(parent.borrow_data().unwrap().styles.primary());
                 values
-            })
-            .clone()
+            }).clone()
     }
 
     /// Computes the revalidation results if needed, and returns it.

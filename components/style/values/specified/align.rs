@@ -683,8 +683,13 @@ fn parse_self_position<'i, 't>(
 
 fn list_self_position_keywords(f: KeywordsCollectFn, axis: AxisDirection) {
     f(&[
-      "start", "end", "flex-start", "flex-end",
-      "center", "self-start", "self-end",
+        "start",
+        "end",
+        "flex-start",
+        "flex-end",
+        "center",
+        "self-start",
+        "self-end",
     ]);
     if axis == AxisDirection::Inline {
         f(&["left", "right"]);

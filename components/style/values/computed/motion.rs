@@ -7,4 +7,4 @@
 /// A computed offset-path. The computed value is as specified value.
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-path-property
-pub use values::specified::motion::OffsetPath as OffsetPath;
+pub use values::specified::motion::OffsetPath;

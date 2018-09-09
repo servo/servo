@@ -189,8 +189,7 @@ impl Parse for BorderSpacing {
 /// A single border-image-repeat keyword.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq,
-         SpecifiedValueInfo, ToCss)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
 pub enum BorderImageRepeatKeyword {
     Stretch,
     Repeat,
@@ -201,8 +200,7 @@ pub enum BorderImageRepeatKeyword {
 /// The specified value for the `border-image-repeat` property.
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-border-image-repeat
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToComputedValue)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue)]
 pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
 
 impl ToCss for BorderImageRepeat {
