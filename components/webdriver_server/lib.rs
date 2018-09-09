@@ -188,7 +188,7 @@ struct GetPrefsParameters {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 struct SetPrefsParameters {
-    #[serde(deserialize_with="map_to_vec")]
+    #[serde(deserialize_with = "map_to_vec")]
     prefs: Vec<(String, PrefValue)>,
 }
 
