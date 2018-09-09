@@ -645,8 +645,9 @@ impl WebGLRenderingContext {
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
                 for rgba in pixels.chunks_mut(2) {
-                    let pix = NativeEndian::read_u16(rgba);
-                    NativeEndian::write_u16(rgba, if pix & (1 << 15) != 0 { pix } else { 0 });
+                    if NativeEndian::read_u16(rgba) & 1 == 0 {
+                        NativeEndian::write_u16(rgba, 0);
+                    }
                 }
             },
             (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
