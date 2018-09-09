@@ -123,6 +123,7 @@ use task_source::TaskSourceName;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::media_element::MediaElementTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
@@ -174,6 +175,8 @@ pub struct Window {
     script_chan: MainThreadScriptChan,
     #[ignore_malloc_size_of = "task sources are hard"]
     dom_manipulation_task_source: DOMManipulationTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
+    media_element_task_source: MediaElementTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     user_interaction_task_source: UserInteractionTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
@@ -357,6 +360,10 @@ impl Window {
 
     pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
         self.dom_manipulation_task_source.clone()
+    }
+
+    pub fn media_element_task_source(&self) -> MediaElementTaskSource {
+        self.media_element_task_source.clone()
     }
 
     pub fn user_interaction_task_source(&self) -> UserInteractionTaskSource {
@@ -2061,6 +2068,7 @@ impl Window {
         runtime: Rc<Runtime>,
         script_chan: MainThreadScriptChan,
         dom_manipulation_task_source: DOMManipulationTaskSource,
+        media_element_task_source: MediaElementTaskSource,
         user_interaction_task_source: UserInteractionTaskSource,
         networking_task_source: NetworkingTaskSource,
         history_traversal_task_source: HistoryTraversalTaskSource,
@@ -2116,6 +2124,7 @@ impl Window {
             ),
             script_chan,
             dom_manipulation_task_source,
+            media_element_task_source,
             user_interaction_task_source,
             networking_task_source,
             history_traversal_task_source,
