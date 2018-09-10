@@ -274,7 +274,9 @@ impl WebGLFramebuffer {
 
         let rb_id = match rb {
             Some(rb) => {
-                rb.attach(self)?;
+                if !rb.ever_bound() {
+                    return Err(WebGLError::InvalidOperation);
+                }
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
                 Some(rb.id())
             }
@@ -305,16 +307,7 @@ impl WebGLFramebuffer {
         binding: &DomRefCell<Option<WebGLFramebufferAttachment>>,
         attachment: u32,
     ) {
-        let attachment_obj = binding.borrow().as_ref().map(WebGLFramebufferAttachment::root);
-        match attachment_obj {
-            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(ref rb)) =>
-                rb.unattach(self),
-            Some(WebGLFramebufferAttachmentRoot::Texture(ref texture)) =>
-                texture.unattach(self),
-            None => (),
-        }
         *binding.borrow_mut() = None;
-
         if INTERESTING_ATTACHMENT_POINTS.contains(&attachment) {
             self.reattach_depth_stencil();
         }
@@ -429,7 +422,6 @@ impl WebGLFramebuffer {
                     _ => return Err(WebGLError::InvalidOperation),
                 }
 
-                texture.attach(self);
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
                     texture: Dom::from_ref(texture),
                     level: level }
