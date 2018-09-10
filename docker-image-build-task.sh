@@ -9,4 +9,4 @@ apt-get update -q
 apt-get install -qy --no-install-recommends docker.io
 docker version
 ./docker/build.sh "$image"
-docker save "$image" | gzip > /image.tar.gz
+docker save "$image" | lz4 > /image.tar.lz4

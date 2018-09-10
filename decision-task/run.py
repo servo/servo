@@ -77,7 +77,7 @@ image_build_task = create_task(
         "dind": True,  # docker-in-docker
     },
     artifacts=[
-        ("image.tar.gz", "/image.tar.gz"),
+        ("image.tar.lz4", "/image.tar.lz4"),
     ],
 )
 
@@ -88,7 +88,7 @@ build_task = create_task(
     image={
         "type": "task-image",
         "taskId": image_build_task,
-        "path": "public/image.tar.gz",
+        "path": "public/image.tar.lz4",
     },
 
     artifacts=[
