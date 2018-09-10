@@ -10,6 +10,7 @@ pub mod networking;
 pub mod performance_timeline;
 pub mod remote_event;
 pub mod user_interaction;
+pub mod websocket;
 
 use dom::globalscope::GlobalScope;
 use enum_iterator::IntoEnumIterator;
@@ -28,7 +29,8 @@ pub enum TaskSourceName {
     Networking,
     PerformanceTimeline,
     UserInteraction,
-    RemoteEvent
+    RemoteEvent,
+    Websocket,
 }
 
 impl TaskSourceName {

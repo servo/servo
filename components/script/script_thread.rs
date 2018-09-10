@@ -125,6 +125,7 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
 use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::websocket::WebsocketTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
 use url::percent_encoding::percent_decode;
@@ -1896,6 +1897,10 @@ impl ScriptThread {
         RemoteEventTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
     }
 
+    pub fn websocket_task_source(&self, pipeline_id: PipelineId) -> WebsocketTaskSource {
+        WebsocketTaskSource(self.remote_event_task_sender.clone(), pipeline_id)
+    }
+
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
@@ -2220,6 +2225,7 @@ impl ScriptThread {
             self.file_reading_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id).clone(),
             self.remote_event_task_source(incomplete.pipeline_id),
+            self.websocket_task_source(incomplete.pipeline_id),
             self.image_cache_channel.clone(),
             self.image_cache.clone(),
             self.resource_threads.clone(),
