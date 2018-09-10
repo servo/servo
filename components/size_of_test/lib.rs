@@ -13,16 +13,22 @@ macro_rules! size_of_test {
                 panic!(
                     "Your changes have decreased the stack size of {} from {} to {}. \
                      Good work! Please update the expected size in {}.",
-                    stringify!($t), old, new, file!()
+                    stringify!($t),
+                    old,
+                    new,
+                    file!()
                 )
             } else if new > old {
                 panic!(
                     "Your changes have increased the stack size of {} from {} to {}. \
                      Please consider choosing a design which avoids this increase. \
                      If you feel that the increase is necessary, update the size in {}.",
-                    stringify!($t), old, new, file!()
+                    stringify!($t),
+                    old,
+                    new,
+                    file!()
                 )
             }
         }
-    }
+    };
 }
