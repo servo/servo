@@ -38,7 +38,7 @@ public class ServoSurface {
     private Servo mServo;
     private Client mClient = null;
     private String mServoArgs = "";
-    private Uri mInitialUri = null;
+    private String mInitialUri = null;
     private Activity mActivity;
 
     public ServoSurface(Surface surface, int width, int height) {
@@ -82,7 +82,15 @@ public class ServoSurface {
     }
 
     public void loadUri(String uri) {
-        mServo.loadUri(uri);
+        if (mServo != null) {
+            mServo.loadUri(uri);
+        } else {
+            mInitialUri = uri;
+        }
+    }
+
+    public void loadUri(Uri uri) {
+      loadUri(uri.toString());
     }
 
     public void scrollStart(int dx, int dy, int x, int y) {
@@ -103,14 +111,6 @@ public class ServoSurface {
 
     public void onSurfaceResized(int width, int height) {
         mServo.resize(width, height);
-    }
-
-    public void loadUri(Uri uri) {
-        if (mServo != null) {
-            mServo.loadUri(uri.toString());
-        } else {
-            mInitialUri = uri;
-        }
     }
 
     static class GLSurface implements GfxCallbacks {
@@ -196,15 +196,14 @@ public class ServoSurface {
 
             GLSurface surface = new GLSurface(mASurface);
 
-            final boolean showLogs = true;
-            String uri = mInitialUri == null ? null : mInitialUri.toString();
-
             mGLLooperHandler = new Handler() {
                 public void handleMessage(Message msg) {
                 }
             };
 
             inUIThread(() -> {
+              final boolean showLogs = true;
+              String uri = mInitialUri == null ? null : mInitialUri;
               mServo = new Servo(this, surface, mClient, mActivity, mServoArgs, uri, mWidth, mHeight, showLogs);
             });
 
