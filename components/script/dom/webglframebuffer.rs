@@ -532,6 +532,7 @@ impl WebGLFramebuffer {
 
     pub fn invalidate_renderbuffer(&self, rb: &WebGLRenderbuffer) {
         self.with_matching_renderbuffers(rb, |_att, _| {
+            self.is_initialized.set(false);
             self.update_status();
         });
     }
