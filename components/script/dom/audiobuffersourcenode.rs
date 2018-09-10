@@ -72,7 +72,7 @@ impl AudioBufferSourceNode {
             f32::MIN,
             f32::MAX,
         );
-        Ok(AudioBufferSourceNode {
+        let node = AudioBufferSourceNode {
             source_node,
             buffer: Default::default(),
             playback_rate: Dom::from_ref(&playback_rate),
@@ -80,7 +80,15 @@ impl AudioBufferSourceNode {
             loop_enabled: Cell::new(options.loop_),
             loop_start: Cell::new(*options.loopStart),
             loop_end: Cell::new(*options.loopEnd),
-        })
+        };
+        if let Some(ref buffer) = options.buffer {
+            if let Some(ref buffer) = buffer {
+                if let Err(err) = node.SetBuffer(Some(&**buffer)) {
+                    return Err(err);
+                }
+            }
+        }
+        Ok(node)
     }
 
     #[allow(unrooted_must_root)]
@@ -119,11 +127,13 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
         if self.source_node.started() {
             if let Some(buffer) = self.buffer.get() {
                 let buffer = buffer.acquire_contents();
-                self.source_node
-                    .node()
-                    .message(AudioNodeMessage::AudioBufferSourceNode(
-                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
-                    ));
+                if buffer.is_some() {
+                    self.source_node
+                        .node()
+                        .message(AudioNodeMessage::AudioBufferSourceNode(
+                            AudioBufferSourceNodeMessage::SetBuffer(buffer),
+                        ));
+                }
             }
         }
 
@@ -197,11 +207,13 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
 
         if let Some(buffer) = self.buffer.get() {
             let buffer = buffer.acquire_contents();
-            self.source_node
-                .node()
-                .message(AudioNodeMessage::AudioBufferSourceNode(
-                    AudioBufferSourceNodeMessage::SetBuffer(buffer),
-                ));
+            if buffer.is_some() {
+                self.source_node
+                    .node()
+                    .message(AudioNodeMessage::AudioBufferSourceNode(
+                        AudioBufferSourceNodeMessage::SetBuffer(buffer),
+                    ));
+            }
         }
         self.source_node
             .upcast::<AudioScheduledSourceNode>()
@@ -212,7 +224,15 @@ impl AudioBufferSourceNodeMethods for AudioBufferSourceNode {
 impl<'a> From<&'a AudioBufferSourceOptions> for AudioBufferSourceNodeOptions {
     fn from(options: &'a AudioBufferSourceOptions) -> Self {
         Self {
-            buffer: None,
+            buffer: if let Some(ref buffer) = options.buffer {
+                if let Some(ref buffer) = buffer {
+                    Some(buffer.get_channels())
+                } else {
+                    None
+                }
+            } else {
+                None
+            },
             detune: *options.detune,
             loop_enabled: options.loop_,
             loop_end: Some(*options.loopEnd),

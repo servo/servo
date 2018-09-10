@@ -7,7 +7,7 @@
  */
 
 dictionary AudioBufferSourceOptions {
-//  AudioBuffer? buffer;
+  AudioBuffer? buffer;
   float detune = 0;
   boolean loop = false;
   double loopEnd = 0;
