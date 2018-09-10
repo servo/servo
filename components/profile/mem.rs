@@ -36,22 +36,24 @@ impl Profiler {
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
             let chan = chan.clone();
-            thread::Builder::new().name("Memory profiler timer".to_owned()).spawn(move || {
-                loop {
+            thread::Builder::new()
+                .name("Memory profiler timer".to_owned())
+                .spawn(move || loop {
                     thread::sleep(duration_from_seconds(period));
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
-                }
-            }).expect("Thread spawning failed");
+                }).expect("Thread spawning failed");
         }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
         // `Print` events, but it will still receive the other events.
-        thread::Builder::new().name("Memory profiler".to_owned()).spawn(move || {
-            let mut mem_profiler = Profiler::new(port);
-            mem_profiler.start();
-        }).expect("Thread spawning failed");
+        thread::Builder::new()
+            .name("Memory profiler".to_owned())
+            .spawn(move || {
+                let mut mem_profiler = Profiler::new(port);
+                mem_profiler.start();
+            }).expect("Thread spawning failed");
 
         let mem_profiler_chan = ProfilerChan(chan);
 
@@ -59,12 +61,17 @@ impl Profiler {
         // be unregistered, because as long as the memory profiler is running the system memory
         // reporter can make measurements.
         let (system_reporter_sender, system_reporter_receiver) = ipc::channel().unwrap();
-        ROUTER.add_route(system_reporter_receiver.to_opaque(), Box::new(|message| {
-            let request: ReporterRequest = message.to().unwrap();
-            system_reporter::collect_reports(request)
-        }));
-        mem_profiler_chan.send(ProfilerMsg::RegisterReporter("system".to_owned(),
-                                                             Reporter(system_reporter_sender)));
+        ROUTER.add_route(
+            system_reporter_receiver.to_opaque(),
+            Box::new(|message| {
+                let request: ReporterRequest = message.to().unwrap();
+                system_reporter::collect_reports(request)
+            }),
+        );
+        mem_profiler_chan.send(ProfilerMsg::RegisterReporter(
+            "system".to_owned(),
+            Reporter(system_reporter_sender),
+        ));
 
         mem_profiler_chan
     }
@@ -79,9 +86,9 @@ impl Profiler {
 
     pub fn start(&mut self) {
         while let Ok(msg) = self.port.recv() {
-           if !self.handle_msg(msg) {
-               break
-           }
+            if !self.handle_msg(msg) {
+                break;
+            }
         }
     }
 
@@ -92,8 +99,10 @@ impl Profiler {
                 let name_clone = name.clone();
                 match self.reporters.insert(name, reporter) {
                     None => true,
-                    Some(_) => panic!(format!("RegisterReporter: '{}' name is already in use",
-                                              name_clone)),
+                    Some(_) => panic!(format!(
+                        "RegisterReporter: '{}' name is already in use",
+                        name_clone
+                    )),
                 }
             },
 
@@ -101,8 +110,7 @@ impl Profiler {
                 // Panic if it hasn't previously been registered.
                 match self.reporters.remove(&name) {
                     Some(_) => true,
-                    None =>
-                        panic!(format!("UnregisterReporter: '{}' name is unknown", &name)),
+                    None => panic!(format!("UnregisterReporter: '{}' name is unknown", &name)),
                 }
             },
 
@@ -111,7 +119,7 @@ impl Profiler {
                 true
             },
 
-            ProfilerMsg::Exit => false
+            ProfilerMsg::Exit => false,
         }
     }
 
@@ -149,17 +157,20 @@ impl Profiler {
                         ReportKind::ExplicitJemallocHeapSize |
                         ReportKind::ExplicitSystemHeapSize |
                         ReportKind::ExplicitNonHeapSize |
-                        ReportKind::ExplicitUnknownLocationSize =>
-                            report.path.insert(0, String::from("explicit")),
+                        ReportKind::ExplicitUnknownLocationSize => {
+                            report.path.insert(0, String::from("explicit"))
+                        },
                         ReportKind::NonExplicitSize => {},
                     }
 
                     // Update the reported fractions of the heaps, when appropriate.
                     match report.kind {
-                        ReportKind::ExplicitJemallocHeapSize =>
-                            jemalloc_heap_reported_size += report.size,
-                        ReportKind::ExplicitSystemHeapSize =>
-                            system_heap_reported_size += report.size,
+                        ReportKind::ExplicitJemallocHeapSize => {
+                            jemalloc_heap_reported_size += report.size
+                        },
+                        ReportKind::ExplicitSystemHeapSize => {
+                            system_heap_reported_size += report.size
+                        },
                         _ => {},
                     }
 
@@ -182,12 +193,16 @@ impl Profiler {
 
         // Compute and insert the heap-unclassified values.
         if let Some(jemalloc_heap_allocated_size) = jemalloc_heap_allocated_size {
-            forest.insert(&path!["explicit", "jemalloc-heap-unclassified"],
-                          jemalloc_heap_allocated_size - jemalloc_heap_reported_size);
+            forest.insert(
+                &path!["explicit", "jemalloc-heap-unclassified"],
+                jemalloc_heap_allocated_size - jemalloc_heap_reported_size,
+            );
         }
         if let Some(system_heap_allocated_size) = system_heap_allocated_size {
-            forest.insert(&path!["explicit", "system-heap-unclassified"],
-                          system_heap_allocated_size - system_heap_reported_size);
+            forest.insert(
+                &path!["explicit", "system-heap-unclassified"],
+                system_heap_allocated_size - system_heap_reported_size,
+            );
         }
 
         forest.print();
@@ -222,7 +237,7 @@ impl ReportsTree {
             size: 0,
             count: 0,
             path_seg: path_seg,
-            children: vec![]
+            children: vec![],
         }
     }
 
@@ -249,7 +264,7 @@ impl ReportsTree {
                     t.children.len() - 1
                 },
             };
-            let tmp = t;    // this temporary is needed to satisfy the borrow checker
+            let tmp = t; // this temporary is needed to satisfy the borrow checker
             t = &mut tmp.children[i];
         }
 
@@ -286,9 +301,18 @@ impl ReportsTree {
         }
 
         let mebi = 1024f64 * 1024f64;
-        let count_str = if self.count > 1 { format!(" [{}]", self.count) } else { "".to_owned() };
-        println!("|{}{:8.2} MiB -- {}{}",
-                 indent_str, (self.size as f64) / mebi, self.path_seg, count_str);
+        let count_str = if self.count > 1 {
+            format!(" [{}]", self.count)
+        } else {
+            "".to_owned()
+        };
+        println!(
+            "|{}{:8.2} MiB -- {}{}",
+            indent_str,
+            (self.size as f64) / mebi,
+            self.path_seg,
+            count_str
+        );
 
         for child in &self.children {
             child.print(depth + 1);
@@ -314,7 +338,8 @@ impl ReportsForest {
         let (head, tail) = path.split_first().unwrap();
         // Get the right tree, creating it if necessary.
         if !self.trees.contains_key(head) {
-            self.trees.insert(head.clone(), ReportsTree::new(head.clone()));
+            self.trees
+                .insert(head.clone(), ReportsTree::new(head.clone()));
         }
         let t = self.trees.get_mut(head).unwrap();
 
@@ -405,7 +430,10 @@ mod system_reporter {
             // directly from the jemalloc documentation.
 
             // "Total number of bytes allocated by the application."
-            report(path![JEMALLOC_HEAP_ALLOCATED_STR], jemalloc_stat("stats.allocated"));
+            report(
+                path![JEMALLOC_HEAP_ALLOCATED_STR],
+                jemalloc_stat("stats.allocated"),
+            );
 
             // "Total number of bytes in active pages allocated by the application.
             // This is a multiple of the page size, and greater than or equal to
@@ -422,20 +450,20 @@ mod system_reporter {
     }
 
     #[cfg(target_os = "linux")]
-    extern {
+    extern "C" {
         fn mallinfo() -> struct_mallinfo;
     }
 
     #[cfg(target_os = "linux")]
     #[repr(C)]
     pub struct struct_mallinfo {
-        arena:    c_int,
-        ordblks:  c_int,
-        smblks:   c_int,
-        hblks:    c_int,
-        hblkhd:   c_int,
-        usmblks:  c_int,
-        fsmblks:  c_int,
+        arena: c_int,
+        ordblks: c_int,
+        smblks: c_int,
+        hblks: c_int,
+        hblkhd: c_int,
+        usmblks: c_int,
+        fsmblks: c_int,
         uordblks: c_int,
         fordblks: c_int,
         keepcost: c_int,
@@ -487,15 +515,26 @@ mod system_reporter {
         // Using the same values for the `old` and `new` parameters is enough
         // to get the statistics updated.
         let rv = unsafe {
-            mallctl(epoch_c_name.as_ptr(), epoch_ptr, &mut epoch_len, epoch_ptr,
-                       epoch_len)
+            mallctl(
+                epoch_c_name.as_ptr(),
+                epoch_ptr,
+                &mut epoch_len,
+                epoch_ptr,
+                epoch_len,
+            )
         };
         if rv != 0 {
             return None;
         }
 
         let rv = unsafe {
-            mallctl(value_c_name.as_ptr(), value_ptr, &mut value_len, null_mut(), 0)
+            mallctl(
+                value_c_name.as_ptr(),
+                value_ptr,
+                &mut value_len,
+                null_mut(),
+                0,
+            )
         };
         if rv != 0 {
             return None;
@@ -511,9 +550,7 @@ mod system_reporter {
 
     #[cfg(target_os = "linux")]
     fn page_size() -> usize {
-        unsafe {
-            ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
-        }
+        unsafe { ::libc::sysconf(::libc::_SC_PAGESIZE) as usize }
     }
 
     #[cfg(target_os = "linux")]
@@ -585,14 +622,18 @@ mod system_reporter {
         };
 
         let seg_re = Regex::new(
-            r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)").unwrap();
+            r"^[:xdigit:]+-[:xdigit:]+ (....) [:xdigit:]+ [:xdigit:]+:[:xdigit:]+ \d+ +(.*)",
+        ).unwrap();
         let rss_re = Regex::new(r"^Rss: +(\d+) kB").unwrap();
 
         // We record each segment's resident size.
         let mut seg_map: HashMap<String, usize> = HashMap::new();
 
         #[derive(PartialEq)]
-        enum LookingFor { Segment, Rss }
+        enum LookingFor {
+            Segment,
+            Rss,
+        }
         let mut looking_for = LookingFor::Segment;
 
         let mut curr_seg_name = String::new();
@@ -644,7 +685,9 @@ mod system_reporter {
                         curr_seg_name.clone()
                     };
                     match seg_map.entry(seg_name) {
-                        Entry::Vacant(entry) => { entry.insert(rss); },
+                        Entry::Vacant(entry) => {
+                            entry.insert(rss);
+                        },
                         Entry::Occupied(mut entry) => *entry.get_mut() += rss,
                     }
                 }
