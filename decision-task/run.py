@@ -14,7 +14,7 @@ queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 
 
 def create_task(name, command, artifacts=None, dependencies=None, env=None, cache=None,
-                scopes=None, image="buildpack-deps:bionic"):
+                scopes=None, features=None, image="buildpack-deps:bionic"):
     env = env or {}
     for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
         env.setdefault(k, os.environ[k])
@@ -62,9 +62,7 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
                 }
                 for artifact_name, path in artifacts or []
             },
-            "features": {
-                "dind": True,  # docker-in-docker
-            },
+            "features": features or {},
         },
     }
     queue.createTask(task_id, payload)
@@ -75,6 +73,9 @@ create_task(
     "docker image build task",
     "./docker-image-build-task.sh servo-x86_64-linux",
     image="buildpack-deps:trusty-scm",
+    features={
+        "dind": True,  # docker-in-docker
+    },
 )
 
 build_task = create_task(
