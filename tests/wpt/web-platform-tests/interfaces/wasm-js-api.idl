@@ -41,9 +41,9 @@ dictionary ModuleImportDescriptor {
 
 [LegacyNamespace=WebAssembly, Constructor(BufferSource bytes), Exposed=(Window,Worker,Worklet)]
 interface Module {
-  static sequence<ModuleExportDescriptor> exports(Module module);
-  static sequence<ModuleImportDescriptor> imports(Module module);
-  static sequence<ArrayBuffer> customSections(Module module, USVString sectionName);
+  static sequence<ModuleExportDescriptor> exports(Module moduleObject);
+  static sequence<ModuleImportDescriptor> imports(Module moduleObject);
+  static sequence<ArrayBuffer> customSections(Module moduleObject, USVString sectionName);
 };
 
 [LegacyNamespace=WebAssembly, Constructor(Module module, optional object importObject), Exposed=(Window,Worker,Worklet)]
@@ -87,7 +87,7 @@ dictionary GlobalDescriptor {
   boolean mutable = false;
 };
 
-[LegacyNamespace=WebAssembly, Constructor(GlobalDescriptor descriptor, optional any value), Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Constructor(GlobalDescriptor descriptor, optional any v), Exposed=(Window,Worker,Worklet)]
 interface Global {
   any valueOf();
   attribute any value;

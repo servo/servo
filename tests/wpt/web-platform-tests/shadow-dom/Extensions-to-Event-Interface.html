@@ -54,7 +54,7 @@ function testComposedEvent(mode) {
 
         var expectedPath = ['A1a', 'A1-SR', 'A1', 'A-SR', 'A'];
         assert_array_equals(log.eventPath, expectedPath);
-        assert_array_equals(log.eventPath.length, log.pathAtTargets.length);
+        assert_equals(log.eventPath.length, log.pathAtTargets.length);
         assert_array_equals(log.pathAtTargets[0], expectedPath);
         assert_array_equals(log.pathAtTargets[1], expectedPath);
         assert_array_equals(log.pathAtTargets[2], mode == 'open' ? expectedPath : ['A1', 'A-SR', 'A'],
@@ -82,7 +82,7 @@ function testNonComposedEvent(mode) {
 
         var expectedPath = ['A1a', 'A1-SR'];
         assert_array_equals(log.eventPath, expectedPath);
-        assert_array_equals(log.eventPath.length, log.pathAtTargets.length);
+        assert_equals(log.eventPath.length, log.pathAtTargets.length);
         assert_array_equals(log.pathAtTargets[0], expectedPath);
         assert_array_equals(log.pathAtTargets[1], expectedPath);
     }, 'The event must not propagate out of ' + mode + ' mode shadow boundaries when the composed flag is unset');
@@ -108,7 +108,7 @@ function testNonComposedEventWithRelatedTarget(mode) {
 
         var expectedPath = ['A1a', 'A1-SR'];
         assert_array_equals(log.eventPath, expectedPath);
-        assert_array_equals(log.eventPath.length, log.pathAtTargets.length);
+        assert_equals(log.eventPath.length, log.pathAtTargets.length);
         assert_array_equals(log.pathAtTargets[0], expectedPath);
         assert_array_equals(log.pathAtTargets[1], expectedPath);
         assert_array_equals(log.relatedTargets, ['A2-S', 'A2-S']);
@@ -136,7 +136,7 @@ function testScopedEventWithUnscopedRelatedTargetThroughSlot(mode) {
         var expectedPath = ['B1a', 'B1c-S', 'B1-SR', 'B1', 'B-SR'];
         var pathExposedToB1a = ['B1a', 'B1', 'B-SR'];
         assert_array_equals(log.eventPath, expectedPath);
-        assert_array_equals(log.eventPath.length, log.pathAtTargets.length);
+        assert_equals(log.eventPath.length, log.pathAtTargets.length);
         assert_array_equals(log.pathAtTargets[0], mode == 'open' ? expectedPath : pathExposedToB1a);
         assert_array_equals(log.pathAtTargets[1], expectedPath);
         assert_array_equals(log.pathAtTargets[2], expectedPath);
@@ -167,7 +167,7 @@ function testComposedEventWithRelatedTarget(mode) {
         var expectedPath = ['A1a', 'A1-SR', 'A1', 'A-SR'];
         var pathExposedToA1 = ['A1', 'A-SR'];
         assert_array_equals(log.eventPath, expectedPath);
-        assert_array_equals(log.eventPath.length, log.pathAtTargets.length);
+        assert_equals(log.eventPath.length, log.pathAtTargets.length);
         assert_array_equals(log.pathAtTargets[0], expectedPath);
         assert_array_equals(log.pathAtTargets[1], expectedPath);
         assert_array_equals(log.pathAtTargets[2], mode == 'open' ? expectedPath : pathExposedToA1);
@@ -202,7 +202,7 @@ function testComposedEventThroughSlot(mode) {
         var pathExposedToA1 =       [                                       'B', 'A2-S', 'A-SR', 'A'];
 
         assert_array_equals(log.eventPath, expectedPath);
-        assert_array_equals(log.eventPath.length, log.pathAtTargets.length);
+        assert_equals(log.eventPath.length, log.pathAtTargets.length);
         assert_array_equals(log.pathAtTargets[0], mode == 'open' ? expectedPath : pathExposedToB1a);
         assert_array_equals(log.pathAtTargets[1], mode == 'open' ? expectedPath : pathExposedToB1cS);
         assert_array_equals(log.pathAtTargets[2], mode == 'open' ? expectedPath : pathExposedToB1cS);

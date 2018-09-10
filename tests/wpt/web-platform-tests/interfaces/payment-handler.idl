@@ -46,7 +46,6 @@ interface CanMakePaymentEvent : ExtendableEvent {
   readonly attribute USVString topOrigin;
   readonly attribute USVString paymentRequestOrigin;
   readonly attribute FrozenArray<PaymentMethodData> methodData;
-  readonly attribute FrozenArray<PaymentDetailsModifier> modifiers;
   void respondWith(Promise<boolean> canMakePaymentResponse);
 };
 
@@ -54,7 +53,6 @@ dictionary CanMakePaymentEventInit : ExtendableEventInit {
   USVString topOrigin;
   USVString paymentRequestOrigin;
   sequence<PaymentMethodData> methodData;
-  sequence<PaymentDetailsModifier> modifiers;
 };
 
 partial interface ServiceWorkerGlobalScope {
