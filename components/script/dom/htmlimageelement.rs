@@ -1495,12 +1495,31 @@ impl VirtualMethods for HTMLImageElement {
         if tree_in_doc {
             document.register_responsive_image(self);
         }
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            if parent.is::<HTMLPictureElement>() {
+                self.update_the_image_data();
+                if let Some(previous_sibling) = self.upcast::<Node>().GetPreviousSibling() {
+                    if previous_sibling.is::<HTMLSourceElement> () {
+                        self.generation.set(self.generation.get() + 1);
+                    }
+                }
+            }
+        }
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
         let document = document_from_node(self);
         document.unregister_responsive_image(self);
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            if parent.is::<HTMLPictureElement>() {
+                if let Some(previous_sibling) = self.upcast::<Node>().GetPreviousSibling() {
+                    if previous_sibling.is::<HTMLSourceElement> () {
+                        self.generation.set(self.generation.get() + 1);
+                    }
+                }
+            }
+        }
     }
 }
 
