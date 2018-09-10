@@ -4017,14 +4017,15 @@ fn rgba8_image_to_tex_image_data(
     match (format, data_type) {
         (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
         (TexFormat::RGB, TexDataType::UnsignedByte) => {
-            // Remove alpha channel
-            let mut rgb8 = Vec::<u8>::with_capacity(pixel_count * 3);
-            for rgba8 in pixels.chunks(4) {
-                rgb8.push(rgba8[0]);
-                rgb8.push(rgba8[1]);
-                rgb8.push(rgba8[2]);
+            for i in 0..pixel_count {
+                let rgb = {
+                    let rgb = &pixels[i * 4..i * 4 + 3];
+                    [rgb[0], rgb[1], rgb[2]]
+                };
+                pixels[i * 3..i * 3 + 3].copy_from_slice(&rgb);
             }
-            rgb8
+            pixels.truncate(pixel_count * 3);
+            pixels
         },
         (TexFormat::Alpha, TexDataType::UnsignedByte) => {
             for i in 0..pixel_count {
