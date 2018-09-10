@@ -4178,12 +4178,13 @@ fn rgba8_image_to_tex_image_data(
             pixels
         },
         (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
-            let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
-            for rgba8 in pixels.chunks(4) {
-                data.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
-                data.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
+            for rgba8 in pixels.chunks_mut(4) {
+                let lum = f16::from_f32(rgba8[0] as f32).as_bits();
+                let a = f16::from_f32(rgba8[3] as f32).as_bits();
+                NativeEndian::write_u16(&mut rgba8[0..2], lum);
+                NativeEndian::write_u16(&mut rgba8[2..4], a);
             }
-            data
+            pixels
         },
 
         // Validation should have ensured that we only hit the
