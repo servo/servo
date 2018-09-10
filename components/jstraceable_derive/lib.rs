@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate quote;
-#[macro_use] extern crate syn;
-#[macro_use] extern crate synstructure;
+#[macro_use]
+extern crate syn;
+#[macro_use]
+extern crate synstructure;
 
 decl_derive!([JSTraceable] => js_traceable_derive);
 
 fn js_traceable_derive(s: synstructure::Structure) -> quote::Tokens {
-    let match_body = s.each(|binding| {
-        Some(quote!(#binding.trace(tracer);))
-    });
+    let match_body = s.each(|binding| Some(quote!(#binding.trace(tracer);)));
 
     let ast = s.ast();
     let name = ast.ident;
@@ -19,7 +19,9 @@ fn js_traceable_derive(s: synstructure::Structure) -> quote::Tokens {
     let mut where_clause = where_clause.unwrap_or(&parse_quote!(where)).clone();
     for param in ast.generics.type_params() {
         let ident = param.ident;
-        where_clause.predicates.push(parse_quote!(#ident: ::dom::bindings::trace::JSTraceable))
+        where_clause
+            .predicates
+            .push(parse_quote!(#ident: ::dom::bindings::trace::JSTraceable))
     }
 
     let tokens = quote! {
