@@ -13,7 +13,8 @@ decision_task_id = os.environ["TASK_ID"]
 queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 
 
-def create_task(name, command, artifacts=None, dependencies=None, env=None, cache=None, scopes=None):
+def create_task(name, command, artifacts=None, dependencies=None, env=None, cache=None,
+                scopes=None, image="buildpack-deps:bionic"):
     env = env or {}
     for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
         env.setdefault(k, os.environ[k])
@@ -41,7 +42,7 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
         "payload": {
             "cache": cache or {},
             "maxRunTime": 3600,
-            "image": "buildpack-deps:bionic",
+            "image": image,
             "command": [
                 "/bin/bash",
                 "--login",
@@ -73,6 +74,7 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
 create_task(
     "docker image build task",
     "./docker-image-build-task.sh servo-x86_64-linux",
+    image="buildpack-deps:trusty-scm",
 )
 
 build_task = create_task(
