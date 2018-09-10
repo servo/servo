@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 image="$1"
 
 apt-get update -q

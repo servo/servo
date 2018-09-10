@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
 export PATH="$HOME/.cargo/bin:$PATH"
 
