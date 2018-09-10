@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 #[cfg(feature = "energy-profiling")]
 pub fn read_energy_uj() -> u64 {
     energymon::read_energy_uj()
@@ -33,7 +32,6 @@ mod energymon {
     use std::mem;
     use std::sync::{Once, ONCE_INIT};
 
-
     static mut EM: Option<*mut EnergyMon> = None;
 
     fn init() {
@@ -60,9 +58,7 @@ mod energymon {
 
     pub fn get_min_interval_ms() -> u32 {
         init();
-        unsafe {
-            EM.map_or(0, |em| ((*em).interval_us() as f64 / 1000.0).ceil() as u32)
-        }
+        unsafe { EM.map_or(0, |em| ((*em).interval_us() as f64 / 1000.0).ceil() as u32) }
     }
 
 }

@@ -21,15 +21,24 @@ pub trait OpaqueSender<T> {
 impl<T> OpaqueSender<T> for Sender<T> {
     fn send(&self, message: T) {
         if let Err(e) = Sender::send(self, message) {
-            warn!("Error communicating with the target thread from the profiler: {}", e);
+            warn!(
+                "Error communicating with the target thread from the profiler: {}",
+                e
+            );
         }
     }
 }
 
-impl<T> OpaqueSender<T> for IpcSender<T> where T: serde::Serialize {
+impl<T> OpaqueSender<T> for IpcSender<T>
+where
+    T: serde::Serialize,
+{
     fn send(&self, message: T) {
         if let Err(e) = IpcSender::send(self, message) {
-            warn!("Error communicating with the target thread from the profiler: {}", e);
+            warn!(
+                "Error communicating with the target thread from the profiler: {}",
+                e
+            );
         }
     }
 }
@@ -50,24 +59,32 @@ impl ProfilerChan {
     }
 
     /// Runs `f()` with memory profiling.
-    pub fn run_with_memory_reporting<F, M, T, C>(&self, f: F,
-                                                 reporter_name: String,
-                                                 channel_for_reporter: C,
-                                                 msg: M)
-        where F: FnOnce(),
-              M: Fn(ReportsChan) -> T + Send + 'static,
-              T: Send + 'static,
-              C: OpaqueSender<T> + Send + 'static
+    pub fn run_with_memory_reporting<F, M, T, C>(
+        &self,
+        f: F,
+        reporter_name: String,
+        channel_for_reporter: C,
+        msg: M,
+    ) where
+        F: FnOnce(),
+        M: Fn(ReportsChan) -> T + Send + 'static,
+        T: Send + 'static,
+        C: OpaqueSender<T> + Send + 'static,
     {
         // Register the memory reporter.
         let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
-        ROUTER.add_route(reporter_receiver.to_opaque(), Box::new(move |message| {
-            // Just injects an appropriate event into the paint thread's queue.
-            let request: ReporterRequest = message.to().unwrap();
-            channel_for_reporter.send(msg(request.reports_channel));
-        }));
-        self.send(ProfilerMsg::RegisterReporter(reporter_name.clone(),
-                                                Reporter(reporter_sender)));
+        ROUTER.add_route(
+            reporter_receiver.to_opaque(),
+            Box::new(move |message| {
+                // Just injects an appropriate event into the paint thread's queue.
+                let request: ReporterRequest = message.to().unwrap();
+                channel_for_reporter.send(msg(request.reports_channel));
+            }),
+        );
+        self.send(ProfilerMsg::RegisterReporter(
+            reporter_name.clone(),
+            Reporter(reporter_sender),
+        ));
 
         f();
 
@@ -154,9 +171,10 @@ pub struct Reporter(pub IpcSender<ReporterRequest>);
 impl Reporter {
     /// Collect one or more memory reports. Returns true on success, and false on failure.
     pub fn collect_reports(&self, reports_chan: ReportsChan) {
-        self.0.send(ReporterRequest {
-            reports_channel: reports_chan,
-        }).unwrap()
+        self.0
+            .send(ReporterRequest {
+                reports_channel: reports_chan,
+            }).unwrap()
     }
 }
 
@@ -188,4 +206,3 @@ pub enum ProfilerMsg {
     /// Tells the memory profiler to shut down.
     Exit,
 }
-
