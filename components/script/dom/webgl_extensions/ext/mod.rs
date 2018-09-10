@@ -7,6 +7,7 @@ use super::{ext_constants, WebGLExtension, WebGLExtensions, WebGLExtensionSpec};
 
 pub mod angleinstancedarrays;
 pub mod extblendminmax;
+pub mod extcolorbufferhalffloat;
 pub mod extshadertexturelod;
 pub mod exttexturefilteranisotropic;
 pub mod oeselementindexuint;
@@ -16,3 +17,4 @@ pub mod oestexturefloatlinear;
 pub mod oestexturehalffloat;
 pub mod oestexturehalffloatlinear;
 pub mod oesvertexarrayobject;
+pub mod webglcolorbufferfloat;

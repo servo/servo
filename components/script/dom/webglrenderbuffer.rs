@@ -4,7 +4,9 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::webgl::{WebGLCommand, WebGLError, WebGLRenderbufferId, WebGLResult, is_gles, webgl_channel};
-use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as WebGl2Constants;
+use dom::bindings::codegen::Bindings::EXTColorBufferHalfFloatBinding::EXTColorBufferHalfFloatConstants;
+use dom::bindings::codegen::Bindings::WEBGLColorBufferFloatBinding::WEBGLColorBufferFloatConstants;
+use dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use dom::bindings::codegen::Bindings::WebGLRenderbufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::inheritance::Castable;
@@ -124,13 +126,13 @@ impl WebGLRenderbuffer {
             constants::DEPTH_COMPONENT16 |
             constants::STENCIL_INDEX8 => internal_format,
             // https://www.khronos.org/registry/webgl/specs/latest/1.0/#6.8
-            constants::DEPTH_STENCIL => WebGl2Constants::DEPTH24_STENCIL8,
+            constants::DEPTH_STENCIL => WebGL2RenderingContextConstants::DEPTH24_STENCIL8,
             constants::RGB5_A1 => {
                 // 16-bit RGBA formats are not supported on desktop GL.
                 if is_gles() {
                     constants::RGB5_A1
                 } else {
-                    WebGl2Constants::RGBA8
+                    WebGL2RenderingContextConstants::RGBA8
                 }
             }
             constants::RGB565 => {
@@ -138,16 +140,27 @@ impl WebGLRenderbuffer {
                 if is_gles() {
                     constants::RGB565
                 } else {
-                    WebGl2Constants::RGB8
+                    WebGL2RenderingContextConstants::RGB8
                 }
             }
+            EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
+            EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
+                if !self.upcast().context().extension_manager().is_half_float_buffer_renderable() {
+                    return Err(WebGLError::InvalidEnum);
+                }
+                internal_format
+            },
+            WEBGLColorBufferFloatConstants::RGBA32F_EXT => {
+                if !self.upcast().context().extension_manager().is_float_buffer_renderable() {
+                    return Err(WebGLError::InvalidEnum);
+                }
+                internal_format
+            },
             _ => return Err(WebGLError::InvalidEnum),
         };
 
         self.internal_format.set(Some(internal_format));
         self.is_initialized.set(false);
-
-        // FIXME: Invalidate completeness after the call
 
         self.upcast::<WebGLObject>()
             .context()
