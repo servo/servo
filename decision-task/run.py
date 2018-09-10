@@ -69,19 +69,31 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
     print("Scheduled %s: %s" % (name, task_id))
     return task_id
 
-create_task(
+image_build_task = create_task(
     "docker image build task",
     "./docker-image-build-task.sh servo-x86_64-linux",
     image="buildpack-deps:trusty-scm",
     features={
         "dind": True,  # docker-in-docker
     },
+    artifacts=[
+        ("image.tar.gz", "/image.tar.gz"),
+    ],
 )
 
 build_task = create_task(
     "build task",
     "./build-task.sh",
-    artifacts=[("executable.gz", "/repo/something-rust/something-rust.gz")],
+    dependencies=[image_build_task],
+    image={
+        "type": "task-image",
+        "taskId": image_build_task,
+        "path": "public/image.tar.gz",
+    },
+
+    artifacts=[
+        ("executable.gz", "/repo/something-rust/something-rust.gz"),
+    ],
 
     # https://docs.taskcluster.net/docs/reference/workers/docker-worker/docs/caches
     # For this to be allowed, I created role
