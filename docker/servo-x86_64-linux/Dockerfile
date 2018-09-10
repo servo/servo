@@ -1,14 +1,13 @@
 FROM ubuntu:bionic-20180821
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+ADD apt-install.sh /apt-install.sh
+RUN /apt-install.sh \
         git \
         curl \
         ca-certificates \
         python2.7 \
         g++ \
     && \
-    rm -rf /var/lib/apt/lists/* && \
     curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none -y
 
 ENV PATH="/root/.cargo/bin:${PATH}"
