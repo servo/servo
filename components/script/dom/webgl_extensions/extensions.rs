@@ -270,6 +270,7 @@ impl WebGLExtensions {
     fn register_all_extensions(&self) {
         self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays>();
         self.register::<ext::extblendminmax::EXTBlendMinmax>();
+        self.register::<ext::extcolorbufferhalffloat::EXTColorBufferHalfFloat>();
         self.register::<ext::extshadertexturelod::EXTShaderTextureLod>();
         self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
         self.register::<ext::oeselementindexuint::OESElementIndexUint>();
@@ -279,6 +280,7 @@ impl WebGLExtensions {
         self.register::<ext::oestexturehalffloat::OESTextureHalfFloat>();
         self.register::<ext::oestexturehalffloatlinear::OESTextureHalfFloatLinear>();
         self.register::<ext::oesvertexarrayobject::OESVertexArrayObject>();
+        self.register::<ext::webglcolorbufferfloat::WEBGLColorBufferFloat>();
     }
 
     pub fn enable_element_index_uint(&self) {
