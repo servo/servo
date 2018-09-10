@@ -1,48 +1,31 @@
-// https://github.com/WICG/cookie-store/blob/gh-pages/explainer.md
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into reffy-reports
+// (https://github.com/tidoust/reffy-reports)
+// Source: Cookie Store API (https://wicg.github.io/cookie-store/)
 
-enum CookieSameSite {
-  "strict",
-  "lax",
-  "unrestricted"
-};
+[Exposed=(ServiceWorker,Window),
+ SecureContext]
+interface CookieStore : EventTarget {
+  Promise<CookieListItem?> get(USVString name);
+  Promise<CookieListItem?> get(optional CookieStoreGetOptions options);
 
-dictionary CookieListItem {
-  required USVString name;
-  USVString value;
-  USVString? domain = null;
-  USVString path = "/";
-  DOMTimeStamp? expires = null;
-  boolean secure = true;
-  CookieSameSite sameSite = "strict";
-};
+  Promise<CookieList> getAll(USVString name);
+  Promise<CookieList> getAll(optional CookieStoreGetOptions options);
 
-typedef sequence<CookieListItem> CookieList;
+  Promise<void> set(USVString name, USVString value,
+                    optional CookieStoreSetOptions options);
+  Promise<void> set(CookieStoreSetExtraOptions options);
 
-dictionary CookieChangeEventInit : EventInit {
-  CookieList changed;
-  CookieList deleted;
-};
+  Promise<void> delete(USVString name);
+  Promise<void> delete(CookieStoreDeleteOptions options);
 
-[
-  Exposed=Window,
-  SecureContext,
-  Constructor(DOMString type, optional CookieChangeEventInit eventInitDict)
-] interface CookieChangeEvent : Event {
-  readonly attribute CookieList changed;
-  readonly attribute CookieList deleted;
-};
+  [Exposed=ServiceWorker]
+  Promise<void> subscribeToChanges(sequence<CookieStoreGetOptions> subscriptions);
 
-dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
-  CookieList changed;
-  CookieList deleted;
-};
+  [Exposed=ServiceWorker]
+  Promise<sequence<CookieStoreGetOptions>> getChangeSubscriptions();
 
-[
-  Exposed=ServiceWorker,
-  Constructor(DOMString type, optional ExtendableCookieChangeEventInit eventInitDict)
-] interface ExtendableCookieChangeEvent : ExtendableEvent {
-  readonly attribute CookieList changed;
-  readonly attribute CookieList deleted;
+  attribute EventHandler onchange;
 };
 
 enum CookieMatchType {
@@ -50,18 +33,16 @@ enum CookieMatchType {
   "starts-with"
 };
 
-dictionary CookieStoreDeleteOptions {
-  required USVString name;
-  USVString? domain = null;
-  USVString path = "/";
-  boolean secure = true;
-  CookieSameSite sameSite = "strict";
-};
-
 dictionary CookieStoreGetOptions {
   USVString name;
   USVString url;
   CookieMatchType matchType = "equals";
+};
+
+enum CookieSameSite {
+  "strict",
+  "lax",
+  "unrestricted"
 };
 
 dictionary CookieStoreSetOptions {
@@ -77,27 +58,35 @@ dictionary CookieStoreSetExtraOptions : CookieStoreSetOptions {
   required USVString value;
 };
 
-[
-  Exposed=(ServiceWorker,Window),
-  SecureContext
-] interface CookieStore : EventTarget {
-  Promise<CookieListItem?> get(USVString name);
-  Promise<CookieListItem?> get(optional CookieStoreGetOptions options);
+dictionary CookieStoreDeleteOptions {
+  required USVString name;
+  USVString? domain = null;
+  USVString path = "/";
+};
 
-  Promise<CookieList> getAll(USVString name);
-  Promise<CookieList> getAll(optional CookieStoreGetOptions options);
+dictionary CookieListItem {
+  required USVString name;
+  USVString value;
+  USVString? domain = null;
+  USVString path = "/";
+  DOMTimeStamp? expires = null;
+  boolean secure = true;
+  CookieSameSite sameSite = "strict";
+};
 
-  Promise<void> set(USVString name, USVString value, optional CookieStoreSetOptions options);
-  Promise<void> set(CookieStoreSetExtraOptions options);
+typedef sequence<CookieListItem> CookieList;
 
-  Promise<void> delete(USVString name);
-  Promise<void> delete(CookieStoreDeleteOptions options);
+[Exposed=(ServiceWorker,Window),
+ SecureContext,
+ Constructor(DOMString type, optional CookieChangeEventInit eventInitDict)]
+interface CookieChangeEvent : Event {
+  readonly attribute CookieList changed;
+  readonly attribute CookieList deleted;
+};
 
-  [Exposed=ServiceWorker] Promise<void> subscribeToChanges(sequence<CookieStoreGetOptions> subscriptions);
-
-  [Exposed=ServiceWorker] Promise<sequence<CookieStoreGetOptions>> getChangeSubscriptions();
-
-  [Exposed=Window] attribute EventHandler onchange;
+dictionary CookieChangeEventInit : EventInit {
+  CookieList changed;
+  CookieList deleted;
 };
 
 [SecureContext]
@@ -107,5 +96,6 @@ partial interface Window {
 
 partial interface ServiceWorkerGlobalScope {
   [Replaceable, SameObject] readonly attribute CookieStore cookieStore;
+
   attribute EventHandler oncookiechange;
 };

@@ -37,8 +37,9 @@ interface BackgroundFetchRegistration : EventTarget {
   readonly attribute unsigned long long uploaded;
   readonly attribute unsigned long long downloadTotal;
   readonly attribute unsigned long long downloaded;
-  readonly attribute BackgroundFetchState state;
+  readonly attribute BackgroundFetchResult result;
   readonly attribute BackgroundFetchFailureReason failureReason;
+  readonly attribute boolean recordsAvailable;
 
   attribute EventHandler onprogress;
 
@@ -47,9 +48,10 @@ interface BackgroundFetchRegistration : EventTarget {
   Promise<sequence<BackgroundFetchRecord>> matchAll(optional RequestInfo request, optional CacheQueryOptions options);
 };
 
-enum BackgroundFetchState { "pending", "success", "failure" };
+enum BackgroundFetchResult { "", "success", "failure" };
 
 enum BackgroundFetchFailureReason {
+  // The background fetch has not completed yet, or was successful.
   "",
   // The operation was aborted by the user, or abort() was called.
   "aborted",
@@ -61,7 +63,7 @@ enum BackgroundFetchFailureReason {
   // Storage quota was reached during the operation.
   "quota-exceeded",
   // The provided downloadTotal was exceeded.
-  "total-download-exceeded"
+  "download-total-exceeded"
 };
 
 [Exposed=(Window,Worker)]

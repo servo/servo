@@ -197,8 +197,8 @@ interface PaymentMethodChangeEvent : PaymentRequestUpdateEvent {
 };
 
 dictionary PaymentMethodChangeEventInit : PaymentRequestUpdateEventInit {
-  required DOMString methodName;
-  object? methodDetails;
+  DOMString methodName = "";
+  object? methodDetails = null;
 };
 
 [Constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict), SecureContext, Exposed=Window]
