@@ -4126,8 +4126,8 @@ fn rgba8_image_to_tex_image_data(
 
         (TexFormat::Luminance, TexDataType::Float) => {
             for rgba8 in pixels.chunks_mut(4) {
-                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
-                NativeEndian::write_f32(rgba8, p as f32);
+                let p = rgba8[0] as f32;
+                NativeEndian::write_f32(rgba8, p);
             }
             pixels
         },
@@ -4135,8 +4135,7 @@ fn rgba8_image_to_tex_image_data(
         (TexFormat::LuminanceAlpha, TexDataType::Float) => {
             let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
-                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
-                data.write_f32::<NativeEndian>(p as f32).unwrap();
+                data.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
                 data.write_f32::<NativeEndian>(rgba8[3] as f32).unwrap();
             }
             data
@@ -4172,10 +4171,7 @@ fn rgba8_image_to_tex_image_data(
         },
         (TexFormat::Luminance, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
-                let p = {
-                    let rgb = &pixels[i * 4..i * 4 + 3];
-                    f16::from_f32(luminance(rgb[0], rgb[1], rgb[2]) as f32).as_bits()
-                };
+                let p = f16::from_f32(pixels[i * 4] as f32).as_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
             pixels.truncate(pixel_count * 2);
@@ -4184,8 +4180,7 @@ fn rgba8_image_to_tex_image_data(
         (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
             let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
-                let p = luminance(rgba8[0], rgba8[1], rgba8[2]);
-                data.write_u16::<NativeEndian>(f16::from_f32(p as f32).as_bits()).unwrap();
+                data.write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits()).unwrap();
                 data.write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits()).unwrap();
             }
             data
@@ -4196,12 +4191,4 @@ fn rgba8_image_to_tex_image_data(
         // into an enum yet so there's a default case here.
         _ => unreachable!("Unsupported formats {:?} {:?}", format, data_type)
     }
-}
-
-// https://en.wikipedia.org/wiki/Relative_luminance
-#[inline]
-fn luminance(r: u8, g: u8, b: u8) -> u8 {
-    (0.2126 * (r as f32) +
-        0.7152 * (g as f32) +
-        0.0722 * (b as f32)) as u8
 }
