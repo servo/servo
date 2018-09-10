@@ -2520,36 +2520,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let mut texture_settings = self.texture_unpacking_settings.get();
         match param_name {
             constants::UNPACK_FLIP_Y_WEBGL => {
-               if param_value != 0 {
-                    texture_settings.insert(TextureUnpacking::FLIP_Y_AXIS)
-                } else {
-                    texture_settings.remove(TextureUnpacking::FLIP_Y_AXIS)
-                }
-
-                self.texture_unpacking_settings.set(texture_settings);
-                return;
+                texture_settings.set(TextureUnpacking::FLIP_Y_AXIS, param_value != 0);
             },
             constants::UNPACK_PREMULTIPLY_ALPHA_WEBGL => {
-                if param_value != 0 {
-                    texture_settings.insert(TextureUnpacking::PREMULTIPLY_ALPHA)
-                } else {
-                    texture_settings.remove(TextureUnpacking::PREMULTIPLY_ALPHA)
-                }
-
-                self.texture_unpacking_settings.set(texture_settings);
-                return;
+                texture_settings.set(TextureUnpacking::PREMULTIPLY_ALPHA, param_value != 0);
             },
             constants::UNPACK_COLORSPACE_CONVERSION_WEBGL => {
-                match param_value as u32 {
-                    constants::BROWSER_DEFAULT_WEBGL
-                        => texture_settings.insert(TextureUnpacking::CONVERT_COLORSPACE),
-                    constants::NONE
-                        => texture_settings.remove(TextureUnpacking::CONVERT_COLORSPACE),
+                let convert = match param_value as u32 {
+                    constants::BROWSER_DEFAULT_WEBGL => true,
+                    constants::NONE => false,
                     _ => return self.webgl_error(InvalidEnum),
-                }
-
-                self.texture_unpacking_settings.set(texture_settings);
-                return;
+                };
+                texture_settings.set(TextureUnpacking::CONVERT_COLORSPACE, convert);
             },
             constants::UNPACK_ALIGNMENT |
             constants::PACK_ALIGNMENT => {
@@ -2562,6 +2544,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             },
             _ => return self.webgl_error(InvalidEnum),
         }
+        self.texture_unpacking_settings.set(texture_settings);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
