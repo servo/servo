@@ -141,7 +141,7 @@ pub struct HTMLImageElement {
     current_request: DomRefCell<ImageRequest>,
     pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
-    pub generation: Cell<u32>,
+    generation: Cell<u32>,
     #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<DOMString>>,
@@ -1498,11 +1498,6 @@ impl VirtualMethods for HTMLImageElement {
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
             if parent.is::<HTMLPictureElement>() {
                 self.update_the_image_data();
-                if let Some(previous_sibling) = self.upcast::<Node>().GetPreviousSibling() {
-                    if previous_sibling.is::<HTMLSourceElement> () {
-                        self.generation.set(self.generation.get() + 1);
-                    }
-                }
             }
         }
     }
@@ -1515,7 +1510,7 @@ impl VirtualMethods for HTMLImageElement {
             if parent.is::<HTMLPictureElement>() {
                 if let Some(previous_sibling) = self.upcast::<Node>().GetPreviousSibling() {
                     if previous_sibling.is::<HTMLSourceElement> () {
-                        self.generation.set(self.generation.get() + 1);
+                        self.update_the_image_data();
                     }
                 }
             }

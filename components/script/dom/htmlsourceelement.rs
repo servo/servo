@@ -56,7 +56,7 @@ impl VirtualMethods for HTMLSourceElement {
             &local_name!("media") | &local_name!("type") => {
                 if let Some(next_sibling) = self.upcast::<Node>().GetNextSibling() {
                     if let Some(htmlimageelement_sibling) = next_sibling.downcast::<HTMLImageElement>() {
-                        htmlimageelement_sibling.generation.set(htmlimageelement_sibling.generation.get() + 1);
+                        htmlimageelement_sibling.update_the_image_data();
                     }
                 }
             },
