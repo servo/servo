@@ -67,14 +67,24 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
 
 image_build_task = create_task(
     "docker image build task",
-    "./docker-image-build-task.sh servo-x86_64-linux",
-    image="buildpack-deps:trusty-scm",
-    features={
-        "dind": True,  # docker-in-docker
+    """
+        docker build -t "$IMAGE" "docker/$IMAGE"
+        docker save "$IMAGE" | lz4 > /image.tar.lz4
+    """,
+    env={
+        "IMAGE": "servo-x86_64-linux",
     },
     artifacts=[
         ("image.tar.lz4", "/image.tar.lz4"),
     ],
+
+    # https://hub.docker.com/r/servobrowser/image-builder/
+    # https://github.com/SimonSapin/servo-docker-image-builder-image
+    image="servobrowser/image-builder@sha256:f2370c4b28aa537e47c0cacb82cc53272233fa256b6634c0eebc46e2dd019333",
+
+    features={
+        "dind": True,  # docker-in-docker
+    },
 )
 
 build_task = create_task(
