@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{AutoMargins, CachedConsoleMessage, CachedConsoleMessageTypes};
-use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
+use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageErrorAPI};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, TimelineMarker};
 use devtools_traits::TimelineMarkerType;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -173,8 +173,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) {
         // TODO: make script error reporter pass all reported errors
         //      to devtools and cache them for returning here.
-        let msg = PageError {
-            type_: "PageError".to_owned(),
+        let msg = PageErrorAPI {
             errorMessage: "page error test".to_owned(),
             sourceName: String::new(),
             lineText: String::new(),
@@ -188,7 +187,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
             strict: false,
             private: false,
         };
-        messages.push(CachedConsoleMessage::PageError(msg));
+        messages.push(CachedConsoleMessage::PageErrorAPI(msg));
     }
     if message_types.contains(CachedConsoleMessageTypes::CONSOLE_API) {
         // TODO: do for real

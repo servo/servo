@@ -37,7 +37,7 @@ use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId, PageErrorAPI};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
@@ -69,6 +69,15 @@ mod actors {
     pub mod worker;
 }
 mod protocol;
+
+#[derive(Serialize)]
+struct ConsolePageErrorCall {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    #[serde(rename = "pageError")]
+    page_error: PageErrorAPI,
+}
 
 #[derive(Serialize)]
 struct ConsoleAPICall {
@@ -283,6 +292,37 @@ fn run_server(
         actors.register(Box::new(profiler));
         actors.register(Box::new(performance));
         actors.register(Box::new(thread));
+    }
+
+    fn handle_console_page_error_message(
+        actors: Arc<Mutex<ActorRegistry>>,
+        id: PipelineId,
+        worker_id: Option<WorkerId>,
+        page_error: PageErrorAPI,
+        actor_pipelines: &HashMap<PipelineId, String>,
+        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+    ) {
+        let console_actor_name = match find_console_actor(
+            actors.clone(),
+            id,
+            worker_id,
+            actor_workers,
+            actor_pipelines,
+        ) {
+            Some(name) => name,
+            None => return,
+        };
+        let actors = actors.lock().unwrap();
+        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
+
+        let msg = ConsolePageErrorCall {
+            from: console_actor.name.clone(),
+            type_: "pageError".to_owned(),
+            page_error: page_error
+        };
+        for stream in &mut *console_actor.streams.borrow_mut() {
+            stream.write_json_packet(&msg);
+        }
     }
 
     fn handle_console_message(
@@ -535,6 +575,15 @@ fn run_server(
                 &mut actor_workers,
                 pageinfo,
             ),
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::PageErrorAPI(id, page_error, worker_id)) => {
+                handle_console_page_error_message(
+                    actors.clone(),
+                    id,
+                    worker_id,
+                    page_error,
+                    &actor_pipelines,
+                    &actor_workers);
+            },
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                 id,
                 console_message,

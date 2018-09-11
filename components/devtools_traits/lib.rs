@@ -83,6 +83,7 @@ pub enum ScriptToDevtoolsControlMsg {
     ),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
+    PageErrorAPI(PipelineId, PageErrorAPI, Option<WorkerId>),
     /// An animation frame with the given timestamp was processed in a script thread.
     /// The actor with the provided name should be notified.
     FramerateTick(String, f64),
@@ -261,9 +262,7 @@ bitflags! {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct PageError {
-    #[serde(rename = "_type")]
-    pub type_: String,
+pub struct PageErrorAPI {
     pub errorMessage: String,
     pub sourceName: String,
     pub lineText: String,
@@ -293,7 +292,7 @@ pub struct ConsoleAPI {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum CachedConsoleMessage {
-    PageError(PageError),
+    PageErrorAPI(PageErrorAPI),
     ConsoleAPI(ConsoleAPI),
 }
 

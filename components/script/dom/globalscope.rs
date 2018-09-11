@@ -1,8 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId, PageErrorAPI};
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -377,10 +376,34 @@ impl GlobalScope {
 
         // Step 9.
         if event_status == EventStatus::NotCanceled {
+            if let Some(chan) = self.devtools_chan() {
+                let worker_id = self.downcast::<WorkerGlobalScope>().map(|worker| {
+                    worker.get_worker_id()
+                });
+
+                let msg = ScriptToDevtoolsControlMsg::PageErrorAPI(self.pipeline_id(), PageErrorAPI {
+                    lineText: String::new(),
+                    errorMessage: error_info.message.as_str().into(),
+                    sourceName: error_info.filename.as_str().into(),
+                    lineNumber: error_info.lineno,
+                    columnNumber: error_info.column,
+                    category: String::new(),
+                    timeStamp: 0,
+                    error: false,
+                    warning: false,
+                    exception: false,
+                    strict: false,
+                    private: false,
+                }, worker_id);
+
+                chan.send(msg).unwrap();
+            }
+
             // https://html.spec.whatwg.org/multipage/#runtime-script-errors-2
             if let Some(dedicated) = self.downcast::<DedicatedWorkerGlobalScope>() {
                 dedicated.forward_error_to_worker_object(error_info);
             }
+
         }
 
     }

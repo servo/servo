@@ -27,7 +27,7 @@ trait EncodableConsoleMessage {
 impl EncodableConsoleMessage for CachedConsoleMessage {
     fn encode(&self) -> serde_json::Result<String> {
         match *self {
-            CachedConsoleMessage::PageError(ref a) => serde_json::to_string(a),
+            CachedConsoleMessage::PageErrorAPI(ref a) => serde_json::to_string(a),
             CachedConsoleMessage::ConsoleAPI(ref a) => serde_json::to_string(a),
         }
     }
