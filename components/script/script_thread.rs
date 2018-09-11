@@ -76,8 +76,10 @@ use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
-use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BackgroundHangMonitorChan, BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{HangAlert, HangAnnotation};
+use msg::constellation_msg::{MonitoredComponentMsg, MonitoredComponentType, ScriptHangAnnotation};
+use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId, init_background_hang_monitor};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
@@ -115,6 +117,7 @@ use std::rc::Rc;
 use std::result::Result;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 use style::thread_state::{self, ThreadState};
 use task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use task_source::TaskSourceName;
@@ -469,6 +472,8 @@ unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 
+unsafe_no_jsmanaged_fields!(BackgroundHangMonitorChan);
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
@@ -496,6 +501,13 @@ pub struct ScriptThread {
 
     /// A queue of tasks to be executed in this script-thread.
     task_queue: TaskQueue<MainThreadScriptMsg>,
+
+    /// A channel on which hang alerts can be sent to the constellation.
+    /// Stored here for use in the AttachLayout workflow.
+    background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
+
+    /// A channel to send messages to the background hang monitor.
+    background_hang_monitor_chan: BackgroundHangMonitorChan,
 
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
@@ -1002,6 +1014,14 @@ impl ScriptThread {
 
         let task_queue = TaskQueue::new(port, chan.clone());
 
+        let background_hang_monitor_chan = init_background_hang_monitor(
+            state.id,
+            MonitoredComponentType::Script,
+            state.background_hang_monitor_to_constellation_chan.clone(),
+            Duration::from_millis(100),
+            Duration::from_millis(5000)
+        );
+
         ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
@@ -1018,6 +1038,10 @@ impl ScriptThread {
             bluetooth_thread: state.bluetooth_thread,
 
             task_queue,
+
+            background_hang_monitor_chan,
+            background_hang_monitor_to_constellation_chan: state
+                .background_hang_monitor_to_constellation_chan,
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: chan.clone(),
@@ -1111,6 +1135,10 @@ impl ScriptThread {
 
         // Store new resizes, and gather all other events.
         let mut sequential = vec![];
+
+        // Notify the background-hang-monitor we are waiting for an event.
+        let msg = MonitoredComponentMsg::NotifyWait;
+        self.background_hang_monitor_chan.send(msg);
 
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
@@ -1230,6 +1258,7 @@ impl ScriptThread {
 
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
+            self.notify_activity_to_hang_monitor(&category);
 
             let result = self.profile_event(category, pipeline_id, move || {
                 match msg {
@@ -1305,6 +1334,38 @@ impl ScriptThread {
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
         }
+    }
+
+    fn notify_activity_to_hang_monitor(&self, category: &ScriptThreadEventCategory) {
+        let hang_annotation = match category {
+            ScriptThreadEventCategory::AttachLayout => ScriptHangAnnotation::AttachLayout,
+            ScriptThreadEventCategory::ConstellationMsg => ScriptHangAnnotation::ConstellationMsg,
+            ScriptThreadEventCategory::DevtoolsMsg => ScriptHangAnnotation::DevtoolsMsg,
+            ScriptThreadEventCategory::DocumentEvent => ScriptHangAnnotation::DocumentEvent,
+            ScriptThreadEventCategory::DomEvent => ScriptHangAnnotation::DomEvent,
+            ScriptThreadEventCategory::FileRead => ScriptHangAnnotation::FileRead,
+            ScriptThreadEventCategory::FormPlannedNavigation => ScriptHangAnnotation::FormPlannedNavigation,
+            ScriptThreadEventCategory::ImageCacheMsg => ScriptHangAnnotation::ImageCacheMsg,
+            ScriptThreadEventCategory::InputEvent => ScriptHangAnnotation::InputEvent,
+            ScriptThreadEventCategory::NetworkEvent => ScriptHangAnnotation::NetworkEvent,
+            ScriptThreadEventCategory::Resize => ScriptHangAnnotation::Resize,
+            ScriptThreadEventCategory::ScriptEvent => ScriptHangAnnotation::ScriptEvent,
+            ScriptThreadEventCategory::SetScrollState => ScriptHangAnnotation::SetScrollState,
+            ScriptThreadEventCategory::SetViewport => ScriptHangAnnotation::SetViewport,
+            ScriptThreadEventCategory::StylesheetLoad => ScriptHangAnnotation::StylesheetLoad,
+            ScriptThreadEventCategory::TimerEvent => ScriptHangAnnotation::TimerEvent,
+            ScriptThreadEventCategory::UpdateReplacedElement => ScriptHangAnnotation::UpdateReplacedElement,
+            ScriptThreadEventCategory::WebSocketEvent => ScriptHangAnnotation::WebSocketEvent,
+            ScriptThreadEventCategory::WorkerEvent => ScriptHangAnnotation::WorkerEvent,
+            ScriptThreadEventCategory::WorkletEvent => ScriptHangAnnotation::WorkletEvent,
+            ScriptThreadEventCategory::ServiceWorkerEvent => ScriptHangAnnotation::ServiceWorkerEvent,
+            ScriptThreadEventCategory::EnterFullscreen => ScriptHangAnnotation::EnterFullscreen,
+            ScriptThreadEventCategory::ExitFullscreen => ScriptHangAnnotation::ExitFullscreen,
+            ScriptThreadEventCategory::WebVREvent => ScriptHangAnnotation::WebVREvent,
+            ScriptThreadEventCategory::PerformanceTimelineTask  => ScriptHangAnnotation::PerformanceTimelineTask,
+        };
+        let msg = MonitoredComponentMsg::NotifyActivity(HangAnnotation::Script(hang_annotation));
+        self.background_hang_monitor_chan.send(msg);
     }
 
     fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {
@@ -1836,6 +1897,9 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
+            background_hang_monitor_to_constellation_chan: self
+                .background_hang_monitor_to_constellation_chan
+                .clone(),
             constellation_chan: self.layout_to_constellation_chan.clone(),
             script_chan: self.control_chan.clone(),
             image_cache: self.image_cache.clone(),
