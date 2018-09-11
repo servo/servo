@@ -1,9 +1,0 @@
-README.rst
-setup.cfg
-setup.py
-slugid/__init__.py
-slugid/slugid.py
-slugid.egg-info/PKG-INFO
-slugid.egg-info/SOURCES.txt
-slugid.egg-info/dependency_links.txt
-slugid.egg-info/top_level.txt

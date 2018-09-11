@@ -1,8 +1,0 @@
-../slugid/__init__.py
-../slugid/__init__.pyc
-../slugid/slugid.py
-../slugid/slugid.pyc
-PKG-INFO
-SOURCES.txt
-dependency_links.txt
-top_level.txt
