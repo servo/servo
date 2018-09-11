@@ -1034,6 +1034,7 @@ impl ScriptThread {
                 }
                 image_cache_port.add();
             }
+
             let ret = sel.wait();
             if ret == script_port.id() {
                 self.task_queue.take_tasks();

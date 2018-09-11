@@ -89,6 +89,7 @@
 //!
 //! See https://github.com/servo/servo/issues/14704
 
+use background_hang_monitor::BackgroundHangMonitor;
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
 use browsingcontext::{AllBrowsingContextsIterator, BrowsingContext, FullyActiveBrowsingContextsIterator};
@@ -168,6 +169,9 @@ use webvr_traits::{WebVREvent, WebVRMsg};
 /// the `script` crate). Script and layout communicate using a `Message`
 /// type.
 pub struct Constellation<Message, LTF, STF> {
+    /// The background hang monitor is responsible for detecting and reporting
+    /// hangs in various components.
+    background_hang_monitor: BackgroundHangMonitor,
     /// An IPC channel for script threads to send messages to the constellation.
     /// This is the script threads' view of `script_receiver`.
     script_sender: IpcSender<(PipelineId, FromScriptMsg)>,
@@ -582,6 +586,7 @@ where
                 PipelineNamespace::install(PipelineNamespaceId(1));
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
+                    background_hang_monitor: Default::default(),
                     script_sender: ipc_script_sender,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
@@ -669,6 +674,12 @@ where
             // This is for testing the hardening of the constellation.
             self.maybe_close_random_pipeline();
             self.handle_request();
+            self.background_hang_monitor.perform_a_hang_monitor_checkpoint();
+            for alert in self.background_hang_monitor.collect_hang_alerts() {
+                // TODO: in the case of a permanent hang alert, consider showing a 'kill script' prompt,
+                // via the embedder.
+                warn!("Component hang alert: {:?}", alert);
+            }
         }
         self.handle_shutdown();
     }
@@ -1095,6 +1106,9 @@ where
         };
 
         match content {
+            FromScriptMsg::ForwardToBackgroundHangMonitor(msg) => {
+                self.background_hang_monitor.handle_msg(msg)
+            },
             FromScriptMsg::ForwardToEmbedder(embedder_msg) => {
                 self.embedder_proxy
                     .send((Some(source_top_ctx_id), embedder_msg));
@@ -1300,6 +1314,9 @@ where
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         debug!("Constellation got {:?} message", message);
         match message {
+            FromLayoutMsg::ForwardToBackgroundHangMonitor(msg) => {
+                self.background_hang_monitor.handle_msg(msg)
+            },
             FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             },

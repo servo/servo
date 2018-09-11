@@ -8,6 +8,7 @@
 use std::cell::Cell;
 use std::fmt;
 use std::num::NonZeroU32;
+use std::time::Duration;
 use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -416,4 +417,80 @@ pub enum InputMethodType {
     Time,
     Url,
     Week,
+}
+
+#[derive(Clone, Debug, Deserialize, IntoEnumIterator, Serialize)]
+/// The equivalent of script_layout_interface::message::Msg
+pub enum LayoutHangAnnotation {
+    AddStylesheet,
+    RemoveStylesheet,
+    SetQuirksMode,
+    Reflow,
+    GetRPC,
+    TickAnimations,
+    AdvanceClockMs,
+    ReapStyleAndLayoutData,
+    CollectReports,
+    PrepareToExit,
+    ExitNow,
+    GetCurrentEpoch,
+    GetWebFontLoadState,
+    CreateLayoutThread,
+    SetFinalUrl,
+    SetScrollStates,
+    UpdateScrollStateFromScript,
+    RegisterPaint,
+    SetNavigationStart,
+}
+
+#[derive(Clone, Debug, Deserialize, IntoEnumIterator, Serialize)]
+/// The equivalent of script::script_runtime::ScriptEventCategory
+pub enum ScriptHangAnnotation {
+    AttachLayout,
+    ConstellationMsg,
+    DevtoolsMsg,
+    DocumentEvent,
+    DomEvent,
+    FileRead,
+    FormPlannedNavigation,
+    ImageCacheMsg,
+    InputEvent,
+    NetworkEvent,
+    Resize,
+    ScriptEvent,
+    SetScrollState,
+    SetViewport,
+    StylesheetLoad,
+    TimerEvent,
+    UpdateReplacedElement,
+    WebSocketEvent,
+    WorkerEvent,
+    WorkletEvent,
+    ServiceWorkerEvent,
+    EnterFullscreen,
+    ExitFullscreen,
+    WebVREvent,
+    PerformanceTimelineTask,
+}
+
+#[derive(Deserialize, Clone, Debug, Serialize)]
+pub enum HangAnnotation {
+    Layout(LayoutHangAnnotation),
+    Script(ScriptHangAnnotation),
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum MonitoredComponentType {
+    Layout(PipelineId),
+    Script(PipelineId),
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum MonitoredComponentMsg {
+    /// Register a new component to monitor, with transient and permanent timeout.
+    RegisterComponent(MonitoredComponentType, Duration, Duration),
+    /// Notify start of new activity for a given component,
+    NotifyActivity(MonitoredComponentType, HangAnnotation),
+    /// Notify start of waiting for a new task to come-in for processing.
+    NotifyWait(Vec<MonitoredComponentType>),
 }

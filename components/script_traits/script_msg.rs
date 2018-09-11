@@ -17,7 +17,7 @@ use embedder_traits::EmbedderMsg;
 use euclid::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, MonitoredComponentMsg, PipelineId, TopLevelBrowsingContextId};
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use net_traits::request::RequestInit;
@@ -33,6 +33,8 @@ use webrender_api::{DeviceIntPoint, DeviceUintSize};
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutMsg {
+    /// Forward a message to the background-hang monitor.
+    ForwardToBackgroundHangMonitor(MonitoredComponentMsg),
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Inform the constellation of the size of the iframe's viewport.
@@ -50,6 +52,7 @@ impl fmt::Debug for LayoutMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::LayoutMsg::*;
         let variant = match *self {
+            ForwardToBackgroundHangMonitor(..) => "ForwardToBackgroundHangMonitor",
             ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
@@ -85,6 +88,8 @@ pub enum LogEntry {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
+    /// Forward a message to the background-hang monitor.
+    ForwardToBackgroundHangMonitor(MonitoredComponentMsg),
     /// Forward a message to the embedder.
     ForwardToEmbedder(EmbedderMsg),
     /// Requests are sent to constellation and fetches are checked manually
@@ -178,6 +183,7 @@ impl fmt::Debug for ScriptMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ScriptMsg::*;
         let variant = match *self {
+            ForwardToBackgroundHangMonitor(..) => "ForwardToBackgroundHangMonitor",
             ForwardToEmbedder(..) => "ForwardToEmbedder",
             InitiateNavigateRequest(..) => "InitiateNavigateRequest",
             BroadcastStorageEvent(..) => "BroadcastStorageEvent",

@@ -2230,6 +2230,7 @@ name = "msg"
 version = "0.0.1"
 dependencies = [
  "bitflags 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enum-iterator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "malloc_size_of 0.0.1",
  "malloc_size_of_derive 0.0.1",
  "serde 1.0.66 (registry+https://github.com/rust-lang/crates.io-index)",

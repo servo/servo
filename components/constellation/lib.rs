@@ -42,6 +42,7 @@ extern crate style_traits;
 extern crate webrender_api;
 extern crate webvr_traits;
 
+pub mod background_hang_monitor;
 mod browsingcontext;
 mod constellation;
 mod event_loop;

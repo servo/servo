@@ -245,6 +245,7 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         self_contained_tests = [
+            "constellation",
             "gfx",
             "layout",
             "msg",
