@@ -532,7 +532,6 @@ parameters! {
             FrontFace = gl::FRONT_FACE,
             GenerateMipmapHint = gl::GENERATE_MIPMAP_HINT,
             GreenBits = gl::GREEN_BITS,
-            PackAlignment = gl::PACK_ALIGNMENT,
             RedBits = gl::RED_BITS,
             SampleBuffers = gl::SAMPLE_BUFFERS,
             Samples = gl::SAMPLES,
@@ -553,7 +552,6 @@ parameters! {
             StencilValueMask = gl::STENCIL_VALUE_MASK,
             StencilWritemask = gl::STENCIL_WRITEMASK,
             SubpixelBits = gl::SUBPIXEL_BITS,
-            UnpackAlignment = gl::UNPACK_ALIGNMENT,
         }),
         Int2(ParameterInt2 {
             MaxViewportDims = gl::MAX_VIEWPORT_DIMS,
