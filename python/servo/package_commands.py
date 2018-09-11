@@ -146,6 +146,19 @@ def copy_windows_dependencies(binary_path, destination):
     for d in deps:
         shutil.copy(path.join(binary_path, d), destination)
 
+    # Search for the generated nspr4.dll
+    build_path = path.join(binary_path, "build")
+    nspr4 = "nspr4.dll"
+    nspr4_path = None
+    for root, dirs, files in os.walk(build_path):
+        if nspr4 in files:
+            nspr4_path = path.join(root, nspr4)
+            break
+
+    if nspr4_path is None:
+        print("WARNING: could not find nspr4.dll")
+    else:
+        shutil.copy(nspr4_path, destination)
 
 def change_prefs(resources_path, platform):
     print("Swapping prefs")
