@@ -3,9 +3,6 @@
 import os
 import sys
 import json
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "vendored"))
-
 import taskcluster
 
 decision_task_id = os.environ["TASK_ID"]

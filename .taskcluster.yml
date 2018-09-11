@@ -26,7 +26,9 @@ tasks:
 
       payload:
         maxRunTime: 1200
-        image: "buildpack-deps:bionic-scm"
+        # https://hub.docker.com/r/servobrowser/decision-task/builds/
+        # https://github.com/SimonSapin/servo-decision-task-image
+        image: "servobrowser/decision-task@sha256:8c9b4de60fc584828ae9a297a780945c2aa505d3b037ead3907554ab2e16aced"
         features:
           taskclusterProxy: true
         env:
