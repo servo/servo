@@ -10,7 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
-use dom::element::{AttributeMutation};
+use dom::element::AttributeMutation;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmediaelement::HTMLMediaElement;
