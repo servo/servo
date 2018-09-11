@@ -499,8 +499,10 @@ pub fn http_fetch(request: &mut Request,
     *done_chan = None;
     // Step 1
     let mut response: Option<Response> = None;
-    if context.timing.timing_type == ResourceTimingType::None {
-        context.timing.timing_type = request.timing_type();
+    //TODO is this needed?
+    if context.timing.lock().unwrap().timing_type == ResourceTimingType::None {
+        panic!("no timing type!!!");
+        // context.timing.timing_type = request.timing_type();
     }
 
     // Step 2
@@ -580,7 +582,7 @@ pub fn http_fetch(request: &mut Request,
         // TODO(#21256) maybe set redirect_start if this resource initiates the redirect
         // TODO(#21254) also set startTime equal to either fetch_start or redirect_start
         //   (https://w3c.github.io/resource-timing/#dfn-starttime)
-        context.timing.set_attribute(ResourceAttribute::RequestStart);
+        context.timing.lock().unwrap().set_attribute(ResourceAttribute::RequestStart);
 
         let mut fetch_result = http_network_or_cache_fetch(
             request, authentication_fetch_flag, cors_flag, done_chan, context);
@@ -631,8 +633,10 @@ pub fn http_fetch(request: &mut Request,
 
     // set back to default
     response.return_internal = true;
-    context.timing.set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
-    response.resource_timing = context.timing.clone();
+    context.timing.lock().unwrap().set_attribute(ResourceAttribute::RedirectCount(request.redirect_count as u16));
+
+    let timing = &*context.timing.lock().unwrap();
+    response.resource_timing = timing.clone();
 
     // Step 6
     response
@@ -1108,7 +1112,8 @@ fn http_network_fetch(request: &Request,
         }
     }
 
-    let mut response = Response::new(url.clone(), context.timing.clone());
+    let timing = &*context.timing.lock().unwrap();
+    let mut response = Response::new(url.clone(), timing.clone());
     response.status = Some(res.status);
     response.raw_status = Some((res.status_raw().0,
                                 res.status_raw().1.as_bytes().to_vec()));

@@ -50,7 +50,7 @@ pub struct FetchContext {
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     pub filemanager: FileManager,
     pub cancellation_listener: Arc<Mutex<CancellationListener>>,
-    pub timing: ResourceFetchTiming,
+    pub timing: Arc<Mutex<ResourceFetchTiming>>,
 }
 
 pub struct CancellationListener {
@@ -87,10 +87,6 @@ pub type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 pub fn fetch(request: &mut Request,
              target: Target,
              context: &mut FetchContext) {
-    context.timing = match request.destination {
-        Destination::Document => ResourceFetchTiming::new(ResourceTimingType::Navigation),
-        _ => ResourceFetchTiming::new(ResourceTimingType::Resource),
-    };
     fetch_with_cors_cache(request, &mut CorsCache::new(), target, context);
 }
 

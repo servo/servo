@@ -232,8 +232,6 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         let _ = self.send(FetchResponseMsg::ProcessResponseChunk(chunk));
     }
 
-    // This process_response_eof is being called for navigation timings, but the listener process_response_eof isn't
-    // That's only called by resources
     fn process_response_eof(&mut self, response: &Response) {
         if let Some(e) = response.get_network_error() {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(e.clone())));
