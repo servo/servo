@@ -403,7 +403,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                 },
             );
             let audio_data = audio_data.to_vec();
-            let decoded_audio = Arc::new(Mutex::new(Vec::new()));
+            let decoded_audio = Arc::new(Mutex::new((Vec::new(), 1)));
             let decoded_audio_ = decoded_audio.clone();
             let this = Trusted::new(self);
             let this_ = this.clone();
@@ -419,10 +419,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
                             let decoded_audio = decoded_audio.lock().unwrap();
                             let buffer = AudioBuffer::new(
                                 &this.global().as_window(),
-                                1, // XXX servo-media should provide this info
-                                decoded_audio.len() as u32,
+                                decoded_audio.1, // XXX servo-media should provide this info
+                                decoded_audio.0.len() as u32 / decoded_audio.1,
                                 this.sample_rate,
-                                Some(decoded_audio.as_slice()));
+                                Some(decoded_audio.0.as_slice()));
                             let mut resolvers = this.decode_resolvers.borrow_mut();
                             assert!(resolvers.contains_key(&uuid_));
                             let resolver = resolvers.remove(&uuid_).unwrap();
@@ -451,11 +451,10 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         &canceller_,
                     );
                 })
-                .progress(move |buffer, _channels| {
-                    decoded_audio_
-                        .lock()
-                        .unwrap()
-                        .extend_from_slice((*buffer).as_ref());
+                .progress(move |buffer, channels| {
+                    let mut audio = decoded_audio_.lock().unwrap();
+                    audio.1 = channels;
+                    audio.0.extend_from_slice((*buffer).as_ref());
                 })
                 .build();
             self.audio_context_impl
