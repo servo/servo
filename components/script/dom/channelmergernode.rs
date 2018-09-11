@@ -5,7 +5,6 @@
 use dom::audionode::{AudioNode, MAX_CHANNEL_COUNT};
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::ChannelMergerNodeBinding::{self, ChannelMergerOptions};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::reflect_dom_object;
@@ -27,12 +26,11 @@ impl ChannelMergerNode {
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
     ) -> Fallible<ChannelMergerNode> {
-        let mut node_options = AudioNodeOptions::empty();
-        let count = options.parent.channelCount.unwrap_or(1);
-        let mode = options.parent.channelCountMode.unwrap_or(ChannelCountMode::Explicit);
-        let interpretation = options.parent.channelInterpretation.unwrap_or(ChannelInterpretation::Speakers);
+        let node_options = options.parent
+                                  .unwrap_or(1, ChannelCountMode::Explicit,
+                                             ChannelInterpretation::Speakers);
 
-        if count != 1 || mode != ChannelCountMode::Explicit {
+        if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
             return Err(Error::InvalidState)
         }
 
@@ -40,13 +38,10 @@ impl ChannelMergerNode {
             return Err(Error::IndexSize)
         }
 
-        node_options.channelCount = Some(count);
-        node_options.channelCountMode = Some(mode);
-        node_options.channelInterpretation = Some(interpretation);
         let node = AudioNode::new_inherited(
             AudioNodeInit::ChannelMergerNode(options.into()),
             context,
-            &node_options,
+            node_options,
             options.numberOfInputs, // inputs
             1, // outputs
         )?;

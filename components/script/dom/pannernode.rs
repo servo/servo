@@ -6,7 +6,6 @@ use dom::audionode::AudioNode;
 use dom::audioparam::AudioParam;
 use dom::baseaudiocontext::BaseAudioContext;
 use dom::bindings::codegen::Bindings::AudioNodeBinding::{ChannelCountMode, ChannelInterpretation};
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioParamBinding::{AudioParamMethods, AutomationRate};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{self, PannerNodeMethods, PannerOptions};
 use dom::bindings::codegen::Bindings::PannerNodeBinding::{DistanceModelType, PanningModelType};
@@ -52,13 +51,13 @@ impl PannerNode {
         context: &BaseAudioContext,
         options: &PannerOptions,
     ) -> Fallible<PannerNode> {
-        let count = options.parent.channelCount.unwrap_or(2);
-        let mode = options.parent.channelCountMode.unwrap_or(ChannelCountMode::Clamped_max);
-        let interpretation = options.parent.channelInterpretation.unwrap_or(ChannelInterpretation::Speakers);
-        if mode == ChannelCountMode::Max {
+        let node_options = options.parent
+                                  .unwrap_or(2, ChannelCountMode::Clamped_max,
+                                             ChannelInterpretation::Speakers);
+        if node_options.mode == ChannelCountMode::Max {
             return Err(Error::NotSupported)
         }
-        if count > 2 || count == 0 {
+        if node_options.count > 2 || node_options.count == 0 {
             return Err(Error::NotSupported)
         }
         if *options.maxDistance <= 0. {
@@ -73,15 +72,11 @@ impl PannerNode {
         if *options.coneOuterGain < 0. || *options.coneOuterGain > 1. {
             return Err(Error::InvalidState)
         }
-        let mut node_options = AudioNodeOptions::empty();
-        node_options.channelCount = Some(count);
-        node_options.channelCountMode = Some(mode);
-        node_options.channelInterpretation = Some(interpretation);
         let options = options.into();
         let node = AudioNode::new_inherited(
             AudioNodeInit::PannerNode(options),
             context,
-            &node_options,
+            node_options,
             1, // inputs
             1, // outputs
         )?;
