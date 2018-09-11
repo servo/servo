@@ -234,10 +234,13 @@ impl Device {
     }
 
     /// Applies text zoom to a font-size or line-height value (see nsStyleFont::ZoomText).
+    #[inline]
     pub fn zoom_text(&self, size: Au) -> Au {
         size.scale_by(self.pres_context().mEffectiveTextZoom)
     }
-    /// Un-apply text zoom (see nsStyleFont::UnzoomText).
+
+    /// Un-apply text zoom.
+    #[inline]
     pub fn unzoom_text(&self, size: Au) -> Au {
         size.scale_by(1. / self.pres_context().mEffectiveTextZoom)
     }
