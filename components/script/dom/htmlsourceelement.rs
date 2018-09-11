@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSourceElementBinding::HTMLSourceElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
@@ -9,7 +10,9 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::root::DomRoot;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
+use dom::element::{AttributeMutation};
 use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlmediaelement::HTMLMediaElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
@@ -44,6 +47,21 @@ impl HTMLSourceElement {
 impl VirtualMethods for HTMLSourceElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match attr.local_name() {
+            &local_name!("srcset") | &local_name!("sizes")  |
+            &local_name!("media") | &local_name!("type") => {
+                if let Some(next_sibling) = self.upcast::<Node>().GetNextSibling() {
+                    if let Some(htmlimageelement_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+                        htmlimageelement_sibling.generation.set(htmlimageelement_sibling.generation.get() + 1);
+                    }
+                }
+            },
+            _ => {},
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:nodes-are-inserted>

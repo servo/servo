@@ -141,7 +141,7 @@ pub struct HTMLImageElement {
     current_request: DomRefCell<ImageRequest>,
     pending_request: DomRefCell<ImageRequest>,
     form_owner: MutNullableDom<HTMLFormElement>,
-    generation: Cell<u32>,
+    pub generation: Cell<u32>,
     #[ignore_malloc_size_of = "SourceSet"]
     source_set: DomRefCell<SourceSet>,
     last_selected_source: DomRefCell<Option<DOMString>>,
