@@ -451,7 +451,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         &canceller_,
                     );
                 })
-                .progress(move |buffer| {
+                .progress(move |buffer, _channels| {
                     decoded_audio_
                         .lock()
                         .unwrap()
