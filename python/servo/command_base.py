@@ -488,8 +488,9 @@ class CommandBase(object):
             # Some systems don't have pkg-config; we can't probe in this case
             # and must hope for the best
             return False
-        if "x86_64" not in (target or host_triple()):
-            # We don't build gstreamer for non-x86_64 yet
+        effective_target = target or host_triple()
+        if "x86_64" not in effective_target or "android" in effective_target:
+            # We don't build gstreamer for non-x86_64 / android yet
             return False
         if sys.platform == "linux2":
             if path.isdir(self.get_gstreamer_path()):
