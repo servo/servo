@@ -425,7 +425,7 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
                 cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(cancel_chan))),
-                timing: ResourceFetchTiming::new(timing_type),//TODO arc?
+                timing: Arc::new(Mutex::new(ResourceFetchTiming::new(request.timing_type()))),
             };
 
             match res_init_ {
@@ -440,13 +440,6 @@ impl CoreResourceManager {
                                         &mut context);
                 },
                 None => fetch(&mut request, &mut sender, &mut context),
-            };
-
-            // TODO remove
-            match context.timing.timing_type {
-                ResourceTimingType::Navigation => {},
-                ResourceTimingType::Resource => {},
-                _ => (),
             };
         }).expect("Thread spawning failed");
     }

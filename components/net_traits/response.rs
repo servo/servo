@@ -225,10 +225,6 @@ impl Response {
         &self.resource_timing
     }
 
-    pub fn get_resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
-        &mut self.resource_timing
-    }
-
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     #[cfg_attr(rustfmt, rustfmt_skip)]
