@@ -15,18 +15,14 @@ lint-scripts = [
 [blocked-packages]
 rand = [
   "crossbeam-channel",
-  "deque",
   "gaol",
   "hashglobe", # only uses in tests
   "ipc-channel",
-  "num-bigint",
   "parking_lot_core",
   "phf_generator",
   "rayon",
   "rayon-core",
   "servo_rand",
-  "servo-websocket",
-  "tempdir",
   "tempfile",
   "uuid",
   "ws",
