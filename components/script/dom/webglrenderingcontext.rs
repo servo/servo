@@ -149,7 +149,9 @@ pub struct WebGLRenderingContext {
     canvas: Dom<HTMLCanvasElement>,
     #[ignore_malloc_size_of = "Defined in canvas_traits"]
     last_error: Cell<Option<WebGLError>>,
+    texture_packing_alignment: Cell<u8>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
+    // TODO(nox): Should be Cell<u8>.
     texture_unpacking_alignment: Cell<u32>,
     bound_framebuffer: MutNullableDom<WebGLFramebuffer>,
     bound_renderbuffer: MutNullableDom<WebGLRenderbuffer>,
@@ -193,7 +195,7 @@ impl WebGLRenderingContext {
 
         result.map(|ctx_data| {
             let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
-            WebGLRenderingContext {
+            Self {
                 reflector_: Reflector::new(),
                 webgl_sender: ctx_data.sender,
                 webrender_image: Cell::new(None),
@@ -203,6 +205,7 @@ impl WebGLRenderingContext {
                 limits: ctx_data.limits,
                 canvas: Dom::from_ref(canvas),
                 last_error: Cell::new(None),
+                texture_packing_alignment: Cell::new(4),
                 texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
                 bound_framebuffer: MutNullableDom::new(None),
@@ -1223,6 +1226,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let unpack = self.texture_unpacking_settings.get();
                 return BooleanValue(unpack.contains(TextureUnpacking::PREMULTIPLY_ALPHA));
             }
+            constants::PACK_ALIGNMENT => {
+                return UInt32Value(self.texture_packing_alignment.get() as u32);
+            },
+            constants::UNPACK_ALIGNMENT => {
+                return UInt32Value(self.texture_unpacking_alignment.get());
+            },
             _ => {}
         }
 
@@ -2530,8 +2539,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 };
                 texture_settings.set(TextureUnpacking::CONVERT_COLORSPACE, convert);
             },
-            constants::UNPACK_ALIGNMENT |
-            constants::PACK_ALIGNMENT => {
+            constants::UNPACK_ALIGNMENT => {
                 match param_value {
                     1 | 2 | 4 | 8 => (),
                     _ => return self.webgl_error(InvalidValue),
@@ -2539,6 +2547,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 self.texture_unpacking_alignment.set(param_value as u32);
                 return;
             },
+            constants::PACK_ALIGNMENT => {
+                match param_value {
+                    1 | 2 | 4 | 8 => (),
+                    _ => return self.webgl_error(InvalidValue),
+                }
+                // We never actually change the actual value on the GL side
+                // because it's better to receive the pixels without the padding
+                // and then write the result at the right place in ReadPixels.
+                self.texture_packing_alignment.set(param_value as u8);
+                return;
+            }
             _ => return self.webgl_error(InvalidEnum),
         }
         self.texture_unpacking_settings.set(texture_settings);
@@ -2553,105 +2572,115 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     fn ReadPixels(&self, x: i32, y: i32, width: i32, height: i32, format: u32, pixel_type: u32,
                   mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>) {
-        let (array_type, data) = match *pixels {
-            // Spec: If data is null then an INVALID_VALUE error is generated.
-            None => return self.webgl_error(InvalidValue),
-            // The typed array is rooted and we should have a unique reference to it,
-            // so retrieving its mutable slice is safe here
-            Some(ref mut data) => (data.get_array_type(), unsafe { data.as_mut_slice() }),
-        };
-
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
-
-        match array_type {
-            Type::Uint8 => (),
-            _ => return self.webgl_error(InvalidOperation),
-        }
-
-        // From the WebGL specification, 5.14.12 Reading back pixels
-        //
-        //     "Only two combinations of format and type are
-        //      accepted. The first is format RGBA and type
-        //      UNSIGNED_BYTE. The second is an implementation-chosen
-        //      format. The values of format and type for this format
-        //      may be determined by calling getParameter with the
-        //      symbolic constants IMPLEMENTATION_COLOR_READ_FORMAT
-        //      and IMPLEMENTATION_COLOR_READ_TYPE, respectively. The
-        //      implementation-chosen format may vary depending on the
-        //      format of the currently bound rendering
-        //      surface. Unsupported combinations of format and type
-        //      will generate an INVALID_OPERATION error."
-        //
-        // To avoid having to support general format packing math, we
-        // always report RGBA/UNSIGNED_BYTE as our only supported
-        // format.
-        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
-            return self.webgl_error(InvalidOperation);
-        }
-        let cpp = 4;
-
-        //     "If pixels is non-null, but is not large enough to
-        //      retrieve all of the pixels in the specified rectangle
-        //      taking into account pixel store modes, an
-        //      INVALID_OPERATION error is generated."
-        let stride = match width.checked_mul(cpp) {
-            Some(stride) => stride,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        match height.checked_mul(stride) {
-            Some(size) if size <= data.len() as i32 => {}
-            _ => return self.webgl_error(InvalidOperation),
-        }
-
-        //     "For any pixel lying outside the frame buffer, the
-        //      corresponding destination buffer range remains
-        //      untouched; see Reading Pixels Outside the
-        //      Framebuffer."
-        let mut x = x;
-        let mut y = y;
-        let mut width = width;
-        let mut height = height;
-        let mut dst_offset = 0;
-
-        if x < 0 {
-            dst_offset += cpp * -x;
-            width += x;
-            x = 0;
-        }
-
-        if y < 0 {
-            dst_offset += stride * -y;
-            height += y;
-            y = 0;
-        }
+        let pixels = handle_potential_webgl_error!(
+            self,
+            pixels.as_mut().ok_or(InvalidValue),
+            return
+        );
 
         if width < 0 || height < 0 {
             return self.webgl_error(InvalidValue);
         }
 
-        match self.get_current_framebuffer_size() {
-            Some((fb_width, fb_height)) => {
-                if x + width > fb_width {
-                    width = fb_width - x;
-                }
-                if y + height > fb_height {
-                    height = fb_height - y;
-                }
-            }
-            _ => return self.webgl_error(InvalidOperation),
+        if format != constants::RGBA || pixel_type != constants::UNSIGNED_BYTE {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        if pixels.get_array_type() != Type::Uint8 {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+        let (fb_width, fb_height) = handle_potential_webgl_error!(
+            self,
+            self.get_current_framebuffer_size().ok_or(InvalidOperation),
+            return
+        );
+
+        if width == 0 || height == 0 {
+            return;
+        }
+
+        let bytes_per_pixel = 4;
+
+        let row_len = handle_potential_webgl_error!(
+            self,
+            width.checked_mul(bytes_per_pixel).ok_or(InvalidOperation),
+            return
+        );
+
+        let pack_alignment = self.texture_packing_alignment.get() as i32;
+        let dest_padding = match row_len % pack_alignment {
+            0 => 0,
+            remainder => pack_alignment - remainder,
         };
+        let dest_stride = row_len + dest_padding;
+
+        let full_rows_len = handle_potential_webgl_error!(
+            self,
+            dest_stride.checked_mul(height - 1).ok_or(InvalidOperation),
+            return
+        );
+        let required_dest_len = handle_potential_webgl_error!(
+            self,
+            full_rows_len.checked_add(row_len).ok_or(InvalidOperation),
+            return
+        );
+
+        let dest = unsafe { pixels.as_mut_slice() };
+        if dest.len() < required_dest_len as usize {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        let mut src_x = x;
+        let mut src_y = y;
+        let mut src_width = width;
+        let mut src_height = height;
+        let mut dest_offset = 0;
+
+        if src_x < 0 {
+            if src_width <= -src_x {
+                return;
+            }
+            dest_offset += bytes_per_pixel * -src_x;
+            src_width += src_x;
+            src_x = 0;
+        }
+        if src_y < 0 {
+            if src_height <= -src_y {
+                return;
+            }
+            dest_offset += row_len * -src_y;
+            src_height += src_y;
+            src_y = 0;
+        }
+
+        if src_x + src_width > fb_width {
+            src_width = fb_width - src_x;
+        }
+        if src_y + src_height > fb_height {
+            src_height = fb_height - src_y;
+        }
 
         let (sender, receiver) = ipc::bytes_channel().unwrap();
-        self.send_command(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender));
+        self.send_command(WebGLCommand::ReadPixels(
+            src_x,
+            src_y,
+            src_width,
+            src_height,
+            format,
+            pixel_type,
+            sender,
+        ));
 
-        let result = receiver.recv().unwrap();
-
-        for i in 0..height {
-            for j in 0..(width * cpp) {
-                data[(dst_offset + i * stride + j) as usize] =
-                    result[(i * width * cpp + j) as usize];
-            }
+        let src = receiver.recv().unwrap();
+        let src_row_len = (src_width * bytes_per_pixel) as usize;
+        for i in 0..src_height {
+            let dest_start = (dest_offset + i * dest_stride) as usize;
+            let dest_end = dest_start + src_row_len;
+            let src_start = i as usize * src_row_len;
+            let src_end = src_start + src_row_len;
+            dest[dest_start..dest_end].copy_from_slice(&src[src_start..src_end]);
         }
     }
 
