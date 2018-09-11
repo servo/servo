@@ -184,7 +184,7 @@ class PackageCommands(CommandBase):
                      default=None,
                      help='Package using the given Gradle flavor')
     def package(self, release=False, dev=False, android=None, debug=False, debugger=None, target=None, flavor=None):
-        env = self.build_env()
+        env = self.build_env(target=target)
         if android is None:
             android = self.config["build"]["android"]
         if target and android:
