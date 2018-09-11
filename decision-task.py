@@ -10,8 +10,8 @@ decision_task_id = os.environ["TASK_ID"]
 queue = taskcluster.Queue(options={"baseUrl": "http://taskcluster/queue/v1/"})
 
 
-def create_task(name, command, artifacts=None, dependencies=None, env=None, cache=None,
-                scopes=None, features=None, image="buildpack-deps:bionic"):
+def create_task(name, command, image, artifacts=None, dependencies=None, env=None, cache=None,
+                scopes=None, features=None):
     env = env or {}
     for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
         env.setdefault(k, os.environ[k])
@@ -115,6 +115,7 @@ build_task = create_task(
 create_task(
     "run task",
     "./run-task.sh",
+    image="ubuntu:bionic-20180821@sha256:b5309340de7a9a540cf6c0cba3eabdfb9c9bc5153026d37991fd0028180fc725",
     dependencies=[build_task],
     env={"BUILD_TASK_ID": build_task},
 )
