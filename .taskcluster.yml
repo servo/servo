@@ -44,4 +44,4 @@ tasks:
             git clone $GITHUB_EVENT_CLONE_URL repo &&
             cd repo &&
             git checkout $GITHUB_EVENT_COMMIT_SHA &&
-            python2.7 decision-task.py
+            python3 decision-task.py

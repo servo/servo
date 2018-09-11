@@ -16,7 +16,7 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
     for k in ["GITHUB_EVENT_CLONE_URL", "GITHUB_EVENT_COMMIT_SHA"]:
         env.setdefault(k, os.environ[k])
 
-    task_id = taskcluster.slugId()
+    task_id = taskcluster.slugId().decode("utf8")
     payload = {
         "taskGroupId": decision_task_id,
         "dependencies": [decision_task_id] + (dependencies or []),
