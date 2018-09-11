@@ -33,6 +33,7 @@ use ipc_channel::Error as IpcError;
 use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::{CompositionEvent, KeyboardEvent};
 use libc::c_void;
+use msg::constellation_msg::BackgroundHangMonitorRegister;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, TopLevelBrowsingContextId, TraversalDirection};
 use net_traits::image::base::Image;
@@ -546,6 +547,8 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub script_to_constellation_chan: ScriptToConstellationChan,
+    /// A handle to register script-(and associated layout-)threads for hang monitoring.
+    pub background_hang_monitor_register: Box<BackgroundHangMonitorRegister>,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to schedule timer events.
