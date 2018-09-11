@@ -18,6 +18,8 @@ tasks:
         source: ${event.compare}
       scopes:
         - "queue:scheduler-id:taskcluster-github"
+
+        # Granted to role "repo:github.com/servo/servo-taskcluster-experiments:branch:master"
         - "queue:create-task:highest:aws-provisioner-v1/servo-*"
         - "docker-worker:cache:cargo-registry-cache"
         - "docker-worker:cache:cargo-git-cache"
