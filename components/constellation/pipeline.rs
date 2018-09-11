@@ -17,6 +17,7 @@ use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{MonitoredComponentMsg, MonitoredComponentType};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
@@ -27,7 +28,7 @@ use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, ScriptToCon
 use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders};
-use script_traits::{ScriptThreadFactory, TimerSchedulerMsg, WindowSizeData};
+use script_traits::{ScriptThreadFactory, ScriptMsg, TimerSchedulerMsg, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
@@ -39,6 +40,7 @@ use std::process;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
+use std::time::Duration;
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 use webrender_api;
@@ -212,6 +214,13 @@ impl Pipeline {
         });
 
         let url = state.load_data.url.clone();
+
+        // Register the new pipeline with the background-hang-monitor.
+        let component_type = MonitoredComponentType::Script(state.id.clone());
+        let transient_timeout = Duration::from_millis(100);
+        let permanent_timeout = Duration::from_millis(5000);
+        let msg = MonitoredComponentMsg::RegisterComponent(component_type, transient_timeout, permanent_timeout);
+        let _ = state.script_to_constellation_chan.send(ScriptMsg::ForwardToBackgroundHangMonitor(msg));
 
         let script_chan = match state.event_loop {
             Some(script_chan) => {

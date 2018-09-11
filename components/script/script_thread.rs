@@ -63,6 +63,7 @@ use dom::worker::TrustedWorkerAddress;
 use dom::worklet::WorkletThreadPool;
 use dom::workletglobalscope::WorkletGlobalScopeInit;
 use embedder_traits::EmbedderMsg;
+use enum_iterator::IntoEnumIterator;
 use euclid::{Point2D, Vector2D, Rect};
 use fetch::FetchCanceller;
 use hyper::header::{ContentType, HttpDate, Headers, LastModified};
@@ -78,6 +79,7 @@ use js::jsval::UndefinedValue;
 use metrics::{MAX_TASK_NS, PaintTimeMetrics};
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
+use msg::constellation_msg::{HangAnnotation, MonitoredComponentMsg, MonitoredComponentType, ScriptHangAnnotation};
 use msg::constellation_msg::{PipelineNamespace, TopLevelBrowsingContextId};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
@@ -1035,6 +1037,16 @@ impl ScriptThread {
                 image_cache_port.add();
             }
 
+            // Notify the background-hang-monitor of all the pipeline waiting for an event.
+            let waiting_components: Vec<MonitoredComponentType> = self
+                .documents
+                .borrow()
+                .iter()
+                .map(|id, _| MonitoredComponentType::Script(id.clone()))
+                .collect();
+            let msg = MonitoredComponentMsg::NotifyWait(waiting_components);
+            let _ = self.script_sender.send((id.clone(), ScriptMsg::ForwardToBackgroundHangMonitor(msg)));
+
             let ret = sel.wait();
             if ret == script_port.id() {
                 self.task_queue.take_tasks();
@@ -1155,6 +1167,9 @@ impl ScriptThread {
 
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
+            if let Some(id) = pipeline_id {
+                self.notify_activity_to_hang_monitor(&category, &id);
+            }
 
             let result = self.profile_event(category, pipeline_id, move || {
                 match msg {
@@ -1237,6 +1252,14 @@ impl ScriptThread {
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent
         }
+    }
+
+    fn notify_activity_to_hang_monitor(&self, category: &ScriptThreadEventCategory, pipeline_id: &PipelineId) {
+        let position = ScriptThreadEventCategory::into_enum_iter().position(|x| &x == category).unwrap();
+        let hang_annotation = ScriptHangAnnotation::into_enum_iter().nth(position).unwrap();
+        let component_type = MonitoredComponentType::Script(pipeline_id.clone());
+        let msg = MonitoredComponentMsg::NotifyActivity(component_type, HangAnnotation::Script(hang_annotation));
+        let _ = self.script_sender.send((pipeline_id.clone(), ScriptMsg::ForwardToBackgroundHangMonitor(msg)));
     }
 
     fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {

@@ -74,7 +74,7 @@ pub trait ScriptChan: JSTraceable {
     fn clone(&self) -> Box<ScriptChan + Send>;
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, IntoEnumIterator, JSTraceable, PartialEq)]
 pub enum ScriptThreadEventCategory {
     AttachLayout,
     ConstellationMsg,
