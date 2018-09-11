@@ -1,9 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-use dom::audionode::AudioNode;
+use dom::audionode::{AudioNode, UnwrappedAudioNodeOptions};
 use dom::baseaudiocontext::BaseAudioContext;
-use dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use dom::bindings::codegen::Bindings::AudioScheduledSourceNodeBinding::AudioScheduledSourceNodeMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -28,7 +27,7 @@ impl AudioScheduledSourceNode {
     pub fn new_inherited(
         node_type: AudioNodeInit,
         context: &BaseAudioContext,
-        options: &AudioNodeOptions,
+        options: UnwrappedAudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
     ) -> Fallible<AudioScheduledSourceNode> {
