@@ -64,14 +64,14 @@ fn set_metric<U: ProgressiveWebMetric>(
     category: ProfilerCategory,
     attr: &Cell<Option<u64>>,
     metric_time: Option<u64>,
-    url: &ServoUrl)
-{
+    url: &ServoUrl,
+) {
     let navigation_start = match pwm.get_navigation_start() {
         Some(time) => time,
         None => {
             warn!("Trying to set metric before navigation start");
             return;
-        }
+        },
     };
     let now = match metric_time {
         Some(time) => time,
@@ -96,10 +96,12 @@ fn set_metric<U: ProgressiveWebMetric>(
 
     // Print the metric to console if the print-pwm option was given.
     if opts::get().print_pwm {
-        println!("Navigation start: {}", pwm.get_navigation_start().unwrap().to_ms());
+        println!(
+            "Navigation start: {}",
+            pwm.get_navigation_start().unwrap().to_ms()
+        );
         println!("{:?} {:?} {:?}", url, metric_type, time.to_ms());
     }
-
 }
 
 // spec: https://github.com/WICG/time-to-interactive
@@ -120,14 +122,13 @@ pub struct InteractiveMetrics {
     time_to_interactive: Cell<Option<u64>>,
     #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
-    url: ServoUrl
+    url: ServoUrl,
 }
 
 #[derive(Clone, Copy, Debug, MallocSizeOf)]
 pub struct InteractiveWindow {
     start: u64,
 }
-
 
 impl InteractiveWindow {
     pub fn new() -> InteractiveWindow {
@@ -194,11 +195,8 @@ impl InteractiveMetrics {
 
     // can set either dlc or tti first, but both must be set to actually calc metric
     // when the second is set, set_tti is called with appropriate time
-    pub fn maybe_set_tti<T>(
-        &self,
-        profiler_metadata_factory: &T,
-        metric: InteractiveFlag,
-    ) where
+    pub fn maybe_set_tti<T>(&self, profiler_metadata_factory: &T, metric: InteractiveFlag)
+    where
         T: ProfilerMetadataFactory,
     {
         if self.get_tti().is_some() {
@@ -212,7 +210,7 @@ impl InteractiveMetrics {
         let dcl = self.dom_content_loaded.get();
         let mta = self.main_thread_available.get();
         let (dcl, mta) = match (dcl, mta) {
-        (Some(dcl), Some(mta)) => (dcl, mta),
+            (Some(dcl), Some(mta)) => (dcl, mta),
             _ => return,
         };
         let metric_time = match dcl.partial_cmp(&mta) {
@@ -249,7 +247,7 @@ impl ProgressiveWebMetric for InteractiveMetrics {
         self.navigation_start = Some(time);
     }
 
-    fn send_queued_constellation_msg(&self, _name: ProgressiveWebMetricType, _time: u64) { }
+    fn send_queued_constellation_msg(&self, _name: ProgressiveWebMetricType, _time: u64) {}
 
     fn get_time_profiler_chan(&self) -> &ProfilerChan {
         &self.time_profiler_chan
@@ -279,8 +277,8 @@ impl PaintTimeMetrics {
         time_profiler_chan: ProfilerChan,
         constellation_chan: IpcSender<LayoutMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
-        url: ServoUrl)
-            -> PaintTimeMetrics {
+        url: ServoUrl,
+    ) -> PaintTimeMetrics {
         PaintTimeMetrics {
             pending_metrics: RefCell::new(HashMap::new()),
             navigation_start: None,
@@ -317,17 +315,22 @@ impl PaintTimeMetrics {
         &self,
         profiler_metadata_factory: &T,
         epoch: Epoch,
-        display_list: &DisplayList)
-    where T: ProfilerMetadataFactory {
+        display_list: &DisplayList,
+    ) where
+        T: ProfilerMetadataFactory,
+    {
         if self.first_paint.get().is_some() && self.first_contentful_paint.get().is_some() {
             // If we already set all paint metrics, we just bail out.
             return;
         }
 
-        self.pending_metrics.borrow_mut().insert(epoch, (
-            profiler_metadata_factory.new_metadata(),
-            display_list.is_contentful(),
-        ));
+        self.pending_metrics.borrow_mut().insert(
+            epoch,
+            (
+                profiler_metadata_factory.new_metadata(),
+                display_list.is_contentful(),
+            ),
+        );
 
         // Send the pending metric information to the compositor thread.
         // The compositor will record the current time after painting the
@@ -340,7 +343,8 @@ impl PaintTimeMetrics {
 
     pub fn maybe_set_metric(&self, epoch: Epoch, paint_time: u64) {
         if self.first_paint.get().is_some() && self.first_contentful_paint.get().is_some() ||
-            self.navigation_start.is_none() {
+            self.navigation_start.is_none()
+        {
             // If we already set all paint metrics or we have not set navigation start yet,
             // we just bail out.
             return;
