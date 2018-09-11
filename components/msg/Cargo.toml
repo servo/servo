@@ -13,9 +13,15 @@ test = false
 doctest = false
 
 [dependencies]
+bitflags = "1.0"
+libc = "0.2"
+log = "0.4"
+mach = "0.2.3"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = { path = "../malloc_size_of_derive" }
 serde = "1.0.60"
+servo_channel = {path = "../channel"}
+sig = "0.1"
 webrender_api = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [dev-dependencies]
