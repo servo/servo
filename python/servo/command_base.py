@@ -503,10 +503,10 @@ class CommandBase(object):
 install them, let us know by filing a bug!")
         return False
 
-    def set_run_env(self):
+    def set_run_env(self, android=False):
         """Some commands, like test-wpt, don't use a full build env,
            but may still need dynamic search paths. This command sets that up"""
-        if self.needs_gstreamer_env(None):
+        if not android and self.needs_gstreamer_env(None):
             gstpath = self.get_gstreamer_path()
             os.environ["LD_LIBRARY_PATH"] = path.join(gstpath, "lib", "x86_64-linux-gnu")
 
