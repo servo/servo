@@ -114,7 +114,7 @@ use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, Level, LevelFilter, Metadata, Record};
 use msg::constellation_msg::{BrowsingContextId, PipelineId, HistoryStateId, TopLevelBrowsingContextId};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{HangAlert, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, FetchResponseMsg, ResourceThreads};
 use net_traits::pub_domains::reg_host;
@@ -176,6 +176,14 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
     script_receiver: Receiver<Result<(PipelineId, FromScriptMsg), IpcError>>,
+
+    /// A channel for the background hang monitor to send messages
+    /// to the constellation.
+    background_hang_monitor_sender: IpcSender<HangAlert>,
+
+    /// A channel for the constellation to receiver messages
+    /// from the background hang monitor.
+    background_hang_monitor_receiver: Receiver<Result<HangAlert, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -565,6 +573,11 @@ where
                 let script_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_script_receiver);
 
+                let (background_hang_monitor_sender, ipc_bhm_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let background_hang_monitor_receiver =
+                    route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_bhm_receiver);
+
                 let (ipc_layout_sender, ipc_layout_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let layout_receiver =
@@ -580,6 +593,8 @@ where
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                     script_sender: ipc_script_sender,
+                    background_hang_monitor_sender,
+                    background_hang_monitor_receiver,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
@@ -748,6 +763,7 @@ where
                 sender: self.script_sender.clone(),
                 pipeline_id: pipeline_id,
             },
+            background_hang_monitor_to_constellation_chan: self.background_hang_monitor_sender.clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
@@ -864,6 +880,7 @@ where
     fn handle_request(&mut self) {
         enum Request {
             Script((PipelineId, FromScriptMsg)),
+            BackGroundHangMonitor(HangAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
@@ -884,6 +901,9 @@ where
         let request = select! {
             recv(self.script_receiver.select(), msg) => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
+            }
+            recv(self.background_hang_monitor_receiver.select(), msg) => {
+                msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackGroundHangMonitor)
             }
             recv(self.compositor_receiver.select(), msg) => {
                 Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
@@ -911,6 +931,9 @@ where
             Request::Script(message) => {
                 self.handle_request_from_script(message);
             },
+            Request::BackGroundHangMonitor(message) => {
+                self.handle_request_from_background_hang_monitor(message);
+            },
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
             },
@@ -921,6 +944,12 @@ where
                 self.handle_request_from_swmanager(message);
             },
         }
+    }
+
+    fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
+        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
+        // via the embedder?
+        warn!("Component hang alert: {:?}", message);
     }
 
     fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {
