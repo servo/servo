@@ -64,7 +64,7 @@ impl AudioBuffer {
         number_of_channels: u32,
         length: u32,
         sample_rate: f32,
-        initial_data: Option<&[f32]>,
+        initial_data: Option<&[Vec<f32>]>,
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(number_of_channels, length, sample_rate);
         let buffer = reflect_dom_object(Box::new(buffer), global, AudioBufferBinding::Wrap);
@@ -93,20 +93,19 @@ impl AudioBuffer {
     }
 
     #[allow(unsafe_code)]
-    pub fn set_channels(&self, initial_data: Option<&[f32]>) {
+    pub fn set_channels(&self, initial_data: Option<&[Vec<f32>]>) {
         let global = self.global();
         let cx = global.get_cx();
         let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         let chans = self.js_channels.borrow_mut();
         for channel in 0..self.number_of_channels {
             rooted!(in (cx) let mut array = ptr::null_mut::<JSObject>());
-            let offset = (channel * self.length) as usize;
             match initial_data {
                 Some(data) => {
                     let _ = unsafe {
                         Float32Array::create(
                             cx,
-                            CreateWith::Slice(&data[offset..offset + (self.length as usize) - 1]),
+                            CreateWith::Slice(data[channel as usize].as_slice()),
                             array.handle_mut(),
                         )
                     };

@@ -405,6 +405,7 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let audio_data = audio_data.to_vec();
             let decoded_audio = Arc::new(Mutex::new(Vec::new()));
             let decoded_audio_ = decoded_audio.clone();
+            let decoded_audio__ = decoded_audio.clone();
             let this = Trusted::new(self);
             let this_ = this.clone();
             let task_source = window.dom_manipulation_task_source();
@@ -412,15 +413,30 @@ impl BaseAudioContextMethods for BaseAudioContext {
             let canceller = window.task_canceller(TaskSourceName::DOMManipulation);
             let canceller_ = window.task_canceller(TaskSourceName::DOMManipulation);
             let callbacks = AudioDecoderCallbacks::new()
+                .ready(move |channel_count| {
+                    decoded_audio
+                        .lock()
+                        .unwrap()
+                        .resize(channel_count as usize, Vec::new());
+                })
+                .progress(move |buffer, channel| {
+                    let mut decoded_audio = decoded_audio_.lock().unwrap();
+                    decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
+                })
                 .eos(move || {
                     let _ = task_source.queue_with_canceller(
                         task!(audio_decode_eos: move || {
                             let this = this.root();
-                            let decoded_audio = decoded_audio.lock().unwrap();
+                            let decoded_audio = decoded_audio__.lock().unwrap();
+                            let length = if decoded_audio.len() >= 1 {
+                                decoded_audio[0].len()
+                            } else {
+                                0
+                            };
                             let buffer = AudioBuffer::new(
                                 &this.global().as_window(),
-                                1, // XXX servo-media should provide this info
-                                decoded_audio.len() as u32,
+                                decoded_audio.len() as u32 /* number of channels */,
+                                length as u32,
                                 this.sample_rate,
                                 Some(decoded_audio.as_slice()));
                             let mut resolvers = this.decode_resolvers.borrow_mut();
@@ -450,12 +466,6 @@ impl BaseAudioContextMethods for BaseAudioContext {
                     }),
                         &canceller_,
                     );
-                })
-                .progress(move |buffer| {
-                    decoded_audio_
-                        .lock()
-                        .unwrap()
-                        .extend_from_slice((*buffer).as_ref());
                 })
                 .build();
             self.audio_context_impl

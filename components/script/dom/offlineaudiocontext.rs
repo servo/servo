@@ -144,6 +144,10 @@ impl OfflineAudioContextMethods for OfflineAudioContext {
                     task!(resolve: move || {
                         let this = this.root();
                         let processed_audio = processed_audio.lock().unwrap();
+                        let processed_audio: Vec<_> = processed_audio
+                            .chunks(this.length as usize)
+                            .map(|channel| channel.to_vec())
+                            .collect();
                         let buffer = AudioBuffer::new(
                             &this.global().as_window(),
                             this.channel_count,
