@@ -42,9 +42,11 @@ def create_task(name, command, artifacts=None, dependencies=None, env=None, cach
                 "--login",
                 "-c",
                 """
-                    git clone $GITHUB_EVENT_CLONE_URL repo &&
-                    cd repo &&
-                    git checkout $GITHUB_EVENT_COMMIT_SHA &&
+                    set -e
+                    set -x
+                    git clone $GITHUB_EVENT_CLONE_URL repo
+                    cd repo
+                    git checkout $GITHUB_EVENT_COMMIT_SHA
                 """ + command
             ],
             "env": env,
