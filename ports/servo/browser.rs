@@ -75,7 +75,7 @@ impl Browser {
                 },
                 event => {
                     self.event_queue.push(event);
-                }
+                },
             }
         }
     }
@@ -85,7 +85,13 @@ impl Browser {
     }
 
     /// Handle key events before sending them to Servo.
-    fn handle_key_from_window(&mut self, ch: Option<char>, key: Key, state: KeyState, mods: KeyModifiers) {
+    fn handle_key_from_window(
+        &mut self,
+        ch: Option<char>,
+        key: Key,
+        state: KeyState,
+        mods: KeyModifiers,
+    ) {
         let pressed = state == KeyState::Pressed;
         // We don't match the state in the parent `match` because we don't want to do anything
         // on KeyState::Released when it's a combo that we handle on Pressed. For example,
@@ -93,7 +99,7 @@ impl Browser {
         match (mods, ch, key, self.browser_id) {
             (CMD_OR_CONTROL, _, Key::R, Some(id)) => if pressed {
                 self.event_queue.push(WindowEvent::Reload(id));
-            }
+            },
             (CMD_OR_CONTROL, _, Key::L, Some(id)) => if pressed {
                 let url: String = if let Some(ref current_url) = self.current_url {
                     current_url.to_string()
@@ -107,69 +113,92 @@ impl Browser {
                         self.event_queue.push(WindowEvent::LoadUrl(id, url));
                     }
                 }
-            }
+            },
             (CMD_OR_CONTROL, _, Key::Q, _) => if pressed {
                 self.event_queue.push(WindowEvent::Quit);
-            }
-            (_, Some('3'), _, _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => if pressed {
-                self.event_queue.push(WindowEvent::CaptureWebRender);
-            }
+            },
+            (_, Some('3'), _, _) if mods ^ KeyModifiers::CONTROL == KeyModifiers::SHIFT => {
+                if pressed {
+                    self.event_queue.push(WindowEvent::CaptureWebRender);
+                }
+            },
             (KeyModifiers::CONTROL, None, Key::F10, _) => if pressed {
-                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
+                let event =
+                    WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::RenderTargetDebug);
                 self.event_queue.push(event);
-            }
+            },
             (KeyModifiers::CONTROL, None, Key::F11, _) => if pressed {
-                let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
+                let event =
+                    WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::TextureCacheDebug);
                 self.event_queue.push(event);
-            }
+            },
             (KeyModifiers::CONTROL, None, Key::F12, _) => if pressed {
                 let event = WindowEvent::ToggleWebRenderDebug(WebRenderDebugOption::Profiler);
                 self.event_queue.push(event);
-            }
+            },
             (CMD_OR_ALT, None, Key::Right, Some(id)) |
             (KeyModifiers::NONE, None, Key::NavigateForward, Some(id)) => if pressed {
                 let event = WindowEvent::Navigation(id, TraversalDirection::Forward(1));
                 self.event_queue.push(event);
-            }
+            },
             (CMD_OR_ALT, None, Key::Left, Some(id)) |
             (KeyModifiers::NONE, None, Key::NavigateBackward, Some(id)) => if pressed {
                 let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
                 self.event_queue.push(event);
-            }
+            },
             (KeyModifiers::NONE, None, Key::Escape, _) => if pressed {
                 self.event_queue.push(WindowEvent::Quit);
-            }
+            },
             _ => {
                 self.platform_handle_key(ch, key, mods, state);
-            }
+            },
         }
     }
 
     #[cfg(not(target_os = "win"))]
-    fn platform_handle_key(&mut self, ch: Option<char>, key: Key, mods: KeyModifiers, state: KeyState) {
+    fn platform_handle_key(
+        &mut self,
+        ch: Option<char>,
+        key: Key,
+        mods: KeyModifiers,
+        state: KeyState,
+    ) {
         let pressed = state == KeyState::Pressed;
         match (mods, key, self.browser_id) {
             (CMD_OR_CONTROL, Key::LeftBracket, Some(id)) => if pressed {
                 let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
                 self.event_queue.push(event);
-            }
+            },
             (CMD_OR_CONTROL, Key::RightBracket, Some(id)) => if pressed {
                 let event = WindowEvent::Navigation(id, TraversalDirection::Back(1));
                 self.event_queue.push(event);
-            }
+            },
             _ => {
-                self.event_queue.push(WindowEvent::KeyEvent(ch, key, state, mods));
-            }
+                self.event_queue
+                    .push(WindowEvent::KeyEvent(ch, key, state, mods));
+            },
         }
     }
 
     #[cfg(target_os = "win")]
-    fn platform_handle_key(&mut self, _ch: Option<char>, _key: Key, _mods: KeyModifiers, _state: KeyState) {
+    fn platform_handle_key(
+        &mut self,
+        _ch: Option<char>,
+        _key: Key,
+        _mods: KeyModifiers,
+        _state: KeyState,
+    ) {
     }
 
     /// Handle key events after they have been handled by Servo.
-    fn handle_key_from_servo(&mut self, _: Option<BrowserId>, ch: Option<char>,
-                             key: Key, state: KeyState, mods: KeyModifiers) {
+    fn handle_key_from_servo(
+        &mut self,
+        _: Option<BrowserId>,
+        ch: Option<char>,
+        key: Key,
+        state: KeyState,
+        mods: KeyModifiers,
+    ) {
         if state == KeyState::Released {
             return;
         }
@@ -177,55 +206,66 @@ impl Browser {
         match (mods, ch, key) {
             (CMD_OR_CONTROL, Some('='), _) | (CMD_OR_CONTROL, Some('+'), _) => {
                 self.event_queue.push(WindowEvent::Zoom(1.1));
-            }
+            },
             (_, Some('='), _) if mods == (CMD_OR_CONTROL | KeyModifiers::SHIFT) => {
                 self.event_queue.push(WindowEvent::Zoom(1.1));
             },
             (CMD_OR_CONTROL, Some('-'), _) => {
                 self.event_queue.push(WindowEvent::Zoom(1.0 / 1.1));
-            }
+            },
             (CMD_OR_CONTROL, Some('0'), _) => {
                 self.event_queue.push(WindowEvent::ResetZoom);
-            }
+            },
 
             (KeyModifiers::NONE, None, Key::PageDown) => {
-               let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
-                                   -self.window.page_height() + 2.0 * LINE_HEIGHT));
+                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
+                    0.0,
+                    -self.window.page_height() + 2.0 * LINE_HEIGHT,
+                ));
                 self.scroll_window_from_key(scroll_location, TouchEventType::Move);
-            }
+            },
             (KeyModifiers::NONE, None, Key::PageUp) => {
-                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(0.0,
-                                   self.window.page_height() - 2.0 * LINE_HEIGHT));
+                let scroll_location = ScrollLocation::Delta(TypedVector2D::new(
+                    0.0,
+                    self.window.page_height() - 2.0 * LINE_HEIGHT,
+                ));
                 self.scroll_window_from_key(scroll_location, TouchEventType::Move);
-            }
+            },
 
             (KeyModifiers::NONE, None, Key::Home) => {
                 self.scroll_window_from_key(ScrollLocation::Start, TouchEventType::Move);
-            }
+            },
 
             (KeyModifiers::NONE, None, Key::End) => {
                 self.scroll_window_from_key(ScrollLocation::End, TouchEventType::Move);
-            }
+            },
 
             (KeyModifiers::NONE, None, Key::Up) => {
-                self.scroll_window_from_key(ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
-                                            TouchEventType::Move);
-            }
+                self.scroll_window_from_key(
+                    ScrollLocation::Delta(TypedVector2D::new(0.0, 3.0 * LINE_HEIGHT)),
+                    TouchEventType::Move,
+                );
+            },
             (KeyModifiers::NONE, None, Key::Down) => {
-                self.scroll_window_from_key(ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
-                                            TouchEventType::Move);
-            }
+                self.scroll_window_from_key(
+                    ScrollLocation::Delta(TypedVector2D::new(0.0, -3.0 * LINE_HEIGHT)),
+                    TouchEventType::Move,
+                );
+            },
             (KeyModifiers::NONE, None, Key::Left) => {
-                self.scroll_window_from_key(ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)),
-                                            TouchEventType::Move);
-            }
+                self.scroll_window_from_key(
+                    ScrollLocation::Delta(TypedVector2D::new(LINE_HEIGHT, 0.0)),
+                    TouchEventType::Move,
+                );
+            },
             (KeyModifiers::NONE, None, Key::Right) => {
-                self.scroll_window_from_key(ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)),
-                                            TouchEventType::Move);
-            }
+                self.scroll_window_from_key(
+                    ScrollLocation::Delta(TypedVector2D::new(-LINE_HEIGHT, 0.0)),
+                    TouchEventType::Move,
+                );
+            },
 
-            _ => {
-            }
+            _ => {},
         }
     }
 
@@ -254,81 +294,93 @@ impl Browser {
                     };
                     let title = format!("{} - Servo", title);
                     self.window.set_title(&title);
-                }
+                },
                 EmbedderMsg::MoveTo(point) => {
                     self.window.set_position(point);
-                }
+                },
                 EmbedderMsg::ResizeTo(size) => {
                     self.window.set_inner_size(size);
-                }
+                },
                 EmbedderMsg::Alert(message, sender) => {
                     if !opts::get().headless {
-                        let _ = thread::Builder::new().name("display alert dialog".to_owned()).spawn(move || {
-                            tinyfiledialogs::message_box_ok("Alert!", &message, MessageBoxIcon::Warning);
-                        }).unwrap().join().expect("Thread spawning failed");
+                        let _ = thread::Builder::new()
+                            .name("display alert dialog".to_owned())
+                            .spawn(move || {
+                                tinyfiledialogs::message_box_ok(
+                                    "Alert!",
+                                    &message,
+                                    MessageBoxIcon::Warning,
+                                );
+                            }).unwrap()
+                            .join()
+                            .expect("Thread spawning failed");
                     }
                     if let Err(e) = sender.send(()) {
                         let reason = format!("Failed to send Alert response: {}", e);
-                        self.event_queue.push(WindowEvent::SendError(browser_id, reason));
+                        self.event_queue
+                            .push(WindowEvent::SendError(browser_id, reason));
                     }
-                }
+                },
                 EmbedderMsg::AllowUnload(sender) => {
                     // Always allow unload for now.
                     if let Err(e) = sender.send(true) {
                         let reason = format!("Failed to send AllowUnload response: {}", e);
-                        self.event_queue.push(WindowEvent::SendError(browser_id, reason));
+                        self.event_queue
+                            .push(WindowEvent::SendError(browser_id, reason));
                     }
-                }
+                },
                 EmbedderMsg::AllowNavigation(_url, sender) => {
                     if let Err(e) = sender.send(true) {
                         warn!("Failed to send AllowNavigation response: {}", e);
                     }
-                }
+                },
                 EmbedderMsg::AllowOpeningBrowser(response_chan) => {
                     // Note: would be a place to handle pop-ups config.
                     // see Step 7 of #the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
                     if let Err(e) = response_chan.send(true) {
                         warn!("Failed to send AllowOpeningBrowser response: {}", e);
                     };
-                }
+                },
                 EmbedderMsg::BrowserCreated(new_browser_id) => {
                     // TODO: properly handle a new "tab"
                     self.browsers.push(new_browser_id);
                     if self.browser_id.is_none() {
                         self.browser_id = Some(new_browser_id);
                     }
-                    self.event_queue.push(WindowEvent::SelectBrowser(new_browser_id));
-                }
+                    self.event_queue
+                        .push(WindowEvent::SelectBrowser(new_browser_id));
+                },
                 EmbedderMsg::KeyEvent(ch, key, state, modified) => {
                     self.handle_key_from_servo(browser_id, ch, key, state, modified);
-                }
+                },
                 EmbedderMsg::SetCursor(cursor) => {
                     self.window.set_cursor(cursor);
-                }
+                },
                 EmbedderMsg::NewFavicon(url) => {
                     self.favicon = Some(url);
-                }
+                },
                 EmbedderMsg::HeadParsed => {
                     self.loading_state = Some(LoadingState::Loading);
-                }
+                },
                 EmbedderMsg::HistoryChanged(urls, current) => {
                     self.current_url = Some(urls[current].clone());
-                }
+                },
                 EmbedderMsg::SetFullscreenState(state) => {
                     self.window.set_fullscreen(state);
-                }
+                },
                 EmbedderMsg::LoadStart => {
                     self.loading_state = Some(LoadingState::Connecting);
-                }
+                },
                 EmbedderMsg::LoadComplete => {
                     self.loading_state = Some(LoadingState::Loaded);
-                }
+                },
                 EmbedderMsg::CloseBrowser => {
                     // TODO: close the appropriate "tab".
                     let _ = self.browsers.pop();
                     if let Some(prev_browser_id) = self.browsers.last() {
                         self.browser_id = Some(*prev_browser_id);
-                        self.event_queue.push(WindowEvent::SelectBrowser(*prev_browser_id));
+                        self.event_queue
+                            .push(WindowEvent::SelectBrowser(*prev_browser_id));
                     } else {
                         self.event_queue.push(WindowEvent::Quit);
                     }
@@ -336,92 +388,107 @@ impl Browser {
                 EmbedderMsg::Shutdown => {
                     self.shutdown_requested = true;
                 },
-                EmbedderMsg::Panic(_reason, _backtrace) => {
-                },
+                EmbedderMsg::Panic(_reason, _backtrace) => {},
                 EmbedderMsg::GetSelectedBluetoothDevice(devices, sender) => {
                     let selected = platform_get_selected_devices(devices);
                     if let Err(e) = sender.send(selected) {
-                        let reason = format!("Failed to send GetSelectedBluetoothDevice response: {}", e);
+                        let reason =
+                            format!("Failed to send GetSelectedBluetoothDevice response: {}", e);
                         self.event_queue.push(WindowEvent::SendError(None, reason));
                     };
                 },
                 EmbedderMsg::SelectFiles(patterns, multiple_files, sender) => {
-                    let res = match (opts::get().headless, get_selected_files(patterns, multiple_files)) {
+                    let res = match (
+                        opts::get().headless,
+                        get_selected_files(patterns, multiple_files),
+                    ) {
                         (true, _) | (false, None) => sender.send(None),
-                        (false, Some(files)) => sender.send(Some(files))
+                        (false, Some(files)) => sender.send(Some(files)),
                     };
                     if let Err(e) = res {
                         let reason = format!("Failed to send SelectFiles response: {}", e);
                         self.event_queue.push(WindowEvent::SendError(None, reason));
                     };
-                }
+                },
                 EmbedderMsg::ShowIME(_kind) => {
                     debug!("ShowIME received");
-                }
+                },
                 EmbedderMsg::HideIME => {
                     debug!("HideIME received");
-                }
+                },
             }
         }
     }
-
 }
 
 #[cfg(target_os = "linux")]
 fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
     let picker_name = "Choose a device";
 
-    thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
-        let dialog_rows: Vec<&str> = devices.iter()
-            .map(|s| s.as_ref())
-            .collect();
-        let dialog_rows: Option<&[&str]> = Some(dialog_rows.as_slice());
+    thread::Builder::new()
+        .name(picker_name.to_owned())
+        .spawn(move || {
+            let dialog_rows: Vec<&str> = devices.iter().map(|s| s.as_ref()).collect();
+            let dialog_rows: Option<&[&str]> = Some(dialog_rows.as_slice());
 
-        match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
-            Some(device) => {
-                // The device string format will be "Address|Name". We need the first part of it.
-                device.split("|").next().map(|s| s.to_string())
-            },
-            None => {
-                None
+            match tinyfiledialogs::list_dialog("Choose a device", &["Id", "Name"], dialog_rows) {
+                Some(device) => {
+                    // The device string format will be "Address|Name". We need the first part of it.
+                    device.split("|").next().map(|s| s.to_string())
+                },
+                None => None,
             }
-        }
-    }).unwrap().join().expect("Thread spawning failed")
+        }).unwrap()
+        .join()
+        .expect("Thread spawning failed")
 }
 
 #[cfg(not(target_os = "linux"))]
 fn platform_get_selected_devices(devices: Vec<String>) -> Option<String> {
     for device in devices {
         if let Some(address) = device.split("|").next().map(|s| s.to_string()) {
-            return Some(address)
+            return Some(address);
         }
     }
     None
 }
 
 fn get_selected_files(patterns: Vec<FilterPattern>, multiple_files: bool) -> Option<Vec<String>> {
-    let picker_name = if multiple_files { "Pick files" } else { "Pick a file" };
-    thread::Builder::new().name(picker_name.to_owned()).spawn(move || {
-        let mut filters = vec![];
-        for p in patterns {
-            let s = "*.".to_string() + &p.0;
-            filters.push(s)
-        }
-        let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
-        let filter_opt = if filters.len() > 0 { Some((filter_ref, "")) } else { None };
+    let picker_name = if multiple_files {
+        "Pick files"
+    } else {
+        "Pick a file"
+    };
+    thread::Builder::new()
+        .name(picker_name.to_owned())
+        .spawn(move || {
+            let mut filters = vec![];
+            for p in patterns {
+                let s = "*.".to_string() + &p.0;
+                filters.push(s)
+            }
+            let filter_ref = &(filters.iter().map(|s| s.as_str()).collect::<Vec<&str>>()[..]);
+            let filter_opt = if filters.len() > 0 {
+                Some((filter_ref, ""))
+            } else {
+                None
+            };
 
-        if multiple_files {
-            tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt)
-        } else {
-            let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
-            file.map(|x| vec![x])
-        }
-    }).unwrap().join().expect("Thread spawning failed")
+            if multiple_files {
+                tinyfiledialogs::open_file_dialog_multi(picker_name, "", filter_opt)
+            } else {
+                let file = tinyfiledialogs::open_file_dialog(picker_name, "", filter_opt);
+                file.map(|x| vec![x])
+            }
+        }).unwrap()
+        .join()
+        .expect("Thread spawning failed")
 }
 
 fn sanitize_url(request: &str) -> Option<ServoUrl> {
     let request = request.trim();
-    ServoUrl::parse(&request).ok()
+    ServoUrl::parse(&request)
+        .ok()
         .or_else(|| {
             if request.contains('/') || is_reg_domain(request) {
                 ServoUrl::parse(&format!("http://{}", request)).ok()
@@ -429,9 +496,12 @@ fn sanitize_url(request: &str) -> Option<ServoUrl> {
                 None
             }
         }).or_else(|| {
-            PREFS.get("shell.searchpage").as_string().and_then(|s: &str| {
-                let url = s.replace("%s", request);
-                ServoUrl::parse(&url).ok()
-            })
+            PREFS
+                .get("shell.searchpage")
+                .as_string()
+                .and_then(|s: &str| {
+                    let url = s.replace("%s", request);
+                    ServoUrl::parse(&url).ok()
+                })
         })
 }

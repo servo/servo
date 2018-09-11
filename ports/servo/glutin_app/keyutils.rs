@@ -114,7 +114,7 @@ pub fn char_to_script_key(c: char) -> Option<constellation_msg::Key> {
         '\\' => Some(Key::Backslash),
         '}' => Some(Key::RightBracket),
         ']' => Some(Key::RightBracket),
-        _ => None
+        _ => None,
     }
 }
 
@@ -233,69 +233,13 @@ pub fn winit_key_to_script_key(key: VirtualKeyCode) -> Result<constellation_msg:
 pub fn is_printable(key_code: VirtualKeyCode) -> bool {
     use winit::VirtualKeyCode::*;
     match key_code {
-        Escape |
-        F1 |
-        F2 |
-        F3 |
-        F4 |
-        F5 |
-        F6 |
-        F7 |
-        F8 |
-        F9 |
-        F10 |
-        F11 |
-        F12 |
-        F13 |
-        F14 |
-        F15 |
-        Snapshot |
-        Scroll |
-        Pause |
-        Insert |
-        Home |
-        Delete |
-        End |
-        PageDown |
-        PageUp |
-        Left |
-        Up |
-        Right |
-        Down |
-        Back |
-        LAlt |
-        LControl |
-        LShift |
-        LWin |
-        Mail |
-        MediaSelect |
-        MediaStop |
-        Mute |
-        MyComputer |
-        NavigateForward |
-        NavigateBackward |
-        NextTrack |
-        NoConvert |
-        PlayPause |
-        Power |
-        PrevTrack |
-        RAlt |
-        RControl |
-        RShift |
-        RWin |
-        Sleep |
-        Stop |
-        VolumeDown |
-        VolumeUp |
-        Wake |
-        WebBack |
-        WebFavorites |
-        WebForward |
-        WebHome |
-        WebRefresh |
-        WebSearch |
-        WebStop => false,
+        Escape | F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 | F10 | F11 | F12 | F13 | F14 |
+        F15 | Snapshot | Scroll | Pause | Insert | Home | Delete | End | PageDown | PageUp |
+        Left | Up | Right | Down | Back | LAlt | LControl | LShift | LWin | Mail |
+        MediaSelect | MediaStop | Mute | MyComputer | NavigateForward | NavigateBackward |
+        NextTrack | NoConvert | PlayPause | Power | PrevTrack | RAlt | RControl | RShift |
+        RWin | Sleep | Stop | VolumeDown | VolumeUp | Wake | WebBack | WebFavorites |
+        WebForward | WebHome | WebRefresh | WebSearch | WebStop => false,
         _ => true,
     }
 }
-
