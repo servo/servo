@@ -65,8 +65,11 @@ use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use metrics::{PaintTimeMetrics, ProfilerMetadataFactory, ProgressiveWebMetric};
-use msg::constellation_msg::PipelineId;
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{
+    BackgroundHangMonitor, BackgroundHangMonitorRegister, HangAnnotation,
+};
+use msg::constellation_msg::{LayoutHangAnnotation, MonitoredComponentType, PipelineId};
+use msg::constellation_msg::{MonitoredComponentId, TopLevelBrowsingContextId};
 use net_traits::image_cache::{ImageCache, UsePlaceholder};
 use parking_lot::RwLock;
 use profile_traits::mem::{self as profile_mem, Report, ReportKind, ReportsChan};
@@ -96,6 +99,7 @@ use std::process;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
+use std::time::Duration;
 use style::animation::Animation;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::context::{SharedStyleContext, StyleSystemOptions, ThreadLocalStyleContextCreationInfo};
@@ -149,6 +153,9 @@ pub struct LayoutThread {
 
     /// The channel on which the font cache can send messages to us.
     font_cache_sender: IpcSender<()>,
+
+    /// A means of communication with the background hang monitor.
+    background_hang_monitor: Box<BackgroundHangMonitor>,
 
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: IpcSender<ConstellationMsg>,
@@ -253,6 +260,7 @@ impl LayoutThreadFactory for LayoutThread {
         is_iframe: bool,
         chan: (Sender<Msg>, Receiver<Msg>),
         pipeline_port: IpcReceiver<LayoutControlMsg>,
+        background_hang_monitor_register: Box<BackgroundHangMonitorRegister>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
@@ -276,6 +284,14 @@ impl LayoutThreadFactory for LayoutThread {
                 {
                     // Ensures layout thread is destroyed before we send shutdown message
                     let sender = chan.0;
+
+                    let background_hang_monitor = background_hang_monitor_register
+                        .register_component(
+                            MonitoredComponentId(id, MonitoredComponentType::Layout),
+                            Duration::from_millis(100),
+                            Duration::from_millis(5000),
+                        );
+
                     let layout = LayoutThread::new(
                         id,
                         top_level_browsing_context_id,
@@ -283,6 +299,7 @@ impl LayoutThreadFactory for LayoutThread {
                         is_iframe,
                         chan.1,
                         pipeline_port,
+                        background_hang_monitor,
                         constellation_chan,
                         script_chan,
                         image_cache.clone(),
@@ -444,6 +461,7 @@ impl LayoutThread {
         is_iframe: bool,
         port: Receiver<Msg>,
         pipeline_port: IpcReceiver<LayoutControlMsg>,
+        background_hang_monitor: Box<BackgroundHangMonitor>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<dyn ImageCache>,
@@ -493,6 +511,7 @@ impl LayoutThread {
             port: port,
             pipeline_port: pipeline_receiver,
             script_chan: script_chan.clone(),
+            background_hang_monitor,
             constellation_chan: constellation_chan.clone(),
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
@@ -605,6 +624,34 @@ impl LayoutThread {
         }
     }
 
+    fn notify_activity_to_hang_monitor(&self, request: &Msg) {
+        let hang_annotation = match request {
+            Msg::AddStylesheet(..) => LayoutHangAnnotation::AddStylesheet,
+            Msg::RemoveStylesheet(..) => LayoutHangAnnotation::RemoveStylesheet,
+            Msg::SetQuirksMode(..) => LayoutHangAnnotation::SetQuirksMode,
+            Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
+            Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
+            Msg::TickAnimations => LayoutHangAnnotation::TickAnimations,
+            Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
+            Msg::ReapStyleAndLayoutData(..) => LayoutHangAnnotation::ReapStyleAndLayoutData,
+            Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
+            Msg::PrepareToExit(..) => LayoutHangAnnotation::PrepareToExit,
+            Msg::ExitNow => LayoutHangAnnotation::ExitNow,
+            Msg::GetCurrentEpoch(..) => LayoutHangAnnotation::GetCurrentEpoch,
+            Msg::GetWebFontLoadState(..) => LayoutHangAnnotation::GetWebFontLoadState,
+            Msg::CreateLayoutThread(..) => LayoutHangAnnotation::CreateLayoutThread,
+            Msg::SetFinalUrl(..) => LayoutHangAnnotation::SetFinalUrl,
+            Msg::SetScrollStates(..) => LayoutHangAnnotation::SetScrollStates,
+            Msg::UpdateScrollStateFromScript(..) => {
+                LayoutHangAnnotation::UpdateScrollStateFromScript
+            },
+            Msg::RegisterPaint(..) => LayoutHangAnnotation::RegisterPaint,
+            Msg::SetNavigationStart(..) => LayoutHangAnnotation::SetNavigationStart,
+        };
+        self.background_hang_monitor
+            .notify_activity(HangAnnotation::Layout(hang_annotation));
+    }
+
     /// Receives and dispatches messages from the script and constellation threads
     fn handle_request<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
         enum Request {
@@ -612,6 +659,9 @@ impl LayoutThread {
             FromScript(Msg),
             FromFontCache,
         }
+
+        // Notify the background-hang-monitor we are waiting for an event.
+        self.background_hang_monitor.notify_wait();
 
         let request = select! {
             recv(self.pipeline_port) -> msg => Request::FromPipeline(msg.unwrap()),
@@ -659,6 +709,8 @@ impl LayoutThread {
         request: Msg,
         possibly_locked_rw_data: &mut RwData<'a, 'b>,
     ) -> bool {
+        self.notify_activity_to_hang_monitor(&request);
+
         match request {
             Msg::AddStylesheet(stylesheet, before_stylesheet) => {
                 let guard = stylesheet.shared_lock.read();
@@ -815,6 +867,7 @@ impl LayoutThread {
             info.is_parent,
             info.layout_pair,
             info.pipeline_port,
+            info.background_hang_monitor_register,
             info.constellation_chan,
             info.script_chan.clone(),
             info.image_cache.clone(),

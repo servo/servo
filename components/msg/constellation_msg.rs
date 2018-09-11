@@ -7,7 +7,9 @@
 
 use std::cell::Cell;
 use std::fmt;
+use std::mem;
 use std::num::NonZeroU32;
+use std::time::Duration;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum TraversalDirection {
@@ -284,4 +286,185 @@ pub enum InputMethodType {
     Time,
     Url,
     Week,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+/// The equivalent of script_layout_interface::message::Msg
+pub enum LayoutHangAnnotation {
+    AddStylesheet,
+    RemoveStylesheet,
+    SetQuirksMode,
+    Reflow,
+    GetRPC,
+    TickAnimations,
+    AdvanceClockMs,
+    ReapStyleAndLayoutData,
+    CollectReports,
+    PrepareToExit,
+    ExitNow,
+    GetCurrentEpoch,
+    GetWebFontLoadState,
+    CreateLayoutThread,
+    SetFinalUrl,
+    SetScrollStates,
+    UpdateScrollStateFromScript,
+    RegisterPaint,
+    SetNavigationStart,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+/// The equivalent of script::script_runtime::ScriptEventCategory
+pub enum ScriptHangAnnotation {
+    AttachLayout,
+    ConstellationMsg,
+    DevtoolsMsg,
+    DocumentEvent,
+    DomEvent,
+    FileRead,
+    FormPlannedNavigation,
+    ImageCacheMsg,
+    InputEvent,
+    NetworkEvent,
+    Resize,
+    ScriptEvent,
+    SetScrollState,
+    SetViewport,
+    StylesheetLoad,
+    TimerEvent,
+    UpdateReplacedElement,
+    WebSocketEvent,
+    WorkerEvent,
+    WorkletEvent,
+    ServiceWorkerEvent,
+    EnterFullscreen,
+    ExitFullscreen,
+    WebVREvent,
+    PerformanceTimelineTask,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum HangAnnotation {
+    Layout(LayoutHangAnnotation),
+    Script(ScriptHangAnnotation),
+}
+
+/// Hang-alerts are sent by the monitor to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum HangAlert {
+    /// Report a transient hang.
+    Transient(MonitoredComponentId, HangAnnotation),
+    /// Report a permanent hang.
+    Permanent(MonitoredComponentId, HangAnnotation, Option<HangProfile>),
+}
+
+impl fmt::Debug for HangAlert {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let (annotation, profile) = match self {
+            HangAlert::Transient(component_id, annotation) => {
+                write!(
+                    fmt,
+                    "Component {:?} is experiencing a transient hang",
+                    component_id
+                )?;
+                (annotation.clone(), None)
+            },
+            HangAlert::Permanent(component_id, annotation, profile) => {
+                write!(
+                    fmt,
+                    "Component {:?} is experiencing a permanent hang",
+                    component_id
+                )?;
+                (annotation.clone(), profile.clone())
+            },
+        };
+
+        write!(fmt, "Annotation for the hang: {:?}", annotation)?;
+        if let Some(profile) = profile {
+            write!(fmt, "{:?}", profile)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct HangProfileSymbol {
+    pub name: Option<String>,
+    pub filename: Option<String>,
+    pub lineno: Option<u32>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+/// Info related to the activity of an hanging component.
+pub struct HangProfile {
+    pub backtrace: Vec<HangProfileSymbol>,
+}
+
+impl fmt::Debug for HangProfile {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let hex_width = mem::size_of::<usize>() * 2 + 2;
+
+        write!(fmt, "HangProfile backtrace:")?;
+
+        if self.backtrace.len() == 0 {
+            write!(fmt, "backtrace failed to resolve")?;
+            return Ok(());
+        }
+
+        for symbol in self.backtrace.iter() {
+            write!(fmt, "\n      {:1$}", "", hex_width)?;
+
+            if let Some(ref name) = symbol.name {
+                write!(fmt, " - {}", name)?;
+            } else {
+                write!(fmt, " - <unknown>")?;
+            }
+
+            if let (Some(ref file), Some(line)) = (symbol.filename.clone(), symbol.lineno) {
+                write!(fmt, "\n      {:3$}at {}:{}", "", file, line, hex_width)?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum MonitoredComponentType {
+    Layout,
+    Script,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct MonitoredComponentId(pub PipelineId, pub MonitoredComponentType);
+
+/// A handle to register components for hang monitoring,
+/// and to receive a means to communicate with the underlying hang monitor worker.
+pub trait BackgroundHangMonitorRegister: BackgroundHangMonitorClone + Send {
+    /// Register a component for hang monitoring:
+    /// to be called from within the thread to be monitored for hangs.
+    fn register_component(
+        &self,
+        component: MonitoredComponentId,
+        transient_hang_timeout: Duration,
+        permanent_hang_timeout: Duration,
+    ) -> Box<BackgroundHangMonitor>;
+}
+
+impl Clone for Box<BackgroundHangMonitorRegister> {
+    fn clone(&self) -> Box<BackgroundHangMonitorRegister> {
+        self.clone_box()
+    }
+}
+
+pub trait BackgroundHangMonitorClone {
+    fn clone_box(&self) -> Box<BackgroundHangMonitorRegister>;
+}
+
+/// Proxy methods to communicate with the background hang monitor
+pub trait BackgroundHangMonitor {
+    /// Notify the start of handling an event.
+    fn notify_activity(&self, annotation: HangAnnotation);
+    /// Notify the start of waiting for a new event to come in.
+    fn notify_wait(&self);
 }

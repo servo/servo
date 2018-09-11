@@ -1,0 +1,24 @@
+[package]
+name = "background_hang_monitor"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "background_hang_monitor"
+path = "lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+backtrace = "0.3"
+bitflags = "1.0"
+ipc-channel = "0.11"
+lazy_static = "1"
+libc = "0.2"
+log = "0.4"
+mach = "0.2.3"
+msg = {path = "../msg"}
+serde = "1.0.60"
+servo_channel = {path = "../channel"}
