@@ -261,11 +261,10 @@ where
     let iter = selector.iter_from(selector.len() - from_offset);
     debug_assert!(
         iter.clone().next().is_some() ||
-            (from_offset != selector.len() &&
-                matches!(
-                    selector.combinator_at_parse_order(from_offset),
-                    Combinator::SlotAssignment | Combinator::PseudoElement
-                )),
+            (from_offset != selector.len() && matches!(
+                selector.combinator_at_parse_order(from_offset),
+                Combinator::SlotAssignment | Combinator::PseudoElement
+            )),
         "Got the math wrong: {:?} | {:?} | {} {}",
         selector,
         selector.iter_raw_match_order().as_slice(),
@@ -663,8 +662,9 @@ where
         Component::Combinator(_) => unreachable!(),
         Component::Slotted(ref selector) => {
             // <slots> are never flattened tree slottables.
-            !element.is_html_slot_element() && element.assigned_slot().is_some() &&
-                context.shared.nest(|context| {
+            !element.is_html_slot_element() && element.assigned_slot().is_some() && context
+                .shared
+                .nest(|context| {
                     matches_complex_selector(selector.iter(), element, context, flags_setter)
                 })
         },
@@ -729,7 +729,7 @@ where
                 None => {
                     empty_string = ::parser::namespace_empty_string::<E::Impl>();
                     NamespaceConstraint::Specific(&empty_string)
-                }
+                },
             };
             element.attr_matches(
                 &namespace,
@@ -750,7 +750,8 @@ where
         },
         Component::NonTSPseudoClass(ref pc) => {
             if context.matches_hover_and_active_quirk == MatchesHoverAndActiveQuirk::Yes &&
-                !context.shared.is_nested() && pc.is_active_or_hover() &&
+                !context.shared.is_nested() &&
+                pc.is_active_or_hover() &&
                 !element.is_link()
             {
                 return false;

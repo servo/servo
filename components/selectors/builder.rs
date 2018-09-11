@@ -161,7 +161,8 @@ struct SelectorBuilderIter<'a, Impl: SelectorImpl> {
 
 impl<'a, Impl: SelectorImpl> ExactSizeIterator for SelectorBuilderIter<'a, Impl> {
     fn len(&self) -> usize {
-        self.current_simple_selectors.len() + self.rest_of_simple_selectors.len() +
+        self.current_simple_selectors.len() +
+            self.rest_of_simple_selectors.len() +
             self.combinators.len()
     }
 }
@@ -227,7 +228,6 @@ struct Specificity {
     class_like_selectors: u32,
     element_selectors: u32,
 }
-
 
 impl AddAssign for Specificity {
     #[inline]
@@ -306,10 +306,9 @@ where
             Component::Combinator(ref combinator) => {
                 unreachable!(
                     "Found combinator {:?} in simple selectors vector? {:?}",
-                    combinator,
-                    builder,
+                    combinator, builder,
                 );
-            }
+            },
             Component::PseudoElement(..) | Component::LocalName(..) => {
                 specificity.element_selectors += 1
             },
@@ -329,7 +328,7 @@ where
                     // See: https://github.com/w3c/csswg-drafts/issues/1915
                     *specificity += Specificity::from(selector.specificity());
                 }
-            }
+            },
             Component::ID(..) => {
                 specificity.id_selectors += 1;
             },
