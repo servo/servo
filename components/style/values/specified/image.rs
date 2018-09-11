@@ -166,6 +166,18 @@ impl Image {
             ref t => Err(location.new_unexpected_token_error(t.clone())),
         })
     }
+
+    /// Provides an alternate method for parsing that associates the URL
+    /// with anonymous CORS headers.
+    pub fn parse_with_cors_anonymous<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Image, ParseError<'i>> {
+        if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse_with_cors_anonymous(context, input)) {
+            return Ok(generic::Image::Url(url));
+        }
+        Self::parse(context, input)
+    }
 }
 
 impl Parse for Gradient {

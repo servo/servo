@@ -201,6 +201,20 @@ impl SpecifiedImageUrl {
         use gecko_bindings::structs::root::mozilla::CORSMode_CORS_NONE;
         Self::from_css_url_with_cors(url, CORSMode_CORS_NONE)
     }
+
+    fn from_css_url_with_cors_anonymous(url: CssUrl) -> Self {
+        use gecko_bindings::structs::root::mozilla::CORSMode_CORS_ANONYMOUS;
+        Self::from_css_url_with_cors(url, CORSMode_CORS_ANONYMOUS)
+    }
+
+    /// Provides an alternate method for parsing that associates the URL
+    /// with anonymous CORS headers.
+    pub fn parse_with_cors_anonymous<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        CssUrl::parse(context, input).map(Self::from_css_url_with_cors_anonymous)
+    }
 }
 
 impl Parse for SpecifiedImageUrl {

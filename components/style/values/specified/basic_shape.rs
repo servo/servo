@@ -71,7 +71,12 @@ impl Parse for ClippingShape {
                 return Ok(ShapeSource::Path(p));
             }
         }
-        Self::parse_internal(context, input)
+
+        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+            return Ok(ShapeSource::ImageOrUrl(url));
+        }
+
+        Self::parse_common(context, input)
     }
 }
 
@@ -81,7 +86,11 @@ impl Parse for FloatAreaShape {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        Self::parse_internal(context, input)
+        if let Ok(image) = input.try(|i| Image::parse_with_cors_anonymous(context, i)) {
+            return Ok(ShapeSource::ImageOrUrl(image));
+        }
+
+        Self::parse_common(context, input)
     }
 }
 
@@ -91,16 +100,12 @@ where
     ImageOrUrl: Parse,
 {
     /// The internal parser for ShapeSource.
-    fn parse_internal<'i, 't>(
+    fn parse_common<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input.try(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ShapeSource::None);
-        }
-
-        if let Ok(image_or_url) = input.try(|i| ImageOrUrl::parse(context, i)) {
-            return Ok(ShapeSource::ImageOrUrl(image_or_url));
         }
 
         fn parse_component<U: Parse>(
