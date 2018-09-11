@@ -89,6 +89,7 @@
 //!
 //! See https://github.com/servo/servo/issues/14704
 
+use background_hang_monitor::HangMonitorRegister;
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::CanvasPaintThread;
@@ -123,6 +124,7 @@ use keyboard_types::webdriver::Event as WebDriverInputEvent;
 use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangAlert};
 use msg::constellation_msg::{
     BrowsingContextId, HistoryStateId, PipelineId, TopLevelBrowsingContextId,
 };
@@ -199,6 +201,18 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
     script_receiver: Receiver<Result<(PipelineId, FromScriptMsg), IpcError>>,
+
+    /// A handle to register components for hang monitoring.
+    /// None when in multiprocess mode.
+    background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
+
+    /// A channel for the background hang monitor to send messages
+    /// to the constellation.
+    background_hang_monitor_sender: IpcSender<HangAlert>,
+
+    /// A channel for the constellation to receiver messages
+    /// from the background hang monitor.
+    background_hang_monitor_receiver: Receiver<Result<HangAlert, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -587,6 +601,21 @@ where
                 let script_receiver =
                     route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_script_receiver);
 
+                let (background_hang_monitor_sender, ipc_bhm_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let background_hang_monitor_receiver =
+                    route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_bhm_receiver);
+
+                // If we are in multiprocess mode,
+                // a dedicated per-process hang monitor will be initialized later inside the content process.
+                // See run_content_process in servo/lib.rs
+                let background_monitor_register = match opts::multiprocess() {
+                    true => None,
+                    false => Some(HangMonitorRegister::init(
+                        background_hang_monitor_sender.clone(),
+                    )),
+                };
+
                 let (ipc_layout_sender, ipc_layout_receiver) =
                     ipc::channel().expect("ipc channel failure");
                 let layout_receiver =
@@ -602,6 +631,9 @@ where
 
                 let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                     script_sender: ipc_script_sender,
+                    background_hang_monitor_sender,
+                    background_hang_monitor_receiver,
+                    background_monitor_register,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
@@ -768,6 +800,10 @@ where
                 sender: self.script_sender.clone(),
                 pipeline_id: pipeline_id,
             },
+            background_monitor_register: self.background_monitor_register.clone(),
+            background_hang_monitor_to_constellation_chan: self
+                .background_hang_monitor_sender
+                .clone(),
             layout_to_constellation_chan: self.layout_sender.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             compositor_proxy: self.compositor_proxy.clone(),
@@ -889,6 +925,7 @@ where
         #[derive(Debug)]
         enum Request {
             Script((PipelineId, FromScriptMsg)),
+            BackgroundHangMonitor(HangAlert),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             NetworkListener((PipelineId, FetchResponseMsg)),
@@ -909,6 +946,9 @@ where
         let request = select! {
             recv(self.script_receiver) -> msg => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
+            }
+            recv(self.background_hang_monitor_receiver) -> msg => {
+                msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
             }
             recv(self.compositor_receiver) -> msg => {
                 Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")))
@@ -936,6 +976,9 @@ where
             Request::Script(message) => {
                 self.handle_request_from_script(message);
             },
+            Request::BackgroundHangMonitor(message) => {
+                self.handle_request_from_background_hang_monitor(message);
+            },
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
             },
@@ -946,6 +989,12 @@ where
                 self.handle_request_from_swmanager(message);
             },
         }
+    }
+
+    fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
+        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
+        // via the embedder?
+        warn!("Component hang alert: {:?}", message);
     }
 
     fn handle_request_from_network_listener(&mut self, message: (PipelineId, FetchResponseMsg)) {

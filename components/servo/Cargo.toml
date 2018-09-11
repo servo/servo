@@ -34,6 +34,7 @@ webgl_backtrace = [
 ]
 
 [dependencies]
+background_hang_monitor = {path = "../background_hang_monitor"}
 bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas"}

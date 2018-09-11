@@ -20,6 +20,7 @@
 #[macro_use]
 extern crate log;
 
+pub use background_hang_monitor;
 pub use bluetooth;
 pub use bluetooth_traits;
 pub use canvas;
@@ -59,6 +60,7 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
+use background_hang_monitor::HangMonitorRegister;
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::gl_context::GLContextFactory;
@@ -640,6 +642,12 @@ pub fn run_content_process(token: String) {
         create_sandbox();
     }
 
+    let background_hang_monitor_register = HangMonitorRegister::init(
+        unprivileged_content
+            .background_hang_monitor_to_constellation_chan()
+            .clone(),
+    );
+
     // send the required channels to the service worker manager
     let sw_senders = unprivileged_content.swmanager_senders();
     script::init();
@@ -647,7 +655,10 @@ pub fn run_content_process(token: String) {
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,
-                                     script::script_thread::ScriptThread>(true);
+                                     script::script_thread::ScriptThread>(
+                                         true,
+                                         background_hang_monitor_register
+                                     );
 }
 
 #[cfg(all(not(target_os = "windows"), not(target_os = "ios")))]

@@ -18,6 +18,7 @@ use ipc_channel::Error;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{BackgroundHangMonitorRegister, HangAlert};
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::image_cache::ImageCache;
@@ -112,6 +113,13 @@ pub struct InitialPipelineState {
 
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
+
+    /// A handle to register components for hang monitoring.
+    /// None when in multiprocess mode.
+    pub background_monitor_register: Option<Box<BackgroundHangMonitorRegister>>,
+
+    /// A channel for the background hang monitor to send messages to the constellation.
+    pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
 
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -262,6 +270,9 @@ impl Pipeline {
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
+                    background_hang_monitor_to_constellation_chan: state
+                        .background_hang_monitor_to_constellation_chan
+                        .clone(),
                     scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
@@ -295,7 +306,11 @@ impl Pipeline {
                 if opts::multiprocess() {
                     let _ = unprivileged_pipeline_content.spawn_multiprocess()?;
                 } else {
-                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+                    // Should not be None in single-process mode.
+                    let register = state
+                        .background_monitor_register
+                        .expect("Couldn't start content, no background monitor has been initiated");
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false, register);
                 }
 
                 EventLoop::new(script_chan)
@@ -452,6 +467,7 @@ pub struct UnprivilegedPipelineContent {
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
     script_to_constellation_chan: ScriptToConstellationChan,
+    background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -480,8 +496,11 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
-    where
+    pub fn start_all<Message, LTF, STF>(
+        self,
+        wait_for_completion: bool,
+        background_hang_monitor_register: Box<BackgroundHangMonitorRegister>,
+    ) where
         LTF: LayoutThreadFactory<Message = Message>,
         STF: ScriptThreadFactory<Message = Message>,
     {
@@ -503,6 +522,7 @@ impl UnprivilegedPipelineContent {
                 control_chan: self.script_chan.clone(),
                 control_port: self.script_port,
                 script_to_constellation_chan: self.script_to_constellation_chan.clone(),
+                background_hang_monitor_register: background_hang_monitor_register.clone(),
                 layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
                 scheduler_chan: self.scheduler_chan,
                 bluetooth_thread: self.bluetooth_thread,
@@ -529,6 +549,7 @@ impl UnprivilegedPipelineContent {
             self.parent_pipeline_id.is_some(),
             layout_pair,
             self.pipeline_port,
+            background_hang_monitor_register,
             self.layout_to_constellation_chan,
             self.script_chan,
             image_cache.clone(),
@@ -624,6 +645,10 @@ impl UnprivilegedPipelineContent {
         if let Ok(value) = env::var("RUST_LOG") {
             C::env(command, "RUST_LOG", value);
         }
+    }
+
+    pub fn background_hang_monitor_to_constellation_chan(&self) -> &IpcSender<HangAlert> {
+        &self.background_hang_monitor_to_constellation_chan
     }
 
     pub fn script_to_constellation_chan(&self) -> &ScriptToConstellationChan {
