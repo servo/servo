@@ -160,6 +160,7 @@ def copy_windows_dependencies(binary_path, destination):
     else:
         shutil.copy(nspr4_path, destination)
 
+
 def change_prefs(resources_path, platform):
     print("Swapping prefs")
     prefs_path = path.join(resources_path, "prefs.json")
@@ -368,19 +369,19 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + path.join(dir_to_msi, "Installer.msi"))
 
             # Download GStreamer installer. Only once.
-            dir_to_gst_deps = path.join(dir_to_msi, 'Gstreamer.msi');
-            gstreamer_msi_path = path.join(target_dir, 'Gstreamer.msi');
+            dir_to_gst_deps = path.join(dir_to_msi, 'Gstreamer.msi')
+            gstreamer_msi_path = path.join(target_dir, 'Gstreamer.msi')
             if os.path.exists(gstreamer_msi_path):
                 shutil.copy(gstreamer_msi_path, dir_to_gst_deps)
             else:
                 print('Fetching GStreamer installer. This may take a while...')
-                urllib.urlretrieve('https://gstreamer.freedesktop.org/data/pkg/windows/1.14.2/gstreamer-1.0-x86-1.14.2.msi', gstreamer_msi_path)
+                gstreamer_url = 'https://gstreamer.freedesktop.org/data/pkg/windows/1.14.2/gstreamer-1.0-x86-1.14.2.msi'
+                urllib.urlretrieve(gstreamer_url, gstreamer_msi_path)
 
             # Generate bundle with GStreamer and Servo installers.
             print("Creating bundle")
             shutil.copy(path.join(dir_to_root, 'support', 'windows', 'Servo.wxs'), dir_to_msi)
             bundle_wxs_path = path.join(dir_to_msi, 'Servo.wxs')
-            dir_to_bundle_msi = path.join(dir_to_msi, 'Servo.msi')
             try:
                 with cd(dir_to_msi):
                     subprocess.check_call(['candle', bundle_wxs_path, '-ext', 'WixBalExtension'])
