@@ -23,7 +23,7 @@ extern crate webrender_api;
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{HangAlert, PipelineId};
 use msg::constellation_msg::TopLevelBrowsingContextId;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
@@ -44,6 +44,7 @@ pub trait LayoutThreadFactory {
         is_iframe: bool,
         chan: (Sender<Self::Message>, Receiver<Self::Message>),
         pipeline_port: IpcReceiver<LayoutControlMsg>,
+        background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
         constellation_chan: IpcSender<ConstellationMsg>,
         script_chan: IpcSender<ConstellationControlMsg>,
         image_cache: Arc<ImageCache>,

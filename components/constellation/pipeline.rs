@@ -16,8 +16,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespaceId};
-use msg::constellation_msg::TopLevelBrowsingContextId;
+use msg::constellation_msg::{BrowsingContextId, HangAlert, HistoryStateId};
+use msg::constellation_msg::{TopLevelBrowsingContextId, PipelineId, PipelineNamespaceId};
 use net::image_cache::ImageCacheImpl;
 use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache::ImageCache;
@@ -113,6 +113,9 @@ pub struct InitialPipelineState {
 
     /// A channel to the associated constellation.
     pub script_to_constellation_chan: ScriptToConstellationChan,
+
+    /// A channel for the background hang monitor to send messages to the constellation.
+    pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
 
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
@@ -261,6 +264,9 @@ impl Pipeline {
                     parent_pipeline_id: state.parent_pipeline_id,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
+                    background_hang_monitor_to_constellation_chan: state
+                        .background_hang_monitor_to_constellation_chan
+                        .clone(),
                     scheduler_chan: state.scheduler_chan,
                     devtools_chan: script_to_devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
@@ -452,6 +458,7 @@ pub struct UnprivilegedPipelineContent {
     parent_pipeline_id: Option<PipelineId>,
     opener: Option<BrowsingContextId>,
     script_to_constellation_chan: ScriptToConstellationChan,
+    background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerSchedulerMsg>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -503,6 +510,9 @@ impl UnprivilegedPipelineContent {
                 control_chan: self.script_chan.clone(),
                 control_port: self.script_port,
                 script_to_constellation_chan: self.script_to_constellation_chan.clone(),
+                background_hang_monitor_to_constellation_chan: self
+                    .background_hang_monitor_to_constellation_chan
+                    .clone(),
                 layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
                 scheduler_chan: self.scheduler_chan,
                 bluetooth_thread: self.bluetooth_thread,
@@ -528,6 +538,7 @@ impl UnprivilegedPipelineContent {
             self.parent_pipeline_id.is_some(),
             layout_pair,
             self.pipeline_port,
+            self.background_hang_monitor_to_constellation_chan.clone(),
             self.layout_to_constellation_chan,
             self.script_chan,
             image_cache.clone(),

@@ -5,9 +5,17 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use background_hang_monitor::{BackgroundHangMonitor, TRACE_SENDER};
+use backtrace::Backtrace;
+use ipc_channel::ipc::IpcSender;
+use libc;
+use servo_channel::{Sender, channel};
+use sig::ffi::Sig;
 use std::cell::Cell;
 use std::fmt;
 use std::num::NonZeroU32;
+use std::thread;
+use std::time::Duration;
 use webrender_api;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -432,4 +440,155 @@ pub enum InputMethodType {
     Time,
     Url,
     Week,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+/// The equivalent of script_layout_interface::message::Msg
+pub enum LayoutHangAnnotation {
+    AddStylesheet,
+    RemoveStylesheet,
+    SetQuirksMode,
+    Reflow,
+    GetRPC,
+    TickAnimations,
+    AdvanceClockMs,
+    ReapStyleAndLayoutData,
+    CollectReports,
+    PrepareToExit,
+    ExitNow,
+    GetCurrentEpoch,
+    GetWebFontLoadState,
+    CreateLayoutThread,
+    SetFinalUrl,
+    SetScrollStates,
+    UpdateScrollStateFromScript,
+    RegisterPaint,
+    SetNavigationStart,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+/// The equivalent of script::script_runtime::ScriptEventCategory
+pub enum ScriptHangAnnotation {
+    AttachLayout,
+    ConstellationMsg,
+    DevtoolsMsg,
+    DocumentEvent,
+    DomEvent,
+    FileRead,
+    FormPlannedNavigation,
+    ImageCacheMsg,
+    InputEvent,
+    NetworkEvent,
+    Resize,
+    ScriptEvent,
+    SetScrollState,
+    SetViewport,
+    StylesheetLoad,
+    TimerEvent,
+    UpdateReplacedElement,
+    WebSocketEvent,
+    WorkerEvent,
+    WorkletEvent,
+    ServiceWorkerEvent,
+    EnterFullscreen,
+    ExitFullscreen,
+    WebVREvent,
+    PerformanceTimelineTask,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum HangAnnotation {
+    Layout(LayoutHangAnnotation),
+    Script(ScriptHangAnnotation),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum HangAlert {
+    /// Report a transient hang.
+    Transient(MonitoredComponentId, HangAnnotation),
+    /// Report a permanent hang.
+    Permanent(MonitoredComponentId, HangAnnotation, String),
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub enum MonitoredComponentType {
+    Layout,
+    Script,
+}
+
+pub enum MonitoredComponentMsg {
+    /// Notify start of new activity for a given component,
+    NotifyActivity(HangAnnotation),
+    /// Notify start of waiting for a new task to come-in for processing.
+    NotifyWait,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct MonitoredComponentId(pub PipelineId, pub MonitoredComponentType);
+
+pub struct BackgroundHangMonitorChan {
+    sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
+    component_id: MonitoredComponentId
+}
+
+impl BackgroundHangMonitorChan {
+    pub fn new(
+        sender: Sender<(MonitoredComponentId, MonitoredComponentMsg)>,
+        component_id: MonitoredComponentId,
+        ) -> Self {
+        BackgroundHangMonitorChan {
+            sender,
+            component_id
+        }
+    }
+
+    pub fn send(&self, msg: MonitoredComponentMsg) {
+        if let Err(_) = self.sender.send((self.component_id.clone(), msg)) {
+            warn!("BackgroundHangMonitor has gone away");
+        }
+    }
+}
+
+#[allow(unsafe_code)]
+pub fn init_background_hang_monitor(
+    pipeline: PipelineId,
+    component_type: MonitoredComponentType,
+    constellation_chan: IpcSender<HangAlert>,
+    transient_hang_timeout: Duration,
+    permanent_hang_timeout: Duration,
+) -> BackgroundHangMonitorChan {
+    let (sender, port) = channel();
+    let component_id = MonitoredComponentId(pipeline, component_type);
+    let bhm_chan = BackgroundHangMonitorChan::new(sender, component_id.clone());
+    install_sigprof_handler();
+    let _ = thread::Builder::new().spawn(move || {
+        let mut monitor = unsafe {
+            BackgroundHangMonitor::new(
+                libc::pthread_self(),
+                port,
+                constellation_chan,
+                component_id,
+                transient_hang_timeout,
+                permanent_hang_timeout,
+            )
+        };
+        while monitor.run() {
+            // Monitoring until all senders have been dropped...
+        }
+    });
+    bhm_chan
+}
+
+#[allow(unsafe_code)]
+fn install_sigprof_handler() {
+    fn handler(_sig: i32) {
+        unsafe {
+            // Note: this is safe due to the "trace transaction" concept,
+            // see background_hang_monitor::CURRENTLY_TRACING.
+            if let Some(ref sender) = TRACE_SENDER {
+                let _ = sender.send((libc::pthread_self(), Backtrace::new()));
+            }
+        }
+    }
+    signal!(Sig::PROF, handler);
 }

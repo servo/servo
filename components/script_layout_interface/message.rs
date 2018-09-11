@@ -8,7 +8,7 @@ use euclid::{Point2D, Rect};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{HangAlert, PipelineId};
 use net_traits::image_cache::ImageCache;
 use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
@@ -212,6 +212,7 @@ pub struct NewLayoutThreadInfo {
     pub is_parent: bool,
     pub layout_pair: (Sender<Msg>, Receiver<Msg>),
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
+    pub background_hang_monitor_to_constellation_chan: IpcSender<HangAlert>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache: Arc<ImageCache>,
